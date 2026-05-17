@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\User;
+use App\Support\Plan\PlanLimits;
 use App\Support\Tenancy\TenantSubdomainUrl;
 use App\Tenancy\TenantManager;
 use Illuminate\Http\Request;
@@ -69,6 +70,7 @@ class HandleInertiaRequests extends Middleware
                 'scheme' => TenantSubdomainUrl::scheme(),
                 'login_path' => TenantSubdomainUrl::loginPath(),
             ],
+            'plan_limits' => static fn () => PlanLimits::snapshot(),
             'auth' => [
                 'user' => $user,
                 'permissions' => $user

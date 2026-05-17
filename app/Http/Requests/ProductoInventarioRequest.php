@@ -2,12 +2,16 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\ValidatesPlanIntLimits;
 use App\Models\Producto;
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class ProductoInventarioRequest extends FormRequest
 {
+    use ValidatesPlanIntLimits;
+
     public function authorize(): bool
     {
         return true;
@@ -81,5 +85,10 @@ class ProductoInventarioRequest extends FormRequest
         if ($stockMin === null || $stockMin === '') {
             $this->merge(['stock_minimo' => null]);
         }
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $this->enforcePlanIntLimitsOnCreate($validator, ['max_productos']);
     }
 }

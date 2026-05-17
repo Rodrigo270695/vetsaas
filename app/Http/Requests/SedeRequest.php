@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\ValidatesPlanIntLimits;
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
@@ -13,6 +15,8 @@ use Illuminate\Foundation\Http\FormRequest;
  */
 class SedeRequest extends FormRequest
 {
+    use ValidatesPlanIntLimits;
+
     public function authorize(): bool
     {
         return true;
@@ -55,5 +59,10 @@ class SedeRequest extends FormRequest
         $this->merge([
             'activa' => $this->boolean('activa'),
         ]);
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $this->enforcePlanIntLimitsOnCreate($validator, ['max_sedes']);
     }
 }

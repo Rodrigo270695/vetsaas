@@ -115,4 +115,17 @@ return [
         'name' => env('MAIL_FROM_NAME', env('APP_NAME', 'Laravel')),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Cola para correos de autenticación
+    |--------------------------------------------------------------------------
+    |
+    | false (default): reset de contraseña e invitaciones se envían en el
+    | mismo request — no requiere `php artisan queue:work`.
+    |
+    | true: se encolan en la cola "mails" (requiere worker activo).
+    |
+    */
+    'queue_auth_notifications' => env('MAIL_QUEUE_AUTH_NOTIFICATIONS', false),
+
 ];

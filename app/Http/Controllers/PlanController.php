@@ -157,7 +157,7 @@ class PlanController extends Controller
         $data = $request->validate([
             'features' => ['present', 'array'],
             'features.*.feature' => ['required', 'string', Rule::in($allowed)],
-            'features.*.valor_int' => ['nullable', 'integer', 'min:0', 'max:1000000'],
+            'features.*.valor_int' => ['nullable', 'integer', 'min:-1', 'max:1000000'],
             'features.*.valor_bool' => ['nullable', 'boolean'],
             'features.*.valor_str' => ['nullable', 'string', 'max:50'],
         ]);
@@ -307,7 +307,7 @@ class PlanController extends Controller
         }
 
         $filename = 'planes-'.now()->format('Ymd-His').'.xlsx';
-        $exporter = new PlansXlsxExport();
+        $exporter = new PlansXlsxExport;
 
         return response()->streamDownload(
             function () use ($exporter, $query) {

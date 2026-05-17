@@ -2,12 +2,16 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\ValidatesPlanIntLimits;
 use App\Support\PropietarioTipoDocumento;
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class PropietarioRequest extends FormRequest
 {
+    use ValidatesPlanIntLimits;
+
     public function authorize(): bool
     {
         return true;
@@ -47,5 +51,10 @@ class PropietarioRequest extends FormRequest
             'activo' => $this->boolean('activo'),
             'tipo_documento' => $tipoNormalizado,
         ]);
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $this->enforcePlanIntLimitsOnCreate($validator, ['max_propietarios']);
     }
 }

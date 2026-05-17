@@ -2,12 +2,16 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\ValidatesPlanIntLimits;
 use App\Models\Propietario;
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class PacienteRequest extends FormRequest
 {
+    use ValidatesPlanIntLimits;
+
     public function authorize(): bool
     {
         return true;
@@ -67,5 +71,10 @@ class PacienteRequest extends FormRequest
         $this->merge([
             'activo' => $this->boolean('activo'),
         ]);
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $this->enforcePlanIntLimitsOnCreate($validator, ['max_pacientes']);
     }
 }

@@ -201,6 +201,14 @@ export function PropietarioFormModal({
             }
         >
             <div className="flex flex-col gap-5">
+                {errors.plan_limit ? (
+                    <p
+                        className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+                        role="alert"
+                    >
+                        {errors.plan_limit}
+                    </p>
+                ) : null}
                 <FormSection
                     index={0}
                     title={t('form.section_identity')}

@@ -1,4 +1,5 @@
 import type { Auth } from '@/types/auth';
+import type { PlanLimitsSnapshot } from '@/types/plan-limits';
 import type { TenancyShared } from '@/types/tenancy';
 import type { TenantShared } from '@/types/tenant';
 
@@ -17,6 +18,7 @@ declare module '@inertiajs/core' {
             timezone: string;
             tenant: TenantShared | null;
             tenancy: TenancyShared;
+            plan_limits: PlanLimitsSnapshot | null;
             tenant_impersonation: SharedTenantImpersonation | null;
             [key: string]: unknown;
         };

@@ -2,9 +2,12 @@
 
 namespace App\Console\Commands;
 
+use App\Auth\TenantAwarePasswordTokenRepository;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Notifications\Auth\TenantAdminInvitationNotification;
+use App\Support\Auth\AuthNotifier;
+use Illuminate\Auth\Passwords\PasswordBroker;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -168,16 +171,19 @@ class TenantCreateAdminCommand extends Command
      * usuario sin password explícito (modo A) y no se pasó `--no-invite`.
      *
      * El token se almacena en `password_reset_tokens` con `tenant_id`
-     * gracias a {@see \App\Auth\TenantAwarePasswordTokenRepository}.
+     * gracias a {@see TenantAwarePasswordTokenRepository}.
      */
     protected function sendInvitation(User $user): void
     {
-        /** @var \Illuminate\Auth\Passwords\PasswordBroker $broker */
+        /** @var PasswordBroker $broker */
         $broker = Password::broker(config('fortify.passwords'));
         $token = $broker->createToken($user);
 
-        $user->notify(new TenantAdminInvitationNotification($token));
+        AuthNotifier::send($user, new TenantAdminInvitationNotification($token));
 
-        $this->line('  · Invitación enviada por correo (cola "mails").');
+        $queued = config('mail.queue_auth_notifications', false);
+        $this->line($queued
+            ? '  · Invitación encolada (cola "mails"; requiere queue:work).'
+            : '  · Invitación enviada por correo.');
     }
 }

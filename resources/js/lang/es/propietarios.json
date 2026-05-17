@@ -3,6 +3,9 @@
     "description": "Titulares y datos de contacto. Desde la ficha puedes registrar sus mascotas.",
     "search_placeholder": "Buscar por nombre, documento, email o teléfono…",
     "filter_label": "Estado",
+    "plan_limit": {
+        "max_propietarios": "Alcanzaste el límite de propietarios de tu plan. Actualiza el plan para registrar más."
+    },
     "actions": {
         "new": "Nuevo propietario",
         "new_short": "Nuevo",

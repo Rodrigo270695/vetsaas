@@ -26,7 +26,13 @@ import {
 } from '@/components/data-page';
 import type { DataTableColumn, FilterChip } from '@/components/data-page';
 import { Button } from '@/components/ui/button';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useDataTablePage } from '@/hooks/use-data-table-page';
+import { usePlanLimitReached } from '@/hooks/use-plan-limits';
 import { usePermission } from '@/hooks/use-permission';
 import { useRowSelection } from '@/hooks/use-row-selection';
 import propietarios from '@/routes/clinica/propietarios';
@@ -72,6 +78,8 @@ export default function Index({ propietarios: paginated, filters, stats, departa
     const { t } = useTranslation(['propietarios', 'common']);
     const { can } = usePermission();
     const canCreate = can('propietarios.create');
+    const ownersLimitReached = usePlanLimitReached('max_propietarios');
+    const canCreateOwner = canCreate && !ownersLimitReached;
     const canUpdate = can('propietarios.update');
     const canDelete = can('propietarios.delete');
     const canExport = can('propietarios.export');
@@ -295,11 +303,27 @@ export default function Index({ propietarios: paginated, filters, stats, departa
                                 </Button>
                             )}
                             <Can permission="propietarios.create">
-                                <Button type="button" onClick={openCreate} className="cursor-pointer gap-2">
-                                    <Plus className="size-4" strokeWidth={2.5} />
-                                    <span className="hidden sm:inline">{t('actions.new')}</span>
-                                    <span className="sm:hidden">{t('actions.new_short')}</span>
-                                </Button>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <span className="inline-flex">
+                                            <Button
+                                                type="button"
+                                                onClick={openCreate}
+                                                disabled={ownersLimitReached}
+                                                className="cursor-pointer gap-2"
+                                            >
+                                                <Plus className="size-4" strokeWidth={2.5} />
+                                                <span className="hidden sm:inline">{t('actions.new')}</span>
+                                                <span className="sm:hidden">{t('actions.new_short')}</span>
+                                            </Button>
+                                        </span>
+                                    </TooltipTrigger>
+                                    {ownersLimitReached ? (
+                                        <TooltipContent side="bottom" className="max-w-xs">
+                                            {t('plan_limit.max_propietarios')}
+                                        </TooltipContent>
+                                    ) : null}
+                                </Tooltip>
                             </Can>
                         </div>
                     }
@@ -348,7 +372,7 @@ export default function Index({ propietarios: paginated, filters, stats, departa
                             title={activeFiltersCount > 0 ? t('empty.no_results_title') : t('empty.no_records_title')}
                             description={activeFiltersCount > 0 ? t('empty.no_results_description') : t('empty.no_records_description')}
                             action={
-                                activeFiltersCount === 0 && canCreate ? (
+                                activeFiltersCount === 0 && canCreateOwner ? (
                                     <Button type="button" onClick={openCreate} className="cursor-pointer gap-2">
                                         <Plus className="size-4" strokeWidth={2.5} />
                                         {t('actions.create_first')}

@@ -4,6 +4,8 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Models\Concerns\UsesPublicSchema;
+use App\Notifications\Auth\PasswordResetLinkNotification;
+use App\Support\Auth\AuthNotifier;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -56,13 +58,12 @@ class User extends Authenticatable
      * Override del default de Laravel para:
      *   - Usar nuestra notificación brandeada (Brevo SMTP, español, con
      *     marca de la clínica si aplica).
-     *   - Aprovechar que esta notificación es queueable por defecto, así
-     *     que el HTTP responde inmediatamente y el envío real corre en
-     *     background.
+     *   - Por defecto se envía en el mismo request (sin depender de
+     *     `queue:work`). Ver `config('mail.queue_auth_notifications')`.
      */
     public function sendPasswordResetNotification(#[\SensitiveParameter] $token): void
     {
-        $this->notify(new \App\Notifications\Auth\PasswordResetLinkNotification($token));
+        AuthNotifier::send($this, new PasswordResetLinkNotification($token));
     }
 
     /**

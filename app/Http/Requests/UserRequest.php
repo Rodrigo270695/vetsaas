@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\ValidatesPlanIntLimits;
 use App\Models\User;
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
@@ -21,6 +23,8 @@ use Illuminate\Validation\Rules\Password;
  */
 class UserRequest extends FormRequest
 {
+    use ValidatesPlanIntLimits;
+
     public function authorize(): bool
     {
         return true;
@@ -95,5 +99,10 @@ class UserRequest extends FormRequest
                 FILTER_NULL_ON_FAILURE,
             ) ?? true,
         ]);
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $this->enforcePlanIntLimitsOnCreate($validator, ['max_usuarios']);
     }
 }

@@ -44,10 +44,17 @@ class TenantAwarePasswordBrokerManager extends PasswordBrokerManager
             $key = base64_decode(substr($key, 7));
         }
 
+        $connection = $this->app['db']->connection($config['connection'] ?? null);
+        $table = (string) ($config['table'] ?? 'password_reset_tokens');
+
+        if ($connection->getDriverName() === 'pgsql' && ! str_contains($table, '.')) {
+            $table = 'public.'.$table;
+        }
+
         return new TenantAwarePasswordTokenRepository(
-            $this->app['db']->connection($config['connection'] ?? null),
+            $connection,
             $this->app['hash'],
-            $config['table'],
+            $table,
             $key,
             ($config['expire'] ?? 60) * 60,
             $config['throttle'] ?? 0,

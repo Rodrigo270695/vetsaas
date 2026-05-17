@@ -2,6 +2,7 @@
 
 namespace App\Notifications\Auth;
 
+use App\Auth\TenantAwarePasswordTokenRepository;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Bus\Queueable;
@@ -23,7 +24,7 @@ use Illuminate\Support\Carbon;
  *   3. Texto en español y branding (cuando el usuario es de una
  *      clínica, el saludo y el footer usan el nombre comercial).
  *
- * Token storage: ver {@see \App\Auth\TenantAwarePasswordTokenRepository}.
+ * Token storage: ver {@see TenantAwarePasswordTokenRepository}.
  */
 class PasswordResetLinkNotification extends Notification implements ShouldQueue
 {
@@ -92,10 +93,14 @@ class PasswordResetLinkNotification extends Notification implements ShouldQueue
 
         $rootDomain = (string) config('tenant.root_domain', 'localhost');
         $appUrl = (string) config('app.url', 'http://localhost');
-        $scheme = parse_url($appUrl, PHP_URL_SCHEME) ?: 'http';
+        $scheme = $tenant
+            ? (string) config('orvae.tenant.scheme', parse_url($appUrl, PHP_URL_SCHEME) ?: 'https')
+            : (parse_url($appUrl, PHP_URL_SCHEME) ?: 'http');
 
         $appPort = parse_url($appUrl, PHP_URL_PORT);
-        $portSuffix = $appPort ? ':'.$appPort : '';
+        $portSuffix = $appPort && ! in_array((int) $appPort, [80, 443], true)
+            ? ':'.$appPort
+            : '';
 
         $host = $tenant && is_string($tenant->slug) && $tenant->slug !== ''
             ? $tenant->slug.'.'.$rootDomain.$portSuffix
