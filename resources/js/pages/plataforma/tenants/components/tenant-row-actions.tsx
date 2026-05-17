@@ -1,4 +1,3 @@
-import { usePage } from '@inertiajs/react';
 import {
     Copy,
     ExternalLink,
@@ -19,9 +18,8 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { tenantLoginUrl } from '@/lib/tenancy-url';
+import { tenantLoginUrl, useTenancy } from '@/lib/tenancy-url';
 import { toastManager } from '@/lib/toast';
-import type { TenancyShared } from '@/types/tenancy';
 import type { Tenant } from '../types';
 
 export type TenantRowActionsProps = {
@@ -64,6 +62,7 @@ export function TenantRowActions({
     canImpersonate = false,
 }: TenantRowActionsProps) {
     const { t } = useTranslation(['tenants', 'common']);
+    const tenancy = useTenancy();
 
     const isCancelled = tenant.estado === 'cancelled';
     const isSuspended = tenant.estado === 'suspended';

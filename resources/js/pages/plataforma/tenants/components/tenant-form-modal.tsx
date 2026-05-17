@@ -1,4 +1,4 @@
-import { useForm, usePage } from '@inertiajs/react';
+import { useForm } from '@inertiajs/react';
 import { Loader2, Sparkles } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -10,7 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import tenants from '@/routes/plataforma/tenants';
-import type { TenancyShared } from '@/types/tenancy';
+import { useTenancy } from '@/lib/tenancy-url';
 import type { GeoOption, Tenant } from '../types';
 
 export type TenantFormModalProps = {
@@ -129,7 +129,7 @@ export function TenantFormModal({
     departamentos,
 }: TenantFormModalProps) {
     const { t } = useTranslation(['tenants', 'common']);
-    const tenancy = usePage().props.tenancy as TenancyShared;
+    const tenancy = useTenancy();
     const isEdit = tenant !== null;
 
     const { data, setData, post, put, processing, errors, reset, clearErrors } =
