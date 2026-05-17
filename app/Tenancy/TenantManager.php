@@ -183,10 +183,10 @@ class TenantManager
     public function flushCacheFor(Tenant $tenant): void
     {
         if (is_string($tenant->slug) && $tenant->slug !== '') {
-            Cache::forget("tenant:slug:{$tenant->slug}");
+            Cache::forget($this->slugCacheKey($tenant->slug));
         }
 
-        Cache::forget('tenant:id:'.$tenant->getKey());
+        Cache::forget($this->idCacheKey((string) $tenant->getKey()));
     }
 
     /**
@@ -243,26 +243,83 @@ class TenantManager
     protected function findBySlug(string $slug): ?Tenant
     {
         $ttl = (int) config('tenant.cache_ttl', 60);
-
-        $loader = fn (): ?Tenant => Tenant::query()->where('slug', $slug)->first();
+        $cacheKey = $this->slugCacheKey($slug);
 
         if ($ttl <= 0) {
-            return $loader();
+            return Tenant::query()->where('slug', $slug)->first();
         }
 
-        return Cache::remember("tenant:slug:{$slug}", $ttl, $loader);
+        $this->forgetLegacyModelCacheEntry($cacheKey);
+
+        $tenantId = Cache::remember($cacheKey, $ttl, function () use ($slug): string {
+            $id = Tenant::query()->where('slug', $slug)->value('id');
+
+            return $id !== null ? (string) $id : '';
+        });
+
+        return $this->tenantFromCachedId($tenantId, $cacheKey);
     }
 
     protected function findById(string $id): ?Tenant
     {
         $ttl = (int) config('tenant.cache_ttl', 60);
-
-        $loader = fn (): ?Tenant => Tenant::query()->whereKey($id)->first();
+        $cacheKey = $this->idCacheKey($id);
 
         if ($ttl <= 0) {
-            return $loader();
+            return Tenant::query()->whereKey($id)->first();
         }
 
-        return Cache::remember("tenant:id:{$id}", $ttl, $loader);
+        $this->forgetLegacyModelCacheEntry($cacheKey);
+
+        $tenantId = Cache::remember($cacheKey, $ttl, function () use ($id): string {
+            $found = Tenant::query()->whereKey($id)->value('id');
+
+            return $found !== null ? (string) $found : '';
+        });
+
+        return $this->tenantFromCachedId($tenantId, $cacheKey);
+    }
+
+    /**
+     * Convierte el id cacheado (string vacío = no encontrado) en modelo fresco.
+     */
+    protected function tenantFromCachedId(string $tenantId, string $cacheKey): ?Tenant
+    {
+        if ($tenantId === '') {
+            return null;
+        }
+
+        $tenant = Tenant::query()->whereKey($tenantId)->first();
+
+        if ($tenant === null) {
+            Cache::forget($cacheKey);
+        }
+
+        return $tenant;
+    }
+
+    /**
+     * Entradas antiguas guardaban el modelo Eloquent serializado; tras un deploy
+     * pueden deserializarse como {@see __PHP_Incomplete_Class} y romper el request.
+     */
+    protected function forgetLegacyModelCacheEntry(string $cacheKey): void
+    {
+        $cached = Cache::get($cacheKey);
+
+        if ($cached === null || is_string($cached)) {
+            return;
+        }
+
+        Cache::forget($cacheKey);
+    }
+
+    protected function slugCacheKey(string $slug): string
+    {
+        return "tenant:slug:{$slug}";
+    }
+
+    protected function idCacheKey(string $id): string
+    {
+        return "tenant:id:{$id}";
     }
 }

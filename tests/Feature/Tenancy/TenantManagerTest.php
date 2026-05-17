@@ -133,3 +133,14 @@ it('flushCacheFor invalida la entrada por slug', function (): void {
 
     expect(Cache::has("tenant:slug:{$this->tenant->slug}"))->toBeFalse();
 });
+
+it('cachea el id del tenant, no el modelo serializado', function (): void {
+    config(['tenant.cache_ttl' => 60]);
+    $manager = app(TenantManager::class);
+
+    $manager->resolveBySlug($this->tenant->slug);
+
+    $cached = Cache::get("tenant:slug:{$this->tenant->slug}");
+    expect($cached)->toBeString();
+    expect($cached)->toBe((string) $this->tenant->id);
+});

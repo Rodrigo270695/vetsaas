@@ -55,6 +55,8 @@ class TenantDiagnoseCommand extends Command
             return self::FAILURE;
         }
 
+        $manager->flushCacheFor($tenant);
+
         try {
             $manager->runForSlug($slug, function () use ($schema): void {
                 $hasClinic = Schema::hasTable('cfg_clinic_settings');
@@ -66,6 +68,7 @@ class TenantDiagnoseCommand extends Command
             });
         } catch (Throwable $e) {
             $this->error('Error al montar el tenant: '.$e->getMessage());
+            $this->warn('Si el error menciona __PHP_Incomplete_Class, ejecuta: php artisan cache:clear');
 
             return self::FAILURE;
         }
