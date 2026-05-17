@@ -1,0 +1,110 @@
+{
+    "title": "Laboratory",
+    "description": "Test orders: requested exams, lab destination, and status tracking.",
+    "search_placeholder": "Search by patient, owner, exam, result, destination, status, branch, veterinarian, or notes…",
+    "date_filter": {
+        "placeholder": "Date range",
+        "aria": "Filter by order date",
+        "reset_month": "Current month",
+        "preset_this_week": "This week",
+        "preset_last_week": "Last week",
+        "preset_last_month": "Last month",
+        "apply_single_day": "Single day"
+    },
+    "filters": {
+        "estado": "Status",
+        "estado_all": "All statuses",
+        "paciente": "Patient",
+        "paciente_all": "All patients",
+        "paciente_search": "Search patient…",
+        "paciente_empty": "No matches.",
+        "veterinario": "Professional",
+        "veterinario_all": "All professionals",
+        "sede": "Site",
+        "sede_all": "All sites",
+        "vinculo_consulta": "Visit link",
+        "vinculo_todos": "All orders (with or without visit)",
+        "vinculo_con": "Linked to an open visit only",
+        "vinculo_sin": "Not linked to a visit only",
+        "resultados": "Results",
+        "resultados_todos": "All orders (with or without results)",
+        "resultados_con": "With at least one result",
+        "resultados_sin": "No results on any line yet"
+    },
+    "actions": {
+        "new": "New order",
+        "new_short": "New",
+        "create_first": "Create first order",
+        "add_line": "Add exam"
+    },
+    "columns": {
+        "solicitado_at": "Date",
+        "examenes": "Exams",
+        "paciente": "Patient",
+        "estado": "Status",
+        "destino": "Destination",
+        "consulta": "Visit",
+        "veterinario": "Professional",
+        "sede": "Site",
+        "creado_por": "Recorded by",
+        "acciones": "Actions"
+    },
+    "estado": {
+        "borrador": "Draft",
+        "solicitado": "Requested",
+        "en_proceso": "In progress",
+        "completado": "Completed",
+        "cancelado": "Cancelled"
+    },
+    "stats": {
+        "total": "Total in range",
+        "filters": "Filters",
+        "matches": "Matches"
+    },
+    "empty": {
+        "no_results_title": "No results",
+        "no_results_description": "Try clearing filters or changing your search.",
+        "no_records_title": "No orders yet",
+        "no_records_description": "Create the first order with the “New order” button."
+    },
+    "toast": {
+        "load_error": "Could not load the list."
+    },
+    "form": {
+        "title_create": "New lab order",
+        "title_edit": "Edit order",
+        "paciente": "Patient",
+        "paciente_placeholder": "Select patient…",
+        "paciente_search": "Search patient…",
+        "paciente_empty": "No matching patients.",
+        "consulta": "Open visit (optional)",
+        "consulta_placeholder": "Not linked to a visit",
+        "consulta_hint": "Only open visits from the list; they must match the selected patient.",
+        "solicitado_at": "Order date",
+        "estado": "Status",
+        "laboratorio_destino": "Lab / destination",
+        "laboratorio_destino_placeholder": "e.g. external or in-house lab",
+        "observaciones": "General notes",
+        "veterinario": "Professional",
+        "veterinario_placeholder": "Unassigned",
+        "sede": "Site",
+        "sede_placeholder": "No site",
+        "section_general": "General details",
+        "section_general_hint": "Patient, optional visit, date, status, and lab destination.",
+        "section_context": "Professional and site",
+        "section_context_hint": "Who requests and from which site (optional).",
+        "section_lineas": "Exams",
+        "section_lineas_hint": "List each exam, instructions for the lab, and results when available.",
+        "linea_examen": "Exam name",
+        "linea_indicaciones": "Instructions / sample",
+        "linea_resultado": "Result",
+        "linea_resultado_at": "Result date",
+        "remove_line": "Remove",
+        "submit_create": "Save",
+        "submit_edit": "Save changes"
+    },
+    "delete": {
+        "title": "Delete this order?",
+        "description": "It will no longer appear in the list."
+    }
+}

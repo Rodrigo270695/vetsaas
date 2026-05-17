@@ -1,0 +1,176 @@
+{
+    "title": "Medical records",
+    "description": "SOAP visits linked to each patient.",
+    "search_placeholder": "Search by patient, owner, reason or clinical notes…",
+    "date_filter": {
+        "placeholder": "Date range",
+        "aria": "Filter by visit date",
+        "reset_month": "This month",
+        "preset_this_week": "This week",
+        "preset_last_week": "Last week",
+        "preset_last_month": "Last month",
+        "apply_single_day": "Single day"
+    },
+    "actions": {
+        "new": "New visit",
+        "new_short": "New",
+        "create_first": "Log the first visit",
+        "plan_tratamiento": "Treatment plan & follow-up",
+        "cargos_consulta": "Charges / pre-invoice",
+        "registrar_aplicacion": "Log application"
+    },
+    "columns": {
+        "atendido_at": "Date & time",
+        "paciente": "Patient",
+        "propietario": "Owner",
+        "motivo": "Reason",
+        "peso_kg": "Weight (kg)",
+        "estado": "Status",
+        "veterinario": "Veterinarian",
+        "creado_por": "Logged by",
+        "acciones": "Actions"
+    },
+    "stats": {
+        "total": "Total visits",
+        "filters": "Filters",
+        "matches": "Matches"
+    },
+    "empty": {
+        "no_results_title": "No results",
+        "no_results_description": "Try clearing filters or changing your search.",
+        "no_records_title": "No visits yet",
+        "no_records_description": "Create the first visit with the «New visit» button."
+    },
+    "row": {
+        "system": "System",
+        "estado_abierta": "Open",
+        "estado_cerrada": "Closed"
+    },
+    "toast": {
+        "load_error": "Could not load the list."
+    },
+    "form": {
+        "title_create": "New visit",
+        "title_edit": "Edit visit",
+        "section_main": "Visit details",
+        "paciente": "Patient",
+        "paciente_placeholder": "Select patient…",
+        "paciente_search": "Search patient…",
+        "paciente_empty": "No matching patients.",
+        "paciente_locked_hint": "Patient cannot be changed when editing.",
+        "atendido_at": "Visit date & time",
+        "motivo": "Chief complaint",
+        "motivo_placeholder": "Short reason…",
+        "subjetivo": "Subjective (S)",
+        "objetivo": "Objective (O)",
+        "analisis": "Assessment (A)",
+        "plan": "Plan (P)",
+        "soap_hint": "SOAP: subjective (owner report), objective (exam), assessment and plan.",
+        "peso_kg": "Weight at visit (kg)",
+        "peso_placeholder": "Optional",
+        "temperatura_c": "Temperature (°C)",
+        "fc_lpm": "Heart rate (bpm)",
+        "fr_rpm": "Respiratory rate (rpm)",
+        "vital_placeholder": "Optional",
+        "cerrar": "Close visit",
+        "reabrir": "Reopen visit",
+        "cerrada_hint": "SOAP data and vitals cannot be edited until the visit is reopened.",
+        "submit_create": "Save visit",
+        "submit_edit": "Update visit",
+        "plan_tratamiento_section": "Medication plan (multi-day)",
+        "plan_tratamiento_hint": "Set medications, dates and instructions. Daily follow-up notes are recorded on the «Treatment plan» page.",
+        "plan_tratamiento_fecha_inicio": "Plan start",
+        "plan_tratamiento_fecha_fin": "Expected end",
+        "plan_tratamiento_estado": "Plan status",
+        "plan_tratamiento_indicaciones": "General instructions",
+        "plan_tratamiento_lineas_title": "Medications / lines",
+        "plan_tratamiento_add_linea": "Add line",
+        "plan_tratamiento_remove_linea": "Remove line"
+    },
+    "delete": {
+        "title": "Delete this visit?",
+        "description": "The visit will be removed from this list."
+    },
+    "plan": {
+        "page_title": "Plan · {{paciente}}",
+        "page_description": "Medication plan summary and dated follow-up notes.",
+        "back_list": "Back to list",
+        "empty_no_plan_title": "No medication plan",
+        "empty_no_plan_description": "If you have management permission, define the plan using the form below. Daily follow-up is recorded after the plan is saved.",
+        "empty_readonly_hint": "There is no plan for this visit yet. A user with management permission can create it on this screen.",
+        "soap_edit_link": "Edit SOAP visit details only",
+        "consulta_cerrada_aviso": "This visit is closed: you cannot edit the plan or add follow-up notes until it is reopened.",
+        "editor": {
+            "define_title": "Define medication plan",
+            "update_title": "Update medication plan",
+            "update_description": "Plan dates, status, and general instructions save automatically when you change them. Each medication is saved when you close the side panel.",
+            "submit_save": "Save plan",
+            "submit_update": "Update plan"
+        },
+        "card_resumen_title": "Plan summary",
+        "card_lineas_title": "Prescribed medication",
+        "card_seguimientos_title": "Follow-up log",
+        "card_nuevo_seguimiento": "New follow-up note",
+        "fecha_inicio": "Start",
+        "fecha_fin": "Expected end",
+        "indicaciones": "Instructions",
+        "lineas_empty": "No medication lines recorded.",
+        "lineas_empty_hint_manage": "Use «Add medication» in the block above, or edit a line from the side panel.",
+        "seguimientos_empty": "No follow-up notes yet.",
+        "estado": {
+            "activo": "Active",
+            "completado": "Completed",
+            "suspendido": "On hold"
+        },
+        "producto_picker": {
+            "placeholder": "Link to inventory (optional)",
+            "search": "Search product…",
+            "empty": "No matches.",
+            "loading": "Searching…",
+            "clear_aria": "Remove inventory link",
+            "stock_sede": "Stock:"
+        },
+        "linea": {
+            "medicamento": "Drug",
+            "medicamento_hint": "You can link an inventory product and edit the label if needed.",
+            "dosis": "Dose",
+            "unidad": "Unit",
+            "via": "Route",
+            "frecuencia": "Frequency",
+            "lote": "Batch",
+            "cantidad_inventario": "Quantity (use / dispense)",
+            "cantidad_inventario_hint": "Planned or dispensed amount; saving the plan does not move inventory.",
+            "stock_sede_referencia": "Stock at branch (reference)",
+            "stock_sede_nota": "Read-only. The plan does not deduct inventory.",
+            "notas": "Notes",
+            "anadido_en": "Recorded on",
+            "sin_detalle": "No dose or schedule on this line",
+            "inventario_badge": "Inv."
+        },
+        "lineas_editor": {
+            "dashed_title": "No medications in the plan yet",
+            "dashed_hint": "Click here or «Add medication» to open the panel and add the first line.",
+            "add_open": "Add medication",
+            "row_open_edit_title": "View and edit dose, route, frequency and notes in the panel",
+            "autosave_hint": "Changes save automatically when you edit lines or plan details.",
+            "saving": "Saving…",
+            "delete_confirm_title": "Remove medication?",
+            "delete_confirm_description": "«{{medicamento}}» will be removed from the list. The change is saved when you confirm.",
+            "delete_confirm_action": "Remove"
+        },
+        "lineas_sheet": {
+            "title_new": "New medication",
+            "title_edit": "Edit medication",
+            "save": "Save to plan",
+            "medicamento_required": "Enter the drug name.",
+            "edit_aria": "Edit this line"
+        },
+        "seguimiento": {
+            "section_title": "Note",
+            "registrado_at": "Date & time",
+            "nota": "Progress / observations",
+            "nota_placeholder": "e.g. appetite, drug reaction, vitals…",
+            "submit": "Save note"
+        }
+    }
+}

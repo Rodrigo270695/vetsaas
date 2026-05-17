@@ -1,0 +1,58 @@
+{
+    "title": "Inventory categories",
+    "description": "Organize your products into groups to keep a clear and scalable catalog.",
+    "search_placeholder": "Search by name, slug, or description…",
+    "filter_label": "Filter categories by status",
+    "stats": {
+        "total": "Total",
+        "active": "Active",
+        "inactive": "Inactive",
+        "filters": "Filters",
+        "matches": "Matches"
+    },
+    "columns": {
+        "nombre": "Name",
+        "parent": "Parent category",
+        "orden": "Order",
+        "estado": "Status",
+        "creado_por": "Created by",
+        "acciones": "Actions"
+    },
+    "row": {
+        "parent_none": "No parent category",
+        "system": "System"
+    },
+    "actions": {
+        "new": "New category",
+        "new_short": "New",
+        "create_first": "Create first category"
+    },
+    "empty": {
+        "no_records_title": "No categories yet",
+        "no_records_description": "Start building your inventory category structure.",
+        "no_results_title": "No results",
+        "no_results_description": "No categories matched the current filters."
+    },
+    "form": {
+        "title_create": "New category",
+        "title_edit": "Edit category",
+        "submit_create": "Save category",
+        "submit_edit": "Update category",
+        "nombre": "Name",
+        "parent": "Parent category",
+        "parent_placeholder": "Select a parent category",
+        "parent_none": "No parent category",
+        "slug": "Slug",
+        "orden": "Order",
+        "descripcion": "Description",
+        "estado": "Status",
+        "activo_label": "Category is active"
+    },
+    "delete": {
+        "title": "Delete category",
+        "description": "“{{categoria}}” will be deleted. This action can only be reverted from the database."
+    },
+    "toast": {
+        "load_error": "Could not load categories."
+    }
+}

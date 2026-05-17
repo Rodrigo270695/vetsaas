@@ -1,0 +1,80 @@
+{
+    "title": "Citas",
+    "description": "Agenda de visitas: paciente, profesional, sede, horario y estado de cada cita.",
+    "search_placeholder": "Buscar por paciente, propietario, motivo o notas…",
+    "date_filter": {
+        "placeholder": "Rango de fechas",
+        "aria": "Filtrar por fecha y hora de inicio de la cita",
+        "reset_month": "Mes actual",
+        "preset_this_week": "Esta semana",
+        "preset_last_week": "Semana pasada",
+        "preset_last_month": "Mes pasado",
+        "apply_single_day": "Un solo día"
+    },
+    "actions": {
+        "new": "Nueva cita",
+        "new_short": "Nueva",
+        "create_first": "Crear primera cita",
+        "cancel_appointment": "Cancelar cita"
+    },
+    "columns": {
+        "inicio_at": "Inicio",
+        "duracion": "Duración",
+        "paciente": "Paciente",
+        "estado": "Estado",
+        "motivo": "Motivo",
+        "veterinario": "Profesional",
+        "sede": "Sede",
+        "creado_por": "Registrado por",
+        "acciones": "Acciones"
+    },
+    "estado": {
+        "programada": "Programada",
+        "confirmada": "Confirmada",
+        "completada": "Completada",
+        "cancelada": "Cancelada",
+        "no_asistio": "No asistió"
+    },
+    "stats": {
+        "total": "Total en rango",
+        "filters": "Filtros",
+        "matches": "Coincidencias"
+    },
+    "empty": {
+        "no_results_title": "Sin resultados",
+        "no_results_description": "Prueba a limpiar filtros o cambiar la búsqueda.",
+        "no_records_title": "Aún no hay citas",
+        "no_records_description": "Crea la primera cita con el botón «Nueva cita»."
+    },
+    "toast": {
+        "load_error": "No se pudo cargar el listado."
+    },
+    "form": {
+        "title_create": "Nueva cita",
+        "title_edit": "Editar cita",
+        "paciente": "Paciente",
+        "paciente_placeholder": "Selecciona paciente…",
+        "paciente_search": "Buscar paciente…",
+        "paciente_empty": "Sin pacientes que coincidan.",
+        "inicio_at": "Fecha y hora de inicio",
+        "duracion_minutos": "Duración (minutos)",
+        "duracion_hint": "Entre 5 y 480 minutos.",
+        "estado": "Estado",
+        "motivo": "Motivo o motivo de consulta",
+        "notas": "Notas internas",
+        "veterinario": "Profesional asignado",
+        "veterinario_placeholder": "Sin asignar",
+        "sede": "Sede",
+        "sede_placeholder": "Sin sede",
+        "submit_create": "Guardar",
+        "submit_edit": "Guardar cambios"
+    },
+    "delete": {
+        "title": "¿Eliminar esta cita?",
+        "description": "El registro dejará de mostrarse en el listado (se puede recuperar solo desde administración avanzada)."
+    },
+    "cancel": {
+        "title": "¿Cancelar esta cita?",
+        "description": "La cita pasará al estado «Cancelada» y seguirá visible en el historial."
+    }
+}

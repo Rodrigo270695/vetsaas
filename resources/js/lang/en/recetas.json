@@ -1,0 +1,97 @@
+{
+    "title": "Prescriptions",
+    "description": "Prescriptions: drugs, posology and optional link to inventory or an open visit.",
+    "search_placeholder": "Search by patient, owner, drug, posology or notes…",
+    "date_filter": {
+        "placeholder": "Date range",
+        "aria": "Filter by prescription date",
+        "reset_month": "Current month",
+        "preset_this_week": "This week",
+        "preset_last_week": "Last week",
+        "preset_last_month": "Last month",
+        "apply_single_day": "Single day"
+    },
+    "filters": {
+        "estado": "Status",
+        "estado_all": "All statuses"
+    },
+    "actions": {
+        "new": "New prescription",
+        "new_short": "New",
+        "create_first": "Create first prescription",
+        "add_line": "Add drug",
+        "print_pdf": "PDF / print"
+    },
+    "columns": {
+        "emitida_at": "Date",
+        "medicamentos": "Drugs",
+        "paciente": "Patient",
+        "estado": "Status",
+        "consulta": "Visit",
+        "veterinario": "Clinician",
+        "sede": "Branch",
+        "creado_por": "Recorded by",
+        "acciones": "Actions"
+    },
+    "estado": {
+        "borrador": "Draft",
+        "emitida": "Issued",
+        "anulada": "Voided"
+    },
+    "stats": {
+        "total": "Total in range",
+        "filters": "Filters",
+        "matches": "Matches"
+    },
+    "empty": {
+        "no_results_title": "No results",
+        "no_results_description": "Try clearing filters or changing your search.",
+        "no_records_title": "No prescriptions yet",
+        "no_records_description": "Create the first prescription with «New prescription»."
+    },
+    "toast": {
+        "load_error": "Could not load the list."
+    },
+    "form": {
+        "title_create": "New prescription",
+        "title_edit": "Edit prescription",
+        "paciente": "Patient",
+        "paciente_placeholder": "Select patient…",
+        "paciente_search": "Search patient…",
+        "paciente_empty": "No matching patients.",
+        "consulta": "Open visit (optional)",
+        "consulta_placeholder": "Not linked to a visit",
+        "consulta_hint": "Only open visits from the list; they must match the selected patient.",
+        "emitida_at": "Prescription date",
+        "estado": "Status",
+        "observaciones": "General notes",
+        "veterinario": "Clinician",
+        "veterinario_placeholder": "Unassigned",
+        "sede": "Branch",
+        "sede_placeholder": "No branch",
+        "section_general": "General",
+        "section_general_hint": "Patient, optional visit, date and prescription status.",
+        "section_context": "Clinician and branch",
+        "section_context_hint": "Prescriber and branch (optional).",
+        "section_lineas": "Medications",
+        "section_lineas_hint": "Each drug, posology and client instructions.",
+        "linea_nombre": "Drug",
+        "linea_posologia": "Posology",
+        "linea_duracion": "Duration (days)",
+        "linea_instrucciones": "Client instructions",
+        "remove_line": "Remove",
+        "submit_create": "Save",
+        "submit_edit": "Save changes"
+    },
+    "producto_picker": {
+        "placeholder": "Link to inventory (optional)",
+        "search": "Search drug…",
+        "empty": "No matches.",
+        "loading": "Searching…",
+        "clear_aria": "Remove inventory link"
+    },
+    "delete": {
+        "title": "Delete this prescription?",
+        "description": "It will no longer appear in the list."
+    }
+}

@@ -1,0 +1,141 @@
+{
+    "title": "Tenants",
+    "description": "Administra las clínicas suscritas a VetSaaS: alta manual, suspensión, reanudación y cancelación. En producción los tenants nacen vía provisioner automático; este panel sirve para soporte y migraciones internas.",
+    "search_placeholder": "Buscar por slug, razón social, RUC o email…",
+    "filter_label": "Filtrar por estado",
+    "filters": {
+        "all": "Todos",
+        "trial": "En prueba",
+        "active": "Activos",
+        "suspended": "Suspendidos",
+        "cancelled": "Cancelados"
+    },
+    "stats": {
+        "total": "Total",
+        "active": "Activos",
+        "trial": "En prueba",
+        "suspended": "Suspendidos",
+        "cancelled": "Cancelados",
+        "filters": "Filtros activos",
+        "matches": "Coincidencias"
+    },
+    "actions": {
+        "new": "Nuevo tenant",
+        "new_short": "Nuevo",
+        "create_first": "Crear el primer tenant",
+        "delete_selected": "Eliminar seleccionados"
+    },
+    "columns": {
+        "tenant": "Tenant",
+        "contact": "Contacto",
+        "plan": "Plan",
+        "status": "Estado",
+        "trial_ends_at": "Trial termina",
+        "created_at": "Creado",
+        "acciones": "Acciones"
+    },
+    "row": {
+        "actions_for": "Acciones para {{name}}",
+        "copy_slug": "Copiar slug",
+        "open_subdomain": "Abrir subdominio",
+        "enter_support": "Entrar como soporte",
+        "suspend": "Suspender",
+        "resume": "Reanudar",
+        "trial": "En prueba",
+        "active": "Activo",
+        "suspended": "Suspendido",
+        "cancelled": "Cancelado",
+        "no_phone": "Sin teléfono",
+        "no_plan": "Sin plan",
+        "cancelled_locked": "Tenant cancelado"
+    },
+    "form": {
+        "title_create": "Nuevo tenant",
+        "title_edit": "Editar tenant",
+        "description_create": "Registra manualmente una clínica en la plataforma. El subdominio quedará en {slug}.vetsaas.com y el schema físico se llamará vet_<slug>.",
+        "description_edit": "Actualiza la información comercial y de contacto del tenant. Las transiciones de estado se hacen desde las acciones de la fila.",
+        "section_identity": "Identidad",
+        "section_identity_hint": "Slug del subdominio y datos legales de la clínica.",
+        "section_contact": "Contacto y ubicación",
+        "section_contact_hint": "Email del administrador inicial, teléfono y dirección física.",
+        "section_platform": "Configuración de plataforma",
+        "section_platform_hint": "Zona horaria, idioma y duración del periodo de prueba inicial.",
+        "fields": {
+            "slug": "Slug (subdominio)",
+            "slug_hint": "Solo minúsculas, dígitos y guiones. Será {slug}.vetsaas.com.",
+            "slug_placeholder": "patitas-felices",
+            "razon_social": "Razón social",
+            "razon_social_placeholder": "Clínica Veterinaria Patitas Felices S.A.C.",
+            "nombre_comercial": "Nombre comercial",
+            "nombre_comercial_placeholder": "Patitas Felices",
+            "ruc": "RUC",
+            "ruc_hint": "11 dígitos numéricos (opcional al crear).",
+            "email_admin": "Email del administrador",
+            "email_admin_hint": "Recibirá la invitación inicial y será el primer admin_clinica.",
+            "telefono": "Teléfono",
+            "direccion": "Dirección",
+            "direccion_placeholder": "Av. Las Palmeras 123, Of. 401",
+            "departamento": "Departamento",
+            "provincia": "Provincia",
+            "distrito": "Distrito",
+            "timezone": "Zona horaria",
+            "timezone_hint": "Formato IANA (America/Lima por defecto).",
+            "locale": "Idioma",
+            "locale_hint": "Formato es_PE / en_US.",
+            "canal": "Canal de adquisición",
+            "canal_hint": "Opcional. Útil para reportes (ej: facebook_ads, referido).",
+            "canal_placeholder": "referido",
+            "trial_days": "Días de prueba",
+            "trial_days_hint": "Cuánto durará el trial inicial (14 días por defecto)."
+        },
+        "submit_create": "Crear tenant",
+        "submit_edit": "Guardar cambios"
+    },
+    "delete": {
+        "title": "Eliminar tenant",
+        "description": "Vas a eliminar <strong>{{name}}</strong>. El tenant pasará a estado <strong>cancelado</strong> y se ocultará de los listados. Esta acción es reversible solo por el equipo técnico.",
+        "active_blocked": "Este tenant está activo. Para eliminarlo, primero suspéndelo o cancélalo.",
+        "confirm": "Sí, eliminar",
+        "loading": "Eliminando…"
+    },
+    "suspend": {
+        "title": "Suspender tenant",
+        "description": "Vas a suspender a <strong>{{name}}</strong>. Sus usuarios no podrán acceder al subdominio hasta que reanudes manualmente. El motivo se guardará en auditoría.",
+        "reason_label": "Motivo de la suspensión",
+        "reason_placeholder": "Ej: impago confirmado el 12/05 — esperando regularización.",
+        "reason_hint": "Mínimo {{min}} caracteres. Será visible en el panel y en logs.",
+        "confirm": "Suspender",
+        "loading": "Aplicando…"
+    },
+    "resume": {
+        "title": "Reanudar tenant",
+        "description": "Vas a reanudar a <strong>{{name}}</strong>. Sus usuarios podrán volver a acceder al subdominio inmediatamente.",
+        "confirm": "Reanudar"
+    },
+    "bulk": {
+        "selected_singular": "tenant seleccionado",
+        "selected_plural": "tenants seleccionados",
+        "delete_title_one": "Eliminar 1 tenant",
+        "delete_title_other": "Eliminar {{count}} tenants",
+        "delete_title": "Eliminar {{count}} tenant(s)",
+        "delete_description_one": "Se cancelará y archivará 1 tenant. Los tenants activos se omiten automáticamente.",
+        "delete_description_other": "Se cancelarán y archivarán {{count}} tenants. Los tenants activos se omiten automáticamente.",
+        "delete_description": "Se cancelarán y archivarán {{count}} tenants. Los activos se omiten automáticamente.",
+        "delete_confirm_singular": "Eliminar 1 tenant",
+        "delete_confirm_plural": "Eliminar {{count}} tenants"
+    },
+    "empty": {
+        "no_records_title": "Aún no hay tenants",
+        "no_records_description": "Cuando una clínica se registre desde el sitio o desde Orvae PE aparecerá aquí.",
+        "no_results_title": "Sin resultados",
+        "no_results_description": "Ajusta los filtros o la búsqueda para ver más tenants."
+    },
+    "aria": {
+        "results_count_one": "1 tenant coincide con los filtros actuales.",
+        "results_count_other": "{{count}} tenants coinciden con los filtros actuales."
+    },
+    "toast": {
+        "load_error": "No pudimos cargar los tenants. Reintenta en unos segundos.",
+        "slug_copied": "Slug copiado al portapapeles"
+    }
+}

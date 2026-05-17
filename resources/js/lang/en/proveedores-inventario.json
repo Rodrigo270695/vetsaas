@@ -1,0 +1,58 @@
+{
+    "title": "Suppliers",
+    "description": "Supplier master data. Look up the RUC with SUNAT (apiperu.dev) to fill the legal name automatically.",
+    "toast": {
+        "load_error": "Could not load suppliers."
+    },
+    "search_placeholder": "Search by RUC, legal name, email, phone or notes…",
+    "filter_label": "Status",
+    "columns": {
+        "ruc": "Tax ID (RUC)",
+        "razon_social": "Legal name",
+        "direccion": "Address",
+        "sunat": "SUNAT",
+        "contacto": "Contact",
+        "estado": "Status",
+        "creado_por": "Created by",
+        "acciones": "Actions"
+    },
+    "sunat_resumen": "{{estado}} · {{condicion}}",
+    "stats": {
+        "total": "Suppliers",
+        "activos": "Active",
+        "inactivos": "Inactive",
+        "filtros": "Filters",
+        "coincidencias": "In this view"
+    },
+    "actions": {
+        "new": "New supplier",
+        "new_short": "New",
+        "create_first": "Create first supplier"
+    },
+    "form": {
+        "title_create": "New supplier",
+        "title_edit": "Edit supplier",
+        "ruc": "RUC (11 digits)",
+        "consultar_ruc": "Query SUNAT",
+        "consultar_loading": "Querying…",
+        "razon_social": "Legal name",
+        "direccion": "Address",
+        "ubigeo": "UBIGEO",
+        "telefono": "Phone",
+        "email": "Email",
+        "notas": "Notes",
+        "activo": "Active in the system",
+        "consultar_error": "Could not look up the RUC.",
+        "consultar_invalid": "Enter an 11-digit RUC."
+    },
+    "delete": {
+        "title": "Delete supplier?",
+        "description": "“{{nombre}}” (RUC {{ruc}}) will be archived. You can add it again later if needed."
+    },
+    "empty": {
+        "no_records_title": "No suppliers",
+        "no_records_description": "Add suppliers to link them later to purchases and stock movements.",
+        "no_results_title": "No results",
+        "no_results_description": "Try different filters or search terms."
+    }
+}

@@ -1,0 +1,96 @@
+{
+    "title": "Branches",
+    "description": "Veterinary clinic branches. Each branch has its own schedule, cash register, inventory and billing series.",
+    "actions": {
+        "new": "New branch",
+        "new_short": "New",
+        "create_first": "Create first branch",
+        "delete_selected": "Delete selected",
+        "export_filtered": "Export matches"
+    },
+    "stats": {
+        "total": "Total",
+        "active": "Active",
+        "inactive": "Inactive",
+        "filters": "Filters",
+        "matches": "Matches"
+    },
+    "search_placeholder": "Search by name, code, address...",
+    "filter_label": "Filter by status",
+    "columns": {
+        "codigo": "Code",
+        "nombre": "Branch",
+        "ubicacion": "Location",
+        "telefono": "Phone",
+        "series": "Series",
+        "estado": "Status",
+        "creada_por": "Created by",
+        "acciones": "Actions"
+    },
+    "row": {
+        "no_location": "No location",
+        "system": "System",
+        "copy_code": "Copy code",
+        "actions_for": "Actions for {{name}}"
+    },
+    "empty": {
+        "no_records_title": "No branches yet",
+        "no_records_description": "Create your first branch to start setting up scheduling, cash and inventory.",
+        "no_results_title": "No results",
+        "no_results_description": "No record matches the current filters. Try adjusting the search or changing the status."
+    },
+    "aria": {
+        "results_count_one": "{{count}} branch found",
+        "results_count_other": "{{count}} branches found"
+    },
+    "form": {
+        "title_create": "New branch",
+        "title_edit": "Edit branch",
+        "description_create": "Register a new branch for the veterinary clinic.",
+        "description_edit": "Update the information of the selected branch.",
+        "submit_create": "Create branch",
+        "submit_edit": "Save changes",
+        "section_basic": "Basic information",
+        "section_basic_hint_create": "Main data that identifies the branch. The code is auto-assigned on creation (SEDE-NNN).",
+        "section_basic_hint_edit": "Main data of the branch. The code was auto-assigned on creation.",
+        "section_location": "Location",
+        "section_location_hint": "Physical address of the branch.",
+        "section_billing": "Electronic billing",
+        "section_billing_hint": "Receipt series associated with this branch (SUNAT / Nubefact).",
+        "section_status": "Status",
+        "fields": {
+            "nombre": "Name",
+            "nombre_placeholder": "E.g. Lima Centro Branch",
+            "telefono": "Phone",
+            "email": "Email",
+            "direccion": "Address",
+            "distrito": "District",
+            "provincia": "Province",
+            "departamento": "Department",
+            "serie_factura": "Invoice series",
+            "serie_factura_hint": "E.g. F001",
+            "serie_boleta": "Receipt series",
+            "serie_boleta_hint": "E.g. B001",
+            "activa": "Active branch",
+            "activa_hint": "If disabled, the branch won't appear in scheduling, cash or selection lists."
+        }
+    },
+    "delete": {
+        "title": "Delete branch",
+        "description": "You're about to delete branch <strong>{{name}}</strong> ({{code}}). This can be undone from the trash within 30 days.",
+        "confirm": "Yes, delete branch",
+        "loading": "Deleting..."
+    },
+    "bulk": {
+        "selected_singular": "branch selected",
+        "selected_plural": "branches selected",
+        "delete_title": "Delete {{count}} branches",
+        "delete_description": "You're about to delete {{count}} selected branches. This can be undone from the trash within 30 days.",
+        "delete_confirm_singular": "Yes, delete branch",
+        "delete_confirm_plural": "Yes, delete {{count}} branches"
+    },
+    "toast": {
+        "code_copied": "Code copied",
+        "load_error": "Couldn't load branches."
+    }
+}

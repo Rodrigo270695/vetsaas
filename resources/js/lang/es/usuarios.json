@@ -1,0 +1,109 @@
+{
+    "title": "Usuarios",
+    "description": "Administra las cuentas que pueden iniciar sesión en la clínica. Asigna roles para controlar qué módulos puede operar cada persona.",
+    "actions": {
+        "new": "Nuevo usuario",
+        "new_short": "Nuevo",
+        "create_first": "Crear primer usuario",
+        "delete_selected": "Eliminar seleccionados",
+        "export_filtered": "Exportar coincidencias"
+    },
+    "stats": {
+        "total": "Total",
+        "active": "Activos",
+        "inactive": "Suspendidos",
+        "filters": "Filtros",
+        "matches": "Coincidencias"
+    },
+    "search_placeholder": "Buscar por nombre, email o teléfono...",
+    "filter_label": "Filtrar por estado",
+    "filter_role_label": "Filtrar por rol",
+    "filters": {
+        "all": "Todos",
+        "active": "Activos",
+        "inactive": "Suspendidos",
+        "all_roles": "Todos los roles"
+    },
+    "columns": {
+        "user": "Usuario",
+        "phone": "Teléfono",
+        "role": "Rol",
+        "status": "Estado",
+        "last_login": "Último acceso",
+        "created_at": "Creado",
+        "acciones": "Acciones"
+    },
+    "row": {
+        "no_phone": "Sin teléfono",
+        "no_role": "Sin rol",
+        "no_login": "Nunca",
+        "verified": "Verificado",
+        "unverified": "No verificado",
+        "active": "Activo",
+        "suspended": "Suspendido",
+        "current_user_badge": "Tú",
+        "copy_email": "Copiar email",
+        "actions_for": "Acciones para {{name}}",
+        "self_locked": "No puedes editar o eliminar tu propia cuenta desde aquí.",
+        "superadmin_locked": "Las cuentas de superadmin se gestionan desde el seeder."
+    },
+    "empty": {
+        "no_records_title": "Aún no hay usuarios",
+        "no_records_description": "Crea el primer usuario para que tu equipo pueda acceder a la clínica.",
+        "no_results_title": "Sin resultados",
+        "no_results_description": "Ningún usuario coincide con los filtros actuales. Prueba ajustando la búsqueda o cambiando el estado/rol."
+    },
+    "aria": {
+        "results_count_one": "{{count}} usuario encontrado",
+        "results_count_other": "{{count}} usuarios encontrados"
+    },
+    "form": {
+        "title_create": "Nuevo usuario",
+        "title_edit": "Editar usuario",
+        "description_create": "Completa los datos del nuevo usuario y asígnale un rol.",
+        "description_edit": "Actualiza la información del usuario o cambia su rol.",
+        "submit_create": "Crear usuario",
+        "submit_edit": "Guardar cambios",
+        "section_basic": "Datos personales",
+        "section_basic_hint": "Información de contacto e identificación del usuario.",
+        "section_access": "Acceso",
+        "section_access_hint_create": "Define la contraseña inicial y el rol que tendrá esta cuenta.",
+        "section_access_hint_edit": "Cambia el rol o la contraseña. Si no quieres cambiar la contraseña, deja los campos vacíos.",
+        "fields": {
+            "name": "Nombre completo",
+            "name_placeholder": "Ej. María López",
+            "email": "Correo electrónico",
+            "email_placeholder": "usuario@clinica.com",
+            "phone": "Teléfono",
+            "phone_placeholder": "Ej. +51 999 888 777",
+            "password": "Contraseña",
+            "password_placeholder": "Mínimo 8 caracteres",
+            "password_placeholder_edit": "Dejar vacío para no cambiar",
+            "password_confirmation": "Confirmar contraseña",
+            "role": "Rol",
+            "role_placeholder": "Selecciona un rol",
+            "is_active": "Cuenta activa",
+            "is_active_hint": "Si está desactivada, el usuario no podrá iniciar sesión."
+        }
+    },
+    "delete": {
+        "title": "Eliminar usuario",
+        "description": "Vas a eliminar al usuario <strong>{{name}}</strong>. Perderá acceso inmediatamente y su histórico permanecerá en el sistema. Esta acción no se puede deshacer.",
+        "confirm": "Sí, eliminar usuario",
+        "loading": "Eliminando...",
+        "self_blocked": "No puedes eliminar tu propia cuenta.",
+        "superadmin_blocked": "Las cuentas de superadmin no se pueden eliminar desde el panel."
+    },
+    "bulk": {
+        "selected_singular": "usuario seleccionado",
+        "selected_plural": "usuarios seleccionados",
+        "delete_title": "Eliminar {{count}} usuarios",
+        "delete_description": "Vas a eliminar {{count}} usuarios. Las cuentas de superadmin y tu propia sesión serán omitidas automáticamente. Los usuarios eliminados perderán acceso inmediatamente.",
+        "delete_confirm_singular": "Sí, eliminar usuario",
+        "delete_confirm_plural": "Sí, eliminar {{count}} usuarios"
+    },
+    "toast": {
+        "email_copied": "Email copiado",
+        "load_error": "No se pudo cargar la lista de usuarios."
+    }
+}

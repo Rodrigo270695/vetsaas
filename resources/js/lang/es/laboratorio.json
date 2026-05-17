@@ -1,0 +1,110 @@
+{
+    "title": "Laboratorio",
+    "description": "Pedidos de análisis: exámenes solicitados, destino del laboratorio y seguimiento del estado.",
+    "search_placeholder": "Buscar por paciente, propietario, examen, resultado, destino, estado, sede, profesional u observaciones…",
+    "date_filter": {
+        "placeholder": "Rango de fechas",
+        "aria": "Filtrar por fecha del pedido",
+        "reset_month": "Mes actual",
+        "preset_this_week": "Esta semana",
+        "preset_last_week": "Semana pasada",
+        "preset_last_month": "Mes pasado",
+        "apply_single_day": "Un solo día"
+    },
+    "filters": {
+        "estado": "Estado",
+        "estado_all": "Todos los estados",
+        "paciente": "Paciente",
+        "paciente_all": "Todos los pacientes",
+        "paciente_search": "Buscar paciente…",
+        "paciente_empty": "Sin coincidencias.",
+        "veterinario": "Profesional",
+        "veterinario_all": "Todos los profesionales",
+        "sede": "Sede",
+        "sede_all": "Todas las sedes",
+        "vinculo_consulta": "Consulta",
+        "vinculo_todos": "Todas las órdenes (consulta o no)",
+        "vinculo_con": "Solo con consulta vinculada",
+        "vinculo_sin": "Solo sin consulta vinculada",
+        "resultados": "Resultados",
+        "resultados_todos": "Todas las órdenes (resultados o no)",
+        "resultados_con": "Con al menos un resultado",
+        "resultados_sin": "Sin ningún resultado aún"
+    },
+    "actions": {
+        "new": "Nuevo pedido",
+        "new_short": "Nuevo",
+        "create_first": "Crear primer pedido",
+        "add_line": "Añadir examen"
+    },
+    "columns": {
+        "solicitado_at": "Fecha",
+        "examenes": "Exámenes",
+        "paciente": "Paciente",
+        "estado": "Estado",
+        "destino": "Destino",
+        "consulta": "Consulta",
+        "veterinario": "Profesional",
+        "sede": "Sede",
+        "creado_por": "Registrado por",
+        "acciones": "Acciones"
+    },
+    "estado": {
+        "borrador": "Borrador",
+        "solicitado": "Solicitado",
+        "en_proceso": "En proceso",
+        "completado": "Completado",
+        "cancelado": "Cancelado"
+    },
+    "stats": {
+        "total": "Total en rango",
+        "filters": "Filtros",
+        "matches": "Coincidencias"
+    },
+    "empty": {
+        "no_results_title": "Sin resultados",
+        "no_results_description": "Prueba a limpiar filtros o cambiar la búsqueda.",
+        "no_records_title": "Aún no hay pedidos",
+        "no_records_description": "Crea el primer pedido con el botón «Nuevo pedido»."
+    },
+    "toast": {
+        "load_error": "No se pudo cargar el listado."
+    },
+    "form": {
+        "title_create": "Nuevo pedido de laboratorio",
+        "title_edit": "Editar pedido",
+        "paciente": "Paciente",
+        "paciente_placeholder": "Selecciona paciente…",
+        "paciente_search": "Buscar paciente…",
+        "paciente_empty": "Sin pacientes que coincidan.",
+        "consulta": "Consulta abierta (opcional)",
+        "consulta_placeholder": "Sin vincular a consulta",
+        "consulta_hint": "Solo consultas abiertas del listado; deben corresponder al paciente elegido.",
+        "solicitado_at": "Fecha del pedido",
+        "estado": "Estado",
+        "laboratorio_destino": "Laboratorio / destino",
+        "laboratorio_destino_placeholder": "Ej. laboratorio externo o interno",
+        "observaciones": "Observaciones generales",
+        "veterinario": "Profesional",
+        "veterinario_placeholder": "Sin asignar",
+        "sede": "Sede",
+        "sede_placeholder": "Sin sede",
+        "section_general": "Datos generales",
+        "section_general_hint": "Paciente, visita opcional, fecha, estado y destino del laboratorio.",
+        "section_context": "Profesional y sede",
+        "section_context_hint": "Quién solicita y desde qué sede (opcional).",
+        "section_lineas": "Exámenes",
+        "section_lineas_hint": "Indica cada examen, indicaciones al laboratorio y resultados cuando existan.",
+        "linea_examen": "Nombre del examen",
+        "linea_indicaciones": "Indicaciones / muestra",
+        "linea_resultado": "Resultado",
+        "linea_resultado_at": "Fecha del resultado",
+        "remove_line": "Quitar",
+        "submit_create": "Guardar",
+        "submit_edit": "Guardar cambios"
+    },
+    "delete": {
+        "title": "¿Eliminar este pedido?",
+        "description": "El registro dejará de mostrarse en el listado."
+    }
+}

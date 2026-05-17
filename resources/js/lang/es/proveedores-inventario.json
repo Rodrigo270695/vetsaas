@@ -1,0 +1,58 @@
+{
+    "title": "Proveedores",
+    "description": "Maestro de proveedores. Consulta el RUC con SUNAT (apiperu.dev) para rellenar la razón social automáticamente.",
+    "toast": {
+        "load_error": "No se pudieron cargar los proveedores."
+    },
+    "search_placeholder": "Buscar por RUC, razón social, correo, teléfono o notas…",
+    "filter_label": "Estado",
+    "columns": {
+        "ruc": "RUC",
+        "razon_social": "Razón social",
+        "direccion": "Dirección",
+        "sunat": "SUNAT",
+        "contacto": "Contacto",
+        "estado": "Estado",
+        "creado_por": "Registró",
+        "acciones": "Acciones"
+    },
+    "sunat_resumen": "{{estado}} · {{condicion}}",
+    "stats": {
+        "total": "Proveedores",
+        "activos": "Activos",
+        "inactivos": "Inactivos",
+        "filtros": "Filtros",
+        "coincidencias": "En esta vista"
+    },
+    "actions": {
+        "new": "Nuevo proveedor",
+        "new_short": "Nuevo",
+        "create_first": "Crear primer proveedor"
+    },
+    "form": {
+        "title_create": "Nuevo proveedor",
+        "title_edit": "Editar proveedor",
+        "ruc": "RUC (11 dígitos)",
+        "consultar_ruc": "Consultar SUNAT",
+        "consultar_loading": "Consultando…",
+        "razon_social": "Razón social",
+        "direccion": "Dirección",
+        "ubigeo": "Ubigeo",
+        "telefono": "Teléfono",
+        "email": "Correo",
+        "notas": "Notas",
+        "activo": "Activo en el sistema",
+        "consultar_error": "No se pudo consultar el RUC.",
+        "consultar_invalid": "Ingrese un RUC de 11 dígitos."
+    },
+    "delete": {
+        "title": "¿Eliminar proveedor?",
+        "description": "Se archivará «{{nombre}}» (RUC {{ruc}}). Podrás volver a crearlo si lo necesitas."
+    },
+    "empty": {
+        "no_records_title": "Sin proveedores",
+        "no_records_description": "Registra proveedores para vincularlos luego a compras y movimientos.",
+        "no_results_title": "Sin resultados",
+        "no_results_description": "Prueba otros filtros o términos de búsqueda."
+    }
+}

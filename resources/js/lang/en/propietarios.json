@@ -1,0 +1,105 @@
+{
+    "title": "Owners",
+    "description": "Owners and contact details. From the profile you can register their pets.",
+    "search_placeholder": "Search by name, document, email or phone…",
+    "filter_label": "Status",
+    "actions": {
+        "new": "New owner",
+        "new_short": "New",
+        "create_first": "Register first owner",
+        "delete_selected": "Delete selected",
+        "view_pets": "View pets"
+    },
+    "bulk": {
+        "selected_singular": "owner selected",
+        "selected_plural": "owners selected"
+    },
+    "columns": {
+        "nombre": "Name / legal name",
+        "contacto": "Contact",
+        "documento": "Document",
+        "mascotas": "Pets",
+        "estado": "Status",
+        "creado_por": "Registered by",
+        "acciones": "Actions"
+    },
+    "row": {
+        "no_doc": "No document",
+        "system": "System"
+    },
+    "stats": {
+        "total": "Total",
+        "active": "Active",
+        "inactive": "Inactive",
+        "filters": "Filters",
+        "matches": "Matches"
+    },
+    "empty": {
+        "no_results_title": "No results",
+        "no_results_description": "Try clearing filters or changing your search.",
+        "no_records_title": "No owners yet",
+        "no_records_description": "Register the owner to link pets later."
+    },
+    "toast": {
+        "load_error": "Could not load the list."
+    },
+    "form": {
+        "title_create": "New owner",
+        "title_edit": "Edit owner",
+        "section_identity": "Identity",
+        "section_contact": "Contact & location",
+        "tipo_documento": "Document type",
+        "document_type_placeholder": "Not specified",
+        "document_type_dni": "National ID (DNI)",
+        "document_type_ruc": "Tax ID (RUC)",
+        "document_type_ce": "Foreign resident ID (CE)",
+        "document_type_pas": "Passport",
+        "document_type_otr": "Other",
+        "numero_documento": "Number",
+        "nombres": "First name(s)",
+        "apellidos": "Last name(s)",
+        "razon_social": "Legal name (optional)",
+        "email": "Email",
+        "telefono": "Phone",
+        "telefono_alt": "Alternate phone",
+        "direccion": "Address",
+        "notas": "Internal notes",
+        "activo": "Active",
+        "submit_create": "Save owner",
+        "submit_edit": "Save changes"
+    },
+    "delete": {
+        "title": "Delete owner",
+        "description": "The owner will be archived and hidden from active lists. Associated pets are also removed (cascade soft delete)."
+    },
+    "bulk_delete": {
+        "title": "Delete owners",
+        "description": "This will archive the selected owners and related data."
+    },
+    "show": {
+        "title_suffix": "Owner profile",
+        "back": "Back to list",
+        "section_owner": "Owner details",
+        "edit_owner": "Edit owner",
+        "label_doc": "Document",
+        "label_email": "Email",
+        "label_phone": "Phone",
+        "label_address": "Address",
+        "label_location": "Location",
+        "label_notes": "Notes",
+        "section_pets": "Registered pets",
+        "badge_titular": "Owner",
+        "owner_compact_hint": "Core ID and contact. Address, map and notes live in the expandable section.",
+        "owner_more_toggle": "More (address, location, notes)",
+        "pets_deck_title": "Pets",
+        "pets_deck_hint": "Large-photo cards: tap the image to open it full size.",
+        "section_owner_hint": "Identification and contact details for this owner.",
+        "section_pets_hint": "Pets linked to this owner at your clinic.",
+        "add_pet": "Register pet",
+        "no_pets": "No pets registered yet",
+        "no_pets_subtitle": "Use «Register pet» at the top right to create the first record (vaccines, appointments, and history).",
+        "owner_status_label": "Status",
+        "owner_active": "Active",
+        "owner_inactive": "Inactive"
+    }
+}

@@ -1,0 +1,42 @@
+{
+    "title": "Service rates",
+    "description": "Suggested list prices for grooming and boarding at checkout.",
+    "tabs": {
+        "grooming": "Grooming",
+        "hotel": "Boarding / hotel"
+    },
+    "columns": {
+        "servicio": "Service",
+        "tipo": "Stay type",
+        "precio": "List price",
+        "moneda": "Currency",
+        "activo": "Active"
+    },
+    "actions": {
+        "nueva_grooming": "New grooming rate",
+        "nueva_hotel": "New hotel rate",
+        "editar": "Edit",
+        "eliminar": "Delete"
+    },
+    "form": {
+        "servicio": "Service type",
+        "tipo_estancia": "Stay type",
+        "precio_lista": "List price",
+        "moneda": "Currency",
+        "activo": "Active rate",
+        "guardar": "Save",
+        "cancelar": "Cancel"
+    },
+    "delete": {
+        "title": "Delete rate",
+        "description": "Delete the rate for {{nombre}}? POS will still allow manual pricing.",
+        "confirm": "Delete"
+    },
+    "empty": {
+        "grooming": "No grooming rates yet. Add one to suggest prices when charging appointments.",
+        "hotel": "No hotel rates yet. Add one to suggest nightly prices when charging stays."
+    },
+    "toast": {
+        "load_error": "Could not load rates."
+    }
+}

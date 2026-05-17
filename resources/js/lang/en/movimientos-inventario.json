@@ -1,0 +1,72 @@
+{
+    "title": "Inventory movements",
+    "description": "Branch kardex: receipts, issues, shrinkage and adjustments. Each line is immutable and updates branch stock.",
+    "toast": {
+        "load_error": "Could not load the kardex."
+    },
+    "actions": {
+        "new": "Record movement"
+    },
+    "sin_sedes": {
+        "title": "No active branches",
+        "description": "Create an active branch to attach movements and stock.",
+        "link": "Go to branches"
+    },
+    "filter_sede": "Branch",
+    "filter_sede_placeholder": "Choose branch",
+    "filter_tipo": "Type",
+    "filter_tipo_all": "All types",
+    "columns": {
+        "fecha": "Date",
+        "producto": "Product",
+        "sku": "SKU",
+        "tipo": "Type",
+        "delta": "Change",
+        "anterior": "Stock before",
+        "despues": "Stock after",
+        "usuario": "User",
+        "notas": "Notes"
+    },
+    "tipos": {
+        "entrada": "Receipt",
+        "salida": "Issue",
+        "merma": "Shrinkage",
+        "ajuste": "Adjustment"
+    },
+    "stats": {
+        "total_sede": "Movements at branch",
+        "coincidencias": "On this page",
+        "filtros": "Filters"
+    },
+    "empty": {
+        "no_records_title": "No movements",
+        "no_records_description": "Record a receipt, issue or shrinkage, or adjust stock under Inventory › Stock.",
+        "no_results_title": "No results",
+        "no_results_description": "Try different filters or search terms."
+    },
+    "search_placeholder": "Search by product, SKU or notes…",
+    "date_filter": {
+        "placeholder": "Date range",
+        "aria": "Filter by movement date",
+        "reset_month": "Current month",
+        "preset_this_week": "This week",
+        "preset_last_week": "Last week",
+        "preset_last_month": "Last month",
+        "apply_single_day": "Single day"
+    },
+    "modal": {
+        "title": "New movement",
+        "description": "Quantity is always positive; the type defines whether it adds or subtracts from branch stock.",
+        "producto": "Product",
+        "producto_placeholder": "Choose product",
+        "sede": "Branch",
+        "tipo": "Type",
+        "cantidad": "Quantity",
+        "cantidad_hint": "Minimum 0.001. Up to 3 decimal places.",
+        "notas": "Notes (optional)",
+        "submit": "Save",
+        "error_submit": "Could not record the movement.",
+        "producto_search": "Search by name or SKU…",
+        "producto_empty": "No matching products."
+    }
+}

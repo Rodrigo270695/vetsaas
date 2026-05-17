@@ -1,0 +1,130 @@
+{
+    "title": "Cobros",
+    "description": "Historial de pagos de las suscripciones SaaS. Los cobros los procesa Orvae (con Niubiz/Culqi/MercadoPago) y los registra acá vía webhook. Esta vista es de SOPORTE: lectura + acciones humanas (reembolso manual, nota interna, reenviar factura).",
+    "search_placeholder": "Buscar por transaction ID, FEL, tenant, RUC…",
+    "filter_label": "Filtrar por estado",
+    "filters": {
+        "all": "Todos",
+        "procesado": "Procesados",
+        "pendiente": "Pendientes",
+        "fallido": "Fallidos",
+        "reembolsado": "Reembolsados"
+    },
+    "estados": {
+        "pendiente": "Pendiente",
+        "procesado": "Procesado",
+        "fallido": "Fallido",
+        "reembolsado": "Reembolsado"
+    },
+    "stats": {
+        "total": "Total",
+        "procesado": "Procesados",
+        "pendiente": "Pendientes",
+        "fallido": "Fallidos",
+        "reembolsado": "Reembolsados",
+        "cobrado_total": "Cobrado total",
+        "filters": "Filtros activos",
+        "matches": "Coincidencias"
+    },
+    "columns": {
+        "fecha": "Fecha",
+        "tenant": "Tenant",
+        "plan": "Plan",
+        "total": "Total",
+        "estado": "Estado",
+        "pasarela": "Pasarela",
+        "factura": "Factura",
+        "acciones": "Acciones"
+    },
+    "row": {
+        "actions_for": "Acciones para {{name}}",
+        "view_detail": "Ver detalle",
+        "copy_tx_id": "Copiar transaction ID",
+        "add_note": "Agregar nota interna",
+        "edit_note": "Editar nota interna",
+        "resend_invoice": "Reenviar factura",
+        "mark_refunded": "Marcar reembolso manual",
+        "refunded_locked": "Cobro ya reembolsado",
+        "no_invoice": "Sin factura"
+    },
+    "detail": {
+        "title": "Detalle del cobro",
+        "description": "Información completa del pago incluyendo respuesta cruda de la pasarela",
+        "section_cliente": "Cliente",
+        "section_plan": "Plan",
+        "section_transaccion": "Transacción",
+        "section_montos": "Montos",
+        "section_periodo": "Periodo cubierto",
+        "section_factura": "Factura electrónica",
+        "section_error": "Error de la pasarela",
+        "section_reembolso": "Reembolso",
+        "section_nota": "Nota interna",
+        "section_raw": "Respuesta cruda de la pasarela",
+        "raw_hint": "Solo para debugging técnico. Útil cuando hay que abrir ticket a la pasarela.",
+        "yes": "Sí",
+        "no": "No",
+        "copy_tx_id": "Copiar transaction ID",
+        "fields": {
+            "tenant": "Tenant",
+            "slug": "Slug",
+            "plan": "Plan",
+            "pasarela": "Pasarela",
+            "transaction_id": "Transaction ID",
+            "pagado_at": "Pagado el",
+            "created_at": "Registrado el",
+            "monto": "Monto base",
+            "igv_monto": "IGV",
+            "descuento_monto": "Descuento",
+            "total": "Total",
+            "periodo_inicio": "Desde",
+            "periodo_fin": "Hasta",
+            "fel_emitido": "Factura emitida",
+            "fel_numero": "Número FEL",
+            "invoice_resent_at": "Último reenvío",
+            "refunded_at": "Reembolsado el",
+            "refunded_by": "Marcado por",
+            "refund_reason": "Motivo"
+        }
+    },
+    "refund": {
+        "title": "Marcar reembolso manual",
+        "description": "Vas a marcar como reembolsado el cobro de <strong>{{tenant}}</strong> por <strong>{{total}}</strong>. Usa esta acción cuando devolviste el dinero por fuera de la pasarela (ej. transferencia bancaria). Queda registrado quién lo marcó y cuándo.",
+        "reason_label": "Motivo del reembolso",
+        "reason_placeholder": "Cliente solicitó cancelación · Cobro duplicado · …",
+        "reason_hint": "Mínimo {{min}} caracteres. Este motivo queda en el registro para auditoría.",
+        "confirm": "Marcar como reembolsado",
+        "loading": "Procesando…"
+    },
+    "note": {
+        "title_create": "Agregar nota interna",
+        "title_edit": "Editar nota interna",
+        "description": "Notas internas del equipo de soporte. No son visibles para el cliente. Útiles para dejar contexto de conversaciones, reclamos, decisiones.",
+        "note_label": "Nota",
+        "note_placeholder": "Cliente reclamó por WhatsApp el 12-may, le confirmé que el cobro estaba bien…",
+        "note_hint": "Si dejas el campo vacío, la nota se elimina.",
+        "confirm_create": "Guardar nota",
+        "confirm_edit": "Actualizar nota",
+        "loading": "Guardando…"
+    },
+    "resend": {
+        "title": "Reenviar factura electrónica",
+        "description": "Se reenviará la factura <mono><strong>{{fel}}</strong></mono> al correo <strong>{{email}}</strong>. Esta acción no genera un nuevo número FEL, solo reenvía el correo con el PDF/XML existente.",
+        "confirm": "Reenviar factura",
+        "loading": "Reenviando…"
+    },
+    "empty": {
+        "no_records_title": "Aún no hay cobros",
+        "no_records_description": "Cuando Orvae procese un pago y mande el webhook, aparecerá aquí. Esta tabla la alimenta Orvae, no se crea desde acá.",
+        "no_results_title": "Sin resultados",
+        "no_results_description": "Ajusta los filtros o la búsqueda para ver más cobros."
+    },
+    "aria": {
+        "results_count_one": "1 cobro coincide con los filtros actuales.",
+        "results_count_other": "{{count}} cobros coinciden con los filtros actuales."
+    },
+    "toast": {
+        "load_error": "No pudimos cargar los cobros. Reintenta en unos segundos.",
+        "tx_id_copied": "Transaction ID copiado al portapapeles",
+        "copied": "{{label}} copiado al portapapeles"
+    }
+}

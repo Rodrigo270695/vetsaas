@@ -1,0 +1,42 @@
+{
+    "title": "Tarifas de servicios",
+    "description": "Precios lista sugeridos para grooming y hotel al cobrar en caja.",
+    "tabs": {
+        "grooming": "Grooming",
+        "hotel": "Hotel / guardería"
+    },
+    "columns": {
+        "servicio": "Servicio",
+        "tipo": "Tipo de estancia",
+        "precio": "Precio lista",
+        "moneda": "Moneda",
+        "activo": "Activo"
+    },
+    "actions": {
+        "nueva_grooming": "Nueva tarifa grooming",
+        "nueva_hotel": "Nueva tarifa hotel",
+        "editar": "Editar",
+        "eliminar": "Eliminar"
+    },
+    "form": {
+        "servicio": "Tipo de servicio",
+        "tipo_estancia": "Tipo de estancia",
+        "precio_lista": "Precio lista",
+        "moneda": "Moneda",
+        "activo": "Tarifa activa",
+        "guardar": "Guardar",
+        "cancelar": "Cancelar"
+    },
+    "delete": {
+        "title": "Eliminar tarifa",
+        "description": "¿Eliminar la tarifa de {{nombre}}? El POS seguirá permitiendo precio manual.",
+        "confirm": "Eliminar"
+    },
+    "empty": {
+        "grooming": "No hay tarifas de grooming. Crea una para sugerir precios al cobrar turnos.",
+        "hotel": "No hay tarifas de hotel. Crea una para sugerir precio por noche al cobrar estancias."
+    },
+    "toast": {
+        "load_error": "No se pudieron cargar las tarifas."
+    }
+}

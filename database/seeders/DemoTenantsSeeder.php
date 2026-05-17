@@ -1,0 +1,246 @@
+<?php
+
+namespace Database\Seeders;
+
+use App\Models\Tenant;
+use App\Models\User;
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+
+/**
+ * Pobla la base de datos con tenants de demostración listos para usar.
+ *
+ * Pensado para desarrollo: tras un `migrate:fresh --seed` o un nuevo
+ * setup, este seeder te deja 3 clínicas funcionales con sus admins.
+ * Idempotente: lo puedes volver a correr y se actualizan los registros
+ * existentes (no duplica).
+ *
+ * Lo que crea por cada tenant:
+ *
+ *   1. Fila en `public.tenants` (slug, schema_name, estado, locale...).
+ *   2. Schema físico en Postgres + migraciones tenant aplicadas.
+ *   3. Usuario admin en `public.users` con rol `admin_clinica`.
+ *      Password fija (`clave123456`) y `must_change_password=false` para
+ *      poder loguear directo. NO usar en producción.
+ *   4. Fila en `cfg_clinic_settings` del schema con datos demo
+ *      (RUC, razón social, colores) — útil para que la pantalla de
+ *      Configuración › General no se vea vacía al primer login.
+ *
+ * Por defecto NO se invoca desde `DatabaseSeeder` (queremos mantener
+ * la separación entre "infraestructura mínima" y "data de demo"). Se
+ * dispara explícitamente con:
+ *
+ *     php artisan db:seed --class=DemoTenantsSeeder
+ *
+ * O, recomendado, vía el comando wrapper:
+ *
+ *     php artisan vetsaas:fresh-demo
+ */
+class DemoTenantsSeeder extends Seeder
+{
+    /**
+     * Catálogo de tenants demo. Editar aquí para añadir/quitar clínicas.
+     *
+     * Cada entrada se traduce en:
+     *   · subdomain  → http://<slug>.localhost:8000
+     *   · login      → admin@<slug>.test
+     *   · password   → clave123456 (fija, sin force-change)
+     *
+     * @var list<array{slug:string,nombre_comercial:string,razon_social:string,ruc:string,color_primario:string,color_secundario:string,plan_codigo?:string}>
+     */
+    private const TENANTS = [
+        [
+            'slug' => 'mi-clinica',
+            'nombre_comercial' => 'Mi Clínica Veterinaria',
+            'razon_social' => 'Mi Clínica Veterinaria SAC',
+            'ruc' => '20111111111',
+            'color_primario' => '#1F6F43',
+            'color_secundario' => '#94C7A8',
+        ],
+        [
+            'slug' => 'vet-amigos',
+            'nombre_comercial' => 'Vet Amigos',
+            'razon_social' => 'Vet Amigos del Barrio EIRL',
+            'ruc' => '20222222222',
+            'color_primario' => '#0E6FA8',
+            'color_secundario' => '#9CC8E0',
+        ],
+        [
+            'slug' => 'paws-care',
+            'nombre_comercial' => 'Paws Care Clinic',
+            'razon_social' => 'Paws Care Clinic SAC',
+            'ruc' => '20333333333',
+            'color_primario' => '#8A4E2A',
+            'color_secundario' => '#D8B79A',
+        ],
+    ];
+
+    private const DEMO_PASSWORD = 'clave123456';
+
+    public function run(): void
+    {
+        if (DB::getDriverName() !== 'pgsql') {
+            $this->command?->warn('DemoTenantsSeeder requiere PostgreSQL (multi-schema). Omitido.');
+
+            return;
+        }
+
+        $schemaPrefix = (string) config('tenant.schema_prefix', 'vet_');
+
+        foreach (self::TENANTS as $config) {
+            $schemaName = $schemaPrefix.str_replace('-', '_', $config['slug']);
+
+            $tenant = $this->ensureTenant($config, $schemaName);
+            $this->ensureSchema($schemaName);
+            $this->ensureAdmin($tenant, $config);
+            $this->ensureClinicSettings($schemaName, $config);
+            $invSeeder = new InventarioCategoriasYProductosSeeder;
+            if ($this->command !== null) {
+                $invSeeder->setCommand($this->command);
+            }
+            $invSeeder->seedForSchema($schemaName, $config['slug']);
+
+            $this->command?->info(sprintf(
+                '✓ %s — http://%s.localhost:8000/login  (admin@%s.test / %s)',
+                $config['nombre_comercial'],
+                $config['slug'],
+                $config['slug'],
+                self::DEMO_PASSWORD,
+            ));
+        }
+
+        $sedesSeeder = new SedesSeeder;
+        if ($this->command !== null) {
+            $sedesSeeder->setCommand($this->command);
+        }
+        $sedesSeeder->run();
+    }
+
+    /**
+     * Crea o actualiza la fila en `public.tenants`. Idempotente: si ya
+     * existe (por `slug`), se actualizan los datos visibles.
+     *
+     * @param  array<string,mixed>  $config
+     */
+    private function ensureTenant(array $config, string $schemaName): Tenant
+    {
+        return Tenant::query()->updateOrCreate(
+            ['slug' => $config['slug']],
+            [
+                'schema_name' => $schemaName,
+                'razon_social' => $config['razon_social'],
+                'nombre_comercial' => $config['nombre_comercial'],
+                'email_admin' => 'admin@'.$config['slug'].'.test',
+                'timezone' => 'America/Lima',
+                'locale' => 'es',
+                'estado' => 'active',
+            ],
+        );
+    }
+
+    /**
+     * Asegura que el schema físico existe en Postgres y que tiene
+     * aplicadas las migraciones tenant. Usa `--replay` para que sea
+     * idempotente incluso si las columnas cambian entre corridas
+     * (típico mientras se desarrolla un módulo nuevo).
+     *
+     * Drop + recreate del schema es seguro porque el seeder está
+     * pensado para datos de demo, no para producción.
+     */
+    private function ensureSchema(string $schemaName): void
+    {
+        // Drop + recreate: garantizamos que la estructura está alineada
+        // con la última versión de las migraciones tenant. Si el schema
+        // tenía data demo previa, se reemplaza con la nueva (es lo que
+        // queremos al correr el seeder de nuevo).
+        DB::statement('DROP SCHEMA IF EXISTS "'.$schemaName.'" CASCADE');
+
+        Artisan::call('vetsaas:tenant-migrate', [
+            'schema' => $schemaName,
+            '--replay' => true,
+        ]);
+    }
+
+    /**
+     * Crea o actualiza el usuario admin del tenant con rol
+     * `admin_clinica`. Password fija para facilitar login en demo
+     * (`clave123456`) y `must_change_password=false` para no forzar
+     * el flujo de cambio en el primer login.
+     *
+     * @param  array<string,mixed>  $config
+     */
+    private function ensureAdmin(Tenant $tenant, array $config): void
+    {
+        $email = 'admin@'.$config['slug'].'.test';
+
+        $user = User::query()->updateOrCreate(
+            ['tenant_id' => $tenant->id, 'email' => $email],
+            [
+                'name' => 'Admin '.$config['nombre_comercial'],
+                'password' => Hash::make(self::DEMO_PASSWORD),
+                'is_active' => true,
+                'must_change_password' => false,
+                'email_verified_at' => now(),
+            ],
+        );
+
+        $user->syncRoles(['admin_clinica']);
+    }
+
+    /**
+     * Pre-llena la única fila de `cfg_clinic_settings` del schema con
+     * datos demo (RUC, razón social, colores). Sin esto, la primera
+     * carga de `/configuracion/general` autoprovisionaría una fila con
+     * todos los campos en blanco, lo cual da una impresión peor en
+     * presentaciones.
+     *
+     * @param  array<string,mixed>  $config
+     */
+    private function ensureClinicSettings(string $schemaName, array $config): void
+    {
+        // Cambiamos temporalmente el search_path al schema del tenant
+        // para que el insert toque su tabla cfg_clinic_settings (vive
+        // dentro del schema, no en public).
+        DB::statement('SET search_path TO "'.$schemaName.'", public');
+
+        try {
+            $now = now();
+
+            DB::table('cfg_clinic_settings')->updateOrInsert(
+                [], // singleton: la única fila o la creamos
+                [
+                    'id' => (string) \Illuminate\Support\Str::uuid(),
+                    'ruc' => $config['ruc'],
+                    'razon_social' => $config['razon_social'],
+                    'nombre_comercial' => $config['nombre_comercial'],
+                    'direccion_fiscal' => 'Av. Demo 123, Lima',
+                    'color_primario' => $config['color_primario'],
+                    'color_secundario' => $config['color_secundario'],
+                    'email_institucional' => 'contacto@'.$config['slug'].'.test',
+                    'telefono_principal' => '+51 1 555-0100',
+                    'web_url' => 'https://'.$config['slug'].'.test',
+                    'duracion_cita_default_min' => 30,
+                    'intervalo_agenda_min' => 15,
+                    'horario_atencion' => '{}',
+                    'dias_anticipacion_cita' => 30,
+                    'recordatorio_48h_activo' => true,
+                    'recordatorio_2h_activo' => true,
+                    'recordatorio_vacuna_activo' => true,
+                    'recordatorio_vacuna_dias_antes' => 7,
+                    'recordatorio_cumple_activo' => false,
+                    'nubefact_configurado' => false,
+                    'moneda' => 'PEN',
+                    'igv_porcentaje' => 18.00,
+                    'precio_incluye_igv' => true,
+                    'horas_min_cancelacion' => 24,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ],
+            );
+        } finally {
+            DB::statement('SET search_path TO public');
+        }
+    }
+}

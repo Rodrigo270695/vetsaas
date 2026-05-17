@@ -1,0 +1,50 @@
+{
+    "title": "Stock por sede",
+    "description": "Existencias del catálogo por sucursal. Los ajustes manuales quedan registrados en esta tabla hasta que exista kardex.",
+    "toast": {
+        "load_error": "No se pudo cargar el stock."
+    },
+    "sin_sedes": {
+        "title": "No hay sedes activas",
+        "description": "Crea al menos una sede activa en configuración para poder asignar existencias por sucursal.",
+        "link": "Ir a sedes"
+    },
+    "filter_sede": "Sede",
+    "filter_sede_placeholder": "Elegir sede",
+    "columns": {
+        "nombre": "Producto",
+        "categoria": "Categoría",
+        "sku": "SKU",
+        "unidad": "Unidad",
+        "cantidad": "Cantidad",
+        "medicamento": "Medicamento",
+        "estado": "Estado catálogo",
+        "acciones": "Acciones"
+    },
+    "row": {
+        "sin_categoria": "Sin categoría",
+        "medicamento_si": "Medicamento",
+        "ajustar": "Ajustar"
+    },
+    "empty": {
+        "no_records_title": "Sin productos en el catálogo",
+        "no_records_description": "Registra productos en Inventario › Productos para ver stock aquí.",
+        "no_results_title": "Sin resultados",
+        "no_results_description": "Prueba con otros términos de búsqueda o revisa los filtros."
+    },
+    "search_placeholder": "Buscar por nombre, SKU, código de barras o descripción…",
+    "stats": {
+        "total_catalogo": "Productos en catálogo",
+        "coincidencias": "En esta página",
+        "filtros": "Filtros"
+    },
+    "adjust": {
+        "title": "Ajustar stock",
+        "description": "Define la cantidad disponible en la sede seleccionada para este producto.",
+        "cantidad_label": "Cantidad",
+        "cantidad_hint": "Hasta 3 decimales. Mínimo 0.",
+        "submit": "Guardar",
+        "error_submit": "No se pudo guardar el stock.",
+        "cantidad_invalid": "Introduce una cantidad válida (número mayor o igual que 0)."
+    }
+}

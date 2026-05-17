@@ -1,0 +1,96 @@
+{
+    "title": "Sedes",
+    "description": "Sucursales de la clínica veterinaria. Cada sede tiene su propia agenda, caja, stock y series de facturación.",
+    "actions": {
+        "new": "Nueva sede",
+        "new_short": "Nueva",
+        "create_first": "Crear primera sede",
+        "delete_selected": "Eliminar seleccionadas",
+        "export_filtered": "Exportar coincidencias"
+    },
+    "stats": {
+        "total": "Total",
+        "active": "Activas",
+        "inactive": "Inactivas",
+        "filters": "Filtros",
+        "matches": "Coincidencias"
+    },
+    "search_placeholder": "Buscar por nombre, código, dirección...",
+    "filter_label": "Filtrar por estado",
+    "columns": {
+        "codigo": "Código",
+        "nombre": "Sede",
+        "ubicacion": "Ubicación",
+        "telefono": "Teléfono",
+        "series": "Series",
+        "estado": "Estado",
+        "creada_por": "Creada por",
+        "acciones": "Acciones"
+    },
+    "row": {
+        "no_location": "Sin ubicación",
+        "system": "Sistema",
+        "copy_code": "Copiar código",
+        "actions_for": "Acciones para {{name}}"
+    },
+    "empty": {
+        "no_records_title": "Aún no hay sedes registradas",
+        "no_records_description": "Crea tu primera sede para empezar a configurar agenda, caja e inventario.",
+        "no_results_title": "Sin resultados",
+        "no_results_description": "Ningún registro coincide con los filtros actuales. Prueba ajustando la búsqueda o cambiando el estado."
+    },
+    "aria": {
+        "results_count_one": "{{count}} sede encontrada",
+        "results_count_other": "{{count}} sedes encontradas"
+    },
+    "form": {
+        "title_create": "Nueva sede",
+        "title_edit": "Editar sede",
+        "description_create": "Registra una nueva sede de la clínica veterinaria.",
+        "description_edit": "Actualiza la información de la sede seleccionada.",
+        "submit_create": "Crear sede",
+        "submit_edit": "Guardar cambios",
+        "section_basic": "Información básica",
+        "section_basic_hint_create": "Datos principales que identifican a la sede. El código se asignará automáticamente al crearla (SEDE-NNN).",
+        "section_basic_hint_edit": "Datos principales de la sede. El código se asignó automáticamente al crearla.",
+        "section_location": "Ubicación",
+        "section_location_hint": "Dirección física de la sede.",
+        "section_billing": "Facturación electrónica",
+        "section_billing_hint": "Series de comprobantes asociadas a esta sede (SUNAT / Nubefact).",
+        "section_status": "Estado",
+        "fields": {
+            "nombre": "Nombre",
+            "nombre_placeholder": "Ej. Sede Lima Centro",
+            "telefono": "Teléfono",
+            "email": "Correo electrónico",
+            "direccion": "Dirección",
+            "distrito": "Distrito",
+            "provincia": "Provincia",
+            "departamento": "Departamento",
+            "serie_factura": "Serie factura",
+            "serie_factura_hint": "Ej. F001",
+            "serie_boleta": "Serie boleta",
+            "serie_boleta_hint": "Ej. B001",
+            "activa": "Sede activa",
+            "activa_hint": "Si está desactivada, no aparecerá en agenda, caja ni en los listados de selección."
+        }
+    },
+    "delete": {
+        "title": "Eliminar sede",
+        "description": "Vas a eliminar la sede <strong>{{name}}</strong> ({{code}}). Esta acción se puede deshacer desde la papelera durante 30 días.",
+        "confirm": "Sí, eliminar sede",
+        "loading": "Eliminando..."
+    },
+    "bulk": {
+        "selected_singular": "sede seleccionada",
+        "selected_plural": "sedes seleccionadas",
+        "delete_title": "Eliminar {{count}} sedes",
+        "delete_description": "Vas a eliminar {{count}} sedes seleccionadas. Esta acción se puede deshacer desde la papelera durante 30 días.",
+        "delete_confirm_singular": "Sí, eliminar sede",
+        "delete_confirm_plural": "Sí, eliminar {{count}} sedes"
+    },
+    "toast": {
+        "code_copied": "Código copiado",
+        "load_error": "No se pudo cargar la lista de sedes."
+    }
+}

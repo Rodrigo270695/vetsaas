@@ -1,0 +1,96 @@
+{
+    "title": "Productos",
+    "description": "Catálogo interno de artículos (medicamentos, insumos, alimentos…). El stock y lotes se gestionarán en el módulo de existencias.",
+    "search_placeholder": "Buscar por nombre, SKU, código de barras o descripción…",
+    "filter_categoria": "Categoría",
+    "filter_categoria_placeholder": "Todas las categorías",
+    "filter_categoria_all": "Todas las categorías",
+    "filter_estado": "Estado del producto",
+    "stats": {
+        "total": "Total",
+        "active": "Activos",
+        "inactive": "Inactivos",
+        "filters": "Filtros",
+        "matches": "Coincidencias"
+    },
+    "columns": {
+        "nombre": "Nombre",
+        "categoria": "Categoría",
+        "sku": "SKU",
+        "unidad": "Unidad",
+        "precio": "Precio venta",
+        "medicamento": "Medicamento",
+        "estado": "Estado",
+        "creado_por": "Creado por",
+        "acciones": "Acciones"
+    },
+    "row": {
+        "sin_categoria": "Sin categoría",
+        "medicamento_si": "Medicamento",
+        "system": "Sistema"
+    },
+    "actions": {
+        "new": "Nuevo producto",
+        "new_short": "Nuevo",
+        "create_first": "Crear primer producto"
+    },
+    "empty": {
+        "no_records_title": "Aún no hay productos",
+        "no_records_description": "Registra el catálogo para vincularlo después con stock y ventas.",
+        "no_results_title": "Sin resultados",
+        "no_results_description": "No hay productos que coincidan con los filtros actuales."
+    },
+    "form": {
+        "title_create": "Nuevo producto",
+        "title_edit": "Editar producto",
+        "submit_create": "Guardar producto",
+        "submit_edit": "Actualizar producto",
+        "nombre": "Nombre",
+        "categoria": "Categoría",
+        "categoria_placeholder": "Selecciona categoría",
+        "categoria_none": "Sin categoría",
+        "categoria_search": "Buscar categoría…",
+        "categoria_empty": "Ninguna categoría coincide.",
+        "sku": "SKU interno",
+        "codigo_barras": "Código de barras",
+        "slug": "Slug",
+        "unidad": "Unidad de medida",
+        "precio_venta": "Precio de venta",
+        "stock_minimo": "Stock mínimo (alerta)",
+        "stock_minimo_hint": "Opcional. Si pones un valor mayor que 0, el producto saldrá en Alertas cuando el stock en sede sea igual o inferior.",
+        "descripcion": "Descripción",
+        "medicamento": "Clasificación",
+        "medicamento_label": "Es medicamento / insumo clínico",
+        "estado": "Estado",
+        "activo_label": "Producto activo",
+        "unidad_placeholder": "Elige una unidad",
+        "unidad_grupo_actual": "Valor guardado en este producto",
+        "unidad_grupo_sistema": "Unidades habituales",
+        "unidad_grupo_personal": "Personalizadas de la clínica",
+        "unidad_legacy_label": "{{codigo}} (no figura en el catálogo; revisa o cambia)",
+        "unidades_gestionar": "Unidades…"
+    },
+    "unidades_dialog": {
+        "title": "Unidades de medida personalizadas",
+        "description": "Añade códigos propios de tu clínica (p. ej. cómo facturáis un envase). Las unidades estándar no se pueden editar ni borrar.",
+        "nueva_title": "Nueva unidad",
+        "nombre": "Nombre visible",
+        "nombre_placeholder": "Ej.: Ampolla multidosis 10 ml",
+        "codigo_opcional": "Código interno (opcional)",
+        "codigo_placeholder": "AUTO si lo dejas vacío",
+        "codigo_hint": "Solo letras, números y guion bajo. Máximo 20 caracteres. Se guarda en mayúsculas.",
+        "crear": "Añadir unidad",
+        "lista_title": "Mis unidades",
+        "lista_vacia": "Aún no has definido unidades personalizadas.",
+        "confirm_delete": "¿Eliminar la unidad «{{nombre}}»? No debe estar en uso en ningún producto.",
+        "editar": "Editar",
+        "eliminar": "Eliminar"
+    },
+    "delete": {
+        "title": "Eliminar producto",
+        "description": "Se eliminará «{{producto}}» del catálogo."
+    },
+    "toast": {
+        "load_error": "No se pudieron cargar los productos."
+    }
+}

@@ -1,0 +1,50 @@
+{
+    "title": "Stock by branch",
+    "description": "Catalog quantities per branch. Manual adjustments stay in this table until a kardex exists.",
+    "toast": {
+        "load_error": "Could not load stock."
+    },
+    "sin_sedes": {
+        "title": "No active branches",
+        "description": "Create at least one active branch in settings to assign stock per location.",
+        "link": "Go to branches"
+    },
+    "filter_sede": "Branch",
+    "filter_sede_placeholder": "Choose branch",
+    "columns": {
+        "nombre": "Product",
+        "categoria": "Category",
+        "sku": "SKU",
+        "unidad": "Unit",
+        "cantidad": "Quantity",
+        "medicamento": "Drug",
+        "estado": "Catalog status",
+        "acciones": "Actions"
+    },
+    "row": {
+        "sin_categoria": "No category",
+        "medicamento_si": "Drug",
+        "ajustar": "Adjust"
+    },
+    "empty": {
+        "no_records_title": "No products in the catalog",
+        "no_records_description": "Add products under Inventory › Products to see stock here.",
+        "no_results_title": "No results",
+        "no_results_description": "Try different search terms or review your filters."
+    },
+    "search_placeholder": "Search by name, SKU, barcode or description…",
+    "stats": {
+        "total_catalogo": "Products in catalog",
+        "coincidencias": "On this page",
+        "filtros": "Filters"
+    },
+    "adjust": {
+        "title": "Adjust stock",
+        "description": "Set the available quantity at the selected branch for this product.",
+        "cantidad_label": "Quantity",
+        "cantidad_hint": "Up to 3 decimal places. Minimum 0.",
+        "submit": "Save",
+        "error_submit": "Could not save stock.",
+        "cantidad_invalid": "Enter a valid quantity (a number greater than or equal to 0)."
+    }
+}

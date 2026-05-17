@@ -1,0 +1,97 @@
+{
+    "title": "Vaccinations",
+    "description": "Clinical log: vaccines, antiparasitics and applied products; antigen coverage and suggested next date.",
+    "search_placeholder": "Search by patient, owner, vaccine, coverage or batch…",
+    "date_filter": {
+        "placeholder": "Date range",
+        "aria": "Filter by application date",
+        "reset_month": "Current month",
+        "preset_this_week": "This week",
+        "preset_last_week": "Last week",
+        "preset_last_month": "Last month",
+        "apply_single_day": "Single day"
+    },
+    "actions": {
+        "new": "Record vaccination",
+        "new_short": "New",
+        "create_first": "Record first vaccination"
+    },
+    "columns": {
+        "aplicada_at": "Date & time",
+        "tipo": "Type",
+        "paciente": "Patient",
+        "consulta": "Visit",
+        "vacuna": "Product",
+        "proxima": "Suggested next",
+        "dosis": "Dose #",
+        "lote": "Batch",
+        "veterinario": "Veterinarian",
+        "sede": "Branch",
+        "creado_por": "Recorded by",
+        "acciones": "Actions"
+    },
+    "row": {
+        "system": "System",
+        "inv": "Inventory",
+        "categoria_vacuna": "Vaccine",
+        "categoria_desparasitacion": "Antiparasitic",
+        "categoria_otro": "Other"
+    },
+    "stats": {
+        "total": "Total in range",
+        "filters": "Filters",
+        "matches": "Matches"
+    },
+    "empty": {
+        "no_results_title": "No results",
+        "no_results_description": "Try clearing filters or changing the search.",
+        "no_records_title": "No vaccinations yet",
+        "no_records_description": "Record the first dose with «Record vaccination»."
+    },
+    "toast": {
+        "load_error": "Could not load the list."
+    },
+    "form": {
+        "title_create": "New vaccination",
+        "title_edit": "Edit vaccination",
+        "paciente": "Patient",
+        "paciente_placeholder": "Select patient…",
+        "paciente_search": "Search patient…",
+        "paciente_empty": "No matching patients.",
+        "consulta_vinculada_abierta": "This application will be linked to the open visit you came from.",
+        "consulta_vinculada_visita": "Linked to the visit on {{fecha}}.",
+        "producto_placeholder": "Link inventory product (optional)",
+        "categoria_registro": "Record type",
+        "categoria_vacuna": "Vaccine / immunization",
+        "categoria_desparasitacion": "Deworming / antiparasitic",
+        "categoria_otro": "Other (e.g. antibiotic, fluid therapy)",
+        "nombre_vacuna": "Commercial name or presentation",
+        "nombre_hint": "Link inventory when relevant; record type clarifies vaccine vs antiparasitic vs other clinical use.",
+        "esquema_antigenos": "Coverage / antigens (diseases)",
+        "esquema_hint": "E.g. distemper, parvovirus, parainfluenza, leptospirosis; or parasite type (endo / ecto).",
+        "fecha_proxima_sugerida": "Suggested next application (date)",
+        "fecha_proxima_hint": "Indicative per clinician protocol and manufacturer label; not a substitute for clinical judgment.",
+        "aplicada_at": "Application date & time",
+        "numero_dosis": "Dose number (e.g. 1, 2…)",
+        "lote": "Batch",
+        "notas": "Notes",
+        "veterinario": "Veterinarian",
+        "veterinario_placeholder": "Unassigned",
+        "sede": "Branch",
+        "sede_placeholder": "No branch",
+        "sede_required_hint": "If you link an inventory product, choose the branch where 1 unit will be deducted.",
+        "submit_create": "Save",
+        "submit_edit": "Save changes"
+    },
+    "producto_picker": {
+        "placeholder": "Link to inventory (optional)",
+        "search": "Search vaccine in inventory…",
+        "empty": "No matches.",
+        "loading": "Searching…",
+        "clear_aria": "Remove inventory link"
+    },
+    "delete": {
+        "title": "Delete this vaccination?",
+        "description": "The record will no longer appear in the list."
+    }
+}

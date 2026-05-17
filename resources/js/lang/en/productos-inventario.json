@@ -1,0 +1,96 @@
+{
+    "title": "Products",
+    "description": "Internal catalog of items (medications, supplies, food, etc.). Stock and batches will be managed in the inventory module.",
+    "search_placeholder": "Search by name, SKU, barcode, or description…",
+    "filter_categoria": "Category",
+    "filter_categoria_placeholder": "All categories",
+    "filter_categoria_all": "All categories",
+    "filter_estado": "Product status",
+    "stats": {
+        "total": "Total",
+        "active": "Active",
+        "inactive": "Inactive",
+        "filters": "Filters",
+        "matches": "Matches"
+    },
+    "columns": {
+        "nombre": "Name",
+        "categoria": "Category",
+        "sku": "SKU",
+        "unidad": "Unit",
+        "precio": "Sale price",
+        "medicamento": "Medication",
+        "estado": "Status",
+        "creado_por": "Created by",
+        "acciones": "Actions"
+    },
+    "row": {
+        "sin_categoria": "No category",
+        "medicamento_si": "Medication",
+        "system": "System"
+    },
+    "actions": {
+        "new": "New product",
+        "new_short": "New",
+        "create_first": "Create first product"
+    },
+    "empty": {
+        "no_records_title": "No products yet",
+        "no_records_description": "Create your catalog to link it later with stock and sales.",
+        "no_results_title": "No results",
+        "no_results_description": "No products match the current filters."
+    },
+    "form": {
+        "title_create": "New product",
+        "title_edit": "Edit product",
+        "submit_create": "Save product",
+        "submit_edit": "Update product",
+        "nombre": "Name",
+        "categoria": "Category",
+        "categoria_placeholder": "Select category",
+        "categoria_none": "No category",
+        "categoria_search": "Search category…",
+        "categoria_empty": "No matching category.",
+        "sku": "Internal SKU",
+        "codigo_barras": "Barcode",
+        "slug": "Slug",
+        "unidad": "Unit of measure",
+        "precio_venta": "Sale price",
+        "stock_minimo": "Minimum stock (alert)",
+        "stock_minimo_hint": "Optional. If you set a value above 0, the product appears under Alerts when branch stock is at or below it.",
+        "descripcion": "Description",
+        "medicamento": "Classification",
+        "medicamento_label": "Medication / clinical supply",
+        "estado": "Status",
+        "activo_label": "Product is active",
+        "unidad_placeholder": "Choose a unit",
+        "unidad_grupo_actual": "Value stored on this product",
+        "unidad_grupo_sistema": "Common units",
+        "unidad_grupo_personal": "Clinic-specific units",
+        "unidad_legacy_label": "{{codigo}} (not in catalog; review or change)",
+        "unidades_gestionar": "Units…"
+    },
+    "unidades_dialog": {
+        "title": "Custom units of measure",
+        "description": "Add codes specific to your clinic (for example how you bill a pack). Standard units cannot be edited or deleted.",
+        "nueva_title": "New unit",
+        "nombre": "Display name",
+        "nombre_placeholder": "E.g. Multidose 10 ml vial",
+        "codigo_opcional": "Internal code (optional)",
+        "codigo_placeholder": "AUTO if left blank",
+        "codigo_hint": "Letters, numbers, and underscores only. Max 20 characters. Stored in uppercase.",
+        "crear": "Add unit",
+        "lista_title": "My units",
+        "lista_vacia": "You have not defined any custom units yet.",
+        "confirm_delete": "Delete unit “{{nombre}}”? It must not be used on any product.",
+        "editar": "Edit",
+        "eliminar": "Delete"
+    },
+    "delete": {
+        "title": "Delete product",
+        "description": "“{{producto}}” will be removed from the catalog."
+    },
+    "toast": {
+        "load_error": "Could not load products."
+    }
+}

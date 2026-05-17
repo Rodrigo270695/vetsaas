@@ -1,0 +1,98 @@
+{
+    "title": "Cirugías",
+    "description": "Procedimientos programados: paciente, fecha, estado y equipo.",
+    "search_placeholder": "Buscar por paciente, propietario, procedimiento, estado, anestesia, sede, profesional u observaciones…",
+    "date_filter": {
+        "placeholder": "Rango de fechas",
+        "aria": "Filtrar por fecha programada",
+        "reset_month": "Mes actual",
+        "preset_this_week": "Esta semana",
+        "preset_last_week": "Semana pasada",
+        "preset_last_month": "Mes pasado",
+        "apply_single_day": "Un solo día"
+    },
+    "filters": {
+        "estado": "Estado",
+        "estado_all": "Todos los estados",
+        "paciente_all": "Todos los pacientes",
+        "paciente_search": "Buscar paciente…",
+        "paciente_empty": "Sin coincidencias.",
+        "veterinario": "Profesional",
+        "veterinario_all": "Todos los profesionales",
+        "sede": "Sede",
+        "sede_all": "Todas las sedes",
+        "vinculo_consulta": "Consulta",
+        "vinculo_todos": "Todas (con o sin consulta)",
+        "vinculo_con": "Solo con consulta vinculada",
+        "vinculo_sin": "Solo sin consulta vinculada"
+    },
+    "actions": {
+        "new": "Nueva cirugía",
+        "new_short": "Nueva",
+        "create_first": "Registrar primera cirugía"
+    },
+    "columns": {
+        "programada_at": "Programada",
+        "procedimiento": "Procedimiento",
+        "paciente": "Paciente",
+        "estado": "Estado",
+        "consulta": "Consulta",
+        "veterinario": "Profesional",
+        "sede": "Sede",
+        "creado_por": "Registrado por",
+        "acciones": "Acciones"
+    },
+    "estado": {
+        "borrador": "Borrador",
+        "programada": "Programada",
+        "en_proceso": "En proceso",
+        "completada": "Completada",
+        "cancelada": "Cancelada"
+    },
+    "stats": {
+        "total": "Total en rango",
+        "filters": "Filtros",
+        "matches": "Coincidencias"
+    },
+    "empty": {
+        "no_results_title": "Sin resultados",
+        "no_results_description": "Prueba a limpiar filtros o cambiar la búsqueda.",
+        "no_records_title": "Aún no hay cirugías",
+        "no_records_description": "Registra la primera con el botón «Nueva cirugía»."
+    },
+    "toast": {
+        "load_error": "No se pudo cargar el listado."
+    },
+    "form": {
+        "title_create": "Nueva cirugía",
+        "title_edit": "Editar cirugía",
+        "paciente": "Paciente",
+        "paciente_placeholder": "Selecciona paciente…",
+        "paciente_search": "Buscar paciente…",
+        "paciente_empty": "Sin pacientes que coincidan.",
+        "consulta": "Consulta abierta (opcional)",
+        "consulta_placeholder": "Sin vincular a consulta",
+        "consulta_hint": "Solo consultas abiertas del listado; deben corresponder al paciente elegido.",
+        "programada_at": "Fecha y hora programada",
+        "estado": "Estado",
+        "nombre_procedimiento": "Nombre del procedimiento",
+        "nombre_procedimiento_placeholder": "Ej. esterilización, extracción dental…",
+        "tipo_anestesia": "Tipo de anestesia",
+        "tipo_anestesia_placeholder": "Opcional",
+        "observaciones": "Observaciones",
+        "veterinario": "Profesional",
+        "veterinario_placeholder": "Sin asignar",
+        "sede": "Sede",
+        "sede_placeholder": "Sin sede",
+        "section_general": "Datos generales",
+        "section_general_hint": "Paciente, consulta opcional, fecha programada y procedimiento.",
+        "section_context": "Profesional y sede",
+        "section_context_hint": "Quién interviene y desde qué sede (opcional).",
+        "submit_create": "Guardar",
+        "submit_edit": "Guardar cambios"
+    },
+    "delete": {
+        "title": "¿Eliminar esta cirugía?",
+        "description": "El registro dejará de mostrarse en el listado."
+    }
+}

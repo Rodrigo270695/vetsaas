@@ -1,0 +1,155 @@
+{
+    "title": "Subscriptions",
+    "description": "Subscription operations panel. New subscriptions normally come from the Orvae checkout; here you can adjust dates, change plan, extend trial, cancel, or create manual subscriptions for support and migration.",
+    "search_placeholder": "Search by tenant, slug, RUC, plan…",
+    "filter_label": "Filter by status",
+    "filters": {
+        "all": "All",
+        "trial": "In trial",
+        "active": "Active",
+        "grace": "In grace",
+        "suspended": "Suspended",
+        "cancelled": "Cancelled"
+    },
+    "estados": {
+        "trial": "In trial",
+        "active": "Active",
+        "grace": "In grace",
+        "suspended": "Suspended",
+        "cancelled": "Cancelled"
+    },
+    "ciclos": {
+        "mensual": "Monthly",
+        "anual": "Yearly"
+    },
+    "stats": {
+        "total": "Total",
+        "trial": "In trial",
+        "active": "Active",
+        "grace": "In grace",
+        "suspended": "Suspended",
+        "cancelled": "Cancelled",
+        "mrr": "Estimated MRR",
+        "filters": "Active filters",
+        "matches": "Matches"
+    },
+    "actions": {
+        "new": "New subscription",
+        "new_short": "New",
+        "create_first": "Create the first subscription",
+        "delete_selected": "Delete selected"
+    },
+    "columns": {
+        "tenant": "Tenant",
+        "plan": "Plan",
+        "estado": "Status",
+        "ciclo": "Cycle",
+        "precio_pactado": "Negotiated price",
+        "trial_ends_at": "Trial ends",
+        "proximo_cobro_at": "Next charge",
+        "acciones": "Actions"
+    },
+    "row": {
+        "actions_for": "Actions for {{name}}",
+        "view_payments": "View payment history",
+        "extend_trial": "Extend trial",
+        "change_plan": "Change plan",
+        "cancel": "Cancel subscription",
+        "cancelled_locked": "Subscription cancelled"
+    },
+    "common": {
+        "loading": "Saving…"
+    },
+    "form": {
+        "title_create": "New subscription",
+        "title_edit": "Edit subscription",
+        "description_create": "Manually create a subscription. Useful for VIP customers, migrations, or wire-transfer payments. A tenant can only have one active subscription at a time.",
+        "description_edit": "Adjust data of an existing subscription. For state transitions (extend trial, change plan, cancel) use the row action menu.",
+        "section_contract": "Contract",
+        "section_contract_hint": "Tenant, plan, status and economic terms.",
+        "section_dates": "Key dates",
+        "section_dates_hint": "Lifecycle dates. Use the ⏰ button for the date picker.",
+        "section_cancellation": "Cancellation",
+        "section_cancellation_hint": "Cancellation details (only visible when status is Cancelled).",
+        "fields": {
+            "tenant_id": "Tenant",
+            "tenant_id_hint": "Customer the subscription is attached to. Cannot be changed afterwards.",
+            "tenant_id_placeholder": "Select a tenant…",
+            "plan_id": "Plan",
+            "plan_id_placeholder": "Select a plan…",
+            "estado": "Status",
+            "ciclo": "Billing cycle",
+            "precio_pactado": "Negotiated price (S/.)",
+            "precio_pactado_hint": "Amount the customer pays each cycle. Auto-filled when selecting a plan.",
+            "descuento_pct": "Discount (%)",
+            "trial_ends_at": "Trial end",
+            "current_period_start": "Current period start",
+            "current_period_end": "Current period end",
+            "grace_ends_at": "Grace period end",
+            "proximo_cobro_at": "Next charge",
+            "cancel_reason": "Cancellation reason",
+            "cancel_feedback": "Additional customer feedback"
+        },
+        "submit_create": "Create subscription",
+        "submit_edit": "Save changes"
+    },
+    "extend-trial": {
+        "title": "Extend trial period",
+        "description": "You're about to add N days to <strong>{{tenant}}</strong>'s trial period. If the subscription was not in trial, it will be moved to 'In trial'.",
+        "days_label": "Days to add",
+        "days_hint": "Between 1 and 365. Added to the current trial end date (or today if it already expired).",
+        "confirm": "Extend trial"
+    },
+    "change-plan": {
+        "title": "Change plan",
+        "description": "You're about to change <strong>{{tenant}}</strong>'s plan. The negotiated price will be recalculated with the new plan's price unless you specify otherwise.",
+        "plan_label": "New plan",
+        "plan_placeholder": "Select a plan…",
+        "current_plan": "Current plan: {{name}}",
+        "keep_price_label": "Keep the current price",
+        "keep_price_hint": "Useful when the customer has a negotiated price you want to preserve.",
+        "confirm": "Change plan"
+    },
+    "cancel": {
+        "title": "Cancel subscription",
+        "description": "You're about to cancel <strong>{{tenant}}</strong>'s subscription. The row is kept (not deleted) to preserve billing history. You can delete it later if you wish.",
+        "reason_label": "Reason",
+        "reason_placeholder": "Migrated to another system · Business closure · …",
+        "reason_hint": "Minimum {{min}} characters. This reason is stored for audit.",
+        "feedback_label": "Additional feedback",
+        "feedback_placeholder": "Customer's comments, prior conversations, etc.",
+        "confirm": "Cancel subscription"
+    },
+    "delete": {
+        "title": "Delete subscription",
+        "description": "You're about to permanently delete <strong>{{tenant}}</strong>'s subscription. This action is irreversible.",
+        "not_cancelled": "Only cancelled subscriptions can be deleted. Cancel the subscription first, then you can delete it.",
+        "confirm": "Yes, delete",
+        "loading": "Deleting…"
+    },
+    "bulk": {
+        "selected_singular": "subscription selected",
+        "selected_plural": "subscriptions selected",
+        "delete_title_one": "Delete 1 subscription",
+        "delete_title_other": "Delete {{count}} subscriptions",
+        "delete_title": "Delete {{count}} subscription(s)",
+        "delete_description_one": "1 subscription will be deleted. Only cancelled ones are deleted; the rest are skipped automatically.",
+        "delete_description_other": "{{count}} subscriptions will be deleted. Only cancelled ones are deleted; the rest are skipped automatically.",
+        "delete_description": "{{count}} subscriptions will be deleted. Only cancelled ones are deleted.",
+        "delete_confirm_singular": "Delete 1 subscription",
+        "delete_confirm_plural": "Delete {{count}} subscriptions"
+    },
+    "empty": {
+        "no_records_title": "No subscriptions yet",
+        "no_records_description": "Subscriptions show up here when a customer subscribes from Orvae. You can also create one manually for support or migration.",
+        "no_results_title": "No results",
+        "no_results_description": "Adjust filters or search to see more subscriptions."
+    },
+    "aria": {
+        "results_count_one": "1 subscription matches the current filters.",
+        "results_count_other": "{{count}} subscriptions match the current filters."
+    },
+    "toast": {
+        "load_error": "We couldn't load the subscriptions. Retry in a few seconds."
+    }
+}

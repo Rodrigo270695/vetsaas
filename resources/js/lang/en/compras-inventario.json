@@ -1,0 +1,97 @@
+{
+    "title": "Purchases",
+    "description": "Record inventory purchases: each line posts an inbound stock movement at the selected branch. You can attach the invoice (PDF or image).",
+    "toast": {
+        "load_error": "Could not load purchases."
+    },
+    "search_placeholder": "Search by number, series, or notes…",
+    "stats": {
+        "total_sede": "Purchases (branch)",
+        "coincidencias": "In this view",
+        "filtros": "Filters"
+    },
+    "date_filter": {
+        "placeholder": "Date range (document)",
+        "aria": "Filter by purchase document date",
+        "reset_month": "Current month",
+        "preset_this_week": "This week",
+        "preset_last_week": "Last week",
+        "preset_last_month": "Last month",
+        "apply_single_day": "Single day"
+    },
+    "filters": {
+        "sede": "Branch",
+        "proveedor": "Supplier",
+        "proveedor_all": "All suppliers",
+        "proveedor_search": "Search by name or tax ID…",
+        "proveedor_empty": "No supplier matches."
+    },
+    "columns": {
+        "fecha": "Doc. date",
+        "documento": "Document",
+        "proveedor": "Supplier",
+        "lineas": "Lines",
+        "costos": "Costs",
+        "total": "Total",
+        "factura": "Invoice",
+        "acciones": "Actions"
+    },
+    "actions": {
+        "new": "New purchase",
+        "new_short": "New",
+        "create_first": "Record first purchase",
+        "download_factura": "Download",
+        "lineas_costos": "View costs"
+    },
+    "lineas_dialog": {
+        "title": "Lines and unit costs",
+        "subtitle_doc": "Document {{doc}}",
+        "subtitle_sin_doc": "Purchase detail",
+        "vacio": "No line items loaded.",
+        "col_producto": "Product",
+        "col_cantidad": "Qty",
+        "col_costo": "Unit cost",
+        "subtotal": "Subtotal"
+    },
+    "anular": {
+        "title": "Cancel this purchase?",
+        "description": "Stock added by this purchase will be reversed (automatic outbound lines per item). Any attached voucher will be removed. Document: {{doc}}.",
+        "sin_numero": "no number",
+        "confirm": "Cancel purchase"
+    },
+    "empty": {
+        "sin_sedes_title": "No active branches",
+        "sin_sedes_description": "Create at least one active branch to record purchases and inventory movements.",
+        "no_records_title": "No purchases",
+        "no_records_description": "Create a purchase to increase stock and keep the voucher on file if needed.",
+        "no_results_title": "No results",
+        "no_results_description": "Try different filters or search terms."
+    },
+    "modal": {
+        "title": "New purchase",
+        "description": "The listed products increase on-hand stock at the selected branch. The invoice file is optional.",
+        "submit": "Save purchase",
+        "sede": "Receiving branch",
+        "sede_placeholder": "Choose branch",
+        "proveedor": "Supplier",
+        "proveedor_placeholder": "Optional",
+        "proveedor_none": "No supplier",
+        "fecha_documento": "Document date",
+        "serie": "Series",
+        "numero_documento": "Number",
+        "moneda": "Currency",
+        "total": "Document total",
+        "total_placeholder": "Optional",
+        "factura": "Invoice / voucher",
+        "factura_help": "PDF, PNG, or JPEG. Up to 12 MB.",
+        "notas": "Notes",
+        "lineas_title": "Products",
+        "linea_add": "Add line",
+        "linea_producto": "Product",
+        "linea_producto_placeholder": "Search product…",
+        "linea_producto_search": "Type to filter…",
+        "linea_cantidad": "Quantity",
+        "linea_costo": "Unit cost",
+        "linea_remove": "Remove line"
+    }
+}

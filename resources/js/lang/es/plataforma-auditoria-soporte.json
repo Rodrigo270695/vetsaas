@@ -1,0 +1,23 @@
+{
+    "title": "Auditoría de soporte",
+    "description": "Historial de sesiones «Entrar como soporte» en clínicas.",
+    "columns": {
+        "started_at": "Inicio",
+        "ended_at": "Fin",
+        "superadmin": "Superadmin",
+        "tenant": "Clínica",
+        "ip": "IP"
+    },
+    "status": {
+        "active": "En curso"
+    },
+    "empty": {
+        "title": "Sin registros todavía",
+        "description": "Aquí se guardan las sesiones después de que aceptas el enlace «Entrar como soporte» en el subdominio de la clínica. Las entradas anteriores a esta función no se migran.",
+        "steps_title": "Para generar el primer registro:",
+        "step_1": "Ve a Plataforma › Tenants.",
+        "step_2": "Menú de la fila › «Entrar como soporte».",
+        "step_3": "Opera en la clínica y luego «Salir del modo soporte».",
+        "cta_tenants": "Ir a Tenants"
+    }
+}

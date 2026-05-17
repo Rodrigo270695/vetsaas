@@ -1,0 +1,89 @@
+{
+    "title": "Panel",
+    "description": "Resumen operativo de tu clínica.",
+    "hero": {
+        "greeting_morning": "Buenos días",
+        "greeting_afternoon": "Buenas tardes",
+        "greeting_evening": "Buenas noches",
+        "subtitle": "Resumen operativo de tu clínica: citas, consultas, caja e inventario en un solo vistazo.",
+        "clinic_fallback": "Tu clínica",
+        "caja_abierta_hint": "Puedes registrar ventas en caja con tu turno activo.",
+        "caja_cerrada_hint": "Abre una sesión de caja para registrar ventas del día."
+    },
+    "sections": {
+        "clinical": "Atención clínica",
+        "clinical_hint": "Agenda, consultas y servicios del día.",
+        "operations": "Caja y facturación",
+        "operations_hint": "Ventas del día y comprobantes pendientes.",
+        "inventory": "Pacientes e inventario",
+        "inventory_hint": "Altas del mes y alertas de stock.",
+        "analytics": "Tendencias",
+        "analytics_hint": "Últimos 7 días y distribución de la semana."
+    },
+    "central": {
+        "title": "Panel central",
+        "description": "Las métricas clínicas se muestran en el subdominio de cada veterinaria.",
+        "hint": "Entra al subdominio de la clínica (o usa «Entrar como soporte» desde Plataforma › Tenants) para ver citas, ventas e inventario.",
+        "cta_tenants": "Ir a Plataforma › Tenants",
+        "cta_plataforma": "Ver planes y suscripciones"
+    },
+    "kpis": {
+        "citas_hoy": "Citas hoy",
+        "citas_pendientes": "Pendientes hoy",
+        "consultas_hoy": "Consultas hoy",
+        "consultas_abiertas": "Consultas abiertas",
+        "ventas_hoy": "Ventas hoy",
+        "ventas_monto": "Monto del día",
+        "pacientes_mes": "Pacientes nuevos (mes)",
+        "propietarios_mes": "Propietarios nuevos (mes)",
+        "vacunaciones_mes": "Vacunas / desparas. (mes)",
+        "grooming_hoy": "Grooming hoy",
+        "hotel_estancia": "Mascotas en hotel",
+        "internamientos": "Internamientos activos",
+        "fel_pendientes": "CPE pendientes",
+        "productos_activos": "Productos activos",
+        "alertas_stock": "Alertas de stock",
+        "caja_abierta": "Tu caja está abierta",
+        "caja_cerrada": "Sin caja abierta"
+    },
+    "charts": {
+        "ventas_7d": "Ventas — últimos 7 días",
+        "ventas_7d_hint": "Monto total de ventas pagadas por día.",
+        "consultas_7d": "Consultas — últimos 7 días",
+        "consultas_7d_hint": "Atenciones clínicas registradas por día.",
+        "citas_semana": "Citas de la semana",
+        "citas_semana_hint": "Distribución por estado (semana en curso).",
+        "ventas_metodo": "Ventas por método de pago",
+        "ventas_metodo_hint": "Semana en curso (solo ventas pagadas).",
+        "empty": "Aún no hay movimiento en este periodo. Cuando registres actividad, verás la tendencia aquí."
+    },
+    "proximas_citas": {
+        "title": "Próximas citas",
+        "empty": "No hay citas programadas próximamente.",
+        "ver_todas": "Ver agenda"
+    },
+    "quick_actions": {
+        "title": "Accesos rápidos",
+        "nueva_cita": "Nueva cita",
+        "nueva_venta": "Nueva venta",
+        "pacientes": "Pacientes",
+        "historias": "Historias clínicas",
+        "alertas": "Alertas stock"
+    },
+    "estados_cita": {
+        "programada": "Programada",
+        "confirmada": "Confirmada",
+        "completada": "Completada",
+        "cancelada": "Cancelada",
+        "no_asistio": "No asistió"
+    },
+    "metodos_pago": {
+        "efectivo": "Efectivo",
+        "yape": "Yape",
+        "plin": "Plin",
+        "tarjeta": "Tarjeta",
+        "transferencia": "Transferencia",
+        "sin_especificar": "Sin especificar"
+    },
+    "no_permission_section": "Sin permiso para ver esta sección"
+}

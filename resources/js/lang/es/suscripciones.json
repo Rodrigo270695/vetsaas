@@ -1,0 +1,155 @@
+{
+    "title": "Suscripciones",
+    "description": "Panel de operación de suscripciones. El alta normal proviene del checkout de Orvae; acá puedes ajustar fechas, cambiar plan, extender trial, cancelar o crear suscripciones manuales para soporte y migración.",
+    "search_placeholder": "Buscar por tenant, slug, RUC, plan…",
+    "filter_label": "Filtrar por estado",
+    "filters": {
+        "all": "Todas",
+        "trial": "En prueba",
+        "active": "Activas",
+        "grace": "En gracia",
+        "suspended": "Suspendidas",
+        "cancelled": "Canceladas"
+    },
+    "estados": {
+        "trial": "En prueba",
+        "active": "Activa",
+        "grace": "En gracia",
+        "suspended": "Suspendida",
+        "cancelled": "Cancelada"
+    },
+    "ciclos": {
+        "mensual": "Mensual",
+        "anual": "Anual"
+    },
+    "stats": {
+        "total": "Total",
+        "trial": "En prueba",
+        "active": "Activas",
+        "grace": "En gracia",
+        "suspended": "Suspendidas",
+        "cancelled": "Canceladas",
+        "mrr": "MRR estimado",
+        "filters": "Filtros activos",
+        "matches": "Coincidencias"
+    },
+    "actions": {
+        "new": "Nueva suscripción",
+        "new_short": "Nueva",
+        "create_first": "Crear la primera suscripción",
+        "delete_selected": "Eliminar seleccionadas"
+    },
+    "columns": {
+        "tenant": "Tenant",
+        "plan": "Plan",
+        "estado": "Estado",
+        "ciclo": "Ciclo",
+        "precio_pactado": "Precio pactado",
+        "trial_ends_at": "Fin trial",
+        "proximo_cobro_at": "Próximo cobro",
+        "acciones": "Acciones"
+    },
+    "row": {
+        "actions_for": "Acciones para {{name}}",
+        "view_payments": "Ver historial de cobros",
+        "extend_trial": "Extender prueba",
+        "change_plan": "Cambiar de plan",
+        "cancel": "Cancelar suscripción",
+        "cancelled_locked": "Suscripción cancelada"
+    },
+    "common": {
+        "loading": "Guardando…"
+    },
+    "form": {
+        "title_create": "Nueva suscripción",
+        "title_edit": "Editar suscripción",
+        "description_create": "Crea una suscripción manualmente. Útil para clientes VIP, migraciones desde otro sistema, o pagos por transferencia. Un tenant solo puede tener una suscripción activa a la vez.",
+        "description_edit": "Ajusta los datos de una suscripción existente. Para transiciones de estado (extender trial, cambiar plan, cancelar) usa las acciones del menú de la fila.",
+        "section_contract": "Contrato",
+        "section_contract_hint": "Tenant, plan, estado y términos económicos.",
+        "section_dates": "Fechas clave",
+        "section_dates_hint": "Fechas del ciclo de vida. Usa el botón ⏰ para el datepicker.",
+        "section_cancellation": "Cancelación",
+        "section_cancellation_hint": "Detalle de la cancelación (solo visible cuando el estado es Cancelada).",
+        "fields": {
+            "tenant_id": "Tenant",
+            "tenant_id_hint": "Cliente al que se asocia la suscripción. No se puede cambiar después.",
+            "tenant_id_placeholder": "Selecciona un tenant…",
+            "plan_id": "Plan",
+            "plan_id_placeholder": "Selecciona un plan…",
+            "estado": "Estado",
+            "ciclo": "Ciclo de facturación",
+            "precio_pactado": "Precio pactado (S/.)",
+            "precio_pactado_hint": "Lo que el cliente paga en cada ciclo. Auto-rellenado al elegir plan.",
+            "descuento_pct": "Descuento (%)",
+            "trial_ends_at": "Fin del periodo de prueba",
+            "current_period_start": "Inicio del periodo actual",
+            "current_period_end": "Fin del periodo actual",
+            "grace_ends_at": "Fin del periodo de gracia",
+            "proximo_cobro_at": "Próximo cobro",
+            "cancel_reason": "Motivo de la cancelación",
+            "cancel_feedback": "Feedback adicional del cliente"
+        },
+        "submit_create": "Crear suscripción",
+        "submit_edit": "Guardar cambios"
+    },
+    "extend-trial": {
+        "title": "Extender periodo de prueba",
+        "description": "Vas a sumar N días al periodo de prueba de <strong>{{tenant}}</strong>. Si la suscripción no estaba en prueba, pasará a 'En prueba'.",
+        "days_label": "Días a sumar",
+        "days_hint": "Entre 1 y 365. Se suman a la fecha actual de fin de trial (o a hoy si ya venció).",
+        "confirm": "Extender prueba"
+    },
+    "change-plan": {
+        "title": "Cambiar plan",
+        "description": "Vas a cambiar el plan de <strong>{{tenant}}</strong>. El precio pactado se recalcula con el del nuevo plan, salvo que indiques lo contrario.",
+        "plan_label": "Nuevo plan",
+        "plan_placeholder": "Selecciona un plan…",
+        "current_plan": "Plan actual: {{name}}",
+        "keep_price_label": "Mantener el precio actual",
+        "keep_price_hint": "Útil cuando el cliente tiene un precio negociado que quieres preservar.",
+        "confirm": "Cambiar plan"
+    },
+    "cancel": {
+        "title": "Cancelar suscripción",
+        "description": "Vas a cancelar la suscripción de <strong>{{tenant}}</strong>. La fila se conserva (no se borra) para mantener historia de cobranza. Después podrás eliminarla si quieres.",
+        "reason_label": "Motivo",
+        "reason_placeholder": "Migró a otro sistema · Cierre del negocio · …",
+        "reason_hint": "Mínimo {{min}} caracteres. Este motivo queda en el registro para auditoría.",
+        "feedback_label": "Feedback adicional",
+        "feedback_placeholder": "Comentarios del cliente, conversaciones previas, etc.",
+        "confirm": "Cancelar suscripción"
+    },
+    "delete": {
+        "title": "Eliminar suscripción",
+        "description": "Vas a eliminar definitivamente la suscripción de <strong>{{tenant}}</strong>. Esta acción es irreversible.",
+        "not_cancelled": "Solo se pueden eliminar suscripciones canceladas. Cancela primero la suscripción y luego podrás eliminarla.",
+        "confirm": "Sí, eliminar",
+        "loading": "Eliminando…"
+    },
+    "bulk": {
+        "selected_singular": "suscripción seleccionada",
+        "selected_plural": "suscripciones seleccionadas",
+        "delete_title_one": "Eliminar 1 suscripción",
+        "delete_title_other": "Eliminar {{count}} suscripciones",
+        "delete_title": "Eliminar {{count}} suscripción(es)",
+        "delete_description_one": "Se eliminará 1 suscripción. Solo las que estén canceladas se eliminan; el resto se omite automáticamente.",
+        "delete_description_other": "Se eliminarán {{count}} suscripciones. Solo las que estén canceladas se eliminan; el resto se omite automáticamente.",
+        "delete_description": "Se eliminarán {{count}} suscripciones. Solo las canceladas se eliminan.",
+        "delete_confirm_singular": "Eliminar 1 suscripción",
+        "delete_confirm_plural": "Eliminar {{count}} suscripciones"
+    },
+    "empty": {
+        "no_records_title": "Aún no hay suscripciones",
+        "no_records_description": "Cuando un cliente se suscriba desde Orvae aparecerá aquí. También puedes crear una manualmente para soporte o migración.",
+        "no_results_title": "Sin resultados",
+        "no_results_description": "Ajusta los filtros o la búsqueda para ver más suscripciones."
+    },
+    "aria": {
+        "results_count_one": "1 suscripción coincide con los filtros actuales.",
+        "results_count_other": "{{count}} suscripciones coinciden con los filtros actuales."
+    },
+    "toast": {
+        "load_error": "No pudimos cargar las suscripciones. Reintenta en unos segundos."
+    }
+}

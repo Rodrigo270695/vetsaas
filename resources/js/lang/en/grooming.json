@@ -1,0 +1,206 @@
+{
+    "title": "Grooming",
+    "description": "Bath, haircut and styling appointments: patient, assignee, site, schedule and status.",
+    "search_placeholder": "Search by patient, owner, service or notes…",
+    "date_filter": {
+        "placeholder": "Date range",
+        "aria": "Filter by appointment start date and time",
+        "reset_month": "Current month",
+        "preset_this_week": "This week",
+        "preset_last_week": "Last week",
+        "preset_last_month": "Last month",
+        "apply_single_day": "Single day"
+    },
+    "actions": {
+        "new": "New appointment",
+        "new_short": "New",
+        "create_first": "Create first appointment",
+        "cobrar": "Collect"
+    },
+    "columns": {
+        "inicio_at": "Start",
+        "duracion": "Duration",
+        "paciente": "Patient",
+        "estado": "Status",
+        "servicio": "Service",
+        "responsable": "Assignee",
+        "sede": "Site",
+        "creado_por": "Created by",
+        "acciones": "Actions"
+    },
+    "estado": {
+        "programada": "Scheduled",
+        "confirmada": "Confirmed",
+        "en_proceso": "In progress",
+        "completada": "Completed",
+        "cancelada": "Cancelled",
+        "no_asistio": "No-show"
+    },
+    "stats": {
+        "total": "Total in range",
+        "filters": "Filters",
+        "matches": "Matches"
+    },
+    "empty": {
+        "no_results_title": "No results",
+        "no_results_description": "Try clearing filters or changing your search.",
+        "no_records_title": "No appointments yet",
+        "no_records_description": "Create the first one with the “New appointment” button."
+    },
+    "toast": {
+        "load_error": "Could not load the list."
+    },
+    "form": {
+        "title_create": "New grooming appointment",
+        "title_edit": "Edit appointment",
+        "paciente": "Patient",
+        "paciente_placeholder": "Select patient…",
+        "paciente_search": "Search patient…",
+        "paciente_empty": "No matching patients.",
+        "inicio_at": "Start date and time",
+        "duracion_minutos": "Duration (minutes)",
+        "duracion_hint": "Between 5 and 480 minutes.",
+        "duracion_sugerida": "Based on the selected type, the schedule suggests {{minutes}} min; you can change it below.",
+        "estado": "Status",
+        "servicio": "Service type",
+        "servicio_placeholder": "Choose bath, haircut or combo…",
+        "servicio_hint": "Grouped protocols common in practice. If none fit, pick “Custom / other” and describe below.",
+        "servicio_detalle": "Custom service description",
+        "servicio_detalle_placeholder": "E.g. miconazole shampoo bath + lion clip…",
+        "servicio_detalle_hint": "Required when type is “Custom / other”. For medicated baths, note product and area here or in internal notes.",
+        "notas": "Internal notes",
+        "responsable": "Assignee",
+        "responsable_placeholder": "Unassigned",
+        "sede": "Site",
+        "sede_placeholder": "No site",
+        "submit_create": "Save",
+        "submit_edit": "Save changes"
+    },
+    "delete": {
+        "title": "Delete this appointment?",
+        "description": "It will disappear from the list (soft delete)."
+    },
+    "tipos_servicio": {
+        "grupos": {
+            "banos": "Baths & hydrotherapy",
+            "cortes": "Haircuts & coat maintenance",
+            "combos": "Common bundles",
+            "extras": "Add-ons",
+            "especiales": "Consultation or other"
+        },
+        "items": {
+            "bano_higienico": {
+                "label": "Maintenance bath (short coat)",
+                "hint": "Wash + dry; daily bread-and-butter service."
+            },
+            "bano_higienico_pelo_largo": {
+                "label": "Maintenance bath (long coat)",
+                "hint": "More drying and light brushing; not a severe dematting slot."
+            },
+            "bano_desenredo_liviano": {
+                "label": "Bath with light dematting",
+                "hint": "Local tangles or early undercoat; not heavy matting."
+            },
+            "bano_desenredo_severo": {
+                "label": "Bath with severe dematting / mat removal",
+                "hint": "Book extra time; assess welfare (brush pain). Document in notes."
+            },
+            "bano_antiparasitario": {
+                "label": "Anti-parasite bath (fleas / ticks)",
+                "hint": "Shampoo/protocol per authorised product in your region. Does not replace systemic treatment if infestation is heavy."
+            },
+            "bano_medicado_dermatologico": {
+                "label": "Medicated bath (dermatology)",
+                "hint": "Yeast, allergy, seborrhoea: follow veterinary prescription (log product in notes)."
+            },
+            "bano_hipoalergenico": {
+                "label": "Hypoallergenic bath / sensitive skin",
+                "hint": "Reactive skin or post-flare maintenance."
+            },
+            "bano_cachorro": {
+                "label": "Puppy bath / first experience",
+                "hint": "Short session, gentle handling; no forced drying."
+            },
+            "bano_gato": {
+                "label": "Cat bath (feline protocol)",
+                "hint": "Needs safe restraint; dry-only grooming may be kinder for some cats."
+            },
+            "bano_control_odor": {
+                "label": "Odour-control bath",
+                "hint": "Add-on; impacted anal glands usually need a separate protocol."
+            },
+            "corte_tijera_completo": {
+                "label": "Full scissor trim",
+                "hint": "Blended lengths; check hidden mats before scissoring."
+            },
+            "corte_maquina_uniforme": {
+                "label": "Clipper uniform trim / sport clip",
+                "hint": "Guide-comb lengths; good maintenance for suitable breeds."
+            },
+            "corte_higienico_zonas": {
+                "label": "Sanitary tidy (zones)",
+                "hint": "Groin, pads, face, eyes; hygiene without full restyle."
+            },
+            "corte_deslanado_strip": {
+                "label": "Strip-style undercoat removal",
+                "hint": "Double coats (e.g. shepherd, golden): watch for skin irritation; avoid marathon sessions."
+            },
+            "corte_deslanado_mano": {
+                "label": "Hand-stripping / deep carding",
+                "hint": "Less aggressive than full strip; good middle ground."
+            },
+            "trimming_cabeza_patas": {
+                "label": "Head & feet trim (pet tidy)",
+                "hint": "Refine face, feet and underline while keeping body length."
+            },
+            "corte_sanitario_prequirurgico": {
+                "label": "Pre-surgical / field clip",
+                "hint": "Clip for incision site or hospital prep; coordinate with clinician."
+            },
+            "combo_bano_corte": {
+                "label": "Bath + full haircut",
+                "hint": "Standard clinical grooming flow."
+            },
+            "combo_bano_desenredo_corte": {
+                "label": "Bath + demat + haircut",
+                "hint": "Includes pre-brush work; extend appointment duration."
+            },
+            "combo_bano_corte_deslanado": {
+                "label": "Bath + haircut + undercoat work",
+                "hint": "Double-coated breeds; may need two visits if undercoat is extreme."
+            },
+            "combo_spa_completo": {
+                "label": "Spa bundle (bath + mask + light extras)",
+                "hint": "Define what your spa package includes in internal notes."
+            },
+            "cepillado_seco": {
+                "label": "Dry brush-out (no bath)",
+                "hint": "Between-bath maintenance or cats that do not tolerate water."
+            },
+            "limpieza_oidos": {
+                "label": "Ear cleaning (external)",
+                "hint": "Visible external canal only; otitis cases go to the vet."
+            },
+            "corte_unas": {
+                "label": "Nail trim",
+                "hint": "Include filing if appropriate; watch the quick on pink nails."
+            },
+            "limpieza_gl_perianales": {
+                "label": "Anal gland expression / hygiene (external)",
+                "hint": "Only if in your SOP and tolerated; severe impaction = veterinary."
+            },
+            "hidratacion_mascarilla": {
+                "label": "Hydration mask / deep conditioner",
+                "hint": "After medicated baths or very porous coats."
+            },
+            "consulta_pre_estetica": {
+                "label": "Pre-groom consultation (no bath)",
+                "hint": "Assess mats, skin, parasites, realistic time and quote."
+            },
+            "otro_personalizado": {
+                "label": "Custom / other",
+                "hint": "Describe clearly what was agreed with the owner."
+            }
+        }
+    }
+}

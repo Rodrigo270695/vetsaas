@@ -1,0 +1,97 @@
+{
+    "title": "Vacunaciones",
+    "description": "Carnet clínico: vacunas, desparasitación y productos aplicados; cobertura antigénica y próxima fecha sugerida.",
+    "search_placeholder": "Buscar por paciente, propietario, vacuna, esquema o lote…",
+    "date_filter": {
+        "placeholder": "Rango de fechas",
+        "aria": "Filtrar por fecha de aplicación",
+        "reset_month": "Mes actual",
+        "preset_this_week": "Esta semana",
+        "preset_last_week": "Semana pasada",
+        "preset_last_month": "Mes pasado",
+        "apply_single_day": "Un solo día"
+    },
+    "actions": {
+        "new": "Registrar vacunación",
+        "new_short": "Nueva",
+        "create_first": "Registrar primera vacunación"
+    },
+    "columns": {
+        "aplicada_at": "Fecha y hora",
+        "tipo": "Tipo",
+        "paciente": "Paciente",
+        "consulta": "Consulta",
+        "vacuna": "Producto",
+        "proxima": "Próxima sugerida",
+        "dosis": "Dosis n.º",
+        "lote": "Lote",
+        "veterinario": "Veterinario",
+        "sede": "Sede",
+        "creado_por": "Registrado por",
+        "acciones": "Acciones"
+    },
+    "row": {
+        "system": "Sistema",
+        "inv": "Inventario",
+        "categoria_vacuna": "Vacuna",
+        "categoria_desparasitacion": "Antiparasitario",
+        "categoria_otro": "Otro"
+    },
+    "stats": {
+        "total": "Total en rango",
+        "filters": "Filtros",
+        "matches": "Coincidencias"
+    },
+    "empty": {
+        "no_results_title": "Sin resultados",
+        "no_results_description": "Prueba a limpiar filtros o cambiar la búsqueda.",
+        "no_records_title": "Aún no hay vacunaciones",
+        "no_records_description": "Registra la primera dosis con el botón «Registrar vacunación»."
+    },
+    "toast": {
+        "load_error": "No se pudo cargar el listado."
+    },
+    "form": {
+        "title_create": "Nueva vacunación",
+        "title_edit": "Editar vacunación",
+        "paciente": "Paciente",
+        "paciente_placeholder": "Selecciona paciente…",
+        "paciente_search": "Buscar paciente…",
+        "paciente_empty": "Sin pacientes que coincidan.",
+        "consulta_vinculada_abierta": "Esta aplicación quedará vinculada a la consulta abierta desde la que accediste.",
+        "consulta_vinculada_visita": "Vinculada a la visita del {{fecha}}.",
+        "producto_placeholder": "Vincular producto de inventario (opcional)",
+        "categoria_registro": "Tipo de registro",
+        "categoria_vacuna": "Vacuna / inmunización",
+        "categoria_desparasitacion": "Desparasitación",
+        "categoria_otro": "Otro (ej. antibiótico, fluidoterapia)",
+        "nombre_vacuna": "Nombre comercial o presentación",
+        "nombre_hint": "Enlaza inventario si aplica; el tipo de registro aclara si es vacuna, antiparasitario u otro uso clínico.",
+        "esquema_antigenos": "Esquema o cobertura (antígenos / enfermedades)",
+        "esquema_hint": "Ej. moquillo, parvovirus, parainfluenza, leptospirosis; o tipo de parásito (internos / externos).",
+        "fecha_proxima_sugerida": "Próxima aplicación sugerida (fecha)",
+        "fecha_proxima_hint": "Orientativa según protocolo del médico y ficha del fabricante; no sustituye la decisión clínica.",
+        "aplicada_at": "Fecha y hora de aplicación",
+        "numero_dosis": "Número de dosis (ej. 1, 2…)",
+        "lote": "Lote",
+        "notas": "Notas",
+        "veterinario": "Veterinario",
+        "veterinario_placeholder": "Sin asignar",
+        "sede": "Sede",
+        "sede_placeholder": "Sin sede",
+        "sede_required_hint": "Si enlazas un producto del inventario, elige la sede desde la que se descuenta 1 unidad.",
+        "submit_create": "Guardar",
+        "submit_edit": "Guardar cambios"
+    },
+    "producto_picker": {
+        "placeholder": "Vincular a inventario (opcional)",
+        "search": "Buscar vacuna en inventario…",
+        "empty": "Sin coincidencias.",
+        "loading": "Buscando…",
+        "clear_aria": "Quitar vínculo con inventario"
+    },
+    "delete": {
+        "title": "¿Eliminar esta vacunación?",
+        "description": "El registro dejará de mostrarse en el listado."
+    }
+}

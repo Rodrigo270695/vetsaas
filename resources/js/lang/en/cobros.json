@@ -1,0 +1,130 @@
+{
+    "title": "Billing",
+    "description": "Subscription payment history. Charges are processed by Orvae (via Niubiz/Culqi/MercadoPago) and registered here through webhooks. This is a SUPPORT view: read-only + human actions (manual refund, internal note, resend invoice).",
+    "search_placeholder": "Search by transaction ID, FEL, tenant, RUC…",
+    "filter_label": "Filter by status",
+    "filters": {
+        "all": "All",
+        "procesado": "Processed",
+        "pendiente": "Pending",
+        "fallido": "Failed",
+        "reembolsado": "Refunded"
+    },
+    "estados": {
+        "pendiente": "Pending",
+        "procesado": "Processed",
+        "fallido": "Failed",
+        "reembolsado": "Refunded"
+    },
+    "stats": {
+        "total": "Total",
+        "procesado": "Processed",
+        "pendiente": "Pending",
+        "fallido": "Failed",
+        "reembolsado": "Refunded",
+        "cobrado_total": "Total billed",
+        "filters": "Active filters",
+        "matches": "Matches"
+    },
+    "columns": {
+        "fecha": "Date",
+        "tenant": "Tenant",
+        "plan": "Plan",
+        "total": "Total",
+        "estado": "Status",
+        "pasarela": "Gateway",
+        "factura": "Invoice",
+        "acciones": "Actions"
+    },
+    "row": {
+        "actions_for": "Actions for {{name}}",
+        "view_detail": "View detail",
+        "copy_tx_id": "Copy transaction ID",
+        "add_note": "Add internal note",
+        "edit_note": "Edit internal note",
+        "resend_invoice": "Resend invoice",
+        "mark_refunded": "Mark manual refund",
+        "refunded_locked": "Payment already refunded",
+        "no_invoice": "No invoice"
+    },
+    "detail": {
+        "title": "Payment detail",
+        "description": "Full payment information including raw gateway response",
+        "section_cliente": "Customer",
+        "section_plan": "Plan",
+        "section_transaccion": "Transaction",
+        "section_montos": "Amounts",
+        "section_periodo": "Period covered",
+        "section_factura": "Electronic invoice",
+        "section_error": "Gateway error",
+        "section_reembolso": "Refund",
+        "section_nota": "Internal note",
+        "section_raw": "Raw gateway response",
+        "raw_hint": "For technical debugging. Useful when opening a ticket with the gateway.",
+        "yes": "Yes",
+        "no": "No",
+        "copy_tx_id": "Copy transaction ID",
+        "fields": {
+            "tenant": "Tenant",
+            "slug": "Slug",
+            "plan": "Plan",
+            "pasarela": "Gateway",
+            "transaction_id": "Transaction ID",
+            "pagado_at": "Paid at",
+            "created_at": "Registered at",
+            "monto": "Base amount",
+            "igv_monto": "VAT",
+            "descuento_monto": "Discount",
+            "total": "Total",
+            "periodo_inicio": "From",
+            "periodo_fin": "To",
+            "fel_emitido": "Invoice issued",
+            "fel_numero": "FEL number",
+            "invoice_resent_at": "Last resend",
+            "refunded_at": "Refunded at",
+            "refunded_by": "Marked by",
+            "refund_reason": "Reason"
+        }
+    },
+    "refund": {
+        "title": "Mark manual refund",
+        "description": "You're about to mark as refunded the payment from <strong>{{tenant}}</strong> for <strong>{{total}}</strong>. Use this when you returned the money outside the gateway (e.g. bank transfer). Who marked it and when is recorded.",
+        "reason_label": "Refund reason",
+        "reason_placeholder": "Customer requested cancellation · Duplicate charge · …",
+        "reason_hint": "Minimum {{min}} characters. This reason is stored for audit.",
+        "confirm": "Mark as refunded",
+        "loading": "Processing…"
+    },
+    "note": {
+        "title_create": "Add internal note",
+        "title_edit": "Edit internal note",
+        "description": "Internal notes for the support team. Not visible to the customer. Useful for context about conversations, claims, decisions.",
+        "note_label": "Note",
+        "note_placeholder": "Customer complained via WhatsApp on May 12, confirmed the charge was correct…",
+        "note_hint": "If you leave the field empty, the note is deleted.",
+        "confirm_create": "Save note",
+        "confirm_edit": "Update note",
+        "loading": "Saving…"
+    },
+    "resend": {
+        "title": "Resend electronic invoice",
+        "description": "Invoice <mono><strong>{{fel}}</strong></mono> will be resent to <strong>{{email}}</strong>. This action does not generate a new FEL number; it only resends the email with the existing PDF/XML.",
+        "confirm": "Resend invoice",
+        "loading": "Resending…"
+    },
+    "empty": {
+        "no_records_title": "No payments yet",
+        "no_records_description": "When Orvae processes a payment and sends the webhook, it will show up here. This table is populated by Orvae, not created from here.",
+        "no_results_title": "No results",
+        "no_results_description": "Adjust filters or search to see more payments."
+    },
+    "aria": {
+        "results_count_one": "1 payment matches the current filters.",
+        "results_count_other": "{{count}} payments match the current filters."
+    },
+    "toast": {
+        "load_error": "We couldn't load the payments. Retry in a few seconds.",
+        "tx_id_copied": "Transaction ID copied to clipboard",
+        "copied": "{{label}} copied to clipboard"
+    }
+}

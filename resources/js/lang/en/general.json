@@ -1,0 +1,134 @@
+{
+    "title": "General settings",
+    "description": "General details of your clinic: identity, branding, scheduling, reminders and billing.",
+    "description_for": "General details for {{name}}: identity, branding, scheduling, reminders and billing.",
+    "actions": {
+        "save": "Save changes",
+        "saved": "Saved"
+    },
+    "stats": {
+        "identidad": "Identity",
+        "contacto": "Contact",
+        "branding": "Branding",
+        "facturacion": "E-invoicing"
+    },
+    "sections": {
+        "identidad": {
+            "title": "Tax identity",
+            "description": "Tax ID, legal name and address that will appear on electronic receipts issued by the clinic."
+        },
+        "contacto": {
+            "title": "Contact",
+            "description": "How clients can reach you. Used on emails, reminders and templates."
+        },
+        "branding": {
+            "title": "Visual identity",
+            "description": "Logo and colors shown on the sidebar, receipts and automated emails."
+        },
+        "operacion": {
+            "title": "Schedule & appointments",
+            "description": "Default scheduling parameters: standard duration, intervals and cancellation rules."
+        },
+        "recordatorios": {
+            "title": "Automated reminders",
+            "description": "Scheduled notifications that VetSaaS sends to your clients via email and WhatsApp."
+        },
+        "facturacion": {
+            "title": "Billing & SUNAT receipts",
+            "description": "Currency, VAT and whether your clinic will issue electronic receipts (per your plan). Nubefact connection is optional until you enable issuance."
+        },
+        "remitente": {
+            "title": "Sender details",
+            "description": "How your clients will see the emails and WhatsApp messages that VetSaaS sends on your behalf. The platform handles delivery; you only customize the sender info."
+        }
+    },
+    "platform_note": {
+        "title": "WhatsApp and email: included in your plan",
+        "body": "The platform sends messages and transactional emails using its own credentials. You don't need to configure anything technical: just choose the name and contact details your clients will see."
+    },
+    "fields": {
+        "ruc": "Tax ID (RUC)",
+        "ruc_hint": "11 digits, no dashes or spaces.",
+        "razon_social": "Legal name",
+        "nombre_comercial": "Trade name",
+        "nombre_comercial_hint": "How your clinic is known to the public. If left empty, the legal name is used.",
+        "direccion_fiscal": "Tax address",
+        "departamento": "Region",
+        "provincia": "Province",
+        "distrito": "District",
+        "logo": "Clinic logo",
+        "logo_hint": "Upload a square image (PNG, JPG, WEBP or SVG) up to 2 MB. Transparent background preferred.",
+        "logo_hint_uploaded": "Logo stored. Replace it by uploading another image or remove it with the button.",
+        "logo_drop": "Drag your logo here or click to choose a file",
+        "logo_drop_supported": "PNG · JPG · WEBP · SVG · 2 MB max",
+        "logo_select": "Choose file",
+        "logo_replace": "Replace",
+        "logo_remove": "Remove logo",
+        "logo_remove_pending": "Will be removed on save",
+        "logo_undo_remove": "Keep logo",
+        "logo_pending": "New file: {{name}}",
+        "logo_preview_alt": "Logo preview",
+        "color_primario": "Primary color",
+        "color_secundario": "Secondary color",
+        "email_institucional": "Institutional email",
+        "telefono_principal": "Main phone",
+        "web_url": "Website",
+        "duracion_cita_default_min": "Default appointment duration (min)",
+        "duracion_cita_default_min_hint": "Used when the reason does not define a different duration.",
+        "intervalo_agenda_min": "Calendar slot size (min)",
+        "intervalo_agenda_min_hint": "Granularity of the scheduling grid.",
+        "dias_anticipacion_cita": "Max days ahead to book",
+        "dias_anticipacion_cita_hint": "Clients won't be able to book beyond this horizon.",
+        "horas_min_cancelacion": "Free cancellation window (hours)",
+        "horas_min_cancelacion_hint": "After this window, cancellations are logged as late.",
+        "recordatorio_48h_activo": "48-hour reminder",
+        "recordatorio_48h_activo_hint": "Reminds the client two days before their appointment.",
+        "recordatorio_2h_activo": "2-hour reminder",
+        "recordatorio_2h_activo_hint": "Last-minute alert to both client and vet.",
+        "recordatorio_vacuna_activo": "Upcoming vaccine reminder",
+        "recordatorio_vacuna_activo_hint": "Notifies when a vaccine is approaching its booster date.",
+        "recordatorio_vacuna_dias_antes": "Days before the due date",
+        "recordatorio_vacuna_dias_antes_hint": "How many days in advance the vaccine reminder is triggered.",
+        "recordatorio_cumple_activo": "Pet birthday greeting",
+        "recordatorio_cumple_activo_hint": "Automatic message on each pet's birthday.",
+        "moneda": "Currency",
+        "moneda_pen": "Peruvian sol",
+        "moneda_usd": "US dollar",
+        "igv_porcentaje": "VAT percentage",
+        "igv_porcentaje_hint": "Standard Peruvian rate: 18.00%.",
+        "precio_incluye_igv": "Entered prices include VAT",
+        "precio_incluye_igv_hint": "If active, the system derives the taxable base from the final price. Otherwise, VAT is added on top.",
+        "ticket_ancho_mm": "Thermal ticket width (pre-invoice)",
+        "ticket_ancho_mm_hint": "58 mm is the narrow-roll standard (~48 mm printable width). 80 mm for wide thermal printers.",
+        "ticket_ancho_mm_58": "58 mm (narrow roll)",
+        "ticket_ancho_mm_80": "80 mm (wide roll)",
+        "emite_comprobantes_sunat": "Issue SUNAT electronic receipts (invoice/receipt)",
+        "emite_comprobantes_sunat_hint": "Turn off if you only use the app for records, scheduling and stock without billing customers. You can still set currency and VAT for quotes or internal tickets.",
+        "nubefact_ruc": "Nubefact RUC",
+        "nubefact_ruc_hint": "RUC of the taxpayer registered with Nubefact.",
+        "nubefact_token": "Nubefact token",
+        "nubefact_token_hint": "API token from your Nubefact account (available in their dashboard).",
+        "nubefact_token_hint_stored": "A token is already stored (encrypted). Enter a new one only to replace it.",
+        "whatsapp_display_number": "Visible WhatsApp number",
+        "whatsapp_display_number_hint": "Number that will appear on WhatsApp messages as your clinic's contact. It is not used to send; the platform handles delivery.",
+        "email_from": "Reply-To email",
+        "email_from_hint": "When clients reply to an automated email, the response will be sent here.",
+        "email_from_nombre": "Sender name",
+        "email_from_nombre_hint": "Appears as the email sender (e.g. \"San Patricio Vet Clinic\")."
+    },
+    "integrations": {
+        "nubefact": {
+            "description": "Issues electronic receipts and invoices (SUNAT via Nubefact)."
+        },
+        "clear_credentials": "Clear credentials",
+        "keep_credentials": "Keep credentials"
+    },
+    "footer": {
+        "last_updated_by": "Last edited by {{name}}",
+        "never_updated": "No configuration has been saved yet."
+    },
+    "plan_sin_facturacion_electronica": {
+        "title": "Your plan does not include SUNAT electronic invoicing",
+        "body": "You can keep using the system as usual. To issue receipts, the platform admin must assign a plan with the “Electronic invoice” feature enabled."
+    }
+}

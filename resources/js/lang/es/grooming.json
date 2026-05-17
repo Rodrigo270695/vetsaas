@@ -1,0 +1,206 @@
+{
+    "title": "Grooming",
+    "description": "Turnos de baño, corte y estética: paciente, responsable, sede, horario y estado.",
+    "search_placeholder": "Buscar por paciente, propietario, servicio o notas…",
+    "date_filter": {
+        "placeholder": "Rango de fechas",
+        "aria": "Filtrar por fecha y hora de inicio del turno",
+        "reset_month": "Mes actual",
+        "preset_this_week": "Esta semana",
+        "preset_last_week": "Semana pasada",
+        "preset_last_month": "Mes pasado",
+        "apply_single_day": "Un solo día"
+    },
+    "actions": {
+        "new": "Nuevo turno",
+        "new_short": "Nuevo",
+        "create_first": "Crear primer turno",
+        "cobrar": "Cobrar"
+    },
+    "columns": {
+        "inicio_at": "Inicio",
+        "duracion": "Duración",
+        "paciente": "Paciente",
+        "estado": "Estado",
+        "servicio": "Servicio",
+        "responsable": "Responsable",
+        "sede": "Sede",
+        "creado_por": "Registrado por",
+        "acciones": "Acciones"
+    },
+    "estado": {
+        "programada": "Programada",
+        "confirmada": "Confirmada",
+        "en_proceso": "En proceso",
+        "completada": "Completada",
+        "cancelada": "Cancelada",
+        "no_asistio": "No asistió"
+    },
+    "stats": {
+        "total": "Total en rango",
+        "filters": "Filtros",
+        "matches": "Coincidencias"
+    },
+    "empty": {
+        "no_results_title": "Sin resultados",
+        "no_results_description": "Prueba a limpiar filtros o cambiar la búsqueda.",
+        "no_records_title": "Aún no hay turnos",
+        "no_records_description": "Crea el primer turno con el botón «Nuevo turno»."
+    },
+    "toast": {
+        "load_error": "No se pudo cargar el listado."
+    },
+    "form": {
+        "title_create": "Nuevo turno de grooming",
+        "title_edit": "Editar turno",
+        "paciente": "Paciente",
+        "paciente_placeholder": "Selecciona paciente…",
+        "paciente_search": "Buscar paciente…",
+        "paciente_empty": "Sin pacientes que coincidan.",
+        "inicio_at": "Fecha y hora de inicio",
+        "duracion_minutos": "Duración (minutos)",
+        "duracion_hint": "Entre 5 y 480 minutos.",
+        "duracion_sugerida": "Según el tipo elegido, la agenda sugiere {{minutes}} min; puedes ajustar el valor abajo.",
+        "estado": "Estado",
+        "servicio": "Tipo de servicio",
+        "servicio_placeholder": "Elige el tipo de baño, corte o combo…",
+        "servicio_hint": "El catálogo agrupa protocolos habituales en clínica. Si no encaja, usa «Otro / personalizado» y describe en el campo siguiente.",
+        "servicio_detalle": "Descripción del servicio personalizado",
+        "servicio_detalle_placeholder": "Ej.: baño con champú miconazol + corte tijera estilo león…",
+        "servicio_detalle_hint": "Obligatorio cuando el tipo es «Otro / personalizado». Para baños medicados con producto concreto, indica producto y zona en notas internas o aquí si prefieres.",
+        "notas": "Notas internas",
+        "responsable": "Responsable",
+        "responsable_placeholder": "Sin asignar",
+        "sede": "Sede",
+        "sede_placeholder": "Sin sede",
+        "submit_create": "Guardar",
+        "submit_edit": "Guardar cambios"
+    },
+    "delete": {
+        "title": "¿Eliminar este turno?",
+        "description": "El registro dejará de mostrarse en el listado (soft delete)."
+    },
+    "tipos_servicio": {
+        "grupos": {
+            "banos": "Baños e hidroterapia",
+            "cortes": "Cortes y mantenimiento del manto",
+            "combos": "Combos frecuentes",
+            "extras": "Complementos",
+            "especiales": "Consulta u otro"
+        },
+        "items": {
+            "bano_higienico": {
+                "label": "Baño higiénico (pelo corto / mantenimiento)",
+                "hint": "Lavado + secado; base de la agenda diaria."
+            },
+            "bano_higienico_pelo_largo": {
+                "label": "Baño higiénico pelo largo",
+                "hint": "Más tiempo de secado y desenredo básico sin tarifa de desenredo severo."
+            },
+            "bano_desenredo_liviano": {
+                "label": "Baño con desenredo liviano",
+                "hint": "Nudos localizados o subpelo incipiente; no matas severas."
+            },
+            "bano_desenredo_severo": {
+                "label": "Baño con desenredo severo / matas",
+                "hint": "Reserva más tiempo; valorar bienestar (dolor al cepillar). Documentar en notas."
+            },
+            "bano_antiparasitario": {
+                "label": "Baño antiparasitario (pulgas / garrapatas)",
+                "hint": "Champú o protocolo piretrín / Fipronil según producto autorizado en tu país. No sustituye tratamiento sistémico si hay infestación masiva."
+            },
+            "bano_medicado_dermatologico": {
+                "label": "Baño medicado (dermatología)",
+                "hint": "Micosis, alergia, seborrea: seguir pauta veterinaria y producto indicado (registrar en notas)."
+            },
+            "bano_hipoalergenico": {
+                "label": "Baño hipoalergénico / piel sensible",
+                "hint": "Pieles reactivas o protocolos post‑brote alérgico."
+            },
+            "bano_cachorro": {
+                "label": "Baño cachorro / primera experiencia",
+                "hint": "Sesión corta, manejo suave y habituación; sin forzar secado."
+            },
+            "bano_gato": {
+                "label": "Baño gato (protocolo felino)",
+                "hint": "Requiere técnica y contención segura; valorar si solo cepillado es más adecuado."
+            },
+            "bano_control_olor": {
+                "label": "Baño control de olor (glándulas / olor general)",
+                "hint": "Complementario; glándulas perianales suelen tratarse aparte si están impactadas."
+            },
+            "corte_tijera_completo": {
+                "label": "Corte a tijera (estético completo)",
+                "hint": "Siluetas con transición suave; revisar nudos ocultos antes de tijera."
+            },
+            "corte_maquina_uniforme": {
+                "label": "Corte a máquina (uniforme / sport)",
+                "hint": "Guías numeradas; ideal mantenimiento rápido en razas adecuadas."
+            },
+            "corte_higienico_zonas": {
+                "label": "Corte higiénico por zonas",
+                "hint": "Genital, interdigital, hocico, ojos; mejora higiene sin cambiar silueta completa."
+            },
+            "corte_deslanado_strip": {
+                "label": "Deslanado tipo strip (extracción subpelo)",
+                "hint": "Doble manto (ej. pastores, golden): riesgo de irritación; no forzar piel en una sola sesión."
+            },
+            "corte_deslanado_mano": {
+                "label": "Deslanado manual / carda profunda",
+                "hint": "Menos agresivo que strip completo; buen punto intermedio."
+            },
+            "trimming_cabeza_patas": {
+                "label": "Trimming cabeza y patas (toilet)",
+                "hint": "Refinar hocico, patas y bajo vientre manteniendo cuerpo."
+            },
+            "corte_sanitario_prequirurgico": {
+                "label": "Corte sanitario prequirúrgico / campo",
+                "hint": "Zona de incisión o preparación hospitalaria; coordinar con veterinario."
+            },
+            "combo_bano_corte": {
+                "label": "Combo baño + corte completo",
+                "hint": "Flujo estándar de peluquería clínica."
+            },
+            "combo_bano_desenredo_corte": {
+                "label": "Combo baño + desenredo + corte",
+                "hint": "Incluye trabajo previo de cepillado; ajustar duración del turno."
+            },
+            "combo_bano_corte_deslanado": {
+                "label": "Combo baño + corte + deslanado",
+                "hint": "Razas de doble manto; puede requerir dos sesiones si hay mucho subpelo."
+            },
+            "combo_spa_completo": {
+                "label": "Combo spa (baño + máscara + extras leves)",
+                "hint": "Define en notas qué incluye tu paquete spa en la clínica."
+            },
+            "cepillado_seco": {
+                "label": "Cepillado en seco (sin baño)",
+                "hint": "Mantenimiento intermedio o gatos que no toleran agua."
+            },
+            "limpieza_oidos": {
+                "label": "Limpieza de oídos (externa)",
+                "hint": "Solo conducto externo visible; si hay otitis, derivar a consulta médica."
+            },
+            "corte_unas": {
+                "label": "Corte de uñas",
+                "hint": "Incluye limado si procede; cuidado con quick rosado."
+            },
+            "limpieza_gl_perianales": {
+                "label": "Limpieza / expresión glándulas perianales (externa)",
+                "hint": "Solo si está en tu protocolo y el animal lo tolera; impactación severa = vet."
+            },
+            "hidratacion_mascarilla": {
+                "label": "Hidratación o mascarilla acondicionadora",
+                "hint": "Tras baño medicado o pelo muy poroso."
+            },
+            "consulta_pre_estetica": {
+                "label": "Consulta pre‑estética (sin baño)",
+                "hint": "Valorar nudos, piel, parasitos, tiempo real necesario y presupuesto."
+            },
+            "otro_personalizado": {
+                "label": "Otro / personalizado",
+                "hint": "Describe con claridad el servicio acordado con el propietario."
+            }
+        }
+    }
+}

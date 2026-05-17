@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <style>
+    .brand { fill: #006D55; }
+    .bg    { fill: #FAFAF9; }
+    @media (prefers-color-scheme: dark) {
+      .brand { fill: #33A07B; }
+      .bg    { fill: #0A1F18; }
+    }
+  </style>
+  <!-- Dona principal -->
+  <circle class="brand" cx="13" cy="18" r="11"/>
+  <circle class="bg"    cx="13" cy="18" r="4.5"/>
+  <!-- Dot satélite -->
+  <circle class="brand" cx="25" cy="7" r="4"/>
+</svg>

@@ -1,0 +1,89 @@
+{
+    "title": "Dashboard",
+    "description": "Operational overview for your clinic.",
+    "hero": {
+        "greeting_morning": "Good morning",
+        "greeting_afternoon": "Good afternoon",
+        "greeting_evening": "Good evening",
+        "subtitle": "Your clinic at a glance: appointments, visits, register, and inventory.",
+        "clinic_fallback": "Your clinic",
+        "caja_abierta_hint": "You can record sales with your active register session.",
+        "caja_cerrada_hint": "Open a register session to record today's sales."
+    },
+    "sections": {
+        "clinical": "Clinical care",
+        "clinical_hint": "Schedule, visits, and services for today.",
+        "operations": "Register & billing",
+        "operations_hint": "Today's sales and pending e-invoices.",
+        "inventory": "Patients & inventory",
+        "inventory_hint": "New records this month and stock alerts.",
+        "analytics": "Trends",
+        "analytics_hint": "Last 7 days and this week's breakdown."
+    },
+    "central": {
+        "title": "Central dashboard",
+        "description": "Clinical metrics appear on each clinic's subdomain.",
+        "hint": "Open the clinic subdomain (or use «Enter as support» from Platform › Tenants) to see appointments, sales, and inventory.",
+        "cta_tenants": "Go to Platform › Tenants",
+        "cta_plataforma": "View plans and subscriptions"
+    },
+    "kpis": {
+        "citas_hoy": "Appointments today",
+        "citas_pendientes": "Pending today",
+        "consultas_hoy": "Visits today",
+        "consultas_abiertas": "Open visits",
+        "ventas_hoy": "Sales today",
+        "ventas_monto": "Today's amount",
+        "pacientes_mes": "New patients (month)",
+        "propietarios_mes": "New owners (month)",
+        "vacunaciones_mes": "Vaccines / deworming (month)",
+        "grooming_hoy": "Grooming today",
+        "hotel_estancia": "Pets in boarding",
+        "internamientos": "Active hospitalizations",
+        "fel_pendientes": "Pending e-invoices",
+        "productos_activos": "Active products",
+        "alertas_stock": "Stock alerts",
+        "caja_abierta": "Your register is open",
+        "caja_cerrada": "No open register"
+    },
+    "charts": {
+        "ventas_7d": "Sales — last 7 days",
+        "ventas_7d_hint": "Total paid sales amount per day.",
+        "consultas_7d": "Visits — last 7 days",
+        "consultas_7d_hint": "Clinical visits recorded per day.",
+        "citas_semana": "Appointments this week",
+        "citas_semana_hint": "Breakdown by status (current week).",
+        "ventas_metodo": "Sales by payment method",
+        "ventas_metodo_hint": "Current week (paid sales only).",
+        "empty": "No activity in this period yet. Data will appear here as you work."
+    },
+    "proximas_citas": {
+        "title": "Upcoming appointments",
+        "empty": "No upcoming scheduled appointments.",
+        "ver_todas": "View schedule"
+    },
+    "quick_actions": {
+        "title": "Quick actions",
+        "nueva_cita": "New appointment",
+        "nueva_venta": "New sale",
+        "pacientes": "Patients",
+        "historias": "Medical records",
+        "alertas": "Stock alerts"
+    },
+    "estados_cita": {
+        "programada": "Scheduled",
+        "confirmada": "Confirmed",
+        "completada": "Completed",
+        "cancelada": "Cancelled",
+        "no_asistio": "No-show"
+    },
+    "metodos_pago": {
+        "efectivo": "Cash",
+        "yape": "Yape",
+        "plin": "Plin",
+        "tarjeta": "Card",
+        "transferencia": "Bank transfer",
+        "sin_especificar": "Unspecified"
+    },
+    "no_permission_section": "You don't have permission to view this section"
+}

@@ -1,0 +1,89 @@
+{
+    "actions": {
+        "cancel": "Cancelar",
+        "save": "Guardar",
+        "save_changes": "Guardar cambios",
+        "create": "Crear",
+        "edit": "Editar",
+        "delete": "Eliminar",
+        "confirm": "Confirmar",
+        "close": "Cerrar",
+        "search": "Buscar",
+        "filter": "Filtrar",
+        "clear": "Limpiar",
+        "clear_filters": "Limpiar filtros",
+        "export": "Exportar",
+        "export_csv": "Exportar CSV",
+        "export_xlsx": "Exportar Excel",
+        "copy": "Copiar",
+        "view": "Ver",
+        "back": "Volver",
+        "loading": "Cargando...",
+        "retry": "Reintentar"
+    },
+    "feedback": {
+        "no_results": "Sin resultados",
+        "no_records": "Sin registros",
+        "loading_error": "Ocurrió un error al cargar la información.",
+        "save_success": "Cambios guardados correctamente.",
+        "save_error": "No se pudieron guardar los cambios.",
+        "delete_success": "Registro eliminado correctamente.",
+        "delete_error": "No se pudo eliminar el registro.",
+        "copied": "Copiado al portapapeles",
+        "copy_error": "No se pudo copiar al portapapeles"
+    },
+    "impersonation": {
+        "banner_title": "Modo soporte (impersonación)",
+        "banner_body": "Estás operando en {{clinic}} con tu cuenta de superadmin. Cierra la sesión de soporte cuando termines.",
+        "banner_leave": "Salir del modo soporte",
+        "banner_fallback_clinic": "esta clínica"
+    },
+    "table": {
+        "showing": "Mostrando",
+        "of": "de",
+        "results": "resultados",
+        "per_page": "Por página",
+        "first_page": "Primera página",
+        "previous_page": "Página anterior",
+        "next_page": "Página siguiente",
+        "last_page": "Última página",
+        "go_to_page": "Ir a página {{page}}",
+        "page_of": "{{current}} / {{total}}",
+        "selected_singular": "seleccionada",
+        "selected_plural": "seleccionadas",
+        "select_all": "Seleccionar todas las filas",
+        "select_row": "Seleccionar fila"
+    },
+    "form": {
+        "required_field": "Campo obligatorio",
+        "unsaved_changes": "Tienes cambios sin guardar. ¿Estás seguro que quieres descartarlos?"
+    },
+    "filters": {
+        "all": "Todas",
+        "active": "Activas",
+        "inactive": "Inactivas"
+    },
+    "aria": {
+        "results_count_other": "{{count}} resultados"
+    },
+    "state": {
+        "complete": "Completa",
+        "incomplete": "Incompleta",
+        "configured": "Configurada",
+        "not_configured": "Sin configurar"
+    },
+    "language": {
+        "label": "Idioma",
+        "es": "Español",
+        "en": "English"
+    },
+    "tenant_required": {
+        "page_title": "Selecciona una clínica",
+        "title": "Selecciona una clínica para continuar",
+        "description": "Esta sección pertenece al panel operativo de una clínica específica. Como superadmin debes elegir desde qué clínica quieres trabajar.",
+        "attempted_path": "Ruta solicitada",
+        "cta_primary": "Ir a Plataforma › Tenants",
+        "cta_secondary": "Volver al Dashboard",
+        "helper_inline": "Los datos operativos (pacientes, citas, configuración…) viven dentro del schema de cada clínica, así que desde el host central no hay un tenant al que apuntar. Próximamente la impersonation desde el listado de clínicas resolverá esto sin pedir credenciales (Fase 5)."
+    }
+}

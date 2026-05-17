@@ -1,0 +1,109 @@
+{
+    "title": "Users",
+    "description": "Manage the accounts that can sign in to the clinic. Assign roles to control which modules each person can operate.",
+    "actions": {
+        "new": "New user",
+        "new_short": "New",
+        "create_first": "Create first user",
+        "delete_selected": "Delete selected",
+        "export_filtered": "Export matches"
+    },
+    "stats": {
+        "total": "Total",
+        "active": "Active",
+        "inactive": "Suspended",
+        "filters": "Filters",
+        "matches": "Matches"
+    },
+    "search_placeholder": "Search by name, email or phone...",
+    "filter_label": "Filter by status",
+    "filter_role_label": "Filter by role",
+    "filters": {
+        "all": "All",
+        "active": "Active",
+        "inactive": "Suspended",
+        "all_roles": "All roles"
+    },
+    "columns": {
+        "user": "User",
+        "phone": "Phone",
+        "role": "Role",
+        "status": "Status",
+        "last_login": "Last login",
+        "created_at": "Created",
+        "acciones": "Actions"
+    },
+    "row": {
+        "no_phone": "No phone",
+        "no_role": "No role",
+        "no_login": "Never",
+        "verified": "Verified",
+        "unverified": "Unverified",
+        "active": "Active",
+        "suspended": "Suspended",
+        "current_user_badge": "You",
+        "copy_email": "Copy email",
+        "actions_for": "Actions for {{name}}",
+        "self_locked": "You can't edit or delete your own account from here.",
+        "superadmin_locked": "Superadmin accounts are managed from the seeder."
+    },
+    "empty": {
+        "no_records_title": "No users yet",
+        "no_records_description": "Create the first user so your team can access the clinic.",
+        "no_results_title": "No results",
+        "no_results_description": "No user matches the current filters. Try adjusting the search or changing the status/role."
+    },
+    "aria": {
+        "results_count_one": "{{count}} user found",
+        "results_count_other": "{{count}} users found"
+    },
+    "form": {
+        "title_create": "New user",
+        "title_edit": "Edit user",
+        "description_create": "Fill in the new user's details and assign a role.",
+        "description_edit": "Update the user info or change the assigned role.",
+        "submit_create": "Create user",
+        "submit_edit": "Save changes",
+        "section_basic": "Personal data",
+        "section_basic_hint": "User contact information and identification.",
+        "section_access": "Access",
+        "section_access_hint_create": "Set the initial password and the role this account will have.",
+        "section_access_hint_edit": "Change the role or password. Leave the password fields empty to keep the current one.",
+        "fields": {
+            "name": "Full name",
+            "name_placeholder": "E.g. Maria Lopez",
+            "email": "Email",
+            "email_placeholder": "user@clinic.com",
+            "phone": "Phone",
+            "phone_placeholder": "E.g. +51 999 888 777",
+            "password": "Password",
+            "password_placeholder": "Minimum 8 characters",
+            "password_placeholder_edit": "Leave empty to keep current",
+            "password_confirmation": "Confirm password",
+            "role": "Role",
+            "role_placeholder": "Select a role",
+            "is_active": "Active account",
+            "is_active_hint": "If disabled, the user won't be able to sign in."
+        }
+    },
+    "delete": {
+        "title": "Delete user",
+        "description": "You're about to delete user <strong>{{name}}</strong>. They will lose access immediately and their history will remain in the system. This action cannot be undone.",
+        "confirm": "Yes, delete user",
+        "loading": "Deleting...",
+        "self_blocked": "You can't delete your own account.",
+        "superadmin_blocked": "Superadmin accounts can't be deleted from the panel."
+    },
+    "bulk": {
+        "selected_singular": "user selected",
+        "selected_plural": "users selected",
+        "delete_title": "Delete {{count}} users",
+        "delete_description": "You're about to delete {{count}} users. Superadmin accounts and your own session will be skipped automatically. Deleted users will lose access immediately.",
+        "delete_confirm_singular": "Yes, delete user",
+        "delete_confirm_plural": "Yes, delete {{count}} users"
+    },
+    "toast": {
+        "email_copied": "Email copied",
+        "load_error": "Couldn't load the user list."
+    }
+}

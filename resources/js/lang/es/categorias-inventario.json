@@ -1,0 +1,58 @@
+{
+    "title": "Categorías de inventario",
+    "description": "Organiza tus productos por grupos para mantener un catálogo claro y escalable.",
+    "search_placeholder": "Buscar por nombre, slug o descripción…",
+    "filter_label": "Filtrar categorías por estado",
+    "stats": {
+        "total": "Total",
+        "active": "Activas",
+        "inactive": "Inactivas",
+        "filters": "Filtros",
+        "matches": "Coincidencias"
+    },
+    "columns": {
+        "nombre": "Nombre",
+        "parent": "Categoría padre",
+        "orden": "Orden",
+        "estado": "Estado",
+        "creado_por": "Creada por",
+        "acciones": "Acciones"
+    },
+    "row": {
+        "parent_none": "Sin categoría padre",
+        "system": "Sistema"
+    },
+    "actions": {
+        "new": "Nueva categoría",
+        "new_short": "Nueva",
+        "create_first": "Crear primera categoría"
+    },
+    "empty": {
+        "no_records_title": "Aún no hay categorías",
+        "no_records_description": "Empieza creando la estructura de categorías para tu inventario.",
+        "no_results_title": "Sin resultados",
+        "no_results_description": "No se encontraron categorías con los filtros aplicados."
+    },
+    "form": {
+        "title_create": "Nueva categoría",
+        "title_edit": "Editar categoría",
+        "submit_create": "Guardar categoría",
+        "submit_edit": "Actualizar categoría",
+        "nombre": "Nombre",
+        "parent": "Categoría padre",
+        "parent_placeholder": "Selecciona una categoría padre",
+        "parent_none": "Sin categoría padre",
+        "slug": "Slug",
+        "orden": "Orden",
+        "descripcion": "Descripción",
+        "estado": "Estado",
+        "activo_label": "Categoría activa"
+    },
+    "delete": {
+        "title": "Eliminar categoría",
+        "description": "Se eliminará «{{categoria}}». Esta acción puede revertirse desde base de datos."
+    },
+    "toast": {
+        "load_error": "No se pudieron cargar las categorías."
+    }
+}

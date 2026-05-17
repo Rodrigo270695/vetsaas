@@ -1,0 +1,72 @@
+{
+    "page_title": "Cargos — {{paciente}}",
+    "page_description": "Pre-cuenta de la consulta (servicios y productos). Los importes usan la configuración de IGV de la clínica.",
+    "back_list": "Volver al listado de historias",
+    "solo_lectura_sin_permiso": "Tu usuario puede abrir esta pantalla pero no tiene permiso para cargar importes. Pide a un administrador que active «Cargos de consulta → gestionar» (consulta-cargos.manage) o que vuelva a sincronizar roles: php artisan db:seed --class=TenantRolesSeeder",
+    "estado_confirmado_aviso": "Esta pre-cuenta ya está confirmada; no se puede editar aquí.",
+    "cobro": {
+        "alert_title": "Listo para cobrar en caja",
+        "alert_body": "La pre-cuenta está confirmada. Abre el punto de venta con las líneas precargadas.",
+        "cobrar_cta": "Cobrar en caja",
+        "sin_sesion_caja": "Abre tu turno en Caja › Sesiones para cobrar esta pre-cuenta.",
+        "abrir_sesion_cta": "Ir a sesiones",
+        "ya_cobrado_title": "Ya cobrado en caja",
+        "ya_cobrado_body": "Esta pre-cuenta se registró como venta {{numero}}.",
+        "ver_venta_cta": "Ver venta",
+        "sin_permiso_title": "No puedes cobrar esta pre-cuenta",
+        "sin_permiso": "Tu rol necesita consulta-cargos.cobrar y ventas.create. Ejecuta: php artisan db:seed --class=PermissionsSeeder y TenantRolesSeeder, o asigna rol recepcionista/admin. Recarga el navegador (Ctrl+F5) si acabas de actualizar el código."
+    },
+    "stat_paciente": "Paciente",
+    "stat_propietario": "Propietario",
+    "stat_estado": "Estado",
+    "breadcrumb_historias": "Historias clínicas",
+    "breadcrumb_cargos": "Cargos",
+    "label_atencion": "Atención:",
+    "label_moneda": "Moneda: {{code}}",
+    "estado": {
+        "borrador": "Borrador",
+        "confirmado": "Confirmado"
+    },
+    "hint_precio_incluye_igv": "Los precios unitarios incluyen IGV ({{pct}}%). Al guardar se separan base e IGV.",
+    "hint_precio_sin_igv": "Los precios unitarios no incluyen IGV. Se aplica {{pct}}% sobre la base.",
+    "imprimir_ticket": "Ver ticket",
+    "imprimir_ticket_ayuda": "Se abre aquí; usa «Imprimir» en el cuadro para la ticketera ({{mm}} mm).",
+    "ticket_modal_title": "Ticket de pre-cuenta",
+    "ticket_modal_description": "Vista previa del mismo documento que vería la impresora. Puedes cerrar o enviar a imprimir / PDF.",
+    "ticket_modal_print": "Imprimir",
+    "ticket_iframe_title": "Vista previa del ticket de cargos",
+    "field_notas": "Notas internas",
+    "field_notas_placeholder": "Observaciones opcionales para el equipo…",
+    "col_concepto": "Concepto",
+    "col_importe": "Importe",
+    "lineas_title": "Líneas",
+    "lineas_subtitle": "Servicios y productos de esta atención.",
+    "add_linea": "Añadir línea",
+    "sin_lineas": "No hay líneas. Añade al menos una para registrar cargos.",
+    "field_tipo": "Tipo",
+    "field_concepto": "Concepto",
+    "field_cantidad": "Cant.",
+    "field_precio_unitario": "P. unit.",
+    "field_descuento": "Descuento",
+    "tipo": {
+        "servicio": "Servicio",
+        "producto": "Producto",
+        "otro": "Otro"
+    },
+    "totales": {
+        "resumen_title": "Resumen",
+        "subtotal": "Subtotal (sin IGV):",
+        "igv": "IGV:",
+        "total": "Total:",
+        "hint_refresh": "Los totales se actualizan al guardar."
+    },
+    "save_draft": "Guardar borrador",
+    "confirmar": "Confirmar pre-cuenta",
+    "producto_picker": {
+        "placeholder": "Buscar producto…",
+        "search_placeholder": "Nombre o SKU…",
+        "loading": "Buscando…",
+        "empty": "Sin resultados.",
+        "clear_aria": "Quitar producto"
+    }
+}

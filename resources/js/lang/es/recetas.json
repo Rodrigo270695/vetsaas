@@ -1,0 +1,97 @@
+{
+    "title": "Recetas",
+    "description": "Prescripciones: medicamentos indicados, posología y vínculo opcional con inventario o consulta en curso.",
+    "search_placeholder": "Buscar por paciente, propietario, medicamento, posología u observaciones…",
+    "date_filter": {
+        "placeholder": "Rango de fechas",
+        "aria": "Filtrar por fecha de la receta",
+        "reset_month": "Mes actual",
+        "preset_this_week": "Esta semana",
+        "preset_last_week": "Semana pasada",
+        "preset_last_month": "Mes pasado",
+        "apply_single_day": "Un solo día"
+    },
+    "filters": {
+        "estado": "Estado",
+        "estado_all": "Todos los estados"
+    },
+    "actions": {
+        "new": "Nueva receta",
+        "new_short": "Nueva",
+        "create_first": "Crear primera receta",
+        "add_line": "Añadir medicamento",
+        "print_pdf": "PDF / imprimir"
+    },
+    "columns": {
+        "emitida_at": "Fecha",
+        "medicamentos": "Medicamentos",
+        "paciente": "Paciente",
+        "estado": "Estado",
+        "consulta": "Consulta",
+        "veterinario": "Profesional",
+        "sede": "Sede",
+        "creado_por": "Registrado por",
+        "acciones": "Acciones"
+    },
+    "estado": {
+        "borrador": "Borrador",
+        "emitida": "Emitida",
+        "anulada": "Anulada"
+    },
+    "stats": {
+        "total": "Total en rango",
+        "filters": "Filtros",
+        "matches": "Coincidencias"
+    },
+    "empty": {
+        "no_results_title": "Sin resultados",
+        "no_results_description": "Prueba a limpiar filtros o cambiar la búsqueda.",
+        "no_records_title": "Aún no hay recetas",
+        "no_records_description": "Crea la primera receta con el botón «Nueva receta»."
+    },
+    "toast": {
+        "load_error": "No se pudo cargar el listado."
+    },
+    "form": {
+        "title_create": "Nueva receta",
+        "title_edit": "Editar receta",
+        "paciente": "Paciente",
+        "paciente_placeholder": "Selecciona paciente…",
+        "paciente_search": "Buscar paciente…",
+        "paciente_empty": "Sin pacientes que coincidan.",
+        "consulta": "Consulta abierta (opcional)",
+        "consulta_placeholder": "Sin vincular a consulta",
+        "consulta_hint": "Solo consultas abiertas del listado; deben corresponder al paciente elegido.",
+        "emitida_at": "Fecha de la receta",
+        "estado": "Estado",
+        "observaciones": "Observaciones generales",
+        "veterinario": "Profesional",
+        "veterinario_placeholder": "Sin asignar",
+        "sede": "Sede",
+        "sede_placeholder": "Sin sede",
+        "section_general": "Datos generales",
+        "section_general_hint": "Paciente, visita opcional, fecha y estado de la receta.",
+        "section_context": "Profesional y sede",
+        "section_context_hint": "Quién prescribe y desde qué sede (opcional).",
+        "section_lineas": "Medicamentos",
+        "section_lineas_hint": "Indica cada fármaco, posología e instrucciones al cliente.",
+        "linea_nombre": "Medicamento",
+        "linea_posologia": "Posología",
+        "linea_duracion": "Duración (días)",
+        "linea_instrucciones": "Instrucciones al cliente",
+        "remove_line": "Quitar",
+        "submit_create": "Guardar",
+        "submit_edit": "Guardar cambios"
+    },
+    "producto_picker": {
+        "placeholder": "Vincular a inventario (opcional)",
+        "search": "Buscar medicamento…",
+        "empty": "Sin coincidencias.",
+        "loading": "Buscando…",
+        "clear_aria": "Quitar vínculo con inventario"
+    },
+    "delete": {
+        "title": "¿Eliminar esta receta?",
+        "description": "El registro dejará de mostrarse en el listado."
+    }
+}

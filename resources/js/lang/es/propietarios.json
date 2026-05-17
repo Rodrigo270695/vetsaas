@@ -1,0 +1,105 @@
+{
+    "title": "Propietarios",
+    "description": "Titulares y datos de contacto. Desde la ficha puedes registrar sus mascotas.",
+    "search_placeholder": "Buscar por nombre, documento, email o teléfono…",
+    "filter_label": "Estado",
+    "actions": {
+        "new": "Nuevo propietario",
+        "new_short": "Nuevo",
+        "create_first": "Registrar primer propietario",
+        "delete_selected": "Eliminar seleccionados",
+        "view_pets": "Ver mascotas"
+    },
+    "bulk": {
+        "selected_singular": "propietario seleccionado",
+        "selected_plural": "propietarios seleccionados"
+    },
+    "columns": {
+        "nombre": "Nombre / razón social",
+        "contacto": "Contacto",
+        "documento": "Documento",
+        "mascotas": "Mascotas",
+        "estado": "Estado",
+        "creado_por": "Registrado por",
+        "acciones": "Acciones"
+    },
+    "row": {
+        "no_doc": "Sin documento",
+        "system": "Sistema"
+    },
+    "stats": {
+        "total": "Total",
+        "active": "Activos",
+        "inactive": "Inactivos",
+        "filters": "Filtros",
+        "matches": "Coincidencias"
+    },
+    "empty": {
+        "no_results_title": "Sin resultados",
+        "no_results_description": "Prueba a limpiar filtros o cambiar la búsqueda.",
+        "no_records_title": "Aún no hay propietarios",
+        "no_records_description": "Registra al titular para luego asociar mascotas."
+    },
+    "toast": {
+        "load_error": "No se pudo cargar el listado."
+    },
+    "form": {
+        "title_create": "Nuevo propietario",
+        "title_edit": "Editar propietario",
+        "section_identity": "Identidad",
+        "section_contact": "Contacto y ubicación",
+        "tipo_documento": "Tipo de documento",
+        "document_type_placeholder": "Sin especificar",
+        "document_type_dni": "DNI",
+        "document_type_ruc": "RUC",
+        "document_type_ce": "Carné de extranjería",
+        "document_type_pas": "Pasaporte",
+        "document_type_otr": "Otro",
+        "numero_documento": "Número",
+        "nombres": "Nombres",
+        "apellidos": "Apellidos",
+        "razon_social": "Razón social (opcional)",
+        "email": "Correo",
+        "telefono": "Teléfono",
+        "telefono_alt": "Teléfono alternativo",
+        "direccion": "Dirección",
+        "notas": "Notas internas",
+        "activo": "Activo",
+        "submit_create": "Guardar propietario",
+        "submit_edit": "Guardar cambios"
+    },
+    "delete": {
+        "title": "Eliminar propietario",
+        "description": "Se archivará el propietario y dejará de aparecer en listados activos. Las mascotas asociadas también se eliminarán (soft delete en cascada)."
+    },
+    "bulk_delete": {
+        "title": "Eliminar propietarios",
+        "description": "Esta acción archivará los propietarios seleccionados y sus datos asociados."
+    },
+    "show": {
+        "title_suffix": "Ficha del propietario",
+        "back": "Volver al listado",
+        "section_owner": "Datos del titular",
+        "edit_owner": "Editar titular",
+        "label_doc": "Documento",
+        "label_email": "Correo",
+        "label_phone": "Teléfono",
+        "label_address": "Dirección",
+        "label_location": "Ubicación",
+        "label_notes": "Notas",
+        "section_pets": "Mascotas registradas",
+        "badge_titular": "Titular",
+        "owner_compact_hint": "Identificación esencial y contacto. El resto queda en un desplegable.",
+        "owner_more_toggle": "Más datos (dirección, ubicación, notas)",
+        "pets_deck_title": "Mascotas",
+        "pets_deck_hint": "Tarjetas con foto grande: pulsa la imagen para verla a tamaño completo.",
+        "section_owner_hint": "Identificación y datos de contacto del titular.",
+        "section_pets_hint": "Mascotas asociadas a este titular en la clínica.",
+        "add_pet": "Registrar mascota",
+        "no_pets": "Sin mascotas registradas",
+        "no_pets_subtitle": "Pulsa «Registrar mascota» arriba a la derecha para crear la primera ficha (vacunas, citas e historial).",
+        "owner_status_label": "Estado",
+        "owner_active": "Activo",
+        "owner_inactive": "Inactivo"
+    }
+}

@@ -1,0 +1,239 @@
+import i18n from 'i18next';
+import LanguageDetector from 'i18next-browser-languagedetector';
+import { initReactI18next } from 'react-i18next';
+
+import alertasStockEn from '@/lang/en/alertas-stock.json';
+import authEn from '@/lang/en/auth.json';
+import cajaEn from '@/lang/en/caja.json';
+import categoriasInventarioEn from '@/lang/en/categorias-inventario.json';
+import cirugiaEn from '@/lang/en/cirugia.json';
+import hospitalizacionEn from '@/lang/en/hospitalizacion.json';
+import groomingEn from '@/lang/en/grooming.json';
+import hotelEn from '@/lang/en/hotel.json';
+import citasEn from '@/lang/en/citas.json';
+import cobrosEn from '@/lang/en/cobros.json';
+import plataformaAuditoriaSoporteEn from '@/lang/en/plataforma-auditoria-soporte.json';
+import dashboardEn from '@/lang/en/dashboard.json';
+import commonEn from '@/lang/en/common.json';
+import comprasInventarioEn from '@/lang/en/compras-inventario.json';
+import consultaCargosEn from '@/lang/en/consulta-cargos.json';
+import generalEn from '@/lang/en/general.json';
+import historiasClinicasEn from '@/lang/en/historias-clinicas.json';
+import laboratorioEn from '@/lang/en/laboratorio.json';
+import movimientosInventarioEn from '@/lang/en/movimientos-inventario.json';
+import navEn from '@/lang/en/nav.json';
+import pacientesEn from '@/lang/en/pacientes.json';
+import planesEn from '@/lang/en/planes.json';
+import platformEn from '@/lang/en/platform.json';
+import productosInventarioEn from '@/lang/en/productos-inventario.json';
+import propietariosEn from '@/lang/en/propietarios.json';
+import proveedoresInventarioEn from '@/lang/en/proveedores-inventario.json';
+import recetasEn from '@/lang/en/recetas.json';
+import rolesEn from '@/lang/en/roles.json';
+import sedesEn from '@/lang/en/sedes.json';
+import tarifasServiciosEn from '@/lang/en/tarifas-servicios.json';
+import stockInventarioEn from '@/lang/en/stock-inventario.json';
+import suscripcionesEn from '@/lang/en/suscripciones.json';
+import tenantsEn from '@/lang/en/tenants.json';
+import usuariosEn from '@/lang/en/usuarios.json';
+import vacunacionesEn from '@/lang/en/vacunaciones.json';
+import alertasStockEs from '@/lang/es/alertas-stock.json';
+import authEs from '@/lang/es/auth.json';
+import cajaEs from '@/lang/es/caja.json';
+import categoriasInventarioEs from '@/lang/es/categorias-inventario.json';
+import cirugiaEs from '@/lang/es/cirugia.json';
+import hospitalizacionEs from '@/lang/es/hospitalizacion.json';
+import groomingEs from '@/lang/es/grooming.json';
+import hotelEs from '@/lang/es/hotel.json';
+import citasEs from '@/lang/es/citas.json';
+import cobrosEs from '@/lang/es/cobros.json';
+import plataformaAuditoriaSoporteEs from '@/lang/es/plataforma-auditoria-soporte.json';
+import dashboardEs from '@/lang/es/dashboard.json';
+import commonEs from '@/lang/es/common.json';
+import comprasInventarioEs from '@/lang/es/compras-inventario.json';
+import consultaCargosEs from '@/lang/es/consulta-cargos.json';
+import generalEs from '@/lang/es/general.json';
+import historiasClinicasEs from '@/lang/es/historias-clinicas.json';
+import laboratorioEs from '@/lang/es/laboratorio.json';
+import movimientosInventarioEs from '@/lang/es/movimientos-inventario.json';
+import navEs from '@/lang/es/nav.json';
+import pacientesEs from '@/lang/es/pacientes.json';
+import planesEs from '@/lang/es/planes.json';
+import platformEs from '@/lang/es/platform.json';
+import productosInventarioEs from '@/lang/es/productos-inventario.json';
+import propietariosEs from '@/lang/es/propietarios.json';
+import proveedoresInventarioEs from '@/lang/es/proveedores-inventario.json';
+import recetasEs from '@/lang/es/recetas.json';
+import rolesEs from '@/lang/es/roles.json';
+import sedesEs from '@/lang/es/sedes.json';
+import tarifasServiciosEs from '@/lang/es/tarifas-servicios.json';
+import stockInventarioEs from '@/lang/es/stock-inventario.json';
+import suscripcionesEs from '@/lang/es/suscripciones.json';
+import tenantsEs from '@/lang/es/tenants.json';
+import usuariosEs from '@/lang/es/usuarios.json';
+import vacunacionesEs from '@/lang/es/vacunaciones.json';
+
+/**
+ * Idiomas disponibles en la aplicación. Mantén alineado con los archivos
+ * en `resources/js/lang/<locale>/*.json` y con los selectores de UI.
+ */
+export const SUPPORTED_LOCALES = ['es', 'en'] as const;
+export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
+
+export const DEFAULT_LOCALE: SupportedLocale = 'es';
+
+/** Llave bajo la que se guarda el idioma elegido en localStorage. */
+export const LOCALE_STORAGE_KEY = 'vetsaas.locale';
+
+/**
+ * Estructura de los recursos de traducción.
+ *
+ * Cada idioma agrupa sus textos por "namespace" (ámbito funcional).
+ * Esto permite hacer code-splitting más adelante si crece el bundle.
+ */
+const resources = {
+    es: {
+        common: commonEs,
+        'categorias-inventario': categoriasInventarioEs,
+        'productos-inventario': productosInventarioEs,
+        nav: navEs,
+        pacientes: pacientesEs,
+        propietarios: propietariosEs,
+        sedes: sedesEs,
+        'stock-inventario': stockInventarioEs,
+        roles: rolesEs,
+        usuarios: usuariosEs,
+        tenants: tenantsEs,
+        planes: planesEs,
+        suscripciones: suscripcionesEs,
+        cobros: cobrosEs,
+        'plataforma-auditoria-soporte': plataformaAuditoriaSoporteEs,
+        dashboard: dashboardEs,
+        auth: authEs,
+        general: generalEs,
+        platform: platformEs,
+        'historias-clinicas': historiasClinicasEs,
+        'movimientos-inventario': movimientosInventarioEs,
+        'alertas-stock': alertasStockEs,
+        'proveedores-inventario': proveedoresInventarioEs,
+        'compras-inventario': comprasInventarioEs,
+        vacunaciones: vacunacionesEs,
+        citas: citasEs,
+        cirugia: cirugiaEs,
+        hospitalizacion: hospitalizacionEs,
+        grooming: groomingEs,
+        hotel: hotelEs,
+        'consulta-cargos': consultaCargosEs,
+        recetas: recetasEs,
+        laboratorio: laboratorioEs,
+        caja: cajaEs,
+        'tarifas-servicios': tarifasServiciosEs,
+    },
+    en: {
+        common: commonEn,
+        'categorias-inventario': categoriasInventarioEn,
+        'productos-inventario': productosInventarioEn,
+        nav: navEn,
+        pacientes: pacientesEn,
+        propietarios: propietariosEn,
+        sedes: sedesEn,
+        'stock-inventario': stockInventarioEn,
+        roles: rolesEn,
+        usuarios: usuariosEn,
+        tenants: tenantsEn,
+        planes: planesEn,
+        suscripciones: suscripcionesEn,
+        cobros: cobrosEn,
+        'plataforma-auditoria-soporte': plataformaAuditoriaSoporteEn,
+        dashboard: dashboardEn,
+        auth: authEn,
+        general: generalEn,
+        platform: platformEn,
+        'historias-clinicas': historiasClinicasEn,
+        'movimientos-inventario': movimientosInventarioEn,
+        'alertas-stock': alertasStockEn,
+        'proveedores-inventario': proveedoresInventarioEn,
+        'compras-inventario': comprasInventarioEn,
+        vacunaciones: vacunacionesEn,
+        citas: citasEn,
+        cirugia: cirugiaEn,
+        hospitalizacion: hospitalizacionEn,
+        grooming: groomingEn,
+        hotel: hotelEn,
+        'consulta-cargos': consultaCargosEn,
+        recetas: recetasEn,
+        laboratorio: laboratorioEn,
+        caja: cajaEn,
+        'tarifas-servicios': tarifasServiciosEn,
+    },
+} as const;
+
+void i18n
+    .use(LanguageDetector)
+    .use(initReactI18next)
+    .init({
+        resources,
+        fallbackLng: DEFAULT_LOCALE,
+        supportedLngs: SUPPORTED_LOCALES as unknown as string[],
+        defaultNS: 'common',
+        ns: [
+            'common',
+            'categorias-inventario',
+            'productos-inventario',
+            'stock-inventario',
+            'nav',
+            'pacientes',
+            'propietarios',
+            'sedes',
+            'roles',
+            'usuarios',
+            'tenants',
+            'planes',
+            'suscripciones',
+            'cobros',
+            'dashboard',
+            'auth',
+            'general',
+            'platform',
+            'historias-clinicas',
+            'movimientos-inventario',
+            'alertas-stock',
+            'proveedores-inventario',
+            'compras-inventario',
+            'vacunaciones',
+            'citas',
+            'cirugia',
+            'hospitalizacion',
+            'grooming',
+            'hotel',
+            'consulta-cargos',
+            'recetas',
+            'laboratorio',
+            'caja',
+            'tarifas-servicios',
+        ],
+        interpolation: {
+            // React ya escapa por defecto. Evita doble escaping.
+            escapeValue: false,
+        },
+        detection: {
+            order: ['localStorage', 'navigator', 'htmlTag'],
+            lookupLocalStorage: LOCALE_STORAGE_KEY,
+            caches: ['localStorage'],
+        },
+        react: {
+            useSuspense: false,
+        },
+    });
+
+/** Aplica el atributo `lang` al `<html>` para SEO + accesibilidad. */
+function syncHtmlLang(locale: string): void {
+    if (typeof document !== 'undefined') {
+        document.documentElement.setAttribute('lang', locale);
+    }
+}
+
+syncHtmlLang(i18n.language || DEFAULT_LOCALE);
+i18n.on('languageChanged', syncHtmlLang);
+
+export default i18n;

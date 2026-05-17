@@ -1,0 +1,98 @@
+{
+    "title": "Surgeries",
+    "description": "Scheduled procedures: patient, date, status, and team.",
+    "search_placeholder": "Search by patient, owner, procedure, status, anesthesia, branch, veterinarian, or notes…",
+    "date_filter": {
+        "placeholder": "Date range",
+        "aria": "Filter by scheduled date",
+        "reset_month": "Current month",
+        "preset_this_week": "This week",
+        "preset_last_week": "Last week",
+        "preset_last_month": "Last month",
+        "apply_single_day": "Single day"
+    },
+    "filters": {
+        "estado": "Status",
+        "estado_all": "All statuses",
+        "paciente_all": "All patients",
+        "paciente_search": "Search patient…",
+        "paciente_empty": "No matches.",
+        "veterinario": "Veterinarian",
+        "veterinario_all": "All veterinarians",
+        "sede": "Branch",
+        "sede_all": "All branches",
+        "vinculo_consulta": "Consultation",
+        "vinculo_todos": "All (with or without visit)",
+        "vinculo_con": "Linked to a consultation only",
+        "vinculo_sin": "Not linked to a consultation only"
+    },
+    "actions": {
+        "new": "New surgery",
+        "new_short": "New",
+        "create_first": "Register the first surgery"
+    },
+    "columns": {
+        "programada_at": "Scheduled",
+        "procedimiento": "Procedure",
+        "paciente": "Patient",
+        "estado": "Status",
+        "consulta": "Consultation",
+        "veterinario": "Veterinarian",
+        "sede": "Branch",
+        "creado_por": "Created by",
+        "acciones": "Actions"
+    },
+    "estado": {
+        "borrador": "Draft",
+        "programada": "Scheduled",
+        "en_proceso": "In progress",
+        "completada": "Completed",
+        "cancelada": "Cancelled"
+    },
+    "stats": {
+        "total": "Total in range",
+        "filters": "Filters",
+        "matches": "Matches"
+    },
+    "empty": {
+        "no_results_title": "No results",
+        "no_results_description": "Try clearing filters or changing the search.",
+        "no_records_title": "No surgeries yet",
+        "no_records_description": "Create the first one with «New surgery»."
+    },
+    "toast": {
+        "load_error": "Could not load the list."
+    },
+    "form": {
+        "title_create": "New surgery",
+        "title_edit": "Edit surgery",
+        "paciente": "Patient",
+        "paciente_placeholder": "Select patient…",
+        "paciente_search": "Search patient…",
+        "paciente_empty": "No matching patients.",
+        "consulta": "Open consultation (optional)",
+        "consulta_placeholder": "Not linked to a visit",
+        "consulta_hint": "Only open consultations from the list; they must match the selected patient.",
+        "programada_at": "Scheduled date and time",
+        "estado": "Status",
+        "nombre_procedimiento": "Procedure name",
+        "nombre_procedimiento_placeholder": "E.g. spay, dental extraction…",
+        "tipo_anestesia": "Anesthesia type",
+        "tipo_anestesia_placeholder": "Optional",
+        "observaciones": "Notes",
+        "veterinario": "Veterinarian",
+        "veterinario_placeholder": "Unassigned",
+        "sede": "Branch",
+        "sede_placeholder": "No branch",
+        "section_general": "General",
+        "section_general_hint": "Patient, optional visit, scheduled time, and procedure.",
+        "section_context": "Staff and branch",
+        "section_context_hint": "Who performs the surgery and from which branch (optional).",
+        "submit_create": "Save",
+        "submit_edit": "Save changes"
+    },
+    "delete": {
+        "title": "Delete this surgery?",
+        "description": "It will no longer appear in the list."
+    }
+}

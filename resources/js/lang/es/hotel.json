@@ -1,0 +1,131 @@
+{
+    "title": "Hotel / guardería",
+    "description": "Estancias de hospedaje o guardería: paciente, ingreso, egreso, tipo y estado.",
+    "search_placeholder": "Buscar por paciente, propietario, tipo o notas…",
+    "date_filter": {
+        "placeholder": "Rango de fechas",
+        "aria": "Filtrar por fecha y hora de ingreso",
+        "reset_month": "Mes actual",
+        "preset_this_week": "Esta semana",
+        "preset_last_week": "Semana pasada",
+        "preset_last_month": "Mes pasado",
+        "apply_single_day": "Un solo día"
+    },
+    "actions": {
+        "new": "Nueva estancia",
+        "new_short": "Nuevo",
+        "create_first": "Crear primera estancia",
+        "cobrar": "Cobrar",
+        "diarios": "Bitácora diaria"
+    },
+    "columns": {
+        "ingreso_at": "Ingreso",
+        "egreso_at": "Egreso",
+        "paciente": "Paciente",
+        "estado": "Estado",
+        "tipo_estancia": "Tipo",
+        "responsable": "Responsable",
+        "sede": "Sede",
+        "creado_por": "Registrado por",
+        "acciones": "Acciones"
+    },
+    "estado": {
+        "programada": "Programada",
+        "confirmada": "Confirmada",
+        "en_estancia": "En estancia",
+        "completada": "Completada",
+        "cancelada": "Cancelada",
+        "no_presento": "No se presentó"
+    },
+    "stats": {
+        "total": "Total en rango",
+        "filters": "Filtros",
+        "matches": "Coincidencias"
+    },
+    "empty": {
+        "no_results_title": "Sin resultados",
+        "no_results_description": "Prueba a limpiar filtros o cambiar la búsqueda.",
+        "no_records_title": "Aún no hay estancias",
+        "no_records_description": "Crea la primera estancia con el botón «Nueva estancia»."
+    },
+    "toast": {
+        "load_error": "No se pudo cargar el listado."
+    },
+    "form": {
+        "title_create": "Nueva estancia",
+        "title_edit": "Editar estancia",
+        "paciente": "Paciente",
+        "paciente_placeholder": "Selecciona paciente…",
+        "paciente_search": "Buscar paciente…",
+        "paciente_empty": "Sin pacientes que coincidan.",
+        "ingreso_at": "Fecha y hora de ingreso",
+        "egreso_at": "Fecha y hora de egreso (opcional)",
+        "egreso_hint": "Si está vacío, se asume día de ingreso para sugerir noches en caja.",
+        "estado": "Estado",
+        "tipo_estancia": "Tipo de estancia",
+        "tipo_estancia_placeholder": "Elige tipo de habitación, pensión o guardería…",
+        "tipo_estancia_hint": "Si no encaja, usa «Otro / personalizado» y describe en el campo siguiente.",
+        "tipo_detalle": "Descripción personalizada",
+        "tipo_detalle_placeholder": "Ej.: habitación climatizada + 2 comidas…",
+        "tipo_detalle_hint": "Obligatorio cuando el tipo es «Otro / personalizado».",
+        "notas": "Notas internas",
+        "responsable": "Responsable",
+        "responsable_placeholder": "Sin asignar",
+        "sede": "Sede",
+        "sede_placeholder": "Sin sede",
+        "submit_create": "Guardar",
+        "submit_edit": "Guardar cambios"
+    },
+    "delete": {
+        "title": "¿Eliminar esta estancia?",
+        "description": "El registro dejará de mostrarse en el listado (soft delete)."
+    },
+    "diarios": {
+        "title": "Bitácora diaria",
+        "description": "Registro por día durante la estancia (solo una entrada por fecha).",
+        "description_with_patient": "Paciente: {{nombre}}",
+        "field_fecha": "Fecha",
+        "field_notas": "Notas del día",
+        "field_notas_placeholder": "Alimentación, conducta, medicación…",
+        "submit_add": "Añadir entrada",
+        "list_heading": "Entradas",
+        "loading": "Cargando…",
+        "empty": "Aún no hay entradas en la bitácora.",
+        "sin_notas": "Sin notas",
+        "registrado_por": "Registrado por {{nombre}}",
+        "read_only_hint": "Solo puedes consultar la bitácora. Para añadir o eliminar entradas necesitas permiso de edición de hotel.",
+        "delete_aria": "Eliminar entrada del día",
+        "confirm_delete": "¿Eliminar esta entrada de la bitácora?",
+        "toast": {
+            "load_error": "No se pudo cargar la bitácora.",
+            "save_error": "No se pudo guardar la entrada.",
+            "validation_error": "Revisa los datos enviados.",
+            "saved": "Entrada guardada.",
+            "deleted": "Entrada eliminada.",
+            "delete_error": "No se pudo eliminar la entrada."
+        }
+    },
+    "tipos_estancia": {
+        "grupos": {
+            "habitaciones": "Habitaciones",
+            "pension": "Pensión / alimentación",
+            "guarderia": "Guardería día",
+            "especiales": "Otros"
+        },
+        "items": {
+            "habitacion_estandar": { "label": "Habitación estándar", "hint": "Box o jaula estándar." },
+            "habitacion_grande": { "label": "Habitación grande", "hint": "Más espacio; razas medianas/grandes." },
+            "suite_mascotas": { "label": "Suite / premium", "hint": "Servicio diferenciado; detallar en notas si aplica." },
+            "pension_completa": { "label": "Pensión completa", "hint": "Alojamiento con comidas incluidas según protocolo de la clínica." },
+            "pension_media": { "label": "Media pensión", "hint": "Una comida o régimen intermedio." },
+            "solo_alojamiento": { "label": "Solo alojamiento", "hint": "Sin comidas; el propietario aporta alimento o se acuerda aparte." },
+            "guarderia_dia": { "label": "Guardería día completo", "hint": "Estancia diurna sin pernoctar." },
+            "media_jornada": { "label": "Media jornada", "hint": "Medio día en instalaciones." },
+            "fin_semana": { "label": "Fin de semana / paquete", "hint": "Tarifa o paquete especial; aclarar en notas." },
+            "otro_personalizado": {
+                "label": "Otro / personalizado",
+                "hint": "Describe el servicio acordado con el propietario."
+            }
+        }
+    }
+}

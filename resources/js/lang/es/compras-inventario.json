@@ -1,0 +1,97 @@
+{
+    "title": "Compras",
+    "description": "Registra compras de inventario: cada línea genera una entrada de stock en la sede elegida. Puedes adjuntar la factura (PDF o imagen).",
+    "toast": {
+        "load_error": "No se pudieron cargar las compras."
+    },
+    "search_placeholder": "Buscar por número, serie o notas…",
+    "stats": {
+        "total_sede": "Compras (sede)",
+        "coincidencias": "En esta vista",
+        "filtros": "Filtros"
+    },
+    "date_filter": {
+        "placeholder": "Rango de fechas (documento)",
+        "aria": "Filtrar por fecha del documento de compra",
+        "reset_month": "Mes actual",
+        "preset_this_week": "Esta semana",
+        "preset_last_week": "Semana pasada",
+        "preset_last_month": "Mes pasado",
+        "apply_single_day": "Un solo día"
+    },
+    "filters": {
+        "sede": "Sede",
+        "proveedor": "Proveedor",
+        "proveedor_all": "Todos los proveedores",
+        "proveedor_search": "Buscar por razón social o RUC…",
+        "proveedor_empty": "Ningún proveedor coincide."
+    },
+    "columns": {
+        "fecha": "Fecha doc.",
+        "documento": "Documento",
+        "proveedor": "Proveedor",
+        "lineas": "Líneas",
+        "costos": "Costos",
+        "total": "Total",
+        "factura": "Factura",
+        "acciones": "Acciones"
+    },
+    "actions": {
+        "new": "Nueva compra",
+        "new_short": "Nueva",
+        "create_first": "Registrar primera compra",
+        "download_factura": "Descargar",
+        "lineas_costos": "Ver costos"
+    },
+    "lineas_dialog": {
+        "title": "Líneas y costos unitarios",
+        "subtitle_doc": "Documento {{doc}}",
+        "subtitle_sin_doc": "Detalle de la compra",
+        "vacio": "No hay líneas cargadas.",
+        "col_producto": "Producto",
+        "col_cantidad": "Cant.",
+        "col_costo": "Costo u.",
+        "subtotal": "Subtotal"
+    },
+    "anular": {
+        "title": "¿Anular esta compra?",
+        "description": "Se revertirá el stock ingresado por esta compra (salidas automáticas por cada línea). El comprobante adjunto se eliminará. Documento: {{doc}}.",
+        "sin_numero": "sin número",
+        "confirm": "Anular compra"
+    },
+    "empty": {
+        "sin_sedes_title": "Sin sedes activas",
+        "sin_sedes_description": "Crea al menos una sede activa para registrar compras y movimientos de inventario.",
+        "no_records_title": "Sin compras",
+        "no_records_description": "Registra una compra para ingresar stock y conservar el comprobante si lo necesitas.",
+        "no_results_title": "Sin resultados",
+        "no_results_description": "Prueba otros filtros o términos de búsqueda."
+    },
+    "modal": {
+        "title": "Nueva compra",
+        "description": "Los productos indicados suman existencias en la sede seleccionada. La factura es opcional.",
+        "submit": "Guardar compra",
+        "sede": "Sede de ingreso",
+        "sede_placeholder": "Elegir sede",
+        "proveedor": "Proveedor",
+        "proveedor_placeholder": "Opcional",
+        "proveedor_none": "Sin proveedor",
+        "fecha_documento": "Fecha del documento",
+        "serie": "Serie",
+        "numero_documento": "Número",
+        "moneda": "Moneda",
+        "total": "Total documento",
+        "total_placeholder": "Opcional",
+        "factura": "Factura / comprobante",
+        "factura_help": "PDF, PNG o JPEG. Máximo 12 MB.",
+        "notas": "Notas",
+        "lineas_title": "Productos",
+        "linea_add": "Añadir línea",
+        "linea_producto": "Producto",
+        "linea_producto_placeholder": "Buscar producto…",
+        "linea_producto_search": "Escribir para filtrar…",
+        "linea_cantidad": "Cantidad",
+        "linea_costo": "Costo u.",
+        "linea_remove": "Quitar línea"
+    }
+}

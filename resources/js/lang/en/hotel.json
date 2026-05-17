@@ -1,0 +1,131 @@
+{
+    "title": "Hotel / daycare",
+    "description": "Boarding or daycare stays: patient, check-in, check-out, type and status.",
+    "search_placeholder": "Search by patient, owner, type or notes…",
+    "date_filter": {
+        "placeholder": "Date range",
+        "aria": "Filter by check-in date and time",
+        "reset_month": "Current month",
+        "preset_this_week": "This week",
+        "preset_last_week": "Last week",
+        "preset_last_month": "Last month",
+        "apply_single_day": "Single day"
+    },
+    "actions": {
+        "new": "New stay",
+        "new_short": "New",
+        "create_first": "Create first stay",
+        "cobrar": "Collect payment",
+        "diarios": "Daily log"
+    },
+    "columns": {
+        "ingreso_at": "Check-in",
+        "egreso_at": "Check-out",
+        "paciente": "Patient",
+        "estado": "Status",
+        "tipo_estancia": "Type",
+        "responsable": "Staff",
+        "sede": "Branch",
+        "creado_por": "Recorded by",
+        "acciones": "Actions"
+    },
+    "estado": {
+        "programada": "Scheduled",
+        "confirmada": "Confirmed",
+        "en_estancia": "In stay",
+        "completada": "Completed",
+        "cancelada": "Cancelled",
+        "no_presento": "No-show"
+    },
+    "stats": {
+        "total": "Total in range",
+        "filters": "Filters",
+        "matches": "Matches"
+    },
+    "empty": {
+        "no_results_title": "No results",
+        "no_results_description": "Try clearing filters or changing the search.",
+        "no_records_title": "No stays yet",
+        "no_records_description": "Create the first stay with «New stay»."
+    },
+    "toast": {
+        "load_error": "Could not load the list."
+    },
+    "form": {
+        "title_create": "New stay",
+        "title_edit": "Edit stay",
+        "paciente": "Patient",
+        "paciente_placeholder": "Select patient…",
+        "paciente_search": "Search patient…",
+        "paciente_empty": "No matching patients.",
+        "ingreso_at": "Check-in date and time",
+        "egreso_at": "Check-out date and time (optional)",
+        "egreso_hint": "If empty, check-in day is used to suggest nights at checkout.",
+        "estado": "Status",
+        "tipo_estancia": "Stay type",
+        "tipo_estancia_placeholder": "Choose room, boarding meals or daycare…",
+        "tipo_estancia_hint": "If none fits, use «Other / custom» and describe below.",
+        "tipo_detalle": "Custom description",
+        "tipo_detalle_placeholder": "E.g. climate-controlled room + 2 meals…",
+        "tipo_detalle_hint": "Required when type is «Other / custom».",
+        "notas": "Internal notes",
+        "responsable": "Staff",
+        "responsable_placeholder": "Unassigned",
+        "sede": "Branch",
+        "sede_placeholder": "No branch",
+        "submit_create": "Save",
+        "submit_edit": "Save changes"
+    },
+    "delete": {
+        "title": "Delete this stay?",
+        "description": "The record will be hidden from the list (soft delete)."
+    },
+    "diarios": {
+        "title": "Daily log",
+        "description": "One entry per calendar day during the stay.",
+        "description_with_patient": "Patient: {{nombre}}",
+        "field_fecha": "Date",
+        "field_notas": "Notes for the day",
+        "field_notas_placeholder": "Food intake, behaviour, meds…",
+        "submit_add": "Add entry",
+        "list_heading": "Entries",
+        "loading": "Loading…",
+        "empty": "No log entries yet.",
+        "sin_notas": "No notes",
+        "registrado_por": "Logged by {{nombre}}",
+        "read_only_hint": "You can view the log only. Adding or deleting entries requires hotel edit permission.",
+        "delete_aria": "Delete this day's entry",
+        "confirm_delete": "Delete this log entry?",
+        "toast": {
+            "load_error": "Could not load the daily log.",
+            "save_error": "Could not save the entry.",
+            "validation_error": "Please check the submitted data.",
+            "saved": "Entry saved.",
+            "deleted": "Entry deleted.",
+            "delete_error": "Could not delete the entry."
+        }
+    },
+    "tipos_estancia": {
+        "grupos": {
+            "habitaciones": "Rooms",
+            "pension": "Boarding meals",
+            "guarderia": "Daycare",
+            "especiales": "Other"
+        },
+        "items": {
+            "habitacion_estandar": { "label": "Standard room", "hint": "Standard kennel or run." },
+            "habitacion_grande": { "label": "Large room", "hint": "More space for medium/large pets." },
+            "suite_mascotas": { "label": "Suite / premium", "hint": "Premium offering; clarify in notes if needed." },
+            "pension_completa": { "label": "Full board", "hint": "Stay with meals per your clinic protocol." },
+            "pension_media": { "label": "Half board", "hint": "One meal or intermediate plan." },
+            "solo_alojamiento": { "label": "Lodging only", "hint": "No meals; owner provides food or agreed separately." },
+            "guarderia_dia": { "label": "Full-day daycare", "hint": "Daytime stay without overnight." },
+            "media_jornada": { "label": "Half-day", "hint": "Half day on premises." },
+            "fin_semana": { "label": "Weekend package", "hint": "Special rate; clarify in notes." },
+            "otro_personalizado": {
+                "label": "Other / custom",
+                "hint": "Describe the service agreed with the owner."
+            }
+        }
+    }
+}

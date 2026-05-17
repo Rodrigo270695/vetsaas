@@ -1,0 +1,47 @@
+{
+    "title": "Alertas de stock",
+    "description": "Productos activos en la sede elegida. Configura «Stock mínimo» en Inventario → Productos: si lo dejas vacío, solo verás alerta roja con stock en cero; si lo defines, verás alerta ámbar cuando el stock sea menor o igual a ese mínimo (incluye cero).",
+    "toast": {
+        "load_error": "No se pudieron cargar las alertas."
+    },
+    "search_placeholder": "Buscar por nombre, SKU, código de barras…",
+    "filter_sede": "Sede",
+    "filter_sede_placeholder": "Elegir sede",
+    "filter_tipo": "Tipo de alerta",
+    "filter_tipo_all": "Todas",
+    "filter_tipo_agotado": "Agotado",
+    "filter_tipo_bajo": "Bajo mínimo",
+    "sin_sedes": {
+        "title": "No hay sedes activas",
+        "description": "Crea una sede activa para consultar existencias y alertas.",
+        "link": "Ir a sedes"
+    },
+    "columns": {
+        "tipo": "Alerta",
+        "producto": "Producto",
+        "sku": "SKU",
+        "categoria": "Categoría",
+        "cantidad": "Stock sede",
+        "minimo": "Mínimo",
+        "acciones": "Acciones"
+    },
+    "tipos": {
+        "agotado": "Agotado",
+        "bajo_minimo": "Bajo mínimo"
+    },
+    "stats": {
+        "agotados": "Agotados",
+        "bajo_minimo": "Bajo mínimo",
+        "coincidencias": "En esta vista",
+        "filtros": "Filtros"
+    },
+    "row": {
+        "ajustar": "Ajustar"
+    },
+    "empty": {
+        "no_records_title": "Sin alertas",
+        "no_records_description": "No hay productos en alerta para esta sede. Define «Stock mínimo» en el producto o revisa cuando el stock llegue a cero.",
+        "no_results_title": "Sin resultados",
+        "no_results_description": "Prueba otros filtros o términos de búsqueda."
+    }
+}

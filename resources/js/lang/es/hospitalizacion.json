@@ -1,0 +1,132 @@
+{
+    "title": "Hospitalización",
+    "description": "Pacientes internados: ingreso, ubicación, estado y alta.",
+    "search_placeholder": "Buscar por paciente, propietario, motivo, ubicación, diagnóstico, sede, profesional u observaciones…",
+    "date_filter": {
+        "placeholder": "Rango de fechas",
+        "aria": "Filtrar por fecha de ingreso",
+        "reset_month": "Mes actual",
+        "preset_this_week": "Esta semana",
+        "preset_last_week": "Semana pasada",
+        "preset_last_month": "Mes pasado",
+        "apply_single_day": "Un solo día"
+    },
+    "filters": {
+        "estado": "Estado",
+        "estado_all": "Todos los estados"
+    },
+    "actions": {
+        "new": "Nuevo internamiento",
+        "new_short": "Nuevo",
+        "create_first": "Registrar primer internamiento",
+        "ver_detalle": "Ver detalle"
+    },
+    "columns": {
+        "ingreso_at": "Ingreso",
+        "alta_at": "Alta",
+        "motivo": "Motivo",
+        "paciente": "Paciente",
+        "estado": "Estado",
+        "ubicacion": "Ubicación",
+        "consulta": "Consulta",
+        "veterinario": "Profesional",
+        "sede": "Sede",
+        "creado_por": "Registrado por",
+        "acciones": "Acciones"
+    },
+    "estado": {
+        "activo": "Activo",
+        "alta": "Alta",
+        "cancelado": "Cancelado"
+    },
+    "stats": {
+        "total": "Total en rango",
+        "activos": "Activos",
+        "filters": "Filtros",
+        "matches": "Coincidencias"
+    },
+    "empty": {
+        "no_results_title": "Sin resultados",
+        "no_results_description": "Prueba a limpiar filtros o cambiar la búsqueda.",
+        "no_records_title": "Aún no hay internamientos",
+        "no_records_description": "Registra el primero con el botón «Nuevo internamiento»."
+    },
+    "toast": {
+        "load_error": "No se pudo cargar el listado."
+    },
+    "form": {
+        "title_create": "Nuevo internamiento",
+        "title_edit": "Editar internamiento",
+        "paciente": "Paciente",
+        "paciente_placeholder": "Selecciona paciente…",
+        "paciente_search": "Buscar paciente…",
+        "paciente_empty": "Sin pacientes que coincidan.",
+        "consulta": "Consulta abierta (opcional)",
+        "consulta_placeholder": "Sin vincular a consulta",
+        "consulta_hint": "Solo consultas abiertas del listado; deben corresponder al paciente elegido.",
+        "ingreso_at": "Fecha y hora de ingreso",
+        "alta_at": "Fecha y hora de alta",
+        "alta_at_hint": "Obligatoria si el estado es «Alta».",
+        "estado": "Estado",
+        "motivo_ingreso": "Motivo de ingreso",
+        "motivo_ingreso_placeholder": "Ej. observación postoperatoria, deshidratación…",
+        "ubicacion": "Ubicación / jaula",
+        "ubicacion_placeholder": "Ej. Jaula 3, UCI…",
+        "diagnostico_ingreso": "Diagnóstico al ingreso",
+        "notas": "Notas",
+        "veterinario": "Profesional",
+        "veterinario_placeholder": "Sin asignar",
+        "sede": "Sede",
+        "sede_placeholder": "Sin sede",
+        "section_general": "Datos generales",
+        "section_general_hint": "Paciente, consulta opcional, ingreso y motivo.",
+        "section_context": "Profesional y sede",
+        "section_context_hint": "Responsable y sede (opcional).",
+        "submit_create": "Guardar",
+        "submit_edit": "Guardar cambios"
+    },
+    "delete": {
+        "title": "¿Eliminar este internamiento?",
+        "description": "El registro dejará de mostrarse en el listado."
+    },
+    "show": {
+        "back": "Volver al listado",
+        "section_resumen": "Resumen",
+        "section_evoluciones": "Evolución diaria",
+        "section_cobro": "Cobro",
+        "evoluciones_empty": "Aún no hay registros de evolución.",
+        "evoluciones_add": "Registrar evolución",
+        "diagnostico": "Diagnóstico al ingreso",
+        "notas_internamiento": "Notas del internamiento",
+        "consulta_vinculada": "Consulta vinculada",
+        "sin_consulta": "Sin consulta vinculada",
+        "cobro_hint_sin_consulta": "Vincula una consulta abierta al internamiento para gestionar cargos y cobro.",
+        "cobro_ver_cargos": "Ver cargos de la consulta",
+        "cobro_estado": "Estado del cargo",
+        "cobro_total": "Total",
+        "cobro_sin_cargo": "Aún no hay hoja de cargos para la consulta vinculada.",
+        "cobro_ver_internamiento": "Cargos de hospitalización",
+        "cobro_ver_consulta": "Cargos de la consulta vinculada"
+    },
+    "cargos": {
+        "sugerir_dias": "Sugerir días de estadía",
+        "linea_dia": "Hospitalización — {{dias}} día(s)"
+    },
+    "evolucion": {
+        "title_create": "Registrar evolución",
+        "title_edit": "Editar evolución",
+        "registrado_at": "Fecha y hora",
+        "evolucion": "Evolución clínica",
+        "evolucion_placeholder": "Estado general, apetito, eliminación, respuesta al tratamiento…",
+        "tratamiento": "Tratamiento aplicado",
+        "tratamiento_placeholder": "Medicamentos, fluidos, cuidados…",
+        "vitales": "Signos vitales",
+        "peso_kg": "Peso (kg)",
+        "temperatura_c": "Temperatura (°C)",
+        "fc_lpm": "FC (lpm)",
+        "fr_rpm": "FR (rpm)",
+        "vital_placeholder": "Opcional",
+        "delete_title": "¿Eliminar esta evolución?",
+        "delete_description": "Se eliminará del historial del internamiento."
+    }
+}

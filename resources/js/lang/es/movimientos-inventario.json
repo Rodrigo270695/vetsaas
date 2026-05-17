@@ -1,0 +1,72 @@
+{
+    "title": "Movimientos de inventario",
+    "description": "Kardex por sede: entradas, salidas, mermas y ajustes. Cada línea es inmutable y actualiza el stock de la sede.",
+    "toast": {
+        "load_error": "No se pudo cargar el kardex."
+    },
+    "actions": {
+        "new": "Registrar movimiento"
+    },
+    "sin_sedes": {
+        "title": "No hay sedes activas",
+        "description": "Crea una sede activa para asociar movimientos y existencias.",
+        "link": "Ir a sedes"
+    },
+    "filter_sede": "Sede",
+    "filter_sede_placeholder": "Elegir sede",
+    "filter_tipo": "Tipo",
+    "filter_tipo_all": "Todos los tipos",
+    "columns": {
+        "fecha": "Fecha",
+        "producto": "Producto",
+        "sku": "SKU",
+        "tipo": "Tipo",
+        "delta": "Cambio",
+        "anterior": "Stock antes",
+        "despues": "Stock después",
+        "usuario": "Usuario",
+        "notas": "Notas"
+    },
+    "tipos": {
+        "entrada": "Entrada",
+        "salida": "Salida",
+        "merma": "Merma",
+        "ajuste": "Ajuste"
+    },
+    "stats": {
+        "total_sede": "Movimientos en sede",
+        "coincidencias": "En esta página",
+        "filtros": "Filtros"
+    },
+    "empty": {
+        "no_records_title": "Sin movimientos",
+        "no_records_description": "Registra una entrada, salida o merma, o ajusta stock desde Inventario › Stock.",
+        "no_results_title": "Sin resultados",
+        "no_results_description": "Prueba otros filtros o términos de búsqueda."
+    },
+    "search_placeholder": "Buscar por producto, SKU o notas…",
+    "date_filter": {
+        "placeholder": "Rango de fechas",
+        "aria": "Filtrar por fecha del movimiento",
+        "reset_month": "Mes actual",
+        "preset_this_week": "Esta semana",
+        "preset_last_week": "Semana pasada",
+        "preset_last_month": "Mes pasado",
+        "apply_single_day": "Un solo día"
+    },
+    "modal": {
+        "title": "Nuevo movimiento",
+        "description": "La cantidad es siempre positiva; el tipo define si suma o resta del stock de la sede.",
+        "producto": "Producto",
+        "producto_placeholder": "Elegir producto",
+        "sede": "Sede",
+        "tipo": "Tipo",
+        "cantidad": "Cantidad",
+        "cantidad_hint": "Mínimo 0,001. Máximo 3 decimales.",
+        "notas": "Notas (opcional)",
+        "submit": "Registrar",
+        "error_submit": "No se pudo registrar el movimiento.",
+        "producto_search": "Buscar por nombre o SKU…",
+        "producto_empty": "Ningún producto coincide."
+    }
+}

@@ -1,0 +1,132 @@
+{
+    "title": "Hospitalization",
+    "description": "Inpatients: admission, location, status, and discharge.",
+    "search_placeholder": "Search by patient, owner, reason, location, diagnosis, site, clinician, or notes…",
+    "date_filter": {
+        "placeholder": "Date range",
+        "aria": "Filter by admission date",
+        "reset_month": "Current month",
+        "preset_this_week": "This week",
+        "preset_last_week": "Last week",
+        "preset_last_month": "Last month",
+        "apply_single_day": "Single day"
+    },
+    "filters": {
+        "estado": "Status",
+        "estado_all": "All statuses"
+    },
+    "actions": {
+        "new": "New admission",
+        "new_short": "New",
+        "create_first": "Register first admission",
+        "ver_detalle": "View details"
+    },
+    "columns": {
+        "ingreso_at": "Admitted",
+        "alta_at": "Discharged",
+        "motivo": "Reason",
+        "paciente": "Patient",
+        "estado": "Status",
+        "ubicacion": "Location",
+        "consulta": "Visit",
+        "veterinario": "Clinician",
+        "sede": "Site",
+        "creado_por": "Recorded by",
+        "acciones": "Actions"
+    },
+    "estado": {
+        "activo": "Active",
+        "alta": "Discharged",
+        "cancelado": "Cancelled"
+    },
+    "stats": {
+        "total": "Total in range",
+        "activos": "Active",
+        "filters": "Filters",
+        "matches": "Matches"
+    },
+    "empty": {
+        "no_results_title": "No results",
+        "no_results_description": "Try clearing filters or changing your search.",
+        "no_records_title": "No admissions yet",
+        "no_records_description": "Register the first one with «New admission»."
+    },
+    "toast": {
+        "load_error": "Could not load the list."
+    },
+    "form": {
+        "title_create": "New admission",
+        "title_edit": "Edit admission",
+        "paciente": "Patient",
+        "paciente_placeholder": "Select patient…",
+        "paciente_search": "Search patient…",
+        "paciente_empty": "No matching patients.",
+        "consulta": "Open visit (optional)",
+        "consulta_placeholder": "Not linked to a visit",
+        "consulta_hint": "Only open visits from the list; they must match the selected patient.",
+        "ingreso_at": "Admission date and time",
+        "alta_at": "Discharge date and time",
+        "alta_at_hint": "Required when status is «Discharged».",
+        "estado": "Status",
+        "motivo_ingreso": "Admission reason",
+        "motivo_ingreso_placeholder": "E.g. post-op monitoring, dehydration…",
+        "ubicacion": "Location / kennel",
+        "ubicacion_placeholder": "E.g. Kennel 3, ICU…",
+        "diagnostico_ingreso": "Admission diagnosis",
+        "notas": "Notes",
+        "veterinario": "Clinician",
+        "veterinario_placeholder": "Unassigned",
+        "sede": "Site",
+        "sede_placeholder": "No site",
+        "section_general": "General",
+        "section_general_hint": "Patient, optional visit, admission, and reason.",
+        "section_context": "Clinician and site",
+        "section_context_hint": "Responsible clinician and site (optional).",
+        "submit_create": "Save",
+        "submit_edit": "Save changes"
+    },
+    "delete": {
+        "title": "Delete this admission?",
+        "description": "The record will no longer appear in the list."
+    },
+    "show": {
+        "back": "Back to list",
+        "section_resumen": "Summary",
+        "section_evoluciones": "Daily progress",
+        "section_cobro": "Billing",
+        "evoluciones_empty": "No progress notes yet.",
+        "evoluciones_add": "Add progress note",
+        "diagnostico": "Admission diagnosis",
+        "notas_internamiento": "Admission notes",
+        "consulta_vinculada": "Linked visit",
+        "sin_consulta": "No linked visit",
+        "cobro_hint_sin_consulta": "Link an open visit to this admission to manage charges and checkout.",
+        "cobro_ver_cargos": "View visit charges",
+        "cobro_estado": "Charge status",
+        "cobro_total": "Total",
+        "cobro_sin_cargo": "No charge sheet exists for the linked visit yet.",
+        "cobro_ver_internamiento": "Hospitalization charges",
+        "cobro_ver_consulta": "Linked visit charges"
+    },
+    "cargos": {
+        "sugerir_dias": "Suggest stay days",
+        "linea_dia": "Hospitalization — {{dias}} day(s)"
+    },
+    "evolucion": {
+        "title_create": "Add progress note",
+        "title_edit": "Edit progress note",
+        "registrado_at": "Date and time",
+        "evolucion": "Clinical progress",
+        "evolucion_placeholder": "General status, appetite, elimination, treatment response…",
+        "tratamiento": "Treatment given",
+        "tratamiento_placeholder": "Medications, fluids, care…",
+        "vitales": "Vital signs",
+        "peso_kg": "Weight (kg)",
+        "temperatura_c": "Temperature (°C)",
+        "fc_lpm": "HR (bpm)",
+        "fr_rpm": "RR (rpm)",
+        "vital_placeholder": "Optional",
+        "delete_title": "Delete this progress note?",
+        "delete_description": "It will be removed from the admission history."
+    }
+}

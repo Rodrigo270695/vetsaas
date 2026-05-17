@@ -1,0 +1,89 @@
+{
+    "actions": {
+        "cancel": "Cancel",
+        "save": "Save",
+        "save_changes": "Save changes",
+        "create": "Create",
+        "edit": "Edit",
+        "delete": "Delete",
+        "confirm": "Confirm",
+        "close": "Close",
+        "search": "Search",
+        "filter": "Filter",
+        "clear": "Clear",
+        "clear_filters": "Clear filters",
+        "export": "Export",
+        "export_csv": "Export CSV",
+        "export_xlsx": "Export Excel",
+        "copy": "Copy",
+        "view": "View",
+        "back": "Back",
+        "loading": "Loading...",
+        "retry": "Retry"
+    },
+    "feedback": {
+        "no_results": "No results",
+        "no_records": "No records",
+        "loading_error": "An error occurred while loading the data.",
+        "save_success": "Changes saved successfully.",
+        "save_error": "Couldn't save changes.",
+        "delete_success": "Record deleted successfully.",
+        "delete_error": "Couldn't delete record.",
+        "copied": "Copied to clipboard",
+        "copy_error": "Couldn't copy to clipboard"
+    },
+    "impersonation": {
+        "banner_title": "Support mode (impersonation)",
+        "banner_body": "You are operating in {{clinic}} with your superadmin account. End support mode when finished.",
+        "banner_leave": "Exit support mode",
+        "banner_fallback_clinic": "this clinic"
+    },
+    "table": {
+        "showing": "Showing",
+        "of": "of",
+        "results": "results",
+        "per_page": "Per page",
+        "first_page": "First page",
+        "previous_page": "Previous page",
+        "next_page": "Next page",
+        "last_page": "Last page",
+        "go_to_page": "Go to page {{page}}",
+        "page_of": "{{current}} / {{total}}",
+        "selected_singular": "selected",
+        "selected_plural": "selected",
+        "select_all": "Select all rows",
+        "select_row": "Select row"
+    },
+    "form": {
+        "required_field": "Required field",
+        "unsaved_changes": "You have unsaved changes. Are you sure you want to discard them?"
+    },
+    "filters": {
+        "all": "All",
+        "active": "Active",
+        "inactive": "Inactive"
+    },
+    "aria": {
+        "results_count_other": "{{count}} results"
+    },
+    "state": {
+        "complete": "Complete",
+        "incomplete": "Incomplete",
+        "configured": "Configured",
+        "not_configured": "Not configured"
+    },
+    "language": {
+        "label": "Language",
+        "es": "Español",
+        "en": "English"
+    },
+    "tenant_required": {
+        "page_title": "Select a clinic",
+        "title": "Select a clinic to continue",
+        "description": "This section belongs to a specific clinic's operational panel. As a superadmin you must pick which clinic you want to work with.",
+        "attempted_path": "Requested path",
+        "cta_primary": "Go to Platform › Tenants",
+        "cta_secondary": "Back to Dashboard",
+        "helper_inline": "Operational data (patients, appointments, settings…) lives inside each clinic's own schema, so from the central host there is no tenant to target. Soon, impersonation from the clinic list will solve this without asking for credentials (Phase 5)."
+    }
+}

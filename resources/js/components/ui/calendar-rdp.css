@@ -1,0 +1,75 @@
+/**
+ * Overrides de react-day-picker: marca VetSaaS, tipografía y selects del caption.
+ * Importar junto a `react-day-picker/style.css`.
+ */
+.vetsaas-rdp.rdp-root {
+    --rdp-day-height: 2rem;
+    --rdp-day-width: 2rem;
+    --rdp-day_button-height: 1.875rem;
+    --rdp-day_button-width: 1.875rem;
+    --rdp-nav-height: 2.375rem;
+    --rdp-accent-color: var(--brand-600);
+    --rdp-accent-background-color: color-mix(in oklch, var(--brand-600) 16%, transparent);
+    --rdp-range_middle-background-color: color-mix(in oklch, var(--brand-600) 12%, transparent);
+    --rdp-range_middle-color: inherit;
+    --rdp-range_start-color: var(--primary-foreground);
+    --rdp-range_start-date-background-color: var(--brand-600);
+    --rdp-range_end-color: var(--primary-foreground);
+    --rdp-range_end-date-background-color: var(--brand-600);
+    --rdp-today-color: var(--brand-700);
+    --rdp-outside-opacity: 0.45;
+}
+
+.vetsaas-rdp .rdp-day_button {
+    font-weight: 400;
+    font-size: 0.6875rem;
+    line-height: 1;
+}
+
+.vetsaas-rdp .rdp-week {
+    font-size: 0.6875rem;
+}
+
+.vetsaas-rdp .rdp-selected {
+    font-weight: 400;
+    font-size: inherit;
+}
+
+.vetsaas-rdp .rdp-weekday {
+    font-weight: 500;
+    font-size: 0.625rem;
+    letter-spacing: 0.02em;
+    color: var(--muted-foreground);
+}
+
+.vetsaas-rdp .rdp-caption_label {
+    font-weight: 600;
+    font-size: 0.75rem;
+    color: var(--foreground);
+}
+
+.vetsaas-rdp .rdp-dropdowns {
+    gap: 0.35rem;
+}
+
+.vetsaas-rdp .rdp-dropdown_root {
+    position: relative;
+    min-width: 2.75rem;
+}
+
+.vetsaas-rdp .rdp-range_middle .rdp-day_button {
+    font-weight: 400;
+}
+
+.vetsaas-rdp .rdp-button_previous,
+.vetsaas-rdp .rdp-button_next {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--background);
+    color: var(--foreground);
+}
+
+.vetsaas-rdp .rdp-button_previous:hover,
+.vetsaas-rdp .rdp-button_next:hover {
+    background: var(--muted);
+}

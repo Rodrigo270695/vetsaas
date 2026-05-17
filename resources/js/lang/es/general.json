@@ -1,0 +1,134 @@
+{
+    "title": "Configuración general",
+    "description": "Datos generales de tu clínica: identidad, branding, agenda, recordatorios y facturación.",
+    "description_for": "Datos generales de {{name}}: identidad, branding, agenda, recordatorios y facturación.",
+    "actions": {
+        "save": "Guardar cambios",
+        "saved": "Guardado"
+    },
+    "stats": {
+        "identidad": "Identidad",
+        "contacto": "Contacto",
+        "branding": "Branding",
+        "facturacion": "Facturación electrónica"
+    },
+    "sections": {
+        "identidad": {
+            "title": "Identidad fiscal",
+            "description": "RUC, razón social y dirección que aparecerán en los comprobantes electrónicos emitidos por la clínica."
+        },
+        "contacto": {
+            "title": "Contacto",
+            "description": "Datos por los que tus clientes pueden ubicarte. Se usan en correos, recordatorios y plantillas."
+        },
+        "branding": {
+            "title": "Identidad visual",
+            "description": "Logo y colores que se mostrarán en el sidebar, los comprobantes y los correos automáticos."
+        },
+        "operacion": {
+            "title": "Agenda y citas",
+            "description": "Parámetros por defecto de la agenda: duración estándar, intervalos y reglas de cancelación."
+        },
+        "recordatorios": {
+            "title": "Recordatorios automáticos",
+            "description": "Notificaciones programadas que VetSaaS envía a tus clientes por correo y WhatsApp."
+        },
+        "facturacion": {
+            "title": "Facturación y comprobantes SUNAT",
+            "description": "Moneda, IGV y si tu clínica emitirá boletas o facturas electrónicas (según tu plan). La conexión con Nubefact es opcional hasta que actives la emisión."
+        },
+        "remitente": {
+            "title": "Remitente comercial",
+            "description": "Cómo verán tus clientes los correos y WhatsApp que VetSaaS envía en tu nombre. El envío lo gestiona la plataforma; tú solo personalizas la firma."
+        }
+    },
+    "platform_note": {
+        "title": "WhatsApp y correo: incluidos en tu plan",
+        "body": "El envío de mensajes y correos transaccionales lo gestiona la plataforma con sus propias credenciales. Tú no necesitas configurar nada técnico: solo elige el nombre y los datos de contacto que verán tus clientes."
+    },
+    "fields": {
+        "ruc": "RUC",
+        "ruc_hint": "11 dígitos, sin guiones ni espacios.",
+        "razon_social": "Razón social",
+        "nombre_comercial": "Nombre comercial",
+        "nombre_comercial_hint": "Cómo se llama tu clínica de cara al público. Si lo dejas vacío se usa la razón social.",
+        "direccion_fiscal": "Dirección fiscal",
+        "departamento": "Departamento",
+        "provincia": "Provincia",
+        "distrito": "Distrito",
+        "logo": "Logo de la clínica",
+        "logo_hint": "Sube una imagen cuadrada (PNG, JPG, WEBP o SVG) de máximo 2 MB. Idealmente con fondo transparente.",
+        "logo_hint_uploaded": "Logo guardado. Reemplázalo subiendo otra imagen o quítalo con el botón.",
+        "logo_drop": "Arrastra tu logo aquí o haz clic para elegir un archivo",
+        "logo_drop_supported": "PNG · JPG · WEBP · SVG · máximo 2 MB",
+        "logo_select": "Seleccionar archivo",
+        "logo_replace": "Reemplazar",
+        "logo_remove": "Quitar logo",
+        "logo_remove_pending": "Se quitará al guardar",
+        "logo_undo_remove": "Mantener logo",
+        "logo_pending": "Nuevo archivo: {{name}}",
+        "logo_preview_alt": "Vista previa del logo",
+        "color_primario": "Color primario",
+        "color_secundario": "Color secundario",
+        "email_institucional": "Correo institucional",
+        "telefono_principal": "Teléfono principal",
+        "web_url": "Sitio web",
+        "duracion_cita_default_min": "Duración por defecto de una cita (min)",
+        "duracion_cita_default_min_hint": "Se usa al crear citas si el motivo no define algo distinto.",
+        "intervalo_agenda_min": "Intervalo del calendario (min)",
+        "intervalo_agenda_min_hint": "Granularidad con la que se muestran los horarios de la agenda.",
+        "dias_anticipacion_cita": "Días máximos de anticipación para agendar",
+        "dias_anticipacion_cita_hint": "Tus clientes no podrán agendar más allá de este horizonte.",
+        "horas_min_cancelacion": "Horas mínimas para cancelar sin penalidad",
+        "horas_min_cancelacion_hint": "Pasada esta ventana, la cancelación queda registrada como tardía.",
+        "recordatorio_48h_activo": "Recordatorio 48 horas antes",
+        "recordatorio_48h_activo_hint": "Avisa al cliente dos días antes de su cita.",
+        "recordatorio_2h_activo": "Recordatorio 2 horas antes",
+        "recordatorio_2h_activo_hint": "Aviso de último momento al cliente y al veterinario.",
+        "recordatorio_vacuna_activo": "Recordatorio de vacuna por vencer",
+        "recordatorio_vacuna_activo_hint": "Notifica cuando una vacuna se aproxima a su fecha de refuerzo.",
+        "recordatorio_vacuna_dias_antes": "Días previos al vencimiento",
+        "recordatorio_vacuna_dias_antes_hint": "Cuántos días antes se dispara el recordatorio de vacuna.",
+        "recordatorio_cumple_activo": "Felicitación de cumpleaños del paciente",
+        "recordatorio_cumple_activo_hint": "Mensaje automático el día del cumpleaños de cada mascota.",
+        "moneda": "Moneda",
+        "moneda_pen": "Soles peruanos",
+        "moneda_usd": "Dólares americanos",
+        "igv_porcentaje": "Porcentaje de IGV",
+        "igv_porcentaje_hint": "Tasa estándar peruana: 18.00%.",
+        "precio_incluye_igv": "Los precios ingresados incluyen IGV",
+        "precio_incluye_igv_hint": "Si está activo, el sistema calcula la base imponible a partir del precio final. Si no, el IGV se suma al precio mostrado.",
+        "ticket_ancho_mm": "Ancho del ticket térmico (pre-cuenta)",
+        "ticket_ancho_mm_hint": "58 mm es el estándar de rollo estrecho (área imprimible ~48 mm). 80 mm para impresoras de rollo ancho.",
+        "ticket_ancho_mm_58": "58 mm (rollo estrecho)",
+        "ticket_ancho_mm_80": "80 mm (rollo ancho)",
+        "emite_comprobantes_sunat": "Emitir comprobantes electrónicos SUNAT (boleta/factura)",
+        "emite_comprobantes_sunat_hint": "Desactívalo si solo usas el software para historial, agenda e inventario sin facturar al cliente. Aun así puedes llevar moneda e IGV para cotizaciones o tickets internos.",
+        "nubefact_ruc": "RUC en Nubefact",
+        "nubefact_ruc_hint": "RUC con el que está dado de alta el contribuyente en Nubefact.",
+        "nubefact_token": "Token de Nubefact",
+        "nubefact_token_hint": "Token de API de tu cuenta de Nubefact (lo encuentras en su panel).",
+        "nubefact_token_hint_stored": "Ya hay un token guardado (cifrado). Escribe uno nuevo solo si quieres reemplazarlo.",
+        "whatsapp_display_number": "Número de WhatsApp visible",
+        "whatsapp_display_number_hint": "Número que aparecerá en los mensajes de WhatsApp como contacto de tu clínica. No se usa para enviar; el envío lo hace la plataforma.",
+        "email_from": "Correo de respuesta (Reply-To)",
+        "email_from_hint": "Cuando tus clientes respondan a un correo automático, la respuesta llegará aquí.",
+        "email_from_nombre": "Nombre del remitente",
+        "email_from_nombre_hint": "Aparece como remitente del correo (ej: \"Clínica San Patricio\")."
+    },
+    "integrations": {
+        "nubefact": {
+            "description": "Emisión de boletas y facturas electrónicas (SUNAT vía Nubefact)."
+        },
+        "clear_credentials": "Borrar credenciales",
+        "keep_credentials": "Conservar credenciales"
+    },
+    "footer": {
+        "last_updated_by": "Última edición por {{name}}",
+        "never_updated": "Aún no se ha guardado ninguna configuración."
+    },
+    "plan_sin_facturacion_electronica": {
+        "title": "Tu plan no incluye facturación electrónica SUNAT",
+        "body": "Puedes seguir usando el sistema con normalidad. Si necesitas emitir comprobantes, el administrador de la plataforma debe asignarte un plan con la feature «Factura electrónica» activa."
+    }
+}

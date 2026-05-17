@@ -1,0 +1,80 @@
+{
+    "title": "Appointments",
+    "description": "Visit schedule: patient, clinician, branch, time and status for each appointment.",
+    "search_placeholder": "Search by patient, owner, reason or notes…",
+    "date_filter": {
+        "placeholder": "Date range",
+        "aria": "Filter by appointment start date and time",
+        "reset_month": "Current month",
+        "preset_this_week": "This week",
+        "preset_last_week": "Last week",
+        "preset_last_month": "Last month",
+        "apply_single_day": "Single day"
+    },
+    "actions": {
+        "new": "New appointment",
+        "new_short": "New",
+        "create_first": "Create first appointment",
+        "cancel_appointment": "Cancel appointment"
+    },
+    "columns": {
+        "inicio_at": "Start",
+        "duracion": "Duration",
+        "paciente": "Patient",
+        "estado": "Status",
+        "motivo": "Reason",
+        "veterinario": "Clinician",
+        "sede": "Branch",
+        "creado_por": "Recorded by",
+        "acciones": "Actions"
+    },
+    "estado": {
+        "programada": "Scheduled",
+        "confirmada": "Confirmed",
+        "completada": "Completed",
+        "cancelada": "Cancelled",
+        "no_asistio": "No-show"
+    },
+    "stats": {
+        "total": "Total in range",
+        "filters": "Filters",
+        "matches": "Matches"
+    },
+    "empty": {
+        "no_results_title": "No results",
+        "no_results_description": "Try clearing filters or changing your search.",
+        "no_records_title": "No appointments yet",
+        "no_records_description": "Create the first appointment with «New appointment»."
+    },
+    "toast": {
+        "load_error": "Could not load the list."
+    },
+    "form": {
+        "title_create": "New appointment",
+        "title_edit": "Edit appointment",
+        "paciente": "Patient",
+        "paciente_placeholder": "Select patient…",
+        "paciente_search": "Search patient…",
+        "paciente_empty": "No matching patients.",
+        "inicio_at": "Start date and time",
+        "duracion_minutos": "Duration (minutes)",
+        "duracion_hint": "Between 5 and 480 minutes.",
+        "estado": "Status",
+        "motivo": "Reason for visit",
+        "notas": "Internal notes",
+        "veterinario": "Assigned clinician",
+        "veterinario_placeholder": "Unassigned",
+        "sede": "Branch",
+        "sede_placeholder": "No branch",
+        "submit_create": "Save",
+        "submit_edit": "Save changes"
+    },
+    "delete": {
+        "title": "Delete this appointment?",
+        "description": "It will no longer appear in the list (recovery is only possible via advanced administration)."
+    },
+    "cancel": {
+        "title": "Cancel this appointment?",
+        "description": "The appointment will move to «Cancelled» and remain visible in history."
+    }
+}

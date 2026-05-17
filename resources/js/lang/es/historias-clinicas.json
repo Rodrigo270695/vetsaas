@@ -1,0 +1,176 @@
+{
+    "title": "Historias clínicas",
+    "description": "Consultas SOAP registradas por paciente.",
+    "search_placeholder": "Buscar por paciente, propietario, motivo o notas clínicas…",
+    "date_filter": {
+        "placeholder": "Rango de fechas",
+        "aria": "Filtrar por fecha de atención",
+        "reset_month": "Mes actual",
+        "preset_this_week": "Esta semana",
+        "preset_last_week": "Semana pasada",
+        "preset_last_month": "Mes pasado",
+        "apply_single_day": "Un solo día"
+    },
+    "actions": {
+        "new": "Nueva consulta",
+        "new_short": "Nueva",
+        "create_first": "Registrar primera consulta",
+        "plan_tratamiento": "Plan y seguimiento",
+        "cargos_consulta": "Cargos / pre-cuenta",
+        "registrar_aplicacion": "Registrar aplicación"
+    },
+    "columns": {
+        "atendido_at": "Fecha y hora",
+        "paciente": "Paciente",
+        "propietario": "Propietario",
+        "motivo": "Motivo",
+        "peso_kg": "Peso (kg)",
+        "estado": "Estado",
+        "veterinario": "Veterinario",
+        "creado_por": "Registrado por",
+        "acciones": "Acciones"
+    },
+    "stats": {
+        "total": "Total consultas",
+        "filters": "Filtros",
+        "matches": "Coincidencias"
+    },
+    "empty": {
+        "no_results_title": "Sin resultados",
+        "no_results_description": "Prueba a limpiar filtros o cambiar la búsqueda.",
+        "no_records_title": "Aún no hay consultas",
+        "no_records_description": "Registra la primera atención con el botón «Nueva consulta»."
+    },
+    "row": {
+        "system": "Sistema",
+        "estado_abierta": "Abierta",
+        "estado_cerrada": "Cerrada"
+    },
+    "toast": {
+        "load_error": "No se pudo cargar el listado."
+    },
+    "form": {
+        "title_create": "Nueva consulta",
+        "title_edit": "Editar consulta",
+        "section_main": "Datos de la consulta",
+        "paciente": "Paciente",
+        "paciente_placeholder": "Selecciona paciente…",
+        "paciente_search": "Buscar paciente…",
+        "paciente_empty": "Sin pacientes que coincidan.",
+        "paciente_locked_hint": "El paciente no se puede cambiar al editar.",
+        "atendido_at": "Fecha y hora de atención",
+        "motivo": "Motivo de consulta",
+        "motivo_placeholder": "Motivo breve…",
+        "subjetivo": "Subjetivo (S)",
+        "objetivo": "Objetivo (O)",
+        "analisis": "Análisis (A)",
+        "plan": "Plan (P)",
+        "soap_hint": "Formato SOAP: subjetivo (dueño), objetivo (exploración), análisis y plan.",
+        "peso_kg": "Peso en consulta (kg)",
+        "peso_placeholder": "Opcional",
+        "temperatura_c": "Temperatura (°C)",
+        "fc_lpm": "Frecuencia cardíaca (lpm)",
+        "fr_rpm": "Frecuencia respiratoria (rpm)",
+        "vital_placeholder": "Opcional",
+        "cerrar": "Cerrar consulta",
+        "reabrir": "Reabrir consulta",
+        "cerrada_hint": "Los datos SOAP y constantes no se pueden editar hasta reabrir.",
+        "submit_create": "Guardar consulta",
+        "submit_edit": "Actualizar consulta",
+        "plan_tratamiento_section": "Plan de medicación (varios días)",
+        "plan_tratamiento_hint": "Define medicamentos, fechas e indicaciones. El seguimiento diario se registra en la vista «Plan y seguimiento».",
+        "plan_tratamiento_fecha_inicio": "Inicio del plan",
+        "plan_tratamiento_fecha_fin": "Fin previsto",
+        "plan_tratamiento_estado": "Estado del plan",
+        "plan_tratamiento_indicaciones": "Indicaciones generales",
+        "plan_tratamiento_lineas_title": "Medicamentos / líneas",
+        "plan_tratamiento_add_linea": "Añadir línea",
+        "plan_tratamiento_remove_linea": "Quitar línea"
+    },
+    "delete": {
+        "title": "¿Eliminar esta consulta?",
+        "description": "El registro dejará de mostrarse en el listado."
+    },
+    "plan": {
+        "page_title": "Plan · {{paciente}}",
+        "page_description": "Resumen del plan de medicación y notas de seguimiento por fecha.",
+        "back_list": "Volver al listado",
+        "empty_no_plan_title": "Sin plan de medicación",
+        "empty_no_plan_description": "Si tienes permiso de gestión, define el plan en el formulario de abajo. El seguimiento diario se registra una vez guardado el plan.",
+        "empty_readonly_hint": "No hay plan definido para esta visita. Un usuario con permiso de gestión puede crearlo desde esta misma pantalla.",
+        "soap_edit_link": "Editar solo los datos SOAP de la visita",
+        "consulta_cerrada_aviso": "Esta consulta está cerrada: no se puede editar el plan ni añadir notas de seguimiento hasta reabrirla.",
+        "editor": {
+            "define_title": "Definir plan de medicación",
+            "update_title": "Actualizar plan de medicación",
+            "update_description": "Las fechas del plan, el estado y las indicaciones se guardan solos al cambiarlos. Cada medicamento se guarda al cerrar el panel lateral.",
+            "submit_save": "Guardar plan",
+            "submit_update": "Actualizar plan"
+        },
+        "card_resumen_title": "Resumen del plan",
+        "card_lineas_title": "Medicación indicada",
+        "card_seguimientos_title": "Diario de seguimiento",
+        "card_nuevo_seguimiento": "Nueva nota de seguimiento",
+        "fecha_inicio": "Inicio",
+        "fecha_fin": "Fin previsto",
+        "indicaciones": "Indicaciones",
+        "lineas_empty": "No hay líneas de medicación registradas.",
+        "lineas_empty_hint_manage": "Usa «Añadir medicamento» en el bloque de arriba o edita una línea desde el panel lateral.",
+        "seguimientos_empty": "Aún no hay notas de seguimiento.",
+        "estado": {
+            "activo": "Activo",
+            "completado": "Completado",
+            "suspendido": "Suspendido"
+        },
+        "producto_picker": {
+            "placeholder": "Vincular a inventario (opcional)",
+            "search": "Buscar producto…",
+            "empty": "Sin coincidencias.",
+            "loading": "Buscando…",
+            "clear_aria": "Quitar vínculo con inventario",
+            "stock_sede": "Stock sede:"
+        },
+        "linea": {
+            "medicamento": "Medicamento",
+            "medicamento_hint": "Puedes enlazar un producto del inventario y ajustar el texto si hace falta.",
+            "dosis": "Dosis",
+            "unidad": "Unidad",
+            "via": "Vía",
+            "frecuencia": "Frecuencia",
+            "lote": "Lote",
+            "cantidad_inventario": "Cantidad (uso / dispensación)",
+            "cantidad_inventario_hint": "Cantidad prevista o entregada; no mueve inventario al guardar el plan.",
+            "stock_sede_referencia": "Stock en sede (referencia)",
+            "stock_sede_nota": "Solo lectura. El plan no descuenta inventario.",
+            "notas": "Notas",
+            "anadido_en": "Fecha de registro",
+            "sin_detalle": "Sin dosis ni pauta en la línea",
+            "inventario_badge": "Inv."
+        },
+        "lineas_editor": {
+            "dashed_title": "Aún no hay medicamentos en el plan",
+            "dashed_hint": "Pulsa aquí o en «Añadir medicamento» para abrir el panel y registrar la primera línea.",
+            "add_open": "Añadir medicamento",
+            "row_open_edit_title": "Ver y editar dosis, vía, frecuencia y notas en el panel",
+            "autosave_hint": "Guardado automático al cambiar líneas o datos del plan.",
+            "saving": "Guardando…",
+            "delete_confirm_title": "¿Quitar medicamento?",
+            "delete_confirm_description": "Se quitará «{{medicamento}}» del listado. El cambio se guardará al confirmar.",
+            "delete_confirm_action": "Quitar"
+        },
+        "lineas_sheet": {
+            "title_new": "Nuevo medicamento",
+            "title_edit": "Editar medicamento",
+            "save": "Guardar en el plan",
+            "medicamento_required": "Indica el nombre del medicamento.",
+            "edit_aria": "Editar esta línea"
+        },
+        "seguimiento": {
+            "section_title": "Nota",
+            "registrado_at": "Fecha y hora",
+            "nota": "Evolución / observaciones",
+            "nota_placeholder": "Ej.: mejor apetito, reacción al fármaco, signos vitales…",
+            "submit": "Guardar nota"
+        }
+    }
+}

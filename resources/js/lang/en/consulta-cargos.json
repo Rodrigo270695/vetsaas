@@ -1,0 +1,72 @@
+{
+    "page_title": "Charges — {{paciente}}",
+    "page_description": "Consultation pre-invoice (services and products). Amounts follow your clinic IGV settings.",
+    "back_list": "Back to medical records list",
+    "solo_lectura_sin_permiso": "You can open this screen but cannot enter amounts. Ask an admin to grant «Consultation charges → manage» (consulta-cargos.manage) or re-sync roles: php artisan db:seed --class=TenantRolesSeeder",
+    "estado_confirmado_aviso": "This pre-invoice is already confirmed and cannot be edited here.",
+    "cobro": {
+        "alert_title": "Ready to collect at the register",
+        "alert_body": "The pre-invoice is confirmed. Open checkout with preloaded lines.",
+        "cobrar_cta": "Collect at register",
+        "sin_sesion_caja": "Open your shift under Cash › Sessions before collecting this pre-invoice.",
+        "abrir_sesion_cta": "Go to sessions",
+        "ya_cobrado_title": "Already collected",
+        "ya_cobrado_body": "This pre-invoice was recorded as sale {{numero}}.",
+        "ver_venta_cta": "View sale",
+        "sin_permiso_title": "You cannot collect this pre-invoice",
+        "sin_permiso": "Your role needs consulta-cargos.cobrar and ventas.create. Run: php artisan db:seed --class=PermissionsSeeder and TenantRolesSeeder, or assign receptionist/admin role. Hard-refresh (Ctrl+F5) if you just updated the code."
+    },
+    "stat_paciente": "Patient",
+    "stat_propietario": "Owner",
+    "stat_estado": "Status",
+    "breadcrumb_historias": "Clinical records",
+    "breadcrumb_cargos": "Charges",
+    "label_atencion": "Visit:",
+    "label_moneda": "Currency: {{code}}",
+    "estado": {
+        "borrador": "Draft",
+        "confirmado": "Confirmed"
+    },
+    "hint_precio_incluye_igv": "Unit prices include VAT ({{pct}}%). On save, base and VAT are split.",
+    "hint_precio_sin_igv": "Unit prices exclude VAT. {{pct}}% VAT is applied to the taxable base.",
+    "imprimir_ticket": "View ticket",
+    "imprimir_ticket_ayuda": "Opens here; use Print in the dialog for your thermal printer ({{mm}} mm).",
+    "ticket_modal_title": "Pre-invoice ticket",
+    "ticket_modal_description": "Preview of what the printer would output. Close or send to print / PDF.",
+    "ticket_modal_print": "Print",
+    "ticket_iframe_title": "Consultation charges ticket preview",
+    "field_notas": "Internal notes",
+    "field_notas_placeholder": "Optional notes for your team…",
+    "col_concepto": "Description",
+    "col_importe": "Amount",
+    "lineas_title": "Lines",
+    "lineas_subtitle": "Services and products for this visit.",
+    "add_linea": "Add line",
+    "sin_lineas": "No lines yet. Add at least one to record charges.",
+    "field_tipo": "Type",
+    "field_concepto": "Description",
+    "field_cantidad": "Qty",
+    "field_precio_unitario": "Unit price",
+    "field_descuento": "Discount",
+    "tipo": {
+        "servicio": "Service",
+        "producto": "Product",
+        "otro": "Other"
+    },
+    "totales": {
+        "resumen_title": "Summary",
+        "subtotal": "Subtotal (excl. VAT):",
+        "igv": "VAT:",
+        "total": "Total:",
+        "hint_refresh": "Totals refresh when you save."
+    },
+    "save_draft": "Save draft",
+    "confirmar": "Confirm pre-invoice",
+    "producto_picker": {
+        "placeholder": "Search product…",
+        "search_placeholder": "Name or SKU…",
+        "loading": "Searching…",
+        "empty": "No results.",
+        "clear_aria": "Clear product"
+    }
+}

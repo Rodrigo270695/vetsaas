@@ -1,0 +1,23 @@
+{
+    "title": "Support audit",
+    "description": "History of «Enter as support» sessions in clinics.",
+    "columns": {
+        "started_at": "Started",
+        "ended_at": "Ended",
+        "superadmin": "Superadmin",
+        "tenant": "Clinic",
+        "ip": "IP"
+    },
+    "status": {
+        "active": "Active"
+    },
+    "empty": {
+        "title": "No records yet",
+        "description": "Sessions are stored after you accept the «Enter as support» link on the clinic subdomain. Entries before this feature are not backfilled.",
+        "steps_title": "To create the first record:",
+        "step_1": "Go to Platform › Tenants.",
+        "step_2": "Row menu › «Enter as support».",
+        "step_3": "Work in the clinic, then «Leave support mode».",
+        "cta_tenants": "Go to Tenants"
+    }
+}
