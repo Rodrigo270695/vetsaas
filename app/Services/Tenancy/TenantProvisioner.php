@@ -7,6 +7,7 @@ use App\Models\Subscription;
 use App\Models\SubscriptionPayment;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Support\Tenancy\TenantSubdomainUrl;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -80,11 +81,7 @@ class TenantProvisioner
 
     public function buildLoginUrl(Tenant $tenant): string
     {
-        $scheme = (string) config('orvae.tenant.scheme', 'https');
-        $domain = (string) config('orvae.tenant.domain', 'vetsaas.orvae.pe');
-        $path = (string) config('orvae.tenant.login_path', '/login');
-
-        return sprintf('%s://%s.%s%s', $scheme, $tenant->slug, $domain, $path);
+        return TenantSubdomainUrl::login($tenant);
     }
 
     private function guardDriver(): void

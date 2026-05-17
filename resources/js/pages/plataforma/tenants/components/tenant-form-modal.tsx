@@ -1,4 +1,4 @@
-import { useForm } from '@inertiajs/react';
+import { useForm, usePage } from '@inertiajs/react';
 import { Loader2, Sparkles } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -10,6 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import tenants from '@/routes/plataforma/tenants';
+import type { TenancyShared } from '@/types/tenancy';
 import type { GeoOption, Tenant } from '../types';
 
 export type TenantFormModalProps = {
@@ -128,10 +129,16 @@ export function TenantFormModal({
     departamentos,
 }: TenantFormModalProps) {
     const { t } = useTranslation(['tenants', 'common']);
+    const tenancy = usePage().props.tenancy as TenancyShared;
     const isEdit = tenant !== null;
 
     const { data, setData, post, put, processing, errors, reset, clearErrors } =
         useForm<TenantFormData>(emptyForm);
+
+    const subdomainVars = {
+        slug: data.slug.trim() || 'mi-clinica',
+        domain: tenancy.root_domain,
+    };
 
     const canSubmit = isFormValid(data) && !processing;
 
@@ -243,7 +250,7 @@ export function TenantFormModal({
             description={
                 isEdit
                     ? t('tenants:form.description_edit')
-                    : t('tenants:form.description_create')
+                    : t('tenants:form.description_create', subdomainVars)
             }
             size="lg"
             onSubmit={onSubmit}
@@ -287,7 +294,7 @@ export function TenantFormModal({
                             id="tenant-slug"
                             label={t('tenants:form.fields.slug')}
                             required
-                            hint={t('tenants:form.fields.slug_hint')}
+                            hint={t('tenants:form.fields.slug_hint', subdomainVars)}
                             error={errors.slug}
                         >
                             <Input

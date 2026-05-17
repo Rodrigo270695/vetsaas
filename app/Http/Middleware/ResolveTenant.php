@@ -39,6 +39,10 @@ class ResolveTenant
 
     public function handle(Request $request, Closure $next): Response
     {
+        // Evita que un search_path residual de otro tenant en la misma
+        // conexión PgSQL afecte la resolución o las tablas de `public`.
+        $this->manager->forget();
+
         $slug = $this->resolver->resolveFromRequest($request);
 
         if ($slug === null) {

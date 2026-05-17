@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\User;
+use App\Support\Tenancy\TenantSubdomainUrl;
 use App\Tenancy\TenantManager;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -63,6 +64,11 @@ class HandleInertiaRequests extends Middleware
             'locale' => $request->getLocale(),
             'timezone' => config('app.timezone'),
             'tenant' => $tenantPayload,
+            'tenancy' => [
+                'root_domain' => TenantSubdomainUrl::rootDomain(),
+                'scheme' => TenantSubdomainUrl::scheme(),
+                'login_path' => TenantSubdomainUrl::loginPath(),
+            ],
             'auth' => [
                 'user' => $user,
                 'permissions' => $user

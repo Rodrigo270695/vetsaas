@@ -52,7 +52,7 @@
     "form": {
         "title_create": "Nuevo tenant",
         "title_edit": "Editar tenant",
-        "description_create": "Registra manualmente una clínica en la plataforma. El subdominio quedará en {slug}.vetsaas.com y el schema físico se llamará vet_<slug>.",
+        "description_create": "Registra manualmente una clínica en la plataforma. El subdominio quedará en {slug}.{domain} y el schema físico se llamará vet_<slug>.",
         "description_edit": "Actualiza la información comercial y de contacto del tenant. Las transiciones de estado se hacen desde las acciones de la fila.",
         "section_identity": "Identidad",
         "section_identity_hint": "Slug del subdominio y datos legales de la clínica.",
@@ -62,7 +62,7 @@
         "section_platform_hint": "Zona horaria, idioma y duración del periodo de prueba inicial.",
         "fields": {
             "slug": "Slug (subdominio)",
-            "slug_hint": "Solo minúsculas, dígitos y guiones. Será {slug}.vetsaas.com.",
+            "slug_hint": "Solo minúsculas, dígitos y guiones. Será {slug}.{domain}.",
             "slug_placeholder": "patitas-felices",
             "razon_social": "Razón social",
             "razon_social_placeholder": "Clínica Veterinaria Patitas Felices S.A.C.",

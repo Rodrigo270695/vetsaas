@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\UsesPublicSchema;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -34,6 +35,7 @@ class Sede extends Model
     use HasFactory;
     use HasUuids;
     use SoftDeletes;
+    use UsesPublicSchema;
 
     protected $table = 'sedes';
 

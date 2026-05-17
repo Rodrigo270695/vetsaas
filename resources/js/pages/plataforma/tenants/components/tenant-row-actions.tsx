@@ -1,3 +1,4 @@
+import { usePage } from '@inertiajs/react';
 import {
     Copy,
     ExternalLink,
@@ -18,7 +19,9 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { tenantLoginUrl } from '@/lib/tenancy-url';
 import { toastManager } from '@/lib/toast';
+import type { TenancyShared } from '@/types/tenancy';
 import type { Tenant } from '../types';
 
 export type TenantRowActionsProps = {
@@ -91,10 +94,7 @@ export function TenantRowActions({
         }
     };
 
-    // Best-effort: armamos el URL del subdominio asumiendo el dominio
-    // principal `vetsaas.com`. Si en el futuro cambias el dominio base,
-    // mover esto a un helper centralizado.
-    const subdomainUrl = `https://${tenant.slug}.vetsaas.com`;
+    const subdomainUrl = tenantLoginUrl(tenant.slug, tenancy);
 
     return (
         <DropdownMenu>

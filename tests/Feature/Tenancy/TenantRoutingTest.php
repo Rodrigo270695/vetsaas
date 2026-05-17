@@ -64,6 +64,13 @@ it('la ruta tenant.home responde 200 desde el subdominio correcto', function ():
     $response->assertInertia(fn ($page) => $page->component('tenant/welcome'));
 });
 
+it('la ruta /login responde 200 desde el subdominio del tenant', function (): void {
+    $response = $this->get('http://'.$this->slug.'.vetsaas.test/login');
+
+    $response->assertOk();
+    $response->assertInertia(fn ($page) => $page->component('auth/login'));
+});
+
 it('comparte el tenant resuelto como prop de Inertia', function (): void {
     $response = $this->get('http://'.$this->slug.'.vetsaas.test/');
 
