@@ -45,6 +45,14 @@ class SaasProvisionController extends Controller
 
         $loginUrl = $this->provisioner->buildLoginUrl($tenant);
 
+        Log::info('orvae.provision: tenant creado', [
+            'tenant_id' => $tenant->id,
+            'slug' => $tenant->slug,
+            'plan' => $request->validated('plan_slug'),
+            'external_order_id' => $request->validated('external_order_id'),
+            'idempotency_key' => $idempotencyKey,
+        ]);
+
         $body = [
             'status' => 'ok',
             'tenant' => [

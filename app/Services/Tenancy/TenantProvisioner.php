@@ -37,7 +37,9 @@ class TenantProvisioner
         $slug = $this->normalizeSlug($payload['tenant_slug']);
         $schemaName = $this->buildSchemaName();
 
-        return DB::transaction(function () use ($plan, $slug, $schemaName, $payload): Tenant {
+        $isFreePlan = $plan->codigo === 'free';
+
+        return DB::transaction(function () use ($plan, $slug, $schemaName, $payload, $isFreePlan): Tenant {
             $tenant = Tenant::create([
                 'slug' => $slug,
                 'schema_name' => $schemaName,
@@ -46,8 +48,10 @@ class TenantProvisioner
                 'ruc' => $payload['ruc'] ?? null,
                 'email_admin' => $payload['admin_email'],
                 'telefono' => $payload['telefono'] ?? null,
-                'estado' => 'trial',
-                'trial_ends_at' => now()->addDays((int) $plan->trial_days),
+                'estado' => $isFreePlan ? 'active' : 'trial',
+                'trial_ends_at' => $isFreePlan
+                    ? null
+                    : now()->addDays((int) $plan->trial_days),
                 'onboarding_paso' => 0,
                 'timezone' => $payload['timezone'] ?? 'America/Lima',
                 'locale' => $payload['locale'] ?? 'es_PE',
@@ -58,6 +62,13 @@ class TenantProvisioner
 
             if (! empty($payload['payment'])) {
                 $this->recordPayment($subscription, $tenant, $plan, $payload['payment']);
+            } elseif ($isFreePlan) {
+                $this->recordPayment($subscription, $tenant, $plan, [
+                    'monto' => 0,
+                    'moneda' => 'PEN',
+                    'pasarela' => $payload['canal_adquisicion'] ?? 'orvae',
+                    'estado' => 'procesado',
+                ]);
             }
 
             $this->createSchemaAndMigrate($schemaName);
@@ -126,10 +137,12 @@ class TenantProvisioner
         $ciclo = $payload['ciclo'] ?? 'mensual';
         $precio = $ciclo === 'anual' ? (float) $plan->precio_anual : (float) $plan->precio_mensual;
 
+        $isFreePlan = $plan->codigo === 'free';
+
         return Subscription::create([
             'tenant_id' => $tenant->id,
             'plan_id' => $plan->id,
-            'estado' => 'trial',
+            'estado' => $isFreePlan ? 'active' : 'trial',
             'ciclo' => $ciclo,
             'trial_ends_at' => $tenant->trial_ends_at,
             'current_period_start' => now(),
