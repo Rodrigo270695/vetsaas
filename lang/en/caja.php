@@ -60,7 +60,7 @@ return [
         'fel' => [
             'no_emitible' => 'This sale cannot issue an electronic receipt.',
             'ya_procesada' => 'This sale receipt was already processed.',
-            'sin_serie' => 'No active :tipo series configured for this clinic.',
+            'sin_serie' => 'No :tipo series configured. Check Settings › Branches (invoice/receipt series) or the clinic FEL catalog.',
             'sin_token' => 'Configure the Nubefact API route and token under Settings › General.',
             'emitida_ok' => 'Electronic receipt issued successfully.',
         ],

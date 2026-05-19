@@ -134,6 +134,11 @@ class Venta extends Model
         return $this->belongsTo(CajaSesion::class, 'caja_sesion_id');
     }
 
+    public function sede(): BelongsTo
+    {
+        return $this->belongsTo(Sede::class, 'sede_id');
+    }
+
     public function creadoPor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by_id');

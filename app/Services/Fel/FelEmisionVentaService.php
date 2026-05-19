@@ -9,6 +9,7 @@ use App\Models\Propietario;
 use App\Models\Tenant;
 use App\Models\Venta;
 use App\Models\VentaLinea;
+use App\Support\Fel\FelSerieResolver;
 use App\Support\Fel\NubefactCredentialResolver;
 use App\Support\PlanCapabilities;
 use App\Tenancy\TenantManager;
@@ -19,6 +20,7 @@ final class FelEmisionVentaService
 {
     public function __construct(
         private readonly NubefactClient $nubefact,
+        private readonly FelSerieResolver $felSeries,
     ) {}
 
     public function puedeEmitir(?Tenant $tenant, ClinicSetting $clinic, Venta $venta): bool
@@ -65,18 +67,7 @@ final class FelEmisionVentaService
                 throw new RuntimeException(__('caja.ventas.fel.ya_procesada'));
             }
 
-            $serie = FelSerie::query()
-                ->where('tipo_comprobante', $tipoComprobante)
-                ->where('activo', true)
-                ->orderBy('serie')
-                ->lockForUpdate()
-                ->first();
-
-            if ($serie === null) {
-                throw new RuntimeException(__('caja.ventas.fel.sin_serie', [
-                    'tipo' => $tipoComprobante === FelSerie::TIPO_FACTURA ? 'factura' : 'boleta',
-                ]));
-            }
+            $serie = $this->felSeries->resolverParaVenta($venta, $tipoComprobante, true);
 
             $correlativo = ((int) $serie->ultimo_correlativo) + 1;
             $numeroCompleto = $serie->serie.'-'.str_pad((string) $correlativo, 8, '0', STR_PAD_LEFT);

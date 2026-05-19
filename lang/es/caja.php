@@ -60,7 +60,7 @@ return [
         'fel' => [
             'no_emitible' => 'Esta venta no puede emitir comprobante electrónico.',
             'ya_procesada' => 'El comprobante de esta venta ya fue procesado.',
-            'sin_serie' => 'No hay serie activa de :tipo en la clínica.',
+            'sin_serie' => 'No hay serie de :tipo configurada. Revisa Configuración › Sedes (serie factura / boleta) o el catálogo FEL de la clínica.',
             'sin_token' => 'Configura la ruta y el token de Nubefact en Configuración › General.',
             'emitida_ok' => 'Comprobante electrónico emitido correctamente.',
         ],
