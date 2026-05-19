@@ -107,10 +107,14 @@ class TenantSchemaMigrator
             $this->purgePublicTenantMigrationRows($tenantMigrationNames);
         } catch (\Throwable $e) {
             $output->writeln('<error>'.$e->getMessage().'</error>');
+            $previous = $e->getPrevious();
+            if ($previous instanceof \Throwable) {
+                $output->writeln('<error>Causa: '.$previous->getMessage().'</error>');
+            }
 
             return self::EXIT_FAILURE;
         } finally {
-            DB::statement('SET search_path TO public');
+            $this->resetConnectionAfterMigrate();
             config(['tenant.migration_schema' => null]);
         }
 
@@ -251,8 +255,30 @@ class TenantSchemaMigrator
             '2026_06_13_100000_t087_create_hotel_estancia_tarifas_table' => Schema::hasTable('hotel_estancia_tarifas'),
             '2026_06_14_100000_t088_ventas_anulacion_and_fel_anulado' => Schema::hasTable('ventas')
                 && Schema::hasColumn('ventas', 'anulado_at'),
+            '2026_06_15_100000_t089_add_nubefact_api_ruta_to_cfg_clinic_settings' => Schema::hasTable('cfg_clinic_settings')
+                && Schema::hasColumn('cfg_clinic_settings', 'nubefact_api_ruta'),
             default => false,
         };
+    }
+
+    private function resetConnectionAfterMigrate(): void
+    {
+        if (DB::getDriverName() !== 'pgsql') {
+            return;
+        }
+
+        while (DB::transactionLevel() > 0) {
+            DB::rollBack();
+        }
+
+        try {
+            DB::statement('ROLLBACK');
+        } catch (\Throwable) {
+            // Sin transacción abierta en el servidor.
+        }
+
+        DB::reconnect();
+        DB::statement('SET search_path TO public');
     }
 
     /**

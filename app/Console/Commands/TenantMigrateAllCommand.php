@@ -74,6 +74,8 @@ class TenantMigrateAllCommand extends Command
             $this->newLine();
             $this->info('Migrando: '.$tenant->slug.' (`'.$schema.'`)...');
 
+            DB::reconnect();
+
             try {
                 $code = $migrator->migrate($schema, $this->output, false, false);
                 if ($code !== TenantSchemaMigrator::EXIT_SUCCESS) {
