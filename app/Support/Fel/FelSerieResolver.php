@@ -53,9 +53,9 @@ final class FelSerieResolver
             ? $sede->serie_factura
             : $sede->serie_boleta;
 
-        $codigo = strtoupper(trim((string) $raw));
+        $codigo = SunatSerieCodigo::normalizar((string) $raw);
 
-        return $codigo !== '' ? $codigo : null;
+        return $codigo;
     }
 
     private function obtenerOCrearSerie(int $tipoComprobante, string $codigoSerie, bool $forUpdate): FelSerie

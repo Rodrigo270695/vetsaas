@@ -68,9 +68,9 @@
             "provincia": "Provincia",
             "departamento": "Departamento",
             "serie_factura": "Serie factura",
-            "serie_factura_hint": "Ej. F001",
+            "serie_factura_hint": "4 caracteres SUNAT, sin guión: F001 (no F-001). Debe existir en Nubefact.",
             "serie_boleta": "Serie boleta",
-            "serie_boleta_hint": "Ej. B001",
+            "serie_boleta_hint": "4 caracteres SUNAT, sin guión: B001 (no B-001). Debe existir en Nubefact.",
             "activa": "Sede activa",
             "activa_hint": "Si está desactivada, no aparecerá en agenda, caja ni en los listados de selección."
         }

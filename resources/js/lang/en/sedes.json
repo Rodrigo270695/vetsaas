@@ -68,9 +68,9 @@
             "provincia": "Province",
             "departamento": "Department",
             "serie_factura": "Invoice series",
-            "serie_factura_hint": "E.g. F001",
+            "serie_factura_hint": "4 SUNAT characters, no hyphen: F001 (not F-001). Must exist in Nubefact.",
             "serie_boleta": "Receipt series",
-            "serie_boleta_hint": "E.g. B001",
+            "serie_boleta_hint": "4 SUNAT characters, no hyphen: B001 (not B-001). Must exist in Nubefact.",
             "activa": "Active branch",
             "activa_hint": "If disabled, the branch won't appear in scheduling, cash or selection lists."
         }
