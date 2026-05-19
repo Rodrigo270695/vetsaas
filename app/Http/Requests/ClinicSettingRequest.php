@@ -80,9 +80,9 @@ class ClinicSettingRequest extends FormRequest
                 'nullable',
                 'string',
                 'max:500',
-                'regex:/^https:\/\/api\.nubefact\.com\/api\/v1\/.+/i',
+                'regex:/^https:\/\/api\.nubefact\.com\/api\/v1\/[^\s?#]+/i',
             ],
-            'nubefact_token' => ['nullable', 'string', 'max:2048'],
+            'nubefact_token' => ['nullable', 'string', 'max:8192'],
             'nubefact_ruc' => ['nullable', 'string', 'size:11', 'regex:/^\d{11}$/'],
             'clear_nubefact' => ['nullable', 'boolean'],
 
@@ -135,6 +135,14 @@ class ClinicSettingRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        $ruta = $this->input('nubefact_api_ruta');
+        if (is_string($ruta)) {
+            $ruta = trim($ruta);
+            $this->merge([
+                'nubefact_api_ruta' => $ruta === '' ? null : rtrim($ruta, '/'),
+            ]);
+        }
+
         $this->merge([
             'recordatorio_48h_activo' => $this->boolean('recordatorio_48h_activo'),
             'recordatorio_2h_activo' => $this->boolean('recordatorio_2h_activo'),

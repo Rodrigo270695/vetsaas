@@ -10,6 +10,7 @@ use App\Tenancy\TenantManager;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -126,7 +127,16 @@ class ClinicSettingController extends Controller
 
         $setting->save();
 
-        return back()->with('success', 'Configuración actualizada correctamente.');
+        $flash = ['success' => 'Configuración actualizada correctamente.'];
+
+        if (
+            ! empty($data['nubefact_api_ruta'])
+            && ! $this->tenantSupportsNubefactApiRutaColumn()
+        ) {
+            $flash['warning'] = __('config_clinic.nubefact_ruta_migration_pending');
+        }
+
+        return back()->with($flash);
     }
 
     /**
@@ -205,15 +215,19 @@ class ClinicSettingController extends Controller
      */
     private function applyNubefactSecret(ClinicSetting $setting, array $data): void
     {
+        $supportsApiRuta = $this->tenantSupportsNubefactApiRutaColumn();
+
         if (($data['clear_nubefact'] ?? false) === true) {
             $setting->nubefact_token_enc = null;
-            $setting->nubefact_api_ruta = null;
+            if ($supportsApiRuta) {
+                $setting->nubefact_api_ruta = null;
+            }
             $setting->nubefact_configurado = false;
 
             return;
         }
 
-        if (! empty($data['nubefact_api_ruta'])) {
+        if ($supportsApiRuta && ! empty($data['nubefact_api_ruta'])) {
             $setting->nubefact_api_ruta = trim((string) $data['nubefact_api_ruta']);
         }
 
@@ -221,8 +235,25 @@ class ClinicSettingController extends Controller
             $setting->nubefact_token_enc = Crypt::encryptString($data['nubefact_token']);
         }
 
-        $setting->nubefact_configurado = filled($setting->nubefact_api_ruta)
-            && filled($setting->nubefact_token_enc);
+        $setting->nubefact_configurado = $this->nubefactEstaConfigurado($setting, $supportsApiRuta);
+    }
+
+    private function tenantSupportsNubefactApiRutaColumn(): bool
+    {
+        return Schema::hasColumn('cfg_clinic_settings', 'nubefact_api_ruta');
+    }
+
+    private function nubefactEstaConfigurado(ClinicSetting $setting, bool $supportsApiRuta): bool
+    {
+        if (! filled($setting->nubefact_token_enc)) {
+            return false;
+        }
+
+        if ($supportsApiRuta) {
+            return filled($setting->nubefact_api_ruta);
+        }
+
+        return true;
     }
 
     /**
@@ -287,7 +318,9 @@ class ClinicSettingController extends Controller
             'emite_comprobantes_sunat' => $planPermiteFacturaElectronica && (bool) $setting->emite_comprobantes_sunat,
             // Nubefact (única integración del cliente; jamás token en claro)
             'nubefact_ruc' => $setting->nubefact_ruc,
-            'nubefact_api_ruta' => $setting->nubefact_api_ruta,
+            'nubefact_api_ruta' => $this->tenantSupportsNubefactApiRutaColumn()
+                ? $setting->nubefact_api_ruta
+                : null,
             'nubefact_configurado' => $setting->nubefact_configurado,
             // Remitente comercial visible
             'whatsapp_display_number' => $setting->whatsapp_display_number,
