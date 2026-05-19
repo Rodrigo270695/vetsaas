@@ -61,6 +61,7 @@ export default function Show({
     venta,
     clinica,
     fel,
+    ticket,
     anulacion,
     consulta_vinculo: consultaVinculo,
 }: VentaShowProps) {
@@ -133,6 +134,8 @@ export default function Show({
     };
 
     const esAnulada = venta.estado === 'anulado';
+    const esFactura = (venta.tipo_comprobante_sunat ?? 2) === 1;
+    const puedeVerTicket = ticket.puede_imprimir && !esAnulada;
 
     const headerStats = useMemo(
         () => [
@@ -289,23 +292,33 @@ export default function Show({
 
                 <div className="grid gap-5 lg:grid-cols-[1fr_minmax(280px,340px)]">
                     <div className="flex min-w-0 flex-col gap-3">
+                        {(puedeVerTicket ||
+                            (!esAnulada &&
+                                clinica.emite_comprobantes_sunat &&
+                                clinica.nubefact_configurado &&
+                                venta.fel_estado === 'pendiente_emision')) && (
                         <div className="flex flex-col gap-2 rounded-lg border border-border/60 bg-muted/20 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                className="w-fit gap-1.5 border-primary/35 font-medium text-primary hover:bg-primary/5"
-                                onClick={abrirTicketEnModal}
-                            >
-                                <Printer className="size-4 shrink-0" aria-hidden />
-                                {t('caja:ventas.show.imprimir_ticket')}
-                            </Button>
+                            {puedeVerTicket ? (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="w-fit gap-1.5 border-primary/35 font-medium text-primary hover:bg-primary/5"
+                                    onClick={abrirTicketEnModal}
+                                >
+                                    <Printer className="size-4 shrink-0" aria-hidden />
+                                    {t('caja:ventas.show.imprimir_ticket')}
+                                </Button>
+                            ) : null}
                             <p className="text-xs leading-snug text-muted-foreground">
-                                {t('caja:ventas.show.imprimir_ticket_ayuda', {
-                                    mm: clinica.ticket_ancho_mm,
-                                })}
+                                {puedeVerTicket
+                                    ? t('caja:ventas.show.imprimir_ticket_ayuda', {
+                                          mm: clinica.ticket_ancho_mm,
+                                      })
+                                    : t('caja:ventas.show.ticket_espera_cpe')}
                             </p>
                         </div>
+                        )}
                         <Card className="border-border/60">
                         <CardHeader className="pb-3">
                             <CardTitle className="flex items-center gap-2 text-base">
@@ -490,6 +503,35 @@ export default function Show({
                                             })}
                                         </Badge>
                                     </div>
+                                    {clinica.emite_comprobantes_sunat &&
+                                    clinica.plan_permite_factura_electronica ? (
+                                        <div className="rounded-md border border-dashed border-border/60 bg-background/80 px-2.5 py-2 text-xs">
+                                            <p className="font-medium text-foreground">
+                                                {t('caja:ventas.show.fel_previsto_titulo')}:{' '}
+                                                {esFactura
+                                                    ? t('caja:ventas.show.fel_previsto_factura')
+                                                    : t('caja:ventas.show.fel_previsto_boleta')}
+                                            </p>
+                                            <p className="mt-1 text-muted-foreground">
+                                                {t('caja:ventas.show.fel_previsto_elegido_caja')}
+                                                {venta.cliente_doc
+                                                    ? ` · ${venta.cliente_doc}`
+                                                    : ''}
+                                            </p>
+                                            {fel.serie ? (
+                                                <p className="mt-1 tabular-nums text-muted-foreground">
+                                                    {t('caja:ventas.show.fel_previsto_serie', {
+                                                        serie: fel.serie,
+                                                        sede: venta.sede,
+                                                    })}
+                                                </p>
+                                            ) : (
+                                                <p className="mt-1 text-amber-700 dark:text-amber-400">
+                                                    {t('caja:ventas.show.fel_previsto_sin_serie')}
+                                                </p>
+                                            )}
+                                        </div>
+                                    ) : null}
                                     {venta.fel_document?.numero_completo ? (
                                         <p className="text-sm font-medium tabular-nums">
                                             {venta.fel_document.numero_completo}

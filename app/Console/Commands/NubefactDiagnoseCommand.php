@@ -88,10 +88,13 @@ class NubefactDiagnoseCommand extends Command
             $this->info('Qué enviaría VetSaaS a Nubefact (JSON)');
             $sedeActiva = $sedes->firstWhere('activa', true) ?? $sedes->first();
             if ($sedeActiva !== null) {
-                $ventaFake = new \App\Models\Venta(['sede_id' => $sedeActiva->id]);
+                $ventaFake = new \App\Models\Venta([
+                    'sede_id' => $sedeActiva->id,
+                    'tipo_comprobante_sunat' => FelSerie::TIPO_BOLETA,
+                ]);
                 $ventaFake->setRelation('sede', $sedeActiva);
 
-                foreach ([FelSerie::TIPO_BOLETA => 'boleta (DNI)', FelSerie::TIPO_FACTURA => 'factura (RUC)'] as $tipo => $label) {
+                foreach ([FelSerie::TIPO_BOLETA => 'boleta', FelSerie::TIPO_FACTURA => 'factura'] as $tipo => $label) {
                     try {
                         $fel = $series->resolverParaVenta($ventaFake, $tipo, false);
                         $this->line("  · {$label}: serie «{$fel->serie}», próximo número ".(((int) $fel->ultimo_correlativo) + 1));

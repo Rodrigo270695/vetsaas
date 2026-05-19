@@ -257,6 +257,8 @@ class TenantSchemaMigrator
                 && Schema::hasColumn('ventas', 'anulado_at'),
             '2026_06_15_100000_t089_add_nubefact_api_ruta_to_cfg_clinic_settings' => Schema::hasTable('cfg_clinic_settings')
                 && Schema::hasColumn('cfg_clinic_settings', 'nubefact_api_ruta'),
+            '2026_06_16_100000_t090_add_tipo_comprobante_sunat_to_ventas' => Schema::hasTable('ventas')
+                && Schema::hasColumn('ventas', 'tipo_comprobante_sunat'),
             default => false,
         };
     }

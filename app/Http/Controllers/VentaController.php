@@ -3,11 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\AnularVentaRequest;
+use App\Http\Requests\PropietarioRequest;
 use App\Http\Requests\StoreVentaRequest;
+use App\Models\FelSerie;
 use App\Services\Venta\VentaAnulacionService;
 use App\Models\CajaSesion;
 use App\Models\ClinicSetting;
 use App\Models\Consulta;
+use App\Models\Departamento;
+use App\Models\Distrito;
 use App\Models\GroomingTurno;
 use App\Models\HotelEstancia;
 use App\Models\Internamiento;
@@ -19,6 +23,9 @@ use App\Models\Sede;
 use App\Models\Venta;
 use App\Services\Fel\FelEmisionVentaService;
 use App\Services\Venta\VentaCheckoutService;
+use App\Support\Caja\VentaTicketPolicy;
+use App\Support\Fel\FelReceptorResolver;
+use App\Support\Fel\FelSerieResolver;
 use App\Support\PlanCapabilities;
 use App\Support\Venta\VentaDesdeCargoPrefill;
 use App\Tenancy\TenantManager;
@@ -377,18 +384,21 @@ class VentaController extends Controller
             'consulta:id,atendido_at',
             'consulta.historiaClinica.paciente:id,nombre',
             'felDocument',
+            'sede:id,serie_boleta,serie_factura,activa',
         ]);
 
         $clinic = ClinicSetting::current();
         $tenantModel = app(TenantManager::class)->current()?->tenant;
+        $propietario = $venta->propietario;
         $felEmision = app(FelEmisionVentaService::class);
         $puedeEmitirFel = $felEmision->puedeEmitir($tenantModel, $clinic, $venta);
+        $tipoFel = $venta->tipoComprobanteSunat();
+        $serieFelCodigo = app(FelSerieResolver::class)->codigoSerieParaVenta($venta, $tipoFel);
+        $puedeImprimirTicket = VentaTicketPolicy::puedeImprimir($venta, $clinic, $tenantModel);
         $sedeNombre = Sede::query()
             ->where('tenant_id', $tenantId)
             ->whereKey($venta->sede_id)
             ->value('nombre');
-
-        $propietario = $venta->propietario;
         $cliente = $propietario === null
             ? '—'
             : ($propietario->razon_social ?: trim(implode(' ', array_filter([$propietario->nombres, $propietario->apellidos]))));
@@ -420,6 +430,7 @@ class VentaController extends Controller
                 'created_at' => $venta->created_at?->toIso8601String(),
                 'notas' => $venta->notas,
                 'fel_estado' => $venta->fel_estado,
+                'tipo_comprobante_sunat' => $venta->tipo_comprobante_sunat,
                 'fel_document' => $venta->felDocument === null ? null : [
                     'numero_completo' => $venta->felDocument->numero_completo,
                     'estado' => $venta->felDocument->estado,
@@ -456,6 +467,11 @@ class VentaController extends Controller
             'fel' => [
                 'puede_emitir' => $puedeEmitirFel,
                 'emitir_url' => route('caja.ventas.emitir-fel', ['venta' => $venta]),
+                'tipo_comprobante' => FelReceptorResolver::etiquetaTipo($tipoFel),
+                'serie' => $serieFelCodigo,
+            ],
+            'ticket' => [
+                'puede_imprimir' => $puedeImprimirTicket,
             ],
             'anulacion' => [
                 'puede_anular' => $request->user()?->can('ventas.delete')
@@ -513,8 +529,16 @@ class VentaController extends Controller
         abort_if($tenantId === null, 403);
 
         $cfg = ClinicSetting::current();
+        $tenantModel = app(TenantManager::class)->current()?->tenant;
+
+        abort_unless(
+            VentaTicketPolicy::puedeImprimir($venta, $cfg, $tenantModel),
+            403,
+            __('caja.ventas.ticket.no_disponible'),
+        );
 
         $venta->load([
+            'felDocument',
             'lineas' => fn ($q) => $q->orderBy('id'),
             'propietario:id,nombres,apellidos,razon_social,numero_documento',
             'paciente:id,nombre',
@@ -577,6 +601,7 @@ class VentaController extends Controller
             'paciente_nombre' => $venta->paciente?->nombre,
             'cajero_nombre' => $venta->creadoPor?->name,
             'metodo_pago_label' => $metodoPagoLabel,
+            'cpe_numero' => $venta->felDocument?->numero_completo,
             'auto_print' => $request->boolean('print'),
         ]);
     }
@@ -597,6 +622,66 @@ class VentaController extends Controller
      * @param  \Illuminate\Support\Collection<int, array{id: string, label: string, doc: ?string}>  $propietarios
      * @return array<string, mixed>
      */
+    public function storePropietarioRapido(PropietarioRequest $request): JsonResponse
+    {
+        abort_unless($request->user()?->can('ventas.create'), 403);
+
+        $userId = Auth::id();
+        $data = $this->hydratePropietarioUbigeo($request->validated());
+
+        $propietario = Propietario::query()->create([
+            ...$data,
+            'created_by_id' => $userId,
+            'updated_by_id' => $userId,
+        ]);
+
+        $label = $propietario->razon_social
+            ?: trim(implode(' ', array_filter([$propietario->nombres, $propietario->apellidos])));
+
+        return response()->json([
+            'propietario' => [
+                'id' => $propietario->id,
+                'label' => $label !== '' ? $label : '—',
+                'doc' => $propietario->numero_documento,
+            ],
+        ], 201);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function hydratePropietarioUbigeo(array $data): array
+    {
+        $distritoId = $data['distrito_id'] ?? null;
+
+        if ($distritoId === null) {
+            $data['distrito'] = null;
+            $data['provincia'] = null;
+            $data['departamento'] = null;
+
+            return $data;
+        }
+
+        $distrito = Distrito::query()
+            ->with('provincia.departamento')
+            ->find($distritoId);
+
+        if ($distrito === null) {
+            $data['distrito'] = null;
+            $data['provincia'] = null;
+            $data['departamento'] = null;
+
+            return $data;
+        }
+
+        $data['distrito'] = $distrito->name;
+        $data['provincia'] = $distrito->provincia?->name;
+        $data['departamento'] = $distrito->provincia?->departamento?->name;
+
+        return $data;
+    }
+
     private function buildCreatePayload(
         ?CajaSesion $miSesion,
         ?string $sedeNombre,
@@ -604,6 +689,11 @@ class VentaController extends Controller
         mixed $tenantModel,
         $propietarios,
     ): array {
+        $departamentos = Departamento::query()
+            ->where('status', true)
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
         return [
             'puede_vender' => $miSesion !== null,
             'mi_sesion' => $miSesion === null ? null : [
@@ -620,6 +710,7 @@ class VentaController extends Controller
                 'plan_permite_factura_electronica' => PlanCapabilities::facturaElectronica($tenantModel),
             ],
             'propietarios_opciones' => $propietarios,
+            'departamentos' => $departamentos,
         ];
     }
 

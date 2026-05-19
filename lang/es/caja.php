@@ -79,6 +79,7 @@ return [
         ],
         'movimiento_notas' => 'Salida por venta :numero',
         'ticket' => [
+            'no_disponible' => 'El ticket estará disponible cuando la venta esté pagada y, si aplica, tras emitir el comprobante SUNAT.',
             'document_title' => 'Ticket de venta',
             'subtitle' => 'Comprobante de cobro en caja',
             'section_venta' => 'Venta',
@@ -88,6 +89,7 @@ return [
             'estado_pendiente' => 'PENDIENTE',
             'estado_parcial' => 'PARCIAL',
             'estado_anulado' => 'ANULADO',
+            'cpe_numero' => 'Comprobante SUNAT',
             'numero' => 'N.º venta',
             'fecha' => 'Fecha de cobro',
             'sede' => 'Sede',

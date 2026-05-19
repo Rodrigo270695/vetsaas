@@ -13,6 +13,25 @@ use RuntimeException;
  */
 final class FelSerieResolver
 {
+    /**
+     * Código de serie que se usaría al emitir, sin crear filas en fel_series.
+     */
+    public function codigoSerieParaVenta(Venta $venta, int $tipoComprobante): ?string
+    {
+        $venta->loadMissing('sede');
+
+        $codigoSede = $this->codigoSerieDesdeSede($venta->sede, $tipoComprobante);
+        if ($codigoSede !== null) {
+            return $codigoSede;
+        }
+
+        return FelSerie::query()
+            ->where('tipo_comprobante', $tipoComprobante)
+            ->where('activo', true)
+            ->orderBy('serie')
+            ->value('serie');
+    }
+
     public function resolverParaVenta(Venta $venta, int $tipoComprobante, bool $forUpdate = false): FelSerie
     {
         $venta->loadMissing('sede');

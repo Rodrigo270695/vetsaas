@@ -78,6 +78,7 @@ return [
         ],
         'movimiento_notas' => 'Outbound sale :numero',
         'ticket' => [
+            'no_disponible' => 'The receipt will be available once the sale is paid and, when applicable, after the SUNAT voucher is issued.',
             'document_title' => 'Sale receipt',
             'subtitle' => 'Cash register payment receipt',
             'section_venta' => 'Sale',
@@ -87,6 +88,7 @@ return [
             'estado_pendiente' => 'PENDING',
             'estado_parcial' => 'PARTIAL',
             'estado_anulado' => 'VOID',
+            'cpe_numero' => 'SUNAT voucher',
             'numero' => 'Sale no.',
             'fecha' => 'Payment date',
             'sede' => 'Branch',

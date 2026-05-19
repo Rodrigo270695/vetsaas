@@ -15,11 +15,20 @@ import { isPropietarioDocumentTypeCode } from '@/lib/document-type-options';
 import propietarios from '@/routes/clinica/propietarios';
 import type { GeoOption, Propietario } from '../types';
 
+export type PropietarioCreatedPayload = {
+    id: string;
+    label: string;
+    doc: string | null;
+};
+
 export type PropietarioFormModalProps = {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     propietario: Propietario | null;
     departamentos: readonly GeoOption[];
+    /** Si se define, crea vía JSON (caja) y llama onCreated en lugar de redirigir. */
+    jsonStoreUrl?: string;
+    onCreated?: (payload: PropietarioCreatedPayload) => void;
 };
 
 type FormData = {
@@ -95,16 +104,20 @@ export function PropietarioFormModal({
     onOpenChange,
     propietario,
     departamentos,
+    jsonStoreUrl,
+    onCreated,
 }: PropietarioFormModalProps) {
     const { t } = useTranslation(['propietarios', 'common']);
     const isEdit = propietario !== null;
 
-    const { data, setData, post, put, processing, errors, reset, clearErrors } =
+    const { data, setData, post, put, processing, errors, reset, clearErrors, setError } =
         useForm<FormData>(empty);
 
     const [geo, setGeo] = useState<GeoCascadeValue>(() => geoFrom(null));
     const initialRef = useRef<FormData>(empty);
-    const canSubmit = data.nombres.trim().length > 0 && !processing;
+    const [jsonSubmitting, setJsonSubmitting] = useState(false);
+    const submitting = processing || jsonSubmitting;
+    const canSubmit = data.nombres.trim().length > 0 && !submitting;
 
     useEffect(() => {
         if (open) {
@@ -146,7 +159,7 @@ export function PropietarioFormModal({
         onOpenChange(next);
     };
 
-    const onSubmit = (e: FormEvent<HTMLFormElement>) => {
+    const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         const onSuccess = () => {
             reset();
@@ -160,12 +173,61 @@ export function PropietarioFormModal({
                 preserveScroll: true,
                 onSuccess,
             });
-        } else {
-            post(propietarios.store().url, {
-                preserveScroll: true,
-                onSuccess,
-            });
+
+            return;
         }
+
+        if (jsonStoreUrl && onCreated) {
+            setJsonSubmitting(true);
+            clearErrors();
+            try {
+                const token =
+                    document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
+                const res = await fetch(jsonStoreUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Accept: 'application/json',
+                        'X-CSRF-TOKEN': token,
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify(data),
+                });
+                const body = (await res.json()) as {
+                    propietario?: PropietarioCreatedPayload;
+                    message?: string;
+                    errors?: Record<string, string[]>;
+                };
+
+                if (res.status === 422 && body.errors) {
+                    Object.entries(body.errors).forEach(([key, messages]) => {
+                        const msg = messages[0];
+                        if (msg) {
+                            setError(key as keyof FormData, msg);
+                        }
+                    });
+
+                    return;
+                }
+
+                if (!res.ok || !body.propietario) {
+                    return;
+                }
+
+                onCreated(body.propietario);
+                onSuccess();
+            } finally {
+                setJsonSubmitting(false);
+            }
+
+            return;
+        }
+
+        post(propietarios.store().url, {
+            preserveScroll: true,
+            onSuccess,
+        });
     };
 
     return (
@@ -182,7 +244,7 @@ export function PropietarioFormModal({
                         type="button"
                         variant="outline"
                         onClick={() => handleClose(false)}
-                        disabled={processing}
+                        disabled={submitting}
                         className="cursor-pointer"
                     >
                         {t('common:actions.cancel')}
@@ -192,7 +254,7 @@ export function PropietarioFormModal({
                         disabled={!canSubmit}
                         className="cursor-pointer gap-2"
                     >
-                        {processing && (
+                        {submitting && (
                             <Loader2 className="size-4 animate-spin" aria-hidden />
                         )}
                         {isEdit ? t('form.submit_edit') : t('form.submit_create')}

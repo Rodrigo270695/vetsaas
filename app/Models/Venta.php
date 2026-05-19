@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\FelSerie;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -31,6 +32,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property ?\Illuminate\Support\Carbon $fecha_pago
  * @property ?string $notas
  * @property string $fel_estado
+ * @property ?int $tipo_comprobante_sunat
  * @property ?string $fel_document_id
  * @property ?string $created_by_id
  */
@@ -93,6 +95,7 @@ class Venta extends Model
         return [
             'anio' => 'integer',
             'correlativo' => 'integer',
+            'tipo_comprobante_sunat' => 'integer',
             'subtotal' => 'decimal:2',
             'igv_monto' => 'decimal:2',
             'descuento_monto' => 'decimal:2',
@@ -107,6 +110,13 @@ class Venta extends Model
     public function estaAnulada(): bool
     {
         return $this->estado === self::ESTADO_ANULADO;
+    }
+
+    public function tipoComprobanteSunat(): int
+    {
+        $tipo = (int) ($this->tipo_comprobante_sunat ?? FelSerie::TIPO_BOLETA);
+
+        return $tipo === FelSerie::TIPO_FACTURA ? FelSerie::TIPO_FACTURA : FelSerie::TIPO_BOLETA;
     }
 
     public function propietario(): BelongsTo

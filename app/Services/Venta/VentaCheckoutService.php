@@ -235,6 +235,7 @@ final class VentaCheckoutService
                 'fecha_pago' => now(),
                 'notas' => $validated['notas'] ?? null,
                 'fel_estado' => $felPendiente ? Venta::FEL_PENDIENTE : Venta::FEL_SIN_CPE,
+                'tipo_comprobante_sunat' => (int) $validated['tipo_comprobante_sunat'],
                 'fel_document_id' => null,
                 'created_by_id' => $user->getAuthIdentifier(),
             ]);

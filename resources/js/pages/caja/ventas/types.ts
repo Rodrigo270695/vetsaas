@@ -85,11 +85,17 @@ export type DesdeCargoPrefill = {
     lineas_iniciales: LineaInicialDesdeCargo[];
 };
 
+export type GeoOption = {
+    id: number;
+    name: string;
+};
+
 export type VentasCreateProps = {
     puede_vender: boolean;
     mi_sesion: MiSesionVenta | null;
     clinica: ClinicaVentaConfig;
     propietarios_opciones: PropietarioOpcion[];
+    departamentos: readonly GeoOption[];
     desde_cargo?: DesdeCargoPrefill | null;
 };
 
@@ -135,6 +141,7 @@ export type VentaDetalle = {
     created_at: string | null;
     notas: string | null;
     fel_estado: string;
+    tipo_comprobante_sunat: number | null;
     fel_document: FelDocumentShow | null;
     cliente: string;
     cliente_doc: string | null;
@@ -156,6 +163,12 @@ export type VentaShowProps = {
     fel: {
         puede_emitir: boolean;
         emitir_url: string;
+        tipo_comprobante: 'boleta' | 'factura';
+        serie: string | null;
+        doc_cliente: string;
+    };
+    ticket: {
+        puede_imprimir: boolean;
     };
     anulacion: {
         puede_anular: boolean;

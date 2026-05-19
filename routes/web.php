@@ -504,6 +504,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
                 ->post('ventas', [VentaController::class, 'store'])
                 ->name('ventas.store');
             Route::middleware('permission:ventas.create')
+                ->post('ventas/propietarios-rapido', [VentaController::class, 'storePropietarioRapido'])
+                ->name('ventas.propietarios-rapido');
+            Route::middleware('permission:ventas.create')
                 ->get('ventas/pacientes-por-propietario', [VentaController::class, 'pacientesPorPropietario'])
                 ->name('ventas.pacientes-por-propietario');
             Route::middleware('permission:ventas.create')

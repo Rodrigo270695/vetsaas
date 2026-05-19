@@ -5,10 +5,10 @@ namespace App\Services\Fel;
 use App\Models\ClinicSetting;
 use App\Models\FelDocument;
 use App\Models\FelSerie;
-use App\Models\Propietario;
 use App\Models\Tenant;
 use App\Models\Venta;
 use App\Models\VentaLinea;
+use App\Support\Fel\FelReceptorResolver;
 use App\Support\Fel\FelSerieResolver;
 use App\Support\Fel\NubefactCredentialResolver;
 use App\Support\PlanCapabilities;
@@ -57,8 +57,8 @@ final class FelEmisionVentaService
         }
 
         $nubefact = NubefactCredentialResolver::fromClinicSetting($clinic);
-        $receptor = $this->receptorDesdePropietario($venta->propietario);
-        $tipoComprobante = $receptor['tipo_comprobante'];
+        $receptor = FelReceptorResolver::datosReceptor($venta->propietario);
+        $tipoComprobante = $venta->tipoComprobanteSunat();
 
         return DB::transaction(function () use ($venta, $clinic, $nubefact, $receptor, $tipoComprobante): FelDocument {
             $venta = Venta::query()->whereKey($venta->id)->lockForUpdate()->firstOrFail();
@@ -141,47 +141,6 @@ final class FelEmisionVentaService
 
             return $documento->fresh();
         });
-    }
-
-    /**
-     * @return array{
-     *     tipo_comprobante: int,
-     *     tipo_doc: int,
-     *     num_doc: string,
-     *     nombre: string,
-     * }
-     */
-    private function receptorDesdePropietario(?Propietario $propietario): array
-    {
-        $nombre = 'CLIENTES VARIOS';
-        $numDoc = '00000000';
-        $tipoDoc = 1;
-        $tipoComprobante = FelSerie::TIPO_BOLETA;
-
-        if ($propietario !== null) {
-            $denominacion = trim((string) ($propietario->razon_social ?? ''))
-                ?: trim(implode(' ', array_filter([$propietario->nombres, $propietario->apellidos])));
-            if ($denominacion !== '') {
-                $nombre = mb_substr($denominacion, 0, 200);
-            }
-
-            $digits = preg_replace('/\D+/', '', (string) $propietario->numero_documento) ?? '';
-            if (strlen($digits) === 11) {
-                $tipoDoc = 6;
-                $numDoc = $digits;
-                $tipoComprobante = FelSerie::TIPO_FACTURA;
-            } elseif (strlen($digits) === 8) {
-                $tipoDoc = 1;
-                $numDoc = $digits;
-            }
-        }
-
-        return [
-            'tipo_comprobante' => $tipoComprobante,
-            'tipo_doc' => $tipoDoc,
-            'num_doc' => $numDoc,
-            'nombre' => $nombre,
-        ];
     }
 
     /**

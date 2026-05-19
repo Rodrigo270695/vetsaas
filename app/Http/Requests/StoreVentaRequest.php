@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\CajaSesion;
+use App\Models\FelSerie;
 use App\Models\GroomingTurno;
 use App\Models\HotelEstancia;
 use Illuminate\Foundation\Http\FormRequest;
@@ -48,7 +49,19 @@ class StoreVentaRequest extends FormRequest
             ])],
             'monto_recibido' => ['nullable', 'numeric', 'min:0'],
             'notas' => ['nullable', 'string', 'max:2000'],
+            'tipo_comprobante_sunat' => ['required', 'integer', Rule::in([
+                FelSerie::TIPO_FACTURA,
+                FelSerie::TIPO_BOLETA,
+            ])],
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $tipo = $this->input('tipo_comprobante_sunat');
+        if ($tipo === null || $tipo === '') {
+            $this->merge(['tipo_comprobante_sunat' => FelSerie::TIPO_BOLETA]);
+        }
     }
 
     public function attributes(): array
@@ -60,6 +73,7 @@ class StoreVentaRequest extends FormRequest
             'lineas' => 'líneas',
             'metodo_pago' => 'método de pago',
             'monto_recibido' => 'monto recibido',
+            'tipo_comprobante_sunat' => 'tipo de comprobante',
             'grooming_turno_id' => 'turno de grooming',
             'hotel_estancia_id' => 'estancia de hotel',
         ];

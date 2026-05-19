@@ -227,6 +227,12 @@
                         <td class="val">{{ $sede_nombre }}</td>
                     </tr>
                 @endif
+                @if(! empty($cpe_numero))
+                    <tr>
+                        <td class="lbl">{{ __('caja.ventas.ticket.cpe_numero') }}</td>
+                        <td class="val">{{ $cpe_numero }}</td>
+                    </tr>
+                @endif
             </table>
         </div>
 

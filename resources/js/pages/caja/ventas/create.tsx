@@ -13,6 +13,7 @@ import {
     Stethoscope,
     Trash2,
     UserCircle,
+    UserPlus,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -32,7 +33,9 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import AppLayout from '@/layouts/app-layout';
+import { PropietarioFormModal } from '@/pages/clinica/propietarios/components/propietario-form-modal';
 import { toastManager } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import caja from '@/routes/caja';
@@ -91,6 +94,7 @@ export default function Create({
     mi_sesion,
     clinica,
     propietarios_opciones: propietariosOpciones,
+    departamentos,
     desde_cargo: desdeCargo = null,
 }: VentasCreateProps) {
     const { t, i18n } = useTranslation(['caja', 'common']);
@@ -106,10 +110,13 @@ export default function Create({
     const [servicioPrecio, setServicioPrecio] = useState('');
     const [pacientes, setPacientes] = useState<{ id: string; nombre: string }[]>([]);
     const [cargandoPacientes, setCargandoPacientes] = useState(false);
+    const [propietariosLocales, setPropietariosLocales] = useState(propietariosOpciones);
+    const [nuevoClienteOpen, setNuevoClienteOpen] = useState(false);
 
     const form = useForm({
         caja_sesion_id: mi_sesion?.id ?? '',
         propietario_id: '',
+        tipo_comprobante_sunat: 2 as 1 | 2,
         paciente_id: null as string | null,
         consulta_id: null as string | null,
         consulta_cargo_id: null as string | null,
@@ -120,6 +127,10 @@ export default function Create({
         monto_recibido: '',
         notas: '',
     });
+
+    useEffect(() => {
+        setPropietariosLocales(propietariosOpciones);
+    }, [propietariosOpciones]);
 
     const fechaConsultaCargo = useMemo(() => {
         if (!desdeCargo?.consulta_atendido_at) {
@@ -598,10 +609,25 @@ export default function Create({
                     >
                         <div className="grid gap-4 sm:grid-cols-2">
                             <div className="flex flex-col gap-2 sm:col-span-2">
-                                <Label htmlFor="propietario">{t('caja:ventas.create.propietario')}</Label>
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                    <Label htmlFor="propietario">{t('caja:ventas.create.propietario')}</Label>
+                                    {!desdeCargo ? (
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-8 gap-1.5"
+                                            disabled={!puede_vender}
+                                            onClick={() => setNuevoClienteOpen(true)}
+                                        >
+                                            <UserPlus className="size-3.5" aria-hidden />
+                                            {t('caja:ventas.create.nuevo_cliente')}
+                                        </Button>
+                                    ) : null}
+                                </div>
                                 <Combobox
                                     id="propietario"
-                                    options={propietariosOpciones.map((o) => ({
+                                    options={propietariosLocales.map((o) => ({
                                         value: o.id,
                                         label: o.doc ? `${o.label} • ${o.doc}` : o.label,
                                     }))}
@@ -617,6 +643,40 @@ export default function Create({
                                 ) : null}
                                 {form.errors.propietario_id ? (
                                     <p className="text-xs text-destructive">{form.errors.propietario_id}</p>
+                                ) : null}
+                            </div>
+
+                            <div className="flex flex-col gap-2 sm:col-span-2">
+                                <Label>{t('caja:ventas.create.comprobante_sunat')}</Label>
+                                <ToggleGroup
+                                    type="single"
+                                    variant="outline"
+                                    className="w-fit"
+                                    value={String(form.data.tipo_comprobante_sunat)}
+                                    onValueChange={(v) => {
+                                        if (v === '1' || v === '2') {
+                                            form.setData(
+                                                'tipo_comprobante_sunat',
+                                                Number(v) as 1 | 2,
+                                            );
+                                        }
+                                    }}
+                                    disabled={!puede_vender}
+                                >
+                                    <ToggleGroupItem value="2" className="min-w-24 px-4">
+                                        {t('caja:ventas.create.comprobante_boleta')}
+                                    </ToggleGroupItem>
+                                    <ToggleGroupItem value="1" className="min-w-24 px-4">
+                                        {t('caja:ventas.create.comprobante_factura')}
+                                    </ToggleGroupItem>
+                                </ToggleGroup>
+                                <p className="text-xs text-muted-foreground">
+                                    {t('caja:ventas.create.comprobante_hint')}
+                                </p>
+                                {form.errors.tipo_comprobante_sunat ? (
+                                    <p className="text-xs text-destructive">
+                                        {form.errors.tipo_comprobante_sunat}
+                                    </p>
                                 ) : null}
                             </div>
 
@@ -1164,6 +1224,24 @@ export default function Create({
                     </PosPanel>
                 </div>
             </div>
+
+            <PropietarioFormModal
+                open={nuevoClienteOpen}
+                onOpenChange={setNuevoClienteOpen}
+                propietario={null}
+                departamentos={departamentos}
+                jsonStoreUrl="/caja/ventas/propietarios-rapido"
+                onCreated={(p) => {
+                    setPropietariosLocales((prev) => {
+                        if (prev.some((x) => x.id === p.id)) {
+                            return prev;
+                        }
+
+                        return [p, ...prev];
+                    });
+                    onPropietarioChange(p.id);
+                }}
+            />
         </>
     );
 }
