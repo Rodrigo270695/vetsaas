@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Role;
+use App\Support\Tenancy\ClinicAdminScope;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -38,6 +40,7 @@ class RoleRequest extends FormRequest
                 Rule::unique(config('permission.table_names.roles'), 'name')
                     ->where('guard_name', 'web')
                     ->ignore($roleId),
+                Rule::notIn(ClinicAdminScope::isClinicContext() ? Role::SYSTEM_ROLES : []),
             ],
             'description' => ['nullable', 'string', 'max:255'],
         ];

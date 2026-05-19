@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Exports\RolesXlsxExport;
 use App\Http\Requests\RoleRequest;
 use App\Models\Role;
-use Database\Seeders\PermissionsSeeder;
+use App\Support\Tenancy\ClinicAdminScope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -76,7 +76,7 @@ class RoleController extends Controller
         // Catálogo de permisos agrupados por módulo para el modal de
         // crear/editar. Se manda en cada request del index porque el
         // catálogo es pequeño (~120 filas) y simplifica el frontend.
-        $permissionsCatalog = $this->buildPermissionsCatalog();
+        $permissionsCatalog = $this->buildPermissionsCatalog($request);
 
         return Inertia::render('configuracion/roles/index', [
             'roles' => $roles,
@@ -112,6 +112,8 @@ class RoleController extends Controller
 
     public function update(RoleRequest $request, Role $role): RedirectResponse
     {
+        ClinicAdminScope::assertRoleAccessible($role);
+
         // Bloqueamos toda edición de roles del sistema. Hacerlo en el
         // controller (no solo en el front) protege contra requests crafteados.
         if ($role->is_system) {
@@ -143,6 +145,8 @@ class RoleController extends Controller
      */
     public function updatePermissions(Request $request, Role $role): RedirectResponse
     {
+        ClinicAdminScope::assertRoleAccessible($role);
+
         // Nota de diseño:
         // Mantenemos bloqueada la edición de METADATA y la eliminación de
         // roles del sistema (`update`/`destroy`) porque romperían contratos
@@ -153,18 +157,29 @@ class RoleController extends Controller
         // tener que ejecutar comandos artisan. El frontend muestra un
         // banner de advertencia cuando se edita un rol del sistema.
 
+        $assignable = ClinicAdminScope::assignablePermissionNamesFor($request->user());
+
         $data = $request->validate([
             'permissions' => ['array'],
             'permissions.*' => [
                 'string',
                 Rule::exists(config('permission.table_names.permissions'), 'name')
                     ->where('guard_name', 'web'),
+                Rule::in($assignable),
             ],
         ]);
 
-        $role->syncPermissions($data['permissions'] ?? []);
+        $permissions = $data['permissions'] ?? [];
+        if (ClinicAdminScope::isClinicContext()) {
+            $permissions = array_values(array_filter(
+                $permissions,
+                static fn (string $name): bool => ClinicAdminScope::isTenantAssignablePermission($name),
+            ));
+        }
 
-        $count = count($data['permissions'] ?? []);
+        $role->syncPermissions($permissions);
+
+        $count = count($permissions);
         $message = $count === 0
             ? 'Se removieron todos los permisos del rol.'
             : ($count === 1
@@ -176,6 +191,8 @@ class RoleController extends Controller
 
     public function destroy(Role $role): RedirectResponse
     {
+        ClinicAdminScope::assertRoleAccessible($role);
+
         if ($role->is_system) {
             throw ValidationException::withMessages([
                 'name' => 'No se puede eliminar un rol del sistema.',
@@ -199,7 +216,7 @@ class RoleController extends Controller
             'ids.*' => ['integer'],
         ]);
 
-        $deletableIds = Role::query()
+        $deletableIds = ClinicAdminScope::rolesQuery()
             ->whereIn('id', $data['ids'])
             ->whereNotIn('name', Role::SYSTEM_ROLES)
             ->pluck('id')
@@ -251,7 +268,7 @@ class RoleController extends Controller
         }
 
         $filename = 'roles-'.now()->format('Ymd-His').'.xlsx';
-        $exporter = new RolesXlsxExport();
+        $exporter = new RolesXlsxExport;
 
         return response()->streamDownload(
             function () use ($exporter, $query) {
@@ -277,7 +294,7 @@ class RoleController extends Controller
      */
     private function buildBaseQuery(string $search, string $tipo): Builder
     {
-        $query = Role::query()->where('guard_name', 'web');
+        $query = ClinicAdminScope::rolesQuery();
 
         if ($search !== '') {
             $query->where(function ($q) use ($search) {
@@ -307,63 +324,20 @@ class RoleController extends Controller
      *
      * @return array<int, array{module: string, permissions: array<int, array{id:int,name:string,action:string}>}>
      */
-    private function buildPermissionsCatalog(): array
+    private function buildPermissionsCatalog(Request $request): array
     {
         $all = Permission::query()
             ->where('guard_name', 'web')
             ->orderBy('name')
             ->get(['id', 'name']);
 
-        // Mantener el orden definido en `PermissionsSeeder::CATALOG` para
-        // que la UI sea predecible. Si en BD existe un permiso que no está
-        // en el catálogo (legacy), va al final bajo "otros".
-        $catalogOrder = array_keys(PermissionsSeeder::CATALOG);
-
-        $grouped = [];
-        foreach ($all as $perm) {
-            [$module, $action] = $this->splitPermission($perm->name);
-            $grouped[$module][] = [
-                'id' => (int) $perm->id,
-                'name' => $perm->name,
-                'action' => $action,
-            ];
+        if (ClinicAdminScope::isClinicContext()) {
+            $allowed = ClinicAdminScope::assignablePermissionNamesFor($request->user());
+            $all = $all->filter(
+                static fn ($perm): bool => in_array($perm->name, $allowed, true),
+            );
         }
 
-        $output = [];
-        foreach ($catalogOrder as $module) {
-            if (isset($grouped[$module])) {
-                $output[] = [
-                    'module' => $module,
-                    'permissions' => $grouped[$module],
-                ];
-                unset($grouped[$module]);
-            }
-        }
-
-        foreach ($grouped as $module => $items) {
-            $output[] = [
-                'module' => $module,
-                'permissions' => $items,
-            ];
-        }
-
-        return $output;
-    }
-
-    /**
-     * Separa "modulo.accion" en partes. Si por alguna razón no contiene
-     * un punto, lo considera como módulo huérfano.
-     *
-     * @return array{0: string, 1: string}
-     */
-    private function splitPermission(string $name): array
-    {
-        $pos = strrpos($name, '.');
-
-        if ($pos === false) {
-            return [$name, ''];
-        }
-
-        return [substr($name, 0, $pos), substr($name, $pos + 1)];
+        return ClinicAdminScope::groupPermissionsCatalog($all);
     }
 }

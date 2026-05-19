@@ -6,6 +6,7 @@ use App\Exports\UsersXlsxExport;
 use App\Http\Requests\UserRequest;
 use App\Models\Role;
 use App\Models\User;
+use App\Support\Tenancy\ClinicAdminScope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -79,8 +80,7 @@ class UserController extends Controller
 
         // Listado plano de roles para el filtro segmentado / select del
         // formulario. Lo mandamos sin permisos para no hinchar el payload.
-        $rolesCatalog = Role::query()
-            ->where('guard_name', 'web')
+        $rolesCatalog = ClinicAdminScope::rolesQuery()
             ->orderBy('name')
             ->get(['id', 'name', 'description'])
             ->map(fn (Role $r) => [
@@ -115,6 +115,7 @@ class UserController extends Controller
         $data = $request->validated();
 
         $user = User::create([
+            'tenant_id' => tenant_id(),
             'name' => $data['name'],
             'email' => $data['email'],
             'phone' => $data['phone'] ?? null,
@@ -161,6 +162,8 @@ class UserController extends Controller
 
     public function destroy(Request $request, User $user): RedirectResponse
     {
+        ClinicAdminScope::assertUserAccessible($user);
+
         if ($request->user()?->id === $user->id) {
             throw ValidationException::withMessages([
                 'id' => 'No puedes eliminar tu propia cuenta.',
@@ -191,13 +194,9 @@ class UserController extends Controller
 
         $currentId = (string) ($request->user()?->id ?? '');
 
-        $deletableIds = User::query()
+        $deletableIds = ClinicAdminScope::usersQuery()
             ->whereIn('id', $data['ids'])
             ->whereKeyNot($currentId)
-            // No incluimos superadmins ni la propia cuenta.
-            ->whereDoesntHave('roles', function ($q) {
-                $q->where('name', 'superadmin');
-            })
             ->pluck('id')
             ->all();
 
@@ -257,7 +256,7 @@ class UserController extends Controller
         }
 
         $filename = 'usuarios-'.now()->format('Ymd-His').'.xlsx';
-        $exporter = new UsersXlsxExport();
+        $exporter = new UsersXlsxExport;
 
         return response()->streamDownload(
             function () use ($exporter, $query) {
@@ -277,7 +276,7 @@ class UserController extends Controller
      */
     private function buildBaseQuery(string $search, string $estado, string $rol): Builder
     {
-        $query = User::query();
+        $query = ClinicAdminScope::usersQuery();
 
         if ($search !== '') {
             $query->where(function ($q) use ($search) {

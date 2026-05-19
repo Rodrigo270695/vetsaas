@@ -3,7 +3,9 @@
 namespace App\Http\Requests;
 
 use App\Http\Requests\Concerns\ValidatesPlanIntLimits;
+use App\Models\Role;
 use App\Models\User;
+use App\Support\Tenancy\ClinicAdminScope;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -36,6 +38,24 @@ class UserRequest extends FormRequest
         $user = $this->route('user');
         $userId = $user?->getKey();
         $isCreate = $userId === null;
+        $tenantId = tenant_id();
+
+        $emailUnique = Rule::unique('users', 'email')
+            ->whereNull('deleted_at')
+            ->ignore($userId);
+
+        if ($tenantId !== null) {
+            $emailUnique = $emailUnique->where('tenant_id', $tenantId);
+        } else {
+            $emailUnique = $emailUnique->whereNull('tenant_id');
+        }
+
+        $roleRule = Rule::exists(config('permission.table_names.roles'), 'name')
+            ->where('guard_name', 'web');
+
+        if (ClinicAdminScope::isClinicContext()) {
+            $roleRule = $roleRule->whereNotIn('name', ClinicAdminScope::hiddenRoleNames());
+        }
 
         return [
             'name' => ['required', 'string', 'max:120'],
@@ -44,9 +64,7 @@ class UserRequest extends FormRequest
                 'string',
                 'email:rfc,dns',
                 'max:150',
-                Rule::unique('users', 'email')
-                    ->whereNull('deleted_at')
-                    ->ignore($userId),
+                $emailUnique,
             ],
             'phone' => ['nullable', 'string', 'max:32'],
 
@@ -67,8 +85,7 @@ class UserRequest extends FormRequest
             'role' => [
                 'required',
                 'string',
-                Rule::exists(config('permission.table_names.roles'), 'name')
-                    ->where('guard_name', 'web'),
+                $roleRule,
             ],
         ];
     }
@@ -104,5 +121,16 @@ class UserRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $this->enforcePlanIntLimitsOnCreate($validator, ['max_usuarios']);
+
+        $validator->after(function (Validator $v): void {
+            if (! ClinicAdminScope::isClinicContext()) {
+                return;
+            }
+
+            $role = (string) $this->input('role', '');
+            if (in_array($role, Role::SYSTEM_ROLES, true)) {
+                $v->errors()->add('role', __('validation.in', ['attribute' => 'rol']));
+            }
+        });
     }
 }
