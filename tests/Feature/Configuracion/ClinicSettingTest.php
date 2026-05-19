@@ -292,6 +292,7 @@ it('cifra el token de Nubefact al guardarlo y marca la integración como configu
 
     $payload = array_merge(validPayload(), [
         'nubefact_ruc' => '20123456789',
+        'nubefact_api_ruta' => 'https://api.nubefact.com/api/v1/local-principal-test',
         'nubefact_token' => 'super-secret-nubefact-token',
     ]);
 
@@ -308,7 +309,26 @@ it('cifra el token de Nubefact al guardarlo y marca la integración como configu
     expect(Crypt::decryptString($row->nubefact_token_enc))
         ->toBe('super-secret-nubefact-token');
 
+    expect($row->nubefact_api_ruta)
+        ->toBe('https://api.nubefact.com/api/v1/local-principal-test');
+
     expect((bool) $row->nubefact_configurado)->toBeTrue();
+});
+
+it('no marca Nubefact configurado si solo hay token sin ruta', function (): void {
+    $this->actingAs($this->admin);
+
+    $this->put('http://'.$this->host.'/configuracion/general', array_merge(validPayload(), [
+        'nubefact_token' => 'solo-token-sin-ruta',
+    ]))->assertSessionHasNoErrors();
+
+    DB::statement('SET search_path TO "'.$this->schema.'", public');
+    $row = DB::table('cfg_clinic_settings')->first();
+    DB::statement('SET search_path TO public');
+
+    expect($row->nubefact_token_enc)->not->toBeNull();
+    expect($row->nubefact_api_ruta)->toBeNull();
+    expect((bool) $row->nubefact_configurado)->toBeFalse();
 });
 
 it('el flag clear_nubefact borra la credencial guardada y baja el flag configurado', function (): void {
@@ -316,6 +336,7 @@ it('el flag clear_nubefact borra la credencial guardada y baja el flag configura
 
     // Paso 1: guardar credencial.
     $this->put('http://'.$this->host.'/configuracion/general', array_merge(validPayload(), [
+        'nubefact_api_ruta' => 'https://api.nubefact.com/api/v1/local-principal-test',
         'nubefact_token' => 'token-original',
     ]));
 
@@ -334,6 +355,7 @@ it('el flag clear_nubefact borra la credencial guardada y baja el flag configura
     $row = DB::table('cfg_clinic_settings')->first();
     DB::statement('SET search_path TO public');
     expect($row->nubefact_token_enc)->toBeNull();
+    expect($row->nubefact_api_ruta)->toBeNull();
     expect((bool) $row->nubefact_configurado)->toBeFalse();
 });
 
@@ -342,6 +364,7 @@ it('no toca el token de Nubefact si el cliente no lo manda (preserva on-the-fly)
 
     // Guarda una vez con credencial.
     $this->put('http://'.$this->host.'/configuracion/general', array_merge(validPayload(), [
+        'nubefact_api_ruta' => 'https://api.nubefact.com/api/v1/local-principal-test',
         'nubefact_token' => 'token-original',
     ]));
 

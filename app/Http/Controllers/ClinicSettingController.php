@@ -207,15 +207,22 @@ class ClinicSettingController extends Controller
     {
         if (($data['clear_nubefact'] ?? false) === true) {
             $setting->nubefact_token_enc = null;
+            $setting->nubefact_api_ruta = null;
             $setting->nubefact_configurado = false;
 
             return;
         }
 
+        if (! empty($data['nubefact_api_ruta'])) {
+            $setting->nubefact_api_ruta = trim((string) $data['nubefact_api_ruta']);
+        }
+
         if (! empty($data['nubefact_token'])) {
             $setting->nubefact_token_enc = Crypt::encryptString($data['nubefact_token']);
-            $setting->nubefact_configurado = true;
         }
+
+        $setting->nubefact_configurado = filled($setting->nubefact_api_ruta)
+            && filled($setting->nubefact_token_enc);
     }
 
     /**
@@ -280,6 +287,7 @@ class ClinicSettingController extends Controller
             'emite_comprobantes_sunat' => $planPermiteFacturaElectronica && (bool) $setting->emite_comprobantes_sunat,
             // Nubefact (única integración del cliente; jamás token en claro)
             'nubefact_ruc' => $setting->nubefact_ruc,
+            'nubefact_api_ruta' => $setting->nubefact_api_ruta,
             'nubefact_configurado' => $setting->nubefact_configurado,
             // Remitente comercial visible
             'whatsapp_display_number' => $setting->whatsapp_display_number,

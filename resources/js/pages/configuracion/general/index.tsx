@@ -106,6 +106,7 @@ type FormState = {
     emite_comprobantes_sunat: boolean;
     // Nubefact (única integración del cliente)
     nubefact_ruc: string;
+    nubefact_api_ruta: string;
     nubefact_token: string;
     clear_nubefact: boolean;
     // Remitente comercial visible
@@ -140,6 +141,7 @@ const buildInitialState = (setting: ClinicSetting): FormState => ({
     ticket_ancho_mm: setting.ticket_ancho_mm === '58' ? '58' : '80',
     emite_comprobantes_sunat: setting.emite_comprobantes_sunat,
     nubefact_ruc: setting.nubefact_ruc ?? '',
+    nubefact_api_ruta: setting.nubefact_api_ruta ?? '',
     nubefact_token: '',
     clear_nubefact: false,
     whatsapp_display_number: setting.whatsapp_display_number ?? '',
@@ -1006,6 +1008,30 @@ export default function Index({
                                 className="font-mono tabular-nums"
                                 disabled={
                                     !canUpdate || !data.emite_comprobantes_sunat
+                                }
+                            />
+                        </FormField>
+
+                        <FormField
+                            id="general-nubefact-ruta"
+                            label={t('fields.nubefact_api_ruta')}
+                            error={errors.nubefact_api_ruta}
+                            hint={t('fields.nubefact_api_ruta_hint')}
+                            className="sm:col-span-2"
+                        >
+                            <Input
+                                id="general-nubefact-ruta"
+                                value={data.nubefact_api_ruta}
+                                onChange={(e) =>
+                                    setData('nubefact_api_ruta', e.target.value.trim())
+                                }
+                                placeholder="https://api.nubefact.com/api/v1/..."
+                                autoComplete="off"
+                                className="font-mono text-xs"
+                                disabled={
+                                    !canUpdate ||
+                                    data.clear_nubefact ||
+                                    !data.emite_comprobantes_sunat
                                 }
                             />
                         </FormField>

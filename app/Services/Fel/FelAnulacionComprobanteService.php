@@ -7,9 +7,9 @@ namespace App\Services\Fel;
 use App\Models\ClinicSetting;
 use App\Models\FelDocument;
 use App\Models\Venta;
+use App\Support\Fel\NubefactCredentialResolver;
 use App\Support\PlanCapabilities;
 use App\Tenancy\TenantManager;
-use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
@@ -49,7 +49,7 @@ final class FelAnulacionComprobanteService
             throw new RuntimeException(__('caja.ventas.anulacion.sin_documento_fel'));
         }
 
-        $token = Crypt::decryptString((string) $clinic->nubefact_token_enc);
+        $nubefact = NubefactCredentialResolver::fromClinicSetting($clinic);
 
         $payload = [
             'operacion' => 'generar_anulacion',
@@ -59,7 +59,7 @@ final class FelAnulacionComprobanteService
         ];
 
         try {
-            $respuesta = $this->nubefact->generarComprobante($token, $payload);
+            $respuesta = $this->nubefact->generarComprobante($nubefact, $payload);
         } catch (RuntimeException $e) {
             throw new RuntimeException(__('caja.ventas.anulacion.fel_error', [
                 'detalle' => $e->getMessage(),

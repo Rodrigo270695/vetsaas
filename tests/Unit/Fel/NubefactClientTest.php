@@ -1,6 +1,7 @@
 <?php
 
 use App\Services\Fel\NubefactClient;
+use App\Support\Fel\NubefactCredentials;
 use Illuminate\Support\Facades\Http;
 
 it('detecta respuesta exitosa de Nubefact', function (): void {
@@ -16,9 +17,11 @@ it('detecta respuesta exitosa de Nubefact', function (): void {
     ]))->toBeFalse();
 });
 
-it('envía generar_comprobante al endpoint del token', function (): void {
+it('envía generar_comprobante a la ruta con token en Authorization', function (): void {
+    $ruta = 'https://api.nubefact.com/api/v1/empresa-demo-uuid';
+
     Http::fake([
-        'api.nubefact.com/*' => Http::response([
+        $ruta => Http::response([
             'aceptada_por_sunat' => 'SI',
             'enlace_del_pdf' => 'https://example.com/b001-1.pdf',
             'serie' => 'B001',
@@ -27,15 +30,19 @@ it('envía generar_comprobante al endpoint del token', function (): void {
     ]);
 
     $client = new NubefactClient;
-    $resp = $client->generarComprobante('token-demo', [
-        'operacion' => 'generar_comprobante',
-        'tipo_de_comprobante' => '2',
-    ]);
+    $resp = $client->generarComprobante(
+        new NubefactCredentials(apiRuta: $ruta, apiToken: 'token-demo'),
+        [
+            'operacion' => 'generar_comprobante',
+            'tipo_de_comprobante' => '2',
+        ],
+    );
 
     expect($resp)->toHaveKey('enlace_del_pdf');
 
-    Http::assertSent(function ($request): bool {
-        return str_contains($request->url(), 'token-demo')
+    Http::assertSent(function ($request) use ($ruta): bool {
+        return $request->url() === $ruta
+            && $request->hasHeader('Authorization', 'Token token="token-demo"')
             && $request['operacion'] === 'generar_comprobante';
     });
 });

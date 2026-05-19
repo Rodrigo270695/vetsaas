@@ -40,8 +40,8 @@ return [
     | Nubefact (facturación electrónica SUNAT)
     |--------------------------------------------------------------------------
     |
-    | Cada clínica aporta su token en cfg_clinic_settings; la URL base es
-    | común: POST {base_url}/{token} con JSON operacion=generar_comprobante.
+    | Cada clínica guarda RUTA + TOKEN en cfg_clinic_settings. POST a la
+    | RUTA del panel con header Authorization: Token token="...".
     |
     */
     'nubefact' => [

@@ -61,7 +61,7 @@ return [
             'no_emitible' => 'Esta venta no puede emitir comprobante electrónico.',
             'ya_procesada' => 'El comprobante de esta venta ya fue procesado.',
             'sin_serie' => 'No hay serie activa de :tipo en la clínica.',
-            'sin_token' => 'Configura el token de Nubefact en Configuración › General.',
+            'sin_token' => 'Configura la ruta y el token de Nubefact en Configuración › General.',
             'emitida_ok' => 'Comprobante electrónico emitido correctamente.',
         ],
         'anulacion' => [

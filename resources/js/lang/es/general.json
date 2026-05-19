@@ -106,8 +106,10 @@
         "emite_comprobantes_sunat_hint": "Desactívalo si solo usas el software para historial, agenda e inventario sin facturar al cliente. Aun así puedes llevar moneda e IGV para cotizaciones o tickets internos.",
         "nubefact_ruc": "RUC en Nubefact",
         "nubefact_ruc_hint": "RUC con el que está dado de alta el contribuyente en Nubefact.",
+        "nubefact_api_ruta": "Ruta de API (Nubefact)",
+        "nubefact_api_ruta_hint": "Copia la columna «RUTA» de Nubefact › Configuración › API (Integración). Es la URL completa del local (ej. https://api.nubefact.com/api/v1/…).",
         "nubefact_token": "Token de Nubefact",
-        "nubefact_token_hint": "Token de API de tu cuenta de Nubefact (lo encuentras en su panel).",
+        "nubefact_token_hint": "Copia la columna «TOKEN» del mismo panel. No es la URL: va en este campo aparte.",
         "nubefact_token_hint_stored": "Ya hay un token guardado (cifrado). Escribe uno nuevo solo si quieres reemplazarlo.",
         "whatsapp_display_number": "Número de WhatsApp visible",
         "whatsapp_display_number_hint": "Número que aparecerá en los mensajes de WhatsApp como contacto de tu clínica. No se usa para enviar; el envío lo hace la plataforma.",
@@ -118,7 +120,7 @@
     },
     "integrations": {
         "nubefact": {
-            "description": "Emisión de boletas y facturas electrónicas (SUNAT vía Nubefact)."
+            "description": "Emisión de boletas y facturas electrónicas (SUNAT vía Nubefact). Necesitas la RUTA y el TOKEN del panel API de Nubefact."
         },
         "clear_credentials": "Borrar credenciales",
         "keep_credentials": "Conservar credenciales"

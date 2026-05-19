@@ -128,6 +128,7 @@ beforeEach(function (): void {
             'emite_comprobantes_sunat' => true,
             'nubefact_configurado' => true,
             'nubefact_ruc' => '20600655571',
+            'nubefact_api_ruta' => 'https://api.nubefact.com/api/v1/fel-test-local',
             'nubefact_token_enc' => Crypt::encryptString('token-fel-test'),
         ]);
     });
@@ -220,6 +221,7 @@ it('expone emitir FEL manual cuando la venta sigue pendiente de emisión', funct
         ClinicSetting::query()->firstOrFail()->update([
             'emite_comprobantes_sunat' => true,
             'nubefact_configurado' => true,
+            'nubefact_api_ruta' => 'https://api.nubefact.com/api/v1/fel-test-local-2',
             'nubefact_token_enc' => Crypt::encryptString('token-fel-test-2'),
         ]);
 

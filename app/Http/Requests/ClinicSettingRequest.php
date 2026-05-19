@@ -76,7 +76,13 @@ class ClinicSettingRequest extends FormRequest
 
             // Nubefact (única integración del cliente). Credenciales en
             // claro; el controller las cifra antes de persistir.
-            'nubefact_token' => ['nullable', 'string', 'max:255'],
+            'nubefact_api_ruta' => [
+                'nullable',
+                'string',
+                'max:500',
+                'regex:/^https:\/\/api\.nubefact\.com\/api\/v1\/.+/i',
+            ],
+            'nubefact_token' => ['nullable', 'string', 'max:2048'],
             'nubefact_ruc' => ['nullable', 'string', 'size:11', 'regex:/^\d{11}$/'],
             'clear_nubefact' => ['nullable', 'boolean'],
 
@@ -118,6 +124,7 @@ class ClinicSettingRequest extends FormRequest
             'precio_incluye_igv' => 'precio incluye IGV',
             'ticket_ancho_mm' => 'ancho del ticket térmico',
             'emite_comprobantes_sunat' => 'emisión de comprobantes SUNAT',
+            'nubefact_api_ruta' => 'ruta de API de Nubefact',
             'nubefact_token' => 'token de Nubefact',
             'nubefact_ruc' => 'RUC de Nubefact',
             'whatsapp_display_number' => 'número visible de WhatsApp',

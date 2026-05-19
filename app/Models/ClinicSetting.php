@@ -55,6 +55,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property bool $recordatorio_cumple_activo
  * @property ?string $nubefact_token_enc
  * @property ?string $nubefact_ruc
+ * @property ?string $nubefact_api_ruta
  * @property bool $nubefact_configurado
  * @property ?string $whatsapp_display_number
  * @property ?string $email_from
@@ -97,6 +98,7 @@ class ClinicSetting extends Model
         'recordatorio_cumple_activo',
         'nubefact_token_enc',
         'nubefact_ruc',
+        'nubefact_api_ruta',
         'nubefact_configurado',
         'whatsapp_display_number',
         'email_from',

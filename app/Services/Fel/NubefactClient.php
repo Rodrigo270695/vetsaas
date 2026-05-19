@@ -2,12 +2,16 @@
 
 namespace App\Services\Fel;
 
+use App\Support\Fel\NubefactCredentials;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
 /**
  * Cliente HTTP mínimo para Nubefact API JSON v1.
+ *
+ * Nubefact exige POST a la RUTA del panel y el TOKEN en el header
+ * `Authorization: Token token="..."` (no en la URL).
  *
  * @see https://www.nubefact.com/integracion
  */
@@ -17,19 +21,26 @@ final class NubefactClient
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed>
      */
-    public function generarComprobante(string $apiToken, array $payload): array
+    public function generarComprobante(NubefactCredentials $credentials, array $payload): array
     {
-        $token = trim($apiToken);
+        $url = trim($credentials->apiRuta);
+        $token = trim($credentials->apiToken);
+
+        if ($url === '') {
+            throw new RuntimeException('Ruta de Nubefact vacía.');
+        }
+
         if ($token === '') {
             throw new RuntimeException('Token de Nubefact vacío.');
         }
 
-        $base = rtrim((string) config('services.nubefact.base_url', 'https://api.nubefact.com/api/v1'), '/');
-        $url = $base.'/'.$token;
-
         try {
             $response = Http::timeout((int) config('services.nubefact.timeout', 60))
                 ->acceptJson()
+                ->withHeaders([
+                    'Authorization' => 'Token token="'.$token.'"',
+                    'Content-Type' => 'application/json',
+                ])
                 ->asJson()
                 ->post($url, $payload);
         } catch (RequestException $e) {

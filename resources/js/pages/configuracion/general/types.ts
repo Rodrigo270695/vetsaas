@@ -82,6 +82,7 @@ export type ClinicSetting = {
     emite_comprobantes_sunat: boolean;
     // Nubefact (única integración del cliente)
     nubefact_ruc: string | null;
+    nubefact_api_ruta: string | null;
     nubefact_configurado: boolean;
     // Remitente comercial visible (NO autentica con Twilio/Brevo, solo
     // personaliza la firma de los mensajes que envía la plataforma).

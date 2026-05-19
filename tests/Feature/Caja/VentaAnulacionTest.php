@@ -227,6 +227,7 @@ it('anula comprobante FEL emitido vía Nubefact', function (): void {
             'emite_comprobantes_sunat' => true,
             'nubefact_configurado' => true,
             'nubefact_ruc' => '20600655571',
+            'nubefact_api_ruta' => 'https://api.nubefact.com/api/v1/anul-test-local',
             'nubefact_token_enc' => Crypt::encryptString('token-anul-test'),
         ]);
     });

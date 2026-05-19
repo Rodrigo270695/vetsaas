@@ -9,9 +9,9 @@ use App\Models\Propietario;
 use App\Models\Tenant;
 use App\Models\Venta;
 use App\Models\VentaLinea;
+use App\Support\Fel\NubefactCredentialResolver;
 use App\Support\PlanCapabilities;
 use App\Tenancy\TenantManager;
-use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
@@ -54,11 +54,11 @@ final class FelEmisionVentaService
             throw new RuntimeException(__('caja.ventas.fel.no_emitible'));
         }
 
-        $token = $this->resolverTokenNubefact($clinic);
+        $nubefact = NubefactCredentialResolver::fromClinicSetting($clinic);
         $receptor = $this->receptorDesdePropietario($venta->propietario);
         $tipoComprobante = $receptor['tipo_comprobante'];
 
-        return DB::transaction(function () use ($venta, $clinic, $token, $receptor, $tipoComprobante): FelDocument {
+        return DB::transaction(function () use ($venta, $clinic, $nubefact, $receptor, $tipoComprobante): FelDocument {
             $venta = Venta::query()->whereKey($venta->id)->lockForUpdate()->firstOrFail();
 
             if (! in_array($venta->fel_estado, [Venta::FEL_PENDIENTE, Venta::FEL_RECHAZADO], true)) {
@@ -117,7 +117,7 @@ final class FelEmisionVentaService
             );
 
             try {
-                $respuesta = $this->nubefact->generarComprobante($token, $payload);
+                $respuesta = $this->nubefact->generarComprobante($nubefact, $payload);
             } catch (RuntimeException $e) {
                 $this->marcarRechazado($documento, $venta, $e->getMessage());
 
@@ -150,15 +150,6 @@ final class FelEmisionVentaService
 
             return $documento->fresh();
         });
-    }
-
-    private function resolverTokenNubefact(ClinicSetting $clinic): string
-    {
-        if (empty($clinic->nubefact_token_enc)) {
-            throw new RuntimeException(__('caja.ventas.fel.sin_token'));
-        }
-
-        return Crypt::decryptString($clinic->nubefact_token_enc);
     }
 
     /**
