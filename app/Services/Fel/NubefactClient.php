@@ -53,7 +53,7 @@ final class NubefactClient
 
         if (! $response->successful()) {
             throw new RuntimeException(
-                'Nubefact respondió HTTP '.$response->status().': '.$response->body(),
+                self::formatearErrorHttp($response->status(), $response->body(), $payload),
             );
         }
 
@@ -64,6 +64,36 @@ final class NubefactClient
         }
 
         return $data;
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private static function formatearErrorHttp(int $status, string $body, array $payload): string
+    {
+        $base = 'Nubefact respondió HTTP '.$status.': '.$body;
+
+        $serie = isset($payload['serie']) ? trim((string) $payload['serie']) : '';
+        $tipo = isset($payload['tipo_de_comprobante']) ? trim((string) $payload['tipo_de_comprobante']) : '';
+        $tipoLabel = match ($tipo) {
+            '1' => 'factura',
+            '2' => 'boleta',
+            default => 'comprobante',
+        };
+
+        if ($serie === '') {
+            return $base;
+        }
+
+        $hint = " (enviado: serie «{$serie}», tipo {$tipoLabel}). "
+            .'Esa serie debe existir y estar activa en Nubefact › Locales y series para el mismo local de tu RUTA API.';
+
+        if (str_contains($body, 'No puedes emitir comprobantes con esta serie') || str_contains($body, '"codigo":21')) {
+            return $base.$hint
+                .' Si en Nubefact tienes otra serie (ej. BB01), cámbiala en Configuración › Sedes.';
+        }
+
+        return $base.' Enviado: serie «'.$serie.'».';
     }
 
     /**
