@@ -77,3 +77,33 @@ it('incluye serie y guía cuando Nubefact rechaza la serie (código 21)', functi
             ->toContain('Configuración › Sedes');
     }
 });
+
+it('explica error de fecha de emisión distinta a hoy', function (): void {
+    $ruta = 'https://api.nubefact.com/api/v1/empresa-demo-uuid';
+
+    Http::fake([
+        $ruta => Http::response([
+            'errors' => 'Fecha de emisión La fecha del documento debe ser la fecha de HOY',
+            'codigo' => 21,
+        ], 400),
+    ]);
+
+    $client = new NubefactClient;
+
+    try {
+        $client->generarComprobante(
+            new NubefactCredentials(apiRuta: $ruta, apiToken: 'token-demo'),
+            [
+                'operacion' => 'generar_comprobante',
+                'tipo_de_comprobante' => '2',
+                'serie' => 'B001',
+                'fecha_de_emision' => '10-05-2026',
+            ],
+        );
+        expect(false)->toBeTrue('debía lanzar RuntimeException');
+    } catch (RuntimeException $e) {
+        expect($e->getMessage())
+            ->toContain('fecha de emisión debe ser hoy')
+            ->toContain('10-05-2026');
+    }
+});

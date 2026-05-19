@@ -201,8 +201,8 @@ final class FelEmisionVentaService
         array $receptor,
     ): array {
         $igvPct = number_format((float) $clinic->igv_porcentaje, 2, '.', '');
-        $fecha = ($venta->fecha_pago ?? $venta->created_at)?->timezone(config('app.timezone'))->format('d-m-Y')
-            ?? now()->format('d-m-Y');
+        // Nubefact exige la fecha del día de emisión (no la del cobro histórico).
+        $fecha = now(config('app.timezone'))->format('d-m-Y');
 
         $items = $venta->lineas->map(function (VentaLinea $ln) use ($clinic, $igvPct): array {
             $cantidad = (float) (string) $ln->cantidad;

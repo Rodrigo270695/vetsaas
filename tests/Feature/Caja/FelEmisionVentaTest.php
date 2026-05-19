@@ -236,6 +236,15 @@ it('expone emitir FEL manual cuando la venta sigue pendiente de emisión', funct
         ], 200),
     ]);
 
+    TenantContext::runForSlug($this->slug, function () use ($ventaId): void {
+        Venta::query()->whereKey($ventaId)->update([
+            'fecha_pago' => now()->subDays(5),
+            'created_at' => now()->subDays(5),
+        ]);
+    });
+
+    $fechaHoy = now(config('app.timezone'))->format('d-m-Y');
+
     $this->actingAs($this->cajero)
         ->post($this->baseUrl.'/caja/ventas/'.$ventaId.'/emitir-fel')
         ->assertRedirect();
@@ -245,5 +254,9 @@ it('expone emitir FEL manual cuando la venta sigue pendiente de emisión', funct
         expect($venta->fel_estado)->toBe(Venta::FEL_EMITIDO);
         $doc = FelDocument::query()->where('venta_id', $ventaId)->first();
         expect($doc?->nubefact_id)->toBe('NUBEFACT-MANUAL-002');
+    });
+
+    Http::assertSent(function ($request) use ($fechaHoy): bool {
+        return ($request['fecha_de_emision'] ?? '') === $fechaHoy;
     });
 });

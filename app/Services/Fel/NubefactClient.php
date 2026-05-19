@@ -81,19 +81,32 @@ final class NubefactClient
             default => 'comprobante',
         };
 
-        if ($serie === '') {
+        $fechaEnviada = isset($payload['fecha_de_emision']) ? trim((string) $payload['fecha_de_emision']) : '';
+        $hoy = now(config('app.timezone'))->format('d-m-Y');
+
+        $hints = [];
+
+        if (str_contains($body, 'fecha de HOY') || str_contains($body, 'Fecha de emisión')) {
+            $hints[] = 'La fecha de emisión debe ser hoy ('.$hoy.'). '
+                .($fechaEnviada !== '' && $fechaEnviada !== $hoy
+                    ? "Se envió «{$fechaEnviada}»."
+                    : 'VetSaaS ya envía la fecha de hoy al emitir.');
+        }
+
+        if ($serie !== '' && (str_contains($body, 'No puedes emitir comprobantes con esta serie') || str_contains($body, '"codigo":21'))) {
+            $hints[] = "Serie «{$serie}» ({$tipoLabel}): debe existir y estar activa en Nubefact › Locales y series "
+                .'para el mismo local de tu RUTA API. Si en Nubefact usas otra (ej. BB01), cámbiala en Configuración › Sedes.';
+        }
+
+        if ($hints === [] && $serie !== '') {
+            return $base." (enviado: serie «{$serie}», fecha «{$fechaEnviada}\").";
+        }
+
+        if ($hints === []) {
             return $base;
         }
 
-        $hint = " (enviado: serie «{$serie}», tipo {$tipoLabel}). "
-            .'Esa serie debe existir y estar activa en Nubefact › Locales y series para el mismo local de tu RUTA API.';
-
-        if (str_contains($body, 'No puedes emitir comprobantes con esta serie') || str_contains($body, '"codigo":21')) {
-            return $base.$hint
-                .' Si en Nubefact tienes otra serie (ej. BB01), cámbiala en Configuración › Sedes.';
-        }
-
-        return $base.' Enviado: serie «'.$serie.'».';
+        return $base.' '.implode(' ', $hints);
     }
 
     /**
