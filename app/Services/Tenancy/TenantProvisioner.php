@@ -136,6 +136,8 @@ class TenantProvisioner
 
         $isFreePlan = $plan->codigo === 'free';
 
+        $periodEnd = $ciclo === 'anual' ? now()->addYear() : now()->addMonth();
+
         return Subscription::create([
             'tenant_id' => $tenant->id,
             'plan_id' => $plan->id,
@@ -143,7 +145,8 @@ class TenantProvisioner
             'ciclo' => $ciclo,
             'trial_ends_at' => $tenant->trial_ends_at,
             'current_period_start' => now(),
-            'current_period_end' => $ciclo === 'anual' ? now()->addYear() : now()->addMonth(),
+            'current_period_end' => $periodEnd,
+            'proximo_cobro_at' => $periodEnd,
             'precio_pactado' => $precio,
             'descuento_pct' => $payload['descuento_pct'] ?? 0,
         ]);

@@ -4,6 +4,7 @@ namespace App\Tenancy;
 
 use App\Models\Tenant;
 use App\Providers\TenancyServiceProvider;
+use App\Services\Subscriptions\TenantSubscriptionAccess;
 use App\Tenancy\Exceptions\TenantNotFoundException;
 use App\Tenancy\Exceptions\TenantSuspendedException;
 use Illuminate\Database\ConnectionInterface;
@@ -106,10 +107,11 @@ class TenantManager
      */
     protected function bootstrap(Tenant $tenant, ?ConnectionInterface $connection = null): TenantContext
     {
-        $allowed = (array) config('tenant.allowed_states', ['active', 'trial', 'grace']);
+        $access = app(TenantSubscriptionAccess::class);
+        $denial = $access->resolveDenial($tenant);
 
-        if (! in_array($tenant->estado, $allowed, true)) {
-            throw new TenantSuspendedException($tenant);
+        if ($denial !== null) {
+            throw new TenantSuspendedException($tenant, $denial);
         }
 
         $schema = $this->safeSchemaName($tenant);

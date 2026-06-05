@@ -1,5 +1,5 @@
 import { Head } from '@inertiajs/react';
-import { Ban, Headphones, Lock } from 'lucide-react';
+import { Ban, CalendarX, Headphones, Lock } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import type { TenantEstado } from '@/types/tenant';
 
@@ -11,7 +11,10 @@ import type { TenantEstado } from '@/types/tenant';
  * estado tiene su propia variante visual y mensaje para que el cliente
  * entienda con precisión la razón del bloqueo y los pasos a seguir.
  */
+type BlockType = 'suspended' | 'cancelled' | 'expired';
+
 type BlockedProps = {
+    block_type?: BlockType;
     estado: TenantEstado;
     razon_social: string;
     reason: string | null;
@@ -20,7 +23,7 @@ type BlockedProps = {
 };
 
 const CONFIG: Record<
-    'suspended' | 'cancelled',
+    BlockType,
     {
         icon: typeof Lock;
         title: string;
@@ -29,6 +32,13 @@ const CONFIG: Record<
         bg: string;
     }
 > = {
+    expired: {
+        icon: CalendarX,
+        title: 'Plan vencido',
+        subtitle: 'Tu suscripción ha expirado. Renueva tu plan en Orvae para volver a usar VetSaaS.',
+        accent: 'text-orange-700 dark:text-orange-400',
+        bg: 'bg-orange-50 dark:bg-orange-950/30 ring-orange-200 dark:ring-orange-900',
+    },
     suspended: {
         icon: Lock,
         title: 'Acceso suspendido',
@@ -54,13 +64,21 @@ function formatDate(iso: string | null): string | null {
     });
 }
 
-export default function TenantBlocked({ estado, razon_social, reason, suspended_at, cancelled_at }: BlockedProps) {
-    // Si por alguna razón el estado no es uno de los dos esperados,
-    // caemos al variante "suspended" porque es el menos definitivo.
-    const variant = estado === 'cancelled' ? 'cancelled' : 'suspended';
+export default function TenantBlocked({
+    block_type,
+    estado,
+    razon_social,
+    reason,
+    suspended_at,
+    cancelled_at,
+}: BlockedProps) {
+    const variant: BlockType =
+        block_type ?? (estado === 'cancelled' ? 'cancelled' : 'suspended');
     const config = CONFIG[variant];
     const Icon = config.icon;
-    const fechaAccion = formatDate(variant === 'cancelled' ? cancelled_at : suspended_at);
+    const fechaAccion = formatDate(
+        variant === 'cancelled' ? cancelled_at : variant === 'suspended' ? suspended_at : null,
+    );
 
     return (
         <>

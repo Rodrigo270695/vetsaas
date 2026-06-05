@@ -157,3 +157,91 @@ it('es idempotente con la misma X-Idempotency-Key', function (): void {
 
     expect(Tenant::query()->where('slug', $slug)->count())->toBe(1);
 });
+
+it('renueva suscripción existente sin crear otro tenant', function (): void {
+    $slug = 'renew-orvae-'.Str::lower(Str::random(5));
+    $this->createdSlug = $slug;
+
+    $provisionPayload = [
+        'external_order_id' => 'order-first-'.Str::uuid(),
+        'plan_slug' => 'starter',
+        'tenant_slug' => $slug,
+        'razon_social' => 'Clínica Renew Test',
+        'admin_nombres' => 'Ana',
+        'admin_apellidos' => 'Renew',
+        'admin_email' => 'renew+'.$slug.'@test.local',
+        'admin_password' => 'ClaveSegura123',
+        'payment' => [
+            'monto' => 149,
+            'moneda' => 'PEN',
+            'pasarela' => 'culqi',
+            'transaction_id' => 'chg_first_001',
+        ],
+    ];
+
+    $signedProvision = OrvaeProvisionTestHelper::signedJsonRequest(
+        $provisionPayload,
+        $this->secret,
+        'test-orvae-prov-renew-'.Str::random(6),
+    );
+
+    $this->call(
+        'POST',
+        '/api/internal/saas/provision',
+        [],
+        [],
+        [],
+        $signedProvision['server'],
+        $signedProvision['body'],
+    )->assertCreated();
+
+    $tenant = Tenant::query()->where('slug', $slug)->firstOrFail();
+    $subscription = Subscription::query()->where('tenant_id', $tenant->id)->firstOrFail();
+    $originalEnd = $subscription->current_period_end?->toIso8601String();
+
+    $renewPayload = [
+        'external_order_id' => 'order-renew-'.Str::uuid(),
+        'order_number' => 'ORV-RENEW-001',
+        'tenant_slug' => $slug,
+        'plan_slug' => 'starter',
+        'ciclo' => 'mensual',
+        'payment' => [
+            'monto' => 149,
+            'moneda' => 'PEN',
+            'pasarela' => 'culqi',
+            'transaction_id' => 'chg_renew_001',
+            'pagado_at' => now()->toIso8601String(),
+        ],
+    ];
+
+    $signedRenew = OrvaeProvisionTestHelper::signedJsonRequest(
+        $renewPayload,
+        $this->secret,
+        'test-orvae-renew-'.Str::random(6),
+    );
+
+    $renewResponse = $this->call(
+        'POST',
+        '/api/internal/saas/renew',
+        [],
+        [],
+        [],
+        $signedRenew['server'],
+        $signedRenew['body'],
+    );
+
+    $renewResponse->assertOk()
+        ->assertJsonPath('renewed', true)
+        ->assertJsonPath('tenant.slug', $slug);
+
+    expect(Tenant::query()->where('slug', $slug)->count())->toBe(1);
+
+    $subscription->refresh();
+    expect($subscription->estado)->toBe('active')
+        ->and($subscription->current_period_end?->toIso8601String())->not->toBe($originalEnd);
+
+    expect(SubscriptionPayment::query()->where('tenant_id', $tenant->id)->count())->toBe(2);
+
+    $tenant->refresh();
+    expect($tenant->estado)->toBe('active');
+});

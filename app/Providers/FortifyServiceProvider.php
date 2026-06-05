@@ -5,12 +5,15 @@ namespace App\Providers;
 use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Fortify\ResetUserPassword;
 use App\Models\User;
+use App\Services\Subscriptions\TenantSubscriptionAccess;
+use App\Tenancy\TenantManager;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
 use Laravel\Fortify\Fortify;
@@ -71,6 +74,18 @@ class FortifyServiceProvider extends ServiceProvider
 
             if ($user instanceof User && $user->is_active === false) {
                 return null;
+            }
+
+            $tenant = app(TenantManager::class)->current()?->tenant;
+            if ($tenant !== null) {
+                $access = app(TenantSubscriptionAccess::class);
+                $denial = $access->resolveDenial($tenant);
+
+                if ($denial !== null) {
+                    throw ValidationException::withMessages([
+                        Fortify::username() => [$access->loginDeniedMessage($denial)],
+                    ]);
+                }
             }
 
             return $user;

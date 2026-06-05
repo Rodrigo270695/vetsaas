@@ -3,6 +3,7 @@
 use App\Http\Middleware\EnsureNoTenant;
 use App\Http\Middleware\EnsurePasswordIsChanged;
 use App\Http\Middleware\EnsureTenant;
+use App\Http\Middleware\EnsureTenantSubscriptionAccess;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\MatchUserTenant;
@@ -108,6 +109,7 @@ return Application::configure(basePath: dirname(__DIR__))
             HandleAppearance::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
+            EnsureTenantSubscriptionAccess::class,
         ]);
     })
     ->withSchedule(function (Schedule $schedule): void {
@@ -210,9 +212,19 @@ return Application::configure(basePath: dirname(__DIR__))
         // contacto de soporte. Distinguimos visualmente suspendido vs
         // cancelado vía la prop `estado`.
         $exceptions->renderable(function (TenantSuspendedException $e, Request $request) {
+            if (Auth::guard('web')->check()) {
+                Auth::guard('web')->logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+            }
+
             $tenant = $e->tenant;
+            $blockType = in_array($e->blockType, ['suspended', 'cancelled', 'expired'], true)
+                ? $e->blockType
+                : 'suspended';
 
             return Inertia::render('tenant/errors/blocked', [
+                'block_type' => $blockType,
                 'estado' => $tenant->estado,
                 'razon_social' => $tenant->razon_social,
                 'reason' => $tenant->suspension_reason ?? $tenant->cancel_reason,

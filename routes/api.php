@@ -20,6 +20,9 @@ Route::prefix('internal/saas')
         Route::post('provision', [SaasProvisionController::class, 'provision'])
             ->name('api.internal.saas.provision');
 
+        Route::post('renew', [SaasProvisionController::class, 'renew'])
+            ->name('api.internal.saas.renew');
+
         Route::get('tenants/{slug}', [SaasProvisionController::class, 'status'])
             ->name('api.internal.saas.status');
     });
