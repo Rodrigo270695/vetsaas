@@ -134,8 +134,14 @@ export default function Show({
     };
 
     const esAnulada = venta.estado === 'anulado';
-    const esFactura = (venta.tipo_comprobante_sunat ?? 2) === 1;
+    const esTicketInterno =
+        venta.tipo_comprobante_sunat === null || venta.tipo_comprobante_sunat === 0;
+    const esFactura = venta.tipo_comprobante_sunat === 1;
+    const esComprobanteSunat = venta.tipo_comprobante_sunat === 1 || venta.tipo_comprobante_sunat === 2;
     const puedeVerTicket = ticket.puede_imprimir && !esAnulada;
+    const anularVentaDesc = esComprobanteSunat
+        ? t('caja:ventas.show.anular_venta_desc_sunat')
+        : t('caja:ventas.show.anular_venta_desc_ticket');
 
     const headerStats = useMemo(
         () => [
@@ -166,7 +172,7 @@ export default function Show({
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
                         <DialogTitle>{t('caja:ventas.show.anular_venta')}</DialogTitle>
-                        <DialogDescription>{t('caja:ventas.show.anular_venta_desc')}</DialogDescription>
+                        <DialogDescription>{anularVentaDesc}</DialogDescription>
                     </DialogHeader>
                     <div className="flex flex-col gap-2">
                         <Label htmlFor="motivo-anulacion">{t('caja:ventas.show.anular_motivo')}</Label>
@@ -487,23 +493,30 @@ export default function Show({
                                 <div className="space-y-2 rounded-lg border border-border/40 bg-muted/15 p-3">
                                     <div className="flex items-center justify-between gap-2">
                                         <span className="text-xs font-medium text-muted-foreground">
-                                            {t('caja:ventas.show.fel_title')}
+                                            {esTicketInterno
+                                                ? t('caja:ventas.show.documento_venta')
+                                                : t('caja:ventas.show.fel_title')}
                                         </span>
                                         <Badge
                                             variant={
-                                                venta.fel_estado === 'emitido'
-                                                    ? 'default'
-                                                    : venta.fel_estado === 'rechazado'
-                                                      ? 'destructive'
-                                                      : 'outline'
+                                                esTicketInterno
+                                                    ? 'secondary'
+                                                    : venta.fel_estado === 'emitido'
+                                                      ? 'default'
+                                                      : venta.fel_estado === 'rechazado'
+                                                        ? 'destructive'
+                                                        : 'outline'
                                             }
                                         >
-                                            {t(`caja:ventas.fel.${venta.fel_estado}`, {
-                                                defaultValue: venta.fel_estado,
-                                            })}
+                                            {esTicketInterno
+                                                ? t('caja:ventas.show.ticket_interno')
+                                                : t(`caja:ventas.fel.${venta.fel_estado}`, {
+                                                      defaultValue: venta.fel_estado,
+                                                  })}
                                         </Badge>
                                     </div>
-                                    {clinica.emite_comprobantes_sunat &&
+                                    {esComprobanteSunat &&
+                                    clinica.emite_comprobantes_sunat &&
                                     clinica.plan_permite_factura_electronica ? (
                                         <div className="rounded-md border border-dashed border-border/60 bg-background/80 px-2.5 py-2 text-xs">
                                             <p className="font-medium text-foreground">
@@ -531,6 +544,10 @@ export default function Show({
                                                 </p>
                                             )}
                                         </div>
+                                    ) : esTicketInterno ? (
+                                        <p className="text-xs leading-relaxed text-muted-foreground">
+                                            {t('caja:ventas.show.ticket_interno_hint')}
+                                        </p>
                                     ) : null}
                                     {venta.fel_document?.numero_completo ? (
                                         <p className="text-sm font-medium tabular-nums">
@@ -543,14 +560,15 @@ export default function Show({
                                             {venta.fel_document.error_mensaje}
                                         </p>
                                     ) : null}
-                                    {venta.fel_estado === 'pendiente_emision' &&
+                                    {esComprobanteSunat &&
+                                    venta.fel_estado === 'pendiente_emision' &&
                                     !clinica.nubefact_configurado ? (
                                         <p className="text-xs text-muted-foreground">
                                             {t('caja:ventas.show.fel_sin_nubefact')}
                                         </p>
                                     ) : null}
                                     <div className="flex flex-wrap gap-2">
-                                        {felPdfUrl ? (
+                                        {esComprobanteSunat && felPdfUrl ? (
                                             <Button variant="outline" size="sm" className="h-8 gap-1.5" asChild>
                                                 <a href={felPdfUrl} target="_blank" rel="noreferrer">
                                                     <FileText className="size-3.5" aria-hidden />
@@ -559,7 +577,7 @@ export default function Show({
                                                 </a>
                                             </Button>
                                         ) : null}
-                                        {fel.puede_emitir && !esAnulada ? (
+                                        {esComprobanteSunat && fel.puede_emitir && !esAnulada ? (
                                             <Button
                                                 type="button"
                                                 size="sm"
@@ -582,7 +600,7 @@ export default function Show({
                                             {t('caja:ventas.show.anular_venta')}
                                         </p>
                                         <p className="mt-1 text-xs text-muted-foreground">
-                                            {t('caja:ventas.show.anular_venta_desc')}
+                                            {anularVentaDesc}
                                         </p>
                                         <Button
                                             type="button"

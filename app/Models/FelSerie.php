@@ -21,6 +21,22 @@ class FelSerie extends Model
 
     public const TIPO_BOLETA = 2;
 
+    /** Venta solo con ticket interno (sin comprobante electrónico SUNAT). */
+    public const TIPO_TICKET = 0;
+
+    /**
+     * @return list<int>
+     */
+    public static function tiposSunat(): array
+    {
+        return [self::TIPO_FACTURA, self::TIPO_BOLETA];
+    }
+
+    public static function esTipoSunat(?int $tipo): bool
+    {
+        return $tipo !== null && in_array($tipo, self::tiposSunat(), true);
+    }
+
     protected $table = 'fel_series';
 
     protected $fillable = [

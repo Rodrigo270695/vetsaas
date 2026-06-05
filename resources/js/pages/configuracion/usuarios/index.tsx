@@ -32,7 +32,13 @@ import type {
     FilterChip,
 } from '@/components/data-page';
 import { Button } from '@/components/ui/button';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useDataTablePage } from '@/hooks/use-data-table-page';
+import { usePlanLimitReached } from '@/hooks/use-plan-limits';
 import { usePermission } from '@/hooks/use-permission';
 import { useRowSelection } from '@/hooks/use-row-selection';
 import AppLayout from '@/layouts/app-layout';
@@ -97,6 +103,8 @@ export default function Index({
     const { t } = useTranslation(['usuarios', 'common']);
     const { can } = usePermission();
     const canCreate = can('usuarios.create');
+    const usersLimitReached = usePlanLimitReached('max_usuarios');
+    const canCreateUser = canCreate && !usersLimitReached;
     const canUpdate = can('usuarios.update');
     const canDelete = can('usuarios.delete');
     const canExport = can('usuarios.export');
@@ -447,22 +455,34 @@ export default function Index({
                                 </Button>
                             )}
                             <Can permission="usuarios.create">
-                                <Button
-                                    type="button"
-                                    onClick={openCreate}
-                                    className="cursor-pointer gap-2"
-                                >
-                                    <Plus
-                                        className="size-4"
-                                        strokeWidth={2.5}
-                                    />
-                                    <span className="hidden sm:inline">
-                                        {t('usuarios:actions.new')}
-                                    </span>
-                                    <span className="sm:hidden">
-                                        {t('usuarios:actions.new_short')}
-                                    </span>
-                                </Button>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <span className="inline-flex">
+                                            <Button
+                                                type="button"
+                                                onClick={openCreate}
+                                                disabled={usersLimitReached}
+                                                className="cursor-pointer gap-2"
+                                            >
+                                                <Plus
+                                                    className="size-4"
+                                                    strokeWidth={2.5}
+                                                />
+                                                <span className="hidden sm:inline">
+                                                    {t('usuarios:actions.new')}
+                                                </span>
+                                                <span className="sm:hidden">
+                                                    {t('usuarios:actions.new_short')}
+                                                </span>
+                                            </Button>
+                                        </span>
+                                    </TooltipTrigger>
+                                    {usersLimitReached ? (
+                                        <TooltipContent side="bottom" className="max-w-xs">
+                                            {t('usuarios:plan_limit.max_usuarios')}
+                                        </TooltipContent>
+                                    ) : null}
+                                </Tooltip>
                             </Can>
                         </div>
                     }
@@ -527,7 +547,7 @@ export default function Index({
                                     : t('usuarios:empty.no_records_description')
                             }
                             action={
-                                activeFiltersCount === 0 && canCreate ? (
+                                activeFiltersCount === 0 && canCreateUser ? (
                                     <Button
                                         type="button"
                                         onClick={openCreate}

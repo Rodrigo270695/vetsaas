@@ -51,7 +51,17 @@ final class PlanLimits
             return null;
         }
 
-        return $tenant->activeSubscription()?->plan;
+        $plan = $tenant->activeSubscription()?->plan;
+
+        if ($plan !== null) {
+            return $plan;
+        }
+
+        // Sin suscripción activa (p. ej. demos locales): límites del plan free.
+        return Plan::query()
+            ->where('codigo', 'free')
+            ->where('activo', true)
+            ->first();
     }
 
     /**
@@ -82,12 +92,18 @@ final class PlanLimits
             return 0;
         }
 
-        if ($feature === 'max_usuarios') {
+        if ($feature === 'max_usuarios' || $feature === 'max_sedes') {
             $tenantId = self::tenant()?->id;
 
-            return User::query()
-                ->when($tenantId !== null, fn ($q) => $q->where('tenant_id', $tenantId))
-                ->count();
+            if ($tenantId === null) {
+                return 0;
+            }
+
+            if ($feature === 'max_usuarios') {
+                return User::query()->where('tenant_id', $tenantId)->count();
+            }
+
+            return Sede::query()->where('tenant_id', $tenantId)->count();
         }
 
         return $model::query()->count();

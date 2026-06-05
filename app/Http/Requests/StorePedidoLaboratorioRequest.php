@@ -52,6 +52,10 @@ class StorePedidoLaboratorioRequest extends FormRequest
                 if ($rat === '' || $rat === null) {
                     $r['resultado_at'] = null;
                 }
+                $r['clear_resultado_archivo'] = filter_var(
+                    $r['clear_resultado_archivo'] ?? false,
+                    FILTER_VALIDATE_BOOLEAN,
+                );
                 $clean[$i] = $r;
             }
             $out['lineas'] = $clean;
@@ -118,6 +122,8 @@ class StorePedidoLaboratorioRequest extends FormRequest
             'lineas.*.indicaciones' => ['nullable', 'string', 'max:2000'],
             'lineas.*.resultado' => ['nullable', 'string', 'max:20000'],
             'lineas.*.resultado_at' => ['nullable', 'date'],
+            'lineas.*.resultado_archivo' => ['nullable', 'file', 'mimes:pdf,jpeg,jpg,png,webp', 'max:12288'],
+            'lineas.*.clear_resultado_archivo' => ['nullable', 'boolean'],
             'lineas.*.orden' => ['nullable', 'integer', 'min:0', 'max:32767'],
         ];
     }

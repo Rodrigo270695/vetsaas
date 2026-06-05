@@ -1,5 +1,5 @@
 import { Head, usePage } from '@inertiajs/react';
-import { Activity, ClipboardList, Filter, Plus, UserCircle } from 'lucide-react';
+import { Activity, ClipboardList, FileDown, Filter, Plus, UserCircle } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Can } from '@/components/can';
@@ -35,6 +35,7 @@ import type {
     PacienteLaboratorioOpcion,
     PedidoLaboratorioFilters,
     PedidoLaboratorioFiltroUi,
+    PedidoLaboratorioLineaRow,
     PedidoLaboratorioRow,
     PedidoLaboratorioStats,
     SedeLaboratorioOpcion,
@@ -83,6 +84,12 @@ function displayPropietario(p: PedidoLaboratorioRow['paciente']['propietario']):
     }
 
     return [p.nombres, p.apellidos].filter(Boolean).join(' ') || '—';
+}
+
+function lineasConArchivo(lineas: PedidoLaboratorioRow['lineas']): PedidoLaboratorioLineaRow[] {
+    return (lineas ?? []).filter(
+        (ln) => typeof ln.resultado_archivo_url === 'string' && ln.resultado_archivo_url.trim() !== '',
+    );
 }
 
 function estadoBadgeVariant(estado: string): 'default' | 'secondary' | 'destructive' | 'outline' {
@@ -230,6 +237,70 @@ export default function Index({
                         {row.lineas_count}
                     </span>
                 ),
+            },
+            {
+                key: 'documento',
+                header: t('columns.documento'),
+                cell: (row) => {
+                    const archivos = lineasConArchivo(row.lineas);
+
+                    if (archivos.length === 0) {
+                        return <span className="text-xs text-muted-foreground">—</span>;
+                    }
+
+                    if (archivos.length === 1) {
+                        const ln = archivos[0];
+
+                        return (
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-8 gap-1 border-emerald-200 px-2 hover:bg-emerald-50 dark:border-emerald-900 dark:hover:bg-emerald-950/40"
+                                asChild
+                            >
+                                <a
+                                    href={ln.resultado_archivo_url!}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-emerald-700 dark:text-emerald-400"
+                                    aria-label={t('actions.ver_documento_aria', {
+                                        examen: ln.nombre_examen,
+                                    })}
+                                >
+                                    <FileDown
+                                        className="size-3.5 shrink-0 text-emerald-600 dark:text-emerald-400"
+                                        strokeWidth={2.25}
+                                    />
+                                    <span className="hidden max-w-28 truncate sm:inline">
+                                        {ln.resultado_archivo_original_name?.trim() ||
+                                            t('actions.ver_documento')}
+                                    </span>
+                                </a>
+                            </Button>
+                        );
+                    }
+
+                    return (
+                        <div className="flex min-w-0 flex-col gap-1">
+                            {archivos.map((ln) => (
+                                <a
+                                    key={ln.id}
+                                    href={ln.resultado_archivo_url!}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="inline-flex min-w-0 max-w-40 items-center gap-1 text-xs text-emerald-700 hover:underline dark:text-emerald-400"
+                                    aria-label={t('actions.ver_documento_aria', {
+                                        examen: ln.nombre_examen,
+                                    })}
+                                >
+                                    <FileDown className="size-3 shrink-0" strokeWidth={2.25} />
+                                    <span className="truncate">{ln.nombre_examen}</span>
+                                </a>
+                            ))}
+                        </div>
+                    );
+                },
+                className: 'min-w-[7rem]',
             },
             {
                 key: 'paciente',

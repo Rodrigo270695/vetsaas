@@ -9,6 +9,7 @@ use App\Models\ConsultaCargoLinea;
 use App\Models\GroomingTurno;
 use App\Models\HotelEstancia;
 use App\Models\MovimientoInventario;
+use App\Models\FelSerie;
 use App\Models\Producto;
 use App\Models\Tenant;
 use App\Jobs\EmitirFelVentaJob;
@@ -36,13 +37,19 @@ final class VentaCheckoutService
             $moneda = 'PEN';
         }
 
+        $tipoComprobante = array_key_exists('tipo_comprobante_sunat', $validated)
+            && $validated['tipo_comprobante_sunat'] !== null
+            ? (int) $validated['tipo_comprobante_sunat']
+            : null;
+
         $felPendiente = PlanCapabilities::facturaElectronica($tenant)
             && (bool) $clinic->emite_comprobantes_sunat
-            && (bool) $clinic->nubefact_configurado;
+            && (bool) $clinic->nubefact_configurado
+            && FelSerie::esTipoSunat($tipoComprobante);
 
         $tenantSlug = $tenant?->slug;
 
-        return DB::transaction(function () use ($validated, $user, $igvPct, $precioIncluyeIgv, $moneda, $felPendiente, $tenantSlug): Venta {
+        return DB::transaction(function () use ($validated, $user, $igvPct, $precioIncluyeIgv, $moneda, $felPendiente, $tenantSlug, $tipoComprobante): Venta {
             $sesion = CajaSesion::query()
                 ->whereKey($validated['caja_sesion_id'])
                 ->lockForUpdate()
@@ -235,7 +242,7 @@ final class VentaCheckoutService
                 'fecha_pago' => now(),
                 'notas' => $validated['notas'] ?? null,
                 'fel_estado' => $felPendiente ? Venta::FEL_PENDIENTE : Venta::FEL_SIN_CPE,
-                'tipo_comprobante_sunat' => (int) $validated['tipo_comprobante_sunat'],
+                'tipo_comprobante_sunat' => $tipoComprobante,
                 'fel_document_id' => null,
                 'created_by_id' => $user->getAuthIdentifier(),
             ]);

@@ -852,16 +852,18 @@ export default function Index({
                     title={t('sections.facturacion.title')}
                     description={t('sections.facturacion.description')}
                     badge={
-                        <StatBadge
-                            label=""
-                            value={
-                                setting.nubefact_configurado
-                                    ? t('common:state.configured')
-                                    : t('common:state.not_configured')
-                            }
-                            variant={setting.nubefact_configurado ? 'success' : 'muted'}
-                            icon={setting.nubefact_configurado ? CheckCircle2 : XCircle}
-                        />
+                        plan_permite_factura_electronica ? (
+                            <StatBadge
+                                label=""
+                                value={
+                                    setting.nubefact_configurado
+                                        ? t('common:state.configured')
+                                        : t('common:state.not_configured')
+                                }
+                                variant={setting.nubefact_configurado ? 'success' : 'muted'}
+                                icon={setting.nubefact_configurado ? CheckCircle2 : XCircle}
+                            />
+                        ) : undefined
                     }
                 >
                     <FormSection
@@ -985,108 +987,112 @@ export default function Index({
                             ) : null}
                         </div>
 
-                        <FormField
-                            id="general-nubefact-ruc"
-                            label={t('fields.nubefact_ruc')}
-                            error={errors.nubefact_ruc}
-                            hint={t('fields.nubefact_ruc_hint')}
-                        >
-                            <Input
-                                id="general-nubefact-ruc"
-                                value={data.nubefact_ruc}
-                                onChange={(e) =>
-                                    setData(
-                                        'nubefact_ruc',
-                                        e.target.value
-                                            .replace(/\D/g, '')
-                                            .slice(0, 11),
-                                    )
-                                }
-                                placeholder="20123456789"
-                                maxLength={11}
-                                inputMode="numeric"
-                                className="font-mono tabular-nums"
-                                disabled={
-                                    !canUpdate || !data.emite_comprobantes_sunat
-                                }
-                            />
-                        </FormField>
-
-                        <FormField
-                            id="general-nubefact-ruta"
-                            label={t('fields.nubefact_api_ruta')}
-                            error={errors.nubefact_api_ruta}
-                            hint={t('fields.nubefact_api_ruta_hint')}
-                            className="sm:col-span-2"
-                        >
-                            <Input
-                                id="general-nubefact-ruta"
-                                value={data.nubefact_api_ruta}
-                                onChange={(e) =>
-                                    setData('nubefact_api_ruta', e.target.value.trim())
-                                }
-                                placeholder="https://api.nubefact.com/api/v1/..."
-                                autoComplete="off"
-                                className="font-mono text-xs"
-                                disabled={
-                                    !canUpdate ||
-                                    data.clear_nubefact ||
-                                    !data.emite_comprobantes_sunat
-                                }
-                            />
-                        </FormField>
-
-                        <FormField
-                            id="general-nubefact-token"
-                            label={t('fields.nubefact_token')}
-                            error={errors.nubefact_token}
-                            hint={
-                                setting.nubefact_configurado
-                                    ? t('fields.nubefact_token_hint_stored')
-                                    : t('fields.nubefact_token_hint')
-                            }
-                        >
-                            <Input
-                                id="general-nubefact-token"
-                                type="password"
-                                value={data.nubefact_token}
-                                onChange={(e) =>
-                                    setData('nubefact_token', e.target.value)
-                                }
-                                placeholder={
-                                    setting.nubefact_configurado
-                                        ? '••••••••••••'
-                                        : 'eyJhbGciOiJIUz...'
-                                }
-                                autoComplete="new-password"
-                                disabled={
-                                    !canUpdate ||
-                                    data.clear_nubefact ||
-                                    !data.emite_comprobantes_sunat
-                                }
-                            />
-                        </FormField>
-
-                        {setting.nubefact_configurado && canUpdate && (
-                            <div className="sm:col-span-2">
-                                <Button
-                                    type="button"
-                                    variant={
-                                        data.clear_nubefact ? 'destructive' : 'outline'
-                                    }
-                                    size="sm"
-                                    onClick={() =>
-                                        setData('clear_nubefact', !data.clear_nubefact)
-                                    }
-                                    disabled={!data.emite_comprobantes_sunat}
-                                    className="h-7 cursor-pointer text-xs"
+                        {plan_permite_factura_electronica ? (
+                            <>
+                                <FormField
+                                    id="general-nubefact-ruc"
+                                    label={t('fields.nubefact_ruc')}
+                                    error={errors.nubefact_ruc}
+                                    hint={t('fields.nubefact_ruc_hint')}
                                 >
-                                    {data.clear_nubefact
-                                        ? t('integrations.keep_credentials')
-                                        : t('integrations.clear_credentials')}
-                                </Button>
-                            </div>
-                        )}
+                                    <Input
+                                        id="general-nubefact-ruc"
+                                        value={data.nubefact_ruc}
+                                        onChange={(e) =>
+                                            setData(
+                                                'nubefact_ruc',
+                                                e.target.value
+                                                    .replace(/\D/g, '')
+                                                    .slice(0, 11),
+                                            )
+                                        }
+                                        placeholder="20123456789"
+                                        maxLength={11}
+                                        inputMode="numeric"
+                                        className="font-mono tabular-nums"
+                                        disabled={
+                                            !canUpdate || !data.emite_comprobantes_sunat
+                                        }
+                                    />
+                                </FormField>
+
+                                <FormField
+                                    id="general-nubefact-ruta"
+                                    label={t('fields.nubefact_api_ruta')}
+                                    error={errors.nubefact_api_ruta}
+                                    hint={t('fields.nubefact_api_ruta_hint')}
+                                    className="sm:col-span-2"
+                                >
+                                    <Input
+                                        id="general-nubefact-ruta"
+                                        value={data.nubefact_api_ruta}
+                                        onChange={(e) =>
+                                            setData('nubefact_api_ruta', e.target.value.trim())
+                                        }
+                                        placeholder="https://api.nubefact.com/api/v1/..."
+                                        autoComplete="off"
+                                        className="font-mono text-xs"
+                                        disabled={
+                                            !canUpdate ||
+                                            data.clear_nubefact ||
+                                            !data.emite_comprobantes_sunat
+                                        }
+                                    />
+                                </FormField>
+
+                                <FormField
+                                    id="general-nubefact-token"
+                                    label={t('fields.nubefact_token')}
+                                    error={errors.nubefact_token}
+                                    hint={
+                                        setting.nubefact_configurado
+                                            ? t('fields.nubefact_token_hint_stored')
+                                            : t('fields.nubefact_token_hint')
+                                    }
+                                >
+                                    <Input
+                                        id="general-nubefact-token"
+                                        type="password"
+                                        value={data.nubefact_token}
+                                        onChange={(e) =>
+                                            setData('nubefact_token', e.target.value)
+                                        }
+                                        placeholder={
+                                            setting.nubefact_configurado
+                                                ? '••••••••••••'
+                                                : 'eyJhbGciOiJIUz...'
+                                        }
+                                        autoComplete="new-password"
+                                        disabled={
+                                            !canUpdate ||
+                                            data.clear_nubefact ||
+                                            !data.emite_comprobantes_sunat
+                                        }
+                                    />
+                                </FormField>
+
+                                {setting.nubefact_configurado && canUpdate ? (
+                                    <div className="sm:col-span-2">
+                                        <Button
+                                            type="button"
+                                            variant={
+                                                data.clear_nubefact ? 'destructive' : 'outline'
+                                            }
+                                            size="sm"
+                                            onClick={() =>
+                                                setData('clear_nubefact', !data.clear_nubefact)
+                                            }
+                                            disabled={!data.emite_comprobantes_sunat}
+                                            className="h-7 cursor-pointer text-xs"
+                                        >
+                                            {data.clear_nubefact
+                                                ? t('integrations.keep_credentials')
+                                                : t('integrations.clear_credentials')}
+                                        </Button>
+                                    </div>
+                                ) : null}
+                            </>
+                        ) : null}
                     </FormSection>
                 </SectionCard>
 

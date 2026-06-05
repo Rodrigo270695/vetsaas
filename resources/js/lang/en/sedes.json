@@ -1,6 +1,9 @@
 {
     "title": "Branches",
     "description": "Veterinary clinic branches. Each branch has its own schedule, cash register, inventory and billing series.",
+    "plan_limit": {
+        "max_sedes": "You reached your plan's branch limit. Upgrade your plan to add more."
+    },
     "actions": {
         "new": "New branch",
         "new_short": "New",

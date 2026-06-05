@@ -171,26 +171,28 @@ it('anula venta pagada, revierte stock y libera pre-cuenta', function (): void {
 });
 
 it('anula comprobante FEL emitido vía Nubefact', function (): void {
-    $plan = Plan::query()->create([
-        'codigo' => 'TEST-ANUL-FEL-'.Str::upper(Str::random(6)),
-        'nombre' => 'Plan test anulación FEL',
-        'descripcion' => null,
-        'precio_mensual' => '0.00',
-        'precio_anual' => null,
-        'trial_days' => 0,
-        'orden' => 999,
-        'es_publico' => false,
-        'activo' => true,
-    ]);
+    $plan = Plan::query()->firstOrCreate(
+        ['codigo' => 'clinica'],
+        [
+            'nombre' => 'Plan Clínica test anulación FEL',
+            'descripcion' => null,
+            'precio_mensual' => '0.00',
+            'precio_anual' => null,
+            'trial_days' => 0,
+            'orden' => 999,
+            'es_publico' => false,
+            'activo' => true,
+        ],
+    );
 
-    PlanFeature::query()->create([
-        'id' => (string) Str::uuid(),
-        'plan_id' => $plan->id,
-        'feature' => 'factura_electronica',
-        'valor_int' => null,
-        'valor_bool' => true,
-        'valor_str' => null,
-    ]);
+    PlanFeature::query()->updateOrCreate(
+        ['plan_id' => $plan->id, 'feature' => 'factura_electronica'],
+        [
+            'valor_int' => null,
+            'valor_bool' => true,
+            'valor_str' => null,
+        ],
+    );
 
     Subscription::query()->create([
         'id' => (string) Str::uuid(),

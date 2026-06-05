@@ -116,7 +116,7 @@ export default function Create({
     const form = useForm({
         caja_sesion_id: mi_sesion?.id ?? '',
         propietario_id: '',
-        tipo_comprobante_sunat: 2 as 1 | 2,
+        tipo_comprobante_sunat: 0 as 0 | 1 | 2,
         paciente_id: null as string | null,
         consulta_id: null as string | null,
         consulta_cargo_id: null as string | null,
@@ -131,6 +131,9 @@ export default function Create({
     useEffect(() => {
         setPropietariosLocales(propietariosOpciones);
     }, [propietariosOpciones]);
+
+    const puedeElegirComprobanteSunat =
+        clinica.emite_comprobantes_sunat && clinica.plan_permite_factura_electronica;
 
     const fechaConsultaCargo = useMemo(() => {
         if (!desdeCargo?.consulta_atendido_at) {
@@ -591,7 +594,7 @@ export default function Create({
                     </Alert>
                 )}
 
-                {clinica.emite_comprobantes_sunat && clinica.plan_permite_factura_electronica ? (
+                {puedeElegirComprobanteSunat ? (
                     <p className="-mt-2 text-xs text-muted-foreground">{t('caja:ventas.create.hint_fel')}</p>
                 ) : null}
 
@@ -646,39 +649,63 @@ export default function Create({
                                 ) : null}
                             </div>
 
-                            <div className="flex flex-col gap-2 sm:col-span-2">
-                                <Label>{t('caja:ventas.create.comprobante_sunat')}</Label>
-                                <ToggleGroup
-                                    type="single"
-                                    variant="outline"
-                                    className="w-fit"
-                                    value={String(form.data.tipo_comprobante_sunat)}
-                                    onValueChange={(v) => {
-                                        if (v === '1' || v === '2') {
-                                            form.setData(
-                                                'tipo_comprobante_sunat',
-                                                Number(v) as 1 | 2,
-                                            );
-                                        }
-                                    }}
-                                    disabled={!puede_vender}
-                                >
-                                    <ToggleGroupItem value="2" className="min-w-24 px-4">
-                                        {t('caja:ventas.create.comprobante_boleta')}
-                                    </ToggleGroupItem>
-                                    <ToggleGroupItem value="1" className="min-w-24 px-4">
-                                        {t('caja:ventas.create.comprobante_factura')}
-                                    </ToggleGroupItem>
-                                </ToggleGroup>
-                                <p className="text-xs text-muted-foreground">
-                                    {t('caja:ventas.create.comprobante_hint')}
-                                </p>
-                                {form.errors.tipo_comprobante_sunat ? (
-                                    <p className="text-xs text-destructive">
-                                        {form.errors.tipo_comprobante_sunat}
+                            {puedeElegirComprobanteSunat ? (
+                                <div className="flex flex-col gap-2 sm:col-span-2">
+                                    <Label>{t('caja:ventas.create.tipo_comprobante')}</Label>
+                                    <ToggleGroup
+                                        type="single"
+                                        variant="outline"
+                                        className="flex w-full flex-wrap justify-start gap-1"
+                                        value={String(form.data.tipo_comprobante_sunat)}
+                                        onValueChange={(v) => {
+                                            if (v === '0' || v === '1' || v === '2') {
+                                                form.setData(
+                                                    'tipo_comprobante_sunat',
+                                                    Number(v) as 0 | 1 | 2,
+                                                );
+                                            }
+                                        }}
+                                        disabled={!puede_vender}
+                                    >
+                                        <ToggleGroupItem value="0" className="min-w-24 px-4">
+                                            {t('caja:ventas.create.comprobante_ticket')}
+                                        </ToggleGroupItem>
+                                        <ToggleGroupItem value="2" className="min-w-24 px-4">
+                                            {t('caja:ventas.create.comprobante_boleta')}
+                                        </ToggleGroupItem>
+                                        <ToggleGroupItem value="1" className="min-w-24 px-4">
+                                            {t('caja:ventas.create.comprobante_factura')}
+                                        </ToggleGroupItem>
+                                    </ToggleGroup>
+                                    <p className="text-xs text-muted-foreground">
+                                        {form.data.tipo_comprobante_sunat === 0
+                                            ? t('caja:ventas.create.comprobante_ticket_hint')
+                                            : t('caja:ventas.create.comprobante_hint')}
                                     </p>
-                                ) : null}
-                            </div>
+                                    {form.errors.tipo_comprobante_sunat ? (
+                                        <p className="text-xs text-destructive">
+                                            {form.errors.tipo_comprobante_sunat}
+                                        </p>
+                                    ) : null}
+                                </div>
+                            ) : (
+                                <div className="flex items-start gap-3 rounded-lg border border-dashed border-border/70 bg-muted/25 px-3 py-2.5 sm:col-span-2">
+                                    <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-background shadow-xs">
+                                        <Receipt
+                                            className="size-4 text-muted-foreground"
+                                            aria-hidden
+                                        />
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                        <p className="text-sm font-medium text-foreground">
+                                            {t('caja:ventas.create.ticket_solo_titulo')}
+                                        </p>
+                                        <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                                            {t('caja:ventas.create.ticket_solo_hint')}
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
 
                             <div className="flex flex-col gap-2 sm:col-span-2">
                                 <Label htmlFor="paciente">{t('caja:ventas.create.paciente')}</Label>

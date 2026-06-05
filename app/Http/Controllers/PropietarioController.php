@@ -8,12 +8,17 @@ use App\Models\Departamento;
 use App\Models\Distrito;
 use App\Models\Paciente;
 use App\Models\Propietario;
+use App\Services\Integrations\ApiPeruDniService;
+use App\Services\Integrations\ApiPeruRucService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
+use RuntimeException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Throwable;
 
 class PropietarioController extends Controller
 {
@@ -156,6 +161,64 @@ class PropietarioController extends Controller
             'pacientes' => $pacientes,
             'departamentos' => $departamentos,
         ]);
+    }
+
+    /**
+     * Consulta RUC en SUNAT (apiperu.dev) desde el servidor.
+     */
+    public function consultaRuc(Request $request, ApiPeruRucService $apiPeru): JsonResponse
+    {
+        $ruc = preg_replace('/\D+/', '', (string) $request->query('ruc', ''));
+        $request->merge(['ruc' => $ruc]);
+
+        $validated = $request->validate([
+            'ruc' => ['required', 'string', 'regex:/^[0-9]{11}$/'],
+        ]);
+
+        return $this->consultaDocumentoResponse(
+            fn () => $apiPeru->consultar($validated['ruc']),
+        );
+    }
+
+    /**
+     * Consulta DNI (apiperu.dev) desde el servidor.
+     */
+    public function consultaDni(Request $request, ApiPeruDniService $apiPeru): JsonResponse
+    {
+        $dni = preg_replace('/\D+/', '', (string) $request->query('dni', ''));
+        $request->merge(['dni' => $dni]);
+
+        $validated = $request->validate([
+            'dni' => ['required', 'string', 'regex:/^[0-9]{8}$/'],
+        ]);
+
+        return $this->consultaDocumentoResponse(
+            fn () => $apiPeru->consultar($validated['dni']),
+        );
+    }
+
+    /**
+     * @param  callable(): array<string, mixed>  $callback
+     */
+    private function consultaDocumentoResponse(callable $callback): JsonResponse
+    {
+        try {
+            $data = $callback();
+
+            return response()->json(['success' => true, 'data' => $data]);
+        } catch (RuntimeException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        } catch (Throwable $e) {
+            report($e);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'No se pudo completar la consulta. Intente de nuevo.',
+            ], 503);
+        }
     }
 
     public function store(PropietarioRequest $request): RedirectResponse

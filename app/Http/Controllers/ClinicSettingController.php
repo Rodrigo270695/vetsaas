@@ -83,7 +83,8 @@ class ClinicSettingController extends Controller
         $data = $request->validated();
 
         $tenantModel = $tenants->current()?->tenant;
-        if (! PlanCapabilities::facturaElectronica($tenantModel)) {
+        $planPermiteFacturaElectronica = PlanCapabilities::facturaElectronica($tenantModel);
+        if (! $planPermiteFacturaElectronica) {
             $data['emite_comprobantes_sunat'] = false;
         }
 
@@ -117,13 +118,18 @@ class ClinicSettingController extends Controller
             'email_from' => $data['email_from'] ?? null,
             'email_from_nombre' => $data['email_from_nombre'] ?? null,
             'whatsapp_display_number' => $data['whatsapp_display_number'] ?? null,
-            // Nubefact: RUC visible va en claro.
-            'nubefact_ruc' => $data['nubefact_ruc'] ?? null,
             'updated_by_id' => Auth::id(),
         ]);
 
+        if ($planPermiteFacturaElectronica) {
+            $setting->nubefact_ruc = $data['nubefact_ruc'] ?? null;
+        }
+
         $this->applyLogo($setting, $request, $tenants);
-        $this->applyNubefactSecret($setting, $data);
+
+        if ($planPermiteFacturaElectronica) {
+            $this->applyNubefactSecret($setting, $data);
+        }
 
         $setting->save();
 
@@ -316,12 +322,12 @@ class ClinicSettingController extends Controller
                 ? (string) $setting->ticket_ancho_mm
                 : '80',
             'emite_comprobantes_sunat' => $planPermiteFacturaElectronica && (bool) $setting->emite_comprobantes_sunat,
-            // Nubefact (única integración del cliente; jamás token en claro)
-            'nubefact_ruc' => $setting->nubefact_ruc,
-            'nubefact_api_ruta' => $this->tenantSupportsNubefactApiRutaColumn()
+            // Nubefact: solo expuesto con plan Clínica (jamás token en claro).
+            'nubefact_ruc' => $planPermiteFacturaElectronica ? $setting->nubefact_ruc : null,
+            'nubefact_api_ruta' => $planPermiteFacturaElectronica && $this->tenantSupportsNubefactApiRutaColumn()
                 ? $setting->nubefact_api_ruta
                 : null,
-            'nubefact_configurado' => $setting->nubefact_configurado,
+            'nubefact_configurado' => $planPermiteFacturaElectronica && (bool) $setting->nubefact_configurado,
             // Remitente comercial visible
             'whatsapp_display_number' => $setting->whatsapp_display_number,
             'email_from' => $setting->email_from,

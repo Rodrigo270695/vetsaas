@@ -57,6 +57,9 @@ export type PedidoLaboratorioLineaRow = {
     indicaciones: string | null;
     resultado: string | null;
     resultado_at: string | null;
+    resultado_archivo_path?: string | null;
+    resultado_archivo_original_name?: string | null;
+    resultado_archivo_url?: string | null;
     orden: number;
 };
 

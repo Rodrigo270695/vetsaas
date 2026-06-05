@@ -135,6 +135,12 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
                 Route::middleware('permission:propietarios.bulk-delete')
                     ->delete('propietarios/bulk', [PropietarioController::class, 'bulkDestroy'])
                     ->name('propietarios.bulk-destroy');
+                Route::middleware('permission:propietarios.create|propietarios.update')
+                    ->get('propietarios/consulta-ruc', [PropietarioController::class, 'consultaRuc'])
+                    ->name('propietarios.consulta-ruc');
+                Route::middleware('permission:propietarios.create|propietarios.update')
+                    ->get('propietarios/consulta-dni', [PropietarioController::class, 'consultaDni'])
+                    ->name('propietarios.consulta-dni');
                 Route::middleware('permission:propietarios.view')
                     ->get('propietarios', [PropietarioController::class, 'index'])
                     ->name('propietarios.index');
@@ -290,6 +296,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
                 Route::middleware('permission:laboratorio.delete')
                     ->delete('laboratorio/{pedido_laboratorio}', [LaboratorioController::class, 'destroy'])
                     ->name('laboratorio.destroy');
+                Route::middleware('permission:laboratorio.view')
+                    ->get('laboratorio/lineas/{linea}/resultado-archivo', [LaboratorioController::class, 'downloadResultadoArchivo'])
+                    ->name('laboratorio.lineas.resultado-archivo');
 
                 Route::middleware('permission:cirugias.view')
                     ->get('cirugias', [CirugiaController::class, 'index'])

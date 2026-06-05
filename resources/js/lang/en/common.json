@@ -85,5 +85,23 @@
         "cta_primary": "Go to Platform › Tenants",
         "cta_secondary": "Back to Dashboard",
         "helper_inline": "Operational data (patients, appointments, settings…) lives inside each clinic's own schema, so from the central host there is no tenant to target. Soon, impersonation from the clinic list will solve this without asking for credentials (Phase 5)."
+    },
+    "http_errors": {
+        "cta_dashboard": "Go to Dashboard",
+        "cta_login": "Go to login",
+        "cta_back": "Go back",
+        "attempted_path": "Requested path",
+        "details_title": "Details",
+        "details_hint": "Helpful context about what happened.",
+        "forbidden": {
+            "title": "Access denied",
+            "description": "You do not have permission to view this section, or the current context does not allow it.",
+            "helper": "If you believe you should have access, ask a clinic administrator to review your role. If you are in support mode, open the clinic via «Enter as support» from Platform › Tenants."
+        },
+        "not_found": {
+            "title": "Page not found",
+            "description": "The route you tried to open does not exist or is no longer available.",
+            "helper": "Check the address or return to the main panel. If the link came from the menu, the module may not be enabled for your clinic yet."
+        }
     }
 }

@@ -1,6 +1,9 @@
 {
     "title": "Usuarios",
     "description": "Administra las cuentas que pueden iniciar sesión en la clínica. Asigna roles para controlar qué módulos puede operar cada persona.",
+    "plan_limit": {
+        "max_usuarios": "Alcanzaste el límite de usuarios de tu plan. Actualiza el plan para invitar a más personas."
+    },
     "actions": {
         "new": "Nuevo usuario",
         "new_short": "Nuevo",

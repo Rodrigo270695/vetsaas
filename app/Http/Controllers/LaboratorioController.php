@@ -16,9 +16,11 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class LaboratorioController extends Controller
 {
@@ -226,10 +228,10 @@ class LaboratorioController extends Controller
         $data['created_by_id'] = Auth::id();
         $data['updated_by_id'] = Auth::id();
 
-        DB::transaction(function () use ($data, $lineas): void {
+        DB::transaction(function () use ($data, $lineas, $request): void {
             /** @var PedidoLaboratorio $pedido */
             $pedido = PedidoLaboratorio::query()->create($data);
-            $this->syncLineas($pedido, $lineas);
+            $this->syncLineas($pedido, $lineas, $request);
         });
 
         return redirect()
@@ -247,11 +249,21 @@ class LaboratorioController extends Controller
 
         $data['updated_by_id'] = Auth::id();
 
-        DB::transaction(function () use ($pedidoLaboratorio, $data, $lineas): void {
+        DB::transaction(function () use ($pedidoLaboratorio, $data, $lineas, $request): void {
+            $archivosPrevios = $pedidoLaboratorio->lineas()
+                ->orderBy('orden')
+                ->get(['resultado_archivo_path', 'resultado_archivo_original_name'])
+                ->values()
+                ->all();
+
             $pedidoLaboratorio->fill($data);
             $pedidoLaboratorio->save();
-            $pedidoLaboratorio->lineas()->delete();
-            $this->syncLineas($pedidoLaboratorio, $lineas);
+
+            PedidoLaboratorioLinea::withoutEvents(function () use ($pedidoLaboratorio): void {
+                $pedidoLaboratorio->lineas()->delete();
+            });
+
+            $this->syncLineas($pedidoLaboratorio, $lineas, $request, $archivosPrevios);
         });
 
         return redirect()
@@ -259,6 +271,33 @@ class LaboratorioController extends Controller
                 'search', 'per_page', 'sort', 'direction', 'pedido_desde', 'pedido_hasta', 'estado',
             ]))
             ->with('success', __('laboratorio.flash.updated'));
+    }
+
+    public function downloadResultadoArchivo(Request $request, PedidoLaboratorioLinea $linea): BinaryFileResponse
+    {
+        abort_unless($request->user()?->can('laboratorio.view') ?? false, 403);
+
+        $tid = tenant_id();
+        if ($tid === null || $linea->resultado_archivo_path === null) {
+            abort(404);
+        }
+
+        $expectedPrefix = 'laboratorio/'.$tid.'/';
+        if (! str_starts_with((string) $linea->resultado_archivo_path, $expectedPrefix)) {
+            abort(404);
+        }
+
+        if (! Storage::disk('local')->exists($linea->resultado_archivo_path)) {
+            abort(404);
+        }
+
+        $absolutePath = Storage::disk('local')->path((string) $linea->resultado_archivo_path);
+        $downloadName = $linea->resultado_archivo_original_name
+            ?: ('resultado-'.Str::lower(Str::substr((string) $linea->id, 0, 8)).'.bin');
+
+        return response()->file($absolutePath, [
+            'Content-Disposition' => 'inline; filename="'.str_replace('"', '\\"', $downloadName).'"',
+        ]);
     }
 
     public function destroy(Request $request, PedidoLaboratorio $pedidoLaboratorio): RedirectResponse
@@ -287,9 +326,21 @@ class LaboratorioController extends Controller
 
     /**
      * @param  list<array<string, mixed>>  $lineas
+     * @param  list<PedidoLaboratorioLinea|array{resultado_archivo_path: ?string, resultado_archivo_original_name: ?string}>  $archivosPrevios
      */
-    private function syncLineas(PedidoLaboratorio $pedido, array $lineas): void
-    {
+    private function syncLineas(
+        PedidoLaboratorio $pedido,
+        array $lineas,
+        Request $request,
+        array $archivosPrevios = [],
+    ): void {
+        $tid = tenant_id();
+        if ($tid === null) {
+            abort(403);
+        }
+
+        $archivosReutilizados = [];
+
         foreach ($lineas as $idx => $row) {
             $nombre = Str::limit(trim((string) ($row['nombre_examen'] ?? '')), 500, '');
             if ($nombre === '') {
@@ -297,6 +348,34 @@ class LaboratorioController extends Controller
             }
             $ind = isset($row['indicaciones']) && is_string($row['indicaciones']) ? trim($row['indicaciones']) : '';
             $res = isset($row['resultado']) && is_string($row['resultado']) ? trim($row['resultado']) : '';
+
+            $archivoPath = null;
+            $archivoName = null;
+            $previo = $archivosPrevios[$idx] ?? null;
+            $prevPath = is_array($previo)
+                ? ($previo['resultado_archivo_path'] ?? null)
+                : ($previo?->resultado_archivo_path ?? null);
+            $prevName = is_array($previo)
+                ? ($previo['resultado_archivo_original_name'] ?? null)
+                : ($previo?->resultado_archivo_original_name ?? null);
+            $clearArchivo = filter_var($row['clear_resultado_archivo'] ?? false, FILTER_VALIDATE_BOOLEAN);
+
+            if ($request->hasFile("lineas.{$idx}.resultado_archivo")) {
+                $file = $request->file("lineas.{$idx}.resultado_archivo");
+                $ext = Str::lower((string) ($file->getClientOriginalExtension() ?: 'bin'));
+                $safe = Str::lower(Str::random(24)).'.'.$ext;
+                $baseDir = 'laboratorio/'.$tid.'/'.$pedido->id;
+                $archivoPath = $file->storeAs($baseDir, $safe, 'local');
+                $archivoName = $file->getClientOriginalName();
+                $this->deleteArchivoSiExiste($tid, $prevPath);
+            } elseif ($clearArchivo) {
+                $this->deleteArchivoSiExiste($tid, $prevPath);
+            } elseif (is_string($prevPath) && $prevPath !== '') {
+                $archivoPath = $prevPath;
+                $archivoName = is_string($prevName) && $prevName !== '' ? $prevName : null;
+                $archivosReutilizados[] = $prevPath;
+            }
+
             PedidoLaboratorioLinea::query()->create([
                 'pedido_laboratorio_id' => $pedido->id,
                 'nombre_examen' => $nombre,
@@ -305,8 +384,42 @@ class LaboratorioController extends Controller
                 'resultado_at' => isset($row['resultado_at']) && $row['resultado_at'] !== null && $row['resultado_at'] !== ''
                     ? Carbon::parse((string) $row['resultado_at'])
                     : null,
+                'resultado_archivo_path' => $archivoPath,
+                'resultado_archivo_original_name' => $archivoName,
                 'orden' => (int) ($row['orden'] ?? $idx),
             ]);
+        }
+
+        if ($archivosPrevios !== []) {
+            foreach ($archivosPrevios as $previo) {
+                $prevPath = is_array($previo)
+                    ? ($previo['resultado_archivo_path'] ?? null)
+                    : ($previo->resultado_archivo_path ?? null);
+
+                if (! is_string($prevPath) || $prevPath === '') {
+                    continue;
+                }
+
+                if (! in_array($prevPath, $archivosReutilizados, true)) {
+                    $this->deleteArchivoSiExiste($tid, $prevPath);
+                }
+            }
+        }
+    }
+
+    private function deleteArchivoSiExiste(string $tenantId, ?string $path): void
+    {
+        if ($path === null || $path === '') {
+            return;
+        }
+
+        $expectedPrefix = 'laboratorio/'.$tenantId.'/';
+        if (! str_starts_with($path, $expectedPrefix)) {
+            return;
+        }
+
+        if (Storage::disk('local')->exists($path)) {
+            Storage::disk('local')->delete($path);
         }
     }
 

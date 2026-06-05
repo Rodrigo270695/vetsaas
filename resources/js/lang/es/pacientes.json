@@ -3,6 +3,9 @@
     "description": "Mascotas registradas en la clínica y su titular.",
     "search_placeholder": "Buscar por nombre, especie, microchip o propietario…",
     "filter_label": "Estado",
+    "plan_limit": {
+        "max_pacientes": "Alcanzaste el límite de mascotas de tu plan. Actualiza el plan para registrar más."
+    },
     "actions": {
         "new": "Nueva mascota",
         "new_short": "Nueva",

@@ -1,6 +1,9 @@
 {
     "title": "Sedes",
     "description": "Sucursales de la clínica veterinaria. Cada sede tiene su propia agenda, caja, stock y series de facturación.",
+    "plan_limit": {
+        "max_sedes": "Alcanzaste el límite de sedes de tu plan. Actualiza el plan para agregar más."
+    },
     "actions": {
         "new": "Nueva sede",
         "new_short": "Nueva",

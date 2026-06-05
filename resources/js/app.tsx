@@ -17,7 +17,8 @@ createInertiaApp({
                 return AuthLayout;
             case name.startsWith('settings/'):
                 return [AppLayout, SettingsLayout];
-            // Páginas tenant públicas (welcome, errors): sin sidebar.
+            // Páginas sin sidebar: errores HTTP, tenant público y welcome.
+            case name.startsWith('errors/'):
             case name.startsWith('tenant/errors/'):
             case name === 'tenant/welcome':
                 return AuthLayout;

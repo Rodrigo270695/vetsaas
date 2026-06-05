@@ -1,5 +1,5 @@
 import { useForm } from '@inertiajs/react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Search } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DocumentTypeSelect, FormField, FormModal, FormSection } from '@/components/forms';
@@ -12,8 +12,16 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { isPropietarioDocumentTypeCode } from '@/lib/document-type-options';
+import { cn } from '@/lib/utils';
+import { toastManager } from '@/lib/toast';
 import propietarios from '@/routes/clinica/propietarios';
 import type { GeoOption, Propietario } from '../types';
+
+function soloDigitos(value: string, max?: number): string {
+    const digits = value.replace(/\D/g, '');
+
+    return max !== undefined ? digits.slice(0, max) : digits;
+}
 
 export type PropietarioCreatedPayload = {
     id: string;
@@ -116,8 +124,17 @@ export function PropietarioFormModal({
     const [geo, setGeo] = useState<GeoCascadeValue>(() => geoFrom(null));
     const initialRef = useRef<FormData>(empty);
     const [jsonSubmitting, setJsonSubmitting] = useState(false);
+    const [consultandoDoc, setConsultandoDoc] = useState(false);
     const submitting = processing || jsonSubmitting;
     const canSubmit = data.nombres.trim().length > 0 && !submitting;
+
+    const tipoDoc = data.tipo_documento.trim().toUpperCase();
+    const isDni = tipoDoc === 'DNI';
+    const isRuc = tipoDoc === 'RUC';
+    const isConsultableDoc = isDni || isRuc;
+    const docMaxLen = isDni ? 8 : isRuc ? 11 : undefined;
+    const docLen = soloDigitos(data.numero_documento).length;
+    const docCompleto = docMaxLen !== undefined && docLen === docMaxLen;
 
     useEffect(() => {
         if (open) {
@@ -135,6 +152,104 @@ export function PropietarioFormModal({
     const handleGeoChange = (next: GeoCascadeValue) => {
         setGeo(next);
         setData('distrito_id', next.distrito_id);
+    };
+
+    const handleTipoDocumentoChange = (value: string) => {
+        const upper = value.trim().toUpperCase();
+        let numero = data.numero_documento;
+
+        if (upper === 'DNI') {
+            numero = soloDigitos(numero, 8);
+        } else if (upper === 'RUC') {
+            numero = soloDigitos(numero, 11);
+        }
+
+        setData({
+            ...data,
+            tipo_documento: value,
+            numero_documento: numero,
+        });
+    };
+
+    const onConsultarDocumento = async () => {
+        const numero = soloDigitos(data.numero_documento, docMaxLen);
+
+        if (!isConsultableDoc || docMaxLen === undefined) {
+            return;
+        }
+
+        if (numero.length !== docMaxLen) {
+            toastManager.error({
+                title: isDni ? t('form.consultar_invalid_dni') : t('form.consultar_invalid_ruc'),
+            });
+
+            return;
+        }
+
+        setConsultandoDoc(true);
+
+        try {
+            const url = isRuc
+                ? `${propietarios.consultaRuc.url()}?ruc=${encodeURIComponent(numero)}`
+                : `${propietarios.consultaDni.url()}?dni=${encodeURIComponent(numero)}`;
+
+            const res = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    Accept: 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'same-origin',
+            });
+
+            const body = (await res.json()) as {
+                success?: boolean;
+                message?: string;
+                data?: {
+                    dni?: string;
+                    ruc?: string;
+                    nombres?: string;
+                    apellidos?: string;
+                    razon_social?: string;
+                    direccion?: string | null;
+                };
+            };
+
+            if (!res.ok || !body.success || !body.data) {
+                toastManager.error({ title: body.message ?? t('form.consultar_error') });
+
+                return;
+            }
+
+            const d = body.data;
+
+            if (isDni) {
+                setData((prev) => ({
+                    ...prev,
+                    numero_documento: d.dni ?? numero,
+                    nombres: typeof d.nombres === 'string' ? d.nombres : prev.nombres,
+                    apellidos: typeof d.apellidos === 'string' ? d.apellidos : prev.apellidos,
+                }));
+            } else {
+                setData((prev) => ({
+                    ...prev,
+                    numero_documento: d.ruc ?? numero,
+                    razon_social:
+                        typeof d.razon_social === 'string' ? d.razon_social : prev.razon_social,
+                    direccion: typeof d.direccion === 'string' ? d.direccion : prev.direccion,
+                    nombres:
+                        prev.nombres.trim() !== ''
+                            ? prev.nombres
+                            : typeof d.razon_social === 'string'
+                              ? d.razon_social
+                              : prev.nombres,
+                }));
+            }
+        } catch {
+            toastManager.error({ title: t('form.consultar_error') });
+        } finally {
+            setConsultandoDoc(false);
+        }
     };
 
     const isDirty = useMemo(() => {
@@ -285,7 +400,7 @@ export function PropietarioFormModal({
                         <DocumentTypeSelect
                             id="prop-tipo-doc"
                             value={data.tipo_documento}
-                            onValueChange={(v) => setData('tipo_documento', v)}
+                            onValueChange={handleTipoDocumentoChange}
                             invalid={Boolean(errors.tipo_documento)}
                         />
                     </FormField>
@@ -294,13 +409,71 @@ export function PropietarioFormModal({
                         label={t('form.numero_documento')}
                         error={errors.numero_documento}
                     >
-                        <Input
-                            id="prop-num-doc"
-                            value={data.numero_documento}
-                            onChange={(e) =>
-                                setData('numero_documento', e.target.value)
-                            }
-                        />
+                        <div
+                            className={cn(
+                                'flex gap-2',
+                                isConsultableDoc ? 'items-stretch' : 'flex-col',
+                            )}
+                        >
+                            <div className="relative min-w-0 flex-1">
+                                <Input
+                                    id="prop-num-doc"
+                                    className={cn(
+                                        isConsultableDoc && 'pr-14 tabular-nums tracking-wide',
+                                    )}
+                                    inputMode={isConsultableDoc ? 'numeric' : undefined}
+                                    autoComplete="off"
+                                    maxLength={docMaxLen}
+                                    value={data.numero_documento}
+                                    onChange={(e) =>
+                                        setData(
+                                            'numero_documento',
+                                            isConsultableDoc
+                                                ? soloDigitos(e.target.value, docMaxLen)
+                                                : e.target.value,
+                                        )
+                                    }
+                                    aria-invalid={Boolean(errors.numero_documento)}
+                                />
+                                {isConsultableDoc && docMaxLen !== undefined ? (
+                                    <span
+                                        className={cn(
+                                            'pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs font-medium tabular-nums',
+                                            docCompleto
+                                                ? 'text-emerald-600 dark:text-emerald-400'
+                                                : 'text-muted-foreground',
+                                        )}
+                                        aria-hidden
+                                    >
+                                        {docLen}/{docMaxLen}
+                                    </span>
+                                ) : null}
+                            </div>
+                            {isConsultableDoc ? (
+                                <Button
+                                    type="button"
+                                    size="icon"
+                                    variant="ghost"
+                                    disabled={consultandoDoc || submitting || !docCompleto}
+                                    onClick={() => void onConsultarDocumento()}
+                                    className={cn(
+                                        'size-9 shrink-0 cursor-pointer rounded-lg border-0 shadow-sm transition-all',
+                                        'bg-gradient-to-br from-teal-500 to-emerald-600 text-white',
+                                        'hover:from-teal-600 hover:to-emerald-700 hover:shadow-md',
+                                        'focus-visible:ring-2 focus-visible:ring-emerald-500/40',
+                                        'disabled:cursor-not-allowed disabled:from-muted disabled:to-muted disabled:text-muted-foreground disabled:opacity-60 disabled:shadow-none',
+                                    )}
+                                    aria-label={t('form.consultar_sunat')}
+                                    title={t('form.consultar_sunat')}
+                                >
+                                    {consultandoDoc ? (
+                                        <Loader2 className="size-4 animate-spin" aria-hidden />
+                                    ) : (
+                                        <Search className="size-4" aria-hidden />
+                                    )}
+                                </Button>
+                            ) : null}
+                        </div>
                     </FormField>
                     <FormField
                         id="prop-nombres"

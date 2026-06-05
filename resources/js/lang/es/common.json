@@ -85,5 +85,23 @@
         "cta_primary": "Ir a Plataforma › Tenants",
         "cta_secondary": "Volver al Dashboard",
         "helper_inline": "Los datos operativos (pacientes, citas, configuración…) viven dentro del schema de cada clínica, así que desde el host central no hay un tenant al que apuntar. Próximamente la impersonation desde el listado de clínicas resolverá esto sin pedir credenciales (Fase 5)."
+    },
+    "http_errors": {
+        "cta_dashboard": "Ir al Dashboard",
+        "cta_login": "Ir al inicio de sesión",
+        "cta_back": "Volver atrás",
+        "attempted_path": "Ruta solicitada",
+        "details_title": "Detalles",
+        "details_hint": "Información útil para entender qué ocurrió.",
+        "forbidden": {
+            "title": "Acceso no permitido",
+            "description": "No tienes permiso para ver esta sección o el contexto actual no permite abrirla.",
+            "helper": "Si crees que deberías tener acceso, pide a un administrador de la clínica que revise tu rol. Si estás en soporte, entra a la clínica con «Entrar como soporte» desde Plataforma › Tenants."
+        },
+        "not_found": {
+            "title": "Página no encontrada",
+            "description": "La ruta que intentaste abrir no existe o ya no está disponible.",
+            "helper": "Revisa la dirección o vuelve al panel principal. Si el enlace venía del menú, puede que el módulo aún no esté habilitado para tu clínica."
+        }
     }
 }

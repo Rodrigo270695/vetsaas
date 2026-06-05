@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FormField, FormModal, FormSection } from '@/components/forms';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Combobox } from '@/components/ui/combobox';
 import type { ComboboxOption } from '@/components/ui/combobox';
 import { Input } from '@/components/ui/input';
@@ -75,6 +76,10 @@ type LineFormRow = {
     indicaciones: string;
     resultado: string;
     resultado_at: string;
+    resultado_archivo: File | null;
+    clear_resultado_archivo: boolean;
+    resultado_archivo_existente_nombre: string | null;
+    resultado_archivo_url: string | null;
 };
 
 type FormShape = {
@@ -96,6 +101,10 @@ function emptyLine(): LineFormRow {
         indicaciones: '',
         resultado: '',
         resultado_at: '',
+        resultado_archivo: null,
+        clear_resultado_archivo: false,
+        resultado_archivo_existente_nombre: null,
+        resultado_archivo_url: null,
     };
 }
 
@@ -123,6 +132,10 @@ function fromPedido(p: PedidoLaboratorioRow, defaultVetId: string | null): FormS
             ln.resultado_at != null && ln.resultado_at !== ''
                 ? parseIsoToDatetimeLocal(ln.resultado_at)
                 : '',
+        resultado_archivo: null,
+        clear_resultado_archivo: false,
+        resultado_archivo_existente_nombre: ln.resultado_archivo_original_name ?? null,
+        resultado_archivo_url: ln.resultado_archivo_url ?? null,
     }));
 
     return {
@@ -138,12 +151,15 @@ function fromPedido(p: PedidoLaboratorioRow, defaultVetId: string | null): FormS
     };
 }
 
-function stripLineasForCompare(lineas: LineFormRow[]): Omit<LineFormRow, 'rowKey'>[] {
+function stripLineasForCompare(lineas: LineFormRow[]): Omit<LineFormRow, 'rowKey' | 'resultado_archivo'>[] {
     return lineas.map((ln) => ({
         nombre_examen: ln.nombre_examen,
         indicaciones: ln.indicaciones,
         resultado: ln.resultado,
         resultado_at: ln.resultado_at,
+        clear_resultado_archivo: ln.clear_resultado_archivo,
+        resultado_archivo_existente_nombre: ln.resultado_archivo_existente_nombre,
+        resultado_archivo_url: ln.resultado_archivo_url,
     }));
 }
 
@@ -190,30 +206,41 @@ export function PedidoFormModal({
     const { locale: appLocale, timezone: appTz } = usePage().props;
     const defaultVetId = authUser?.id ?? null;
 
-    const { data, setData, post, put, processing, errors, clearErrors, transform, setDefaults, reset } =
+    const { data, setData, post, processing, errors, clearErrors, transform, setDefaults, reset } =
         useForm<FormShape>(emptyForm(defaultVetId));
 
     const isEdit = pedido !== null;
     const lockPaciente = isEdit;
+    const isEditRef = useRef(isEdit);
 
     const initialSnapshotRef = useRef<FormShape>(emptyForm(null));
+
+    useEffect(() => {
+        isEditRef.current = isEdit;
+    }, [isEdit]);
 
     useEffect(() => {
         transform((raw) => {
             const r = raw;
             const lineasOut = r.lineas.map((ln, idx) => {
                 const rat = ln.resultado_at.trim();
-
-                return {
+                const row: Record<string, unknown> = {
                     nombre_examen: ln.nombre_examen.trim(),
                     indicaciones: ln.indicaciones.trim() === '' ? null : ln.indicaciones.trim(),
                     resultado: ln.resultado.trim() === '' ? null : ln.resultado.trim(),
                     resultado_at: rat === '' ? null : rat,
+                    clear_resultado_archivo: ln.clear_resultado_archivo ? 1 : 0,
                     orden: idx,
                 };
+
+                if (ln.resultado_archivo instanceof File) {
+                    row.resultado_archivo = ln.resultado_archivo;
+                }
+
+                return row;
             });
 
-            return {
+            const payload: Record<string, unknown> = {
                 paciente_id: r.paciente_id,
                 consulta_id: r.consulta_id.trim() === '' ? null : r.consulta_id.trim(),
                 solicitado_at: r.solicitado_at,
@@ -226,6 +253,13 @@ export function PedidoFormModal({
                 sede_id: r.sede_id != null && r.sede_id !== '' ? r.sede_id : null,
                 lineas: lineasOut,
             };
+
+            // PHP no parsea multipart en PUT; con archivos usamos POST + _method=PUT.
+            if (isEditRef.current) {
+                payload._method = 'put';
+            }
+
+            return payload;
         });
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -361,19 +395,21 @@ export function PedidoFormModal({
             onOpenChange(false);
         };
 
+        const hasArchivos = data.lineas.some((ln) => ln.resultado_archivo instanceof File);
+
+        const submitOpts = {
+            preserveScroll: true,
+            forceFormData: hasArchivos || isEdit,
+            onSuccess,
+        } as const;
+
         if (isEdit && pedido) {
-            put(clinica.laboratorio.update({ pedido_laboratorio: pedido.id }).url, {
-                preserveScroll: true,
-                onSuccess,
-            });
+            post(clinica.laboratorio.update({ pedido_laboratorio: pedido.id }).url, submitOpts);
 
             return;
         }
 
-        post(clinica.laboratorio.store().url, {
-            preserveScroll: true,
-            onSuccess,
-        });
+        post(clinica.laboratorio.store().url, submitOpts);
     };
 
     const err = (key: string): string | undefined => {
@@ -719,6 +755,73 @@ export function PedidoFormModal({
                                             aria-invalid={Boolean(err(`lineas.${index}.resultado_at`))}
                                             disabled={processing}
                                         />
+                                    </FormField>
+
+                                    <FormField
+                                        id={`lab-lin-${index}-arch`}
+                                        label={t('form.linea_resultado_archivo')}
+                                        error={err(`lineas.${index}.resultado_archivo`)}
+                                        className="sm:col-span-2"
+                                    >
+                                        <div className="flex flex-col gap-3">
+                                            {row.resultado_archivo_url &&
+                                            row.resultado_archivo_existente_nombre &&
+                                            !row.clear_resultado_archivo &&
+                                            !row.resultado_archivo ? (
+                                                <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-sm">
+                                                    <span className="text-muted-foreground">
+                                                        {t('form.linea_resultado_archivo_actual')}:
+                                                    </span>
+                                                    <a
+                                                        href={row.resultado_archivo_url}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="font-medium text-primary underline-offset-4 hover:underline"
+                                                    >
+                                                        {row.resultado_archivo_existente_nombre}
+                                                    </a>
+                                                </div>
+                                            ) : null}
+
+                                            <Input
+                                                id={`lab-lin-${index}-arch`}
+                                                type="file"
+                                                accept=".pdf,.png,.jpg,.jpeg,.webp,application/pdf,image/png,image/jpeg,image/webp"
+                                                disabled={processing}
+                                                className="h-10 cursor-pointer pt-1.5 file:mr-3 file:cursor-pointer"
+                                                onChange={(e) => {
+                                                    const f = e.target.files?.[0] ?? null;
+                                                    updateLine(index, {
+                                                        resultado_archivo: f,
+                                                        clear_resultado_archivo: false,
+                                                    });
+                                                }}
+                                            />
+                                            <p className="text-xs text-muted-foreground">
+                                                {t('form.linea_resultado_archivo_help')}
+                                            </p>
+
+                                            {row.resultado_archivo_url &&
+                                            row.resultado_archivo_existente_nombre ? (
+                                                <label
+                                                    htmlFor={`lab-lin-${index}-clear-arch`}
+                                                    className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground"
+                                                >
+                                                    <Checkbox
+                                                        id={`lab-lin-${index}-clear-arch`}
+                                                        checked={row.clear_resultado_archivo}
+                                                        disabled={processing || row.resultado_archivo !== null}
+                                                        onCheckedChange={(checked) =>
+                                                            updateLine(index, {
+                                                                clear_resultado_archivo: checked === true,
+                                                                resultado_archivo: null,
+                                                            })
+                                                        }
+                                                    />
+                                                    <span>{t('form.linea_resultado_archivo_quitar')}</span>
+                                                </label>
+                                            ) : null}
+                                        </div>
                                     </FormField>
                                 </div>
                             </div>

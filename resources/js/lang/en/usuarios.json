@@ -1,6 +1,9 @@
 {
     "title": "Users",
     "description": "Manage the accounts that can sign in to the clinic. Assign roles to control which modules each person can operate.",
+    "plan_limit": {
+        "max_usuarios": "You reached your plan's user limit. Upgrade your plan to invite more people."
+    },
     "actions": {
         "new": "New user",
         "new_short": "New",

@@ -35,11 +35,14 @@
         "new": "New order",
         "new_short": "New",
         "create_first": "Create first order",
-        "add_line": "Add exam"
+        "add_line": "Add exam",
+        "ver_documento": "View document",
+        "ver_documento_aria": "View document for exam {{examen}}"
     },
     "columns": {
         "solicitado_at": "Date",
         "examenes": "Exams",
+        "documento": "Document",
         "paciente": "Patient",
         "estado": "Status",
         "destino": "Destination",
@@ -99,6 +102,11 @@
         "linea_indicaciones": "Instructions / sample",
         "linea_resultado": "Result",
         "linea_resultado_at": "Result date",
+        "linea_resultado_archivo": "Result file",
+        "linea_resultado_archivo_help": "PDF or image (JPG, PNG, WebP). Max 12 MB.",
+        "linea_resultado_archivo_actual": "Current file",
+        "linea_resultado_archivo_quitar": "Remove attached file",
+        "linea_resultado_archivo_descargar": "Download",
         "remove_line": "Remove",
         "submit_create": "Save",
         "submit_edit": "Save changes"

@@ -16,6 +16,11 @@ import {
 import type { DataTableColumn, FilterChip } from '@/components/data-page';
 import { Button } from '@/components/ui/button';
 import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
     Select,
     SelectContent,
     SelectItem,
@@ -23,6 +28,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { useDataTablePage } from '@/hooks/use-data-table-page';
+import { usePlanLimitReached } from '@/hooks/use-plan-limits';
 import { usePermission } from '@/hooks/use-permission';
 import AppLayout from '@/layouts/app-layout';
 import type { Paginated } from '@/types';
@@ -75,6 +81,8 @@ export default function Index({ productos: paginated, filters, stats, categoriaO
     const { t, i18n } = useTranslation(['productos-inventario', 'common']);
     const { can } = usePermission();
     const canCreate = can('productos.create');
+    const productsLimitReached = usePlanLimitReached('max_productos');
+    const canCreateProduct = canCreate && !productsLimitReached;
     const canUpdate = can('productos.update');
     const canDelete = can('productos.delete');
     const canSeeAudit = can('audit-trail.view');
@@ -262,11 +270,27 @@ export default function Index({ productos: paginated, filters, stats, categoriaO
                     ]}
                     action={
                         <Can permission="productos.create">
-                            <Button type="button" onClick={() => setModal({ type: 'create' })} className="cursor-pointer gap-2">
-                                <Plus className="size-4" strokeWidth={2.5} />
-                                <span className="hidden sm:inline">{t('actions.new')}</span>
-                                <span className="sm:hidden">{t('actions.new_short')}</span>
-                            </Button>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <span className="inline-flex">
+                                        <Button
+                                            type="button"
+                                            onClick={() => setModal({ type: 'create' })}
+                                            disabled={productsLimitReached}
+                                            className="cursor-pointer gap-2"
+                                        >
+                                            <Plus className="size-4" strokeWidth={2.5} />
+                                            <span className="hidden sm:inline">{t('actions.new')}</span>
+                                            <span className="sm:hidden">{t('actions.new_short')}</span>
+                                        </Button>
+                                    </span>
+                                </TooltipTrigger>
+                                {productsLimitReached ? (
+                                    <TooltipContent side="bottom" className="max-w-xs">
+                                        {t('plan_limit.max_productos')}
+                                    </TooltipContent>
+                                ) : null}
+                            </Tooltip>
                         </Can>
                     }
                 />
@@ -339,7 +363,7 @@ export default function Index({ productos: paginated, filters, stats, categoriaO
                             title={activeFiltersCount > 0 ? t('empty.no_results_title') : t('empty.no_records_title')}
                             description={activeFiltersCount > 0 ? t('empty.no_results_description') : t('empty.no_records_description')}
                             action={
-                                activeFiltersCount === 0 && canCreate ? (
+                                activeFiltersCount === 0 && canCreateProduct ? (
                                     <Button type="button" onClick={() => setModal({ type: 'create' })} className="cursor-pointer gap-2">
                                         <Plus className="size-4" strokeWidth={2.5} />
                                         {t('actions.create_first')}

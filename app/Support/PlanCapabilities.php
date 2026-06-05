@@ -32,6 +32,7 @@ final class PlanCapabilities
             return false;
         }
 
-        return (bool) $plan->resolveFeature('factura_electronica');
+        return $plan->codigo === 'clinica'
+            && (bool) $plan->resolveFeature('factura_electronica');
     }
 }

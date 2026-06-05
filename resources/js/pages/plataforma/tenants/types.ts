@@ -22,7 +22,7 @@ export type TenantPlanRef = {
     color_hex: string | null;
 };
 
-/** Mini-suscripción activa del tenant (la última creada). */
+/** Suscripción viva del tenant (trial, active o grace; la más reciente). */
 export type TenantSubscriptionRef = {
     id: string;
     estado: string;

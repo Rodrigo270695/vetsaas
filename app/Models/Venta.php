@@ -83,6 +83,7 @@ class Venta extends Model
         'fecha_pago',
         'notas',
         'fel_estado',
+        'tipo_comprobante_sunat',
         'fel_document_id',
         'created_by_id',
         'anulado_at',
@@ -110,6 +111,11 @@ class Venta extends Model
     public function estaAnulada(): bool
     {
         return $this->estado === self::ESTADO_ANULADO;
+    }
+
+    public function esTicketInterno(): bool
+    {
+        return ! FelSerie::esTipoSunat($this->tipo_comprobante_sunat);
     }
 
     public function tipoComprobanteSunat(): int

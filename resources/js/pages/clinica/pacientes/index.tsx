@@ -26,7 +26,13 @@ import {
 } from '@/components/data-page';
 import type { DataTableColumn, FilterChip } from '@/components/data-page';
 import { Button } from '@/components/ui/button';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useDataTablePage } from '@/hooks/use-data-table-page';
+import { usePlanLimitReached } from '@/hooks/use-plan-limits';
 import { usePermission } from '@/hooks/use-permission';
 import { useRowSelection } from '@/hooks/use-row-selection';
 import clinica from '@/routes/clinica';
@@ -101,6 +107,8 @@ export default function Index({
     const { t } = useTranslation(['pacientes', 'common']);
     const { can } = usePermission();
     const canCreate = can('pacientes.create');
+    const patientsLimitReached = usePlanLimitReached('max_pacientes');
+    const canCreatePatient = canCreate && !patientsLimitReached;
     const canUpdate = can('pacientes.update');
     const canDelete = can('pacientes.delete');
     const canExport = can('pacientes.export');
@@ -354,11 +362,27 @@ export default function Index({
                                 </Button>
                             )}
                             <Can permission="pacientes.create">
-                                <Button type="button" onClick={openCreate} className="cursor-pointer gap-2">
-                                    <Plus className="size-4" strokeWidth={2.5} />
-                                    <span className="hidden sm:inline">{t('actions.new')}</span>
-                                    <span className="sm:hidden">{t('actions.new_short')}</span>
-                                </Button>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <span className="inline-flex">
+                                            <Button
+                                                type="button"
+                                                onClick={openCreate}
+                                                disabled={patientsLimitReached}
+                                                className="cursor-pointer gap-2"
+                                            >
+                                                <Plus className="size-4" strokeWidth={2.5} />
+                                                <span className="hidden sm:inline">{t('actions.new')}</span>
+                                                <span className="sm:hidden">{t('actions.new_short')}</span>
+                                            </Button>
+                                        </span>
+                                    </TooltipTrigger>
+                                    {patientsLimitReached ? (
+                                        <TooltipContent side="bottom" className="max-w-xs">
+                                            {t('plan_limit.max_pacientes')}
+                                        </TooltipContent>
+                                    ) : null}
+                                </Tooltip>
                             </Can>
                         </div>
                     }
@@ -407,7 +431,7 @@ export default function Index({
                             title={activeFiltersCount > 0 ? t('empty.no_results_title') : t('empty.no_records_title')}
                             description={activeFiltersCount > 0 ? t('empty.no_results_description') : t('empty.no_records_description')}
                             action={
-                                activeFiltersCount === 0 && canCreate ? (
+                                activeFiltersCount === 0 && canCreatePatient ? (
                                     <Button type="button" onClick={openCreate} className="cursor-pointer gap-2">
                                         <Plus className="size-4" strokeWidth={2.5} />
                                         {t('actions.create_first')}

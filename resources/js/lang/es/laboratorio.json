@@ -35,11 +35,14 @@
         "new": "Nuevo pedido",
         "new_short": "Nuevo",
         "create_first": "Crear primer pedido",
-        "add_line": "Añadir examen"
+        "add_line": "Añadir examen",
+        "ver_documento": "Ver documento",
+        "ver_documento_aria": "Ver documento del examen {{examen}}"
     },
     "columns": {
         "solicitado_at": "Fecha",
         "examenes": "Exámenes",
+        "documento": "Documento",
         "paciente": "Paciente",
         "estado": "Estado",
         "destino": "Destino",
@@ -99,6 +102,11 @@
         "linea_indicaciones": "Indicaciones / muestra",
         "linea_resultado": "Resultado",
         "linea_resultado_at": "Fecha del resultado",
+        "linea_resultado_archivo": "Archivo del resultado",
+        "linea_resultado_archivo_help": "PDF o imagen (JPG, PNG, WebP). Máx. 12 MB.",
+        "linea_resultado_archivo_actual": "Archivo actual",
+        "linea_resultado_archivo_quitar": "Quitar archivo adjunto",
+        "linea_resultado_archivo_descargar": "Descargar",
         "remove_line": "Quitar",
         "submit_create": "Guardar",
         "submit_edit": "Guardar cambios"

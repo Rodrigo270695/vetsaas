@@ -9,7 +9,13 @@ use App\Http\Middleware\MatchUserTenant;
 use App\Http\Middleware\ResolveTenant;
 use App\Tenancy\Exceptions\TenantNotFoundException;
 use App\Tenancy\Exceptions\TenantSuspendedException;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Facades\Auth;
+use Symfony\Component\HttpKernel\Exception\HttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -104,7 +110,92 @@ return Application::configure(basePath: dirname(__DIR__))
             AddLinkHeadersForPreloadedAssets::class,
         ]);
     })
+    ->withSchedule(function (Schedule $schedule): void {
+        $schedule->command('vetsaas:billing-supervisor')->dailyAt('06:00');
+    })
     ->withExceptions(function (Exceptions $exceptions): void {
+        $userFacingHttpMessage = static function (?string $message): ?string {
+            if ($message === null || $message === '') {
+                return null;
+            }
+
+            if (in_array($message, ['Not Found', 'Forbidden', 'Unauthorized.', 'Unauthorized'], true)) {
+                return null;
+            }
+
+            if (str_starts_with($message, 'The route ')
+                || str_starts_with($message, 'No query results for model')) {
+                return null;
+            }
+
+            return $message;
+        };
+
+        $renderInertiaHttpError = static function (
+            Request $request,
+            int $status,
+            string $page,
+            ?string $message = null,
+        ) use ($userFacingHttpMessage) {
+            if ($request->expectsJson() && ! $request->header('X-Inertia')) {
+                return null;
+            }
+
+            return Inertia::render($page, [
+                'message' => $userFacingHttpMessage($message),
+                'attempted_path' => '/'.ltrim($request->path(), '/'),
+                'is_authenticated' => Auth::guard('web')->check(),
+            ])
+                ->toResponse($request)
+                ->setStatusCode($status);
+        };
+
+        $exceptions->renderable(function (NotFoundHttpException $e, Request $request) use ($renderInertiaHttpError) {
+            return $renderInertiaHttpError(
+                $request,
+                404,
+                'errors/not-found',
+                $e->getMessage() !== '' ? $e->getMessage() : null,
+            );
+        });
+
+        $exceptions->renderable(function (ModelNotFoundException $e, Request $request) use ($renderInertiaHttpError) {
+            return $renderInertiaHttpError($request, 404, 'errors/not-found', null);
+        });
+
+        $exceptions->renderable(function (AuthorizationException $e, Request $request) use ($renderInertiaHttpError) {
+            return $renderInertiaHttpError(
+                $request,
+                403,
+                'errors/forbidden',
+                $e->getMessage() !== '' ? $e->getMessage() : null,
+            );
+        });
+
+        $exceptions->renderable(function (HttpException $e, Request $request) use ($renderInertiaHttpError) {
+            $status = $e->getStatusCode();
+
+            if ($status === 403) {
+                return $renderInertiaHttpError(
+                    $request,
+                    403,
+                    'errors/forbidden',
+                    $e->getMessage() !== '' ? $e->getMessage() : null,
+                );
+            }
+
+            if ($status === 404) {
+                return $renderInertiaHttpError(
+                    $request,
+                    404,
+                    'errors/not-found',
+                    $e->getMessage() !== '' ? $e->getMessage() : null,
+                );
+            }
+
+            return null;
+        });
+
         // Cuando el middleware `ResolveTenant` no encuentra el tenant,
         // queremos una página bonita en lugar del 404 genérico.
         $exceptions->renderable(function (TenantNotFoundException $e, Request $request) {

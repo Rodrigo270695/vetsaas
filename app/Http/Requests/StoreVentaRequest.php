@@ -3,9 +3,12 @@
 namespace App\Http\Requests;
 
 use App\Models\CajaSesion;
+use App\Models\ClinicSetting;
 use App\Models\FelSerie;
 use App\Models\GroomingTurno;
 use App\Models\HotelEstancia;
+use App\Models\Tenant;
+use App\Support\PlanCapabilities;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -49,7 +52,7 @@ class StoreVentaRequest extends FormRequest
             ])],
             'monto_recibido' => ['nullable', 'numeric', 'min:0'],
             'notas' => ['nullable', 'string', 'max:2000'],
-            'tipo_comprobante_sunat' => ['required', 'integer', Rule::in([
+            'tipo_comprobante_sunat' => ['nullable', 'integer', Rule::in([
                 FelSerie::TIPO_FACTURA,
                 FelSerie::TIPO_BOLETA,
             ])],
@@ -58,10 +61,25 @@ class StoreVentaRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $tipo = $this->input('tipo_comprobante_sunat');
-        if ($tipo === null || $tipo === '') {
-            $this->merge(['tipo_comprobante_sunat' => FelSerie::TIPO_BOLETA]);
+        $tenant = Tenant::query()->find($this->user()?->tenant_id);
+        $clinic = ClinicSetting::current();
+        $puedeElegirSunat = PlanCapabilities::facturaElectronica($tenant)
+            && (bool) $clinic->emite_comprobantes_sunat;
+
+        if (! $puedeElegirSunat) {
+            $this->merge(['tipo_comprobante_sunat' => null]);
+
+            return;
         }
+
+        $tipo = $this->input('tipo_comprobante_sunat');
+        if ($tipo === null || $tipo === '' || $tipo === FelSerie::TIPO_TICKET || $tipo === '0') {
+            $this->merge(['tipo_comprobante_sunat' => null]);
+
+            return;
+        }
+
+        $this->merge(['tipo_comprobante_sunat' => (int) $tipo]);
     }
 
     public function attributes(): array

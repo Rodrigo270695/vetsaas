@@ -6,6 +6,9 @@
     "filter_categoria_placeholder": "All categories",
     "filter_categoria_all": "All categories",
     "filter_estado": "Product status",
+    "plan_limit": {
+        "max_productos": "You reached your plan's product limit. Upgrade your plan to expand the catalog."
+    },
     "stats": {
         "total": "Total",
         "active": "Active",

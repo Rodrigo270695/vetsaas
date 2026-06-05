@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\UsesPublicSchema;
+use App\Services\Subscriptions\SubscriptionTenantSync;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -30,6 +31,13 @@ class Subscription extends Model
         'proximo_cobro_at',
         'metodo_pago_token',
     ];
+
+    protected static function booted(): void
+    {
+        static::saved(function (Subscription $subscription): void {
+            app(SubscriptionTenantSync::class)->sync($subscription);
+        });
+    }
 
     protected function casts(): array
     {

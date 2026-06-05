@@ -12,7 +12,11 @@ import type { TenantShared } from '@/types/tenant';
  * Páginas que renderizan su propia card (para efectos como flip 3D)
  * y por lo tanto NO deben envolverse en el `AuthFormCard` estándar.
  */
-const PAGES_WITH_OWN_CARD = new Set(['auth/login']);
+const PAGES_WITH_OWN_CARD = new Set([
+    'auth/login',
+    'errors/forbidden',
+    'errors/not-found',
+]);
 
 /**
  * Layout editorial de autenticación.

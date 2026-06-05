@@ -182,6 +182,14 @@ export function ProductoFormModal({
                 }
             >
                 <div className="grid gap-4">
+                    {errors.plan_limit ? (
+                        <p
+                            className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+                            role="alert"
+                        >
+                            {errors.plan_limit}
+                        </p>
+                    ) : null}
                     <div className="grid gap-4 sm:grid-cols-2">
                         <FormField id="prod-nombre" label={t('form.nombre')} error={errors.nombre} required className="min-w-0">
                             <Input id="prod-nombre" value={data.nombre} onChange={(e) => setData('nombre', e.target.value)} />

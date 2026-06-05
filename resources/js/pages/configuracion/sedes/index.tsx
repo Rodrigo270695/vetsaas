@@ -31,7 +31,13 @@ import type {
     FilterChip,
 } from '@/components/data-page';
 import { Button } from '@/components/ui/button';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useDataTablePage } from '@/hooks/use-data-table-page';
+import { usePlanLimitReached } from '@/hooks/use-plan-limits';
 import { usePermission } from '@/hooks/use-permission';
 import { useRowSelection } from '@/hooks/use-row-selection';
 import AppLayout from '@/layouts/app-layout';
@@ -105,6 +111,7 @@ export default function Index({
     const canBulkDelete = can('sedes.bulk-delete');
     const canSeeAudit = can('audit-trail.view');
     const showRowActions = canUpdate || canDelete;
+    const sedesLimitReached = usePlanLimitReached('max_sedes');
 
     const {
         search,
@@ -459,23 +466,34 @@ export default function Index({
                                 </Button>
                             )}
                             <Can permission="sedes.create">
-                                <Button
-                                    type="button"
-                                    onClick={openCreate}
-                                    className="cursor-pointer gap-2"
-                                >
-                                    <Plus
-                                        className="size-4"
-                                        strokeWidth={2.5}
-                                    />
-                                    {/* En mobile mostramos solo "Nueva" para que ambos botones quepan al costado. */}
-                                    <span className="hidden sm:inline">
-                                        {t('actions.new')}
-                                    </span>
-                                    <span className="sm:hidden">
-                                        {t('actions.new_short')}
-                                    </span>
-                                </Button>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <span className="inline-flex">
+                                            <Button
+                                                type="button"
+                                                onClick={openCreate}
+                                                disabled={sedesLimitReached}
+                                                className="cursor-pointer gap-2"
+                                            >
+                                                <Plus
+                                                    className="size-4"
+                                                    strokeWidth={2.5}
+                                                />
+                                                <span className="hidden sm:inline">
+                                                    {t('actions.new')}
+                                                </span>
+                                                <span className="sm:hidden">
+                                                    {t('actions.new_short')}
+                                                </span>
+                                            </Button>
+                                        </span>
+                                    </TooltipTrigger>
+                                    {sedesLimitReached ? (
+                                        <TooltipContent side="bottom" className="max-w-xs">
+                                            {t('plan_limit.max_sedes')}
+                                        </TooltipContent>
+                                    ) : null}
+                                </Tooltip>
                             </Can>
                         </div>
                     }
@@ -541,6 +559,7 @@ export default function Index({
                                     <Button
                                         type="button"
                                         onClick={openCreate}
+                                        disabled={sedesLimitReached}
                                         className="cursor-pointer gap-2"
                                     >
                                         <Plus

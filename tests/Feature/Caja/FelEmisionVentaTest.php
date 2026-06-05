@@ -48,26 +48,28 @@ beforeEach(function (): void {
     $this->slug = 'fel-venta-'.Str::lower(Str::random(4));
     $this->schema = 'vet_test_'.Str::lower(Str::random(6));
 
-    $this->plan = Plan::query()->create([
-        'codigo' => 'TEST-FEL-'.Str::upper(Str::random(6)),
-        'nombre' => 'Plan test FEL',
-        'descripcion' => null,
-        'precio_mensual' => '0.00',
-        'precio_anual' => null,
-        'trial_days' => 0,
-        'orden' => 999,
-        'es_publico' => false,
-        'activo' => true,
-    ]);
+    $this->plan = Plan::query()->firstOrCreate(
+        ['codigo' => 'clinica'],
+        [
+            'nombre' => 'Plan Clínica test FEL',
+            'descripcion' => null,
+            'precio_mensual' => '0.00',
+            'precio_anual' => null,
+            'trial_days' => 0,
+            'orden' => 999,
+            'es_publico' => false,
+            'activo' => true,
+        ],
+    );
 
-    PlanFeature::query()->create([
-        'id' => (string) Str::uuid(),
-        'plan_id' => $this->plan->id,
-        'feature' => 'factura_electronica',
-        'valor_int' => null,
-        'valor_bool' => true,
-        'valor_str' => null,
-    ]);
+    PlanFeature::query()->updateOrCreate(
+        ['plan_id' => $this->plan->id, 'feature' => 'factura_electronica'],
+        [
+            'valor_int' => null,
+            'valor_bool' => true,
+            'valor_str' => null,
+        ],
+    );
 
     Artisan::call('vetsaas:tenant-migrate', [
         'schema' => $this->schema,

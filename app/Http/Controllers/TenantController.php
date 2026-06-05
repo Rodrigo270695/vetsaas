@@ -87,7 +87,10 @@ class TenantController extends Controller
 
         $tenants = $query
             ->with([
-                'subscriptions' => fn ($q) => $q->latest()->limit(1),
+                'subscriptions' => fn ($q) => $q
+                    ->whereIn('estado', ['trial', 'active', 'grace'])
+                    ->latest()
+                    ->limit(1),
                 'subscriptions.plan:id,codigo,nombre,badge,color_hex',
                 'distritoModel:id,name,provincia_id',
                 'distritoModel.provincia:id,name,departamento_id',
@@ -374,7 +377,10 @@ class TenantController extends Controller
 
         $query = $this->buildBaseQuery($search, $estado)
             ->with([
-                'subscriptions' => fn ($q) => $q->latest()->limit(1),
+                'subscriptions' => fn ($q) => $q
+                    ->whereIn('estado', ['trial', 'active', 'grace'])
+                    ->latest()
+                    ->limit(1),
                 'subscriptions.plan:id,codigo,nombre',
             ]);
 
