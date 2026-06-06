@@ -334,12 +334,8 @@ final class SubscriptionRenewalReminderScanner
         }
 
         foreach ($reminderDays as $days) {
-            if ($daysUntil === $days) {
-                return match ($days) {
-                    7 => SubscriptionRenewalReminder::KIND_7D,
-                    1 => SubscriptionRenewalReminder::KIND_1D,
-                    default => null,
-                };
+            if ($daysUntil === $days && $days > 0) {
+                return SubscriptionRenewalReminder::kindForDays($days);
             }
         }
 

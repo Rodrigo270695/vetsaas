@@ -20,12 +20,13 @@ return [
     |--------------------------------------------------------------------------
     |
     | Días antes del vencimiento (proximo_cobro_at / trial_ends_at) en que se
-    | envía WhatsApp al teléfono del tenant. Requiere sesión OpenWA de plataforma.
+    | envía WhatsApp al teléfono del tenant. Cada valor es un día exacto
+    | (ej. 7,3,1 → tres avisos por ciclo). Requiere sesión OpenWA de plataforma.
     |
     */
     'renewal_reminder_days' => array_values(array_filter(array_map(
         'intval',
-        explode(',', (string) env('BILLING_RENEWAL_REMINDER_DAYS', '7,1'))
+        explode(',', (string) env('BILLING_RENEWAL_REMINDER_DAYS', '7,3,1'))
     ))),
 
     /*

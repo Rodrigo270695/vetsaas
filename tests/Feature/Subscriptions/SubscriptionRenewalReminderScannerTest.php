@@ -276,3 +276,52 @@ it('preview indica would_send a 7 días del vencimiento', function (): void {
         ->and($preview['reminder_kind'])->toBe(SubscriptionRenewalReminder::KIND_7D)
         ->and($preview['message'])->toContain('Paga aquí:');
 });
+
+it('envía recordatorio 3 días antes del próximo cobro', function (): void {
+    $messenger = Mockery::mock(PlatformWhatsAppMessenger::class);
+    $messenger->shouldReceive('isReady')->andReturn(true);
+    $messenger->shouldReceive('sendText')->once()->andReturn(['id' => 'wa-msg-3d']);
+    app()->instance(PlatformWhatsAppMessenger::class, $messenger);
+
+    config(['billing.renewal_reminder_days' => [7, 3, 1]]);
+
+    $plan = Plan::query()->create([
+        'codigo' => 'REM-3D-'.Str::lower(Str::random(4)),
+        'nombre' => 'Plan 3d',
+        'descripcion' => null,
+        'precio_mensual' => '59.90',
+        'precio_anual' => null,
+        'trial_days' => 0,
+        'orden' => 74,
+        'es_publico' => true,
+        'activo' => true,
+    ]);
+
+    $tenant = Tenant::query()->create([
+        'slug' => 'rem3d-'.Str::lower(Str::random(6)),
+        'schema_name' => 'vet_'.Str::lower(Str::random(6)),
+        'razon_social' => 'Clínica 3d',
+        'telefono' => '987654326',
+        'email_admin' => Str::lower(Str::random(8)).'@3d.test',
+        'estado' => 'active',
+    ]);
+
+    $anchor = now()->addDays(3)->startOfDay();
+
+    Subscription::withoutEvents(function () use ($tenant, $plan, $anchor): void {
+        Subscription::query()->create([
+            'tenant_id' => $tenant->id,
+            'plan_id' => $plan->id,
+            'estado' => 'active',
+            'ciclo' => 'mensual',
+            'proximo_cobro_at' => $anchor,
+            'precio_pactado' => '59.90',
+        ]);
+    });
+
+    $result = app(SubscriptionRenewalReminderScanner::class)->run();
+
+    expect($result['sent'])->toBe(1)
+        ->and(SubscriptionRenewalReminder::query()->value('reminder_kind'))
+        ->toBe(SubscriptionRenewalReminder::KIND_3D);
+});

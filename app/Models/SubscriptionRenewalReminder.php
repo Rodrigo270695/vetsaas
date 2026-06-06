@@ -13,7 +13,14 @@ class SubscriptionRenewalReminder extends Model
 
     public const KIND_7D = '7d';
 
+    public const KIND_3D = '3d';
+
     public const KIND_1D = '1d';
+
+    public static function kindForDays(int $days): string
+    {
+        return "{$days}d";
+    }
 
     public const CHANNEL_WHATSAPP = 'whatsapp';
 

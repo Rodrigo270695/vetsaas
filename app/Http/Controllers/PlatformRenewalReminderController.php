@@ -42,6 +42,9 @@ class PlatformRenewalReminderController extends Controller
             'kind_7d' => SubscriptionRenewalReminder::query()
                 ->where('reminder_kind', SubscriptionRenewalReminder::KIND_7D)
                 ->count(),
+            'kind_3d' => SubscriptionRenewalReminder::query()
+                ->where('reminder_kind', SubscriptionRenewalReminder::KIND_3D)
+                ->count(),
             'kind_1d' => SubscriptionRenewalReminder::query()
                 ->where('reminder_kind', SubscriptionRenewalReminder::KIND_1D)
                 ->count(),
