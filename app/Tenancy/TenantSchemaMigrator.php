@@ -210,6 +210,15 @@ class TenantSchemaMigrator
                 && Schema::hasColumn('compras', 'anulada_at')
                 && Schema::hasColumn('compras', 'anulada_por_id'),
             '2026_05_12_220100_t024_create_consultas_table' => Schema::hasTable('consultas'),
+            '2026_05_12_230000_t025_create_consulta_plan_tratamiento_tables' => Schema::hasTable('consulta_planes_tratamiento')
+                && Schema::hasTable('consulta_plan_tratamiento_lineas'),
+            '2026_05_13_120000_add_anadido_en_to_consulta_plan_tratamiento_lineas' => Schema::hasTable('consulta_plan_tratamiento_lineas')
+                && Schema::hasColumn('consulta_plan_tratamiento_lineas', 'anadido_en'),
+            '2026_05_19_150000_t060_add_producto_id_to_consulta_plan_tratamiento_lineas' => Schema::hasTable('consulta_plan_tratamiento_lineas')
+                && Schema::hasColumn('consulta_plan_tratamiento_lineas', 'producto_id'),
+            '2026_05_20_100000_t061_create_vacunas_aplicadas_table' => Schema::hasTable('vacunas_aplicadas'),
+            '2026_05_21_120000_t062_add_movimiento_inventario_id_to_vacunas_aplicadas' => Schema::hasTable('vacunas_aplicadas')
+                && Schema::hasColumn('vacunas_aplicadas', 'movimiento_inventario_id'),
             '2026_05_22_100000_t063_add_clinical_fields_to_vacunas_aplicadas' => Schema::hasTable('vacunas_aplicadas')
                 && Schema::hasColumn('vacunas_aplicadas', 'categoria_registro'),
             '2026_05_23_120000_t064_consulta_vitales_cierre_vacuna_consulta' => Schema::hasTable('consultas')
@@ -259,6 +268,9 @@ class TenantSchemaMigrator
                 && Schema::hasColumn('cfg_clinic_settings', 'nubefact_api_ruta'),
             '2026_06_16_100000_t090_add_tipo_comprobante_sunat_to_ventas' => Schema::hasTable('ventas')
                 && Schema::hasColumn('ventas', 'tipo_comprobante_sunat'),
+            '2026_06_17_100000_t091_add_resultado_archivo_to_pedido_laboratorio_lineas' => Schema::hasTable('pedido_laboratorio_lineas')
+                && Schema::hasColumn('pedido_laboratorio_lineas', 'resultado_archivo_path'),
+            '2026_06_18_100000_t092_create_notifications_queue_table' => Schema::hasTable('notifications_queue'),
             default => false,
         };
     }
