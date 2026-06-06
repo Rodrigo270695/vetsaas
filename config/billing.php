@@ -30,10 +30,10 @@ return [
     ))),
 
     /*
-    | URL base de checkout Orvae para renovar. Se puede usar plantilla:
-    |   https://orvae.pe/checkout/vetsaas/{tenant}
-    | o base con query (?tenant=slug&plan=starter&ciclo=mensual).
+    | URL de checkout Orvae para renovar (proyecto orvaepe). Plantilla recomendada:
+    |   https://orvae.pe/renovar/vetsaas?tenant={tenant}&plan={plan}&ciclo={ciclo}
+    | La ruta /renovar/vetsaas redirige al carrito con el SKU correcto.
     */
-    'renewal_url' => rtrim((string) env('ORVAE_RENEWAL_URL', 'https://orvae.pe/checkout/vetsaas'), '/'),
+    'renewal_url' => rtrim((string) env('ORVAE_RENEWAL_URL', 'https://orvae.pe/renovar/vetsaas'), '/'),
 
 ];
