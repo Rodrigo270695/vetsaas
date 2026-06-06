@@ -81,4 +81,9 @@ class Tenant extends Model
             ->latest()
             ->first();
     }
+
+    public function whatsappSession(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(TenantWhatsAppSession::class);
+    }
 }

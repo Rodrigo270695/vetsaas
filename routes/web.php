@@ -10,6 +10,8 @@ use App\Http\Controllers\CirugiaController;
 use App\Http\Controllers\HospitalizacionController;
 use App\Http\Controllers\InternamientoCargoController;
 use App\Http\Controllers\ClinicSettingController;
+use App\Http\Controllers\NotificationQueueController;
+use App\Http\Controllers\TenantWhatsAppController;
 use App\Http\Controllers\RecetaController;
 use App\Http\Controllers\ConsultaCargoController;
 use App\Http\Controllers\ConsultaHistoriaController;
@@ -554,9 +556,26 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
 
         // ===== Comunicaciones =====
         Route::prefix('comunicaciones')->name('comunicaciones.')->group(function () {
-            Route::inertia('cola', 'comunicaciones/cola/index')->name('cola');
-            Route::inertia('historico', 'comunicaciones/historico/index')->name('historico');
+            Route::middleware('permission:comunicaciones-cola.view')
+                ->get('cola', [NotificationQueueController::class, 'cola'])
+                ->name('cola');
+            Route::middleware('permission:comunicaciones-historico.view')
+                ->get('historico', [NotificationQueueController::class, 'historico'])
+                ->name('historico');
             Route::inertia('plantillas', 'comunicaciones/plantillas/index')->name('plantillas');
+
+            Route::middleware('permission:comunicaciones-cola.manage')->group(function (): void {
+                Route::post('cola/{notification}/cancel', [NotificationQueueController::class, 'cancel'])
+                    ->whereUuid('notification')
+                    ->name('cola.cancel');
+                Route::post('cola/{notification}/retry', [NotificationQueueController::class, 'retry'])
+                    ->whereUuid('notification')
+                    ->name('cola.retry');
+                Route::post('whatsapp/sync', [TenantWhatsAppController::class, 'sync'])->name('whatsapp.sync');
+                Route::post('whatsapp/test', [TenantWhatsAppController::class, 'sendTest'])->name('whatsapp.test');
+                Route::post('whatsapp/logout', [TenantWhatsAppController::class, 'logout'])->name('whatsapp.logout');
+                Route::get('whatsapp/qr', [TenantWhatsAppController::class, 'qr'])->name('whatsapp.qr');
+            });
         });
 
         // ===== Reportes =====

@@ -44,7 +44,7 @@
     },
     "platform_note": {
         "title": "WhatsApp y correo: incluidos en tu plan",
-        "body": "El envío de mensajes y correos transaccionales lo gestiona la plataforma con sus propias credenciales. Tú no necesitas configurar nada técnico: solo elige el nombre y los datos de contacto que verán tus clientes."
+        "body": "Los recordatorios por WhatsApp salen desde el número que vincules en Comunicaciones → Cola. Los correos transaccionales los gestiona la plataforma. Aquí solo personalizas la firma visible para tus clientes."
     },
     "fields": {
         "ruc": "RUC",
@@ -112,7 +112,7 @@
         "nubefact_token_hint": "Copia la columna «TOKEN» del mismo panel. No es la URL: va en este campo aparte.",
         "nubefact_token_hint_stored": "Ya hay un token guardado (cifrado). Escribe uno nuevo solo si quieres reemplazarlo.",
         "whatsapp_display_number": "Número de WhatsApp visible",
-        "whatsapp_display_number_hint": "Número que aparecerá en los mensajes de WhatsApp como contacto de tu clínica. No se usa para enviar; el envío lo hace la plataforma.",
+        "whatsapp_display_number_hint": "Número de contacto que verán tus clientes en el texto del mensaje. El envío real sale del WhatsApp vinculado en Comunicaciones → Cola.",
         "email_from": "Correo de respuesta (Reply-To)",
         "email_from_hint": "Cuando tus clientes respondan a un correo automático, la respuesta llegará aquí.",
         "email_from_nombre": "Nombre del remitente",

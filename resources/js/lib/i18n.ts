@@ -12,6 +12,7 @@ import groomingEn from '@/lang/en/grooming.json';
 import hotelEn from '@/lang/en/hotel.json';
 import citasEn from '@/lang/en/citas.json';
 import cobrosEn from '@/lang/en/cobros.json';
+import comunicacionesEn from '@/lang/en/comunicaciones.json';
 import plataformaAuditoriaSoporteEn from '@/lang/en/plataforma-auditoria-soporte.json';
 import dashboardEn from '@/lang/en/dashboard.json';
 import commonEn from '@/lang/en/common.json';
@@ -47,6 +48,7 @@ import groomingEs from '@/lang/es/grooming.json';
 import hotelEs from '@/lang/es/hotel.json';
 import citasEs from '@/lang/es/citas.json';
 import cobrosEs from '@/lang/es/cobros.json';
+import comunicacionesEs from '@/lang/es/comunicaciones.json';
 import plataformaAuditoriaSoporteEs from '@/lang/es/plataforma-auditoria-soporte.json';
 import dashboardEs from '@/lang/es/dashboard.json';
 import commonEs from '@/lang/es/common.json';
@@ -107,6 +109,7 @@ const resources = {
         planes: planesEs,
         suscripciones: suscripcionesEs,
         cobros: cobrosEs,
+        comunicaciones: comunicacionesEs,
         'plataforma-auditoria-soporte': plataformaAuditoriaSoporteEs,
         dashboard: dashboardEs,
         auth: authEs,
@@ -144,6 +147,7 @@ const resources = {
         planes: planesEn,
         suscripciones: suscripcionesEn,
         cobros: cobrosEn,
+        comunicaciones: comunicacionesEn,
         'plataforma-auditoria-soporte': plataformaAuditoriaSoporteEn,
         dashboard: dashboardEn,
         auth: authEn,
@@ -191,6 +195,7 @@ void i18n
             'planes',
             'suscripciones',
             'cobros',
+            'comunicaciones',
             'dashboard',
             'auth',
             'general',

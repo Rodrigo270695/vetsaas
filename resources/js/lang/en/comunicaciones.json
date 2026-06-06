@@ -1,0 +1,76 @@
+{
+    "cola": {
+        "title": "Outbox queue",
+        "description": "WhatsApp messages pending delivery or failed.",
+        "empty": "No messages in this queue.",
+        "search_placeholder": "Search by phone, name or body…"
+    },
+    "historico": {
+        "title": "History",
+        "description": "Successfully sent WhatsApp messages.",
+        "empty": "No sent messages yet.",
+        "search_placeholder": "Search history…"
+    },
+    "stats": {
+        "pendiente": "Pending",
+        "procesando": "Processing",
+        "fallido": "Failed",
+        "enviado": "Sent"
+    },
+    "estado": {
+        "pendiente": "Pending",
+        "procesando": "Processing",
+        "fallido": "Failed",
+        "enviado": "Sent",
+        "cancelado": "Cancelled"
+    },
+    "columns": {
+        "tipo": "Type",
+        "destinatario": "Recipient",
+        "mensaje": "Message",
+        "estado": "Status",
+        "programado": "Scheduled",
+        "intentos": "Attempts",
+        "error": "Error"
+    },
+    "tipo": {
+        "cita_48h": "Appointment 48h",
+        "cita_2h": "Appointment 2h",
+        "vacuna_proxima": "Vaccine",
+        "cumple_paciente": "Birthday",
+        "prueba": "Test"
+    },
+    "actions": {
+        "cancel": "Cancel",
+        "retry": "Retry",
+        "cancel_confirm": "Cancel this message?",
+        "retry_confirm": "Retry sending?"
+    },
+    "whatsapp": {
+        "title": "Clinic WhatsApp",
+        "description": "Link the phone number used for automatic reminders.",
+        "disabled": "WhatsApp gateway is not enabled on the server. Contact support.",
+        "status_ready": "Connected",
+        "status_pending": "Awaiting link",
+        "status_error": "Error",
+        "phone": "Linked number",
+        "last_sync": "Last sync",
+        "connect": "Connect WhatsApp",
+        "sync": "Sync status",
+        "disconnect": "Disconnect",
+        "disconnect_title": "Unlink WhatsApp",
+        "disconnect_description": "Automatic reminders will stop until you connect a number again.",
+        "test_send": "Send test",
+        "test_title": "Test message",
+        "test_description": "Send a test WhatsApp to verify your clinic can deliver reminders.",
+        "test_phone": "Destination phone",
+        "test_phone_hint": "Include country code or a 9-digit Peruvian mobile number.",
+        "test_default_message": "Hi, this is a test message from VetSaaS. Your clinic can send WhatsApp reminders.",
+        "scan_qr": "Scan with WhatsApp on your phone",
+        "qr_loading": "Generating QR code…",
+        "qr_ready": "Ready! You can send reminders now."
+    },
+    "toast": {
+        "load_error": "Could not load the message queue."
+    }
+}

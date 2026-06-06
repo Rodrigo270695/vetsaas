@@ -114,6 +114,9 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withSchedule(function (Schedule $schedule): void {
         $schedule->command('vetsaas:billing-supervisor')->dailyAt('06:00');
+        $schedule->command('vetsaas:reminders-scan')->everyFifteenMinutes();
+        $schedule->command('vetsaas:notifications-dispatch')->everyFiveMinutes();
+        $schedule->command('vetsaas:whatsapp-sync-sessions')->hourly();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $userFacingHttpMessage = static function (?string $message): ?string {

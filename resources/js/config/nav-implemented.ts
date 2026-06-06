@@ -9,8 +9,6 @@ export const NAV_PLACEHOLDER_PATHS: ReadonlySet<string> = new Set([
     '/facturacion/series',
     '/facturacion/notas-baja',
     '/facturacion/resumenes',
-    '/comunicaciones/cola',
-    '/comunicaciones/historico',
     '/comunicaciones/plantillas',
     '/reportes/snapshots',
     '/reportes/financiero',

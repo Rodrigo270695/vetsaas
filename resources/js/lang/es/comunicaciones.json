@@ -1,0 +1,76 @@
+{
+    "cola": {
+        "title": "Cola saliente",
+        "description": "Mensajes de WhatsApp pendientes de envío o con error.",
+        "empty": "No hay mensajes en esta bandeja.",
+        "search_placeholder": "Buscar por teléfono, nombre o texto…"
+    },
+    "historico": {
+        "title": "Histórico",
+        "description": "Mensajes de WhatsApp enviados correctamente.",
+        "empty": "Aún no hay mensajes enviados.",
+        "search_placeholder": "Buscar en el histórico…"
+    },
+    "stats": {
+        "pendiente": "Pendientes",
+        "procesando": "Procesando",
+        "fallido": "Fallidos",
+        "enviado": "Enviados"
+    },
+    "estado": {
+        "pendiente": "Pendiente",
+        "procesando": "Procesando",
+        "fallido": "Fallido",
+        "enviado": "Enviado",
+        "cancelado": "Cancelado"
+    },
+    "columns": {
+        "tipo": "Tipo",
+        "destinatario": "Destinatario",
+        "mensaje": "Mensaje",
+        "estado": "Estado",
+        "programado": "Programado",
+        "intentos": "Intentos",
+        "error": "Error"
+    },
+    "tipo": {
+        "cita_48h": "Cita 48h",
+        "cita_2h": "Cita 2h",
+        "vacuna_proxima": "Vacuna",
+        "cumple_paciente": "Cumpleaños",
+        "prueba": "Prueba"
+    },
+    "actions": {
+        "cancel": "Cancelar",
+        "retry": "Reintentar",
+        "cancel_confirm": "¿Cancelar este mensaje?",
+        "retry_confirm": "¿Reintentar el envío?"
+    },
+    "whatsapp": {
+        "title": "WhatsApp de la clínica",
+        "description": "Vincula el número desde el que salen los recordatorios automáticos.",
+        "disabled": "El gateway WhatsApp no está activo en el servidor. Contacta a soporte.",
+        "status_ready": "Conectado",
+        "status_pending": "Pendiente de vincular",
+        "status_error": "Con error",
+        "phone": "Número vinculado",
+        "last_sync": "Última sincronización",
+        "connect": "Conectar WhatsApp",
+        "sync": "Sincronizar estado",
+        "disconnect": "Cerrar sesión",
+        "disconnect_title": "Desvincular WhatsApp",
+        "disconnect_description": "Los recordatorios automáticos dejarán de enviarse hasta que vuelvas a conectar un número.",
+        "test_send": "Enviar prueba",
+        "test_title": "Mensaje de prueba",
+        "test_description": "Envía un WhatsApp de prueba para verificar que la clínica puede mandar recordatorios.",
+        "test_phone": "Teléfono destino",
+        "test_phone_hint": "Número con código de país o celular peruano de 9 dígitos.",
+        "test_default_message": "Hola, este es un mensaje de prueba desde VetSaaS. Tu clínica ya puede enviar recordatorios por WhatsApp.",
+        "scan_qr": "Escanea con WhatsApp en tu teléfono",
+        "qr_loading": "Generando código QR…",
+        "qr_ready": "¡Listo! Ya puedes enviar recordatorios."
+    },
+    "toast": {
+        "load_error": "No se pudo cargar la cola de mensajes."
+    }
+}
