@@ -3,6 +3,7 @@ import {
     Ban,
     CalendarPlus,
     Lock,
+    MessageCircle,
     MoreHorizontal,
     Pencil,
     Receipt,
@@ -29,7 +30,9 @@ export type SubscriptionRowActionsProps = {
     onChangePlan: (s: Subscription) => void;
     onCancel: (s: Subscription) => void;
     onDelete: (s: Subscription) => void;
+    onRenewalPreview?: (s: Subscription) => void;
     canUpdate?: boolean;
+    canViewRenewalPreview?: boolean;
     canDelete?: boolean;
     canExtendTrial?: boolean;
     canChangePlan?: boolean;
@@ -55,7 +58,9 @@ export function SubscriptionRowActions({
     onChangePlan,
     onCancel,
     onDelete,
+    onRenewalPreview,
     canUpdate = true,
+    canViewRenewalPreview = true,
     canDelete = true,
     canExtendTrial = true,
     canChangePlan = true,
@@ -71,6 +76,8 @@ export function SubscriptionRowActions({
     const showChangePlan = canChangePlan && !isCancelled;
     const showCancel = canCancel && !isCancelled;
     const showDelete = canDelete && isCancelled;
+    const showRenewalPreview =
+        canViewRenewalPreview && !isCancelled && onRenewalPreview !== undefined;
 
     // Link al historial de cobros filtrado por esta suscripción.
     // El filtro `subscription_id` lo lee el SubscriptionPaymentController.
@@ -104,6 +111,16 @@ export function SubscriptionRowActions({
                             <Receipt className="size-4" strokeWidth={2.25} />
                             {t('suscripciones:row.view_payments')}
                         </Link>
+                    </DropdownMenuItem>
+                )}
+
+                {showRenewalPreview && (
+                    <DropdownMenuItem
+                        onSelect={() => onRenewalPreview(subscription)}
+                        className="cursor-pointer gap-2 text-emerald-700 focus:text-emerald-700 dark:text-emerald-400"
+                    >
+                        <MessageCircle className="size-4" strokeWidth={2.25} />
+                        {t('suscripciones:row.renewal_preview')}
                     </DropdownMenuItem>
                 )}
 

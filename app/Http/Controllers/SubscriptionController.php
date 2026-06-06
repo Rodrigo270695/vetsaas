@@ -7,7 +7,9 @@ use App\Http\Requests\SubscriptionRequest;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\Tenant;
+use App\Services\Subscriptions\SubscriptionRenewalReminderScanner;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -127,6 +129,15 @@ class SubscriptionController extends Controller
             'plans_catalog' => $plansCatalog,
             'tenants_catalog' => $tenantsCatalog,
         ]);
+    }
+
+    public function renewalReminderPreview(
+        Subscription $suscripcion,
+        SubscriptionRenewalReminderScanner $scanner,
+    ): JsonResponse {
+        $suscripcion->load(['tenant', 'plan']);
+
+        return response()->json($scanner->preview($suscripcion));
     }
 
     public function store(SubscriptionRequest $request): RedirectResponse

@@ -44,6 +44,7 @@ import { SubscriptionActionsDialog, type SubscriptionActionMode } from './compon
 import { SubscriptionBulkDeleteDialog } from './components/subscription-bulk-delete-dialog';
 import { SubscriptionDeleteDialog } from './components/subscription-delete-dialog';
 import { SubscriptionFormModal } from './components/subscription-form-modal';
+import { SubscriptionRenewalPreviewDialog } from './components/subscription-renewal-preview-dialog';
 import { SubscriptionRowActions } from './components/subscription-row-actions';
 import type {
     Subscription,
@@ -81,7 +82,8 @@ type ModalState =
     | { type: 'change-plan'; subscription: Subscription }
     | { type: 'cancel'; subscription: Subscription }
     | { type: 'delete'; subscription: Subscription }
-    | { type: 'bulk-delete' };
+    | { type: 'bulk-delete' }
+    | { type: 'renewal-preview'; subscription: Subscription };
 
 const DEFAULT_PER_PAGE = 10;
 const DEFAULT_ESTADO: SubscriptionEstadoFilter = 'todos';
@@ -155,6 +157,7 @@ export default function Index({
     const canExtendTrial = can('plataforma-suscripciones.extend-trial');
     const canChangePlan = can('plataforma-suscripciones.change-plan');
     const canCancel = can('plataforma-suscripciones.cancel');
+    const canViewRenewalPreview = can('plataforma-suscripciones.view');
     const showRowActions =
         canUpdate ||
         canDelete ||
@@ -239,6 +242,11 @@ export default function Index({
     );
     const openBulkDelete = useCallback(
         () => setModal({ type: 'bulk-delete' }),
+        [],
+    );
+    const openRenewalPreview = useCallback(
+        (subscription: Subscription) =>
+            setModal({ type: 'renewal-preview', subscription }),
         [],
     );
 
@@ -463,7 +471,9 @@ export default function Index({
                             onChangePlan={openChangePlan}
                             onCancel={openCancel}
                             onDelete={openDelete}
+                            onRenewalPreview={openRenewalPreview}
                             canUpdate={canUpdate}
+                            canViewRenewalPreview={canViewRenewalPreview}
                             canDelete={canDelete}
                             canExtendTrial={canExtendTrial}
                             canChangePlan={canChangePlan}
@@ -490,6 +500,8 @@ export default function Index({
         openChangePlan,
         openCancel,
         openDelete,
+        openRenewalPreview,
+        canViewRenewalPreview,
     ]);
 
     return (
@@ -731,6 +743,18 @@ export default function Index({
                 }}
                 ids={Array.from(selection.selectedIds)}
                 onCompleted={() => selection.clear()}
+            />
+
+            <SubscriptionRenewalPreviewDialog
+                open={modal.type === 'renewal-preview'}
+                onOpenChange={(open) => {
+                    if (!open) closeModal();
+                }}
+                subscription={
+                    modal.type === 'renewal-preview'
+                        ? modal.subscription
+                        : null
+                }
             />
 
             {canBulkDelete && (

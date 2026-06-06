@@ -56,42 +56,72 @@ final class SubscriptionRenewalReminderScanner
     }
 
     /**
+     * Vista previa del aviso (sin enviar). Incluye motivo si hoy no se enviaría.
+     *
+     * @return array{
+     *     would_send: bool,
+     *     skip_code: string|null,
+     *     skip_reason: string|null,
+     *     message: string|null,
+     *     anchor_at: string|null,
+     *     anchor_source: string|null,
+     *     days_until: int|null,
+     *     reminder_kind: string|null,
+     *     destinatario: string|null,
+     *     already_sent: bool,
+     *     whatsapp_ready: bool,
+     *     reminder_days: list<int>,
+     * }
+     */
+    public function preview(Subscription $subscription, ?CarbonInterface $now = null): array
+    {
+        $now ??= now();
+        $reminderDays = $this->reminderDays();
+        $evaluation = $this->evaluate($subscription, $now, $reminderDays);
+
+        return [
+            'would_send' => $evaluation['would_send'] && $this->messenger->isReady(),
+            'skip_code' => $evaluation['would_send'] && ! $this->messenger->isReady()
+                ? 'whatsapp_not_ready'
+                : $evaluation['skip_code'],
+            'skip_reason' => $evaluation['would_send'] && ! $this->messenger->isReady()
+                ? 'WhatsApp de plataforma no conectado. Conéctalo en Avisos renovación.'
+                : $evaluation['skip_reason'],
+            'message' => $evaluation['message'],
+            'anchor_at' => $evaluation['anchor_at'],
+            'anchor_source' => $evaluation['anchor_source'],
+            'days_until' => $evaluation['days_until'],
+            'reminder_kind' => $evaluation['reminder_kind'],
+            'destinatario' => $evaluation['destinatario'],
+            'already_sent' => $evaluation['already_sent'],
+            'whatsapp_ready' => $this->messenger->isReady(),
+            'reminder_days' => $reminderDays,
+        ];
+    }
+
+    /**
      * @param  list<int>  $reminderDays
      * @return 'sent'|'skipped'|'failed'
      */
     private function processSubscription(Subscription $subscription, CarbonInterface $now, array $reminderDays): string
     {
+        $evaluation = $this->evaluate($subscription, $now, $reminderDays);
+
+        if (! $evaluation['would_send']) {
+            return 'skipped';
+        }
+
         $tenant = $subscription->tenant;
-        if (! $tenant instanceof Tenant || $this->isFreeSubscription($subscription)) {
-            return 'skipped';
-        }
-
         $anchor = $this->expiryAnchor($subscription);
-        if ($anchor === null) {
-            return 'skipped';
-        }
+        $kind = $evaluation['reminder_kind'];
+        $chatId = $evaluation['destinatario'];
 
-        if ($this->coverage->hasCoveringPayment($subscription)) {
-            return 'skipped';
-        }
-
-        $daysUntil = (int) $now->copy()->startOfDay()->diffInDays($anchor->copy()->startOfDay(), false);
-        $kind = $this->matchingKind($daysUntil, $reminderDays);
-        if ($kind === null) {
-            return 'skipped';
-        }
-
-        if ($this->alreadySent($subscription, $kind, $anchor)) {
-            return 'skipped';
-        }
-
-        $chatId = WhatsAppChatId::fromPhone($tenant->telefono);
-        if ($chatId === null) {
+        if (! $tenant instanceof Tenant || $anchor === null || $kind === null || $chatId === null) {
             return 'skipped';
         }
 
         try {
-            $this->messenger->sendText($chatId, $this->buildMessage($tenant, $subscription, $anchor));
+            $this->messenger->sendText($chatId, $evaluation['message'] ?? $this->buildMessage($tenant, $subscription, $anchor));
         } catch (\Throwable) {
             return 'failed';
         }
@@ -106,6 +136,143 @@ final class SubscriptionRenewalReminderScanner
         ]);
 
         return 'sent';
+    }
+
+    /**
+     * @param  list<int>  $reminderDays
+     * @return array{
+     *     would_send: bool,
+     *     skip_code: string|null,
+     *     skip_reason: string|null,
+     *     message: string|null,
+     *     anchor_at: string|null,
+     *     anchor_source: string|null,
+     *     days_until: int|null,
+     *     reminder_kind: string|null,
+     *     destinatario: string|null,
+     *     already_sent: bool,
+     * }
+     */
+    private function evaluate(Subscription $subscription, CarbonInterface $now, array $reminderDays): array
+    {
+        $empty = [
+            'would_send' => false,
+            'skip_code' => null,
+            'skip_reason' => null,
+            'message' => null,
+            'anchor_at' => null,
+            'anchor_source' => null,
+            'days_until' => null,
+            'reminder_kind' => null,
+            'destinatario' => null,
+            'already_sent' => false,
+        ];
+
+        if (! in_array($subscription->estado, ['active', 'trial'], true) || $subscription->cancelled_at !== null) {
+            return [
+                ...$empty,
+                'skip_code' => 'invalid_state',
+                'skip_reason' => 'La suscripción no está activa ni en prueba.',
+            ];
+        }
+
+        if ($this->isFreeSubscription($subscription)) {
+            return [
+                ...$empty,
+                'skip_code' => 'free_plan',
+                'skip_reason' => 'Plan gratuito o precio pactado en cero: no se envían avisos de renovación.',
+            ];
+        }
+
+        $tenant = $subscription->tenant;
+        if (! $tenant instanceof Tenant) {
+            return [
+                ...$empty,
+                'skip_code' => 'no_tenant',
+                'skip_reason' => 'No se encontró el tenant asociado.',
+            ];
+        }
+
+        [$anchor, $anchorSource] = $this->expiryAnchorWithSource($subscription);
+        if ($anchor === null) {
+            return [
+                ...$empty,
+                'skip_code' => 'no_anchor',
+                'skip_reason' => $subscription->estado === 'trial'
+                    ? 'Falta la fecha de fin de prueba (trial_ends_at).'
+                    : 'Falta próximo cobro o fin del período actual.',
+            ];
+        }
+
+        if ($this->coverage->hasCoveringPayment($subscription)) {
+            return [
+                ...$empty,
+                'skip_code' => 'already_paid',
+                'skip_reason' => 'Ya hay un pago procesado que cubre este vencimiento.',
+                'anchor_at' => $anchor->toIso8601String(),
+                'anchor_source' => $anchorSource,
+            ];
+        }
+
+        $daysUntil = (int) $now->copy()->startOfDay()->diffInDays($anchor->copy()->startOfDay(), false);
+        $kind = $this->matchingKind($daysUntil, $reminderDays);
+
+        $message = $this->buildMessage($tenant, $subscription, $anchor);
+        $base = [
+            'message' => $message,
+            'anchor_at' => $anchor->toIso8601String(),
+            'anchor_source' => $anchorSource,
+            'days_until' => $daysUntil,
+            'reminder_kind' => $kind,
+            'already_sent' => false,
+            'destinatario' => WhatsAppChatId::fromPhone($tenant->telefono),
+        ];
+
+        if ($daysUntil < 0) {
+            return [
+                ...$base,
+                'would_send' => false,
+                'skip_code' => 'expired',
+                'skip_reason' => 'El vencimiento ya pasó; no se envían avisos retroactivos.',
+            ];
+        }
+
+        if ($kind === null) {
+            $daysList = implode(' o ', $reminderDays);
+
+            return [
+                ...$base,
+                'would_send' => false,
+                'skip_code' => 'wrong_day',
+                'skip_reason' => "Hoy faltan {$daysUntil} día(s). El aviso solo se envía exactamente a {$daysList} día(s) antes del vencimiento.",
+            ];
+        }
+
+        if ($this->alreadySent($subscription, $kind, $anchor)) {
+            return [
+                ...$base,
+                'would_send' => false,
+                'skip_code' => 'already_sent',
+                'skip_reason' => 'Ya se envió este aviso para este vencimiento.',
+                'already_sent' => true,
+            ];
+        }
+
+        if ($base['destinatario'] === null) {
+            return [
+                ...$base,
+                'would_send' => false,
+                'skip_code' => 'no_phone',
+                'skip_reason' => 'El tenant no tiene teléfono válido para WhatsApp.',
+            ];
+        }
+
+        return [
+            ...$base,
+            'would_send' => true,
+            'skip_code' => null,
+            'skip_reason' => null,
+        ];
     }
 
     private function isFreeSubscription(Subscription $subscription): bool
@@ -132,11 +299,29 @@ final class SubscriptionRenewalReminderScanner
 
     private function expiryAnchor(Subscription $subscription): ?CarbonInterface
     {
+        return $this->expiryAnchorWithSource($subscription)[0];
+    }
+
+    /**
+     * @return array{0: CarbonInterface|null, 1: string|null}
+     */
+    private function expiryAnchorWithSource(Subscription $subscription): array
+    {
         if ($subscription->estado === 'trial') {
-            return $subscription->trial_ends_at?->copy();
+            $anchor = $subscription->trial_ends_at?->copy();
+
+            return [$anchor, $anchor !== null ? 'trial_ends_at' : null];
         }
 
-        return ($subscription->proximo_cobro_at ?? $subscription->current_period_end)?->copy();
+        if ($subscription->proximo_cobro_at !== null) {
+            return [$subscription->proximo_cobro_at->copy(), 'proximo_cobro_at'];
+        }
+
+        if ($subscription->current_period_end !== null) {
+            return [$subscription->current_period_end->copy(), 'current_period_end'];
+        }
+
+        return [null, null];
     }
 
     /**

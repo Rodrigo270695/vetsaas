@@ -56,7 +56,22 @@
         "extend_trial": "Extend trial",
         "change_plan": "Change plan",
         "cancel": "Cancel subscription",
-        "cancelled_locked": "Subscription cancelled"
+        "cancelled_locked": "Subscription cancelled",
+        "renewal_preview": "Preview renewal WhatsApp"
+    },
+    "renewal_preview": {
+        "title": "Renewal reminder preview",
+        "description": "Message {{name}} would receive on WhatsApp if a reminder were sent today.",
+        "load_error": "Could not load preview.",
+        "anchor": "Expiry date used",
+        "days_until": "Days until expiry (today)",
+        "reminder_days": "Configured reminder days",
+        "whatsapp": "Platform WhatsApp",
+        "whatsapp_ready": "Connected",
+        "whatsapp_off": "Not connected",
+        "would_send": "This message WOULD be sent automatically today.",
+        "would_skip": "Would not be sent today.",
+        "message_label": "Message text"
     },
     "common": {
         "loading": "Saving…"

@@ -180,3 +180,99 @@ it('omite suscripciones del plan free', function (): void {
     expect($result['scanned'])->toBe(0)
         ->and($result['sent'])->toBe(0);
 });
+
+it('preview indica wrong_day cuando no coincide con 7 ni 1 día', function (): void {
+    $messenger = Mockery::mock(PlatformWhatsAppMessenger::class);
+    $messenger->shouldReceive('isReady')->andReturn(true);
+    app()->instance(PlatformWhatsAppMessenger::class, $messenger);
+
+    $plan = Plan::query()->create([
+        'codigo' => 'REM-PREV-'.Str::lower(Str::random(4)),
+        'nombre' => 'Plan preview',
+        'descripcion' => null,
+        'precio_mensual' => '99.90',
+        'precio_anual' => null,
+        'trial_days' => 0,
+        'orden' => 72,
+        'es_publico' => true,
+        'activo' => true,
+    ]);
+
+    $tenant = Tenant::query()->create([
+        'slug' => 'remprev-'.Str::lower(Str::random(6)),
+        'schema_name' => 'vet_'.Str::lower(Str::random(6)),
+        'razon_social' => 'Clínica Preview',
+        'telefono' => '987654324',
+        'email_admin' => Str::lower(Str::random(8)).'@prev.test',
+        'estado' => 'active',
+    ]);
+
+    $subscription = Subscription::withoutEvents(function () use ($tenant, $plan): Subscription {
+        return Subscription::query()->create([
+            'tenant_id' => $tenant->id,
+            'plan_id' => $plan->id,
+            'estado' => 'active',
+            'ciclo' => 'mensual',
+            'current_period_end' => now()->addDays(4)->startOfDay(),
+            'precio_pactado' => '99.90',
+        ]);
+    });
+
+    $subscription->load(['tenant', 'plan']);
+
+    $preview = app(SubscriptionRenewalReminderScanner::class)->preview($subscription);
+
+    expect($preview['would_send'])->toBeFalse()
+        ->and($preview['skip_code'])->toBe('wrong_day')
+        ->and($preview['days_until'])->toBe(4)
+        ->and($preview['message'])->toContain('vence el');
+});
+
+it('preview indica would_send a 7 días del vencimiento', function (): void {
+    $messenger = Mockery::mock(PlatformWhatsAppMessenger::class);
+    $messenger->shouldReceive('isReady')->andReturn(true);
+    app()->instance(PlatformWhatsAppMessenger::class, $messenger);
+
+    $plan = Plan::query()->create([
+        'codigo' => 'REM-SEND-'.Str::lower(Str::random(4)),
+        'nombre' => 'Plan send preview',
+        'descripcion' => null,
+        'precio_mensual' => '59.90',
+        'precio_anual' => null,
+        'trial_days' => 0,
+        'orden' => 73,
+        'es_publico' => true,
+        'activo' => true,
+    ]);
+
+    $tenant = Tenant::query()->create([
+        'slug' => 'remsend-'.Str::lower(Str::random(6)),
+        'schema_name' => 'vet_'.Str::lower(Str::random(6)),
+        'razon_social' => 'Clínica Send Preview',
+        'telefono' => '987654325',
+        'email_admin' => Str::lower(Str::random(8)).'@send.test',
+        'estado' => 'active',
+    ]);
+
+    $anchor = now()->addDays(7)->startOfDay();
+
+    $subscription = Subscription::withoutEvents(function () use ($tenant, $plan, $anchor): Subscription {
+        return Subscription::query()->create([
+            'tenant_id' => $tenant->id,
+            'plan_id' => $plan->id,
+            'estado' => 'active',
+            'ciclo' => 'mensual',
+            'proximo_cobro_at' => $anchor,
+            'precio_pactado' => '59.90',
+        ]);
+    });
+
+    $subscription->load(['tenant', 'plan']);
+
+    $preview = app(SubscriptionRenewalReminderScanner::class)->preview($subscription);
+
+    expect($preview['would_send'])->toBeTrue()
+        ->and($preview['skip_code'])->toBeNull()
+        ->and($preview['reminder_kind'])->toBe(SubscriptionRenewalReminder::KIND_7D)
+        ->and($preview['message'])->toContain('Paga aquí:');
+});

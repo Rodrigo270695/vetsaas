@@ -56,7 +56,22 @@
         "extend_trial": "Extender prueba",
         "change_plan": "Cambiar de plan",
         "cancel": "Cancelar suscripción",
-        "cancelled_locked": "Suscripción cancelada"
+        "cancelled_locked": "Suscripción cancelada",
+        "renewal_preview": "Vista previa aviso WhatsApp"
+    },
+    "renewal_preview": {
+        "title": "Vista previa del aviso de renovación",
+        "description": "Mensaje que recibiría {{name}} por WhatsApp si hoy correspondiera enviarlo.",
+        "load_error": "No se pudo cargar la vista previa.",
+        "anchor": "Vencimiento usado",
+        "days_until": "Días hasta vencer (hoy)",
+        "reminder_days": "Días de aviso configurados",
+        "whatsapp": "WhatsApp plataforma",
+        "whatsapp_ready": "Conectado",
+        "whatsapp_off": "No conectado",
+        "would_send": "Hoy SÍ se enviaría este mensaje automáticamente.",
+        "would_skip": "Hoy no se enviaría.",
+        "message_label": "Texto del mensaje"
     },
     "common": {
         "loading": "Guardando…"
