@@ -1,8 +1,9 @@
 import { useForm, usePage } from '@inertiajs/react';
-import { Loader2, Plus, Trash2 } from 'lucide-react';
+import { CalendarDays, FlaskConical, Loader2, Plus, Save, Trash2, UserCheck } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { cn } from '@/lib/utils';
 import { FormField, FormModal, FormSection } from '@/components/forms';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -418,6 +419,16 @@ export function PedidoFormModal({
         return typeof v === 'string' ? v : undefined;
     };
 
+    const estadoBadgeClass: Record<string, string> = {
+        borrador: 'border-border/70 bg-muted/40 text-muted-foreground',
+        solicitado: 'border-sky-400/40 bg-sky-400/10 text-sky-700 dark:text-sky-400',
+        en_proceso: 'border-amber-400/40 bg-amber-400/10 text-amber-700 dark:text-amber-400',
+        completado: 'border-emerald-400/40 bg-emerald-400/10 text-emerald-700 dark:text-emerald-400',
+        cancelado: 'border-red-400/40 bg-red-400/10 text-red-700 dark:text-red-400',
+    };
+
+    const estadoOptions = isEdit ? ESTADOS_EDITAR : ESTADOS_CREAR;
+
     return (
         <FormModal
             open={open}
@@ -443,8 +454,10 @@ export function PedidoFormModal({
                             disabled={!canSubmit}
                             className="cursor-pointer gap-2 disabled:cursor-not-allowed"
                         >
-                            {processing && (
+                            {processing ? (
                                 <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                            ) : (
+                                <Save className="size-4" strokeWidth={2} />
                             )}
                             {isEdit ? t('form.submit_edit') : t('form.submit_create')}
                         </Button>
@@ -452,13 +465,16 @@ export function PedidoFormModal({
                 </div>
             }
         >
-            <div className="flex flex-col gap-5">
+            <div className="flex flex-col gap-6">
+                {/* ── Sección 1: Datos generales ── */}
                 <FormSection
                     index={0}
                     title={t('form.section_general')}
                     description={t('form.section_general_hint')}
+                    icon={CalendarDays}
                     columns={2}
                 >
+                    {/* Paciente */}
                     <FormField
                         id="lab-paciente"
                         label={t('form.paciente')}
@@ -479,6 +495,7 @@ export function PedidoFormModal({
                         />
                     </FormField>
 
+                    {/* Consulta */}
                     <FormField
                         id="lab-consulta"
                         label={t('form.consulta')}
@@ -505,6 +522,7 @@ export function PedidoFormModal({
                         </Select>
                     </FormField>
 
+                    {/* Fecha */}
                     <FormField
                         id="lab-solicitado"
                         label={t('form.solicitado_at')}
@@ -522,30 +540,34 @@ export function PedidoFormModal({
                         />
                     </FormField>
 
+                    {/* Estado — chips visuales */}
                     <FormField
                         id="lab-estado"
                         label={t('form.estado')}
                         required
                         error={errors.estado as string | undefined}
                     >
-                        <Select
-                            value={data.estado}
-                            onValueChange={(v) => setData('estado', v)}
-                            disabled={processing}
-                        >
-                            <SelectTrigger id="lab-estado" className={controlClass}>
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {(isEdit ? ESTADOS_EDITAR : ESTADOS_CREAR).map((st) => (
-                                    <SelectItem key={st} value={st}>
-                                        {t(`estado.${st}`)}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        <div className="flex flex-wrap gap-1.5 pt-0.5">
+                            {estadoOptions.map((st) => (
+                                <button
+                                    key={st}
+                                    type="button"
+                                    disabled={processing}
+                                    onClick={() => setData('estado', st)}
+                                    className={cn(
+                                        'rounded-full border px-3 py-1 text-xs font-medium transition-all duration-150 cursor-pointer',
+                                        data.estado === st
+                                            ? cn('ring-2 ring-offset-1 ring-primary', estadoBadgeClass[st] ?? '')
+                                            : 'border-border/50 bg-transparent text-muted-foreground hover:bg-muted/50 hover:text-foreground',
+                                    )}
+                                >
+                                    {t(`estado.${st}`)}
+                                </button>
+                            ))}
+                        </div>
                     </FormField>
 
+                    {/* Destino */}
                     <FormField
                         id="lab-destino"
                         label={t('form.laboratorio_destino')}
@@ -563,6 +585,7 @@ export function PedidoFormModal({
                         />
                     </FormField>
 
+                    {/* Observaciones */}
                     <FormField
                         id="lab-obs"
                         label={t('form.observaciones')}
@@ -581,10 +604,15 @@ export function PedidoFormModal({
                     </FormField>
                 </FormSection>
 
+                {/* Separador visual */}
+                <div className="h-px bg-border/50" />
+
+                {/* ── Sección 2: Profesional y sede ── */}
                 <FormSection
                     index={1}
                     title={t('form.section_context')}
                     description={t('form.section_context_hint')}
+                    icon={UserCheck}
                     columns={2}
                 >
                     <FormField
@@ -632,80 +660,75 @@ export function PedidoFormModal({
                     </FormField>
                 </FormSection>
 
+                {/* Separador visual */}
+                <div className="h-px bg-border/50" />
+
+                {/* ── Sección 3: Exámenes ── */}
                 <FormSection
                     index={2}
                     title={t('form.section_lineas')}
                     description={t('form.section_lineas_hint')}
+                    icon={FlaskConical}
                     columns={1}
                 >
-                    <div className="flex justify-end">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="cursor-pointer gap-1.5"
-                            onClick={addLine}
-                            disabled={processing}
-                        >
-                            <Plus className="size-3.5" strokeWidth={2.5} />
-                            {t('actions.add_line')}
-                        </Button>
-                    </div>
-
                     {err('lineas') ? (
                         <p className="text-sm text-destructive" role="alert">
                             {err('lineas')}
                         </p>
                     ) : null}
 
-                    <div className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-3">
                         {data.lineas.map((row, index) => (
                             <div
                                 key={row.rowKey}
-                                className="rounded-lg border border-border/60 bg-card/30 p-4 sm:p-5"
+                                className="rounded-xl border border-border/60 bg-muted/20 p-4 transition-colors hover:bg-muted/30"
                             >
-                                <div className="mb-4 flex items-center justify-between gap-3 border-b border-border/50 pb-3">
-                                    <span className="text-sm font-semibold text-foreground">
-                                        {t('form.section_lineas')} · #{index + 1}
+                                {/* Header del examen */}
+                                <div className="mb-3 flex items-center gap-2.5">
+                                    <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/15 text-[11px] font-bold text-primary">
+                                        {index + 1}
                                     </span>
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="icon"
-                                        className="size-9 shrink-0 text-muted-foreground hover:text-destructive"
-                                        disabled={processing || data.lineas.length <= 1}
-                                        onClick={() => removeLine(index)}
-                                        aria-label={t('form.remove_line')}
-                                    >
-                                        <Trash2 className="size-4" strokeWidth={2.25} />
-                                    </Button>
-                                </div>
-
-                                <div className="grid gap-4 sm:grid-cols-2 sm:gap-x-5">
-                                    <FormField
-                                        id={`lab-lin-${index}-nom`}
-                                        label={t('form.linea_examen')}
-                                        required
-                                        error={err(`lineas.${index}.nombre_examen`)}
-                                        className="sm:col-span-2"
-                                    >
+                                    <div className="min-w-0 flex-1">
                                         <Input
                                             id={`lab-lin-${index}-nom`}
-                                            className={controlClass}
+                                            className="h-8 border-0 bg-transparent px-0 text-sm font-medium shadow-none placeholder:text-muted-foreground/60 focus-visible:ring-0"
                                             value={row.nombre_examen}
                                             onChange={(e) =>
                                                 updateLine(index, { nombre_examen: e.target.value })
                                             }
+                                            placeholder={t('form.linea_examen') + '…'}
                                             aria-invalid={Boolean(err(`lineas.${index}.nombre_examen`))}
                                             disabled={processing}
                                         />
-                                    </FormField>
+                                        {err(`lineas.${index}.nombre_examen`) ? (
+                                            <p className="mt-0.5 text-xs text-destructive">
+                                                {err(`lineas.${index}.nombre_examen`)}
+                                            </p>
+                                        ) : null}
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="size-8 shrink-0 text-muted-foreground/60 hover:text-destructive"
+                                        disabled={processing || data.lineas.length <= 1}
+                                        onClick={() => removeLine(index)}
+                                        aria-label={t('form.remove_line')}
+                                    >
+                                        <Trash2 className="size-3.5" strokeWidth={2.25} />
+                                    </Button>
+                                </div>
 
+                                {/* Separador interno */}
+                                <div className="mb-3 h-px bg-border/40" />
+
+                                {/* Indicaciones */}
+                                <div className="grid gap-3 sm:grid-cols-2">
                                     <FormField
                                         id={`lab-lin-${index}-ind`}
                                         label={t('form.linea_indicaciones')}
                                         error={err(`lineas.${index}.indicaciones`)}
-                                        className="sm:col-span-2"
+                                        className={isEdit ? '' : 'sm:col-span-2'}
                                     >
                                         <Textarea
                                             id={`lab-lin-${index}-ind`}
@@ -720,113 +743,129 @@ export function PedidoFormModal({
                                         />
                                     </FormField>
 
-                                    <FormField
-                                        id={`lab-lin-${index}-res`}
-                                        label={t('form.linea_resultado')}
-                                        error={err(`lineas.${index}.resultado`)}
-                                        className="sm:col-span-2"
-                                    >
-                                        <Textarea
+                                    {/* Campos de resultado solo en edición */}
+                                    {isEdit && (
+                                        <FormField
                                             id={`lab-lin-${index}-res`}
-                                            rows={2}
-                                            className="resize-none text-sm"
-                                            value={row.resultado}
-                                            onChange={(e) =>
-                                                updateLine(index, { resultado: e.target.value })
-                                            }
-                                            aria-invalid={Boolean(err(`lineas.${index}.resultado`))}
-                                            disabled={processing}
-                                        />
-                                    </FormField>
-
-                                    <FormField
-                                        id={`lab-lin-${index}-rat`}
-                                        label={t('form.linea_resultado_at')}
-                                        error={err(`lineas.${index}.resultado_at`)}
-                                    >
-                                        <Input
-                                            id={`lab-lin-${index}-rat`}
-                                            type="datetime-local"
-                                            className={controlClass}
-                                            value={row.resultado_at}
-                                            onChange={(e) =>
-                                                updateLine(index, { resultado_at: e.target.value })
-                                            }
-                                            aria-invalid={Boolean(err(`lineas.${index}.resultado_at`))}
-                                            disabled={processing}
-                                        />
-                                    </FormField>
-
-                                    <FormField
-                                        id={`lab-lin-${index}-arch`}
-                                        label={t('form.linea_resultado_archivo')}
-                                        error={err(`lineas.${index}.resultado_archivo`)}
-                                        className="sm:col-span-2"
-                                    >
-                                        <div className="flex flex-col gap-3">
-                                            {row.resultado_archivo_url &&
-                                            row.resultado_archivo_existente_nombre &&
-                                            !row.clear_resultado_archivo &&
-                                            !row.resultado_archivo ? (
-                                                <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-sm">
-                                                    <span className="text-muted-foreground">
-                                                        {t('form.linea_resultado_archivo_actual')}:
-                                                    </span>
-                                                    <a
-                                                        href={row.resultado_archivo_url}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="font-medium text-primary underline-offset-4 hover:underline"
-                                                    >
-                                                        {row.resultado_archivo_existente_nombre}
-                                                    </a>
-                                                </div>
-                                            ) : null}
-
-                                            <Input
-                                                id={`lab-lin-${index}-arch`}
-                                                type="file"
-                                                accept=".pdf,.png,.jpg,.jpeg,.webp,application/pdf,image/png,image/jpeg,image/webp"
+                                            label={t('form.linea_resultado')}
+                                            error={err(`lineas.${index}.resultado`)}
+                                        >
+                                            <Textarea
+                                                id={`lab-lin-${index}-res`}
+                                                rows={2}
+                                                className="resize-none text-sm"
+                                                value={row.resultado}
+                                                onChange={(e) =>
+                                                    updateLine(index, { resultado: e.target.value })
+                                                }
+                                                aria-invalid={Boolean(err(`lineas.${index}.resultado`))}
                                                 disabled={processing}
-                                                className="h-10 cursor-pointer pt-1.5 file:mr-3 file:cursor-pointer"
-                                                onChange={(e) => {
-                                                    const f = e.target.files?.[0] ?? null;
-                                                    updateLine(index, {
-                                                        resultado_archivo: f,
-                                                        clear_resultado_archivo: false,
-                                                    });
-                                                }}
                                             />
-                                            <p className="text-xs text-muted-foreground">
-                                                {t('form.linea_resultado_archivo_help')}
-                                            </p>
-
-                                            {row.resultado_archivo_url &&
-                                            row.resultado_archivo_existente_nombre ? (
-                                                <label
-                                                    htmlFor={`lab-lin-${index}-clear-arch`}
-                                                    className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground"
-                                                >
-                                                    <Checkbox
-                                                        id={`lab-lin-${index}-clear-arch`}
-                                                        checked={row.clear_resultado_archivo}
-                                                        disabled={processing || row.resultado_archivo !== null}
-                                                        onCheckedChange={(checked) =>
-                                                            updateLine(index, {
-                                                                clear_resultado_archivo: checked === true,
-                                                                resultado_archivo: null,
-                                                            })
-                                                        }
-                                                    />
-                                                    <span>{t('form.linea_resultado_archivo_quitar')}</span>
-                                                </label>
-                                            ) : null}
-                                        </div>
-                                    </FormField>
+                                        </FormField>
+                                    )}
                                 </div>
+
+                                {isEdit && (
+                                    <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                                        <FormField
+                                            id={`lab-lin-${index}-rat`}
+                                            label={t('form.linea_resultado_at')}
+                                            error={err(`lineas.${index}.resultado_at`)}
+                                        >
+                                            <Input
+                                                id={`lab-lin-${index}-rat`}
+                                                type="datetime-local"
+                                                className={controlClass}
+                                                value={row.resultado_at}
+                                                onChange={(e) =>
+                                                    updateLine(index, { resultado_at: e.target.value })
+                                                }
+                                                aria-invalid={Boolean(err(`lineas.${index}.resultado_at`))}
+                                                disabled={processing}
+                                            />
+                                        </FormField>
+
+                                        <FormField
+                                            id={`lab-lin-${index}-arch`}
+                                            label={t('form.linea_resultado_archivo')}
+                                            error={err(`lineas.${index}.resultado_archivo`)}
+                                        >
+                                            <div className="flex flex-col gap-2">
+                                                {row.resultado_archivo_url &&
+                                                row.resultado_archivo_existente_nombre &&
+                                                !row.clear_resultado_archivo &&
+                                                !row.resultado_archivo ? (
+                                                    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-sm">
+                                                        <span className="text-muted-foreground">
+                                                            {t('form.linea_resultado_archivo_actual')}:
+                                                        </span>
+                                                        <a
+                                                            href={row.resultado_archivo_url}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="font-medium text-primary underline-offset-4 hover:underline"
+                                                        >
+                                                            {row.resultado_archivo_existente_nombre}
+                                                        </a>
+                                                    </div>
+                                                ) : null}
+
+                                                <Input
+                                                    id={`lab-lin-${index}-arch`}
+                                                    type="file"
+                                                    accept=".pdf,.png,.jpg,.jpeg,.webp,application/pdf,image/png,image/jpeg,image/webp"
+                                                    disabled={processing}
+                                                    className="h-10 cursor-pointer pt-1.5 file:mr-3 file:cursor-pointer"
+                                                    onChange={(e) => {
+                                                        const f = e.target.files?.[0] ?? null;
+                                                        updateLine(index, {
+                                                            resultado_archivo: f,
+                                                            clear_resultado_archivo: false,
+                                                        });
+                                                    }}
+                                                />
+                                                <p className="text-xs text-muted-foreground">
+                                                    {t('form.linea_resultado_archivo_help')}
+                                                </p>
+
+                                                {row.resultado_archivo_url &&
+                                                row.resultado_archivo_existente_nombre ? (
+                                                    <label
+                                                        htmlFor={`lab-lin-${index}-clear-arch`}
+                                                        className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground"
+                                                    >
+                                                        <Checkbox
+                                                            id={`lab-lin-${index}-clear-arch`}
+                                                            checked={row.clear_resultado_archivo}
+                                                            disabled={processing || row.resultado_archivo !== null}
+                                                            onCheckedChange={(checked) =>
+                                                                updateLine(index, {
+                                                                    clear_resultado_archivo: checked === true,
+                                                                    resultado_archivo: null,
+                                                                })
+                                                            }
+                                                        />
+                                                        <span>{t('form.linea_resultado_archivo_quitar')}</span>
+                                                    </label>
+                                                ) : null}
+                                            </div>
+                                        </FormField>
+                                    </div>
+                                )}
                             </div>
                         ))}
                     </div>
+
+                    {/* Botón añadir examen */}
+                    <button
+                        type="button"
+                        onClick={addLine}
+                        disabled={processing}
+                        className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-border/60 py-3 text-sm font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 hover:text-primary disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                        <Plus className="size-4" strokeWidth={2.5} />
+                        {t('actions.add_line')}
+                    </button>
                 </FormSection>
             </div>
         </FormModal>
