@@ -3,9 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\SubscriptionRenewalReminder;
-use App\Services\Subscriptions\SubscriptionRenewalReminderScanner;
 use App\Support\OpenWa\PlatformWhatsAppPresenter;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -76,19 +74,4 @@ class PlatformRenewalReminderController extends Controller
         ]);
     }
 
-    public function runScan(SubscriptionRenewalReminderScanner $scanner): RedirectResponse
-    {
-        $result = $scanner->run();
-
-        return back()->with(
-            'success',
-            sprintf(
-                'Proceso completado: %d revisadas, %d enviados, %d omitidos, %d fallidos.',
-                $result['scanned'],
-                $result['sent'],
-                $result['skipped'],
-                $result['failed'],
-            ),
-        );
-    }
 }

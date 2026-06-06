@@ -114,7 +114,7 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withSchedule(function (Schedule $schedule): void {
         $schedule->command('vetsaas:billing-supervisor')->dailyAt('06:00');
-        $schedule->command('vetsaas:subscription-renewal-reminders')->dailyAt('08:00');
+        $schedule->command('vetsaas:subscription-renewal-reminders')->dailyAt('09:00');
         $schedule->command('vetsaas:reminders-scan')->everyFifteenMinutes();
         $schedule->command('vetsaas:notifications-dispatch')->everyFiveMinutes();
         $schedule->command('vetsaas:whatsapp-sync-sessions')->hourly();

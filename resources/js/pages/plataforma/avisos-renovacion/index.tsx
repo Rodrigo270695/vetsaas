@@ -1,8 +1,7 @@
-import { Head, router } from '@inertiajs/react';
-import { BellRing, Play } from 'lucide-react';
-import { useCallback, useMemo } from 'react';
+import { Head } from '@inertiajs/react';
+import { BellRing } from 'lucide-react';
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Can } from '@/components/can';
 import {
     DataPagination,
     DataTable,
@@ -12,7 +11,6 @@ import {
     StatBadge,
 } from '@/components/data-page';
 import type { DataTableColumn } from '@/components/data-page';
-import { Button } from '@/components/ui/button';
 import { useDataTablePage } from '@/hooks/use-data-table-page';
 import { usePermission } from '@/hooks/use-permission';
 import AppLayout from '@/layouts/app-layout';
@@ -93,10 +91,6 @@ export default function Index({
         only: ['items', 'filters', 'stats', 'whatsapp'],
     });
 
-    const runScan = useCallback(() => {
-        router.post('/plataforma/avisos-renovacion/run', {}, { preserveScroll: true });
-    }, []);
-
     const columns = useMemo<DataTableColumn<ReminderRow>[]>(
         () => [
             {
@@ -144,19 +138,9 @@ export default function Index({
     return (
         <>
             <Head title={t('title')} />
-            <div className="space-y-6">
-                <PageHeader
-                    title={t('title')}
-                    description={t('subtitle')}
-                    action={
-                        <Can permission="plataforma-suscripciones.update">
-                            <Button type="button" size="sm" onClick={runScan} className="gap-2">
-                                <Play className="size-4" />
-                                {t('run_scan')}
-                            </Button>
-                        </Can>
-                    }
-                />
+            <div className="flex flex-1 flex-col gap-5 p-4 sm:p-6">
+                <PageHeader title={t('title')} description={t('subtitle')} />
+                <p className="-mt-2 text-xs text-muted-foreground">{t('schedule_hint')}</p>
 
                 <WhatsAppConnectCard
                     whatsapp={whatsapp}

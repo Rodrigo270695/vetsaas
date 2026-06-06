@@ -1,7 +1,7 @@
 {
     "title": "Avisos de renovación",
     "subtitle": "WhatsApp de plataforma hacia las clínicas cuando su plan está por vencer.",
-    "run_scan": "Ejecutar avisos ahora",
+    "schedule_hint": "Envío automático todos los días a las 09:00 (7 y 1 día antes del vencimiento).",
     "stats": {
         "total": "Total enviados",
         "last_7_days": "Últimos 7 días",

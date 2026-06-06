@@ -1,7 +1,7 @@
 {
     "title": "Renewal notices",
     "subtitle": "Platform WhatsApp to clinics when their plan is about to expire.",
-    "run_scan": "Run notices now",
+    "schedule_hint": "Automatic delivery daily at 09:00 (7 and 1 days before expiry).",
     "stats": {
         "total": "Total sent",
         "last_7_days": "Last 7 days",

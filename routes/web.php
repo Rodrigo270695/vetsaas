@@ -831,9 +831,6 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             Route::middleware('permission:plataforma-suscripciones.view')
                 ->get('avisos-renovacion', [PlatformRenewalReminderController::class, 'index'])
                 ->name('avisos-renovacion.index');
-            Route::middleware('permission:plataforma-suscripciones.update')
-                ->post('avisos-renovacion/run', [PlatformRenewalReminderController::class, 'runScan'])
-                ->name('avisos-renovacion.run');
             Route::middleware('permission:plataforma-suscripciones.update')->group(function (): void {
                 Route::post('avisos-renovacion/whatsapp/sync', [PlatformWhatsAppController::class, 'sync'])
                     ->name('avisos-renovacion.whatsapp.sync');
