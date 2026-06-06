@@ -1,0 +1,66 @@
+{
+    "title": "Settings",
+    "description": "Manage your profile and account settings",
+    "nav": {
+        "profile": "Profile",
+        "security": "Security",
+        "appearance": "Appearance"
+    },
+    "profile": {
+        "title": "Profile settings",
+        "section_title": "Profile information",
+        "section_description": "Update your name and email address",
+        "name": "Name",
+        "name_placeholder": "Full name",
+        "email": "Email address",
+        "email_placeholder": "Email address",
+        "unverified": "Your email address is unverified.",
+        "resend_verification": "Click here to resend the verification email.",
+        "verification_sent": "A new verification link has been sent to your email address."
+    },
+    "security": {
+        "title": "Security settings",
+        "password_title": "Update password",
+        "password_description": "Ensure your account is using a long, random password to stay secure",
+        "current_password": "Current password",
+        "new_password": "New password",
+        "confirm_password": "Confirm password",
+        "save_password": "Save password",
+        "two_factor_title": "Two-factor authentication",
+        "two_factor_description": "Manage your two-factor authentication settings",
+        "two_factor_enabled_hint": "You will be prompted for a secure, random pin during login, which you can retrieve from the TOTP-supported application on your phone.",
+        "two_factor_disabled_hint": "When you enable two-factor authentication, you will be prompted for a secure pin during login. This pin can be retrieved from a TOTP-supported application on your phone.",
+        "disable_2fa": "Disable 2FA",
+        "enable_2fa": "Enable 2FA",
+        "continue_setup": "Continue setup"
+    },
+    "appearance": {
+        "title": "Appearance settings",
+        "section_title": "Appearance settings",
+        "section_description": "Update your account's appearance settings",
+        "light": "Light",
+        "dark": "Dark",
+        "system": "System"
+    },
+    "two_factor": {
+        "recovery_codes_title": "2FA recovery codes",
+        "recovery_codes_description": "Recovery codes let you regain access if you lose your 2FA device. Store them in a secure password manager.",
+        "view_recovery_codes": "View recovery codes",
+        "hide_recovery_codes": "Hide recovery codes",
+        "regenerate_codes": "Regenerate codes",
+        "recovery_codes_aria": "Recovery codes",
+        "loading_recovery_codes": "Loading recovery codes",
+        "regenerate_warning": "Each recovery code can be used once to access your account and will be removed after use. If you need more, click <strong>Regenerate codes</strong> above.",
+        "manual_code_hint": "or, enter the code manually",
+        "back": "Back",
+        "confirm": "Confirm",
+        "close": "Close",
+        "continue": "Continue",
+        "enabled_title": "Two-factor authentication enabled",
+        "enabled_description": "Two-factor authentication is now enabled. Scan the QR code or enter the setup key in your authenticator app.",
+        "verify_title": "Verify authentication code",
+        "verify_description": "Enter the 6-digit code from your authenticator app",
+        "enable_title": "Enable two-factor authentication",
+        "enable_description": "To finish enabling two-factor authentication, scan the QR code or enter the setup key in your authenticator app"
+    }
+}

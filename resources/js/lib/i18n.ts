@@ -31,6 +31,7 @@ import propietariosEn from '@/lang/en/propietarios.json';
 import proveedoresInventarioEn from '@/lang/en/proveedores-inventario.json';
 import recetasEn from '@/lang/en/recetas.json';
 import rolesEn from '@/lang/en/roles.json';
+import settingsEn from '@/lang/en/settings.json';
 import sedesEn from '@/lang/en/sedes.json';
 import tarifasServiciosEn from '@/lang/en/tarifas-servicios.json';
 import stockInventarioEn from '@/lang/en/stock-inventario.json';
@@ -68,6 +69,7 @@ import propietariosEs from '@/lang/es/propietarios.json';
 import proveedoresInventarioEs from '@/lang/es/proveedores-inventario.json';
 import recetasEs from '@/lang/es/recetas.json';
 import rolesEs from '@/lang/es/roles.json';
+import settingsEs from '@/lang/es/settings.json';
 import sedesEs from '@/lang/es/sedes.json';
 import tarifasServiciosEs from '@/lang/es/tarifas-servicios.json';
 import stockInventarioEs from '@/lang/es/stock-inventario.json';
@@ -106,6 +108,7 @@ const resources = {
         sedes: sedesEs,
         'stock-inventario': stockInventarioEs,
         roles: rolesEs,
+        settings: settingsEs,
         usuarios: usuariosEs,
         tenants: tenantsEs,
         planes: planesEs,
@@ -145,6 +148,7 @@ const resources = {
         sedes: sedesEn,
         'stock-inventario': stockInventarioEn,
         roles: rolesEn,
+        settings: settingsEn,
         usuarios: usuariosEn,
         tenants: tenantsEn,
         planes: planesEn,
@@ -194,6 +198,7 @@ void i18n
             'propietarios',
             'sedes',
             'roles',
+            'settings',
             'usuarios',
             'tenants',
             'planes',
