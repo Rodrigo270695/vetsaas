@@ -71,7 +71,7 @@ final class SubscriptionRenewalReminderScanner
             return 'skipped';
         }
 
-        $daysUntil = $now->copy()->startOfDay()->diffInDays($anchor->copy()->startOfDay(), false);
+        $daysUntil = (int) $now->copy()->startOfDay()->diffInDays($anchor->copy()->startOfDay(), false);
         $kind = $this->matchingKind($daysUntil, $reminderDays);
         if ($kind === null) {
             return 'skipped';
