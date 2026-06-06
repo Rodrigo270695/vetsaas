@@ -57,7 +57,14 @@
         "change_plan": "Cambiar de plan",
         "cancel": "Cancelar suscripción",
         "cancelled_locked": "Suscripción cancelada",
-        "renewal_preview": "Vista previa aviso WhatsApp"
+        "renewal_preview": "Vista previa aviso WhatsApp",
+        "renewal_send": "Enviar link renovación WhatsApp"
+    },
+    "renewal_send": {
+        "title": "Enviar link de renovación",
+        "description": "Se enviará por WhatsApp a <strong>{{name}}</strong> el mensaje con el link de pago en Orvae.",
+        "hint": "No depende del día de aviso ni de si ya pagó por adelantado. Úsalo cuando la clínica pida el link o el plan ya venció.",
+        "confirm": "Enviar por WhatsApp"
     },
     "renewal_preview": {
         "title": "Vista previa del aviso de renovación",

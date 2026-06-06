@@ -8,6 +8,7 @@ use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\Tenant;
 use App\Services\Subscriptions\SubscriptionRenewalReminderScanner;
+use App\Services\Subscriptions\SubscriptionRenewalWhatsAppSender;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -138,6 +139,28 @@ class SubscriptionController extends Controller
         $suscripcion->load(['tenant', 'plan']);
 
         return response()->json($scanner->preview($suscripcion));
+    }
+
+    public function sendRenewalWhatsApp(
+        Subscription $suscripcion,
+        SubscriptionRenewalWhatsAppSender $sender,
+    ): RedirectResponse {
+        $suscripcion->load(['tenant', 'plan']);
+
+        $result = $sender->sendManual($suscripcion);
+
+        if (! $result['ok']) {
+            return back()->with('error', $result['error']);
+        }
+
+        $tenantName = $suscripcion->tenant?->nombre_comercial
+            ?: $suscripcion->tenant?->razon_social
+            ?: 'la clínica';
+
+        return back()->with(
+            'success',
+            "Link de renovación enviado por WhatsApp a {$tenantName}.",
+        );
     }
 
     public function store(SubscriptionRequest $request): RedirectResponse

@@ -17,6 +17,8 @@ class SubscriptionRenewalReminder extends Model
 
     public const KIND_1D = '1d';
 
+    public const KIND_MANUAL = 'manual';
+
     public static function kindForDays(int $days): string
     {
         return "{$days}d";

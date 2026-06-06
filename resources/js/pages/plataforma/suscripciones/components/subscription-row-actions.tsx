@@ -5,6 +5,7 @@ import {
     Lock,
     MessageCircle,
     MoreHorizontal,
+    Send,
     Pencil,
     Receipt,
     Repeat,
@@ -31,8 +32,10 @@ export type SubscriptionRowActionsProps = {
     onCancel: (s: Subscription) => void;
     onDelete: (s: Subscription) => void;
     onRenewalPreview?: (s: Subscription) => void;
+    onRenewalSend?: (s: Subscription) => void;
     canUpdate?: boolean;
     canViewRenewalPreview?: boolean;
+    canSendRenewalWhatsApp?: boolean;
     canDelete?: boolean;
     canExtendTrial?: boolean;
     canChangePlan?: boolean;
@@ -59,8 +62,10 @@ export function SubscriptionRowActions({
     onCancel,
     onDelete,
     onRenewalPreview,
+    onRenewalSend,
     canUpdate = true,
     canViewRenewalPreview = true,
+    canSendRenewalWhatsApp = true,
     canDelete = true,
     canExtendTrial = true,
     canChangePlan = true,
@@ -78,6 +83,8 @@ export function SubscriptionRowActions({
     const showDelete = canDelete && isCancelled;
     const showRenewalPreview =
         canViewRenewalPreview && !isCancelled && onRenewalPreview !== undefined;
+    const showRenewalSend =
+        canSendRenewalWhatsApp && !isCancelled && onRenewalSend !== undefined;
 
     // Link al historial de cobros filtrado por esta suscripción.
     // El filtro `subscription_id` lo lee el SubscriptionPaymentController.
@@ -121,6 +128,16 @@ export function SubscriptionRowActions({
                     >
                         <MessageCircle className="size-4" strokeWidth={2.25} />
                         {t('suscripciones:row.renewal_preview')}
+                    </DropdownMenuItem>
+                )}
+
+                {showRenewalSend && (
+                    <DropdownMenuItem
+                        onSelect={() => onRenewalSend(subscription)}
+                        className="cursor-pointer gap-2 text-emerald-700 focus:text-emerald-700 dark:text-emerald-400"
+                    >
+                        <Send className="size-4" strokeWidth={2.25} />
+                        {t('suscripciones:row.renewal_send')}
                     </DropdownMenuItem>
                 )}
 

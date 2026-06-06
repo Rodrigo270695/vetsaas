@@ -60,6 +60,7 @@ type PageProps = {
         kind_7d: number;
         kind_3d: number;
         kind_1d: number;
+        kind_manual: number;
     };
     whatsapp: WhatsAppProps;
 };
@@ -79,7 +80,14 @@ const EMPTY_PAGINATED: PageProps['items'] = {
 export default function Index({
     items: paginated = EMPTY_PAGINATED,
     filters = { search: '', per_page: DEFAULT_PER_PAGE },
-    stats = { total: 0, last_7_days: 0, kind_7d: 0, kind_3d: 0, kind_1d: 0 },
+    stats = {
+        total: 0,
+        last_7_days: 0,
+        kind_7d: 0,
+        kind_3d: 0,
+        kind_1d: 0,
+        kind_manual: 0,
+    },
     whatsapp = { enabled: false, configured: false, session: null },
 }: PageProps) {
     const { t, i18n } = useTranslation(['avisos-renovacion', 'common']);
@@ -110,7 +118,13 @@ export default function Index({
                 key: 'kind',
                 header: t('columns.kind'),
                 cell: (row) =>
-                    t(`kind.${row.reminder_kind}` as 'kind.7d' | 'kind.3d' | 'kind.1d', {
+                    t(
+                        `kind.${row.reminder_kind}` as
+                            | 'kind.7d'
+                            | 'kind.3d'
+                            | 'kind.1d'
+                            | 'kind.manual',
+                        {
                         defaultValue: row.reminder_kind,
                     }),
             },
@@ -163,6 +177,11 @@ export default function Index({
                     <StatBadge label={t('stats.kind_7d')} value={stats.kind_7d} variant="warning" />
                     <StatBadge label={t('stats.kind_3d')} value={stats.kind_3d} variant="info" />
                     <StatBadge label={t('stats.kind_1d')} value={stats.kind_1d} variant="danger" />
+                    <StatBadge
+                        label={t('stats.kind_manual')}
+                        value={stats.kind_manual}
+                        variant="success"
+                    />
                 </div>
 
                 <DataToolbar

@@ -57,7 +57,14 @@
         "change_plan": "Change plan",
         "cancel": "Cancel subscription",
         "cancelled_locked": "Subscription cancelled",
-        "renewal_preview": "Preview renewal WhatsApp"
+        "renewal_preview": "Preview renewal WhatsApp",
+        "renewal_send": "Send renewal link via WhatsApp"
+    },
+    "renewal_send": {
+        "title": "Send renewal link",
+        "description": "A WhatsApp message with the Orvae payment link will be sent to <strong>{{name}}</strong>.",
+        "hint": "Ignores reminder-day rules and advance payments. Use when the clinic asks for the link or the plan has already expired.",
+        "confirm": "Send via WhatsApp"
     },
     "renewal_preview": {
         "title": "Renewal reminder preview",

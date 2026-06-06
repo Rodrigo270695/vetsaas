@@ -45,6 +45,7 @@ import { SubscriptionBulkDeleteDialog } from './components/subscription-bulk-del
 import { SubscriptionDeleteDialog } from './components/subscription-delete-dialog';
 import { SubscriptionFormModal } from './components/subscription-form-modal';
 import { SubscriptionRenewalPreviewDialog } from './components/subscription-renewal-preview-dialog';
+import { SubscriptionRenewalSendDialog } from './components/subscription-renewal-send-dialog';
 import { SubscriptionRowActions } from './components/subscription-row-actions';
 import type {
     Subscription,
@@ -83,7 +84,8 @@ type ModalState =
     | { type: 'cancel'; subscription: Subscription }
     | { type: 'delete'; subscription: Subscription }
     | { type: 'bulk-delete' }
-    | { type: 'renewal-preview'; subscription: Subscription };
+    | { type: 'renewal-preview'; subscription: Subscription }
+    | { type: 'renewal-send'; subscription: Subscription };
 
 const DEFAULT_PER_PAGE = 10;
 const DEFAULT_ESTADO: SubscriptionEstadoFilter = 'todos';
@@ -158,12 +160,15 @@ export default function Index({
     const canChangePlan = can('plataforma-suscripciones.change-plan');
     const canCancel = can('plataforma-suscripciones.cancel');
     const canViewRenewalPreview = can('plataforma-suscripciones.view');
+    const canSendRenewalWhatsApp = canUpdate;
     const showRowActions =
         canUpdate ||
         canDelete ||
         canExtendTrial ||
         canChangePlan ||
-        canCancel;
+        canCancel ||
+        canViewRenewalPreview ||
+        canSendRenewalWhatsApp;
 
     const {
         search,
@@ -247,6 +252,11 @@ export default function Index({
     const openRenewalPreview = useCallback(
         (subscription: Subscription) =>
             setModal({ type: 'renewal-preview', subscription }),
+        [],
+    );
+    const openRenewalSend = useCallback(
+        (subscription: Subscription) =>
+            setModal({ type: 'renewal-send', subscription }),
         [],
     );
 
@@ -472,8 +482,10 @@ export default function Index({
                             onCancel={openCancel}
                             onDelete={openDelete}
                             onRenewalPreview={openRenewalPreview}
+                            onRenewalSend={openRenewalSend}
                             canUpdate={canUpdate}
                             canViewRenewalPreview={canViewRenewalPreview}
+                            canSendRenewalWhatsApp={canSendRenewalWhatsApp}
                             canDelete={canDelete}
                             canExtendTrial={canExtendTrial}
                             canChangePlan={canChangePlan}
@@ -501,7 +513,9 @@ export default function Index({
         openCancel,
         openDelete,
         openRenewalPreview,
+        openRenewalSend,
         canViewRenewalPreview,
+        canSendRenewalWhatsApp,
     ]);
 
     return (
@@ -754,6 +768,16 @@ export default function Index({
                     modal.type === 'renewal-preview'
                         ? modal.subscription
                         : null
+                }
+            />
+
+            <SubscriptionRenewalSendDialog
+                open={modal.type === 'renewal-send'}
+                onOpenChange={(open) => {
+                    if (!open) closeModal();
+                }}
+                subscription={
+                    modal.type === 'renewal-send' ? modal.subscription : null
                 }
             />
 

@@ -8,7 +8,6 @@ use App\Models\Subscription;
 use App\Models\SubscriptionRenewalReminder;
 use App\Models\Tenant;
 use App\Services\OpenWa\PlatformWhatsAppMessenger;
-use App\Support\Subscriptions\SubscriptionRenewalUrl;
 use App\Support\WhatsApp\WhatsAppChatId;
 use Carbon\CarbonInterface;
 
@@ -20,7 +19,7 @@ final class SubscriptionRenewalReminderScanner
     public function __construct(
         private readonly PlatformWhatsAppMessenger $messenger,
         private readonly SubscriptionPaymentCoverage $coverage,
-        private readonly SubscriptionRenewalUrl $renewalUrl,
+        private readonly SubscriptionRenewalMessageBuilder $messageBuilder,
     ) {}
 
     /**
@@ -203,7 +202,7 @@ final class SubscriptionRenewalReminderScanner
         }
 
         try {
-            $this->messenger->sendText($chatId, $evaluation['message'] ?? $this->buildMessage($tenant, $subscription, $anchor));
+            $this->messenger->sendText($chatId, $evaluation['message'] ?? $this->messageBuilder->build($tenant, $subscription, $anchor, false));
         } catch (\Throwable) {
             return 'failed';
         }
@@ -289,7 +288,8 @@ final class SubscriptionRenewalReminderScanner
         $daysUntil = (int) $now->copy()->startOfDay()->diffInDays($anchor->copy()->startOfDay(), false);
         $kind = $this->matchingKind($daysUntil, $reminderDays);
 
-        $message = $this->buildMessage($tenant, $subscription, $anchor);
+        $expired = $daysUntil < 0;
+        $message = $this->messageBuilder->build($tenant, $subscription, $anchor, $expired);
         $base = [
             'message' => $message,
             'anchor_at' => $anchor->toIso8601String(),
@@ -447,24 +447,4 @@ final class SubscriptionRenewalReminderScanner
             ->exists();
     }
 
-    private function buildMessage(Tenant $tenant, Subscription $subscription, CarbonInterface $anchor): string
-    {
-        $name = trim((string) ($tenant->nombre_comercial ?: $tenant->razon_social));
-        $ciclo = $subscription->ciclo === 'anual' ? 'anual' : 'mensual';
-        $fecha = $anchor->timezone(config('app.timezone', 'America/Lima'))->format('d/m/Y');
-        $renewUrl = $this->renewalUrl->for($tenant, $subscription);
-
-        return implode("\n", [
-            "Hola, {$name} 👋",
-            '',
-            "Tu plan VetSaaS ({$ciclo}) vence el {$fecha}.",
-            'Renueva para seguir usando la plataforma sin interrupciones.',
-            '',
-            "Paga aquí: {$renewUrl}",
-            '',
-            'Si ya pagaste, tu próximo vencimiento se actualizará automáticamente.',
-            '',
-            'Soporte Orvae',
-        ]);
-    }
 }

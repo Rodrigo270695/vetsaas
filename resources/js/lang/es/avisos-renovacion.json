@@ -7,7 +7,8 @@
         "last_7_days": "Últimos 7 días",
         "kind_7d": "Aviso 7 días",
         "kind_3d": "Aviso 3 días",
-        "kind_1d": "Aviso 1 día"
+        "kind_1d": "Aviso 1 día",
+        "kind_manual": "Envío manual"
     },
     "columns": {
         "tenant": "Clínica",
@@ -20,7 +21,8 @@
     "kind": {
         "7d": "7 días antes",
         "3d": "3 días antes",
-        "1d": "1 día antes"
+        "1d": "1 día antes",
+        "manual": "Manual (soporte)"
     },
     "empty": "Aún no se ha enviado ningún aviso de renovación.",
     "whatsapp": {

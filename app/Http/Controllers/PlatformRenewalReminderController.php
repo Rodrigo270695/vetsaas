@@ -48,6 +48,9 @@ class PlatformRenewalReminderController extends Controller
             'kind_1d' => SubscriptionRenewalReminder::query()
                 ->where('reminder_kind', SubscriptionRenewalReminder::KIND_1D)
                 ->count(),
+            'kind_manual' => SubscriptionRenewalReminder::query()
+                ->where('reminder_kind', SubscriptionRenewalReminder::KIND_MANUAL)
+                ->count(),
         ];
 
         return Inertia::render('plataforma/avisos-renovacion/index', [
