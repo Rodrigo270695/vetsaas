@@ -26,4 +26,10 @@ return [
 
     'max_attempts' => (int) env('OPENWA_QUEUE_MAX_ATTEMPTS', 3),
 
+    /*
+    | Sesión OpenWA para mensajes de plataforma (avisos de renovación a clínicas).
+    | Crear y escanear QR en wa-admin con este nombre (ej. vetsaas-platform).
+    */
+    'platform_session_name' => env('OPENWA_PLATFORM_SESSION_NAME', 'vetsaas-platform'),
+
 ];

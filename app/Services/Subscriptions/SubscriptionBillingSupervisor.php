@@ -13,6 +13,10 @@ use Carbon\CarbonInterface;
  */
 class SubscriptionBillingSupervisor
 {
+    public function __construct(
+        private readonly SubscriptionPaymentCoverage $coverage,
+    ) {}
+
     /**
      * @return array{trials_to_grace: int, active_to_grace: int, grace_to_suspended: int}
      */
@@ -127,18 +131,7 @@ class SubscriptionBillingSupervisor
 
     private function hasCoveringPayment(Subscription $subscription): bool
     {
-        $anchor = $subscription->proximo_cobro_at
-            ?? $subscription->trial_ends_at
-            ?? $subscription->current_period_start;
-
-        if ($anchor === null) {
-            return false;
-        }
-
-        return $subscription->payments()
-            ->where('estado', 'procesado')
-            ->where('pagado_at', '>=', $anchor)
-            ->exists();
+        return $this->coverage->hasCoveringPayment($subscription);
     }
 
     private function graceDays(): int
