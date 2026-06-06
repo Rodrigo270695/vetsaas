@@ -45,6 +45,7 @@
         "estado": "Estado",
         "ciclo": "Ciclo",
         "precio_pactado": "Precio pactado",
+        "periodo_actual": "Período actual",
         "trial_ends_at": "Fin trial",
         "proximo_cobro_at": "Próximo cobro",
         "acciones": "Acciones"

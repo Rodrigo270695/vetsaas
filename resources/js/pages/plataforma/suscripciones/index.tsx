@@ -406,6 +406,24 @@ export default function Index({
                 ),
             },
             {
+                key: 'current_period_end',
+                header: t('suscripciones:columns.periodo_actual'),
+                sortable: true,
+                cell: (s) => {
+                    const start = formatDate(s.current_period_start);
+                    const end = formatDate(s.current_period_end);
+                    if (start === '—' && end === '—') {
+                        return <span className="text-xs text-muted-foreground">—</span>;
+                    }
+                    return (
+                        <div className="flex flex-col text-xs leading-tight">
+                            <span>{start}</span>
+                            <span className="text-muted-foreground">→ {end}</span>
+                        </div>
+                    );
+                },
+            },
+            {
                 key: 'trial_ends_at',
                 header: t('suscripciones:columns.trial_ends_at'),
                 sortable: true,

@@ -37,6 +37,7 @@ class SubscriptionController extends Controller
         'ciclo',
         'precio_pactado',
         'trial_ends_at',
+        'current_period_start',
         'current_period_end',
         'proximo_cobro_at',
         'created_at',

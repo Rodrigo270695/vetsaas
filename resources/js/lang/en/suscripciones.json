@@ -45,6 +45,7 @@
         "estado": "Status",
         "ciclo": "Cycle",
         "precio_pactado": "Negotiated price",
+        "periodo_actual": "Current period",
         "trial_ends_at": "Trial ends",
         "proximo_cobro_at": "Next charge",
         "acciones": "Actions"
