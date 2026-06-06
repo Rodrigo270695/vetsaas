@@ -204,16 +204,6 @@ final class SubscriptionRenewalReminderScanner
             ];
         }
 
-        if ($this->coverage->hasCoveringPayment($subscription)) {
-            return [
-                ...$empty,
-                'skip_code' => 'already_paid',
-                'skip_reason' => 'Ya hay un pago procesado que cubre este vencimiento.',
-                'anchor_at' => $anchor->toIso8601String(),
-                'anchor_source' => $anchorSource,
-            ];
-        }
-
         $daysUntil = (int) $now->copy()->startOfDay()->diffInDays($anchor->copy()->startOfDay(), false);
         $kind = $this->matchingKind($daysUntil, $reminderDays);
 
@@ -227,6 +217,15 @@ final class SubscriptionRenewalReminderScanner
             'already_sent' => false,
             'destinatario' => WhatsAppChatId::fromPhone($tenant->telefono),
         ];
+
+        if ($this->coverage->hasCoveringPayment($subscription)) {
+            return [
+                ...$base,
+                'would_send' => false,
+                'skip_code' => 'already_paid',
+                'skip_reason' => 'Ya hay un pago procesado que cubre este vencimiento. El aviso automático no se enviará hasta el próximo ciclo sin pago anticipado.',
+            ];
+        }
 
         if ($daysUntil < 0) {
             return [
