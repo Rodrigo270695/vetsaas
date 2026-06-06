@@ -24,7 +24,9 @@ use App\Http\Controllers\LaboratorioController;
 use App\Http\Controllers\MovimientoInventarioController;
 use App\Http\Controllers\PacienteController;
 use App\Http\Controllers\PlanController;
+use App\Http\Controllers\PlatformRenewalReminderController;
 use App\Http\Controllers\PlatformSettingController;
+use App\Http\Controllers\PlatformWhatsAppController;
 use App\Http\Controllers\ProductoInventarioController;
 use App\Http\Controllers\ProveedorInventarioController;
 use App\Http\Controllers\StockInventarioController;
@@ -824,6 +826,24 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             Route::middleware('permission:plataforma-cobros.resend-invoice')
                 ->post('cobros/{cobro}/resend-invoice', [SubscriptionPaymentController::class, 'resendInvoice'])
                 ->name('cobros.resend-invoice');
+
+            // ── Avisos de renovación (WhatsApp plataforma → tenants) ──
+            Route::middleware('permission:plataforma-suscripciones.view')
+                ->get('avisos-renovacion', [PlatformRenewalReminderController::class, 'index'])
+                ->name('avisos-renovacion.index');
+            Route::middleware('permission:plataforma-suscripciones.update')
+                ->post('avisos-renovacion/run', [PlatformRenewalReminderController::class, 'runScan'])
+                ->name('avisos-renovacion.run');
+            Route::middleware('permission:plataforma-suscripciones.update')->group(function (): void {
+                Route::post('avisos-renovacion/whatsapp/sync', [PlatformWhatsAppController::class, 'sync'])
+                    ->name('avisos-renovacion.whatsapp.sync');
+                Route::get('avisos-renovacion/whatsapp/qr', [PlatformWhatsAppController::class, 'qr'])
+                    ->name('avisos-renovacion.whatsapp.qr');
+                Route::post('avisos-renovacion/whatsapp/logout', [PlatformWhatsAppController::class, 'logout'])
+                    ->name('avisos-renovacion.whatsapp.logout');
+                Route::post('avisos-renovacion/whatsapp/test', [PlatformWhatsAppController::class, 'sendTest'])
+                    ->name('avisos-renovacion.whatsapp.test');
+            });
         });
     });
 

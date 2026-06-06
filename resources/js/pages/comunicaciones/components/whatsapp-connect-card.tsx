@@ -27,13 +27,34 @@ export type WhatsAppProps = {
     session: WhatsAppSessionProps | null;
 };
 
+export type WhatsAppApiRoutes = {
+    sync: string;
+    qr: string;
+    logout: string;
+    test: string;
+};
+
+const DEFAULT_API_ROUTES: WhatsAppApiRoutes = {
+    sync: '/comunicaciones/whatsapp/sync',
+    qr: '/comunicaciones/whatsapp/qr',
+    logout: '/comunicaciones/whatsapp/logout',
+    test: '/comunicaciones/whatsapp/test',
+};
+
 type Props = {
     whatsapp: WhatsAppProps;
     canManage: boolean;
+    apiRoutes?: WhatsAppApiRoutes;
+    translationNs?: 'comunicaciones' | 'avisos-renovacion';
 };
 
-export function WhatsAppConnectCard({ whatsapp, canManage }: Props) {
-    const { t, i18n } = useTranslation('comunicaciones');
+export function WhatsAppConnectCard({
+    whatsapp,
+    canManage,
+    apiRoutes = DEFAULT_API_ROUTES,
+    translationNs = 'comunicaciones',
+}: Props) {
+    const { t, i18n } = useTranslation(translationNs);
     const [qrCode, setQrCode] = useState<string | null>(null);
     const [loadingQr, setLoadingQr] = useState(false);
     const [syncing, setSyncing] = useState(false);
@@ -53,7 +74,7 @@ export function WhatsAppConnectCard({ whatsapp, canManage }: Props) {
     const fetchQr = useCallback(async () => {
         setLoadingQr(true);
         try {
-            const res = await fetch('/comunicaciones/whatsapp/qr', {
+            const res = await fetch(apiRoutes.qr, {
                 headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
                 credentials: 'same-origin',
             });
@@ -68,7 +89,7 @@ export function WhatsAppConnectCard({ whatsapp, canManage }: Props) {
         } finally {
             setLoadingQr(false);
         }
-    }, [stopPoll]);
+    }, [apiRoutes.qr, stopPoll]);
 
     const handleConnect = useCallback(() => {
         if (!canManage) {
@@ -77,7 +98,7 @@ export function WhatsAppConnectCard({ whatsapp, canManage }: Props) {
 
         setSyncing(true);
         router.post(
-            '/comunicaciones/whatsapp/sync',
+            apiRoutes.sync,
             {},
             {
                 preserveScroll: true,
@@ -91,7 +112,7 @@ export function WhatsAppConnectCard({ whatsapp, canManage }: Props) {
                 },
             },
         );
-    }, [canManage, fetchQr, stopPoll]);
+    }, [apiRoutes.sync, canManage, fetchQr, stopPoll]);
 
     if (!whatsapp.configured) {
         return (
@@ -217,6 +238,8 @@ export function WhatsAppConnectCard({ whatsapp, canManage }: Props) {
                 open={disconnectOpen}
                 onOpenChange={setDisconnectOpen}
                 phone={session?.phone ?? null}
+                logoutUrl={apiRoutes.logout}
+                translationNs={translationNs}
                 onSuccess={() => {
                     setQrCode(null);
                     stopPoll();
@@ -227,6 +250,8 @@ export function WhatsAppConnectCard({ whatsapp, canManage }: Props) {
                 open={testOpen}
                 onOpenChange={setTestOpen}
                 defaultPhone={session?.phone ?? null}
+                testUrl={apiRoutes.test}
+                translationNs={translationNs}
             />
         </Card>
     );

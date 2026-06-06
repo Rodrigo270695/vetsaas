@@ -13,6 +13,7 @@ final class PlatformWhatsAppMessenger
 {
     public function __construct(
         private readonly OpenWaClient $client,
+        private readonly PlatformWhatsAppSessionSync $sync,
     ) {}
 
     public function isReady(): bool
@@ -21,20 +22,9 @@ final class PlatformWhatsAppMessenger
             return false;
         }
 
-        $sessionName = trim((string) config('openwa.platform_session_name', ''));
-        if ($sessionName === '') {
-            return false;
-        }
+        $session = $this->sync->ensure();
 
-        try {
-            $remote = $this->client->findSessionByName($sessionName);
-
-            return is_array($remote)
-                && ($remote['status'] ?? null) === 'ready'
-                && filled($remote['id'] ?? null);
-        } catch (\Throwable) {
-            return false;
-        }
+        return $session?->isReady() === true;
     }
 
     /**
@@ -49,21 +39,20 @@ final class PlatformWhatsAppMessenger
 
     private function resolveReadySessionId(): string
     {
-        $sessionName = trim((string) config('openwa.platform_session_name', ''));
-        if ($sessionName === '') {
-            throw new RuntimeException('OPENWA_PLATFORM_SESSION_NAME no configurada.');
+        $session = $this->sync->ensure();
+        if ($session === null) {
+            throw new RuntimeException('OpenWA no está configurado para plataforma.');
         }
 
-        $remote = $this->client->findSessionByName($sessionName);
-        if (! is_array($remote)) {
-            throw new RuntimeException('Sesión OpenWA de plataforma no encontrada: '.$sessionName);
+        if (! $session->isReady()) {
+            $session = $this->sync->refresh($session);
         }
 
-        if (($remote['status'] ?? null) !== 'ready') {
-            throw new RuntimeException('Sesión OpenWA de plataforma no está conectada (status: '.($remote['status'] ?? 'unknown').').');
+        if (! $session->isReady()) {
+            throw new RuntimeException('Sesión OpenWA de plataforma no está conectada (status: '.$session->status.').');
         }
 
-        $sessionId = (string) ($remote['id'] ?? '');
+        $sessionId = trim((string) $session->openwa_session_id);
         if ($sessionId === '') {
             throw new RuntimeException('Sesión OpenWA de plataforma sin id.');
         }

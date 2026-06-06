@@ -19,10 +19,18 @@ type Props = {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     defaultPhone?: string | null;
+    testUrl?: string;
+    translationNs?: 'comunicaciones' | 'avisos-renovacion';
 };
 
-export function WhatsAppTestMessageDialog({ open, onOpenChange, defaultPhone }: Props) {
-    const { t } = useTranslation(['comunicaciones', 'common']);
+export function WhatsAppTestMessageDialog({
+    open,
+    onOpenChange,
+    defaultPhone,
+    testUrl = '/comunicaciones/whatsapp/test',
+    translationNs = 'comunicaciones',
+}: Props) {
+    const { t } = useTranslation([translationNs, 'common']);
     const errors = usePage().props.errors as Record<string, string> | undefined;
     const [destinatario, setDestinatario] = useState('');
     const [mensaje, setMensaje] = useState('');
@@ -39,7 +47,7 @@ export function WhatsAppTestMessageDialog({ open, onOpenChange, defaultPhone }: 
         event.preventDefault();
         setProcessing(true);
         router.post(
-            '/comunicaciones/whatsapp/test',
+            testUrl,
             { destinatario, mensaje },
             {
                 preserveScroll: true,

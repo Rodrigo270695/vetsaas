@@ -34,6 +34,7 @@ import rolesEn from '@/lang/en/roles.json';
 import sedesEn from '@/lang/en/sedes.json';
 import tarifasServiciosEn from '@/lang/en/tarifas-servicios.json';
 import stockInventarioEn from '@/lang/en/stock-inventario.json';
+import avisosRenovacionEn from '@/lang/en/avisos-renovacion.json';
 import suscripcionesEn from '@/lang/en/suscripciones.json';
 import tenantsEn from '@/lang/en/tenants.json';
 import usuariosEn from '@/lang/en/usuarios.json';
@@ -70,6 +71,7 @@ import rolesEs from '@/lang/es/roles.json';
 import sedesEs from '@/lang/es/sedes.json';
 import tarifasServiciosEs from '@/lang/es/tarifas-servicios.json';
 import stockInventarioEs from '@/lang/es/stock-inventario.json';
+import avisosRenovacionEs from '@/lang/es/avisos-renovacion.json';
 import suscripcionesEs from '@/lang/es/suscripciones.json';
 import tenantsEs from '@/lang/es/tenants.json';
 import usuariosEs from '@/lang/es/usuarios.json';
@@ -108,6 +110,7 @@ const resources = {
         tenants: tenantsEs,
         planes: planesEs,
         suscripciones: suscripcionesEs,
+        'avisos-renovacion': avisosRenovacionEs,
         cobros: cobrosEs,
         comunicaciones: comunicacionesEs,
         'plataforma-auditoria-soporte': plataformaAuditoriaSoporteEs,
@@ -146,6 +149,7 @@ const resources = {
         tenants: tenantsEn,
         planes: planesEn,
         suscripciones: suscripcionesEn,
+        'avisos-renovacion': avisosRenovacionEn,
         cobros: cobrosEn,
         comunicaciones: comunicacionesEn,
         'plataforma-auditoria-soporte': plataformaAuditoriaSoporteEn,
@@ -194,6 +198,7 @@ void i18n
             'tenants',
             'planes',
             'suscripciones',
+            'avisos-renovacion',
             'cobros',
             'comunicaciones',
             'dashboard',

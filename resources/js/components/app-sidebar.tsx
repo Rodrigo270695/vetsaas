@@ -459,6 +459,12 @@ function useNavConfig(): { singles: NavItem[]; groups: NavGroup[] } {
                             permission: 'plataforma-suscripciones.view',
                         },
                         {
+                            title: t('items.avisos_renovacion'),
+                            href: '/plataforma/avisos-renovacion',
+                            icon: BellRing,
+                            permission: 'plataforma-suscripciones.view',
+                        },
+                        {
                             title: t('items.cobros'),
                             href: '/plataforma/cobros',
                             icon: Wallet,

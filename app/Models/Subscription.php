@@ -67,4 +67,9 @@ class Subscription extends Model
     {
         return $this->hasMany(SubscriptionPayment::class);
     }
+
+    public function renewalReminders(): HasMany
+    {
+        return $this->hasMany(SubscriptionRenewalReminder::class);
+    }
 }

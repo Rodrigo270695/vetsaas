@@ -1,0 +1,46 @@
+{
+    "title": "Renewal notices",
+    "subtitle": "Platform WhatsApp to clinics when their plan is about to expire.",
+    "run_scan": "Run notices now",
+    "stats": {
+        "total": "Total sent",
+        "last_7_days": "Last 7 days",
+        "kind_7d": "7-day notice",
+        "kind_1d": "1-day notice"
+    },
+    "columns": {
+        "tenant": "Clinic",
+        "kind": "Type",
+        "vence": "Expires",
+        "destinatario": "Recipient",
+        "sent_at": "Sent at",
+        "mensaje": "Message"
+    },
+    "kind": {
+        "7d": "7 days before",
+        "1d": "1 day before"
+    },
+    "empty": "No renewal notices have been sent yet.",
+    "whatsapp": {
+        "title": "Platform WhatsApp (Orvae)",
+        "description": "Number used to send subscription expiry notices to clinics.",
+        "disabled": "WhatsApp gateway is not active on the server. Check OPENWA_* in .env.",
+        "status_ready": "Connected",
+        "status_pending": "Pending pairing",
+        "status_error": "Error",
+        "phone": "Linked number",
+        "last_sync": "Last sync",
+        "connect": "Connect WhatsApp",
+        "sync": "Sync status",
+        "disconnect": "Sign out",
+        "disconnect_title": "Unlink platform WhatsApp",
+        "disconnect_description": "Automatic renewal notices will stop until you connect a number again.",
+        "test_send": "Send test",
+        "test_title": "Test message",
+        "test_description": "Verify the platform session can send WhatsApp.",
+        "test_phone": "Destination phone",
+        "test_phone_hint": "Country code or 9-digit Peruvian mobile.",
+        "test_default_message": "Hello, this is a test from VetSaaS (Orvae platform). Renewal notices are working.",
+        "scan_qr": "Scan with WhatsApp on your phone"
+    }
+}

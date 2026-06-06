@@ -1,0 +1,46 @@
+{
+    "title": "Avisos de renovación",
+    "subtitle": "WhatsApp de plataforma hacia las clínicas cuando su plan está por vencer.",
+    "run_scan": "Ejecutar avisos ahora",
+    "stats": {
+        "total": "Total enviados",
+        "last_7_days": "Últimos 7 días",
+        "kind_7d": "Aviso 7 días",
+        "kind_1d": "Aviso 1 día"
+    },
+    "columns": {
+        "tenant": "Clínica",
+        "kind": "Tipo",
+        "vence": "Vence",
+        "destinatario": "Destinatario",
+        "sent_at": "Enviado",
+        "mensaje": "Mensaje"
+    },
+    "kind": {
+        "7d": "7 días antes",
+        "1d": "1 día antes"
+    },
+    "empty": "Aún no se ha enviado ningún aviso de renovación.",
+    "whatsapp": {
+        "title": "WhatsApp de plataforma (Orvae)",
+        "description": "Número desde el que salen los avisos de vencimiento de suscripción a las clínicas.",
+        "disabled": "El gateway WhatsApp no está activo en el servidor. Revisa OPENWA_* en el .env.",
+        "status_ready": "Conectado",
+        "status_pending": "Pendiente de vincular",
+        "status_error": "Con error",
+        "phone": "Número vinculado",
+        "last_sync": "Última sincronización",
+        "connect": "Conectar WhatsApp",
+        "sync": "Sincronizar estado",
+        "disconnect": "Cerrar sesión",
+        "disconnect_title": "Desvincular WhatsApp de plataforma",
+        "disconnect_description": "Los avisos automáticos de renovación dejarán de enviarse hasta que vuelvas a conectar un número.",
+        "test_send": "Enviar prueba",
+        "test_title": "Mensaje de prueba",
+        "test_description": "Verifica que la sesión de plataforma puede enviar WhatsApp.",
+        "test_phone": "Teléfono destino",
+        "test_phone_hint": "Número con código de país o celular peruano de 9 dígitos.",
+        "test_default_message": "Hola, este es un mensaje de prueba desde VetSaaS (plataforma Orvae). Los avisos de renovación funcionan correctamente.",
+        "scan_qr": "Escanea con WhatsApp en tu teléfono"
+    }
+}

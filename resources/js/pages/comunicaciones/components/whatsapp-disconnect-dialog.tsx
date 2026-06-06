@@ -16,17 +16,26 @@ type Props = {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     phone: string | null;
+    logoutUrl?: string;
+    translationNs?: 'comunicaciones' | 'avisos-renovacion';
     onSuccess?: () => void;
 };
 
-export function WhatsAppDisconnectDialog({ open, onOpenChange, phone, onSuccess }: Props) {
-    const { t } = useTranslation(['comunicaciones', 'common']);
+export function WhatsAppDisconnectDialog({
+    open,
+    onOpenChange,
+    phone,
+    logoutUrl = '/comunicaciones/whatsapp/logout',
+    translationNs = 'comunicaciones',
+    onSuccess,
+}: Props) {
+    const { t } = useTranslation([translationNs, 'common']);
     const [processing, setProcessing] = useState(false);
 
     const onConfirm = () => {
         setProcessing(true);
         router.post(
-            '/comunicaciones/whatsapp/logout',
+            logoutUrl,
             {},
             {
                 preserveScroll: true,

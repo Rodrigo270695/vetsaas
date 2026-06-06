@@ -17,7 +17,8 @@ class SubscriptionRenewalRemindersCommand extends Command
         PlatformWhatsAppMessenger $messenger,
     ): int {
         if (! $messenger->isReady()) {
-            $this->warn('Sesión OpenWA de plataforma no configurada o sin conectar. Nada enviado.');
+            $this->warn('Sesión OpenWA de plataforma no configurada o sin conectar.');
+            $this->line('Conéctala en Plataforma → Avisos renovación (botón Conectar WhatsApp + QR).');
 
             return self::SUCCESS;
         }
