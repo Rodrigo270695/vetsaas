@@ -126,3 +126,47 @@ it('omite si ya hay pago que cubre el período', function (): void {
     expect($result['sent'])->toBe(0)
         ->and($result['skipped'])->toBeGreaterThan(0);
 });
+
+it('omite suscripciones del plan free', function (): void {
+    $messenger = Mockery::mock(PlatformWhatsAppMessenger::class);
+    $messenger->shouldReceive('isReady')->andReturn(true);
+    $messenger->shouldReceive('sendText')->never();
+    app()->instance(PlatformWhatsAppMessenger::class, $messenger);
+
+    $plan = Plan::query()->create([
+        'codigo' => 'free',
+        'nombre' => 'Free',
+        'descripcion' => null,
+        'precio_mensual' => '0',
+        'precio_anual' => null,
+        'trial_days' => 0,
+        'orden' => 1,
+        'es_publico' => true,
+        'activo' => true,
+    ]);
+
+    $tenant = Tenant::query()->create([
+        'slug' => 'remfree-'.Str::lower(Str::random(6)),
+        'schema_name' => 'vet_'.Str::lower(Str::random(6)),
+        'razon_social' => 'Clínica Free',
+        'telefono' => '987654323',
+        'email_admin' => Str::lower(Str::random(8)).'@free.test',
+        'estado' => 'active',
+    ]);
+
+    Subscription::withoutEvents(function () use ($tenant, $plan): void {
+        Subscription::query()->create([
+            'tenant_id' => $tenant->id,
+            'plan_id' => $plan->id,
+            'estado' => 'active',
+            'ciclo' => 'mensual',
+            'proximo_cobro_at' => now()->addDays(7)->startOfDay(),
+            'precio_pactado' => '0',
+        ]);
+    });
+
+    $result = app(SubscriptionRenewalReminderScanner::class)->run();
+
+    expect($result['scanned'])->toBe(0)
+        ->and($result['sent'])->toBe(0);
+});

@@ -39,6 +39,8 @@ final class SubscriptionRenewalReminderScanner
             ->with(['tenant', 'plan'])
             ->whereIn('estado', ['active', 'trial'])
             ->whereNull('cancelled_at')
+            ->where('precio_pactado', '>', 0)
+            ->whereHas('plan', fn ($query) => $query->where('codigo', '!=', 'free'))
             ->orderBy('id')
             ->chunkById(100, function ($subscriptions) use ($now, $reminderDays, &$stats): void {
                 foreach ($subscriptions as $subscription) {
@@ -58,7 +60,7 @@ final class SubscriptionRenewalReminderScanner
     private function processSubscription(Subscription $subscription, CarbonInterface $now, array $reminderDays): string
     {
         $tenant = $subscription->tenant;
-        if (! $tenant instanceof Tenant) {
+        if (! $tenant instanceof Tenant || $this->isFreeSubscription($subscription)) {
             return 'skipped';
         }
 
@@ -104,14 +106,32 @@ final class SubscriptionRenewalReminderScanner
         return 'sent';
     }
 
+    private function isFreeSubscription(Subscription $subscription): bool
+    {
+        if ((float) $subscription->precio_pactado <= 0) {
+            return true;
+        }
+
+        $plan = $subscription->plan;
+        if ($plan === null) {
+            return false;
+        }
+
+        if ($plan->codigo === 'free') {
+            return true;
+        }
+
+        $price = $subscription->ciclo === 'anual'
+            ? (float) ($plan->precio_anual ?? 0)
+            : (float) ($plan->precio_mensual ?? 0);
+
+        return $price <= 0;
+    }
+
     private function expiryAnchor(Subscription $subscription): ?CarbonInterface
     {
         if ($subscription->estado === 'trial') {
             return $subscription->trial_ends_at?->copy();
-        }
-
-        if ((float) $subscription->precio_pactado <= 0) {
-            return null;
         }
 
         return ($subscription->proximo_cobro_at ?? $subscription->current_period_end)?->copy();
