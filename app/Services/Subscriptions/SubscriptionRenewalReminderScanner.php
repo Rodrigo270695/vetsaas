@@ -28,31 +28,78 @@ final class SubscriptionRenewalReminderScanner
      */
     public function run(?CarbonInterface $now = null): array
     {
+        return $this->runWithReport($now, send: true)['stats'];
+    }
+
+    /**
+     * @return array{
+     *     stats: array{scanned: int, sent: int, skipped: int, failed: int},
+     *     rows: list<array{
+     *         tenant: string,
+     *         slug: string|null,
+     *         estado: string,
+     *         anchor_at: string|null,
+     *         days_until: int|null,
+     *         result: string,
+     *         skip_code: string|null,
+     *         skip_reason: string|null,
+     *     }>,
+     *     whatsapp_ready: bool,
+     *     reminder_days: list<int>,
+     * }
+     */
+    public function runWithReport(?CarbonInterface $now = null, bool $send = false): array
+    {
         $now ??= now();
         $stats = ['scanned' => 0, 'sent' => 0, 'skipped' => 0, 'failed' => 0];
-
-        if (! $this->messenger->isReady()) {
-            return $stats;
-        }
-
+        $rows = [];
+        $whatsappReady = $this->messenger->isReady();
         $reminderDays = $this->reminderDays();
 
-        Subscription::query()
-            ->with(['tenant', 'plan'])
-            ->whereIn('estado', ['active', 'trial'])
-            ->whereNull('cancelled_at')
-            ->where('precio_pactado', '>', 0)
-            ->whereHas('plan', fn ($query) => $query->where('codigo', '!=', 'free'))
+        if ($send && ! $whatsappReady) {
+            return [
+                'stats' => $stats,
+                'rows' => $rows,
+                'whatsapp_ready' => false,
+                'reminder_days' => $reminderDays,
+            ];
+        }
+
+        $this->eligibleQuery()
             ->orderBy('id')
-            ->chunkById(100, function ($subscriptions) use ($now, $reminderDays, &$stats): void {
+            ->chunkById(100, function ($subscriptions) use ($now, $reminderDays, $send, &$stats, &$rows): void {
                 foreach ($subscriptions as $subscription) {
                     $stats['scanned']++;
-                    $result = $this->processSubscription($subscription, $now, $reminderDays);
-                    $stats[$result]++;
+                    $evaluation = $this->evaluate($subscription, $now, $reminderDays);
+                    $tenantName = $subscription->tenant?->nombre_comercial
+                        ?: $subscription->tenant?->razon_social
+                        ?: '—';
+
+                    if ($send && $evaluation['would_send']) {
+                        $result = $this->processSubscription($subscription, $now, $reminderDays);
+                        $stats[$result]++;
+                        $rows[] = $this->reportRow($subscription, $tenantName, $evaluation, $result);
+                    } else {
+                        if ($send) {
+                            $stats['skipped']++;
+                        }
+
+                        $rows[] = $this->reportRow(
+                            $subscription,
+                            $tenantName,
+                            $evaluation,
+                            ! $send && $evaluation['would_send'] ? 'would_send' : 'skipped',
+                        );
+                    }
                 }
             });
 
-        return $stats;
+        return [
+            'stats' => $stats,
+            'rows' => $rows,
+            'whatsapp_ready' => $whatsappReady,
+            'reminder_days' => $reminderDays,
+        ];
     }
 
     /**
@@ -103,6 +150,41 @@ final class SubscriptionRenewalReminderScanner
      * @param  list<int>  $reminderDays
      * @return 'sent'|'skipped'|'failed'
      */
+    /**
+     * @param  array<string, mixed>  $evaluation
+     * @return array<string, mixed>
+     */
+    private function reportRow(
+        Subscription $subscription,
+        string $tenantName,
+        array $evaluation,
+        string $result,
+    ): array {
+        return [
+            'tenant' => $tenantName,
+            'slug' => $subscription->tenant?->slug,
+            'estado' => $subscription->estado,
+            'anchor_at' => $evaluation['anchor_at'],
+            'days_until' => $evaluation['days_until'],
+            'result' => $result,
+            'skip_code' => $evaluation['skip_code'],
+            'skip_reason' => $evaluation['skip_reason'],
+        ];
+    }
+
+    /**
+     * @return \Illuminate\Database\Eloquent\Builder<Subscription>
+     */
+    private function eligibleQuery()
+    {
+        return Subscription::query()
+            ->with(['tenant', 'plan'])
+            ->whereIn('estado', ['active', 'trial'])
+            ->whereNull('cancelled_at')
+            ->where('precio_pactado', '>', 0)
+            ->whereHas('plan', fn ($query) => $query->where('codigo', '!=', 'free'));
+    }
+
     private function processSubscription(Subscription $subscription, CarbonInterface $now, array $reminderDays): string
     {
         $evaluation = $this->evaluate($subscription, $now, $reminderDays);
