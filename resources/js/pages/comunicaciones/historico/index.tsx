@@ -17,10 +17,27 @@ import type { HistoricoPageProps } from '../types';
 const ROUTE_URL = '/comunicaciones/historico';
 const DEFAULT_PER_PAGE = 15;
 
+const EMPTY_PAGINATED: HistoricoPageProps['items'] = {
+    data: [],
+    current_page: 1,
+    last_page: 1,
+    per_page: DEFAULT_PER_PAGE,
+    total: 0,
+    from: null,
+    to: null,
+    path: ROUTE_URL,
+    links: [],
+};
+
 export default function Index({
-    items: paginated,
-    filters,
-    stats,
+    items: paginated = EMPTY_PAGINATED,
+    filters = {
+        search: '',
+        per_page: DEFAULT_PER_PAGE,
+        estado: 'enviado',
+        tipo: null,
+    },
+    stats = { enviado: 0 },
 }: HistoricoPageProps) {
     const { t, i18n } = useTranslation('comunicaciones');
 

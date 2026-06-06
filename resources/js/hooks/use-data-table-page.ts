@@ -161,11 +161,11 @@ export function useDataTablePage<
         defaults,
     } = options;
 
-    const [search, setSearch] = useState<string>(initialFilters.search ?? '');
+    const [search, setSearch] = useState<string>(initialFilters?.search ?? '');
     const [isLoading, setIsLoading] = useState<boolean>(false);
 
     const currentSort: SortState | null =
-        initialFilters.sort && initialFilters.direction
+        initialFilters?.sort && initialFilters?.direction
             ? {
                   key: initialFilters.sort,
                   direction: initialFilters.direction,
@@ -232,7 +232,7 @@ export function useDataTablePage<
         }
 
         // Si el texto coincide con el server-side, no disparamos.
-        if (search === filtersRef.current.search) {
+        if (search === (filtersRef.current?.search ?? '')) {
             return;
         }
 

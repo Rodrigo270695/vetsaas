@@ -36,13 +36,36 @@ function estadoVariant(estado: string): StatBadgeVariant {
     return 'muted';
 }
 
+const EMPTY_STATS: ColaPageProps['stats'] = {
+    pendiente: 0,
+    procesando: 0,
+    fallido: 0,
+};
+
+const EMPTY_PAGINATED: ColaPageProps['items'] = {
+    data: [],
+    current_page: 1,
+    last_page: 1,
+    per_page: DEFAULT_PER_PAGE,
+    total: 0,
+    from: null,
+    to: null,
+    path: ROUTE_URL,
+    links: [],
+};
+
 export default function Index({
-    items: paginated,
-    filters,
-    stats,
-    estado_options,
-    tipo_options,
-    whatsapp,
+    items: paginated = EMPTY_PAGINATED,
+    filters = {
+        search: '',
+        per_page: DEFAULT_PER_PAGE,
+        estado: 'pendiente',
+        tipo: null,
+    },
+    stats = EMPTY_STATS,
+    estado_options = ['pendiente', 'procesando', 'fallido'],
+    tipo_options = [],
+    whatsapp = { enabled: false, configured: false, session: null },
 }: ColaPageProps) {
     const { t, i18n } = useTranslation(['comunicaciones', 'common']);
     const { can } = usePermission();

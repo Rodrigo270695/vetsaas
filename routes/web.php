@@ -554,8 +554,8 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             Route::inertia('resumenes', 'facturacion/resumenes/index')->name('resumenes');
         });
 
-        // ===== Comunicaciones =====
-        Route::prefix('comunicaciones')->name('comunicaciones.')->group(function () {
+        // ===== Comunicaciones (schema del tenant: cola, WhatsApp por clínica) =====
+        Route::prefix('comunicaciones')->name('comunicaciones.')->middleware('tenant.required')->group(function () {
             Route::middleware('permission:comunicaciones-cola.view')
                 ->get('cola', [NotificationQueueController::class, 'cola'])
                 ->name('cola');
