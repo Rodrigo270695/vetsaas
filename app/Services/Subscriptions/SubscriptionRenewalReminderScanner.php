@@ -10,7 +10,6 @@ use App\Models\Tenant;
 use App\Services\OpenWa\PlatformWhatsAppMessenger;
 use App\Support\WhatsApp\WhatsAppChatId;
 use Carbon\CarbonInterface;
-use Illuminate\Support\Carbon;
 
 /**
  * Avisa por WhatsApp al teléfono del tenant cuando su suscripción está por vencer.
@@ -105,7 +104,7 @@ final class SubscriptionRenewalReminderScanner
         return 'sent';
     }
 
-    private function expiryAnchor(Subscription $subscription): ?Carbon
+    private function expiryAnchor(Subscription $subscription): ?CarbonInterface
     {
         if ($subscription->estado === 'trial') {
             return $subscription->trial_ends_at?->copy();
