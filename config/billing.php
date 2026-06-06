@@ -28,6 +28,11 @@ return [
         explode(',', (string) env('BILLING_RENEWAL_REMINDER_DAYS', '7,1'))
     ))),
 
-    'renewal_url' => rtrim((string) env('ORVAE_RENEWAL_URL', 'https://orvae.pe'), '/'),
+    /*
+    | URL base de checkout Orvae para renovar. Se puede usar plantilla:
+    |   https://orvae.pe/checkout/vetsaas/{tenant}
+    | o base con query (?tenant=slug&plan=starter&ciclo=mensual).
+    */
+    'renewal_url' => rtrim((string) env('ORVAE_RENEWAL_URL', 'https://orvae.pe/checkout/vetsaas'), '/'),
 
 ];

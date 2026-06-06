@@ -8,6 +8,7 @@ use App\Models\Subscription;
 use App\Models\SubscriptionRenewalReminder;
 use App\Models\Tenant;
 use App\Services\OpenWa\PlatformWhatsAppMessenger;
+use App\Support\Subscriptions\SubscriptionRenewalUrl;
 use App\Support\WhatsApp\WhatsAppChatId;
 use Carbon\CarbonInterface;
 
@@ -19,6 +20,7 @@ final class SubscriptionRenewalReminderScanner
     public function __construct(
         private readonly PlatformWhatsAppMessenger $messenger,
         private readonly SubscriptionPaymentCoverage $coverage,
+        private readonly SubscriptionRenewalUrl $renewalUrl,
     ) {}
 
     /**
@@ -188,7 +190,7 @@ final class SubscriptionRenewalReminderScanner
         $name = trim((string) ($tenant->nombre_comercial ?: $tenant->razon_social));
         $ciclo = $subscription->ciclo === 'anual' ? 'anual' : 'mensual';
         $fecha = $anchor->timezone(config('app.timezone', 'America/Lima'))->format('d/m/Y');
-        $renewUrl = rtrim((string) config('billing.renewal_url', 'https://orvae.pe'), '/');
+        $renewUrl = $this->renewalUrl->for($tenant, $subscription);
 
         return implode("\n", [
             "Hola, {$name} 👋",
@@ -196,7 +198,9 @@ final class SubscriptionRenewalReminderScanner
             "Tu plan VetSaaS ({$ciclo}) vence el {$fecha}.",
             'Renueva para seguir usando la plataforma sin interrupciones.',
             '',
-            "Renovar: {$renewUrl}",
+            "Paga aquí: {$renewUrl}",
+            '',
+            'Si ya pagaste, tu próximo vencimiento se actualizará automáticamente.',
             '',
             'Soporte Orvae',
         ]);

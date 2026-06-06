@@ -15,10 +15,21 @@ final class SubscriptionPaymentCoverage
     {
         $anchor = $subscription->proximo_cobro_at
             ?? $subscription->trial_ends_at
+            ?? $subscription->current_period_end
             ?? $subscription->current_period_start;
 
         if ($anchor === null) {
             return false;
+        }
+
+        $coversUpcomingPeriod = $subscription->payments()
+            ->where('estado', 'procesado')
+            ->whereNotNull('periodo_fin')
+            ->where('periodo_fin', '>=', $anchor)
+            ->exists();
+
+        if ($coversUpcomingPeriod) {
+            return true;
         }
 
         return $subscription->payments()

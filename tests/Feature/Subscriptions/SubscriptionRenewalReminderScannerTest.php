@@ -22,12 +22,16 @@ beforeEach(function (): void {
 });
 
 it('envía recordatorio 7 días antes del próximo cobro', function (): void {
+    $tenantSlug = 'rem7d-'.Str::lower(Str::random(6));
+
     $messenger = Mockery::mock(PlatformWhatsAppMessenger::class);
     $messenger->shouldReceive('isReady')->andReturn(true);
     $messenger->shouldReceive('sendText')
         ->once()
         ->withArgs(fn (string $chatId, string $text): bool => str_contains($chatId, '@c.us')
-            && str_contains($text, 'vence el'))
+            && str_contains($text, 'vence el')
+            && str_contains($text, 'Paga aquí:')
+            && str_contains($text, 'tenant='.$tenantSlug))
         ->andReturn(['id' => 'wa-msg-1']);
     app()->instance(PlatformWhatsAppMessenger::class, $messenger);
 
@@ -44,7 +48,7 @@ it('envía recordatorio 7 días antes del próximo cobro', function (): void {
     ]);
 
     $tenant = Tenant::query()->create([
-        'slug' => 'rem7d-'.Str::lower(Str::random(6)),
+        'slug' => $tenantSlug,
         'schema_name' => 'vet_'.Str::lower(Str::random(6)),
         'razon_social' => 'Clínica Reminder',
         'nombre_comercial' => 'Clínica Reminder',
@@ -72,7 +76,7 @@ it('envía recordatorio 7 días antes del próximo cobro', function (): void {
         ->and(SubscriptionRenewalReminder::query()->count())->toBe(1);
 });
 
-it('omite si ya hay pago que cubre el período', function (): void {
+it('omite si ya hay pago anticipado que cubre el próximo período', function (): void {
     $messenger = Mockery::mock(PlatformWhatsAppMessenger::class);
     $messenger->shouldReceive('isReady')->andReturn(true);
     $messenger->shouldReceive('sendText')->never();
@@ -114,11 +118,17 @@ it('omite si ya hay pago que cubre el período', function (): void {
 
     SubscriptionPayment::query()->create([
         'subscription_id' => $subscription->id,
+        'tenant_id' => $tenant->id,
+        'plan_id' => $plan->id,
         'monto' => '59.90',
         'moneda' => 'PEN',
+        'total' => '59.90',
         'estado' => 'procesado',
-        'pasarela' => 'manual',
-        'pagado_at' => now(),
+        'pasarela' => 'orvae',
+        'periodo_inicio' => now()->subMonth(),
+        'periodo_fin' => $anchor->copy()->addMonth(),
+        'pagado_at' => now()->subDays(3),
+        'created_at' => now(),
     ]);
 
     $result = app(SubscriptionRenewalReminderScanner::class)->run();

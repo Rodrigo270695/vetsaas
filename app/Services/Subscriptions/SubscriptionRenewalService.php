@@ -16,6 +16,10 @@ use InvalidArgumentException;
  */
 class SubscriptionRenewalService
 {
+    public function __construct(
+        private readonly SubscriptionPeriodCalculator $periods,
+    ) {}
+
     /**
      * @param  array<string, mixed>  $payload
      */
@@ -73,20 +77,12 @@ class SubscriptionRenewalService
 
     private function defaultPeriodStart(Subscription $subscription): CarbonInterface
     {
-        $end = $subscription->current_period_end;
-
-        if ($end instanceof CarbonInterface && $end->isFuture()) {
-            return $end;
-        }
-
-        return now();
+        return $this->periods->nextPeriodStart($subscription);
     }
 
     private function defaultPeriodEnd(CarbonInterface $start, string $ciclo): CarbonInterface
     {
-        return $ciclo === 'anual'
-            ? Carbon::parse($start)->addYear()
-            : Carbon::parse($start)->addMonth();
+        return $this->periods->nextPeriodEnd($start, $ciclo);
     }
 
     /**
