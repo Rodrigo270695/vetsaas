@@ -1143,10 +1143,12 @@ export default function Create({
                                             onClick={() => form.setData('metodo_pago', value)}
                                             className={cn(
                                                 'flex flex-col items-center gap-1 rounded-xl border-2 px-1 py-2.5 text-center text-xs font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                                                puede_vender
+                                                    ? 'cursor-pointer'
+                                                    : 'cursor-not-allowed opacity-50',
                                                 form.data.metodo_pago === value
                                                     ? 'border-primary bg-primary/10 text-primary shadow-sm'
                                                     : 'border-border/60 bg-muted/30 text-muted-foreground hover:border-primary/40 hover:bg-muted/60 hover:text-foreground',
-                                                !puede_vender && 'cursor-not-allowed opacity-50',
                                             )}
                                         >
                                             <PMIcon className="size-4" aria-hidden />

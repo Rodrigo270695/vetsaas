@@ -22,3 +22,21 @@ test('password confirmation requires authentication', function () {
 
     $response->assertRedirect(route('login'));
 });
+
+test('wrong password confirmation shows spanish error', function () {
+    $user = User::factory()->create();
+
+    $response = $this
+        ->actingAs($user)
+        ->from(route('password.confirm'))
+        ->post(route('password.confirm.store'), [
+            'password' => 'wrong-password',
+        ]);
+
+    $response
+        ->assertSessionHasErrors('password')
+        ->assertRedirect(route('password.confirm'));
+
+    expect(session('errors')->get('password')[0])
+        ->toBe('La contraseña proporcionada es incorrecta.');
+});

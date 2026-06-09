@@ -39,7 +39,7 @@ export function FilterChips<TValue extends string>({
             role="radiogroup"
             aria-label={ariaLabel}
             className={cn(
-                'flex w-full max-w-full min-w-0 items-center gap-0.5 overflow-x-auto rounded-lg border border-border/60 bg-muted/40 p-0.5 shadow-xs',
+                'flex w-fit max-w-full min-w-0 items-center gap-0.5 overflow-x-auto rounded-lg border border-border/60 bg-muted/40 p-0.5 shadow-xs',
                 'scrollbar-none [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden',
                 className,
             )}

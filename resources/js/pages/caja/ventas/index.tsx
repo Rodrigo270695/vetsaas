@@ -207,6 +207,7 @@ export default function Index({ ventas: paginated, filters, stats }: VentasIndex
                             onSearchChange={setSearch}
                             isSearching={isLoading}
                             placeholder={t('caja:ventas.search_placeholder')}
+                            filtersClassName="items-end"
                         >
                             <FilterChips
                                 ariaLabel={t('caja:ventas.filter_estado_label')}

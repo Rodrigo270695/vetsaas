@@ -392,40 +392,43 @@ export default function Index({
                             onSearchChange={setSearch}
                             isSearching={isLoading}
                             placeholder={t('caja:sesiones.search_placeholder')}
+                            filtersClassName="sm:flex-1 sm:min-w-0"
                         >
-                            <FilterChips
-                                ariaLabel={t('caja:sesiones.filter_estado_label')}
-                                value={filters.estado}
-                                onChange={(estado) => applyFilter({ estado })}
-                                options={estadoOptions}
-                            />
-                            {!sinSedes && sedesOpciones.length > 0 ? (
-                                <div className="min-w-0 flex-1 sm:max-w-72">
-                                    <Select
-                                        value={filters.sede_id ? filters.sede_id : 'all'}
-                                        onValueChange={(v) => applyFilter({ sede_id: v === 'all' ? '' : v })}
-                                    >
-                                        <SelectTrigger
-                                            id="filtro-sede-caja-sesiones"
-                                            className="h-9 w-full min-w-0 cursor-pointer"
-                                            aria-label={t('caja:sesiones.filter_sede_label')}
+                            <div className="flex w-full min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
+                                <FilterChips
+                                    ariaLabel={t('caja:sesiones.filter_estado_label')}
+                                    value={filters.estado}
+                                    onChange={(estado) => applyFilter({ estado })}
+                                    options={estadoOptions}
+                                />
+                                {!sinSedes && sedesOpciones.length > 0 ? (
+                                    <div className="min-w-0 w-full sm:w-auto sm:min-w-48 sm:max-w-72">
+                                        <Select
+                                            value={filters.sede_id ? filters.sede_id : 'all'}
+                                            onValueChange={(v) => applyFilter({ sede_id: v === 'all' ? '' : v })}
                                         >
-                                            <SelectValue placeholder={t('caja:sesiones.filter_sede_todas')} />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="all">{t('caja:sesiones.filter_sede_todas')}</SelectItem>
-                                            {sedesOpciones.map((s) => (
-                                                <SelectItem key={s.id} value={s.id}>
-                                                    <span>
-                                                        {s.nombre}
-                                                        <span className="ml-2 font-mono text-xs text-muted-foreground">{s.codigo}</span>
-                                                    </span>
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            ) : null}
+                                            <SelectTrigger
+                                                id="filtro-sede-caja-sesiones"
+                                                className="h-8 w-full min-w-0 cursor-pointer"
+                                                aria-label={t('caja:sesiones.filter_sede_label')}
+                                            >
+                                                <SelectValue placeholder={t('caja:sesiones.filter_sede_todas')} />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">{t('caja:sesiones.filter_sede_todas')}</SelectItem>
+                                                {sedesOpciones.map((s) => (
+                                                    <SelectItem key={s.id} value={s.id}>
+                                                        <span>
+                                                            {s.nombre}
+                                                            <span className="ml-2 font-mono text-xs text-muted-foreground">{s.codigo}</span>
+                                                        </span>
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                ) : null}
+                            </div>
                         </DataToolbar>
                     }
                     footer={
