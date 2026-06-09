@@ -3,7 +3,7 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <meta name="theme-color" content="#006B53" media="(prefers-color-scheme: light)">
+        <meta name="theme-color" content="#008064" media="(prefers-color-scheme: light)">
         <meta name="theme-color" content="#0A1F18" media="(prefers-color-scheme: dark)">
         <meta name="application-name" content="{{ config('app.name', 'VetSaaS') }}">
         <meta name="apple-mobile-web-app-title" content="{{ config('app.name', 'VetSaaS') }}">

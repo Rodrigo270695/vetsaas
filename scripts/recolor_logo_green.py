@@ -9,10 +9,10 @@ ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / 'public' / 'logo.png'
 ORIGINAL = ROOT / 'scripts' / 'logo-blue-source.png'
 
-# Verde del botón de referencia (#006B53) y gradiente coherente
-DARK_GREEN = (0, 72, 55)
-MID_GREEN = (0, 107, 83)
-LIGHT_GREEN = (0, 138, 106)
+# Verde VetSaaS (un tono más claro que el botón original)
+DARK_GREEN = (0, 92, 72)
+MID_GREEN = (0, 128, 100)
+LIGHT_GREEN = (0, 162, 126)
 
 
 def is_background(r: int, g: int, b: int) -> bool:
