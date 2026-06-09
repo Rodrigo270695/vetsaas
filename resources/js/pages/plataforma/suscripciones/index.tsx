@@ -89,6 +89,7 @@ type ModalState =
 
 const DEFAULT_PER_PAGE = 10;
 const DEFAULT_ESTADO: SubscriptionEstadoFilter = 'todos';
+const PLAN_FILTER_ALL = 'todos';
 
 const formatPrice = (value: string | null): string => {
     if (value === null) return '—';
@@ -215,6 +216,52 @@ export default function Index({
             ],
             [t],
         );
+
+    const planFilterValue = filters.plan_id ?? PLAN_FILTER_ALL;
+
+    const planOptions = useMemo<readonly FilterChip<string>[]>(() => {
+        const mrrMap = new Map(
+            stats.mrr_by_plan.map((row) => [row.plan_id, row]),
+        );
+
+        return [
+            { value: PLAN_FILTER_ALL, label: t('suscripciones:filters.plan_all') },
+            ...plans_catalog.map((plan) => {
+                const breakdown = mrrMap.get(plan.id);
+                const hex =
+                    plan.color_hex && /^#[0-9a-fA-F]{3,6}$/.test(plan.color_hex)
+                        ? plan.color_hex
+                        : '#1F6E4A';
+
+                return {
+                    value: plan.id,
+                    label: breakdown
+                        ? `${plan.nombre} · ${formatPrice(String(breakdown.mrr))}`
+                        : plan.nombre,
+                    count: breakdown?.cantidad,
+                    icon: (
+                        <span
+                            className="size-2 shrink-0 rounded-full"
+                            style={{ backgroundColor: hex }}
+                        />
+                    ),
+                };
+            }),
+        ];
+    }, [plans_catalog, stats.mrr_by_plan, t]);
+
+    const selectedPlanName = useMemo(() => {
+        if (!filters.plan_id) {
+            return null;
+        }
+
+        return (
+            plans_catalog.find((plan) => plan.id === filters.plan_id)?.nombre ??
+            stats.mrr_by_plan.find((row) => row.plan_id === filters.plan_id)
+                ?.nombre ??
+            null
+        );
+    }, [filters.plan_id, plans_catalog, stats.mrr_by_plan]);
 
     const [modal, setModal] = useState<ModalState>({ type: 'idle' });
 
@@ -564,7 +611,11 @@ export default function Index({
                             icon: XCircle,
                         },
                         {
-                            label: t('suscripciones:stats.mrr'),
+                            label: selectedPlanName
+                                ? t('suscripciones:stats.mrr_plan', {
+                                      plan: selectedPlanName,
+                                  })
+                                : t('suscripciones:stats.mrr'),
                             value: formatPrice(String(stats.mrr)),
                             variant: 'primary',
                             icon: DollarSign,
@@ -645,6 +696,7 @@ export default function Index({
                             placeholder={t(
                                 'suscripciones:search_placeholder',
                             )}
+                            filtersClassName="flex-col items-stretch gap-2 sm:items-end"
                         >
                             <FilterChips
                                 ariaLabel={t(
@@ -655,6 +707,21 @@ export default function Index({
                                     applyFilter({ estado })
                                 }
                                 options={estadoOptions}
+                            />
+                            <FilterChips
+                                ariaLabel={t(
+                                    'suscripciones:filter_plan_label',
+                                )}
+                                value={planFilterValue}
+                                onChange={(planId) =>
+                                    applyFilter({
+                                        plan_id:
+                                            planId === PLAN_FILTER_ALL
+                                                ? null
+                                                : planId,
+                                    })
+                                }
+                                options={planOptions}
                             />
                         </DataToolbar>
                     }

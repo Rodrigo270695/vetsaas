@@ -3,13 +3,15 @@
     "description": "Panel de operación de suscripciones. El alta normal proviene del checkout de Orvae; acá puedes ajustar fechas, cambiar plan, extender trial, cancelar o crear suscripciones manuales para soporte y migración.",
     "search_placeholder": "Buscar por tenant, slug, RUC, plan…",
     "filter_label": "Filtrar por estado",
+    "filter_plan_label": "Filtrar por plan",
     "filters": {
         "all": "Todas",
         "trial": "En prueba",
         "active": "Activas",
         "grace": "En gracia",
         "suspended": "Suspendidas",
-        "cancelled": "Canceladas"
+        "cancelled": "Canceladas",
+        "plan_all": "Todos los planes"
     },
     "estados": {
         "trial": "En prueba",
@@ -30,6 +32,7 @@
         "suspended": "Suspendidas",
         "cancelled": "Canceladas",
         "mrr": "MRR estimado",
+        "mrr_plan": "MRR {{plan}}",
         "filters": "Filtros activos",
         "matches": "Coincidencias"
     },

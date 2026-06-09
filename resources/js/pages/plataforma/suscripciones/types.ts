@@ -61,6 +61,14 @@ export type Subscription = {
     plan: SubscriptionPlanRef | null;
 };
 
+export type SubscriptionMrrByPlan = {
+    plan_id: string;
+    codigo: string;
+    nombre: string;
+    mrr: number;
+    cantidad: number;
+};
+
 export type SubscriptionStats = {
     total: number;
     trial: number;
@@ -70,6 +78,8 @@ export type SubscriptionStats = {
     cancelled: number;
     /** Suma de precio_pactado de suscripciones active+grace (MRR estimado). */
     mrr: number;
+    /** Desglose de MRR por plan (active+grace). */
+    mrr_by_plan: readonly SubscriptionMrrByPlan[];
     /** Coincidencias con los filtros vigentes (todas las páginas). */
     coincidencias: number;
 };

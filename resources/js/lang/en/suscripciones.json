@@ -3,13 +3,15 @@
     "description": "Subscription operations panel. New subscriptions normally come from the Orvae checkout; here you can adjust dates, change plan, extend trial, cancel, or create manual subscriptions for support and migration.",
     "search_placeholder": "Search by tenant, slug, RUC, plan…",
     "filter_label": "Filter by status",
+    "filter_plan_label": "Filter by plan",
     "filters": {
         "all": "All",
         "trial": "In trial",
         "active": "Active",
         "grace": "In grace",
         "suspended": "Suspended",
-        "cancelled": "Cancelled"
+        "cancelled": "Cancelled",
+        "plan_all": "All plans"
     },
     "estados": {
         "trial": "In trial",
@@ -30,6 +32,7 @@
         "suspended": "Suspended",
         "cancelled": "Cancelled",
         "mrr": "Estimated MRR",
+        "mrr_plan": "MRR {{plan}}",
         "filters": "Active filters",
         "matches": "Matches"
     },

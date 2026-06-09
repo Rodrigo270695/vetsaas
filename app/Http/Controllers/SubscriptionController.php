@@ -103,9 +103,35 @@ class SubscriptionController extends Controller
             ->all();
 
         // MRR estimado: suma de precio_pactado de suscripciones active+grace.
-        $mrr = (float) Subscription::query()
+        $mrrQuery = Subscription::query()->whereIn('estado', ['active', 'grace']);
+
+        if ($planId !== '') {
+            $mrrQuery->where('plan_id', $planId);
+        }
+
+        $mrr = (float) $mrrQuery->sum('precio_pactado');
+
+        $mrrByPlanRows = Subscription::query()
             ->whereIn('estado', ['active', 'grace'])
-            ->sum('precio_pactado');
+            ->selectRaw('plan_id, COALESCE(SUM(precio_pactado), 0) as mrr, COUNT(*) as cantidad')
+            ->groupBy('plan_id')
+            ->get()
+            ->keyBy('plan_id');
+
+        $mrrByPlan = $plansCatalog
+            ->map(function (Plan $plan) use ($mrrByPlanRows) {
+                $row = $mrrByPlanRows->get($plan->id);
+
+                return [
+                    'plan_id' => $plan->id,
+                    'codigo' => $plan->codigo,
+                    'nombre' => $plan->nombre,
+                    'mrr' => (float) ($row->mrr ?? 0),
+                    'cantidad' => (int) ($row->cantidad ?? 0),
+                ];
+            })
+            ->values()
+            ->all();
 
         return Inertia::render('plataforma/suscripciones/index', [
             'subscriptions' => $subscriptions,
@@ -125,6 +151,7 @@ class SubscriptionController extends Controller
                 'suspended' => (int) ($statsByEstado['suspended'] ?? 0),
                 'cancelled' => (int) ($statsByEstado['cancelled'] ?? 0),
                 'mrr' => $mrr,
+                'mrr_by_plan' => $mrrByPlan,
                 'coincidencias' => $subscriptions->total(),
             ],
             'plans_catalog' => $plansCatalog,
