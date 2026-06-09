@@ -7,6 +7,8 @@
         <meta name="theme-color" content="#0A1F18" media="(prefers-color-scheme: dark)">
         <meta name="application-name" content="{{ config('app.name', 'VetSaaS') }}">
         <meta name="apple-mobile-web-app-title" content="{{ config('app.name', 'VetSaaS') }}">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
         <meta name="mobile-web-app-capable" content="yes">
 
         {{-- Inline script to detect system dark mode preference and apply it immediately --}}
@@ -38,8 +40,9 @@
         <link rel="icon" href="/favicon.ico" sizes="48x48">
         <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
         <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-        <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+        <link rel="apple-touch-icon" sizes="180x180" href="/icons/pwa/icon-180.png">
+        <link rel="icon" type="image/png" sizes="192x192" href="/icons/pwa/icon-192.png">
+        <link rel="manifest" href="/manifest.webmanifest">
 
         @fonts
 

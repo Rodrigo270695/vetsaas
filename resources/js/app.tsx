@@ -1,4 +1,5 @@
 import { createInertiaApp } from '@inertiajs/react';
+import PwaInstallBanner from '@/components/pwa-install-banner';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { initializeTheme } from '@/hooks/use-appearance';
@@ -36,6 +37,7 @@ createInertiaApp({
         return (
             <TooltipProvider delayDuration={0}>
                 {app}
+                <PwaInstallBanner />
                 <Toaster />
             </TooltipProvider>
         );
@@ -47,3 +49,11 @@ createInertiaApp({
 
 // This will set light / dark mode on load...
 initializeTheme();
+
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(() => {
+            /* sin SW la app sigue funcionando */
+        });
+    });
+}
