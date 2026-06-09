@@ -42,7 +42,7 @@
         <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
         <link rel="apple-touch-icon" sizes="180x180" href="/icons/pwa/icon-180.png">
         <link rel="icon" type="image/png" sizes="192x192" href="/icons/pwa/icon-192.png">
-        <link rel="manifest" href="/manifest.webmanifest">
+        <link rel="manifest" href="/manifest.json">
 
         @fonts
 

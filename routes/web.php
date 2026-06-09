@@ -44,6 +44,8 @@ use App\Http\Controllers\VentaController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
+Route::redirect('/manifest.webmanifest', '/manifest.json', 301);
+
 /*
 |--------------------------------------------------------------------------
 | Rutas compartidas (panel central + tenants)
