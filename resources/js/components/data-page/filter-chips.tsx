@@ -39,7 +39,8 @@ export function FilterChips<TValue extends string>({
             role="radiogroup"
             aria-label={ariaLabel}
             className={cn(
-                'inline-flex items-center gap-0.5 rounded-lg border border-border/60 bg-muted/40 p-0.5 shadow-xs',
+                'flex w-full max-w-full min-w-0 items-center gap-0.5 overflow-x-auto rounded-lg border border-border/60 bg-muted/40 p-0.5 shadow-xs',
+                'scrollbar-none [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden',
                 className,
             )}
         >
@@ -54,7 +55,7 @@ export function FilterChips<TValue extends string>({
                         aria-checked={isActive}
                         onClick={() => onChange(opt.value)}
                         className={cn(
-                            'inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition-all',
+                            'inline-flex h-7 shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 text-xs font-medium transition-all',
                             'focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
                             isActive
                                 ? 'bg-card text-foreground shadow-sm ring-1 ring-border/60'

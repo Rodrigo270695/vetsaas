@@ -81,7 +81,7 @@ export function DataToolbar({
             {children && (
                 <div
                     className={cn(
-                        'flex min-w-0 w-full flex-wrap items-center gap-2',
+                        'flex min-w-0 w-full flex-col items-stretch gap-2',
                         filtersClassName,
                     )}
                 >
