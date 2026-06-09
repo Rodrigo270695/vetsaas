@@ -25,4 +25,7 @@ Route::prefix('internal/saas')
 
         Route::get('tenants/{slug}', [SaasProvisionController::class, 'status'])
             ->name('api.internal.saas.status');
+
+        Route::get('lookup', [SaasProvisionController::class, 'lookupByEmail'])
+            ->name('api.internal.saas.lookup');
     });

@@ -165,6 +165,42 @@ class SaasProvisionController extends Controller
         ]);
     }
 
+    public function lookupByEmail(Request $request): JsonResponse
+    {
+        $email = strtolower(trim((string) $request->query('email', '')));
+
+        if ($email === '' || ! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return response()->json([
+                'error' => 'invalid_email',
+                'message' => 'Correo inválido.',
+            ], 422);
+        }
+
+        $tenant = Tenant::query()
+            ->whereRaw('LOWER(email_admin) = ?', [$email])
+            ->orderByDesc('created_at')
+            ->first();
+
+        if ($tenant === null) {
+            return response()->json([
+                'error' => 'not_found',
+                'message' => 'No hay tenant para este correo.',
+            ], 404);
+        }
+
+        return response()->json([
+            'status' => 'ok',
+            'tenant_slug' => $tenant->slug,
+            'login_url' => $this->provisioner->buildLoginUrl($tenant),
+            'login_email' => $tenant->email_admin,
+            'tenant' => [
+                'id' => $tenant->id,
+                'slug' => $tenant->slug,
+                'estado' => $tenant->estado,
+            ],
+        ]);
+    }
+
     /**
      * @return array{status:int, body:array<string,mixed>}|null
      */
