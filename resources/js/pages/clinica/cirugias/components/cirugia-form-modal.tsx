@@ -180,7 +180,7 @@ export function CirugiaFormModal({
         setData(next);
         setDefaults();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [open, cirugia?.id, defaultVetId, cirugia]);
+    }, [open, cirugia?.id, defaultVetId, cirugia, sedesOpciones]);
 
     const pacienteComboboxOptions = useMemo<ComboboxOption[]>(
         () =>

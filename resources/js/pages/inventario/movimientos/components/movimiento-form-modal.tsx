@@ -14,6 +14,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { resolveDefaultSedeIdOrEmpty } from '@/lib/default-sede';
 import inventario from '@/routes/inventario';
 import type { ProductoOptionMovimiento, SedeOptionMovimiento } from '../types';
 
@@ -61,7 +62,10 @@ export function MovimientoFormModal({
         clearErrors();
         setData({
             ...empty,
-            sede_id: defaultSedeId && defaultSedeId !== '' ? defaultSedeId : (sedeOptions[0]?.id ?? ''),
+            sede_id:
+                defaultSedeId && defaultSedeId !== ''
+                    ? defaultSedeId
+                    : resolveDefaultSedeIdOrEmpty(sedeOptions),
         });
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, defaultSedeId, sedeOptions]);

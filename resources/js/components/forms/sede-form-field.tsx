@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useLayoutEffect } from 'react';
 import {
     Select,
     SelectContent,
@@ -57,7 +57,7 @@ export function SedeFormField({
     const lockedSedeId = resolveDefaultSedeId(sedes);
     const showSelector = shouldShowSedeSelector(sedes);
 
-    useEffect(() => {
+    useLayoutEffect(() => {
         if (sedes.length === 1 && lockedSedeId && value !== lockedSedeId) {
             onChange(lockedSedeId);
         }

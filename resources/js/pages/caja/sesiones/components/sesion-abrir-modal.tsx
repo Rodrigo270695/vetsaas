@@ -14,6 +14,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { resolveDefaultSedeIdOrEmpty } from '@/lib/default-sede';
 import caja from '@/routes/caja';
 import type { QueryParams } from '@/wayfinder';
 import type { SedeOpcion } from '../types';
@@ -32,8 +33,8 @@ type FormData = {
     notas: string;
 };
 
-const empty = (sedeId: string): FormData => ({
-    sede_id: sedeId,
+const empty = (sedes: readonly SedeOpcion[]): FormData => ({
+    sede_id: resolveDefaultSedeIdOrEmpty(sedes),
     moneda: 'PEN',
     saldo_apertura: '0',
     notas: '',
@@ -41,9 +42,7 @@ const empty = (sedeId: string): FormData => ({
 
 export function SesionAbrirModal({ open, onOpenChange, sedes, listQuery }: SesionAbrirModalProps) {
     const { t } = useTranslation('caja');
-    const firstSede = sedes[0]?.id ?? '';
-
-    const { data, setData, post, processing, errors, reset, clearErrors } = useForm<FormData>(empty(firstSede));
+    const { data, setData, post, processing, errors, reset, clearErrors } = useForm<FormData>(empty(sedes));
 
     useEffect(() => {
         if (!open) {
@@ -52,9 +51,8 @@ export function SesionAbrirModal({ open, onOpenChange, sedes, listQuery }: Sesio
 
         reset();
         clearErrors();
-        setData(empty(sedes[0]?.id ?? ''));
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [open, sedes[0]?.id]);
+        setData(empty(sedes));
+    }, [open, sedes]);
 
     const onSubmit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();

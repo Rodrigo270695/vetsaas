@@ -196,7 +196,7 @@ export function HotelFormModal({
 
         setDefaults();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [open, estancia?.id, defaultResponsableId, estancia]);
+    }, [open, estancia?.id, defaultResponsableId, estancia, sedesOpciones]);
 
     const pacienteComboboxOptions: ComboboxOption[] = pacientesOpciones.map((p) => ({
         value: p.id,

@@ -283,7 +283,7 @@ export function PedidoFormModal({
         setData(next);
         setDefaults();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [open, pedido?.id, defaultVetId, pedido]);
+    }, [open, pedido?.id, defaultVetId, pedido, sedesOpciones]);
 
     const pacienteComboboxOptions = useMemo<ComboboxOption[]>(
         () =>

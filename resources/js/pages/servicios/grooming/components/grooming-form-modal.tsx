@@ -204,7 +204,7 @@ export function GroomingFormModal({
 
         setDefaults();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [open, turno?.id, defaultResponsableId, turno]);
+    }, [open, turno?.id, defaultResponsableId, turno, sedesOpciones]);
 
     const pacienteComboboxOptions: ComboboxOption[] = pacientesOpciones.map((p) => ({
         value: p.id,

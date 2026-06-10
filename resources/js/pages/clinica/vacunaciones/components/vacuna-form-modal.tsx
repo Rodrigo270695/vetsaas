@@ -199,7 +199,7 @@ export function VacunaFormModal({
         }
         setDefaults();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [open, vacuna?.id, defaultVetId, vacuna, prefillCreate?.paciente_id, prefillCreate?.consulta_id]);
+    }, [open, vacuna?.id, defaultVetId, vacuna, prefillCreate?.paciente_id, prefillCreate?.consulta_id, sedesOpciones]);
 
     const pacienteComboboxOptions = useMemo<ComboboxOption[]>(
         () =>

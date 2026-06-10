@@ -186,7 +186,7 @@ export function InternamientoFormModal({
         setData(next);
         setDefaults();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [open, internamiento?.id, defaultVetId, internamiento]);
+    }, [open, internamiento?.id, defaultVetId, internamiento, sedesOpciones]);
 
     useEffect(() => {
         if (data.estado === 'alta') {

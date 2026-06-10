@@ -253,7 +253,7 @@ export function RecetaFormModal({
         setData(next);
         setDefaults();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [open, receta?.id, defaultVetId, receta]);
+    }, [open, receta?.id, defaultVetId, receta, sedesOpciones]);
 
     const pacienteComboboxOptions = useMemo<ComboboxOption[]>(
         () =>
