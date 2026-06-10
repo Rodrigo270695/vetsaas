@@ -1,5 +1,6 @@
 import { Form } from '@inertiajs/react';
 import { Mail } from 'lucide-react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
@@ -32,11 +33,16 @@ export default function LoginForm({
     onForgotPassword,
 }: LoginFormProps) {
     const { t } = useTranslation('auth');
+    const [remember, setRemember] = useState(false);
 
     return (
         <Form
             {...store.form()}
             resetOnSuccess={['password']}
+            transform={(data) => ({
+                ...data,
+                remember: remember ? 'on' : '',
+            })}
             className="flex flex-col"
         >
             {({ processing, errors }) => (
@@ -101,7 +107,12 @@ export default function LoginForm({
                         htmlFor="remember"
                         className="group flex cursor-pointer items-center gap-3 select-none"
                     >
-                        <Checkbox id="remember" name="remember" tabIndex={3} />
+                        <Checkbox
+                            id="remember"
+                            checked={remember}
+                            onCheckedChange={(checked) => setRemember(checked === true)}
+                            tabIndex={3}
+                        />
                         <span className="text-sm text-muted-foreground transition-colors group-hover:text-foreground">
                             {t('common.remember')}
                         </span>
