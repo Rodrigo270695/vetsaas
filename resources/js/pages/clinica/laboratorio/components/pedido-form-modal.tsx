@@ -683,33 +683,34 @@ export function PedidoFormModal({
                                 className="rounded-xl border border-border/60 bg-muted/20 p-4 transition-colors hover:bg-muted/30"
                             >
                                 {/* Header del examen */}
-                                <div className="mb-3 flex items-center gap-2.5">
-                                    <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/15 text-[11px] font-bold text-primary">
+                                <div className="mb-3 flex items-start gap-2.5">
+                                    <span className="mt-8 flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/15 text-[11px] font-bold text-primary">
                                         {index + 1}
                                     </span>
-                                    <div className="min-w-0 flex-1">
+                                    <FormField
+                                        id={`lab-lin-${index}-nom`}
+                                        label={t('form.linea_examen')}
+                                        required
+                                        error={err(`lineas.${index}.nombre_examen`)}
+                                        className="min-w-0 flex-1"
+                                    >
                                         <Input
                                             id={`lab-lin-${index}-nom`}
-                                            className="h-8 border-0 bg-transparent px-0 text-sm font-medium shadow-none placeholder:text-muted-foreground/60 focus-visible:ring-0"
+                                            className={controlClass}
                                             value={row.nombre_examen}
                                             onChange={(e) =>
                                                 updateLine(index, { nombre_examen: e.target.value })
                                             }
-                                            placeholder={t('form.linea_examen') + '…'}
+                                            placeholder={t('form.linea_examen_placeholder')}
                                             aria-invalid={Boolean(err(`lineas.${index}.nombre_examen`))}
                                             disabled={processing}
                                         />
-                                        {err(`lineas.${index}.nombre_examen`) ? (
-                                            <p className="mt-0.5 text-xs text-destructive">
-                                                {err(`lineas.${index}.nombre_examen`)}
-                                            </p>
-                                        ) : null}
-                                    </div>
+                                    </FormField>
                                     <Button
                                         type="button"
                                         variant="ghost"
                                         size="icon"
-                                        className="size-8 shrink-0 text-muted-foreground/60 hover:text-destructive"
+                                        className="mt-7 size-8 shrink-0 text-muted-foreground/60 hover:text-destructive"
                                         disabled={processing || data.lineas.length <= 1}
                                         onClick={() => removeLine(index)}
                                         aria-label={t('form.remove_line')}

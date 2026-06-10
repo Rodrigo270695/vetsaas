@@ -99,6 +99,7 @@
         "section_lineas": "Exámenes",
         "section_lineas_hint": "Indica cada examen, indicaciones al laboratorio y resultados cuando existan.",
         "linea_examen": "Nombre del examen",
+        "linea_examen_placeholder": "Ej. Hemograma, Bioquímica…",
         "linea_indicaciones": "Indicaciones / muestra",
         "linea_resultado": "Resultado",
         "linea_resultado_at": "Fecha del resultado",

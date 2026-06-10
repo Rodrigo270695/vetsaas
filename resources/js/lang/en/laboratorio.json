@@ -99,6 +99,7 @@
         "section_lineas": "Exams",
         "section_lineas_hint": "List each exam, instructions for the lab, and results when available.",
         "linea_examen": "Exam name",
+        "linea_examen_placeholder": "e.g. CBC, chemistry panel…",
         "linea_indicaciones": "Instructions / sample",
         "linea_resultado": "Result",
         "linea_resultado_at": "Result date",
