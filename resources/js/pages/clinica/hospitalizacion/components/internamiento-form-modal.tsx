@@ -3,7 +3,7 @@ import { Loader2 } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FormField, FormModal, FormSection } from '@/components/forms';
+import { FormField, FormModal, FormSection, SedeFormField } from '@/components/forms';
 import { Button } from '@/components/ui/button';
 import { Combobox } from '@/components/ui/combobox';
 import type { ComboboxOption } from '@/components/ui/combobox';
@@ -16,6 +16,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { resolveDefaultSedeId } from '@/lib/default-sede';
 import { formatAtendidoInAppTimezone } from '../../historias-clinicas/format-atendido';
 import type {
     ConsultaHospitalizacionOpcion,
@@ -77,7 +78,10 @@ type FormShape = {
     sede_id: string | null;
 };
 
-function emptyForm(defaultVetId: string | null): FormShape {
+function emptyForm(
+    defaultVetId: string | null,
+    sedes: readonly SedeHospitalizacionOpcion[],
+): FormShape {
     return {
         paciente_id: '',
         consulta_id: '',
@@ -89,7 +93,7 @@ function emptyForm(defaultVetId: string | null): FormShape {
         diagnostico_ingreso: '',
         notas: '',
         veterinario_id: defaultVetId,
-        sede_id: null,
+        sede_id: resolveDefaultSedeId(sedes),
     };
 }
 
@@ -138,13 +142,13 @@ export function InternamientoFormModal({
     const defaultVetId = authUser?.id ?? null;
 
     const { data, setData, post, put, processing, errors, clearErrors, transform, setDefaults, reset } =
-        useForm<FormShape>(emptyForm(defaultVetId));
+        useForm<FormShape>(emptyForm(defaultVetId, sedesOpciones));
 
     const isEdit = internamiento !== null;
     const lockPaciente = isEdit;
     const requiereAltaAt = data.estado === 'alta';
 
-    const initialSnapshotRef = useRef<FormShape>(emptyForm(null));
+    const initialSnapshotRef = useRef<FormShape>(emptyForm(null, []));
 
     useEffect(() => {
         transform((raw) => {
@@ -175,7 +179,9 @@ export function InternamientoFormModal({
 
         clearErrors();
         const next =
-            internamiento !== null ? fromInternamiento(internamiento, defaultVetId) : emptyForm(defaultVetId);
+            internamiento !== null
+                ? fromInternamiento(internamiento, defaultVetId)
+                : emptyForm(defaultVetId, sedesOpciones);
         initialSnapshotRef.current = structuredClone(next);
         setData(next);
         setDefaults();
@@ -550,25 +556,17 @@ export function InternamientoFormModal({
                         </Select>
                     </FormField>
 
-                    <FormField id="int-sede" label={t('form.sede')} error={err('sede_id')}>
-                        <Select
-                            value={data.sede_id ?? '__none__'}
-                            onValueChange={(v) => setData('sede_id', v === '__none__' ? null : v)}
-                            disabled={processing}
-                        >
-                            <SelectTrigger id="int-sede" className={`${controlClass} cursor-pointer`}>
-                                <SelectValue placeholder={t('form.sede_placeholder')} />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="__none__">{t('form.sede_placeholder')}</SelectItem>
-                                {sedesOpciones.map((s) => (
-                                    <SelectItem key={s.id} value={s.id}>
-                                        {s.codigo ? `${s.nombre} (${s.codigo})` : s.nombre}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </FormField>
+                    <SedeFormField
+                        id="int-sede"
+                        label={t('form.sede')}
+                        sedes={sedesOpciones}
+                        value={data.sede_id}
+                        onChange={(sedeId) => setData('sede_id', sedeId)}
+                        error={err('sede_id')}
+                        disabled={processing}
+                        noneLabel={t('form.sede_placeholder')}
+                        controlClassName={`${controlClass} cursor-pointer`}
+                    />
                 </FormSection>
             </div>
         </FormModal>

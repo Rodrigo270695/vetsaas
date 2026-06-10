@@ -3,7 +3,7 @@ import { Loader2 } from 'lucide-react';
 import { useEffect  } from 'react';
 import type {FormEvent} from 'react';
 import { useTranslation } from 'react-i18next';
-import { FormField, FormModal } from '@/components/forms';
+import { FormField, FormModal, SedeFormField } from '@/components/forms';
 import { Button } from '@/components/ui/button';
 import { Combobox } from '@/components/ui/combobox';
 import type { ComboboxOption } from '@/components/ui/combobox';
@@ -16,6 +16,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { resolveDefaultSedeId } from '@/lib/default-sede';
 import clinica from '@/routes/clinica';
 import type { CitaRow, PacienteCitaOpcion, SedeCitaOpcion, UsuarioCitaOpcion } from '../types';
 
@@ -71,7 +72,10 @@ type FormShape = {
     sede_id: string | null;
 };
 
-function emptyForm(defaultVetId: string | null): FormShape {
+function emptyForm(
+    defaultVetId: string | null,
+    sedes: readonly SedeCitaOpcion[],
+): FormShape {
     return {
         paciente_id: '',
         inicio_at: toDatetimeLocalValue(new Date()),
@@ -80,7 +84,7 @@ function emptyForm(defaultVetId: string | null): FormShape {
         motivo: '',
         notas: '',
         veterinario_id: defaultVetId,
-        sede_id: null,
+        sede_id: resolveDefaultSedeId(sedes),
     };
 }
 
@@ -110,7 +114,7 @@ export function CitaFormModal({
     const defaultVetId = authUser?.id ?? null;
 
     const { data, setData, post, put, processing, errors, clearErrors, transform, setDefaults } =
-        useForm<FormShape>(emptyForm(defaultVetId));
+        useForm<FormShape>(emptyForm(defaultVetId, sedesOpciones));
 
     const isEdit = cita !== null;
     const lockPaciente = isEdit;
@@ -146,12 +150,12 @@ export function CitaFormModal({
         if (cita !== null) {
             setData(fromCita(cita, defaultVetId));
         } else {
-            setData(emptyForm(defaultVetId));
+            setData(emptyForm(defaultVetId, sedesOpciones));
         }
 
         setDefaults();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [open, cita?.id, defaultVetId, cita]);
+    }, [open, cita?.id, defaultVetId, cita, sedesOpciones]);
 
     const pacienteComboboxOptions: ComboboxOption[] = pacientesOpciones.map((p) => ({
         value: p.id,
@@ -326,25 +330,17 @@ export function CitaFormModal({
                     </Select>
                 </FormField>
 
-                <FormField id="cf-sede" label={t('form.sede')} error={errors.sede_id as string | undefined}>
-                    <Select
-                        value={data.sede_id ?? '__none__'}
-                        onValueChange={(v) => setData('sede_id', v === '__none__' ? null : v)}
-                        disabled={processing}
-                    >
-                        <SelectTrigger id="cf-sede" className={controlClass}>
-                            <SelectValue placeholder={t('form.sede_placeholder')} />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="__none__">{t('form.sede_placeholder')}</SelectItem>
-                            {sedesOpciones.map((s) => (
-                                <SelectItem key={s.id} value={s.id}>
-                                    {s.codigo ? `${s.nombre} (${s.codigo})` : s.nombre}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </FormField>
+                <SedeFormField
+                    id="cf-sede"
+                    label={t('form.sede')}
+                    sedes={sedesOpciones}
+                    value={data.sede_id}
+                    onChange={(sedeId) => setData('sede_id', sedeId)}
+                    error={errors.sede_id as string | undefined}
+                    disabled={processing}
+                    noneLabel={t('form.sede_placeholder')}
+                    controlClassName={controlClass}
+                />
             </div>
         </FormModal>
     );

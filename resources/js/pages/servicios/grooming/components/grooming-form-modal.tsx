@@ -3,7 +3,7 @@ import { Loader2 } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FormField, FormModal } from '@/components/forms';
+import { FormField, FormModal, SedeFormField } from '@/components/forms';
 import { Button } from '@/components/ui/button';
 import { Combobox } from '@/components/ui/combobox';
 import type { ComboboxOption } from '@/components/ui/combobox';
@@ -18,6 +18,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { resolveDefaultSedeId } from '@/lib/default-sede';
 import servicios from '@/routes/servicios';
 import type {
     GroomingServicioGrupo,
@@ -94,6 +95,7 @@ type FormShape = {
 function emptyForm(
     defaultResponsableId: string | null,
     duraciones: Readonly<Record<string, number>>,
+    sedes: readonly SedeGroomingOpcion[],
 ): FormShape {
     const slugDefault = 'bano_higienico';
 
@@ -105,7 +107,7 @@ function emptyForm(
         servicio_detalle: '',
         notas: '',
         responsable_id: defaultResponsableId,
-        sede_id: null,
+        sede_id: resolveDefaultSedeId(sedes),
     };
 }
 
@@ -138,7 +140,7 @@ export function GroomingFormModal({
     const defaultResponsableId = authUser?.id ?? null;
 
     const { data, setData, post, put, processing, errors, clearErrors, transform, setDefaults } =
-        useForm<FormShape>(emptyForm(defaultResponsableId, servicioDuraciones));
+        useForm<FormShape>(emptyForm(defaultResponsableId, servicioDuraciones, sedesOpciones));
 
     const isEdit = turno !== null;
     const lockPaciente = isEdit;
@@ -197,7 +199,7 @@ export function GroomingFormModal({
         if (turno !== null) {
             setData(fromTurno(turno, defaultResponsableId));
         } else {
-            setData(emptyForm(defaultResponsableId, servicioDuraciones));
+            setData(emptyForm(defaultResponsableId, servicioDuraciones, sedesOpciones));
         }
 
         setDefaults();
@@ -432,25 +434,17 @@ export function GroomingFormModal({
                     </Select>
                 </FormField>
 
-                <FormField id="gf-sede" label={t('form.sede')} error={errors.sede_id as string | undefined}>
-                    <Select
-                        value={data.sede_id ?? '__none__'}
-                        onValueChange={(v) => setData('sede_id', v === '__none__' ? null : v)}
-                        disabled={processing}
-                    >
-                        <SelectTrigger id="gf-sede" className={controlClass}>
-                            <SelectValue placeholder={t('form.sede_placeholder')} />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="__none__">{t('form.sede_placeholder')}</SelectItem>
-                            {sedesOpciones.map((s) => (
-                                <SelectItem key={s.id} value={s.id}>
-                                    {s.codigo ? `${s.nombre} (${s.codigo})` : s.nombre}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </FormField>
+                <SedeFormField
+                    id="gf-sede"
+                    label={t('form.sede')}
+                    sedes={sedesOpciones}
+                    value={data.sede_id}
+                    onChange={(sedeId) => setData('sede_id', sedeId)}
+                    error={errors.sede_id as string | undefined}
+                    disabled={processing}
+                    noneLabel={t('form.sede_placeholder')}
+                    controlClassName={controlClass}
+                />
             </div>
         </FormModal>
     );

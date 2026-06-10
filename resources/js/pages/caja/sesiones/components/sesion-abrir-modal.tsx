@@ -3,7 +3,7 @@ import { Loader2 } from 'lucide-react';
 import { useEffect } from 'react';
 import type { FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FormField, FormModal } from '@/components/forms';
+import { FormField, FormModal, SedeFormField } from '@/components/forms';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -89,27 +89,21 @@ export function SesionAbrirModal({ open, onOpenChange, sedes, listQuery }: Sesio
             }
         >
             <div className="flex w-full min-w-0 flex-col gap-4">
-                <FormField id="abrir-sede" label={t('sesiones.fields.sede')} error={errors.sede_id}>
-                    <Select
-                        value={data.sede_id || firstSede}
-                        onValueChange={(v) => setData('sede_id', v)}
-                        disabled={sedes.length === 0}
-                    >
-                        <SelectTrigger className="h-9 w-full min-w-0 cursor-pointer justify-between">
-                            <SelectValue placeholder={t('sesiones.filter_sede_label')} />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {sedes.map((s) => (
-                                <SelectItem key={s.id} value={s.id}>
-                                    <span>
-                                        {s.nombre}
-                                        <span className="ml-2 font-mono text-xs text-muted-foreground">{s.codigo}</span>
-                                    </span>
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </FormField>
+                <SedeFormField
+                    id="abrir-sede"
+                    label={t('sesiones.fields.sede')}
+                    sedes={sedes}
+                    value={data.sede_id || null}
+                    onChange={(sedeId) => setData('sede_id', sedeId ?? '')}
+                    error={errors.sede_id}
+                    disabled={sedes.length === 0}
+                    allowNone={false}
+                    noneLabel={t('sesiones.filter_sede_label')}
+                    controlClassName="h-9 w-full min-w-0 cursor-pointer justify-between"
+                    formatLabel={(s) =>
+                        s.codigo ? `${s.nombre} · ${s.codigo}` : s.nombre
+                    }
+                />
 
                 <FormField id="abrir-moneda" label={t('sesiones.fields.moneda')} error={errors.moneda}>
                     <Select value={data.moneda} onValueChange={(v) => setData('moneda', v)}>

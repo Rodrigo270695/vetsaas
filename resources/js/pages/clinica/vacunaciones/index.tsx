@@ -19,7 +19,10 @@ import { dashboard } from '@/routes';
 import clinica from '@/routes/clinica';
 import type { Paginated } from '@/types';
 import { AtencionDateRangeFilter } from '../historias-clinicas/components/atencion-date-range-filter';
-import { formatAtendidoInAppTimezone } from '../historias-clinicas/format-atendido';
+import {
+    formatAtendidoInAppTimezone,
+    formatDateOnlyLabel,
+} from '../historias-clinicas/format-atendido';
 import { VacunaDeleteDialog } from './components/vacuna-delete-dialog';
 import { VacunaFormModal } from './components/vacuna-form-modal';
 import { VacunaRowActions } from './components/vacuna-row-actions';
@@ -279,13 +282,9 @@ export default function Index({
                 cell: (row) => (
                     <span className="whitespace-nowrap text-sm text-muted-foreground">
                         {row.fecha_proxima_sugerida
-                            ? new Date(`${row.fecha_proxima_sugerida}T12:00:00`).toLocaleDateString(
+                            ? formatDateOnlyLabel(
+                                  row.fecha_proxima_sugerida,
                                   String(appLocale ?? 'es'),
-                                  {
-                                      day: '2-digit',
-                                      month: 'short',
-                                      year: 'numeric',
-                                  },
                               )
                             : '—'}
                     </span>

@@ -2,7 +2,7 @@ import { useForm } from '@inertiajs/react';
 import { Loader2 } from 'lucide-react';
 import { useEffect, useMemo, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FormField, FormModal } from '@/components/forms';
+import { FormField, FormModal, SedeFormField } from '@/components/forms';
 import { Button } from '@/components/ui/button';
 import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
 import { Input } from '@/components/ui/input';
@@ -116,23 +116,22 @@ export function MovimientoFormModal({
             }
         >
             <div className="grid gap-4">
-                <FormField id="mov-sede" label={t('modal.sede')} error={errors.sede_id} required className="min-w-0">
-                    <Select value={data.sede_id} onValueChange={(v) => setData('sede_id', v)} disabled={processing || sinOpciones}>
-                        <SelectTrigger id="mov-sede" className="h-10 w-full min-w-0 cursor-pointer">
-                            <SelectValue placeholder={t('filter_sede_placeholder')} />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {sedeOptions.map((s) => (
-                                <SelectItem key={s.id} value={s.id}>
-                                    <span>
-                                        {s.nombre}
-                                        <span className="ml-2 font-mono text-xs text-muted-foreground">{s.codigo}</span>
-                                    </span>
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </FormField>
+                <SedeFormField
+                    id="mov-sede"
+                    label={t('modal.sede')}
+                    sedes={sedeOptions}
+                    value={data.sede_id || null}
+                    onChange={(sedeId) => setData('sede_id', sedeId ?? '')}
+                    error={errors.sede_id}
+                    required
+                    disabled={processing || sinOpciones}
+                    allowNone={false}
+                    noneLabel={t('filter_sede_placeholder')}
+                    controlClassName="h-10 w-full min-w-0 cursor-pointer"
+                    formatLabel={(s) =>
+                        s.codigo ? `${s.nombre} · ${s.codigo}` : s.nombre
+                    }
+                />
 
                 <FormField
                     id="mov-producto"

@@ -4,7 +4,7 @@ import type { FormEvent } from 'react';
 import { useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
-import { FormField, FormModal, FormSection } from '@/components/forms';
+import { FormField, FormModal, FormSection, SedeFormField } from '@/components/forms';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Combobox } from '@/components/ui/combobox';
@@ -18,6 +18,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { resolveDefaultSedeId } from '@/lib/default-sede';
 import clinica from '@/routes/clinica';
 import { formatAtendidoInAppTimezone } from '../../historias-clinicas/format-atendido';
 import type {
@@ -109,7 +110,10 @@ function emptyLine(): LineFormRow {
     };
 }
 
-function emptyForm(defaultVetId: string | null): FormShape {
+function emptyForm(
+    defaultVetId: string | null,
+    sedes: readonly SedeLaboratorioOpcion[],
+): FormShape {
     return {
         paciente_id: '',
         consulta_id: '',
@@ -118,7 +122,7 @@ function emptyForm(defaultVetId: string | null): FormShape {
         laboratorio_destino: '',
         observaciones: '',
         veterinario_id: defaultVetId,
-        sede_id: null,
+        sede_id: resolveDefaultSedeId(sedes),
         lineas: [emptyLine()],
     };
 }
@@ -208,13 +212,13 @@ export function PedidoFormModal({
     const defaultVetId = authUser?.id ?? null;
 
     const { data, setData, post, processing, errors, clearErrors, transform, setDefaults, reset } =
-        useForm<FormShape>(emptyForm(defaultVetId));
+        useForm<FormShape>(emptyForm(defaultVetId, sedesOpciones));
 
     const isEdit = pedido !== null;
     const lockPaciente = isEdit;
     const isEditRef = useRef(isEdit);
 
-    const initialSnapshotRef = useRef<FormShape>(emptyForm(null));
+    const initialSnapshotRef = useRef<FormShape>(emptyForm(null, []));
 
     useEffect(() => {
         isEditRef.current = isEdit;
@@ -271,7 +275,10 @@ export function PedidoFormModal({
         }
 
         clearErrors();
-        const next = pedido !== null ? fromPedido(pedido, defaultVetId) : emptyForm(defaultVetId);
+        const next =
+            pedido !== null
+                ? fromPedido(pedido, defaultVetId)
+                : emptyForm(defaultVetId, sedesOpciones);
         initialSnapshotRef.current = structuredClone(next);
         setData(next);
         setDefaults();
@@ -639,25 +646,17 @@ export function PedidoFormModal({
                         </Select>
                     </FormField>
 
-                    <FormField id="lab-sede" label={t('form.sede')} error={errors.sede_id as string | undefined}>
-                        <Select
-                            value={data.sede_id ?? '__none__'}
-                            onValueChange={(v) => setData('sede_id', v === '__none__' ? null : v)}
-                            disabled={processing}
-                        >
-                            <SelectTrigger id="lab-sede" className={controlClass}>
-                                <SelectValue placeholder={t('form.sede_placeholder')} />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="__none__">{t('form.sede_placeholder')}</SelectItem>
-                                {sedesOpciones.map((s) => (
-                                    <SelectItem key={s.id} value={s.id}>
-                                        {s.codigo ? `${s.nombre} (${s.codigo})` : s.nombre}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </FormField>
+                    <SedeFormField
+                        id="lab-sede"
+                        label={t('form.sede')}
+                        sedes={sedesOpciones}
+                        value={data.sede_id}
+                        onChange={(sedeId) => setData('sede_id', sedeId)}
+                        error={errors.sede_id as string | undefined}
+                        disabled={processing}
+                        noneLabel={t('form.sede_placeholder')}
+                        controlClassName={controlClass}
+                    />
                 </FormSection>
 
                 {/* Separador visual */}
