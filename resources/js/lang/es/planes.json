@@ -118,12 +118,7 @@
         },
         "groups": {
             "limites": "Límites cuantitativos",
-            "clinico": "Módulos clínicos",
-            "servicios": "Servicios",
-            "facturacion": "Facturación electrónica",
-            "comunicaciones": "Comunicaciones",
-            "reportes": "Reportes",
-            "soporte": "Soporte"
+            "facturacion": "Facturación electrónica"
         },
         "descriptions": {
             "max_sedes": "Cantidad máxima de sedes (-1 = ilimitado).",
@@ -131,21 +126,11 @@
             "max_pacientes": "Cantidad máxima de pacientes registrados.",
             "max_propietarios": "Cantidad máxima de propietarios registrados.",
             "max_productos": "Cantidad máxima de productos en inventario.",
-            "historias_clinicas": "Permite usar el módulo de historias clínicas.",
-            "cirugias": "Permite registrar cirugías y notas operatorias.",
-            "hospitalizacion": "Permite el módulo de hospitalización.",
-            "laboratorio": "Permite el módulo de laboratorio interno.",
-            "grooming": "Permite el módulo de grooming.",
-            "hotel": "Permite el módulo de hotel.",
-            "factura_electronica": "Permite que la clínica active la emisión de boletas/facturas electrónicas SUNAT (además debe estar habilitado en Configuración → General).",
+            "factura_electronica": "Activa el módulo de facturación electrónica SUNAT para la clínica.",
+            "boletas_electronicas": "Permite emitir boletas de venta (consumidores finales, DNI).",
+            "facturas_ruc": "Permite emitir facturas electrónicas a clientes con RUC.",
             "notas_credito": "Habilita la emisión de notas de crédito y débito.",
-            "resumenes_diarios": "Envío automático de resúmenes diarios a SUNAT.",
-            "whatsapp_marketing": "Campañas de WhatsApp marketing.",
-            "email_marketing": "Envío de campañas por correo.",
-            "sms_recordatorios": "Recordatorios automáticos por SMS.",
-            "reportes_avanzados": "Acceso a reportes financieros y operativos avanzados.",
-            "soporte_prioritario": "Cola de soporte prioritaria.",
-            "soporte_whatsapp": "Canal de soporte directo por WhatsApp."
+            "max_comprobantes_mes": "Límite de comprobantes electrónicos por mes (-1 = ilimitado)."
         }
     },
     "delete": {

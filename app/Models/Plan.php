@@ -23,37 +23,19 @@ class Plan extends Model
      * vía `Plan::resolveFeature($plan, 'max_sedes')`.
      */
     public const FEATURE_CATALOG = [
-        // ───── Límites ─────
-        'max_sedes' => ['type' => 'int', 'group' => 'limites', 'default' => 1],
-        'max_usuarios' => ['type' => 'int', 'group' => 'limites', 'default' => 3],
-        'max_pacientes' => ['type' => 'int', 'group' => 'limites', 'default' => 500],
+        // ───── Límites cuantitativos ─────
+        'max_sedes'        => ['type' => 'int', 'group' => 'limites', 'default' => 1],
+        'max_usuarios'     => ['type' => 'int', 'group' => 'limites', 'default' => 3],
+        'max_pacientes'    => ['type' => 'int', 'group' => 'limites', 'default' => 500],
         'max_propietarios' => ['type' => 'int', 'group' => 'limites', 'default' => 500],
-        'max_productos' => ['type' => 'int', 'group' => 'limites', 'default' => 200],
+        'max_productos'    => ['type' => 'int', 'group' => 'limites', 'default' => 200],
 
-        // ───── Módulos clínicos ─────
-        'historias_clinicas' => ['type' => 'bool', 'group' => 'clinico', 'default' => true],
-        'cirugias' => ['type' => 'bool', 'group' => 'clinico', 'default' => false],
-        'hospitalizacion' => ['type' => 'bool', 'group' => 'clinico', 'default' => false],
-        'laboratorio' => ['type' => 'bool', 'group' => 'clinico', 'default' => false],
-
-        // ───── Servicios ─────
-        'grooming' => ['type' => 'bool', 'group' => 'servicios', 'default' => false],
-        'hotel' => ['type' => 'bool', 'group' => 'servicios', 'default' => false],
-
-        // ───── Facturación ─────
-        'factura_electronica' => ['type' => 'bool', 'group' => 'facturacion', 'default' => false],
-        'notas_credito' => ['type' => 'bool', 'group' => 'facturacion', 'default' => false],
-        'resumenes_diarios' => ['type' => 'bool', 'group' => 'facturacion', 'default' => false],
-
-        // ───── Comunicaciones ─────
-        'whatsapp_marketing' => ['type' => 'bool', 'group' => 'comunicaciones', 'default' => false],
-        'email_marketing' => ['type' => 'bool', 'group' => 'comunicaciones', 'default' => true],
-        'sms_recordatorios' => ['type' => 'bool', 'group' => 'comunicaciones', 'default' => false],
-
-        // ───── Reportes & soporte ─────
-        'reportes_avanzados' => ['type' => 'bool', 'group' => 'reportes', 'default' => false],
-        'soporte_prioritario' => ['type' => 'bool', 'group' => 'soporte', 'default' => false],
-        'soporte_whatsapp' => ['type' => 'bool', 'group' => 'soporte', 'default' => false],
+        // ───── Facturación electrónica ─────
+        'factura_electronica'  => ['type' => 'bool', 'group' => 'facturacion', 'default' => false],
+        'boletas_electronicas' => ['type' => 'bool', 'group' => 'facturacion', 'default' => false],
+        'facturas_ruc'         => ['type' => 'bool', 'group' => 'facturacion', 'default' => false],
+        'notas_credito'        => ['type' => 'bool', 'group' => 'facturacion', 'default' => false],
+        'max_comprobantes_mes' => ['type' => 'int', 'group' => 'facturacion', 'default' => 50],
     ];
 
     protected $fillable = [
