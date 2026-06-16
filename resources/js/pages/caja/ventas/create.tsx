@@ -670,18 +670,18 @@ export default function Create({
                                         disabled={!puede_vender}
                                     >
                                         {/* Ticket siempre disponible */}
-                                        <ToggleGroupItem value="0" className="min-w-24 px-4">
+                                        <ToggleGroupItem value="0" className="min-w-24 cursor-pointer px-4">
                                             {t('caja:ventas.create.comprobante_ticket')}
                                         </ToggleGroupItem>
                                         {/* Boleta: solo si el plan lo permite */}
                                         {puedeEmitirBoleta && (
-                                            <ToggleGroupItem value="2" className="min-w-24 px-4">
+                                            <ToggleGroupItem value="2" className="min-w-24 cursor-pointer px-4">
                                                 {t('caja:ventas.create.comprobante_boleta')}
                                             </ToggleGroupItem>
                                         )}
                                         {/* Factura: solo si el plan lo permite */}
                                         {puedeEmitirFactura && (
-                                            <ToggleGroupItem value="1" className="min-w-24 px-4">
+                                            <ToggleGroupItem value="1" className="min-w-24 cursor-pointer px-4">
                                                 {t('caja:ventas.create.comprobante_factura')}
                                             </ToggleGroupItem>
                                         )}
