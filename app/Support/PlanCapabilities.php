@@ -10,13 +10,30 @@ use App\Models\Tenant;
 final class PlanCapabilities
 {
     /**
-     * Si el plan contratado permite que la clínica active la emisión de
-     * comprobantes electrónicos SUNAT (boleta/factura vía integrador).
-     *
-     * Sin suscripción activa (trial/active/grace) o sin plan asociado,
-     * se considera false.
+     * Si el plan permite emitir boletas electrónicas (consumidores finales / DNI).
+     */
+    public static function boletasElectronicas(?Tenant $tenant): bool
+    {
+        return self::resolveBool($tenant, 'boletas_electronicas');
+    }
+
+    /**
+     * Si el plan permite emitir facturas electrónicas (clientes con RUC).
+     */
+    public static function facturasElectronicas(?Tenant $tenant): bool
+    {
+        return self::resolveBool($tenant, 'facturas_electronicas');
+    }
+
+    /**
+     * @deprecated Usar boletasElectronicas() o facturasElectronicas() según el tipo.
      */
     public static function facturaElectronica(?Tenant $tenant): bool
+    {
+        return self::boletasElectronicas($tenant) || self::facturasElectronicas($tenant);
+    }
+
+    private static function resolveBool(?Tenant $tenant, string $feature): bool
     {
         if ($tenant === null) {
             return false;
@@ -32,7 +49,6 @@ final class PlanCapabilities
             return false;
         }
 
-        return $plan->codigo === 'clinica'
-            && (bool) $plan->resolveFeature('factura_electronica');
+        return (bool) $plan->resolveFeature($feature);
     }
 }

@@ -52,7 +52,8 @@ export type ClinicaVentaConfig = {
     igv_porcentaje: string;
     precio_incluye_igv: boolean;
     emite_comprobantes_sunat: boolean;
-    plan_permite_factura_electronica: boolean;
+    plan_permite_boletas: boolean;
+    plan_permite_facturas: boolean;
 };
 
 export type MiSesionVenta = {
@@ -158,7 +159,8 @@ export type VentaShowProps = {
         ticket_ancho_mm: '58' | '80';
         emite_comprobantes_sunat: boolean;
         nubefact_configurado: boolean;
-        plan_permite_factura_electronica: boolean;
+        plan_permite_boletas: boolean;
+        plan_permite_facturas: boolean;
     };
     fel: {
         puede_emitir: boolean;

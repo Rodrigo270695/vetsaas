@@ -517,7 +517,7 @@ export default function Show({
                                     </div>
                                     {esComprobanteSunat &&
                                     clinica.emite_comprobantes_sunat &&
-                                    clinica.plan_permite_factura_electronica ? (
+                                    (clinica.plan_permite_boletas || clinica.plan_permite_facturas) ? (
                                         <div className="rounded-md border border-dashed border-border/60 bg-background/80 px-2.5 py-2 text-xs">
                                             <p className="font-medium text-foreground">
                                                 {t('caja:ventas.show.fel_previsto_titulo')}:{' '}
