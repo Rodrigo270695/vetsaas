@@ -126,10 +126,11 @@
             "max_pacientes": "Cantidad máxima de pacientes registrados.",
             "max_propietarios": "Cantidad máxima de propietarios registrados.",
             "max_productos": "Cantidad máxima de productos en inventario.",
-            "factura_electronica": "Activa el módulo de facturación electrónica SUNAT para la clínica.",
-            "boletas_electronicas": "Permite emitir boletas de venta (consumidores finales, DNI).",
-            "facturas_ruc": "Permite emitir facturas electrónicas a clientes con RUC.",
-            "notas_credito": "Habilita la emisión de notas de crédito y débito.",
+            "boletas_electronicas": "Puede emitir boletas de venta electrónicas (consumidores finales / DNI).",
+            "facturas_electronicas": "Puede emitir facturas electrónicas a clientes con RUC.",
+            "guias_remision": "Puede emitir guías de remisión electrónicas.",
+            "notas_credito": "Puede emitir notas de crédito electrónicas.",
+            "notas_debito": "Puede emitir notas de débito electrónicas.",
             "max_comprobantes_mes": "Límite de comprobantes electrónicos por mes (-1 = ilimitado)."
         }
     },

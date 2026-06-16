@@ -31,11 +31,12 @@ class Plan extends Model
         'max_productos'    => ['type' => 'int', 'group' => 'limites', 'default' => 200],
 
         // ───── Facturación electrónica ─────
-        'factura_electronica'  => ['type' => 'bool', 'group' => 'facturacion', 'default' => false],
         'boletas_electronicas' => ['type' => 'bool', 'group' => 'facturacion', 'default' => false],
-        'facturas_ruc'         => ['type' => 'bool', 'group' => 'facturacion', 'default' => false],
+        'facturas_electronicas'=> ['type' => 'bool', 'group' => 'facturacion', 'default' => false],
+        'guias_remision'       => ['type' => 'bool', 'group' => 'facturacion', 'default' => false],
         'notas_credito'        => ['type' => 'bool', 'group' => 'facturacion', 'default' => false],
-        'max_comprobantes_mes' => ['type' => 'int', 'group' => 'facturacion', 'default' => 50],
+        'notas_debito'         => ['type' => 'bool', 'group' => 'facturacion', 'default' => false],
+        'max_comprobantes_mes' => ['type' => 'int',  'group' => 'facturacion', 'default' => 50],
     ];
 
     protected $fillable = [
