@@ -111,8 +111,6 @@ export default function Create({
     const [buscandoServicio, setBuscandoServicio] = useState(false);
     const [servicioConcepto, setServicioConcepto] = useState('');
     const [servicioPrecio, setServicioPrecio] = useState('');
-    const [pacientes, setPacientes] = useState<{ id: string; nombre: string }[]>([]);
-    const [cargandoPacientes, setCargandoPacientes] = useState(false);
     const [propietariosLocales, setPropietariosLocales] = useState(propietariosOpciones);
     const [nuevoClienteOpen, setNuevoClienteOpen] = useState(false);
 
@@ -120,7 +118,6 @@ export default function Create({
         caja_sesion_id: mi_sesion?.id ?? '',
         propietario_id: '',
         tipo_comprobante_sunat: 0 as 0 | 1 | 2,
-        paciente_id: null as string | null,
         consulta_id: null as string | null,
         consulta_cargo_id: null as string | null,
         grooming_turno_id: null as string | null,
@@ -190,28 +187,11 @@ export default function Create({
         form.setData((prev) => ({
             ...prev,
             propietario_id: desdeCargo.propietario_id,
-            paciente_id: desdeCargo.paciente_id,
             consulta_id: desdeCargo.consulta_id,
             consulta_cargo_id: desdeCargo.consulta_cargo_id,
             grooming_turno_id: desdeCargo.grooming_turno_id ?? null,
             hotel_estancia_id: desdeCargo.hotel_estancia_id ?? null,
         }));
-
-        if (desdeCargo.paciente_id && desdeCargo.paciente_nombre) {
-            setPacientes([{ id: desdeCargo.paciente_id, nombre: desdeCargo.paciente_nombre }]);
-        } else if (desdeCargo.propietario_id) {
-            setCargandoPacientes(true);
-            const url = caja.ventas.pacientesPorPropietario.url({
-                query: { propietario_id: desdeCargo.propietario_id },
-            });
-            jsonGet(url)
-                .then((raw) => {
-                    const data = (raw as { data?: { id: string; nombre: string }[] }).data ?? [];
-                    setPacientes(data);
-                })
-                .catch(() => setPacientes([]))
-                .finally(() => setCargandoPacientes(false));
-        }
     }, [desdeCargo, form, t]);
 
     const igvPct = Number(clinica.igv_porcentaje);
@@ -268,24 +248,6 @@ export default function Create({
     const onPropietarioChange = useCallback(
         (propietarioId: string) => {
             form.setData('propietario_id', propietarioId);
-            form.setData('paciente_id', null);
-            setPacientes([]);
-
-            if (!propietarioId) {
-                return;
-            }
-
-            setCargandoPacientes(true);
-            const url = caja.ventas.pacientesPorPropietario.url({
-                query: { propietario_id: propietarioId },
-            });
-            jsonGet(url)
-                .then((raw) => {
-                    const data = (raw as { data?: { id: string; nombre: string }[] }).data ?? [];
-                    setPacientes(data);
-                })
-                .catch(() => setPacientes([]))
-                .finally(() => setCargandoPacientes(false));
         },
         [form],
     );
@@ -698,44 +660,6 @@ export default function Create({
                                     ) : null}
                                 </div>
 
-                                <div className="flex flex-col gap-2 sm:col-span-2">
-                                    <Label htmlFor="paciente">
-                                        {t('caja:ventas.create.paciente')}
-                                    </Label>
-                                    <Select
-                                        value={form.data.paciente_id ?? 'none'}
-                                        onValueChange={(v) =>
-                                            form.setData('paciente_id', v === 'none' ? null : v)
-                                        }
-                                        disabled={
-                                            !puede_vender ||
-                                            Boolean(desdeCargo) ||
-                                            !form.data.propietario_id ||
-                                            cargandoPacientes
-                                        }
-                                    >
-                                        <SelectTrigger id="paciente" className="w-full">
-                                            <SelectValue
-                                                placeholder={t('caja:ventas.create.paciente_ph')}
-                                            />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="none">
-                                                {t('caja:ventas.create.paciente_ninguno')}
-                                            </SelectItem>
-                                            {pacientes.map((p) => (
-                                                <SelectItem key={p.id} value={p.id}>
-                                                    {p.nombre}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    {form.errors.paciente_id ? (
-                                        <p className="text-xs text-destructive">
-                                            {form.errors.paciente_id}
-                                        </p>
-                                    ) : null}
-                                </div>
                             </div>
                         </PosPanel>
 
