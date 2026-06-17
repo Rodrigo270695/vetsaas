@@ -461,7 +461,7 @@ class VentaController extends Controller
                     ? (string) $clinic->ticket_ancho_mm
                     : '80',
                 'emite_comprobantes_sunat' => (bool) $clinic->emite_comprobantes_sunat,
-                'nubefact_configurado' => (bool) $clinic->nubefact_configurado,
+                'apisunat_configurado' => \App\Support\Fel\ApisunatCredentialResolver::estaConfigurado($clinic),
                 'plan_permite_boletas'   => PlanCapabilities::boletasElectronicas($tenantModel),
                 'plan_permite_facturas'  => PlanCapabilities::facturasElectronicas($tenantModel),
             ],

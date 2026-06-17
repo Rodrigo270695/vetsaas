@@ -301,7 +301,7 @@ export default function Show({
                         {(puedeVerTicket ||
                             (!esAnulada &&
                                 clinica.emite_comprobantes_sunat &&
-                                clinica.nubefact_configurado &&
+                                clinica.apisunat_configurado &&
                                 venta.fel_estado === 'pendiente_emision')) && (
                         <div className="flex flex-col gap-2 rounded-lg border border-border/60 bg-muted/20 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                             {puedeVerTicket ? (
@@ -562,9 +562,9 @@ export default function Show({
                                     ) : null}
                                     {esComprobanteSunat &&
                                     venta.fel_estado === 'pendiente_emision' &&
-                                    !clinica.nubefact_configurado ? (
+                                    !clinica.apisunat_configurado ? (
                                         <p className="text-xs text-muted-foreground">
-                                            {t('caja:ventas.show.fel_sin_nubefact')}
+                                            {t('caja:ventas.show.fel_sin_apisunat')}
                                         </p>
                                     ) : null}
                                     <div className="flex flex-wrap gap-2">

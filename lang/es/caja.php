@@ -60,8 +60,10 @@ return [
         'fel' => [
             'no_emitible' => 'Esta venta no puede emitir comprobante electrónico.',
             'ya_procesada' => 'El comprobante de esta venta ya fue procesado.',
-            'sin_serie' => 'No hay serie de :tipo configurada. Revisa Configuración › Sedes (serie factura / boleta) o el catálogo FEL de la clínica.',
-            'sin_token' => 'Configura la ruta y el token de Nubefact en Configuración › General.',
+            'sin_serie' => 'No hay serie de :tipo configurada. Revisa Facturación › Series o la sede.',
+            'apisunat_no_configurado' => 'Configura el token de APISUNAT en Configuración › General.',
+            'apisunat_token_invalido' => 'No se puede descifrar el token de APISUNAT. Revisa la configuración.',
+            'factura_requiere_ruc' => 'La factura requiere un propietario con RUC válido.',
             'emitida_ok' => 'Comprobante electrónico emitido correctamente.',
         ],
         'anulacion' => [

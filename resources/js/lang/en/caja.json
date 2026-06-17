@@ -165,7 +165,7 @@
             "fel_previsto_sin_serie": "Missing series in Settings › Branches.",
             "fel_ver_pdf": "View PDF",
             "fel_emitir": "Issue receipt",
-            "fel_sin_nubefact": "Configure Nubefact under Settings › General to issue receipts.",
+            "fel_sin_apisunat": "Configure APISUNAT under Settings › General to issue receipts.",
             "ticket_espera_cpe": "Print the receipt after issuing the SUNAT voucher.",
             "anular_venta": "Void sale",
             "anular_venta_desc": "Reverses product stock, releases pre-invoice/grooming/hotel links, and voids the SUNAT receipt if already issued.",

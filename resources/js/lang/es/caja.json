@@ -165,7 +165,7 @@
             "fel_previsto_sin_serie": "Falta serie en Configuración › Sedes.",
             "fel_ver_pdf": "Ver PDF",
             "fel_emitir": "Emitir comprobante",
-            "fel_sin_nubefact": "Configura Nubefact en Configuración › General para emitir.",
+            "fel_sin_apisunat": "Configura APISUNAT en Configuración › General para emitir comprobantes.",
             "ticket_espera_cpe": "Imprime el ticket después de emitir el comprobante SUNAT.",
             "anular_venta": "Anular venta",
             "anular_venta_desc": "Revierte stock de productos, libera pre-cuenta/grooming/hotel y anula el comprobante SUNAT si ya fue emitido.",

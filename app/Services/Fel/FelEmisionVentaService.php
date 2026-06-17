@@ -7,10 +7,9 @@ use App\Models\FelDocument;
 use App\Models\FelSerie;
 use App\Models\Tenant;
 use App\Models\Venta;
-use App\Models\VentaLinea;
+use App\Support\Fel\ApisunatCredentialResolver;
 use App\Support\Fel\FelReceptorResolver;
 use App\Support\Fel\FelSerieResolver;
-use App\Support\Fel\NubefactCredentialResolver;
 use App\Support\PlanCapabilities;
 use App\Tenancy\TenantManager;
 use Illuminate\Support\Facades\DB;
@@ -19,7 +18,7 @@ use RuntimeException;
 final class FelEmisionVentaService
 {
     public function __construct(
-        private readonly NubefactClient $nubefact,
+        private readonly ApisunatClient $apisunat,
         private readonly FelSerieResolver $felSeries,
     ) {}
 
@@ -29,13 +28,16 @@ final class FelEmisionVentaService
             return false;
         }
 
-        if (! in_array($venta->fel_estado, [Venta::FEL_PENDIENTE, Venta::FEL_RECHAZADO], true)) {
+        if (! $this->estadoPermiteEmision($venta)) {
             return false;
         }
 
-        return PlanCapabilities::facturaElectronica($tenant)
+        $tipo = $venta->tipo_comprobante_sunat;
+
+        return FelSerie::esTipoSunat($tipo)
+            && $this->planPermiteTipo($tenant, $tipo)
             && (bool) $clinic->emite_comprobantes_sunat
-            && (bool) $clinic->nubefact_configurado;
+            && ApisunatCredentialResolver::estaConfigurado($clinic);
     }
 
     public function emitirPorVentaId(string $ventaId): FelDocument
@@ -56,14 +58,18 @@ final class FelEmisionVentaService
             throw new RuntimeException(__('caja.ventas.fel.no_emitible'));
         }
 
-        $nubefact = NubefactCredentialResolver::fromClinicSetting($clinic);
+        $credenciales = ApisunatCredentialResolver::fromClinicSetting($clinic);
         $receptor = FelReceptorResolver::datosReceptor($venta->propietario);
-        $tipoComprobante = $venta->tipoComprobanteSunat();
+        $tipoComprobante = (int) $venta->tipo_comprobante_sunat;
 
-        return DB::transaction(function () use ($venta, $clinic, $nubefact, $receptor, $tipoComprobante): FelDocument {
+        if ($tipoComprobante === FelSerie::TIPO_FACTURA && (int) $receptor['tipo_doc'] !== 6) {
+            throw new RuntimeException(__('caja.ventas.fel.factura_requiere_ruc'));
+        }
+
+        return DB::transaction(function () use ($venta, $credenciales, $receptor, $tipoComprobante): FelDocument {
             $venta = Venta::query()->whereKey($venta->id)->lockForUpdate()->firstOrFail();
 
-            if (! in_array($venta->fel_estado, [Venta::FEL_PENDIENTE, Venta::FEL_RECHAZADO], true)) {
+            if (! $this->estadoPermiteEmision($venta)) {
                 throw new RuntimeException(__('caja.ventas.fel.ya_procesada'));
             }
 
@@ -98,9 +104,9 @@ final class FelEmisionVentaService
                 'fel_estado' => Venta::FEL_PENDIENTE,
             ]);
 
-            $payload = $this->construirPayloadNubefact(
+            $payload = $this->apisunat->construirPayload(
                 $venta,
-                $clinic,
+                ClinicSetting::current(),
                 $tipoComprobante,
                 $serie->serie,
                 $correlativo,
@@ -108,31 +114,32 @@ final class FelEmisionVentaService
             );
 
             try {
-                $respuesta = $this->nubefact->generarComprobante($nubefact, $payload);
+                $respuesta = $this->apisunat->generarComprobante($credenciales, $payload);
             } catch (RuntimeException $e) {
                 $this->marcarRechazado($documento, $venta, $e->getMessage());
 
                 throw $e;
             }
 
-            if (! $this->nubefact->respuestaExitosa($respuesta)) {
-                $mensaje = $this->nubefact->extraerMensajeError($respuesta);
+            if (! $this->apisunat->respuestaExitosa($respuesta)) {
+                $mensaje = $this->apisunat->extraerMensajeError($respuesta);
                 $this->marcarRechazado($documento, $venta, $mensaje);
 
                 throw new RuntimeException($mensaje);
             }
 
+            $enlaces = $this->apisunat->extraerEnlaces($respuesta);
+            $estadoApisunat = strtoupper((string) (($respuesta['payload'] ?? [])['estado'] ?? ''));
+
             $serie->update(['ultimo_correlativo' => $correlativo]);
 
             $documento->update([
                 'estado' => FelDocument::ESTADO_EMITIDO,
-                'nubefact_id' => is_string($respuesta['codigo_unico'] ?? null)
-                    ? $respuesta['codigo_unico']
-                    : (is_string($respuesta['id'] ?? null) ? $respuesta['id'] : null),
-                'url_pdf' => $this->primerEnlace($respuesta, ['enlace_del_pdf', 'enlace_del_pdf2']),
-                'url_xml' => $this->primerEnlace($respuesta, ['enlace_del_xml', 'enlace_del_xml2']),
-                'url_cdr' => $this->primerEnlace($respuesta, ['enlace_del_cdr', 'enlace_del_cdr2']),
-                'enlace_consulta' => $this->primerEnlace($respuesta, ['enlace', 'enlace_del_pdf']),
+                'nubefact_id' => $estadoApisunat !== '' ? 'apisunat:'.$estadoApisunat : null,
+                'url_pdf' => $enlaces['pdf'],
+                'url_xml' => $enlaces['xml'],
+                'url_cdr' => $enlaces['cdr'],
+                'enlace_consulta' => $enlaces['consulta'],
                 'error_mensaje' => null,
                 'emitido_at' => now(),
             ]);
@@ -143,81 +150,23 @@ final class FelEmisionVentaService
         });
     }
 
-    /**
-     * @param  array{
-     *     tipo_doc: int,
-     *     num_doc: string,
-     *     nombre: string,
-     * }  $receptor
-     * @return array<string, mixed>
-     */
-    private function construirPayloadNubefact(
-        Venta $venta,
-        ClinicSetting $clinic,
-        int $tipoComprobante,
-        string $serie,
-        int $correlativo,
-        array $receptor,
-    ): array {
-        $igvPct = number_format((float) $clinic->igv_porcentaje, 2, '.', '');
-        // Nubefact exige la fecha del día de emisión (no la del cobro histórico).
-        $fecha = now(config('app.timezone'))->format('d-m-Y');
-
-        $items = $venta->lineas->map(function (VentaLinea $ln) use ($clinic, $igvPct): array {
-            $cantidad = (float) (string) $ln->cantidad;
-            $subtotal = round((float) (string) $ln->subtotal, 2);
-            $igvLinea = round($subtotal * ((float) $igvPct / 100), 2);
-            $valorUnit = $cantidad > 0 ? round($subtotal / $cantidad, 2) : 0.0;
-            $precioUnit = round($valorUnit + ($cantidad > 0 ? $igvLinea / $cantidad : 0), 2);
-
-            return [
-                'unidad_de_medida' => 'NIU',
-                'codigo' => '001',
-                'descripcion' => mb_substr($ln->descripcion_snapshot, 0, 250),
-                'cantidad' => number_format($cantidad, 2, '.', ''),
-                'valor_unitario' => number_format($valorUnit, 2, '.', ''),
-                'precio_unitario' => number_format($precioUnit, 2, '.', ''),
-                'subtotal' => number_format($subtotal, 2, '.', ''),
-                'tipo_de_igv' => 1,
-                'igv' => number_format($igvLinea, 2, '.', ''),
-                'total' => number_format($subtotal + $igvLinea, 2, '.', ''),
-            ];
-        })->values()->all();
-
-        return [
-            'operacion' => 'generar_comprobante',
-            'tipo_de_comprobante' => (string) $tipoComprobante,
-            'serie' => $serie,
-            'numero' => (string) $correlativo,
-            'sunat_transaction' => '1',
-            'cliente_tipo_de_documento' => (string) $receptor['tipo_doc'],
-            'cliente_numero_de_documento' => $receptor['num_doc'],
-            'cliente_denominacion' => $receptor['nombre'],
-            'cliente_direccion' => mb_substr((string) ($venta->propietario?->direccion ?? '-'), 0, 250) ?: '-',
-            'cliente_email' => $venta->propietario?->email,
-            'fecha_de_emision' => $fecha,
-            'moneda' => $venta->moneda === 'USD' ? '2' : '1',
-            'porcentaje_de_igv' => $igvPct,
-            'total_gravada' => number_format((float) (string) $venta->subtotal, 2, '.', ''),
-            'total_igv' => number_format((float) (string) $venta->igv_monto, 2, '.', ''),
-            'total' => number_format((float) (string) $venta->total, 2, '.', ''),
-            'items' => $items,
-        ];
-    }
-
-    /**
-     * @param  array<string, mixed>  $respuesta
-     * @param  list<string>  $keys
-     */
-    private function primerEnlace(array $respuesta, array $keys): ?string
+    private function estadoPermiteEmision(Venta $venta): bool
     {
-        foreach ($keys as $key) {
-            if (isset($respuesta[$key]) && is_string($respuesta[$key]) && $respuesta[$key] !== '') {
-                return $respuesta[$key];
-            }
+        if (in_array($venta->fel_estado, [Venta::FEL_PENDIENTE, Venta::FEL_RECHAZADO], true)) {
+            return true;
         }
 
-        return null;
+        return $venta->fel_estado === Venta::FEL_SIN_CPE
+            && FelSerie::esTipoSunat($venta->tipo_comprobante_sunat);
+    }
+
+    private function planPermiteTipo(?Tenant $tenant, ?int $tipo): bool
+    {
+        return match ($tipo) {
+            FelSerie::TIPO_FACTURA => PlanCapabilities::facturasElectronicas($tenant),
+            FelSerie::TIPO_BOLETA => PlanCapabilities::boletasElectronicas($tenant),
+            default => false,
+        };
     }
 
     private function marcarRechazado(FelDocument $documento, Venta $venta, string $mensaje): void

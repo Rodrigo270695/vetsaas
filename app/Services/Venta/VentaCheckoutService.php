@@ -12,9 +12,10 @@ use App\Models\MovimientoInventario;
 use App\Models\FelSerie;
 use App\Models\Producto;
 use App\Models\Tenant;
-use App\Jobs\EmitirFelVentaJob;
+use App\Services\Fel\FelEmisionVentaService;
 use App\Models\Venta;
 use App\Models\VentaLinea;
+use App\Support\Fel\ApisunatCredentialResolver;
 use App\Support\PlanCapabilities;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Facades\DB;
@@ -42,14 +43,12 @@ final class VentaCheckoutService
             ? (int) $validated['tipo_comprobante_sunat']
             : null;
 
-        $felPendiente = PlanCapabilities::facturaElectronica($tenant)
-            && (bool) $clinic->emite_comprobantes_sunat
-            && (bool) $clinic->nubefact_configurado
-            && FelSerie::esTipoSunat($tipoComprobante);
+        $felPendiente = (bool) $clinic->emite_comprobantes_sunat
+            && ApisunatCredentialResolver::estaConfigurado($clinic)
+            && FelSerie::esTipoSunat($tipoComprobante)
+            && $this->planPermiteTipoComprobante($tenant, $tipoComprobante);
 
-        $tenantSlug = $tenant?->slug;
-
-        return DB::transaction(function () use ($validated, $user, $igvPct, $precioIncluyeIgv, $moneda, $felPendiente, $tenantSlug, $tipoComprobante): Venta {
+        $venta = DB::transaction(function () use ($validated, $user, $igvPct, $precioIncluyeIgv, $moneda, $felPendiente, $tipoComprobante): Venta {
             $sesion = CajaSesion::query()
                 ->whereKey($validated['caja_sesion_id'])
                 ->lockForUpdate()
@@ -306,12 +305,20 @@ final class VentaCheckoutService
 
             $venta = $venta->fresh(['lineas', 'propietario', 'paciente']);
 
-            if ($felPendiente && $tenantSlug !== null && $tenantSlug !== '') {
-                EmitirFelVentaJob::dispatch($venta->id, $tenantSlug)->afterCommit();
-            }
-
             return $venta;
         });
+
+        if ($felPendiente) {
+            try {
+                app(FelEmisionVentaService::class)->emitir(
+                    $venta->fresh(['lineas', 'propietario', 'felDocument']),
+                );
+            } catch (\RuntimeException) {
+                // El servicio deja la venta en rechazado o pendiente; no revertimos el cobro.
+            }
+        }
+
+        return $venta->fresh(['lineas', 'propietario', 'felDocument']);
     }
 
     /**
@@ -373,5 +380,14 @@ final class VentaCheckoutService
         }
 
         return round($precioLista / $divisor, 4);
+    }
+
+    private function planPermiteTipoComprobante(?Tenant $tenant, ?int $tipo): bool
+    {
+        return match ($tipo) {
+            FelSerie::TIPO_FACTURA => PlanCapabilities::facturasElectronicas($tenant),
+            FelSerie::TIPO_BOLETA => PlanCapabilities::boletasElectronicas($tenant),
+            default => false,
+        };
     }
 }

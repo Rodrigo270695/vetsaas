@@ -158,7 +158,7 @@ export type VentaShowProps = {
         igv_porcentaje: string;
         ticket_ancho_mm: '58' | '80';
         emite_comprobantes_sunat: boolean;
-        nubefact_configurado: boolean;
+        apisunat_configurado: boolean;
         plan_permite_boletas: boolean;
         plan_permite_facturas: boolean;
     };

@@ -5,6 +5,7 @@ namespace App\Support\Caja;
 use App\Models\ClinicSetting;
 use App\Models\Tenant;
 use App\Models\Venta;
+use App\Support\Fel\ApisunatCredentialResolver;
 use App\Support\PlanCapabilities;
 
 /**
@@ -20,7 +21,7 @@ final class VentaTicketPolicy
 
         $requiereCpePrevio = PlanCapabilities::facturaElectronica($tenant)
             && (bool) $clinic->emite_comprobantes_sunat
-            && (bool) $clinic->nubefact_configurado;
+            && ApisunatCredentialResolver::estaConfigurado($clinic);
 
         if (! $requiereCpePrevio) {
             return true;
