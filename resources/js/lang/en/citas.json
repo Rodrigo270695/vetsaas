@@ -17,6 +17,20 @@
         "create_first": "Create first appointment",
         "cancel_appointment": "Cancel appointment"
     },
+    "view": {
+        "calendar": "Calendar",
+        "list": "List"
+    },
+    "calendar": {
+        "today": "Today",
+        "prev_week": "Previous week",
+        "next_week": "Next week",
+        "empty_week_title": "No appointments this week",
+        "empty_week_description": "There are no appointments scheduled for the selected week."
+    },
+    "detail": {
+        "edit": "Edit appointment"
+    },
     "columns": {
         "inicio_at": "Start",
         "duracion": "Duration",

@@ -1,14 +1,19 @@
 import type { BaseFilters } from '@/hooks/use-data-table-page';
 import type { AuditUser } from '../propietarios/types';
 
+export type VistaCita = 'calendario' | 'lista';
+
 export type CitaFilters = BaseFilters & {
     cita_desde: string;
     cita_hasta: string;
+    vista: VistaCita;
+    semana_desde: string | null;
 };
 
 export type CitaFiltroUi = {
     default_desde: string;
     default_hasta: string;
+    default_semana_desde: string;
     fuera_del_mes_actual: boolean;
 };
 

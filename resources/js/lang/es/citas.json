@@ -17,6 +17,20 @@
         "create_first": "Crear primera cita",
         "cancel_appointment": "Cancelar cita"
     },
+    "view": {
+        "calendar": "Calendario",
+        "list": "Lista"
+    },
+    "calendar": {
+        "today": "Hoy",
+        "prev_week": "Semana anterior",
+        "next_week": "Semana siguiente",
+        "empty_week_title": "Sin citas esta semana",
+        "empty_week_description": "No hay citas programadas en la semana seleccionada."
+    },
+    "detail": {
+        "edit": "Editar cita"
+    },
     "columns": {
         "inicio_at": "Inicio",
         "duracion": "Duración",

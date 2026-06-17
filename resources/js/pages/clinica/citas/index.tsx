@@ -1,5 +1,5 @@
 import { Head, usePage } from '@inertiajs/react';
-import { Activity, CalendarDays, Filter, Plus, UserCircle } from 'lucide-react';
+import { Activity, CalendarDays, Filter, LayoutList, Plus, UserCircle } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Can } from '@/components/can';
@@ -13,6 +13,7 @@ import {
 import type { DataTableColumn } from '@/components/data-page';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useDataTablePage } from '@/hooks/use-data-table-page';
 import { usePermission } from '@/hooks/use-permission';
 import { dashboard } from '@/routes';
@@ -21,13 +22,25 @@ import type { Paginated } from '@/types';
 import { AtencionDateRangeFilter } from '../historias-clinicas/components/atencion-date-range-filter';
 import { formatAtendidoInAppTimezone } from '../historias-clinicas/format-atendido';
 import { CitaCancelDialog } from './components/cita-cancel-dialog';
+import { CitaDetailModal } from './components/cita-detail-modal';
 import { CitaDeleteDialog } from './components/cita-delete-dialog';
 import { CitaFormModal } from './components/cita-form-modal';
 import { CitaRowActions } from './components/cita-row-actions';
-import type { CitaFilters, CitaFiltroUi, CitaRow, CitaStats, PacienteCitaOpcion, SedeCitaOpcion, UsuarioCitaOpcion } from './types';
+import { CitasCalendar, displayPropietarioCita } from './components/citas-calendar';
+import type {
+    CitaFilters,
+    CitaFiltroUi,
+    CitaRow,
+    CitaStats,
+    PacienteCitaOpcion,
+    SedeCitaOpcion,
+    UsuarioCitaOpcion,
+    VistaCita,
+} from './types';
 
 type Props = {
     citas: Paginated<CitaRow>;
+    citas_agenda: readonly CitaRow[];
     pacientes_opciones: readonly PacienteCitaOpcion[];
     usuarios_opciones: readonly UsuarioCitaOpcion[];
     sedes_opciones: readonly SedeCitaOpcion[];
@@ -37,27 +50,39 @@ type Props = {
     cita_abrir_editar: CitaRow | null;
 };
 
-type CitasTableExtra = Pick<CitaFilters, 'cita_desde' | 'cita_hasta'>;
+type CitasTableExtra = Pick<CitaFilters, 'cita_desde' | 'cita_hasta' | 'vista' | 'semana_desde'>;
 
 type ModalState =
     | { type: 'idle' }
     | { type: 'create' }
+    | { type: 'detail'; cita: CitaRow }
     | { type: 'edit'; cita: CitaRow }
     | { type: 'delete'; cita: CitaRow }
     | { type: 'cancel'; cita: CitaRow };
 
 const DEFAULT_PER_PAGE = 10;
 
-function displayPropietario(p: CitaRow['paciente']['propietario']): string {
-    if (!p) {
-        return '—';
-    }
+function shiftIsoDate(isoDate: string, days: number): string {
+    const [y, m, d] = isoDate.split('-').map(Number);
+    const dt = new Date(y, m - 1, d, 12, 0, 0);
+    dt.setDate(dt.getDate() + days);
 
-    if (p.razon_social) {
-        return p.razon_social;
-    }
+    return formatIsoDate(dt);
+}
 
-    return [p.nombres, p.apellidos].filter(Boolean).join(' ') || '—';
+function formatIsoDate(d: Date): string {
+    const pad = (n: number) => String(n).padStart(2, '0');
+
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+function monthRangeFromWeek(semanaDesde: string): { desde: string; hasta: string } {
+    const [y, m, d] = semanaDesde.split('-').map(Number);
+    const dt = new Date(y, m - 1, d, 12, 0, 0);
+    const start = new Date(dt.getFullYear(), dt.getMonth(), 1);
+    const end = new Date(dt.getFullYear(), dt.getMonth() + 1, 0);
+
+    return { desde: formatIsoDate(start), hasta: formatIsoDate(end) };
 }
 
 function estadoBadgeVariant(estado: string): 'default' | 'secondary' | 'destructive' | 'outline' {
@@ -82,6 +107,7 @@ function estadoBadgeVariant(estado: string): 'default' | 'secondary' | 'destruct
 
 export default function Index({
     citas: paginated,
+    citas_agenda,
     pacientes_opciones,
     usuarios_opciones,
     sedes_opciones,
@@ -100,6 +126,10 @@ export default function Index({
     const canSeeAudit = can('audit-trail.view');
     const showRowActions = canUpdate || canDelete || canCancel;
 
+    const vista = (filters.vista ?? 'calendario') as VistaCita;
+    const semanaDesde =
+        filters.semana_desde ?? cita_filtro_ui.default_semana_desde ?? filters.cita_desde;
+
     const {
         search,
         setSearch,
@@ -113,6 +143,7 @@ export default function Index({
         initialFilters: filters,
         only: [
             'citas',
+            'citas_agenda',
             'pacientes_opciones',
             'usuarios_opciones',
             'sedes_opciones',
@@ -133,6 +164,7 @@ export default function Index({
     const [modal, setModal] = useState<ModalState>({ type: 'idle' });
     const closeModal = useCallback(() => setModal({ type: 'idle' }), []);
     const openCreate = useCallback(() => setModal({ type: 'create' }), []);
+    const openDetail = useCallback((c: CitaRow) => setModal({ type: 'detail', cita: c }), []);
     const openEdit = useCallback((c: CitaRow) => setModal({ type: 'edit', cita: c }), []);
     const openDelete = useCallback((c: CitaRow) => setModal({ type: 'delete', cita: c }), []);
     const openCancel = useCallback((c: CitaRow) => setModal({ type: 'cancel', cita: c }), []);
@@ -184,6 +216,29 @@ export default function Index({
         return c;
     }, [filters.search, filters.sort, filters.per_page, cita_filtro_ui.fuera_del_mes_actual]);
 
+    const handleVistaChange = useCallback(
+        (next: VistaCita) => {
+            if (next === 'calendario') {
+                applyFilter({
+                    vista: 'calendario',
+                    semana_desde: semanaDesde,
+                });
+
+                return;
+            }
+
+            const range = monthRangeFromWeek(semanaDesde);
+
+            applyFilter({
+                vista: 'lista',
+                cita_desde: range.desde,
+                cita_hasta: range.hasta,
+                semana_desde: null,
+            });
+        },
+        [applyFilter, semanaDesde],
+    );
+
     const columns = useMemo<DataTableColumn<CitaRow>[]>(() => {
         const base: DataTableColumn<CitaRow>[] = [
             {
@@ -213,7 +268,7 @@ export default function Index({
                     <div className="flex min-w-0 flex-col gap-0.5">
                         <span className="truncate text-sm font-medium">{row.paciente.nombre}</span>
                         <span className="truncate text-xs text-muted-foreground">
-                            {displayPropietario(row.paciente.propietario)}
+                            {displayPropietarioCita(row.paciente.propietario)}
                         </span>
                     </div>
                 ),
@@ -327,6 +382,51 @@ export default function Index({
         openCancel,
     ]);
 
+    const toolbarFilters = (
+        <div className="flex w-full min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <ToggleGroup
+                type="single"
+                value={vista}
+                onValueChange={(v) => {
+                    if (v === 'calendario' || v === 'lista') {
+                        handleVistaChange(v);
+                    }
+                }}
+                className="h-10 shrink-0 rounded-lg border border-border/70 bg-background/80 p-0.5 shadow-xs"
+            >
+                <ToggleGroupItem
+                    value="calendario"
+                    aria-label={t('view.calendar')}
+                    className="h-8 cursor-pointer gap-1.5 px-3 text-xs data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                >
+                    <CalendarDays className="size-3.5" />
+                    <span className="hidden sm:inline">{t('view.calendar')}</span>
+                </ToggleGroupItem>
+                <ToggleGroupItem
+                    value="lista"
+                    aria-label={t('view.list')}
+                    className="h-8 cursor-pointer gap-1.5 px-3 text-xs data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                >
+                    <LayoutList className="size-3.5" />
+                    <span className="hidden sm:inline">{t('view.list')}</span>
+                </ToggleGroupItem>
+            </ToggleGroup>
+
+            {vista === 'lista' ? (
+                <AtencionDateRangeFilter
+                    desde={filters.cita_desde}
+                    hasta={filters.cita_hasta}
+                    defaultDesde={cita_filtro_ui.default_desde}
+                    defaultHasta={cita_filtro_ui.default_hasta}
+                    disabled={isLoading}
+                    translationNs="citas"
+                    triggerClassName="h-10"
+                    onApply={(desde, hasta) => applyFilter({ cita_desde: desde, cita_hasta: hasta })}
+                />
+            ) : null}
+        </div>
+    );
+
     return (
         <>
             <Head title={t('title')} />
@@ -365,75 +465,115 @@ export default function Index({
                     }
                 />
 
-                <DataTable
-                    columns={columns}
-                    data={paginated.data}
-                    rowKey={(row) => row.id}
-                    sort={sort}
-                    onSortChange={setSort}
-                    isLoading={isLoading}
-                    ariaLiveMessage={t('common:aria.results_count_other', { count: stats.coincidencias })}
-                    toolbar={
+                {vista === 'calendario' ? (
+                    <div className="flex flex-col gap-4">
                         <DataToolbar
                             search={search}
                             onSearchChange={setSearch}
                             isSearching={isLoading}
                             placeholder={t('search_placeholder')}
-                            filtersClassName="sm:flex-1 sm:justify-end"
+                            filtersClassName="sm:flex-1 sm:min-w-0"
                         >
-                            <AtencionDateRangeFilter
-                                desde={filters.cita_desde}
-                                hasta={filters.cita_hasta}
-                                defaultDesde={cita_filtro_ui.default_desde}
-                                defaultHasta={cita_filtro_ui.default_hasta}
-                                disabled={isLoading}
-                                translationNs="citas"
-                                triggerClassName="h-10"
-                                onApply={(desde, hasta) =>
-                                    applyFilter({ cita_desde: desde, cita_hasta: hasta })
+                            {toolbarFilters}
+                        </DataToolbar>
+
+                        <CitasCalendar
+                            citas={citas_agenda}
+                            semanaDesde={semanaDesde}
+                            timeZone={appTz}
+                            localeCode={appLocale}
+                            isLoading={isLoading}
+                            onSelectCita={openDetail}
+                            onPrevWeek={() =>
+                                applyFilter({ semana_desde: shiftIsoDate(semanaDesde, -7) })
+                            }
+                            onNextWeek={() =>
+                                applyFilter({ semana_desde: shiftIsoDate(semanaDesde, 7) })
+                            }
+                            onToday={() =>
+                                applyFilter({
+                                    semana_desde: cita_filtro_ui.default_semana_desde,
+                                })
+                            }
+                        />
+                    </div>
+                ) : (
+                    <DataTable
+                        columns={columns}
+                        data={paginated.data}
+                        rowKey={(row) => row.id}
+                        sort={sort}
+                        onSortChange={setSort}
+                        isLoading={isLoading}
+                        ariaLiveMessage={t('common:aria.results_count_other', { count: stats.coincidencias })}
+                        toolbar={
+                            <DataToolbar
+                                search={search}
+                                onSearchChange={setSearch}
+                                isSearching={isLoading}
+                                placeholder={t('search_placeholder')}
+                                filtersClassName="sm:flex-1 sm:min-w-0"
+                            >
+                                {toolbarFilters}
+                            </DataToolbar>
+                        }
+                        footer={
+                            <DataPagination
+                                meta={paginated}
+                                onPerPageChange={setPerPage}
+                                preservedQuery={{
+                                    search: filters.search || undefined,
+                                    per_page: filters.per_page,
+                                    sort: filters.sort ?? undefined,
+                                    direction: filters.direction ?? undefined,
+                                    cita_desde: filters.cita_desde,
+                                    cita_hasta: filters.cita_hasta,
+                                    vista: filters.vista,
+                                }}
+                            />
+                        }
+                        emptyState={
+                            <EmptyState
+                                icon={CalendarDays}
+                                title={
+                                    activeFiltersCount > 0
+                                        ? t('empty.no_results_title')
+                                        : t('empty.no_records_title')
+                                }
+                                description={
+                                    activeFiltersCount > 0
+                                        ? t('empty.no_results_description')
+                                        : t('empty.no_records_description')
+                                }
+                                action={
+                                    activeFiltersCount === 0 && canCreate ? (
+                                        <Button type="button" onClick={openCreate} className="cursor-pointer gap-2">
+                                            <Plus className="size-4" strokeWidth={2.5} />
+                                            {t('actions.create_first')}
+                                        </Button>
+                                    ) : undefined
                                 }
                             />
-                        </DataToolbar>
-                    }
-                    footer={
-                        <DataPagination
-                            meta={paginated}
-                            onPerPageChange={setPerPage}
-                            preservedQuery={{
-                                search: filters.search || undefined,
-                                per_page: filters.per_page,
-                                sort: filters.sort ?? undefined,
-                                direction: filters.direction ?? undefined,
-                                cita_desde: filters.cita_desde,
-                                cita_hasta: filters.cita_hasta,
-                            }}
-                        />
-                    }
-                    emptyState={
-                        <EmptyState
-                            icon={CalendarDays}
-                            title={
-                                activeFiltersCount > 0
-                                    ? t('empty.no_results_title')
-                                    : t('empty.no_records_title')
-                            }
-                            description={
-                                activeFiltersCount > 0
-                                    ? t('empty.no_results_description')
-                                    : t('empty.no_records_description')
-                            }
-                            action={
-                                activeFiltersCount === 0 && canCreate ? (
-                                    <Button type="button" onClick={openCreate} className="cursor-pointer gap-2">
-                                        <Plus className="size-4" strokeWidth={2.5} />
-                                        {t('actions.create_first')}
-                                    </Button>
-                                ) : undefined
-                            }
-                        />
-                    }
-                />
+                        }
+                    />
+                )}
             </div>
+
+            <CitaDetailModal
+                open={modal.type === 'detail'}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        closeModal();
+                    }
+                }}
+                cita={modal.type === 'detail' ? modal.cita : null}
+                onEdit={openEdit}
+                onDelete={openDelete}
+                onCancel={openCancel}
+                canUpdate={canUpdate}
+                canDelete={canDelete}
+                canCancel={canCancel}
+            />
 
             <CitaFormModal
                 open={modal.type === 'create' || modal.type === 'edit'}

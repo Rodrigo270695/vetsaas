@@ -41,23 +41,40 @@ class CitaController extends Controller
         $sortValid = in_array($sort, self::SORTABLE_COLUMNS, true);
         $directionValid = in_array($direction, ['asc', 'desc'], true);
 
+        $vista = (string) $request->string('vista', 'calendario');
+        if (! in_array($vista, ['calendario', 'lista'], true)) {
+            $vista = 'calendario';
+        }
+
         $tz = config('app.timezone');
         $now = now($tz);
         $defaultDesde = $now->copy()->startOfMonth()->toDateString();
         $defaultHasta = $now->copy()->endOfMonth()->toDateString();
+        $defaultSemanaDesde = $now->copy()->startOfWeek(Carbon::MONDAY)->toDateString();
 
-        $citaDesde = $this->parseDateParam($request->query('cita_desde'));
-        $citaHasta = $this->parseDateParam($request->query('cita_hasta'));
+        $semanaDesde = $this->parseDateParam($request->query('semana_desde'));
 
-        if ($citaDesde === null || $citaHasta === null) {
-            $citaDesde = $defaultDesde;
-            $citaHasta = $defaultHasta;
-            $fueraDelMesActual = false;
-        } else {
-            if ($citaDesde > $citaHasta) {
-                [$citaDesde, $citaHasta] = [$citaHasta, $citaDesde];
+        if ($vista === 'calendario') {
+            if ($semanaDesde === null) {
+                $semanaDesde = $defaultSemanaDesde;
             }
-            $fueraDelMesActual = ($citaDesde !== $defaultDesde) || ($citaHasta !== $defaultHasta);
+            $citaDesde = $semanaDesde;
+            $citaHasta = Carbon::parse($semanaDesde, $tz)->addDays(6)->toDateString();
+            $fueraDelMesActual = ($semanaDesde !== $defaultSemanaDesde);
+        } else {
+            $citaDesde = $this->parseDateParam($request->query('cita_desde'));
+            $citaHasta = $this->parseDateParam($request->query('cita_hasta'));
+
+            if ($citaDesde === null || $citaHasta === null) {
+                $citaDesde = $defaultDesde;
+                $citaHasta = $defaultHasta;
+                $fueraDelMesActual = false;
+            } else {
+                if ($citaDesde > $citaHasta) {
+                    [$citaDesde, $citaHasta] = [$citaHasta, $citaDesde];
+                }
+                $fueraDelMesActual = ($citaDesde !== $defaultDesde) || ($citaHasta !== $defaultHasta);
+            }
         }
 
         $citaAbrirEditar = null;
@@ -84,9 +101,17 @@ class CitaController extends Controller
             if ($citaModel !== null) {
                 $citaAbrirEditar = $citaModel;
                 $atCita = $citaModel->inicio_at->copy()->timezone($tz);
-                $citaDesde = $atCita->copy()->startOfMonth()->toDateString();
-                $citaHasta = $atCita->copy()->endOfMonth()->toDateString();
-                $fueraDelMesActual = ($citaDesde !== $defaultDesde) || ($citaHasta !== $defaultHasta);
+
+                if ($vista === 'calendario') {
+                    $semanaDesde = $atCita->copy()->startOfWeek(Carbon::MONDAY)->toDateString();
+                    $citaDesde = $semanaDesde;
+                    $citaHasta = Carbon::parse($semanaDesde, $tz)->addDays(6)->toDateString();
+                    $fueraDelMesActual = ($semanaDesde !== $defaultSemanaDesde);
+                } else {
+                    $citaDesde = $atCita->copy()->startOfMonth()->toDateString();
+                    $citaHasta = $atCita->copy()->endOfMonth()->toDateString();
+                    $fueraDelMesActual = ($citaDesde !== $defaultDesde) || ($citaHasta !== $defaultHasta);
+                }
             }
         }
 
@@ -141,11 +166,25 @@ class CitaController extends Controller
             });
         }
 
-        $citas = $query->paginate($perPage)->withQueryString();
-
         $totalEnRango = Cita::query()
             ->whereBetween('inicio_at', [$inicioRango, $finRango])
             ->count();
+
+        if ($vista === 'calendario') {
+            $citasAgenda = (clone $query)->limit(500)->get();
+            $citas = new \Illuminate\Pagination\LengthAwarePaginator(
+                [],
+                0,
+                $perPage,
+                1,
+                ['path' => $request->url(), 'query' => $request->query()],
+            );
+            $coincidencias = $citasAgenda->count();
+        } else {
+            $citasAgenda = collect();
+            $citas = $query->paginate($perPage)->withQueryString();
+            $coincidencias = $citas->total();
+        }
 
         $pacientesOpciones = Paciente::query()
             ->with(['propietario:id,nombres,apellidos,razon_social'])
@@ -170,6 +209,7 @@ class CitaController extends Controller
 
         return Inertia::render('clinica/citas/index', [
             'citas' => $citas,
+            'citas_agenda' => $citasAgenda->values()->all(),
             'pacientes_opciones' => $pacientesOpciones,
             'usuarios_opciones' => $usuariosOpciones,
             'sedes_opciones' => $sedesOpciones,
@@ -181,15 +221,18 @@ class CitaController extends Controller
                 'direction' => $sortValid && $directionValid ? $direction : null,
                 'cita_desde' => $citaDesde,
                 'cita_hasta' => $citaHasta,
+                'vista' => $vista,
+                'semana_desde' => $vista === 'calendario' ? $semanaDesde : null,
             ],
             'cita_filtro_ui' => [
                 'default_desde' => $defaultDesde,
                 'default_hasta' => $defaultHasta,
+                'default_semana_desde' => $defaultSemanaDesde,
                 'fuera_del_mes_actual' => $fueraDelMesActual,
             ],
             'stats' => [
                 'total' => $totalEnRango,
-                'coincidencias' => $citas->total(),
+                'coincidencias' => $coincidencias,
             ],
         ]);
     }
@@ -205,7 +248,7 @@ class CitaController extends Controller
 
         return redirect()
             ->route('clinica.citas.index', $request->only([
-                'search', 'per_page', 'sort', 'direction', 'cita_desde', 'cita_hasta',
+                'search', 'per_page', 'sort', 'direction', 'cita_desde', 'cita_hasta', 'vista', 'semana_desde',
             ]))
             ->with('success', __('citas.flash.created'));
     }
@@ -220,7 +263,7 @@ class CitaController extends Controller
 
         return redirect()
             ->route('clinica.citas.index', $request->only([
-                'search', 'per_page', 'sort', 'direction', 'cita_desde', 'cita_hasta',
+                'search', 'per_page', 'sort', 'direction', 'cita_desde', 'cita_hasta', 'vista', 'semana_desde',
             ]))
             ->with('success', __('citas.flash.updated'));
     }
@@ -233,7 +276,7 @@ class CitaController extends Controller
 
         return redirect()
             ->route('clinica.citas.index', $request->only([
-                'search', 'per_page', 'sort', 'direction', 'cita_desde', 'cita_hasta',
+                'search', 'per_page', 'sort', 'direction', 'cita_desde', 'cita_hasta', 'vista', 'semana_desde',
             ]))
             ->with('success', __('citas.flash.deleted'));
     }
@@ -255,7 +298,7 @@ class CitaController extends Controller
 
         return redirect()
             ->route('clinica.citas.index', $request->only([
-                'search', 'per_page', 'sort', 'direction', 'cita_desde', 'cita_hasta',
+                'search', 'per_page', 'sort', 'direction', 'cita_desde', 'cita_hasta', 'vista', 'semana_desde',
             ]))
             ->with('success', __('citas.flash.cancelled'));
     }
