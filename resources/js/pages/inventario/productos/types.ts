@@ -22,6 +22,7 @@ export type Producto = {
     codigo_barras: string | null;
     unidad: string;
     precio_venta: string | null;
+    precio_compra: string | null;
     medicamento: boolean;
     activo: boolean;
     stock_minimo: string | null;

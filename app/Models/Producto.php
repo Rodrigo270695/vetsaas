@@ -26,6 +26,7 @@ class Producto extends Model
         'codigo_barras',
         'unidad',
         'precio_venta',
+        'precio_compra',
         'medicamento',
         'activo',
         'stock_minimo',
@@ -39,6 +40,7 @@ class Producto extends Model
             'medicamento' => 'boolean',
             'activo' => 'boolean',
             'precio_venta' => 'decimal:2',
+            'precio_compra' => 'decimal:2',
             'stock_minimo' => 'decimal:3',
         ];
     }

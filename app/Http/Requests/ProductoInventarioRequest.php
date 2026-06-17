@@ -53,6 +53,7 @@ class ProductoInventarioRequest extends FormRequest
                 ),
             ],
             'precio_venta' => ['nullable', 'numeric', 'min:0', 'max:99999999.99'],
+            'precio_compra' => ['nullable', 'numeric', 'min:0', 'max:99999999.99'],
             'stock_minimo' => ['nullable', 'numeric', 'min:0', 'max:999999999.999'],
             'medicamento' => ['required', 'boolean'],
             'activo' => ['required', 'boolean'],
@@ -76,9 +77,11 @@ class ProductoInventarioRequest extends FormRequest
             'activo' => $this->boolean('activo'),
         ]);
 
-        $precio = $this->input('precio_venta');
-        if ($precio === null || $precio === '') {
-            $this->merge(['precio_venta' => null]);
+        foreach (['precio_venta', 'precio_compra'] as $campoPrecio) {
+            $precio = $this->input($campoPrecio);
+            if ($precio === null || $precio === '') {
+                $this->merge([$campoPrecio => null]);
+            }
         }
 
         $stockMin = $this->input('stock_minimo');

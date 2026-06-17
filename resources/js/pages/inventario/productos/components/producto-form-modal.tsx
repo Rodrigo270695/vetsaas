@@ -41,6 +41,7 @@ type FormData = {
     codigo_barras: string;
     unidad: string;
     precio_venta: string;
+    precio_compra: string;
     stock_minimo: string;
     medicamento: boolean;
     activo: boolean;
@@ -55,6 +56,7 @@ const empty: FormData = {
     codigo_barras: '',
     unidad: 'UN',
     precio_venta: '',
+    precio_compra: '',
     stock_minimo: '',
     medicamento: false,
     activo: true,
@@ -96,6 +98,7 @@ export function ProductoFormModal({
             codigo_barras: producto.codigo_barras ?? '',
             unidad: (producto.unidad || 'UN').toUpperCase(),
             precio_venta: producto.precio_venta ?? '',
+            precio_compra: producto.precio_compra ?? '',
             stock_minimo: producto.stock_minimo != null && producto.stock_minimo !== '' ? String(producto.stock_minimo) : '',
             medicamento: producto.medicamento,
             activo: producto.activo,
@@ -274,6 +277,18 @@ export function ProductoFormModal({
                     </div>
 
                     <div className="grid gap-4 sm:grid-cols-2">
+                        <FormField id="prod-precio-compra" label={t('form.precio_compra')} error={errors.precio_compra}>
+                            <Input
+                                id="prod-precio-compra"
+                                type="number"
+                                inputMode="decimal"
+                                min={0}
+                                step="0.01"
+                                value={data.precio_compra}
+                                onChange={(e) => setData('precio_compra', e.target.value)}
+                            />
+                        </FormField>
+
                         <FormField id="prod-precio" label={t('form.precio_venta')} error={errors.precio_venta}>
                             <Input
                                 id="prod-precio"
@@ -285,7 +300,9 @@ export function ProductoFormModal({
                                 onChange={(e) => setData('precio_venta', e.target.value)}
                             />
                         </FormField>
+                    </div>
 
+                    <div className="grid gap-4 sm:grid-cols-2">
                         <FormField
                             id="prod-stock-min"
                             label={t('form.stock_minimo')}

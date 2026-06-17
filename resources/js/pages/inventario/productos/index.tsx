@@ -166,6 +166,19 @@ export default function Index({ productos: paginated, filters, stats, categoriaO
                 className: 'w-24',
             },
             {
+                key: 'precio_compra',
+                header: t('columns.precio_compra'),
+                cell: (p) => {
+                    const txt = formatPrecio(p.precio_compra, i18n.language);
+                    return txt ? (
+                        <span className="tabular-nums text-sm">{txt}</span>
+                    ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                    );
+                },
+                className: 'w-28',
+            },
+            {
                 key: 'precio_venta',
                 header: t('columns.precio'),
                 sortable: true,
