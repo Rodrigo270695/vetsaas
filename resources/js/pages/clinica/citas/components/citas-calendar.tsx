@@ -10,9 +10,16 @@ import {
 } from 'date-fns';
 import { enUS, es } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight, Clock, Plus } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import type { CitaRow } from '../types';
 
@@ -25,13 +32,13 @@ type Props = {
     citas: readonly CitaRow[];
     mes: string;
     timeZone: string;
-    localeCode: string;
     isLoading?: boolean;
     canCreate: boolean;
     onSelectCita: (cita: CitaRow) => void;
     onScheduleDay: (fecha: string, hora?: string) => void;
     onPrevMonth: () => void;
     onNextMonth: () => void;
+    onJumpToMonth: (mes: string) => void;
     onToday: () => void;
 };
 
@@ -81,17 +88,17 @@ export function CitasCalendar({
     citas,
     mes,
     timeZone,
-    localeCode,
     isLoading,
     canCreate,
     onSelectCita,
     onScheduleDay,
     onPrevMonth,
     onNextMonth,
+    onJumpToMonth,
     onToday,
 }: Props) {
-    const { t } = useTranslation('citas');
-    const dateFnsLocale = localeCode.toLowerCase().startsWith('es') ? es : enUS;
+    const { t, i18n } = useTranslation('citas');
+    const dateFnsLocale = i18n.language.startsWith('en') ? enUS : es;
 
     const monthStart = useMemo(() => parseMes(mes), [mes]);
     const [selectedDay, setSelectedDay] = useState<string | null>(null);
@@ -137,7 +144,45 @@ export function CitasCalendar({
         return Array.from({ length: 42 }, (_, i) => addDays(start, i));
     }, [monthStart]);
 
-    const monthLabel = format(monthStart, 'MMMM yyyy', { locale: dateFnsLocale });
+    const [mesYear, mesMonth] = useMemo(() => {
+        const [y, m] = mes.split('-').map(Number);
+
+        return [y, m] as const;
+    }, [mes]);
+
+    const monthOptions = useMemo(
+        () =>
+            Array.from({ length: 12 }, (_, index) => {
+                const d = new Date(mesYear, index, 1);
+
+                return {
+                    value: String(index + 1),
+                    label: format(d, 'MMMM', { locale: dateFnsLocale }),
+                };
+            }),
+        [dateFnsLocale, mesYear],
+    );
+
+    const yearOptions = useMemo(() => {
+        const currentYear = new Date().getFullYear();
+        const min = Math.min(mesYear - 8, currentYear - 15, 2020);
+        const max = Math.max(mesYear + 3, currentYear + 2);
+        const years: number[] = [];
+
+        for (let y = min; y <= max; y += 1) {
+            years.push(y);
+        }
+
+        return years;
+    }, [mesYear]);
+
+    const jumpToParts = useCallback(
+        (year: number, month: number) => {
+            const pad = (n: number) => String(n).padStart(2, '0');
+            onJumpToMonth(`${year}-${pad(month)}`);
+        },
+        [onJumpToMonth],
+    );
 
     const activeDay = selectedDay ?? defaultPanelDay;
     const activeDayCitas = citasByDay.get(activeDay) ?? [];
@@ -206,9 +251,50 @@ export function CitasCalendar({
                             <ChevronRight className="size-4" />
                         </Button>
                     </div>
-                    <h2 className="text-base font-semibold capitalize tracking-tight text-foreground">
-                        {monthLabel}
-                    </h2>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                        <Select
+                            value={String(mesMonth)}
+                            onValueChange={(value) => jumpToParts(mesYear, Number.parseInt(value, 10))}
+                        >
+                            <SelectTrigger
+                                className="h-8 w-[8.5rem] cursor-pointer capitalize"
+                                aria-label={t('calendar.pick_month')}
+                            >
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {monthOptions.map((option) => (
+                                    <SelectItem
+                                        key={option.value}
+                                        value={option.value}
+                                        className="cursor-pointer capitalize"
+                                    >
+                                        {option.label}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+
+                        <Select
+                            value={String(mesYear)}
+                            onValueChange={(value) => jumpToParts(Number.parseInt(value, 10), mesMonth)}
+                        >
+                            <SelectTrigger
+                                className="h-8 w-[5.5rem] cursor-pointer tabular-nums"
+                                aria-label={t('calendar.pick_year')}
+                            >
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="max-h-56">
+                                {yearOptions.map((year) => (
+                                    <SelectItem key={year} value={String(year)} className="cursor-pointer tabular-nums">
+                                        {year}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3 text-[0.65rem] text-muted-foreground">
@@ -288,7 +374,7 @@ export function CitasCalendar({
                                                     onSelectCita(cita);
                                                 }}
                                                 className={cn(
-                                                    'w-full truncate rounded-md border-l-[3px] px-1 py-0.5 text-left text-[0.6rem] font-medium leading-tight transition-colors',
+                                                    'w-full cursor-pointer truncate rounded-md border-l-[3px] px-1 py-0.5 text-left text-[0.6rem] font-medium leading-tight transition-colors',
                                                     getEstadoAccent(cita.estado),
                                                 )}
                                             >
@@ -354,7 +440,7 @@ export function CitasCalendar({
                                                     type="button"
                                                     onClick={() => onSelectCita(cita)}
                                                     className={cn(
-                                                        'w-full rounded-lg border-l-[3px] px-2.5 py-2 text-left transition-colors',
+                                                        'w-full cursor-pointer rounded-lg border-l-[3px] px-2.5 py-2 text-left transition-colors',
                                                         getEstadoAccent(cita.estado),
                                                     )}
                                                 >
@@ -377,7 +463,7 @@ export function CitasCalendar({
                                             onClick={() =>
                                                 onScheduleDay(activeDay, `${String(hour).padStart(2, '0')}:00`)
                                             }
-                                            className="group/slot flex h-9 w-full items-center gap-2 rounded-lg border border-dashed border-primary/25 px-2 text-left text-[0.65rem] text-muted-foreground transition-colors hover:border-primary/50 hover:bg-primary/5 hover:text-primary"
+                                            className="group/slot flex h-9 w-full cursor-pointer items-center gap-2 rounded-lg border border-dashed border-primary/25 px-2 text-left text-[0.65rem] text-muted-foreground transition-colors hover:border-primary/50 hover:bg-primary/5 hover:text-primary"
                                         >
                                             <Clock className="size-3 opacity-60 group-hover/slot:opacity-100" />
                                             {t('calendar.schedule_at', {
@@ -391,17 +477,6 @@ export function CitasCalendar({
                             );
                         })}
                     </div>
-
-                    {canCreate ? (
-                        <Button
-                            type="button"
-                            className="mt-4 w-full cursor-pointer gap-2 shadow-sm"
-                            onClick={() => onScheduleDay(activeDay)}
-                        >
-                            <Plus className="size-4" />
-                            {t('calendar.schedule_day')}
-                        </Button>
-                    ) : null}
                 </aside>
             </div>
         </div>

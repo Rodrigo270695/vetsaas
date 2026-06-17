@@ -436,13 +436,15 @@ export default function Index({
                         },
                     ]}
                     action={
-                        <Can permission="citas.create">
-                            <Button type="button" onClick={openCreate} className="cursor-pointer gap-2">
-                                <Plus className="size-4" strokeWidth={2.5} />
-                                <span className="hidden sm:inline">{t('actions.new')}</span>
-                                <span className="sm:hidden">{t('actions.new_short')}</span>
-                            </Button>
-                        </Can>
+                        vista !== 'calendario' ? (
+                            <Can permission="citas.create">
+                                <Button type="button" onClick={openCreate} className="cursor-pointer gap-2">
+                                    <Plus className="size-4" strokeWidth={2.5} />
+                                    <span className="hidden sm:inline">{t('actions.new')}</span>
+                                    <span className="sm:hidden">{t('actions.new_short')}</span>
+                                </Button>
+                            </Can>
+                        ) : undefined
                     }
                 />
 
@@ -462,13 +464,13 @@ export default function Index({
                             citas={citas_agenda}
                             mes={mesActivo}
                             timeZone={appTz}
-                            localeCode={appLocale}
                             isLoading={isLoading}
                             canCreate={canCreate}
                             onSelectCita={openDetail}
                             onScheduleDay={openCreateOnDay}
                             onPrevMonth={() => applyFilter({ mes: shiftMes(mesActivo, -1) })}
                             onNextMonth={() => applyFilter({ mes: shiftMes(mesActivo, 1) })}
+                            onJumpToMonth={(nextMes) => applyFilter({ mes: nextMes })}
                             onToday={() =>
                                 applyFilter({
                                     mes: cita_filtro_ui.default_mes,
