@@ -1,5 +1,5 @@
 import { Head, usePage } from '@inertiajs/react';
-import { Activity, CalendarDays, Filter, LayoutList, Plus, UserCircle } from 'lucide-react';
+import { Activity, CalendarDays, Download, Filter, LayoutList, Plus, UserCircle } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Can } from '@/components/can';
@@ -18,6 +18,7 @@ import { useDataTablePage } from '@/hooks/use-data-table-page';
 import { usePermission } from '@/hooks/use-permission';
 import { dashboard } from '@/routes';
 import clinica from '@/routes/clinica';
+import { exportMethod as citasExportExcel } from '@/routes/clinica/citas';
 import type { Paginated } from '@/types';
 import { AtencionDateRangeFilter } from '../historias-clinicas/components/atencion-date-range-filter';
 import { formatAtendidoInAppTimezone } from '../historias-clinicas/format-atendido';
@@ -97,6 +98,7 @@ export default function Index({
     const { t } = useTranslation(['citas', 'common']);
     const { locale: appLocale, timezone: appTz } = usePage().props;
     const { can } = usePermission();
+    const canView = can('citas.view');
     const canCreate = can('citas.create');
     const canUpdate = can('citas.update');
     const canDelete = can('citas.delete');
@@ -196,6 +198,42 @@ export default function Index({
 
         return c;
     }, [filters.search, filters.sort, filters.per_page, cita_filtro_ui.fuera_del_mes_actual]);
+
+    const exportUrl = useMemo(() => {
+        const params = new URLSearchParams();
+
+        if (filters.search) {
+            params.set('search', filters.search);
+        }
+
+        if (filters.sort) {
+            params.set('sort', filters.sort);
+        }
+
+        if (filters.direction) {
+            params.set('direction', filters.direction);
+        }
+
+        params.set('vista', vista);
+        params.set('cita_desde', filters.cita_desde);
+        params.set('cita_hasta', filters.cita_hasta);
+
+        if (vista === 'calendario' && mesActivo) {
+            params.set('mes', mesActivo);
+        }
+
+        const qs = params.toString();
+
+        return qs.length > 0 ? `${citasExportExcel.url()}?${qs}` : citasExportExcel.url();
+    }, [
+        filters.search,
+        filters.sort,
+        filters.direction,
+        filters.cita_desde,
+        filters.cita_hasta,
+        vista,
+        mesActivo,
+    ]);
 
     const handleVistaChange = useCallback(
         (next: VistaCita) => {
@@ -436,7 +474,15 @@ export default function Index({
                         },
                     ]}
                     action={
-                        vista !== 'calendario' ? (
+                        <div className="flex flex-row flex-wrap items-center justify-end gap-2">
+                            {canView ? (
+                                <Button asChild variant="outline" className="h-10 shrink-0 cursor-pointer gap-2 px-3 font-normal">
+                                    <a href={exportUrl} download>
+                                        <Download className="size-4 shrink-0 opacity-70" strokeWidth={2.5} />
+                                        <span className="hidden sm:inline">{t('common:actions.export_xlsx')}</span>
+                                    </a>
+                                </Button>
+                            ) : null}
                             <Can permission="citas.create">
                                 <Button type="button" onClick={openCreate} className="cursor-pointer gap-2">
                                     <Plus className="size-4" strokeWidth={2.5} />
@@ -444,7 +490,7 @@ export default function Index({
                                     <span className="sm:hidden">{t('actions.new_short')}</span>
                                 </Button>
                             </Can>
-                        ) : undefined
+                        </div>
                     }
                 />
 

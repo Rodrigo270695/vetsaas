@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\CitasXlsxExport;
 use App\Http\Requests\StoreCitaRequest;
 use App\Http\Requests\UpdateCitaRequest;
 use App\Models\Cita;
 use App\Models\Paciente;
 use App\Models\Sede;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -16,6 +18,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class CitaController extends Controller
 {
@@ -238,6 +241,40 @@ class CitaController extends Controller
         ]);
     }
 
+    /**
+     * Exporta citas a XLSX respetando vista, mes/rango, búsqueda y orden.
+     */
+    public function exportExcel(Request $request): StreamedResponse
+    {
+        abort_unless($request->user()?->can('citas.view'), 403);
+
+        $ctx = $this->resolveCitasExportContext($request);
+
+        $query = clone $ctx['list_query'];
+        $query->reorder()->orderBy('citas.inicio_at', 'asc');
+        $query->withOnly([
+            'paciente.propietario:id,nombres,apellidos,razon_social',
+            'veterinario:id,name',
+            'sede:id,nombre,codigo',
+            'creadoPor:id,name',
+        ]);
+
+        $filename = 'citas-'.now()->format('Ymd-His').'.xlsx';
+        $exporter = new CitasXlsxExport;
+
+        return response()->streamDownload(
+            function () use ($exporter, $query): void {
+                $exporter->streamTo($query);
+            },
+            $filename,
+            [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'Cache-Control' => 'no-store, no-cache, must-revalidate',
+                'Pragma' => 'no-cache',
+            ],
+        );
+    }
+
     public function store(StoreCitaRequest $request): RedirectResponse
     {
         $data = $request->validated();
@@ -311,5 +348,93 @@ class CitaController extends Controller
         }
 
         return $value;
+    }
+
+    /**
+     * Filtros compartidos para la exportación XLSX (misma lógica de rango que el listado).
+     *
+     * @return array{
+     *     list_query: Builder<Cita>,
+     * }
+     */
+    private function resolveCitasExportContext(Request $request): array
+    {
+        $search = trim((string) $request->string('search', ''));
+
+        $sort = (string) $request->string('sort', '');
+        $direction = strtolower((string) $request->string('direction', 'desc'));
+        $sortValid = in_array($sort, self::SORTABLE_COLUMNS, true);
+        $directionValid = in_array($direction, ['asc', 'desc'], true);
+
+        $vista = (string) $request->string('vista', 'calendario');
+        if (! in_array($vista, ['calendario', 'lista'], true)) {
+            $vista = 'calendario';
+        }
+
+        $tz = config('app.timezone');
+        $now = now($tz);
+        $defaultDesde = $now->copy()->startOfMonth()->toDateString();
+        $defaultHasta = $now->copy()->endOfMonth()->toDateString();
+        $defaultMes = $now->format('Y-m');
+
+        $mes = (string) $request->string('mes', '');
+        if (preg_match('/^\d{4}-\d{2}$/', $mes) !== 1) {
+            $mes = $defaultMes;
+        }
+
+        if ($vista === 'calendario') {
+            $mesStart = Carbon::parse($mes.'-01', $tz);
+            $citaDesde = $mesStart->copy()->startOfMonth()->toDateString();
+            $citaHasta = $mesStart->copy()->endOfMonth()->toDateString();
+        } else {
+            $citaDesde = $this->parseDateParam($request->query('cita_desde'));
+            $citaHasta = $this->parseDateParam($request->query('cita_hasta'));
+
+            if ($citaDesde === null || $citaHasta === null) {
+                $citaDesde = $defaultDesde;
+                $citaHasta = $defaultHasta;
+            } elseif ($citaDesde > $citaHasta) {
+                [$citaDesde, $citaHasta] = [$citaHasta, $citaDesde];
+            }
+        }
+
+        $inicioRango = Carbon::parse($citaDesde, $tz)->startOfDay();
+        $finRango = Carbon::parse($citaHasta, $tz)->endOfDay();
+
+        $query = Cita::query()->whereBetween('citas.inicio_at', [$inicioRango, $finRango]);
+
+        if ($sort === 'paciente') {
+            $query
+                ->join('pacientes as cita_pac', 'cita_pac.id', '=', 'citas.paciente_id')
+                ->orderBy('cita_pac.nombre', $directionValid ? $direction : 'asc')
+                ->orderByDesc('citas.inicio_at')
+                ->select('citas.*');
+        } elseif ($sortValid) {
+            $query->orderBy('citas.'.$sort, $directionValid ? $direction : 'desc');
+            if ($sort !== 'inicio_at') {
+                $query->orderByDesc('citas.inicio_at');
+            }
+        } else {
+            $query->orderByDesc('citas.inicio_at');
+        }
+
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('citas.motivo', 'ILIKE', "%{$search}%")
+                    ->orWhere('citas.notas', 'ILIKE', "%{$search}%")
+                    ->orWhereHas('paciente', function ($q2) use ($search) {
+                        $q2->where('nombre', 'ILIKE', "%{$search}%")
+                            ->orWhereHas('propietario', function ($q3) use ($search) {
+                                $q3->where('nombres', 'ILIKE', "%{$search}%")
+                                    ->orWhere('apellidos', 'ILIKE', "%{$search}%")
+                                    ->orWhere('razon_social', 'ILIKE', "%{$search}%");
+                            });
+                    });
+            });
+        }
+
+        return [
+            'list_query' => $query,
+        ];
     }
 }

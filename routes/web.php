@@ -259,6 +259,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
                     ->name('vacunaciones.destroy');
 
                 Route::middleware('permission:citas.view')
+                    ->get('citas/export', [CitaController::class, 'exportExcel'])
+                    ->name('citas.export');
+                Route::middleware('permission:citas.view')
                     ->get('citas', [CitaController::class, 'index'])
                     ->name('citas.index');
                 Route::middleware('permission:citas.create')
