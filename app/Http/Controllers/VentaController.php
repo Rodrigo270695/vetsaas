@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\VentasXlsxExport;
 use App\Grooming\GroomingCatalogoMode;
 use App\Http\Requests\AnularVentaRequest;
 use App\Http\Requests\PropietarioRequest;
@@ -31,6 +32,7 @@ use App\Support\Fel\FelSerieResolver;
 use App\Support\PlanCapabilities;
 use App\Support\Venta\VentaDesdeCargoPrefill;
 use App\Tenancy\TenantManager;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -39,6 +41,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class VentaController extends Controller
 {
@@ -53,63 +56,27 @@ class VentaController extends Controller
 
     public function index(Request $request): Response
     {
+        $ctx = $this->resolveVentasListaContext($request);
+
+        $filtersPayload = [
+            'search' => $ctx['search'],
+            'per_page' => $ctx['per_page'],
+            'sort' => $ctx['sort_valid'] ? $ctx['sort'] : null,
+            'direction' => $ctx['sort_valid'] && $ctx['direction_valid'] ? $ctx['direction'] : null,
+            'estado' => $ctx['estado'],
+            'fecha_desde' => $ctx['fecha_desde'],
+            'fecha_hasta' => $ctx['fecha_hasta'],
+        ];
+
+        $listQuery = clone $ctx['base_query'];
+
+        if ($ctx['search'] !== '') {
+            $this->applyVentasSearchFilter($listQuery, $ctx['search']);
+        }
+
+        $ventas = $listQuery->paginate($ctx['per_page'])->withQueryString();
+
         $tenantId = $request->user()?->tenant_id;
-        abort_if($tenantId === null, 403);
-
-        $search = trim((string) $request->string('search', ''));
-        $perPageRequested = (int) $request->integer('per_page', 15);
-        $perPage = in_array($perPageRequested, self::PER_PAGE_OPTIONS, true) ? $perPageRequested : 15;
-
-        $sort = (string) $request->string('sort', '');
-        $direction = strtolower((string) $request->string('direction', 'desc'));
-        $sortValid = in_array($sort, self::SORTABLE_COLUMNS, true);
-        $directionValid = in_array($direction, ['asc', 'desc'], true);
-        $directionSql = $directionValid ? $direction : 'desc';
-
-        $estado = (string) $request->string('estado', 'todas');
-        if (! in_array($estado, ['todas', Venta::ESTADO_PAGADO, Venta::ESTADO_PENDIENTE, Venta::ESTADO_PARCIAL, Venta::ESTADO_ANULADO], true)) {
-            $estado = 'todas';
-        }
-
-        $query = Venta::query()
-            ->with([
-                'propietario:id,nombres,apellidos,razon_social',
-                'paciente:id,nombre',
-                'creadoPor:id,name',
-                'felDocument:id,venta_id,numero_completo,estado',
-            ]);
-
-        if ($search !== '') {
-            $like = '%'.addcslashes($search, '%_\\').'%';
-            $query->where(function ($q) use ($like, $search): void {
-                $q->where('numero', 'ILIKE', $like)
-                    ->orWhereHas('felDocument', fn ($fq) => $fq->where('numero_completo', 'ILIKE', $like))
-                    ->orWhereHas('propietario', function ($q2) use ($like): void {
-                        $q2->where('nombres', 'ILIKE', $like)
-                            ->orWhere('apellidos', 'ILIKE', $like)
-                            ->orWhere('razon_social', 'ILIKE', $like);
-                    });
-                if (preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $search) === 1) {
-                    $q->orWhere('id', $search);
-                }
-            });
-        }
-
-        if ($estado !== 'todas') {
-            $query->where('estado', $estado);
-        }
-
-        if ($sortValid) {
-            $query->orderBy($sort, $directionSql);
-            if ($sort !== 'created_at') {
-                $query->orderByDesc('created_at');
-            }
-        } else {
-            $query->orderByDesc('created_at');
-        }
-
-        $ventas = $query->paginate($perPage)->withQueryString();
-
         $sedeIds = $ventas->pluck('sede_id')->unique()->filter()->all();
         $sedeNombres = Sede::query()
             ->where('tenant_id', $tenantId)
@@ -143,18 +110,187 @@ class VentaController extends Controller
 
         return Inertia::render('caja/ventas/index', [
             'ventas' => $ventas,
-            'filters' => [
-                'search' => $search,
-                'per_page' => $perPage,
-                'sort' => $sortValid ? $sort : null,
-                'direction' => $sortValid && $directionValid ? $direction : null,
-                'estado' => $estado,
-            ],
+            'filters' => $filtersPayload,
+            'venta_filtro_ui' => $ctx['venta_filtro_ui'],
             'stats' => [
-                'total' => Venta::query()->count(),
+                'total' => $ctx['total_en_rango'],
                 'coincidencias' => $ventas->total(),
             ],
         ]);
+    }
+
+    /**
+     * Exporta ventas a XLSX respetando rango de fechas, estado y búsqueda.
+     */
+    public function exportExcel(Request $request): StreamedResponse
+    {
+        abort_unless($request->user()?->can('ventas.view'), 403);
+
+        $ctx = $this->resolveVentasListaContext($request);
+
+        $query = clone $ctx['base_query'];
+
+        if ($ctx['search'] !== '') {
+            $this->applyVentasSearchFilter($query, $ctx['search']);
+        }
+
+        $query->withOnly([
+            'propietario:id,nombres,apellidos,razon_social',
+            'paciente:id,nombre',
+            'creadoPor:id,name',
+            'sede:id,nombre,codigo',
+            'felDocument:id,venta_id,numero_completo,estado',
+        ]);
+
+        $filename = 'ventas-caja-'.now()->format('Ymd-His').'.xlsx';
+        $exporter = new VentasXlsxExport;
+
+        return response()->streamDownload(
+            function () use ($exporter, $query): void {
+                $exporter->streamTo($query);
+            },
+            $filename,
+            [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'Cache-Control' => 'no-store, no-cache, must-revalidate',
+                'Pragma' => 'no-cache',
+            ],
+        );
+    }
+
+    private function parseDateParam(mixed $value): ?string
+    {
+        if (! is_string($value) || preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) !== 1) {
+            return null;
+        }
+
+        return $value;
+    }
+
+    /**
+     * Filtros compartidos entre el listado Inertia y la exportación XLSX.
+     *
+     * @return array{
+     *     search: string,
+     *     fecha_desde: string,
+     *     fecha_hasta: string,
+     *     venta_filtro_ui: array{default_desde: string, default_hasta: string, fuera_del_mes_actual: bool},
+     *     estado: string,
+     *     sort_valid: bool,
+     *     sort: string,
+     *     direction: string,
+     *     direction_valid: bool,
+     *     direction_sql: string,
+     *     per_page: int,
+     *     base_query: Builder<Venta>,
+     *     total_en_rango: int,
+     * }
+     */
+    private function resolveVentasListaContext(Request $request): array
+    {
+        $tenantId = $request->user()?->tenant_id;
+        abort_if($tenantId === null, 403);
+
+        $search = trim((string) $request->string('search', ''));
+        $perPageRequested = (int) $request->integer('per_page', 15);
+        $perPage = in_array($perPageRequested, self::PER_PAGE_OPTIONS, true) ? $perPageRequested : 15;
+
+        $sort = (string) $request->string('sort', '');
+        $direction = strtolower((string) $request->string('direction', 'desc'));
+        $sortValid = in_array($sort, self::SORTABLE_COLUMNS, true);
+        $directionValid = in_array($direction, ['asc', 'desc'], true);
+        $directionSql = $directionValid ? $direction : 'desc';
+
+        $estado = (string) $request->string('estado', 'todas');
+        if (! in_array($estado, ['todas', Venta::ESTADO_PAGADO, Venta::ESTADO_PENDIENTE, Venta::ESTADO_PARCIAL, Venta::ESTADO_ANULADO], true)) {
+            $estado = 'todas';
+        }
+
+        $tz = config('app.timezone');
+        $now = now($tz);
+        $defaultDesde = $now->copy()->startOfMonth()->toDateString();
+        $defaultHasta = $now->copy()->endOfMonth()->toDateString();
+
+        $fechaDesde = $this->parseDateParam($request->query('fecha_desde'));
+        $fechaHasta = $this->parseDateParam($request->query('fecha_hasta'));
+
+        if ($fechaDesde === null || $fechaHasta === null) {
+            $fechaDesde = $defaultDesde;
+            $fechaHasta = $defaultHasta;
+            $fueraDelMesActual = false;
+        } else {
+            if ($fechaDesde > $fechaHasta) {
+                [$fechaDesde, $fechaHasta] = [$fechaHasta, $fechaDesde];
+            }
+            $fueraDelMesActual = ($fechaDesde !== $defaultDesde) || ($fechaHasta !== $defaultHasta);
+        }
+
+        $ventaFiltroUi = [
+            'default_desde' => $defaultDesde,
+            'default_hasta' => $defaultHasta,
+            'fuera_del_mes_actual' => $fueraDelMesActual,
+        ];
+
+        $baseQuery = Venta::query()
+            ->with([
+                'propietario:id,nombres,apellidos,razon_social',
+                'paciente:id,nombre',
+                'creadoPor:id,name',
+                'felDocument:id,venta_id,numero_completo,estado',
+            ])
+            ->whereRaw('DATE(COALESCE(fecha_pago, created_at)) >= ?', [$fechaDesde])
+            ->whereRaw('DATE(COALESCE(fecha_pago, created_at)) <= ?', [$fechaHasta]);
+
+        if ($estado !== 'todas') {
+            $baseQuery->where('estado', $estado);
+        }
+
+        if ($sortValid) {
+            $baseQuery->orderBy($sort, $directionSql);
+            if ($sort !== 'created_at') {
+                $baseQuery->orderByDesc('created_at');
+            }
+        } else {
+            $baseQuery->orderByDesc('created_at');
+        }
+
+        $totalEnRango = (clone $baseQuery)->count();
+
+        return [
+            'search' => $search,
+            'fecha_desde' => $fechaDesde,
+            'fecha_hasta' => $fechaHasta,
+            'venta_filtro_ui' => $ventaFiltroUi,
+            'estado' => $estado,
+            'sort_valid' => $sortValid,
+            'sort' => $sort,
+            'direction' => $direction,
+            'direction_valid' => $directionValid,
+            'direction_sql' => $directionSql,
+            'per_page' => $perPage,
+            'base_query' => $baseQuery,
+            'total_en_rango' => $totalEnRango,
+        ];
+    }
+
+    /**
+     * @param  Builder<Venta>  $query
+     */
+    private function applyVentasSearchFilter(Builder $query, string $search): void
+    {
+        $like = '%'.addcslashes($search, '%_\\').'%';
+        $query->where(function ($q) use ($like, $search): void {
+            $q->where('numero', 'ILIKE', $like)
+                ->orWhereHas('felDocument', fn ($fq) => $fq->where('numero_completo', 'ILIKE', $like))
+                ->orWhereHas('propietario', function ($q2) use ($like): void {
+                    $q2->where('nombres', 'ILIKE', $like)
+                        ->orWhere('apellidos', 'ILIKE', $like)
+                        ->orWhere('razon_social', 'ILIKE', $like);
+                });
+            if (preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $search) === 1) {
+                $q->orWhere('id', $search);
+            }
+        });
     }
 
     public function create(Request $request, TenantManager $tenants): Response

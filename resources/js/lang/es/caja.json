@@ -77,6 +77,15 @@
             "notas_cierre": "Notas de cierre (opcional)"
         }
     },
+    "date_filter": {
+        "placeholder": "Rango de fechas (venta)",
+        "aria": "Filtrar ventas por fecha",
+        "reset_month": "Mes actual",
+        "preset_this_week": "Esta semana",
+        "preset_last_week": "Semana pasada",
+        "preset_last_month": "Mes pasado",
+        "apply_single_day": "Un solo día"
+    },
     "ventas": {
         "title": "Ventas",
         "description": "Historial de ventas registradas en caja: totales, cliente y estado de comprobante electrónico (SUNAT).",

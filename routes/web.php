@@ -523,6 +523,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
                 ->post('sesiones/{caja_sesion}/cerrar', [CajaSesionController::class, 'cerrar'])
                 ->name('sesiones.cerrar');
             Route::middleware('permission:ventas.view')
+                ->get('ventas/export', [VentaController::class, 'exportExcel'])
+                ->name('ventas.export');
+            Route::middleware('permission:ventas.view')
                 ->get('ventas', [VentaController::class, 'index'])
                 ->name('ventas.index');
             Route::middleware('permission:ventas.create')

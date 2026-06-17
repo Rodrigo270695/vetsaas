@@ -77,6 +77,15 @@
             "notas_cierre": "Closing notes (optional)"
         }
     },
+    "date_filter": {
+        "placeholder": "Date range (sale)",
+        "aria": "Filter sales by date",
+        "reset_month": "Current month",
+        "preset_this_week": "This week",
+        "preset_last_week": "Last week",
+        "preset_last_month": "Last month",
+        "apply_single_day": "Single day"
+    },
     "ventas": {
         "title": "Sales",
         "description": "Sales recorded at the register: totals, customer and electronic receipt status (SUNAT).",

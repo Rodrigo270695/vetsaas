@@ -31,11 +31,22 @@ export type VentasIndexFilters = {
     sort: string | null;
     direction: string | null;
     estado: VentaEstadoFiltro;
+    /** Rango aplicado a la fecha de venta (inclusive, día calendario en zona de la app). */
+    fecha_desde: string;
+    fecha_hasta: string;
+};
+
+/** Metadatos solo para UI del filtro de fechas. */
+export type VentaFiltroUi = {
+    default_desde: string;
+    default_hasta: string;
+    fuera_del_mes_actual: boolean;
 };
 
 export type VentasIndexProps = {
     ventas: Paginated<VentaRow>;
     filters: VentasIndexFilters;
+    venta_filtro_ui: VentaFiltroUi;
     stats: {
         total: number;
         coincidencias: number;

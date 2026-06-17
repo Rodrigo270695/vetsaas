@@ -1,5 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
-import { Eye, Plus, ReceiptText } from 'lucide-react';
+import { Download, Eye, Plus, ReceiptText } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -15,12 +15,18 @@ import {
 import type { DataTableColumn, FilterChip } from '@/components/data-page';
 import { Button } from '@/components/ui/button';
 import { useDataTablePage } from '@/hooks/use-data-table-page';
+import { usePermission } from '@/hooks/use-permission';
 import AppLayout from '@/layouts/app-layout';
+import { cn } from '@/lib/utils';
+import { AtencionDateRangeFilter } from '@/pages/clinica/historias-clinicas/components/atencion-date-range-filter';
 import caja from '@/routes/caja';
+import { exportMethod as ventasExportExcel } from '@/routes/caja/ventas';
 import type { VentaEstadoFiltro, VentasIndexProps, VentaRow } from './types';
 
 type TableExtraFilters = {
     estado: VentaEstadoFiltro;
+    fecha_desde: string;
+    fecha_hasta: string;
 };
 
 const DEFAULT_PER_PAGE = 15;
@@ -38,13 +44,15 @@ function formatMonto(amount: string, moneda: string, locale: string): string {
     return new Intl.NumberFormat(locale, { style: 'currency', currency: cur }).format(n);
 }
 
-export default function Index({ ventas: paginated, filters, stats }: VentasIndexProps) {
+export default function Index({ ventas: paginated, filters, stats, venta_filtro_ui }: VentasIndexProps) {
     const { t, i18n } = useTranslation(['caja', 'common']);
+    const { can } = usePermission();
+    const canView = can('ventas.view');
 
     const { search, setSearch, isLoading, sort, setSort, setPerPage, applyFilter } = useDataTablePage<TableExtraFilters>({
         routeUrl: caja.ventas.index.url(),
         initialFilters: filters,
-        only: ['ventas', 'filters', 'stats'],
+        only: ['ventas', 'filters', 'stats', 'venta_filtro_ui'],
         errorMessage: t('caja:ventas.toast_load_error'),
         storageKey: 'vetsaas.caja.ventas.prefs',
         defaults: {
@@ -67,8 +75,46 @@ export default function Index({ ventas: paginated, filters, stats }: VentasIndex
             n += 1;
         }
 
+        if (venta_filtro_ui.fuera_del_mes_actual) {
+            n += 1;
+        }
+
         return n;
-    }, [estado, filters.search]);
+    }, [estado, filters.search, venta_filtro_ui.fuera_del_mes_actual]);
+
+    const exportUrl = useMemo(() => {
+        const params = new URLSearchParams();
+
+        if (filters.search) {
+            params.set('search', filters.search);
+        }
+
+        if (filters.sort) {
+            params.set('sort', filters.sort);
+        }
+
+        if (filters.direction) {
+            params.set('direction', filters.direction);
+        }
+
+        if (filters.estado !== DEFAULT_ESTADO) {
+            params.set('estado', filters.estado);
+        }
+
+        params.set('fecha_desde', filters.fecha_desde);
+        params.set('fecha_hasta', filters.fecha_hasta);
+
+        const qs = params.toString();
+
+        return qs.length > 0 ? `${ventasExportExcel.url()}?${qs}` : ventasExportExcel.url();
+    }, [
+        filters.search,
+        filters.sort,
+        filters.direction,
+        filters.estado,
+        filters.fecha_desde,
+        filters.fecha_hasta,
+    ]);
 
     const estadoOptions: readonly FilterChip<VentaEstadoFiltro>[] = useMemo(
         () => [
@@ -183,14 +229,24 @@ export default function Index({ ventas: paginated, filters, stats }: VentasIndex
                         },
                     ]}
                     action={
-                        <Can permission="ventas.create">
-                            <Button asChild size="sm" className="gap-1">
-                                <Link href={caja.ventas.create.url()}>
-                                    <Plus className="size-4" />
-                                    {t('caja:ventas.actions.nueva')}
-                                </Link>
-                            </Button>
-                        </Can>
+                        <div className="flex flex-row flex-wrap items-center justify-end gap-2">
+                            {canView ? (
+                                <Button asChild variant="outline" className="h-10 shrink-0 cursor-pointer gap-2 px-3 font-normal">
+                                    <a href={exportUrl} download>
+                                        <Download className="size-4 shrink-0 opacity-70" strokeWidth={2.5} />
+                                        <span className="hidden sm:inline">{t('common:actions.export_xlsx')}</span>
+                                    </a>
+                                </Button>
+                            ) : null}
+                            <Can permission="ventas.create">
+                                <Button asChild size="sm" className="gap-1">
+                                    <Link href={caja.ventas.create.url()}>
+                                        <Plus className="size-4" />
+                                        {t('caja:ventas.actions.nueva')}
+                                    </Link>
+                                </Button>
+                            </Can>
+                        </div>
                     }
                 />
 
@@ -208,14 +264,32 @@ export default function Index({ ventas: paginated, filters, stats }: VentasIndex
                             onSearchChange={setSearch}
                             isSearching={isLoading}
                             placeholder={t('caja:ventas.search_placeholder')}
-                            filtersClassName="items-end"
+                            filtersClassName="sm:flex-1 sm:min-w-0"
                         >
-                            <FilterChips
-                                ariaLabel={t('caja:ventas.filter_estado_label')}
-                                value={estado}
-                                onChange={(v) => applyFilter({ estado: v })}
-                                options={estadoOptions}
-                            />
+                            <div
+                                className={cn(
+                                    'flex w-full min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3',
+                                )}
+                            >
+                                <FilterChips
+                                    ariaLabel={t('caja:ventas.filter_estado_label')}
+                                    value={estado}
+                                    onChange={(v) => applyFilter({ estado: v })}
+                                    options={estadoOptions}
+                                />
+                                <div className="flex shrink-0 justify-start sm:justify-end">
+                                    <AtencionDateRangeFilter
+                                        desde={filters.fecha_desde}
+                                        hasta={filters.fecha_hasta}
+                                        defaultDesde={venta_filtro_ui.default_desde}
+                                        defaultHasta={venta_filtro_ui.default_hasta}
+                                        disabled={isLoading}
+                                        translationNs="caja"
+                                        triggerClassName="h-10 min-w-[12rem]"
+                                        onApply={(desde, hasta) => applyFilter({ fecha_desde: desde, fecha_hasta: hasta })}
+                                    />
+                                </div>
+                            </div>
                         </DataToolbar>
                     }
                     footer={
@@ -228,6 +302,8 @@ export default function Index({ ventas: paginated, filters, stats }: VentasIndex
                                 sort: filters.sort ?? undefined,
                                 direction: filters.direction ?? undefined,
                                 estado: filters.estado !== DEFAULT_ESTADO ? filters.estado : undefined,
+                                fecha_desde: filters.fecha_desde,
+                                fecha_hasta: filters.fecha_hasta,
                             }}
                         />
                     }
