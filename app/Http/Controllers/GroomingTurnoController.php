@@ -177,7 +177,7 @@ class GroomingTurnoController extends Controller
             ? \App\Models\GroomingServicio::query()
                 ->orderBy('orden')
                 ->orderBy('nombre')
-                ->get(['id', 'nombre', 'categoria', 'precio_lista', 'moneda', 'duracion_minutos', 'activo', 'orden'])
+                ->get(['id', 'nombre', 'categoria', 'codigo_legacy', 'precio_lista', 'moneda', 'duracion_minutos', 'activo', 'orden'])
             : collect();
 
         return Inertia::render('servicios/grooming/index', [

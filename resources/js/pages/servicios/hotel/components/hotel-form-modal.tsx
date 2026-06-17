@@ -23,6 +23,7 @@ import servicios from '@/routes/servicios';
 import type {
     HotelEstanciaRow,
     HotelTipoGrupo,
+    HotelTipoRow,
     PacienteHotelOpcion,
     SedeHotelOpcion,
     UsuarioHotelOpcion,
@@ -73,6 +74,8 @@ export type HotelFormModalProps = {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     estancia: HotelEstanciaRow | null;
+    catalogoPersonalizado: boolean;
+    hotelTipos: readonly HotelTipoRow[];
     tipoGrupos: readonly HotelTipoGrupo[];
     pacientesOpciones: readonly PacienteHotelOpcion[];
     usuariosOpciones: readonly UsuarioHotelOpcion[];
@@ -85,6 +88,7 @@ type FormShape = {
     egreso_at: string;
     estado?: string;
     tipo_estancia: string;
+    hotel_tipo_id: string;
     tipo_detalle: string;
     notas: string;
     responsable_id: string | null;
@@ -94,12 +98,17 @@ type FormShape = {
 function emptyForm(
     defaultResponsableId: string | null,
     sedes: readonly SedeHotelOpcion[],
+    catalogoPersonalizado: boolean,
+    hotelTipos: readonly HotelTipoRow[],
 ): FormShape {
+    const firstTipo = hotelTipos.find((t) => t.activo) ?? hotelTipos[0];
+
     return {
         paciente_id: '',
         ingreso_at: toDatetimeLocalValue(new Date()),
         egreso_at: '',
-        tipo_estancia: 'habitacion_estandar',
+        tipo_estancia: catalogoPersonalizado ? '' : 'habitacion_estandar',
+        hotel_tipo_id: firstTipo?.id ?? '',
         tipo_detalle: '',
         notas: '',
         responsable_id: defaultResponsableId,
@@ -114,6 +123,7 @@ function fromEstancia(e: HotelEstanciaRow, defaultResponsableId: string | null):
         egreso_at: e.egreso_at ? parseIsoToDatetimeLocal(e.egreso_at) : '',
         estado: e.estado,
         tipo_estancia: e.tipo_estancia,
+        hotel_tipo_id: e.hotel_tipo_id ?? e.tipo_estancia,
         tipo_detalle: e.tipo_detalle ?? '',
         notas: e.notas ?? '',
         responsable_id: e.responsable_id ?? defaultResponsableId,
@@ -125,6 +135,8 @@ export function HotelFormModal({
     open,
     onOpenChange,
     estancia,
+    catalogoPersonalizado,
+    hotelTipos,
     tipoGrupos,
     pacientesOpciones,
     usuariosOpciones,
@@ -135,7 +147,20 @@ export function HotelFormModal({
     const defaultResponsableId = authUser?.id ?? null;
 
     const { data, setData, post, put, processing, errors, clearErrors, transform, setDefaults } =
-        useForm<FormShape>(emptyForm(defaultResponsableId, sedesOpciones));
+        useForm<FormShape>(
+            emptyForm(defaultResponsableId, sedesOpciones, catalogoPersonalizado, hotelTipos),
+        );
+
+    const tiposActivos = useMemo(() => hotelTipos.filter((row) => row.activo), [hotelTipos]);
+
+    const tiposComboboxOptions = useMemo<ComboboxOption[]>(
+        () =>
+            tiposActivos.map((row) => ({
+                value: row.id,
+                label: row.categoria ? `${row.categoria} · ${row.nombre}` : row.nombre,
+            })),
+        [tiposActivos],
+    );
 
     const isEdit = estancia !== null;
     const lockPaciente = isEdit;
@@ -153,24 +178,28 @@ export function HotelFormModal({
     useEffect(() => {
         transform((raw) => {
             const r = raw;
-            const det =
-                r.tipo_estancia === OTRO_PERSONALIZADO
-                    ? r.tipo_detalle.trim() === ''
-                        ? null
-                        : r.tipo_detalle.trim()
-                    : null;
-
             const base: Record<string, unknown> = {
                 paciente_id: r.paciente_id,
                 ingreso_at: r.ingreso_at,
                 egreso_at: r.egreso_at.trim() === '' ? null : r.egreso_at.trim(),
-                tipo_estancia: r.tipo_estancia,
-                tipo_detalle: det,
                 notas: r.notas.trim() === '' ? null : r.notas.trim(),
                 responsable_id:
                     r.responsable_id != null && r.responsable_id !== '' ? r.responsable_id : null,
                 sede_id: r.sede_id != null && r.sede_id !== '' ? r.sede_id : null,
             };
+
+            if (catalogoPersonalizado) {
+                base.hotel_tipo_id = r.hotel_tipo_id;
+            } else {
+                const det =
+                    r.tipo_estancia === OTRO_PERSONALIZADO
+                        ? r.tipo_detalle.trim() === ''
+                            ? null
+                            : r.tipo_detalle.trim()
+                        : null;
+                base.tipo_estancia = r.tipo_estancia;
+                base.tipo_detalle = det;
+            }
 
             if (r.estado !== undefined) {
                 base.estado = r.estado;
@@ -191,12 +220,12 @@ export function HotelFormModal({
         if (estancia !== null) {
             setData(fromEstancia(estancia, defaultResponsableId));
         } else {
-            setData(emptyForm(defaultResponsableId, sedesOpciones));
+            setData(emptyForm(defaultResponsableId, sedesOpciones, catalogoPersonalizado, hotelTipos));
         }
 
         setDefaults();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [open, estancia?.id, defaultResponsableId, estancia, sedesOpciones]);
+    }, [open, estancia?.id, defaultResponsableId, estancia, sedesOpciones, catalogoPersonalizado, hotelTipos]);
 
     const pacienteComboboxOptions: ComboboxOption[] = pacientesOpciones.map((p) => ({
         value: p.id,
@@ -233,7 +262,14 @@ export function HotelFormModal({
                     <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={processing}>
                         {t('common:actions.cancel')}
                     </Button>
-                    <Button type="submit" disabled={processing} className="gap-2">
+                    <Button
+                        type="submit"
+                        disabled={
+                            processing ||
+                            (catalogoPersonalizado && tiposActivos.length === 0 && !isEdit)
+                        }
+                        className="gap-2"
+                    >
                         {processing && <Loader2 className="size-4 animate-spin" aria-hidden />}
                         {isEdit ? t('form.submit_edit') : t('form.submit_create')}
                     </Button>
@@ -298,41 +334,70 @@ export function HotelFormModal({
                     id="hf-tipo"
                     label={t('form.tipo_estancia')}
                     required
-                    error={(errors.tipo_estancia ?? errors.tipo_detalle) as string | undefined}
+                    error={
+                        (errors.hotel_tipo_id ??
+                            errors.tipo_estancia ??
+                            errors.tipo_detalle) as string | undefined
+                    }
                 >
-                    <Select
-                        value={data.tipo_estancia}
-                        onValueChange={(v) => {
-                            setData('tipo_estancia', v);
-                            if (v !== OTRO_PERSONALIZADO) {
-                                setData('tipo_detalle', '');
-                            }
-                        }}
-                        disabled={processing}
-                    >
-                        <SelectTrigger id="hf-tipo" className={controlClass} aria-invalid={Boolean(errors.tipo_estancia)}>
-                            <SelectValue placeholder={t('form.tipo_estancia_placeholder')} />
-                        </SelectTrigger>
-                        <SelectContent className="max-h-72">
-                            {tipoGrupos.map((bloque) => (
-                                <SelectGroup key={bloque.grupo}>
-                                    <SelectLabel className="text-xs font-semibold">
-                                        {t(`tipos_estancia.grupos.${bloque.grupo}`)}
-                                    </SelectLabel>
-                                    {bloque.items.map((slug) => (
-                                        <SelectItem key={slug} value={slug} className="text-sm">
-                                            {t(`tipos_estancia.items.${slug}.label`)}
-                                        </SelectItem>
+                    {catalogoPersonalizado ? (
+                        tiposActivos.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">{t('tipos.empty_turno')}</p>
+                        ) : (
+                            <Combobox
+                                id="hf-tipo"
+                                options={tiposComboboxOptions}
+                                value={data.hotel_tipo_id || null}
+                                onChange={(value) => setData('hotel_tipo_id', value ?? '')}
+                                placeholder={t('form.tipo_estancia_placeholder')}
+                                searchPlaceholder={t('form.tipo_estancia_search')}
+                                emptyMessage={t('form.tipo_estancia_empty')}
+                                disabled={processing}
+                                clearable={false}
+                                aria-invalid={Boolean(errors.hotel_tipo_id)}
+                            />
+                        )
+                    ) : (
+                        <>
+                            <Select
+                                value={data.tipo_estancia}
+                                onValueChange={(v) => {
+                                    setData('tipo_estancia', v);
+                                    if (v !== OTRO_PERSONALIZADO) {
+                                        setData('tipo_detalle', '');
+                                    }
+                                }}
+                                disabled={processing}
+                            >
+                                <SelectTrigger
+                                    id="hf-tipo"
+                                    className={controlClass}
+                                    aria-invalid={Boolean(errors.tipo_estancia)}
+                                >
+                                    <SelectValue placeholder={t('form.tipo_estancia_placeholder')} />
+                                </SelectTrigger>
+                                <SelectContent className="max-h-72">
+                                    {tipoGrupos.map((bloque) => (
+                                        <SelectGroup key={bloque.grupo}>
+                                            <SelectLabel className="text-xs font-semibold">
+                                                {t(`tipos_estancia.grupos.${bloque.grupo}`)}
+                                            </SelectLabel>
+                                            {bloque.items.map((slug) => (
+                                                <SelectItem key={slug} value={slug} className="text-sm">
+                                                    {t(`tipos_estancia.items.${slug}.label`)}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectGroup>
                                     ))}
-                                </SelectGroup>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    <p className="text-xs text-muted-foreground">{t('form.tipo_estancia_hint')}</p>
-                    {tipoHint ? <p className="text-xs text-foreground/80">{tipoHint}</p> : null}
+                                </SelectContent>
+                            </Select>
+                            <p className="text-xs text-muted-foreground">{t('form.tipo_estancia_hint')}</p>
+                            {tipoHint ? <p className="text-xs text-foreground/80">{tipoHint}</p> : null}
+                        </>
+                    )}
                 </FormField>
 
-                {data.tipo_estancia === OTRO_PERSONALIZADO ? (
+                {!catalogoPersonalizado && data.tipo_estancia === OTRO_PERSONALIZADO ? (
                     <FormField
                         id="hf-tipo-detalle"
                         label={t('form.tipo_detalle')}

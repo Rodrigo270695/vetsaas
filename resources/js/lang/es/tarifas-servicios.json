@@ -1,6 +1,6 @@
 {
     "title": "Tarifas de servicios",
-    "description": "Precios lista sugeridos para grooming y hotel al cobrar en caja.",
+    "description": "Administra los tipos de servicio y estancia de tu clínica con precio lista sugerido al cobrar en caja.",
     "tabs": {
         "grooming": "Grooming",
         "hotel": "Hotel / guardería"
@@ -62,6 +62,33 @@
         "hotel_title": "Sin tarifas de hotel",
         "grooming": "Crea una tarifa para sugerir precios al cobrar turnos de grooming.",
         "hotel": "Crea una tarifa para sugerir el precio por noche al cobrar estancias."
+    },
+    "catalogo": {
+        "grooming_title": "Tipos de servicio de grooming",
+        "hotel_title": "Tipos de estancia de hotel / guardería",
+        "grooming_description": "Cada clínica define sus propios servicios. Puedes desactivar o eliminar los sugeridos e incorporar los tuyos con precio y duración.",
+        "hotel_description": "Cada clínica define sus propios tipos de estancia. Puedes desactivar o eliminar los sugeridos e incorporar los tuyos con precio por noche.",
+        "add_grooming": "Nuevo servicio",
+        "add_hotel": "Nuevo tipo de estancia",
+        "create_grooming": "Nuevo servicio de grooming",
+        "create_hotel": "Nuevo tipo de estancia",
+        "edit_title": "Editar tipo",
+        "empty_grooming": "Aún no hay servicios. Crea uno o espera a que se carguen las sugerencias iniciales.",
+        "empty_hotel": "Aún no hay tipos de estancia. Crea uno o espera a que se carguen las sugerencias iniciales.",
+        "count": "{{count}} tipos",
+        "badge_plantilla": "Sugerido",
+        "form_description_grooming": "Nombre, categoría, precio lista y duración para agendar turnos y cobrar en caja.",
+        "form_description_hotel": "Nombre, categoría y precio lista por noche para estancias y cobro en caja.",
+        "columns": {
+            "duracion": "Duración"
+        },
+        "form": {
+            "nombre": "Nombre",
+            "categoria": "Categoría",
+            "categoria_placeholder": "Ej.: Baños, Combos, Guardería…",
+            "duracion": "Duración (minutos)",
+            "activo": "Activo (disponible al agendar y cobrar)"
+        }
     },
     "toast": {
         "load_error": "No se pudieron cargar las tarifas."

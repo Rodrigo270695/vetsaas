@@ -44,6 +44,17 @@ export type HotelTipoGrupo = {
     items: string[];
 };
 
+export type HotelTipoRow = {
+    id: string;
+    nombre: string;
+    categoria: string | null;
+    codigo_legacy?: string | null;
+    precio_lista: string;
+    moneda: string;
+    activo: boolean;
+    orden: number;
+};
+
 export type HotelEstanciaRow = {
     id: string;
     paciente_id: string;
@@ -54,6 +65,7 @@ export type HotelEstanciaRow = {
     estado: string;
     tipo_estancia: string;
     tipo_detalle: string | null;
+    hotel_tipo_id: string | null;
     notas: string | null;
     created_at: string;
     updated_at: string;

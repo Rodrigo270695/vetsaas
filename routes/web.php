@@ -403,6 +403,17 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
                 Route::middleware('permission:hotel.delete')
                     ->delete('hotel/{hotel_estancia}', [HotelEstanciaController::class, 'destroy'])
                     ->name('hotel.destroy');
+                Route::middleware('permission:hotel.create')
+                    ->post('hotel/tipos', [\App\Http\Controllers\HotelTipoEstanciaController::class, 'store'])
+                    ->name('hotel.tipos.store');
+                Route::middleware('permission:hotel.update')
+                    ->put('hotel/tipos/{hotelTipoEstancia}', [\App\Http\Controllers\HotelTipoEstanciaController::class, 'update'])
+                    ->whereUuid('hotelTipoEstancia')
+                    ->name('hotel.tipos.update');
+                Route::middleware('permission:hotel.delete')
+                    ->delete('hotel/tipos/{hotelTipoEstancia}', [\App\Http\Controllers\HotelTipoEstanciaController::class, 'destroy'])
+                    ->whereUuid('hotelTipoEstancia')
+                    ->name('hotel.tipos.destroy');
                 Route::middleware('permission:hotel.view')
                     ->get('hotel/{hotel_estancia}/diarios', [HotelEstanciaController::class, 'diariosIndex'])
                     ->name('hotel.diarios.index');
@@ -713,6 +724,29 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
                 ->delete('tarifas/hotel/{hotel_tarifa}', [\App\Http\Controllers\TarifaServiciosController::class, 'destroyHotel'])
                 ->whereUuid('hotel_tarifa')
                 ->name('tarifas.hotel.destroy');
+
+            Route::middleware('permission:tarifas.create')
+                ->post('tarifas/grooming/servicios', [\App\Http\Controllers\GroomingServicioController::class, 'store'])
+                ->name('tarifas.grooming.servicios.store');
+            Route::middleware('permission:tarifas.update')
+                ->put('tarifas/grooming/servicios/{groomingServicio}', [\App\Http\Controllers\GroomingServicioController::class, 'update'])
+                ->whereUuid('groomingServicio')
+                ->name('tarifas.grooming.servicios.update');
+            Route::middleware('permission:tarifas.delete')
+                ->delete('tarifas/grooming/servicios/{groomingServicio}', [\App\Http\Controllers\GroomingServicioController::class, 'destroy'])
+                ->whereUuid('groomingServicio')
+                ->name('tarifas.grooming.servicios.destroy');
+            Route::middleware('permission:tarifas.create')
+                ->post('tarifas/hotel/tipos', [\App\Http\Controllers\HotelTipoEstanciaController::class, 'store'])
+                ->name('tarifas.hotel.tipos.store');
+            Route::middleware('permission:tarifas.update')
+                ->put('tarifas/hotel/tipos/{hotelTipoEstancia}', [\App\Http\Controllers\HotelTipoEstanciaController::class, 'update'])
+                ->whereUuid('hotelTipoEstancia')
+                ->name('tarifas.hotel.tipos.update');
+            Route::middleware('permission:tarifas.delete')
+                ->delete('tarifas/hotel/tipos/{hotelTipoEstancia}', [\App\Http\Controllers\HotelTipoEstanciaController::class, 'destroy'])
+                ->whereUuid('hotelTipoEstancia')
+                ->name('tarifas.hotel.tipos.destroy');
 
             // Usuarios — CRUD real. Cada verbo HTTP exige su permiso específico.
             Route::middleware('permission:usuarios.view')

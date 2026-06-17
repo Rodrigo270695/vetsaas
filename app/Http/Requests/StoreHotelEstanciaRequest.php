@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Hotel\HotelCatalogoMode;
 use App\Hotel\HotelCatalogoTipoEstancia;
+use App\Support\Hotel\HotelEstanciaTipoRules;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -26,20 +28,24 @@ class StoreHotelEstanciaRequest extends FormRequest
         if (is_string($n) && trim($n) === '') {
             $out['notas'] = null;
         }
-        $t = $this->input('tipo_estancia');
-        if (is_string($t)) {
-            $out['tipo_estancia'] = trim($t);
-        }
-        $td = $this->input('tipo_detalle');
-        if (is_string($td)) {
-            $trim = trim($td);
-            $out['tipo_detalle'] = $trim === '' ? null : $trim;
+
+        if (! HotelCatalogoMode::usaCatalogoPersonalizado()) {
+            $t = $this->input('tipo_estancia');
+            if (is_string($t)) {
+                $out['tipo_estancia'] = trim($t);
+            }
+            $td = $this->input('tipo_detalle');
+            if (is_string($td)) {
+                $trim = trim($td);
+                $out['tipo_detalle'] = $trim === '' ? null : $trim;
+            }
+
+            $tipo = $out['tipo_estancia'] ?? (is_string($t) ? trim($t) : null);
+            if ($tipo !== HotelCatalogoTipoEstancia::OTRO_PERSONALIZADO) {
+                $out['tipo_detalle'] = null;
+            }
         }
 
-        $tipo = $out['tipo_estancia'] ?? (is_string($t) ? trim($t) : null);
-        if ($tipo !== HotelCatalogoTipoEstancia::OTRO_PERSONALIZADO) {
-            $out['tipo_detalle'] = null;
-        }
         if ($out !== []) {
             $this->merge($out);
         }
@@ -76,17 +82,7 @@ class StoreHotelEstanciaRequest extends FormRequest
             ],
             'ingreso_at' => ['required', 'date'],
             'egreso_at' => ['nullable', 'date', 'after_or_equal:ingreso_at'],
-            'tipo_estancia' => ['required', 'string', Rule::in(HotelCatalogoTipoEstancia::slugs())],
-            'tipo_detalle' => [
-                'nullable',
-                'string',
-                'max:500',
-                Rule::requiredIf(fn () => $this->input('tipo_estancia') === HotelCatalogoTipoEstancia::OTRO_PERSONALIZADO),
-                Rule::when(
-                    $this->input('tipo_estancia') === HotelCatalogoTipoEstancia::OTRO_PERSONALIZADO,
-                    ['min:3'],
-                ),
-            ],
+            ...HotelEstanciaTipoRules::tipoFields(),
             'notas' => ['nullable', 'string', 'max:20000'],
         ];
     }

@@ -2,15 +2,15 @@
 
 namespace App\Http\Requests;
 
-use App\Grooming\GroomingCatalogoMode;
+use App\Hotel\HotelCatalogoMode;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class GroomingServicioRequest extends FormRequest
+class HotelTipoEstanciaRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        if (! GroomingCatalogoMode::usaCatalogoPersonalizado()) {
+        if (! HotelCatalogoMode::usaCatalogoPersonalizado()) {
             return false;
         }
 
@@ -19,20 +19,6 @@ class GroomingServicioRequest extends FormRequest
             'PUT', 'PATCH' => $this->canUpdate(),
             default => false,
         };
-    }
-
-    private function canCreate(): bool
-    {
-        $user = $this->user();
-
-        return ($user?->can('grooming.create') ?? false) || ($user?->can('tarifas.create') ?? false);
-    }
-
-    private function canUpdate(): bool
-    {
-        $user = $this->user();
-
-        return ($user?->can('grooming.update') ?? false) || ($user?->can('tarifas.update') ?? false);
     }
 
     protected function prepareForValidation(): void
@@ -59,9 +45,22 @@ class GroomingServicioRequest extends FormRequest
             'categoria' => ['nullable', 'string', 'max:80'],
             'precio_lista' => ['required', 'numeric', 'min:0', 'max:999999.99'],
             'moneda' => ['nullable', 'string', Rule::in(['PEN', 'USD'])],
-            'duracion_minutos' => ['required', 'integer', 'min:5', 'max:480'],
             'activo' => ['sometimes', 'boolean'],
             'orden' => ['sometimes', 'integer', 'min:0', 'max:9999'],
         ];
+    }
+
+    private function canCreate(): bool
+    {
+        $user = $this->user();
+
+        return ($user?->can('hotel.create') ?? false) || ($user?->can('tarifas.create') ?? false);
+    }
+
+    private function canUpdate(): bool
+    {
+        $user = $this->user();
+
+        return ($user?->can('hotel.update') ?? false) || ($user?->can('tarifas.update') ?? false);
     }
 }

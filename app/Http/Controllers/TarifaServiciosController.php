@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Grooming\GroomingCatalogoMode;
 use App\Grooming\GroomingCatalogoServicio;
+use App\Hotel\HotelCatalogoMode;
 use App\Hotel\HotelCatalogoTipoEstancia;
 use App\Http\Requests\GroomingServicioTarifaRequest;
 use App\Http\Requests\HotelEstanciaTarifaRequest;
+use App\Models\GroomingServicio;
 use App\Models\GroomingServicioTarifa;
 use App\Models\HotelEstanciaTarifa;
+use App\Models\HotelTipoEstancia;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -28,25 +32,67 @@ class TarifaServiciosController extends Controller
             $tab = 'grooming';
         }
 
+        $groomingPersonalizado = GroomingCatalogoMode::usaCatalogoPersonalizado();
+        $hotelPersonalizado = HotelCatalogoMode::usaCatalogoPersonalizado();
+
         $groomingSearch = trim((string) $request->string('grooming_search', ''));
         $hotelSearch = trim((string) $request->string('hotel_search', ''));
 
-        $groomingQuery = GroomingServicioTarifa::query()->orderBy('servicio');
-        if ($groomingSearch !== '') {
-            $groomingQuery->where('servicio', 'ILIKE', "%{$groomingSearch}%");
+        $groomingServicios = collect();
+        $hotelTipos = collect();
+
+        if ($groomingPersonalizado) {
+            $groomingQuery = GroomingServicio::query()->orderBy('orden')->orderBy('nombre');
+            if ($groomingSearch !== '') {
+                $groomingQuery->where(function ($q) use ($groomingSearch): void {
+                    $q->where('nombre', 'ILIKE', "%{$groomingSearch}%")
+                        ->orWhere('categoria', 'ILIKE', "%{$groomingSearch}%")
+                        ->orWhere('codigo_legacy', 'ILIKE', "%{$groomingSearch}%");
+                });
+            }
+            $groomingServicios = $groomingQuery->get([
+                'id', 'nombre', 'categoria', 'codigo_legacy', 'precio_lista', 'moneda', 'duracion_minutos', 'activo', 'orden',
+            ]);
         }
 
-        $hotelQuery = HotelEstanciaTarifa::query()->orderBy('tipo_estancia');
-        if ($hotelSearch !== '') {
-            $hotelQuery->where('tipo_estancia', 'ILIKE', "%{$hotelSearch}%");
+        if ($hotelPersonalizado) {
+            $hotelQuery = HotelTipoEstancia::query()->orderBy('orden')->orderBy('nombre');
+            if ($hotelSearch !== '') {
+                $hotelQuery->where(function ($q) use ($hotelSearch): void {
+                    $q->where('nombre', 'ILIKE', "%{$hotelSearch}%")
+                        ->orWhere('categoria', 'ILIKE', "%{$hotelSearch}%")
+                        ->orWhere('codigo_legacy', 'ILIKE', "%{$hotelSearch}%");
+                });
+            }
+            $hotelTipos = $hotelQuery->get([
+                'id', 'nombre', 'categoria', 'codigo_legacy', 'precio_lista', 'moneda', 'activo', 'orden',
+            ]);
+        }
+
+        $groomingTarifasQuery = GroomingServicioTarifa::query()->orderBy('servicio');
+        if ($groomingSearch !== '' && ! $groomingPersonalizado) {
+            $groomingTarifasQuery->where('servicio', 'ILIKE', "%{$groomingSearch}%");
+        }
+
+        $hotelTarifasQuery = HotelEstanciaTarifa::query()->orderBy('tipo_estancia');
+        if ($hotelSearch !== '' && ! $hotelPersonalizado) {
+            $hotelTarifasQuery->where('tipo_estancia', 'ILIKE', "%{$hotelSearch}%");
         }
 
         return Inertia::render('configuracion/tarifas/index', [
             'tab' => $tab,
-            'catalogoGrooming' => GroomingCatalogoServicio::grupos(),
-            'catalogoHotel' => HotelCatalogoTipoEstancia::grupos(),
-            'groomingTarifas' => $groomingQuery->paginate(self::PER_PAGE, ['*'], 'grooming_page')->withQueryString(),
-            'hotelTarifas' => $hotelQuery->paginate(self::PER_PAGE, ['*'], 'hotel_page')->withQueryString(),
+            'grooming_catalogo_personalizado' => $groomingPersonalizado,
+            'hotel_catalogo_personalizado' => $hotelPersonalizado,
+            'groomingServicios' => $groomingServicios,
+            'hotelTipos' => $hotelTipos,
+            'catalogoGrooming' => $groomingPersonalizado ? [] : GroomingCatalogoServicio::grupos(),
+            'catalogoHotel' => $hotelPersonalizado ? [] : HotelCatalogoTipoEstancia::grupos(),
+            'groomingTarifas' => $groomingPersonalizado
+                ? null
+                : $groomingTarifasQuery->paginate(self::PER_PAGE, ['*'], 'grooming_page')->withQueryString(),
+            'hotelTarifas' => $hotelPersonalizado
+                ? null
+                : $hotelTarifasQuery->paginate(self::PER_PAGE, ['*'], 'hotel_page')->withQueryString(),
             'filters' => [
                 'grooming_search' => $groomingSearch,
                 'hotel_search' => $hotelSearch,

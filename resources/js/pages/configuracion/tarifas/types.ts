@@ -5,6 +5,18 @@ export type CatalogoGrupo = {
     items: string[];
 };
 
+export type CatalogoClinicaRow = {
+    id: string;
+    nombre: string;
+    categoria: string | null;
+    codigo_legacy: string | null;
+    precio_lista: string;
+    moneda: string;
+    duracion_minutos?: number;
+    activo: boolean;
+    orden: number;
+};
+
 export type GroomingTarifa = {
     id: string;
     servicio: string;
@@ -34,9 +46,13 @@ export type TarifaFilters = {
 
 export type TarifaIndexProps = {
     tab: TarifaTab;
+    grooming_catalogo_personalizado: boolean;
+    hotel_catalogo_personalizado: boolean;
+    groomingServicios: CatalogoClinicaRow[];
+    hotelTipos: CatalogoClinicaRow[];
     catalogoGrooming: CatalogoGrupo[];
     catalogoHotel: CatalogoGrupo[];
-    groomingTarifas: Paginated<GroomingTarifa>;
-    hotelTarifas: Paginated<HotelTarifa>;
+    groomingTarifas: Paginated<GroomingTarifa> | null;
+    hotelTarifas: Paginated<HotelTarifa> | null;
     filters: TarifaFilters;
 };

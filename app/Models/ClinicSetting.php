@@ -108,6 +108,7 @@ class ClinicSetting extends Model
         'ticket_ancho_mm',
         'emite_comprobantes_sunat',
         'grooming_catalogo_personalizado',
+        'hotel_catalogo_personalizado',
         'horas_min_cancelacion',
         'color_primario',
         'color_secundario',
@@ -146,6 +147,7 @@ class ClinicSetting extends Model
             'precio_incluye_igv' => 'boolean',
             'emite_comprobantes_sunat' => 'boolean',
             'grooming_catalogo_personalizado' => 'boolean',
+            'hotel_catalogo_personalizado' => 'boolean',
             'horas_min_cancelacion' => 'integer',
             'igv_porcentaje' => 'decimal:2',
         ];

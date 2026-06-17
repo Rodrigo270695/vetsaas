@@ -410,14 +410,25 @@ final class VentaDesdeCargoPrefill
         $noches = $estancia->nochesSugeridasParaVenta();
         $cantidad = number_format(max(1, $noches), 2, '.', '');
 
-        $tarifa = HotelEstanciaTarifa::query()
-            ->where('tipo_estancia', $estancia->tipo_estancia)
-            ->where('activo', true)
-            ->first();
-
         $precioPorNoche = '0.00';
-        if ($tarifa !== null) {
-            $precioPorNoche = number_format((float) (string) $tarifa->precio_lista, 2, '.', '');
+
+        if ($estancia->hotel_tipo_id !== null) {
+            $tipoPersonalizado = \App\Models\HotelTipoEstancia::query()
+                ->whereKey($estancia->hotel_tipo_id)
+                ->where('activo', true)
+                ->first();
+            if ($tipoPersonalizado !== null) {
+                $precioPorNoche = number_format((float) (string) $tipoPersonalizado->precio_lista, 2, '.', '');
+            }
+        } else {
+            $tarifa = HotelEstanciaTarifa::query()
+                ->where('tipo_estancia', $estancia->tipo_estancia)
+                ->where('activo', true)
+                ->first();
+
+            if ($tarifa !== null) {
+                $precioPorNoche = number_format((float) (string) $tarifa->precio_lista, 2, '.', '');
+            }
         }
 
         $totalSugerido = number_format((float) $precioPorNoche * max(1, $noches), 2, '.', '');

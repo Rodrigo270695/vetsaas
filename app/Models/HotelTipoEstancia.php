@@ -13,15 +13,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property ?string $codigo_legacy
  * @property string $precio_lista
  * @property string $moneda
- * @property int $duracion_minutos
  * @property bool $activo
  * @property int $orden
  */
-class GroomingServicio extends Model
+class HotelTipoEstancia extends Model
 {
     use HasUuids;
 
-    protected $table = 'grooming_servicios';
+    protected $table = 'hotel_tipos_estancia';
 
     protected $fillable = [
         'nombre',
@@ -29,7 +28,6 @@ class GroomingServicio extends Model
         'codigo_legacy',
         'precio_lista',
         'moneda',
-        'duracion_minutos',
         'activo',
         'orden',
     ];
@@ -38,14 +36,13 @@ class GroomingServicio extends Model
     {
         return [
             'precio_lista' => 'decimal:2',
-            'duracion_minutos' => 'integer',
             'activo' => 'boolean',
             'orden' => 'integer',
         ];
     }
 
-    public function turnos(): HasMany
+    public function estancias(): HasMany
     {
-        return $this->hasMany(GroomingTurno::class, 'grooming_servicio_id');
+        return $this->hasMany(HotelEstancia::class, 'hotel_tipo_id');
     }
 }

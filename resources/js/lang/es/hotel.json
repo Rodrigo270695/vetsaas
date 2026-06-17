@@ -64,6 +64,8 @@
         "estado": "Estado",
         "tipo_estancia": "Tipo de estancia",
         "tipo_estancia_placeholder": "Elige tipo de habitación, pensión o guardería…",
+        "tipo_estancia_search": "Buscar tipo de estancia…",
+        "tipo_estancia_empty": "Sin tipos que coincidan.",
         "tipo_estancia_hint": "Si no encaja, usa «Otro / personalizado» y describe en el campo siguiente.",
         "tipo_detalle": "Descripción personalizada",
         "tipo_detalle_placeholder": "Ej.: habitación climatizada + 2 comidas…",
@@ -104,6 +106,9 @@
             "deleted": "Entrada eliminada.",
             "delete_error": "No se pudo eliminar la entrada."
         }
+    },
+    "tipos": {
+        "empty_turno": "Primero configura al menos un tipo de estancia activo en la tabla de arriba o en Configuración › Tarifas."
     },
     "tipos_estancia": {
         "grupos": {

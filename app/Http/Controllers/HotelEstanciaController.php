@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Hotel\HotelCatalogoMode;
 use App\Hotel\HotelCatalogoTipoEstancia;
 use App\Http\Requests\StoreHotelEstanciaDiarioRequest;
 use App\Http\Requests\StoreHotelEstanciaRequest;
@@ -11,7 +12,7 @@ use App\Models\HotelEstanciaDiario;
 use App\Models\Paciente;
 use App\Models\Sede;
 use App\Models\User;
-use Illuminate\Http\JsonResponse;
+use App\Support\Hotel\HotelEstanciaTipoRules;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -171,9 +172,20 @@ class HotelEstanciaController extends Controller
             ->limit(100)
             ->get(['id', 'nombre', 'codigo']);
 
+        $catalogoPersonalizado = HotelCatalogoMode::usaCatalogoPersonalizado();
+
+        $hotelTipos = $catalogoPersonalizado
+            ? \App\Models\HotelTipoEstancia::query()
+                ->orderBy('orden')
+                ->orderBy('nombre')
+                ->get(['id', 'nombre', 'categoria', 'codigo_legacy', 'precio_lista', 'moneda', 'activo', 'orden'])
+            : collect();
+
         return Inertia::render('servicios/hotel/index', [
             'estancias' => $estancias,
-            'hotel_tipo_grupos' => HotelCatalogoTipoEstancia::grupos(),
+            'hotel_catalogo_personalizado' => $catalogoPersonalizado,
+            'hotel_tipos' => $hotelTipos,
+            'hotel_tipo_grupos' => $catalogoPersonalizado ? [] : HotelCatalogoTipoEstancia::grupos(),
             'pacientes_opciones' => $pacientesOpciones,
             'usuarios_opciones' => $usuariosOpciones,
             'sedes_opciones' => $sedesOpciones,
@@ -200,7 +212,7 @@ class HotelEstanciaController extends Controller
 
     public function store(StoreHotelEstanciaRequest $request): RedirectResponse
     {
-        $data = $request->validated();
+        $data = HotelEstanciaTipoRules::normalizarParaPersistencia($request->validated());
         $data['estado'] = HotelEstancia::ESTADO_PROGRAMADA;
         $data['created_by_id'] = Auth::id();
         $data['updated_by_id'] = Auth::id();
@@ -216,7 +228,7 @@ class HotelEstanciaController extends Controller
 
     public function update(UpdateHotelEstanciaRequest $request, HotelEstancia $hotelEstancia): RedirectResponse
     {
-        $data = $request->validated();
+        $data = HotelEstanciaTipoRules::normalizarParaPersistencia($request->validated());
         $data['updated_by_id'] = Auth::id();
 
         $hotelEstancia->fill($data);

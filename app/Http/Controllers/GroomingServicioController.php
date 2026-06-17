@@ -52,7 +52,11 @@ class GroomingServicioController extends Controller
     public function destroy(Request $request, GroomingServicio $groomingServicio): RedirectResponse
     {
         abort_unless(GroomingCatalogoMode::usaCatalogoPersonalizado(), 404);
-        abort_unless($request->user()?->can('grooming.delete') ?? false, 403);
+        abort_unless(
+            ($request->user()?->can('grooming.delete') ?? false)
+            || ($request->user()?->can('tarifas.delete') ?? false),
+            403,
+        );
 
         if ($groomingServicio->turnos()->exists()) {
             return back()->withErrors([

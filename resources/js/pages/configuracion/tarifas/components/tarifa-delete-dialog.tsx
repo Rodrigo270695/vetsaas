@@ -19,6 +19,8 @@ type TarifaDeleteDialogProps = {
     kind: TarifaTab | null;
     tarifa: GroomingTarifa | HotelTarifa | null;
     nombre: string;
+    /** Si se provee, reemplaza la eliminación de tarifa legacy. */
+    onConfirm?: () => void;
 };
 
 export function TarifaDeleteDialog({
@@ -27,11 +29,17 @@ export function TarifaDeleteDialog({
     kind,
     tarifa,
     nombre,
+    onConfirm,
 }: TarifaDeleteDialogProps) {
     const { t } = useTranslation(['tarifas-servicios', 'common']);
     const [processing, setProcessing] = useState(false);
 
-    const onConfirm = () => {
+    const handleConfirm = () => {
+        if (onConfirm) {
+            onConfirm();
+            return;
+        }
+
         if (!tarifa || !kind) {
             return;
         }
@@ -65,7 +73,7 @@ export function TarifaDeleteDialog({
                     <Button type="button" variant="outline" disabled={processing} onClick={() => onOpenChange(false)}>
                         {t('form.cancelar')}
                     </Button>
-                    <Button type="button" variant="destructive" disabled={processing} onClick={onConfirm}>
+                    <Button type="button" variant="destructive" disabled={processing} onClick={handleConfirm}>
                         {processing ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
                         {t('delete.confirm')}
                     </Button>

@@ -20,6 +20,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { usePermission } from '@/hooks/use-permission';
 import AppLayout from '@/layouts/app-layout';
+import { CatalogoClinicaPanel } from './components/catalogo-clinica-panel';
 import { TarifaDeleteDialog } from './components/tarifa-delete-dialog';
 import { TarifaFormModal } from './components/tarifa-form-modal';
 import { TarifaRowActions } from './components/tarifa-row-actions';
@@ -49,6 +50,10 @@ function formatPrecio(amount: string, moneda: string) {
 
 export default function Index({
     tab,
+    grooming_catalogo_personalizado,
+    hotel_catalogo_personalizado,
+    groomingServicios,
+    hotelTipos,
     catalogoGrooming,
     catalogoHotel,
     groomingTarifas,
@@ -89,7 +94,16 @@ export default function Index({
             {
                 preserveState: true,
                 preserveScroll: true,
-                only: ['tab', 'groomingTarifas', 'hotelTarifas', 'filters'],
+                only: [
+                    'tab',
+                    'groomingTarifas',
+                    'hotelTarifas',
+                    'groomingServicios',
+                    'hotelTipos',
+                    'filters',
+                    'grooming_catalogo_personalizado',
+                    'hotel_catalogo_personalizado',
+                ],
             },
         );
     }, [filters.grooming_search, filters.hotel_search]);
@@ -120,7 +134,7 @@ export default function Index({
                 {
                     preserveState: true,
                     preserveScroll: true,
-                    only: ['groomingTarifas', 'hotelTarifas', 'filters'],
+                    only: ['groomingTarifas', 'hotelTarifas', 'groomingServicios', 'hotelTipos', 'filters'],
                     onFinish: () => setIsSearching(false),
                 },
             );
@@ -129,12 +143,19 @@ export default function Index({
         return () => window.clearTimeout(timer);
     }, [groomingSearch, hotelSearch, tab, filters.grooming_search, filters.hotel_search]);
 
+    const groomingPersonalizado = grooming_catalogo_personalizado;
+    const hotelPersonalizado = hotel_catalogo_personalizado;
+    const isPersonalizedTab = tab === 'grooming' ? groomingPersonalizado : hotelPersonalizado;
+
+    const activeCatalogRows = tab === 'grooming' ? groomingServicios : hotelTipos;
     const activePaginated = tab === 'grooming' ? groomingTarifas : hotelTarifas;
-    const activeRows = activePaginated.data;
-    const activeTotal = activePaginated.total;
+    const activeRows = isPersonalizedTab ? activeCatalogRows : (activePaginated?.data ?? []);
+    const activeTotal = isPersonalizedTab ? activeCatalogRows.length : (activePaginated?.total ?? 0);
     const activeOnScreen = activeRows.length;
     const activeCount = activeRows.filter((row) => row.activo).length;
     const inactiveCount = activeRows.filter((row) => !row.activo).length;
+
+    const showLegacyCreate = tab === 'grooming' ? !groomingPersonalizado : !hotelPersonalizado;
 
     const headerStats = useMemo(
         () => [
@@ -330,7 +351,7 @@ export default function Index({
                     title={t('title')}
                     description={t('description')}
                     stats={headerStats}
-                    action={canCreate ? createButton(tab) : undefined}
+                    action={canCreate && showLegacyCreate ? createButton(tab) : undefined}
                 />
 
                 <Tabs value={tab} onValueChange={setTab} className="gap-4">
@@ -350,108 +371,156 @@ export default function Index({
 
                         <CardContent className="p-0">
                             <TabsContent value="grooming" className="mt-0">
-                                <DataTable
-                                    columns={groomingColumns}
-                                    data={groomingTarifas.data}
-                                    rowKey={(row) => row.id}
-                                    isLoading={tab === 'grooming' && isSearching}
-                                    toolbar={
-                                        <DataToolbar
-                                            search={groomingSearch}
-                                            onSearchChange={setGroomingSearch}
-                                            isSearching={tab === 'grooming' && isSearching}
-                                            placeholder={t('search.grooming')}
+                                {groomingPersonalizado ? (
+                                    <>
+                                        <div className="border-b border-border/60 px-4 py-3 sm:px-6">
+                                            <DataToolbar
+                                                search={groomingSearch}
+                                                onSearchChange={setGroomingSearch}
+                                                isSearching={tab === 'grooming' && isSearching}
+                                                placeholder={t('search.grooming')}
+                                                searchWrapperClassName="sm:max-w-md"
+                                            />
+                                        </div>
+                                        <CatalogoClinicaPanel
+                                            kind="grooming"
+                                            rows={groomingServicios}
+                                            canCreate={canCreate}
+                                            canUpdate={canUpdate}
+                                            canDelete={canDelete}
                                         />
-                                    }
-                                    footer={
-                                        <DataPagination
-                                            meta={groomingTarifas}
-                                            pageQueryKey="grooming_page"
-                                            preservedQuery={{
-                                                tab: 'grooming',
-                                                grooming_search: filters.grooming_search || undefined,
-                                                hotel_search: filters.hotel_search || undefined,
-                                            }}
-                                        />
-                                    }
-                                    emptyState={
-                                        <EmptyState
-                                            icon={Scissors}
-                                            title={t('empty.grooming_title')}
-                                            description={t('empty.grooming')}
-                                            action={canCreate ? createButton('grooming') : undefined}
-                                        />
-                                    }
-                                />
+                                    </>
+                                ) : groomingTarifas ? (
+                                    <DataTable
+                                        columns={groomingColumns}
+                                        data={groomingTarifas.data}
+                                        rowKey={(row) => row.id}
+                                        isLoading={tab === 'grooming' && isSearching}
+                                        toolbar={
+                                            <DataToolbar
+                                                search={groomingSearch}
+                                                onSearchChange={setGroomingSearch}
+                                                isSearching={tab === 'grooming' && isSearching}
+                                                placeholder={t('search.grooming')}
+                                            />
+                                        }
+                                        footer={
+                                            <DataPagination
+                                                meta={groomingTarifas}
+                                                pageQueryKey="grooming_page"
+                                                preservedQuery={{
+                                                    tab: 'grooming',
+                                                    grooming_search: filters.grooming_search || undefined,
+                                                    hotel_search: filters.hotel_search || undefined,
+                                                }}
+                                            />
+                                        }
+                                        emptyState={
+                                            <EmptyState
+                                                icon={Scissors}
+                                                title={t('empty.grooming_title')}
+                                                description={t('empty.grooming')}
+                                                action={canCreate ? createButton('grooming') : undefined}
+                                            />
+                                        }
+                                    />
+                                ) : null}
                             </TabsContent>
 
                             <TabsContent value="hotel" className="mt-0">
-                                <DataTable
-                                    columns={hotelColumns}
-                                    data={hotelTarifas.data}
-                                    rowKey={(row) => row.id}
-                                    isLoading={tab === 'hotel' && isSearching}
-                                    toolbar={
-                                        <DataToolbar
-                                            search={hotelSearch}
-                                            onSearchChange={setHotelSearch}
-                                            isSearching={tab === 'hotel' && isSearching}
-                                            placeholder={t('search.hotel')}
+                                {hotelPersonalizado ? (
+                                    <>
+                                        <div className="border-b border-border/60 px-4 py-3 sm:px-6">
+                                            <DataToolbar
+                                                search={hotelSearch}
+                                                onSearchChange={setHotelSearch}
+                                                isSearching={tab === 'hotel' && isSearching}
+                                                placeholder={t('search.hotel')}
+                                                searchWrapperClassName="sm:max-w-md"
+                                            />
+                                        </div>
+                                        <CatalogoClinicaPanel
+                                            kind="hotel"
+                                            rows={hotelTipos}
+                                            canCreate={canCreate}
+                                            canUpdate={canUpdate}
+                                            canDelete={canDelete}
                                         />
-                                    }
-                                    footer={
-                                        <DataPagination
-                                            meta={hotelTarifas}
-                                            pageQueryKey="hotel_page"
-                                            preservedQuery={{
-                                                tab: 'hotel',
-                                                grooming_search: filters.grooming_search || undefined,
-                                                hotel_search: filters.hotel_search || undefined,
-                                            }}
-                                        />
-                                    }
-                                    emptyState={
-                                        <EmptyState
-                                            icon={BedDouble}
-                                            title={t('empty.hotel_title')}
-                                            description={t('empty.hotel')}
-                                            action={canCreate ? createButton('hotel') : undefined}
-                                        />
-                                    }
-                                />
+                                    </>
+                                ) : hotelTarifas ? (
+                                    <DataTable
+                                        columns={hotelColumns}
+                                        data={hotelTarifas.data}
+                                        rowKey={(row) => row.id}
+                                        isLoading={tab === 'hotel' && isSearching}
+                                        toolbar={
+                                            <DataToolbar
+                                                search={hotelSearch}
+                                                onSearchChange={setHotelSearch}
+                                                isSearching={tab === 'hotel' && isSearching}
+                                                placeholder={t('search.hotel')}
+                                            />
+                                        }
+                                        footer={
+                                            <DataPagination
+                                                meta={hotelTarifas}
+                                                pageQueryKey="hotel_page"
+                                                preservedQuery={{
+                                                    tab: 'hotel',
+                                                    grooming_search: filters.grooming_search || undefined,
+                                                    hotel_search: filters.hotel_search || undefined,
+                                                }}
+                                            />
+                                        }
+                                        emptyState={
+                                            <EmptyState
+                                                icon={BedDouble}
+                                                title={t('empty.hotel_title')}
+                                                description={t('empty.hotel')}
+                                                action={canCreate ? createButton('hotel') : undefined}
+                                            />
+                                        }
+                                    />
+                                ) : null}
                             </TabsContent>
                         </CardContent>
                     </Card>
                 </Tabs>
             </div>
 
-            <TarifaFormModal
-                kind={modal.type === 'create' || modal.type === 'edit' ? modal.kind : tab}
-                open={modal.type === 'create' || modal.type === 'edit'}
-                onOpenChange={(open) => {
-                    if (!open) closeModal();
-                }}
-                tarifa={modal.type === 'edit' ? modal.tarifa : null}
-                catalogo={
-                    modal.type === 'create' || modal.type === 'edit'
-                        ? modal.kind === 'grooming'
-                            ? catalogoGrooming
-                            : catalogoHotel
-                        : tab === 'grooming'
-                          ? catalogoGrooming
-                          : catalogoHotel
-                }
-            />
+            {(modal.type === 'create' || modal.type === 'edit') &&
+            (modal.kind === 'grooming' ? !groomingPersonalizado : !hotelPersonalizado) ? (
+                <TarifaFormModal
+                    kind={modal.type === 'create' || modal.type === 'edit' ? modal.kind : tab}
+                    open={modal.type === 'create' || modal.type === 'edit'}
+                    onOpenChange={(open) => {
+                        if (!open) closeModal();
+                    }}
+                    tarifa={modal.type === 'edit' ? modal.tarifa : null}
+                    catalogo={
+                        modal.type === 'create' || modal.type === 'edit'
+                            ? modal.kind === 'grooming'
+                                ? catalogoGrooming
+                                : catalogoHotel
+                            : tab === 'grooming'
+                              ? catalogoGrooming
+                              : catalogoHotel
+                    }
+                />
+            ) : null}
 
-            <TarifaDeleteDialog
-                open={modal.type === 'delete'}
-                onOpenChange={(open) => {
-                    if (!open) closeModal();
-                }}
-                kind={modal.type === 'delete' ? modal.kind : null}
-                tarifa={modal.type === 'delete' ? modal.tarifa : null}
-                nombre={deleteNombre}
-            />
+            {modal.type === 'delete' &&
+            (modal.kind === 'grooming' ? !groomingPersonalizado : !hotelPersonalizado) ? (
+                <TarifaDeleteDialog
+                    open={modal.type === 'delete'}
+                    onOpenChange={(open) => {
+                        if (!open) closeModal();
+                    }}
+                    kind={modal.type === 'delete' ? modal.kind : null}
+                    tarifa={modal.type === 'delete' ? modal.tarifa : null}
+                    nombre={deleteNombre}
+                />
+            ) : null}
         </>
     );
 }

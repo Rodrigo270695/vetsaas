@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Hotel\HotelCatalogoMode;
 use App\Hotel\HotelCatalogoTipoEstancia;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -20,6 +21,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string $estado
  * @property string $tipo_estancia
  * @property ?string $tipo_detalle
+ * @property ?string $hotel_tipo_id
  * @property ?string $notas
  * @property ?string $venta_id
  * @property ?string $created_by_id
@@ -64,6 +66,7 @@ class HotelEstancia extends Model
         'estado',
         'tipo_estancia',
         'tipo_detalle',
+        'hotel_tipo_id',
         'notas',
         'venta_id',
         'created_by_id',
@@ -89,6 +92,21 @@ class HotelEstancia extends Model
 
     public function descripcionParaVenta(): string
     {
+        if (HotelCatalogoMode::usaCatalogoPersonalizado() && $this->hotel_tipo_id !== null) {
+            $tipo = $this->relationLoaded('hotelTipo')
+                ? $this->hotelTipo
+                : $this->hotelTipo()->first(['id', 'nombre']);
+
+            $nombre = trim((string) ($tipo?->nombre ?? ''));
+            $n = $this->nochesSugeridasParaVenta();
+
+            return mb_substr(
+                'Hotel · '.($nombre !== '' ? $nombre : 'Estancia').' ('.$n.' '.($n === 1 ? 'noche' : 'noches').')',
+                0,
+                300,
+            );
+        }
+
         if ($this->tipo_estancia === HotelCatalogoTipoEstancia::OTRO_PERSONALIZADO) {
             $d = trim((string) ($this->tipo_detalle ?? ''));
 
@@ -119,6 +137,11 @@ class HotelEstancia extends Model
     public function sede(): BelongsTo
     {
         return $this->belongsTo(Sede::class, 'sede_id');
+    }
+
+    public function hotelTipo(): BelongsTo
+    {
+        return $this->belongsTo(HotelTipoEstancia::class, 'hotel_tipo_id');
     }
 
     public function venta(): BelongsTo

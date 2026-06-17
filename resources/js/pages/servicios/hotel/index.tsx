@@ -28,15 +28,19 @@ import type {
     HotelFiltroUi,
     HotelStats,
     HotelTipoGrupo,
+    HotelTipoRow,
     PacienteHotelOpcion,
     SedeHotelOpcion,
     UsuarioHotelOpcion,
 } from './types';
+import { CatalogoClinicaPanel } from '@/pages/configuracion/tarifas/components/catalogo-clinica-panel';
 
 const LIST_URL = '/servicios/hotel';
 
 type Props = {
     estancias: Paginated<HotelEstanciaRow>;
+    hotel_catalogo_personalizado: boolean;
+    hotel_tipos: readonly HotelTipoRow[];
     hotel_tipo_grupos: readonly HotelTipoGrupo[];
     pacientes_opciones: readonly PacienteHotelOpcion[];
     usuarios_opciones: readonly UsuarioHotelOpcion[];
@@ -92,6 +96,8 @@ function estadoBadgeVariant(estado: string): 'default' | 'secondary' | 'destruct
 
 export default function Index({
     estancias: paginated,
+    hotel_catalogo_personalizado,
+    hotel_tipos,
     hotel_tipo_grupos,
     pacientes_opciones,
     usuarios_opciones,
@@ -104,6 +110,9 @@ export default function Index({
     const { t } = useTranslation(['hotel', 'common']);
     const { locale: appLocale, timezone: appTz } = usePage().props;
     const { can } = usePermission();
+    const canCreateTipos = can('hotel.create') || can('tarifas.create');
+    const canUpdateTipos = can('hotel.update') || can('tarifas.update');
+    const canDeleteTipos = can('hotel.delete') || can('tarifas.delete');
     const canCreate = can('hotel.create');
     const canUpdate = can('hotel.update');
     const canDelete = can('hotel.delete');
@@ -118,6 +127,8 @@ export default function Index({
             initialFilters: filters,
             only: [
                 'estancias',
+                'hotel_catalogo_personalizado',
+                'hotel_tipos',
                 'hotel_tipo_grupos',
                 'pacientes_opciones',
                 'usuarios_opciones',
@@ -388,6 +399,20 @@ export default function Index({
                     }
                 />
 
+                {hotel_catalogo_personalizado ? (
+                    <CatalogoClinicaPanel
+                        kind="hotel"
+                        rows={hotel_tipos.map((row) => ({
+                            ...row,
+                            codigo_legacy: row.codigo_legacy ?? null,
+                        }))}
+                        canCreate={canCreateTipos}
+                        canUpdate={canUpdateTipos}
+                        canDelete={canDeleteTipos}
+                        routesBase="servicios"
+                    />
+                ) : null}
+
                 <DataTable
                     columns={columns}
                     data={paginated.data}
@@ -466,6 +491,8 @@ export default function Index({
                     }
                 }}
                 estancia={modal.type === 'edit' ? modal.estancia : null}
+                catalogoPersonalizado={hotel_catalogo_personalizado}
+                hotelTipos={hotel_tipos}
                 tipoGrupos={hotel_tipo_grupos}
                 pacientesOpciones={pacientes_opciones}
                 usuariosOpciones={usuarios_opciones}
