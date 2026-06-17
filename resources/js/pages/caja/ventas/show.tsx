@@ -10,7 +10,7 @@ import {
     Stethoscope,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/data-page';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -57,6 +57,14 @@ const METODO_PAGO_KEYS: Record<string, string> = {
     transferencia: 'caja:ventas.create.mp_transferencia',
 };
 
+function buildA4FromTicket(ticketUrl: string): string {
+    return ticketUrl.replace('/pdf/ticket/', '/pdf/a4/');
+}
+
+function buildTicketFromA4(a4Url: string): string {
+    return a4Url.replace('/pdf/a4/', '/pdf/ticket/');
+}
+
 export default function Show({
     venta,
     clinica,
@@ -73,7 +81,12 @@ export default function Show({
     const [anulando, setAnulando] = useState(false);
     const [ticketModalOpen, setTicketModalOpen] = useState(false);
     const [ticketIframeBust, setTicketIframeBust] = useState(() => Date.now());
+    const [cpeModalOpen, setCpeModalOpen] = useState(false);
+    const [cpePdfFormat, setCpePdfFormat] = useState<'ticket' | 'a4'>('ticket');
+    const [cpeIframeBust, setCpeIframeBust] = useState(() => Date.now());
     const ticketIframeRef = useRef<HTMLIFrameElement>(null);
+    const cpeIframeRef = useRef<HTMLIFrameElement>(null);
+    const autoImpresionHecha = useRef(false);
 
     const fecha = venta.fecha_pago ?? venta.created_at;
 
@@ -89,8 +102,21 @@ export default function Show({
         setTicketModalOpen(true);
     };
 
+    const abrirCpeEnModal = () => {
+        setCpeIframeBust(Date.now());
+        setCpeModalOpen(true);
+    };
+
     const imprimirTicketDesdeIframe = () => {
         const win = ticketIframeRef.current?.contentWindow;
+        if (win) {
+            win.focus();
+            win.print();
+        }
+    };
+
+    const imprimirCpeDesdeIframe = () => {
+        const win = cpeIframeRef.current?.contentWindow;
         if (win) {
             win.focus();
             win.print();
@@ -138,7 +164,48 @@ export default function Show({
         venta.tipo_comprobante_sunat === null || venta.tipo_comprobante_sunat === 0;
     const esFactura = venta.tipo_comprobante_sunat === 1;
     const esComprobanteSunat = venta.tipo_comprobante_sunat === 1 || venta.tipo_comprobante_sunat === 2;
-    const puedeVerTicket = ticket.puede_imprimir && !esAnulada;
+    const puedeVerTicket = ticket.puede_imprimir && !esAnulada && esTicketInterno;
+    const cpeEmitido = esComprobanteSunat && venta.fel_estado === 'emitido' && Boolean(felPdfUrl);
+    const tituloPrincipal =
+        esComprobanteSunat && venta.fel_document?.numero_completo
+            ? venta.fel_document.numero_completo
+            : venta.numero;
+
+    const cpeIframeSrc = useMemo(() => {
+        if (!felPdfUrl) {
+            return null;
+        }
+
+        const base =
+            cpePdfFormat === 'a4'
+                ? felPdfUrl.includes('/pdf/a4/')
+                    ? felPdfUrl
+                    : buildA4FromTicket(felPdfUrl)
+                : felPdfUrl.includes('/pdf/ticket/')
+                  ? felPdfUrl
+                  : buildTicketFromA4(felPdfUrl);
+
+        const sep = base.includes('?') ? '&' : '?';
+
+        return `${base}${sep}_pv=${cpeIframeBust}`;
+    }, [felPdfUrl, cpePdfFormat, cpeIframeBust]);
+
+    useEffect(() => {
+        if (autoImpresionHecha.current || esAnulada) {
+            return;
+        }
+
+        if (esTicketInterno && puedeVerTicket) {
+            autoImpresionHecha.current = true;
+            abrirTicketEnModal();
+            return;
+        }
+
+        if (cpeEmitido) {
+            autoImpresionHecha.current = true;
+            abrirCpeEnModal();
+        }
+    }, [cpeEmitido, esAnulada, esTicketInterno, puedeVerTicket]);
     const anularVentaDesc = esComprobanteSunat
         ? t('caja:ventas.show.anular_venta_desc_sunat')
         : t('caja:ventas.show.anular_venta_desc_ticket');
@@ -166,7 +233,7 @@ export default function Show({
 
     return (
         <>
-            <Head title={t('caja:ventas.show.title', { numero: venta.numero })} />
+            <Head title={t('caja:ventas.show.title', { numero: tituloPrincipal })} />
 
             <Dialog open={anularOpen} onOpenChange={setAnularOpen}>
                 <DialogContent className="sm:max-w-md">
@@ -238,9 +305,61 @@ export default function Show({
                 </DialogContent>
             </Dialog>
 
+            <Dialog open={cpeModalOpen} onOpenChange={setCpeModalOpen}>
+                <DialogContent className="flex max-h-[90vh] max-w-[calc(100%-1rem)] flex-col gap-3 p-4 sm:max-w-2xl sm:p-6">
+                    <DialogHeader className="shrink-0 space-y-1 pr-8 text-left">
+                        <DialogTitle>
+                            {esFactura
+                                ? t('caja:ventas.show.cpe_modal_title_factura')
+                                : t('caja:ventas.show.cpe_modal_title_boleta')}
+                        </DialogTitle>
+                        <DialogDescription>{t('caja:ventas.show.cpe_modal_description')}</DialogDescription>
+                    </DialogHeader>
+                    <div className="flex shrink-0 flex-wrap gap-2">
+                        <Button
+                            type="button"
+                            size="sm"
+                            variant={cpePdfFormat === 'ticket' ? 'default' : 'outline'}
+                            onClick={() => setCpePdfFormat('ticket')}
+                        >
+                            {t('caja:ventas.show.cpe_modal_format_ticket')}
+                        </Button>
+                        <Button
+                            type="button"
+                            size="sm"
+                            variant={cpePdfFormat === 'a4' ? 'default' : 'outline'}
+                            onClick={() => setCpePdfFormat('a4')}
+                        >
+                            {t('caja:ventas.show.cpe_modal_format_a4')}
+                        </Button>
+                    </div>
+                    {cpeModalOpen && cpeIframeSrc ? (
+                        <iframe
+                            ref={cpeIframeRef}
+                            title={t('caja:ventas.show.cpe_iframe_title')}
+                            src={cpeIframeSrc}
+                            className="min-h-[50vh] w-full flex-1 rounded-md border border-border bg-white"
+                        />
+                    ) : null}
+                    <DialogFooter className="shrink-0 gap-2 sm:justify-between">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setCpeModalOpen(false)}
+                        >
+                            {tCommon('actions.close')}
+                        </Button>
+                        <Button type="button" className="gap-1.5" onClick={imprimirCpeDesdeIframe}>
+                            <Printer className="size-4 shrink-0" aria-hidden />
+                            {t('caja:ventas.show.cpe_modal_print')}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
             <div className="flex flex-1 flex-col gap-5 p-4 sm:p-6">
                 <PageHeader
-                    title={venta.numero}
+                    title={tituloPrincipal}
                     description={t('caja:ventas.show.description')}
                     stats={headerStats}
                     action={
@@ -298,33 +417,25 @@ export default function Show({
 
                 <div className="grid gap-5 lg:grid-cols-[1fr_minmax(280px,340px)]">
                     <div className="flex min-w-0 flex-col gap-3">
-                        {(puedeVerTicket ||
-                            (!esAnulada &&
-                                clinica.emite_comprobantes_sunat &&
-                                clinica.apisunat_configurado &&
-                                venta.fel_estado === 'pendiente_emision')) && (
+                        {esTicketInterno && puedeVerTicket ? (
                         <div className="flex flex-col gap-2 rounded-lg border border-border/60 bg-muted/20 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-                            {puedeVerTicket ? (
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    className="w-fit gap-1.5 border-primary/35 font-medium text-primary hover:bg-primary/5"
-                                    onClick={abrirTicketEnModal}
-                                >
-                                    <Printer className="size-4 shrink-0" aria-hidden />
-                                    {t('caja:ventas.show.imprimir_ticket')}
-                                </Button>
-                            ) : null}
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="w-fit gap-1.5 border-primary/35 font-medium text-primary hover:bg-primary/5"
+                                onClick={abrirTicketEnModal}
+                            >
+                                <Printer className="size-4 shrink-0" aria-hidden />
+                                {t('caja:ventas.show.imprimir_ticket')}
+                            </Button>
                             <p className="text-xs leading-snug text-muted-foreground">
-                                {puedeVerTicket
-                                    ? t('caja:ventas.show.imprimir_ticket_ayuda', {
-                                          mm: clinica.ticket_ancho_mm,
-                                      })
-                                    : t('caja:ventas.show.ticket_espera_cpe')}
+                                {t('caja:ventas.show.imprimir_ticket_ayuda', {
+                                    mm: clinica.ticket_ancho_mm,
+                                })}
                             </p>
                         </div>
-                        )}
+                        ) : null}
                         <Card className="border-border/60">
                         <CardHeader className="pb-3">
                             <CardTitle className="flex items-center gap-2 text-base">
@@ -568,6 +679,18 @@ export default function Show({
                                         </p>
                                     ) : null}
                                     <div className="flex flex-wrap gap-2">
+                                        {cpeEmitido ? (
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                className="h-8 gap-1.5"
+                                                onClick={abrirCpeEnModal}
+                                            >
+                                                <Printer className="size-3.5" aria-hidden />
+                                                {t('caja:ventas.show.fel_imprimir')}
+                                            </Button>
+                                        ) : null}
                                         {esComprobanteSunat && felPdfUrl ? (
                                             <Button variant="outline" size="sm" className="h-8 gap-1.5" asChild>
                                                 <a href={felPdfUrl} target="_blank" rel="noreferrer">

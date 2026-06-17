@@ -19,6 +19,10 @@ final class VentaTicketPolicy
             return false;
         }
 
+        if (in_array($venta->tipo_comprobante_sunat, [1, 2], true)) {
+            return false;
+        }
+
         $requiereCpePrevio = PlanCapabilities::facturaElectronica($tenant)
             && (bool) $clinic->emite_comprobantes_sunat
             && ApisunatCredentialResolver::estaConfigurado($clinic);
