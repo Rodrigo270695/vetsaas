@@ -19,6 +19,7 @@ use App\Models\HotelTipoEstancia;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -105,11 +106,24 @@ class TarifaServiciosController extends Controller
 
     public function storeGrooming(Request $request): RedirectResponse
     {
-        if ($request->filled('nombre')) {
-            return app(GroomingServicioController::class)->store(
-                $this->resolveFormRequest(GroomingServicioRequest::class, $request),
+        if ($this->usesGroomingCatalogoPersonalizado($request)) {
+            abort_unless(
+                Schema::hasTable('grooming_servicios'),
+                503,
+                __('tarifas-servicios.grooming.missing_table'),
             );
+
+            /** @var GroomingServicioRequest $formRequest */
+            $formRequest = $this->resolveFormRequest(GroomingServicioRequest::class, $request);
+
+            return app(GroomingServicioController::class)->store($formRequest);
         }
+
+        abort_unless(
+            Schema::hasTable('grooming_servicio_tarifas'),
+            503,
+            __('tarifas-servicios.grooming.missing_legacy_table'),
+        );
 
         return $this->storeGroomingTarifaLegacy(
             $this->resolveFormRequest(GroomingServicioTarifaRequest::class, $request),
@@ -120,11 +134,23 @@ class TarifaServiciosController extends Controller
     {
         $servicio = GroomingServicio::query()->find($grooming_tarifa);
         if ($servicio !== null) {
-            return app(GroomingServicioController::class)->update(
-                $this->resolveFormRequest(GroomingServicioRequest::class, $request),
-                $servicio,
+            abort_unless(
+                Schema::hasTable('grooming_servicios'),
+                503,
+                __('tarifas-servicios.grooming.missing_table'),
             );
+
+            /** @var GroomingServicioRequest $formRequest */
+            $formRequest = $this->resolveFormRequest(GroomingServicioRequest::class, $request);
+
+            return app(GroomingServicioController::class)->update($formRequest, $servicio);
         }
+
+        abort_unless(
+            Schema::hasTable('grooming_servicio_tarifas'),
+            503,
+            __('tarifas-servicios.grooming.missing_legacy_table'),
+        );
 
         return $this->updateGroomingTarifaLegacy(
             $this->resolveFormRequest(GroomingServicioTarifaRequest::class, $request),
@@ -148,11 +174,24 @@ class TarifaServiciosController extends Controller
 
     public function storeHotel(Request $request): RedirectResponse
     {
-        if ($request->filled('nombre')) {
-            return app(HotelTipoEstanciaController::class)->store(
-                $this->resolveFormRequest(HotelTipoEstanciaRequest::class, $request),
+        if ($this->usesHotelCatalogoPersonalizado($request)) {
+            abort_unless(
+                Schema::hasTable('hotel_tipos_estancia'),
+                503,
+                __('tarifas-servicios.hotel.missing_table'),
             );
+
+            /** @var HotelTipoEstanciaRequest $formRequest */
+            $formRequest = $this->resolveFormRequest(HotelTipoEstanciaRequest::class, $request);
+
+            return app(HotelTipoEstanciaController::class)->store($formRequest);
         }
+
+        abort_unless(
+            Schema::hasTable('hotel_estancia_tarifas'),
+            503,
+            __('tarifas-servicios.hotel.missing_legacy_table'),
+        );
 
         return $this->storeHotelTarifaLegacy(
             $this->resolveFormRequest(HotelEstanciaTarifaRequest::class, $request),
@@ -163,11 +202,23 @@ class TarifaServiciosController extends Controller
     {
         $tipo = HotelTipoEstancia::query()->find($hotel_tarifa);
         if ($tipo !== null) {
-            return app(HotelTipoEstanciaController::class)->update(
-                $this->resolveFormRequest(HotelTipoEstanciaRequest::class, $request),
-                $tipo,
+            abort_unless(
+                Schema::hasTable('hotel_tipos_estancia'),
+                503,
+                __('tarifas-servicios.hotel.missing_table'),
             );
+
+            /** @var HotelTipoEstanciaRequest $formRequest */
+            $formRequest = $this->resolveFormRequest(HotelTipoEstanciaRequest::class, $request);
+
+            return app(HotelTipoEstanciaController::class)->update($formRequest, $tipo);
         }
+
+        abort_unless(
+            Schema::hasTable('hotel_estancia_tarifas'),
+            503,
+            __('tarifas-servicios.hotel.missing_legacy_table'),
+        );
 
         return $this->updateHotelTarifaLegacy(
             $this->resolveFormRequest(HotelEstanciaTarifaRequest::class, $request),
@@ -266,5 +317,15 @@ class TarifaServiciosController extends Controller
         $formRequest->validateResolved();
 
         return $formRequest;
+    }
+
+    private function usesGroomingCatalogoPersonalizado(Request $request): bool
+    {
+        return GroomingCatalogoMode::usaCatalogoPersonalizado() || $request->filled('nombre');
+    }
+
+    private function usesHotelCatalogoPersonalizado(Request $request): bool
+    {
+        return HotelCatalogoMode::usaCatalogoPersonalizado() || $request->filled('nombre');
     }
 }

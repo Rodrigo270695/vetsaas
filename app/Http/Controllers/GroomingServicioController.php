@@ -19,7 +19,7 @@ class GroomingServicioController extends Controller
             'categoria' => $data['categoria'] ?? null,
             'precio_lista' => $data['precio_lista'],
             'moneda' => $data['moneda'] ?? 'PEN',
-            'duracion_minutos' => (int) $data['duracion_minutos'],
+            'duracion_minutos' => (int) ($data['duracion_minutos'] ?? 60),
             'activo' => $data['activo'] ?? true,
             'orden' => isset($data['orden']) ? (int) $data['orden'] : ($maxOrden + 1),
         ]);
@@ -36,7 +36,7 @@ class GroomingServicioController extends Controller
             'categoria' => $data['categoria'] ?? null,
             'precio_lista' => $data['precio_lista'],
             'moneda' => $data['moneda'] ?? $groomingServicio->moneda,
-            'duracion_minutos' => (int) $data['duracion_minutos'],
+            'duracion_minutos' => (int) ($data['duracion_minutos'] ?? $groomingServicio->duracion_minutos ?? 60),
             'activo' => $data['activo'] ?? $groomingServicio->activo,
             'orden' => isset($data['orden']) ? (int) $data['orden'] : $groomingServicio->orden,
         ]);

@@ -18,10 +18,16 @@ class HotelEstanciaTarifaRequest extends FormRequest
         return $this->user()?->can($perm) ?? false;
     }
 
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('activo')) {
+            $this->merge(['activo' => $this->boolean('activo')]);
+        }
+    }
+
     public function rules(): array
     {
-        $tarifa = $this->route('hotel_tarifa');
-        $tarifaId = $tarifa instanceof HotelEstanciaTarifa ? $tarifa->id : null;
+        $tarifaId = $this->resolveTarifaId($this->route('hotel_tarifa'));
 
         return [
             'tipo_estancia' => [
@@ -34,5 +40,18 @@ class HotelEstanciaTarifaRequest extends FormRequest
             'moneda' => ['nullable', 'string', Rule::in(['PEN', 'USD'])],
             'activo' => ['sometimes', 'boolean'],
         ];
+    }
+
+    private function resolveTarifaId(mixed $routeParam): ?string
+    {
+        if ($routeParam instanceof HotelEstanciaTarifa) {
+            return $routeParam->id;
+        }
+
+        if (is_string($routeParam) && $routeParam !== '') {
+            return $routeParam;
+        }
+
+        return null;
     }
 }

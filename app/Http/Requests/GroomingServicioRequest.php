@@ -42,6 +42,14 @@ class GroomingServicioRequest extends FormRequest
             $trim = trim($categoria);
             $this->merge(['categoria' => $trim === '' ? null : $trim]);
         }
+
+        if ($this->has('activo')) {
+            $this->merge(['activo' => $this->boolean('activo')]);
+        }
+
+        if ($this->filled('duracion_minutos')) {
+            $this->merge(['duracion_minutos' => (int) $this->input('duracion_minutos')]);
+        }
     }
 
     /**

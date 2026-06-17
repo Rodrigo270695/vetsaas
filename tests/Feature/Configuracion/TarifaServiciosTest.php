@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Models\ClinicSetting;
+use App\Models\GroomingServicio;
 use App\Models\GroomingServicioTarifa;
 use App\Models\HotelEstanciaTarifa;
 use App\Models\Tenant;
@@ -114,6 +116,45 @@ it('permite CRUD de tarifa grooming en configuración', function (): void {
         ->assertRedirect();
 
     expect(GroomingServicioTarifa::query()->whereKey($tarifa->id)->exists())->toBeFalse();
+});
+
+it('permite CRUD de servicio grooming personalizado en configuración', function (): void {
+    ClinicSetting::query()->update(['grooming_catalogo_personalizado' => true]);
+
+    $this->actingAs($this->admin)
+        ->post('http://'.$this->host.'/configuracion/tarifas/grooming', [
+            'nombre' => 'Baño premium',
+            'categoria' => 'Baños',
+            'precio_lista' => '55.00',
+            'moneda' => 'PEN',
+            'duracion_minutos' => 75,
+            'activo' => true,
+        ])
+        ->assertRedirect();
+
+    $servicio = GroomingServicio::query()->where('nombre', 'Baño premium')->first();
+    expect($servicio)->not->toBeNull();
+    expect((float) (string) $servicio?->precio_lista)->toBe(55.0);
+
+    $this->actingAs($this->admin)
+        ->put('http://'.$this->host.'/configuracion/tarifas/grooming/'.$servicio->id, [
+            'nombre' => 'Baño premium plus',
+            'categoria' => 'Baños',
+            'precio_lista' => '60.00',
+            'moneda' => 'PEN',
+            'duracion_minutos' => 80,
+            'activo' => true,
+        ])
+        ->assertRedirect();
+
+    expect($servicio->fresh()?->nombre)->toBe('Baño premium plus');
+    expect((float) (string) $servicio->fresh()?->precio_lista)->toBe(60.0);
+
+    $this->actingAs($this->admin)
+        ->delete('http://'.$this->host.'/configuracion/tarifas/grooming/'.$servicio->id)
+        ->assertRedirect();
+
+    expect(GroomingServicio::query()->whereKey($servicio->id)->exists())->toBeFalse();
 });
 
 it('permite CRUD de tarifa hotel en configuración', function (): void {

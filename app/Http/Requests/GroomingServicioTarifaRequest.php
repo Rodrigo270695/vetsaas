@@ -18,10 +18,16 @@ class GroomingServicioTarifaRequest extends FormRequest
         return $this->user()?->can($perm) ?? false;
     }
 
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('activo')) {
+            $this->merge(['activo' => $this->boolean('activo')]);
+        }
+    }
+
     public function rules(): array
     {
-        $tarifa = $this->route('grooming_tarifa');
-        $tarifaId = $tarifa instanceof GroomingServicioTarifa ? $tarifa->id : null;
+        $tarifaId = $this->resolveTarifaId($this->route('grooming_tarifa'));
 
         return [
             'servicio' => [
@@ -34,5 +40,18 @@ class GroomingServicioTarifaRequest extends FormRequest
             'moneda' => ['nullable', 'string', Rule::in(['PEN', 'USD'])],
             'activo' => ['sometimes', 'boolean'],
         ];
+    }
+
+    private function resolveTarifaId(mixed $routeParam): ?string
+    {
+        if ($routeParam instanceof GroomingServicioTarifa) {
+            return $routeParam->id;
+        }
+
+        if (is_string($routeParam) && $routeParam !== '') {
+            return $routeParam;
+        }
+
+        return null;
     }
 }

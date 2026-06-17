@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Grooming\GroomingCatalogoMode;
 use App\Http\Requests\AnularVentaRequest;
 use App\Http\Requests\PropietarioRequest;
 use App\Http\Requests\StoreVentaRequest;
@@ -16,6 +17,7 @@ use App\Models\GroomingTurno;
 use App\Models\HotelEstancia;
 use App\Models\Internamiento;
 use App\Models\Paciente;
+use App\Models\GroomingServicio;
 use App\Models\GroomingServicioTarifa;
 use App\Models\Producto;
 use App\Models\Propietario;
@@ -805,6 +807,31 @@ class VentaController extends Controller
     public function buscarServiciosTarifa(Request $request): JsonResponse
     {
         $q = trim((string) $request->string('q', ''));
+
+        if (GroomingCatalogoMode::usaCatalogoPersonalizado()) {
+            $query = GroomingServicio::query()->where('activo', true);
+
+            if ($q !== '') {
+                $like = '%'.addcslashes($q, '%_\\').'%';
+                $query->where(function ($sub) use ($like): void {
+                    $sub->where('nombre', 'ILIKE', $like)
+                        ->orWhere('categoria', 'ILIKE', $like);
+                });
+            }
+
+            $rows = $query
+                ->orderBy('orden')
+                ->orderBy('nombre')
+                ->limit(30)
+                ->get(['nombre', 'precio_lista']);
+
+            return response()->json([
+                'data' => $rows->map(static fn (GroomingServicio $row): array => [
+                    'nombre' => $row->nombre,
+                    'precio_lista' => (string) $row->precio_lista,
+                ]),
+            ]);
+        }
 
         $query = GroomingServicioTarifa::query()->where('activo', true);
 
