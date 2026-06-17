@@ -77,16 +77,16 @@ function routesFor(kind: CatalogoKind, base: 'tarifas' | 'servicios') {
 
     if (kind === 'grooming') {
         return {
-            store: '/configuracion/tarifas/grooming/servicios',
-            update: (id: string) => `/configuracion/tarifas/grooming/servicios/${id}`,
-            destroy: (id: string) => `/configuracion/tarifas/grooming/servicios/${id}`,
+            store: '/configuracion/tarifas/grooming',
+            update: (id: string) => `/configuracion/tarifas/grooming/${id}`,
+            destroy: (id: string) => `/configuracion/tarifas/grooming/${id}`,
         };
     }
 
     return {
-        store: '/configuracion/tarifas/hotel/tipos',
-        update: (id: string) => `/configuracion/tarifas/hotel/tipos/${id}`,
-        destroy: (id: string) => `/configuracion/tarifas/hotel/tipos/${id}`,
+        store: '/configuracion/tarifas/hotel',
+        update: (id: string) => `/configuracion/tarifas/hotel/${id}`,
+        destroy: (id: string) => `/configuracion/tarifas/hotel/${id}`,
     };
 }
 

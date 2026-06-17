@@ -2,7 +2,6 @@
 
 namespace App\Http\Requests;
 
-use App\Hotel\HotelCatalogoMode;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -10,10 +9,6 @@ class HotelTipoEstanciaRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        if (! HotelCatalogoMode::usaCatalogoPersonalizado()) {
-            return false;
-        }
-
         return match ($this->method()) {
             'POST' => $this->canCreate(),
             'PUT', 'PATCH' => $this->canUpdate(),

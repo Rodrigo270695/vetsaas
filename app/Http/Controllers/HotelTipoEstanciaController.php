@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Hotel\HotelCatalogoMode;
 use App\Http\Requests\HotelTipoEstanciaRequest;
 use App\Models\HotelTipoEstancia;
 use Illuminate\Http\RedirectResponse;
@@ -12,8 +11,6 @@ class HotelTipoEstanciaController extends Controller
 {
     public function store(HotelTipoEstanciaRequest $request): RedirectResponse
     {
-        abort_unless(HotelCatalogoMode::usaCatalogoPersonalizado(), 404);
-
         $data = $request->validated();
         $maxOrden = (int) HotelTipoEstancia::query()->max('orden');
 
@@ -31,8 +28,6 @@ class HotelTipoEstanciaController extends Controller
 
     public function update(HotelTipoEstanciaRequest $request, HotelTipoEstancia $hotelTipoEstancia): RedirectResponse
     {
-        abort_unless(HotelCatalogoMode::usaCatalogoPersonalizado(), 404);
-
         $data = $request->validated();
 
         $hotelTipoEstancia->update([
@@ -49,7 +44,6 @@ class HotelTipoEstanciaController extends Controller
 
     public function destroy(Request $request, HotelTipoEstancia $hotelTipoEstancia): RedirectResponse
     {
-        abort_unless(HotelCatalogoMode::usaCatalogoPersonalizado(), 404);
         abort_unless($this->canDelete($request), 403);
 
         if ($hotelTipoEstancia->estancias()->exists()) {

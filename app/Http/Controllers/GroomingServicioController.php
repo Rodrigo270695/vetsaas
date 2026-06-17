@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Grooming\GroomingCatalogoMode;
 use App\Http\Requests\GroomingServicioRequest;
 use App\Models\GroomingServicio;
 use Illuminate\Http\RedirectResponse;
@@ -12,8 +11,6 @@ class GroomingServicioController extends Controller
 {
     public function store(GroomingServicioRequest $request): RedirectResponse
     {
-        abort_unless(GroomingCatalogoMode::usaCatalogoPersonalizado(), 404);
-
         $data = $request->validated();
         $maxOrden = (int) GroomingServicio::query()->max('orden');
 
@@ -32,8 +29,6 @@ class GroomingServicioController extends Controller
 
     public function update(GroomingServicioRequest $request, GroomingServicio $groomingServicio): RedirectResponse
     {
-        abort_unless(GroomingCatalogoMode::usaCatalogoPersonalizado(), 404);
-
         $data = $request->validated();
 
         $groomingServicio->update([
@@ -51,7 +46,6 @@ class GroomingServicioController extends Controller
 
     public function destroy(Request $request, GroomingServicio $groomingServicio): RedirectResponse
     {
-        abort_unless(GroomingCatalogoMode::usaCatalogoPersonalizado(), 404);
         abort_unless(
             ($request->user()?->can('grooming.delete') ?? false)
             || ($request->user()?->can('tarifas.delete') ?? false),

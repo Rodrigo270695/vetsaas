@@ -8,12 +8,15 @@ use App\Grooming\GroomingCatalogoMode;
 use App\Grooming\GroomingCatalogoServicio;
 use App\Hotel\HotelCatalogoMode;
 use App\Hotel\HotelCatalogoTipoEstancia;
+use App\Http\Requests\GroomingServicioRequest;
 use App\Http\Requests\GroomingServicioTarifaRequest;
 use App\Http\Requests\HotelEstanciaTarifaRequest;
+use App\Http\Requests\HotelTipoEstanciaRequest;
 use App\Models\GroomingServicio;
 use App\Models\GroomingServicioTarifa;
 use App\Models\HotelEstanciaTarifa;
 use App\Models\HotelTipoEstancia;
+use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -100,7 +103,93 @@ class TarifaServiciosController extends Controller
         ]);
     }
 
-    public function storeGrooming(GroomingServicioTarifaRequest $request): RedirectResponse
+    public function storeGrooming(Request $request): RedirectResponse
+    {
+        if ($request->filled('nombre')) {
+            return app(GroomingServicioController::class)->store(
+                $this->resolveFormRequest(GroomingServicioRequest::class, $request),
+            );
+        }
+
+        return $this->storeGroomingTarifaLegacy(
+            $this->resolveFormRequest(GroomingServicioTarifaRequest::class, $request),
+        );
+    }
+
+    public function updateGrooming(Request $request, string $grooming_tarifa): RedirectResponse
+    {
+        $servicio = GroomingServicio::query()->find($grooming_tarifa);
+        if ($servicio !== null) {
+            return app(GroomingServicioController::class)->update(
+                $this->resolveFormRequest(GroomingServicioRequest::class, $request),
+                $servicio,
+            );
+        }
+
+        return $this->updateGroomingTarifaLegacy(
+            $this->resolveFormRequest(GroomingServicioTarifaRequest::class, $request),
+            GroomingServicioTarifa::query()->findOrFail($grooming_tarifa),
+        );
+    }
+
+    public function destroyGrooming(Request $request, string $grooming_tarifa): RedirectResponse
+    {
+        $servicio = GroomingServicio::query()->find($grooming_tarifa);
+        if ($servicio !== null) {
+            return app(GroomingServicioController::class)->destroy($request, $servicio);
+        }
+
+        abort_unless($request->user()?->can('tarifas.delete'), 403);
+
+        GroomingServicioTarifa::query()->findOrFail($grooming_tarifa)->delete();
+
+        return back()->with('success', __('tarifas-servicios.grooming.deleted'));
+    }
+
+    public function storeHotel(Request $request): RedirectResponse
+    {
+        if ($request->filled('nombre')) {
+            return app(HotelTipoEstanciaController::class)->store(
+                $this->resolveFormRequest(HotelTipoEstanciaRequest::class, $request),
+            );
+        }
+
+        return $this->storeHotelTarifaLegacy(
+            $this->resolveFormRequest(HotelEstanciaTarifaRequest::class, $request),
+        );
+    }
+
+    public function updateHotel(Request $request, string $hotel_tarifa): RedirectResponse
+    {
+        $tipo = HotelTipoEstancia::query()->find($hotel_tarifa);
+        if ($tipo !== null) {
+            return app(HotelTipoEstanciaController::class)->update(
+                $this->resolveFormRequest(HotelTipoEstanciaRequest::class, $request),
+                $tipo,
+            );
+        }
+
+        return $this->updateHotelTarifaLegacy(
+            $this->resolveFormRequest(HotelEstanciaTarifaRequest::class, $request),
+            HotelEstanciaTarifa::query()->findOrFail($hotel_tarifa),
+        );
+    }
+
+    public function destroyHotel(Request $request, string $hotel_tarifa): RedirectResponse
+    {
+        $tipo = HotelTipoEstancia::query()->find($hotel_tarifa);
+        if ($tipo !== null) {
+            return app(HotelTipoEstanciaController::class)->destroy($request, $tipo);
+        }
+
+        abort_unless($request->user()?->can('tarifas.delete'), 403);
+
+        HotelEstanciaTarifa::query()->findOrFail($hotel_tarifa)->delete();
+
+        return back()->with('success', __('tarifas-servicios.hotel.deleted'));
+    }
+
+    private function storeGroomingTarifaLegacy(GroomingServicioTarifaRequest $request): RedirectResponse
     {
         $data = $request->validated();
 
@@ -114,7 +203,7 @@ class TarifaServiciosController extends Controller
         return back()->with('success', __('tarifas-servicios.grooming.created'));
     }
 
-    public function updateGrooming(
+    private function updateGroomingTarifaLegacy(
         GroomingServicioTarifaRequest $request,
         GroomingServicioTarifa $grooming_tarifa,
     ): RedirectResponse {
@@ -130,16 +219,7 @@ class TarifaServiciosController extends Controller
         return back()->with('success', __('tarifas-servicios.grooming.updated'));
     }
 
-    public function destroyGrooming(GroomingServicioTarifa $grooming_tarifa): RedirectResponse
-    {
-        abort_unless(request()->user()?->can('tarifas.delete'), 403);
-
-        $grooming_tarifa->delete();
-
-        return back()->with('success', __('tarifas-servicios.grooming.deleted'));
-    }
-
-    public function storeHotel(HotelEstanciaTarifaRequest $request): RedirectResponse
+    private function storeHotelTarifaLegacy(HotelEstanciaTarifaRequest $request): RedirectResponse
     {
         $data = $request->validated();
 
@@ -153,7 +233,7 @@ class TarifaServiciosController extends Controller
         return back()->with('success', __('tarifas-servicios.hotel.created'));
     }
 
-    public function updateHotel(
+    private function updateHotelTarifaLegacy(
         HotelEstanciaTarifaRequest $request,
         HotelEstanciaTarifa $hotel_tarifa,
     ): RedirectResponse {
@@ -169,12 +249,22 @@ class TarifaServiciosController extends Controller
         return back()->with('success', __('tarifas-servicios.hotel.updated'));
     }
 
-    public function destroyHotel(HotelEstanciaTarifa $hotel_tarifa): RedirectResponse
+    /**
+     * @param  class-string<FormRequest>  $formRequestClass
+     */
+    private function resolveFormRequest(string $formRequestClass, Request $request): FormRequest
     {
-        abort_unless(request()->user()?->can('tarifas.delete'), 403);
+        /** @var FormRequest $formRequest */
+        $formRequest = $formRequestClass::createFrom($request);
+        $formRequest->setContainer(app());
+        $formRequest->setRedirector(app('redirect'));
 
-        $hotel_tarifa->delete();
+        if ($request->hasSession()) {
+            $formRequest->setSession($request->session());
+        }
 
-        return back()->with('success', __('tarifas-servicios.hotel.deleted'));
+        $formRequest->validateResolved();
+
+        return $formRequest;
     }
 }
