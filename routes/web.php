@@ -30,7 +30,7 @@ use App\Http\Controllers\PlanController;
 use App\Http\Controllers\PlatformRenewalReminderController;
 use App\Http\Controllers\PlatformSettingController;
 use App\Http\Controllers\PlatformWhatsAppController;
-use App\Http\Controllers\ProductoInventarioController;
+use App\Http\Controllers\PromotionController;
 use App\Http\Controllers\ProveedorInventarioController;
 use App\Http\Controllers\StockInventarioController;
 use App\Http\Controllers\UnidadMedidaInventarioController;
@@ -571,8 +571,24 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
                 ->get('ventas/{venta}', [VentaController::class, 'show'])
                 ->whereUuid('venta')
                 ->name('ventas.show');
+            Route::middleware('permission:ventas.create')
+                ->post('ventas/preview-promotions', [PromotionController::class, 'preview'])
+                ->name('ventas.preview-promotions');
+            Route::middleware('permission:descuentos.view')
+                ->get('descuentos', [PromotionController::class, 'index'])
+                ->name('descuentos.index');
+            Route::middleware('permission:descuentos.create')
+                ->post('descuentos', [PromotionController::class, 'store'])
+                ->name('descuentos.store');
+            Route::middleware('permission:descuentos.update')
+                ->put('descuentos/{promotion}', [PromotionController::class, 'update'])
+                ->whereUuid('promotion')
+                ->name('descuentos.update');
+            Route::middleware('permission:descuentos.delete')
+                ->delete('descuentos/{promotion}', [PromotionController::class, 'destroy'])
+                ->whereUuid('promotion')
+                ->name('descuentos.destroy');
             Route::inertia('pagos', 'caja/pagos/index')->name('pagos');
-            Route::inertia('descuentos', 'caja/descuentos/index')->name('descuentos');
         });
 
         // ===== Facturación =====

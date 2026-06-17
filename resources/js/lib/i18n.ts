@@ -15,7 +15,7 @@ import citasEn from '@/lang/en/citas.json';
 import cobrosEn from '@/lang/en/cobros.json';
 import comunicacionesEn from '@/lang/en/comunicaciones.json';
 import plataformaAuditoriaSoporteEn from '@/lang/en/plataforma-auditoria-soporte.json';
-import dashboardEn from '@/lang/en/dashboard.json';
+import descuentosPromocionesEn from '@/lang/en/descuentos-promociones.json';
 import commonEn from '@/lang/en/common.json';
 import comprasInventarioEn from '@/lang/en/compras-inventario.json';
 import consultaCargosEn from '@/lang/en/consulta-cargos.json';
@@ -54,7 +54,7 @@ import citasEs from '@/lang/es/citas.json';
 import cobrosEs from '@/lang/es/cobros.json';
 import comunicacionesEs from '@/lang/es/comunicaciones.json';
 import plataformaAuditoriaSoporteEs from '@/lang/es/plataforma-auditoria-soporte.json';
-import dashboardEs from '@/lang/es/dashboard.json';
+import descuentosPromocionesEs from '@/lang/es/descuentos-promociones.json';
 import commonEs from '@/lang/es/common.json';
 import comprasInventarioEs from '@/lang/es/compras-inventario.json';
 import consultaCargosEs from '@/lang/es/consulta-cargos.json';
@@ -140,6 +140,7 @@ const resources = {
         caja: cajaEs,
         'facturacion-documentos': facturacionDocumentosEs,
         'tarifas-servicios': tarifasServiciosEs,
+        'descuentos-promociones': descuentosPromocionesEs,
     },
     en: {
         common: commonEn,
@@ -181,6 +182,7 @@ const resources = {
         caja: cajaEn,
         'facturacion-documentos': facturacionDocumentosEn,
         'tarifas-servicios': tarifasServiciosEn,
+        'descuentos-promociones': descuentosPromocionesEn,
     },
 } as const;
 
@@ -230,6 +232,7 @@ void i18n
             'laboratorio',
             'caja',
             'tarifas-servicios',
+            'descuentos-promociones',
         ],
         interpolation: {
             // React ya escapa por defecto. Evita doble escaping.

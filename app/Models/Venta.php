@@ -76,6 +76,8 @@ class Venta extends Model
         'subtotal',
         'igv_monto',
         'descuento_monto',
+        'promotion_id',
+        'promotion_name_snapshot',
         'total',
         'metodo_pago',
         'monto_recibido',

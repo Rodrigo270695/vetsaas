@@ -180,15 +180,52 @@ final class VentaCheckoutService
                     'descripcion_snapshot' => $descripcion,
                     'igv_tipo_snapshot' => 'gravado',
                     'cantidad' => $cantidad,
+                    'precio_lista' => $precioLista,
                     'precio_unitario' => $puSinIgv,
                     'descuento_pct' => 0.0,
                     'subtotal' => $lineSub,
+                    'promotion_id' => null,
                 ];
+            }
+
+            $groomingServiceSlug = null;
+            if ($groomingTurnoLocked !== null) {
+                $groomingServiceSlug = $groomingTurnoLocked->servicio;
+                if (! is_string($validated['paciente_id'] ?? null) || $validated['paciente_id'] === '') {
+                    $validated['paciente_id'] = $groomingTurnoLocked->paciente_id;
+                }
+            }
+
+            $promoResult = app(PromotionCheckoutService::class)->evaluate(
+                [
+                    'propietario_id' => $validated['propietario_id'],
+                    'paciente_id' => $validated['paciente_id'] ?? null,
+                    'grooming_turno_id' => $validated['grooming_turno_id'] ?? null,
+                    'grooming_service_slug' => $groomingServiceSlug,
+                    'hotel_estancia_id' => $validated['hotel_estancia_id'] ?? null,
+                    'promotion_code' => $validated['promotion_code'] ?? null,
+                ],
+                $lineasCalc,
+                $igvPct,
+                $precioIncluyeIgv,
+            );
+
+            $lineasCalc = $promoResult->lineas;
+            $descuentoMonto = $promoResult->discount_amount;
+
+            $subtotalVenta = 0.0;
+            $totalVenta = 0.0;
+            foreach ($lineasCalc as $line) {
+                $subtotalVenta += (float) $line['subtotal'];
             }
 
             if ($precioIncluyeIgv) {
                 $subtotalVenta = round($subtotalVenta, 2);
-                $total = round($totalVenta, 2);
+                $total = 0.0;
+                foreach ($lineasCalc as $line) {
+                    $total += round((float) $line['subtotal'] * $divisorIgv, 2);
+                }
+                $total = round($total, 2);
                 $igvMonto = round($total - $subtotalVenta, 2);
             } else {
                 $subtotalVenta = round($subtotalVenta, 2);
@@ -233,7 +270,9 @@ final class VentaCheckoutService
                 'estado' => Venta::ESTADO_PAGADO,
                 'subtotal' => number_format($subtotalVenta, 2, '.', ''),
                 'igv_monto' => number_format($igvMonto, 2, '.', ''),
-                'descuento_monto' => '0.00',
+                'descuento_monto' => number_format((float) $descuentoMonto, 2, '.', ''),
+                'promotion_id' => $promoResult->promotion_id,
+                'promotion_name_snapshot' => $promoResult->promotion_name,
                 'total' => number_format($total, 2, '.', ''),
                 'metodo_pago' => $metodo,
                 'monto_recibido' => $montoRecibido !== null ? number_format($montoRecibido, 2, '.', '') : null,
@@ -270,7 +309,8 @@ final class VentaCheckoutService
                     'igv_tipo_snapshot' => $lc['igv_tipo_snapshot'],
                     'cantidad' => number_format($lc['cantidad'], 3, '.', ''),
                     'precio_unitario' => number_format($lc['precio_unitario'], 4, '.', ''),
-                    'descuento_pct' => '0.00',
+                    'descuento_pct' => number_format((float) ($lc['descuento_pct'] ?? 0), 2, '.', ''),
+                    'promotion_id' => $lc['promotion_id'] ?? null,
                     'subtotal' => number_format($lc['subtotal'], 2, '.', ''),
                 ]);
 
@@ -301,6 +341,10 @@ final class VentaCheckoutService
                         "lineas.{$idx}.cantidad" => $mensaje,
                     ]);
                 }
+            }
+
+            if ($promoResult->promotion_id !== null) {
+                app(PromotionCheckoutService::class)->recordUse($promoResult->promotion_id);
             }
 
             $venta = $venta->fresh(['lineas', 'propietario', 'paciente']);

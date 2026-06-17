@@ -52,6 +52,7 @@ class StoreVentaRequest extends FormRequest
             ])],
             'monto_recibido' => ['nullable', 'numeric', 'min:0'],
             'notas' => ['nullable', 'string', 'max:2000'],
+            'promotion_code' => ['nullable', 'string', 'max:30'],
             'tipo_comprobante_sunat' => ['nullable', 'integer', Rule::in([
                 FelSerie::TIPO_FACTURA,
                 FelSerie::TIPO_BOLETA,
@@ -68,18 +69,17 @@ class StoreVentaRequest extends FormRequest
 
         if (! $puedeElegirSunat) {
             $this->merge(['tipo_comprobante_sunat' => null]);
-
-            return;
+        } else {
+            $tipo = $this->input('tipo_comprobante_sunat');
+            if ($tipo === null || $tipo === '' || $tipo === FelSerie::TIPO_TICKET || $tipo === '0') {
+                $this->merge(['tipo_comprobante_sunat' => null]);
+            } else {
+                $this->merge(['tipo_comprobante_sunat' => (int) $tipo]);
+            }
         }
 
-        $tipo = $this->input('tipo_comprobante_sunat');
-        if ($tipo === null || $tipo === '' || $tipo === FelSerie::TIPO_TICKET || $tipo === '0') {
-            $this->merge(['tipo_comprobante_sunat' => null]);
-
-            return;
-        }
-
-        $this->merge(['tipo_comprobante_sunat' => (int) $tipo]);
+        $code = trim((string) $this->input('promotion_code', ''));
+        $this->merge(['promotion_code' => $code === '' ? null : strtoupper($code)]);
     }
 
     public function attributes(): array

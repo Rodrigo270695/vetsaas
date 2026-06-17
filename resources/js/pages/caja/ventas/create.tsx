@@ -75,6 +75,34 @@ function readXsrfToken(): string {
     return m ? decodeURIComponent(m[1]) : '';
 }
 
+async function jsonPost(url: string, body: unknown): Promise<unknown> {
+    const res = await fetch(url, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-XSRF-TOKEN': readXsrfToken(),
+        },
+        body: JSON.stringify(body),
+    });
+
+    if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+    }
+
+    return res.json();
+}
+
+type PromotionPreview = {
+    discount_amount: string;
+    promotion_name: string | null;
+    subtotal: string;
+    igv_monto: string;
+    total: string;
+};
+
 async function jsonGet(url: string): Promise<unknown> {
     const res = await fetch(url, {
         credentials: 'same-origin',
@@ -117,16 +145,20 @@ export default function Create({
     const form = useForm({
         caja_sesion_id: mi_sesion?.id ?? '',
         propietario_id: '',
+        paciente_id: null as string | null,
         tipo_comprobante_sunat: 0 as 0 | 1 | 2,
         consulta_id: null as string | null,
         consulta_cargo_id: null as string | null,
         grooming_turno_id: null as string | null,
         hotel_estancia_id: null as string | null,
+        promotion_code: '',
         lineas: [] as { producto_id: string; cantidad: number }[],
         metodo_pago: 'efectivo',
         monto_recibido: '',
         notas: '',
     });
+
+    const [promoPreview, setPromoPreview] = useState<PromotionPreview | null>(null);
 
     useEffect(() => {
         setPropietariosLocales(propietariosOpciones);
@@ -187,6 +219,7 @@ export default function Create({
         form.setData((prev) => ({
             ...prev,
             propietario_id: desdeCargo.propietario_id,
+            paciente_id: desdeCargo.paciente_id ?? null,
             consulta_id: desdeCargo.consulta_id,
             consulta_cargo_id: desdeCargo.consulta_cargo_id,
             grooming_turno_id: desdeCargo.grooming_turno_id ?? null,
@@ -197,10 +230,63 @@ export default function Create({
     const igvPct = Number(clinica.igv_porcentaje);
     const precioIncluyeIgv = clinica.precio_incluye_igv;
 
-    const totales = useMemo(
+    const totalesBase = useMemo(
         () => calcTotalesVenta(cart, igvPct, precioIncluyeIgv),
         [cart, igvPct, precioIncluyeIgv],
     );
+
+    const totales = useMemo(() => {
+        if (!promoPreview) {
+            return totalesBase;
+        }
+
+        return {
+            subtotal: Number(promoPreview.subtotal),
+            igv: Number(promoPreview.igv_monto),
+            total: Number(promoPreview.total),
+            discount: Number(promoPreview.discount_amount),
+        };
+    }, [promoPreview, totalesBase]);
+
+    useEffect(() => {
+        if (!form.data.propietario_id || cart.length === 0) {
+            setPromoPreview(null);
+
+            return;
+        }
+
+        const tmr = window.setTimeout(() => {
+            jsonPost('/caja/ventas/preview-promotions', {
+                propietario_id: form.data.propietario_id,
+                paciente_id: form.data.paciente_id,
+                grooming_turno_id: form.data.grooming_turno_id,
+                hotel_estancia_id: form.data.hotel_estancia_id,
+                promotion_code: form.data.promotion_code.trim() || null,
+                lineas: cart.map((l) => ({
+                    producto_id: l.producto_id,
+                    concepto: l.producto_id ? null : l.nombre,
+                    precio_lista:
+                        l.precio_venta === '' || l.precio_venta === null ? '0' : String(l.precio_venta),
+                    tipo_linea: l.tipo_linea ?? (l.producto_id ? 'producto' : 'servicio'),
+                    cantidad: l.cantidad,
+                })),
+            })
+                .then((raw) => {
+                    const data = (raw as { data?: PromotionPreview }).data ?? null;
+                    setPromoPreview(data);
+                })
+                .catch(() => setPromoPreview(null));
+        }, 350);
+
+        return () => window.clearTimeout(tmr);
+    }, [
+        cart,
+        form.data.propietario_id,
+        form.data.paciente_id,
+        form.data.grooming_turno_id,
+        form.data.hotel_estancia_id,
+        form.data.promotion_code,
+    ]);
 
     useEffect(() => {
         const tmr = window.setTimeout(() => {
@@ -411,8 +497,10 @@ export default function Create({
         form.transform((d) => ({
             ...d,
             caja_sesion_id: mi_sesion.id,
+            paciente_id: d.paciente_id || null,
             grooming_turno_id: d.grooming_turno_id || null,
             hotel_estancia_id: d.hotel_estancia_id || null,
+            promotion_code: d.promotion_code.trim() || null,
             lineas: cart.map((l) => ({
                 producto_id: l.producto_id,
                 concepto: l.producto_id ? null : l.nombre,
@@ -1076,6 +1164,20 @@ export default function Create({
                                 </div>
                             </div>
 
+                            <div className="flex flex-col gap-2">
+                                <Label htmlFor="promotion_code">{t('caja:ventas.create.promotion_code')}</Label>
+                                <Input
+                                    id="promotion_code"
+                                    className="font-mono uppercase"
+                                    placeholder={t('caja:ventas.create.promotion_code_ph')}
+                                    value={form.data.promotion_code}
+                                    onChange={(e) =>
+                                        form.setData('promotion_code', e.target.value.toUpperCase())
+                                    }
+                                    disabled={!puede_vender}
+                                />
+                            </div>
+
                             {/* Monto recibido (solo efectivo) */}
                             {esEfectivo ? (
                                 <div className="flex flex-col gap-2">
@@ -1124,6 +1226,20 @@ export default function Create({
                                     </span>
                                     <span className="tabular-nums">{formatMoney(totales.igv)}</span>
                                 </div>
+                                {'discount' in totales && totales.discount > 0 ? (
+                                    <div className="flex justify-between gap-4 text-sm text-emerald-700 dark:text-emerald-400">
+                                        <span>{t('caja:ventas.create.res_descuento')}</span>
+                                        <span className="tabular-nums">− {formatMoney(totales.discount)}</span>
+                                    </div>
+                                ) : null}
+                                {promoPreview?.promotion_name ? (
+                                    <p className="text-xs text-emerald-700 dark:text-emerald-400">
+                                        {t('caja:ventas.create.promotion_applied', {
+                                            name: promoPreview.promotion_name,
+                                            amount: formatMoney(Number(promoPreview.discount_amount)),
+                                        })}
+                                    </p>
+                                ) : null}
                                 <div className="mt-1 flex items-baseline justify-between gap-4 border-t border-primary/20 pt-3">
                                     <span className="text-base font-bold">
                                         {t('caja:ventas.create.res_total')}

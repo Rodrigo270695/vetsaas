@@ -1,0 +1,88 @@
+{
+    "title": "Promotions & discounts",
+    "description": "Automatic rules and coupons applied at checkout (grooming, hotel, products…).",
+    "search_placeholder": "Search by name, code, or description…",
+    "filter_estado": "Status",
+    "stats": {
+        "total": "Total",
+        "active": "Active",
+        "inactive": "Inactive",
+        "matches": "Matches"
+    },
+    "columns": {
+        "name": "Name",
+        "code": "Code",
+        "discount": "Discount",
+        "scope": "Scope",
+        "condition": "Condition",
+        "priority": "Priority",
+        "uses": "Uses",
+        "status": "Status",
+        "acciones": "Actions"
+    },
+    "row": {
+        "auto": "Automatic",
+        "manual_code": "Coupon",
+        "uses_unlimited": "Unlimited"
+    },
+    "actions": {
+        "new": "New promotion",
+        "new_short": "New",
+        "create_first": "Create first promotion"
+    },
+    "empty": {
+        "no_records_title": "No promotions yet",
+        "no_records_description": "Create rules to apply discounts automatically at checkout.",
+        "no_results_title": "No results",
+        "no_results_description": "No promotions match the current filters."
+    },
+    "form": {
+        "title_create": "New promotion",
+        "title_edit": "Edit promotion",
+        "submit_create": "Save promotion",
+        "submit_edit": "Update promotion",
+        "name": "Name",
+        "code": "Coupon code",
+        "code_hint": "Required when condition is «Manual coupon».",
+        "description": "Description",
+        "discount_type": "Discount type",
+        "value": "Value",
+        "value_pct_hint": "Percentage (0–100)",
+        "value_amount_hint": "Fixed amount",
+        "scope": "Scope",
+        "condition_type": "Application condition",
+        "grooming_service_slug": "Grooming service (optional)",
+        "grooming_service_none": "Any grooming service",
+        "auto_apply": "Application",
+        "auto_apply_label": "Apply automatically at checkout",
+        "valid_from": "Valid from",
+        "valid_until": "Valid until",
+        "max_uses": "Max uses",
+        "max_uses_hint": "Empty = unlimited",
+        "priority": "Priority",
+        "priority_hint": "Lower number = evaluated first",
+        "is_active": "Status",
+        "is_active_label": "Promotion is active"
+    },
+    "discount_types": {
+        "pct_line": "% per line",
+        "amount_line": "Amount per line",
+        "pct_sale": "% on sale",
+        "amount_sale": "Amount on sale"
+    },
+    "scopes": {
+        "grooming": "Grooming",
+        "hotel": "Boarding / daycare",
+        "product": "Products",
+        "entire_sale": "Entire sale"
+    },
+    "conditions": {
+        "none": "Always (no extra condition)",
+        "coupon_code": "Manual coupon only",
+        "second_pet_grooming": "2nd pet grooming (same day)",
+        "second_grooming_line_in_cart": "2nd grooming line in cart"
+    },
+    "toast": {
+        "load_error": "Could not load promotions."
+    }
+}

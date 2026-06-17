@@ -1,0 +1,88 @@
+{
+    "title": "Promociones y descuentos",
+    "description": "Reglas automáticas y cupones aplicables en caja (grooming, hotel, productos…).",
+    "search_placeholder": "Buscar por nombre, código o descripción…",
+    "filter_estado": "Estado",
+    "stats": {
+        "total": "Total",
+        "active": "Activas",
+        "inactive": "Inactivas",
+        "matches": "Coincidencias"
+    },
+    "columns": {
+        "name": "Nombre",
+        "code": "Código",
+        "discount": "Descuento",
+        "scope": "Alcance",
+        "condition": "Condición",
+        "priority": "Prioridad",
+        "uses": "Usos",
+        "status": "Estado",
+        "acciones": "Acciones"
+    },
+    "row": {
+        "auto": "Automática",
+        "manual_code": "Cupón",
+        "uses_unlimited": "Sin límite"
+    },
+    "actions": {
+        "new": "Nueva promoción",
+        "new_short": "Nueva",
+        "create_first": "Crear primera promoción"
+    },
+    "empty": {
+        "no_records_title": "Sin promociones",
+        "no_records_description": "Crea reglas para aplicar descuentos automáticamente en caja.",
+        "no_results_title": "Sin resultados",
+        "no_results_description": "Ninguna promoción coincide con los filtros."
+    },
+    "form": {
+        "title_create": "Nueva promoción",
+        "title_edit": "Editar promoción",
+        "submit_create": "Guardar promoción",
+        "submit_edit": "Actualizar promoción",
+        "name": "Nombre",
+        "code": "Código cupón",
+        "code_hint": "Obligatorio si la condición es «Cupón manual».",
+        "description": "Descripción",
+        "discount_type": "Tipo de descuento",
+        "value": "Valor",
+        "value_pct_hint": "Porcentaje (0–100)",
+        "value_amount_hint": "Importe fijo",
+        "scope": "Alcance",
+        "condition_type": "Condición de aplicación",
+        "grooming_service_slug": "Servicio grooming (opcional)",
+        "grooming_service_none": "Cualquier servicio grooming",
+        "auto_apply": "Aplicación",
+        "auto_apply_label": "Aplicar automáticamente en caja",
+        "valid_from": "Válida desde",
+        "valid_until": "Válida hasta",
+        "max_uses": "Máximo de usos",
+        "max_uses_hint": "Vacío = ilimitado",
+        "priority": "Prioridad",
+        "priority_hint": "Menor número = se evalúa antes",
+        "is_active": "Estado",
+        "is_active_label": "Promoción activa"
+    },
+    "discount_types": {
+        "pct_line": "% por línea",
+        "amount_line": "Importe por línea",
+        "pct_sale": "% sobre venta",
+        "amount_sale": "Importe sobre venta"
+    },
+    "scopes": {
+        "grooming": "Grooming",
+        "hotel": "Hotel / guardería",
+        "product": "Productos",
+        "entire_sale": "Toda la venta"
+    },
+    "conditions": {
+        "none": "Siempre (sin condición extra)",
+        "coupon_code": "Solo con cupón manual",
+        "second_pet_grooming": "2ª mascota grooming (mismo día)",
+        "second_grooming_line_in_cart": "2ª línea grooming en el carrito"
+    },
+    "toast": {
+        "load_error": "No se pudo cargar promociones."
+    }
+}

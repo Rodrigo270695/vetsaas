@@ -4,7 +4,6 @@
  */
 export const NAV_PLACEHOLDER_PATHS: ReadonlySet<string> = new Set([
     '/caja/pagos',
-    '/caja/descuentos',
     '/facturacion/notas-baja',
     '/facturacion/resumenes',
     '/comunicaciones/plantillas',

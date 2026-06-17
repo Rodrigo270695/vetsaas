@@ -37,6 +37,7 @@ class VentaLinea extends Model
         'cantidad',
         'precio_unitario',
         'descuento_pct',
+        'promotion_id',
         'subtotal',
     ];
 
