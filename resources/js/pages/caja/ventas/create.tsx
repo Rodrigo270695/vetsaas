@@ -8,14 +8,12 @@ import {
     Minus,
     PackageSearch,
     Plus,
-    Receipt,
     Search,
     ShoppingBag,
     ShoppingCart,
     Smartphone,
     Stethoscope,
     Trash2,
-    UserCircle,
     UserPlus,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -35,6 +33,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import AppLayout from '@/layouts/app-layout';
@@ -141,6 +140,7 @@ export default function Create({
     const [servicioPrecio, setServicioPrecio] = useState('');
     const [propietariosLocales, setPropietariosLocales] = useState(propietariosOpciones);
     const [nuevoClienteOpen, setNuevoClienteOpen] = useState(false);
+    const [catalogTab, setCatalogTab] = useState<'productos' | 'servicios'>('productos');
 
     const form = useForm({
         caja_sesion_id: mi_sesion?.id ?? '',
@@ -580,33 +580,32 @@ export default function Create({
             />
 
             <div className="flex flex-1 flex-col">
-                {/* ── Barra superior compacta ── */}
-                <div className="flex shrink-0 items-center gap-3 border-b border-border/50 bg-background px-4 py-3 sm:px-6">
-                    <Button variant="ghost" size="icon" className="size-8 shrink-0" asChild>
+                {/* ── Barra superior ── */}
+                <div className="flex shrink-0 items-center gap-2 border-b border-border/40 bg-background/95 px-3 py-2 backdrop-blur-sm sm:px-4">
+                    <Button variant="ghost" size="icon" className="size-7 shrink-0" asChild>
                         <Link href={caja.ventas.index.url()}>
-                            <ArrowLeft className="size-4" aria-hidden />
+                            <ArrowLeft className="size-3.5" aria-hidden />
                         </Link>
                     </Button>
                     <div className="min-w-0 flex-1">
-                        <h1 className="truncate text-base font-semibold leading-tight">
+                        <h1 className="truncate text-sm font-semibold leading-tight sm:text-base">
                             {desdeCargo
                                 ? t('caja:ventas.create.desde_cargo_titulo')
                                 : t('caja:ventas.create.title')}
                         </h1>
                         {puede_vender && mi_sesion ? (
-                            <p className="truncate text-xs text-muted-foreground">
-                                {t('caja:ventas.create.stat_sede')}: {mi_sesion.sede_nombre ?? '—'} ·{' '}
-                                {t('caja:ventas.create.stat_moneda')}: {mi_sesion.moneda ?? clinica.moneda}
+                            <p className="truncate text-[11px] text-muted-foreground">
+                                {mi_sesion.sede_nombre ?? '—'} · {mi_sesion.moneda ?? clinica.moneda}
                             </p>
                         ) : null}
                     </div>
                     {puede_vender ? (
-                        <span className="flex shrink-0 items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                        <span className="flex shrink-0 items-center gap-1 rounded-full border border-emerald-500/25 bg-emerald-500/8 px-2 py-0.5 text-[10px] font-medium text-emerald-700 dark:text-emerald-400">
                             <span className="size-1.5 rounded-full bg-emerald-500" />
                             {t('caja:ventas.create.sesion_activa_title')}
                         </span>
                     ) : (
-                        <Badge variant="destructive" className="shrink-0">
+                        <Badge variant="destructive" className="shrink-0 text-[10px]">
                             {t('caja:ventas.create.sin_sesion_title')}
                         </Badge>
                     )}
@@ -614,7 +613,7 @@ export default function Create({
 
                 {/* ── Alertas condicionales ── */}
                 {(!puede_vender || desdeCargo) ? (
-                    <div className="flex flex-col gap-3 px-4 pt-4 sm:px-6">
+                    <div className="flex flex-col gap-2 px-3 pt-2 sm:px-4">
                         {!puede_vender ? (
                             <Alert variant="destructive">
                                 <AlertTitle>{t('caja:ventas.create.sin_sesion_title')}</AlertTitle>
@@ -647,34 +646,30 @@ export default function Create({
                     </div>
                 ) : null}
 
-                {/* ── Layout POS principal ── */}
-                <div className="flex flex-1 flex-col gap-5 p-4 sm:p-6 xl:grid xl:grid-cols-[1fr_420px] xl:items-start">
+                {/* ── Layout POS ── */}
+                <div className="flex flex-1 flex-col gap-3 p-3 sm:p-4 xl:grid xl:grid-cols-[minmax(0,1fr)_400px] xl:items-start xl:gap-4">
 
-                    {/* Columna izquierda: cliente → productos → servicios */}
-                    <div className="flex flex-col gap-5">
+                    {/* Columna izquierda: cliente + catálogo */}
+                    <div className="flex min-w-0 flex-col gap-3">
 
-                        {/* ─ Cliente ─ */}
-                        <PosPanel
-                            title={t('caja:ventas.create.card_cliente')}
-                            description={t('caja:ventas.create.card_cliente_desc')}
-                            icon={UserCircle}
-                        >
-                            <div className="grid gap-4 sm:grid-cols-2">
-                                <div className="flex flex-col gap-2 sm:col-span-2">
-                                    <div className="flex flex-wrap items-center justify-between gap-2">
-                                        <Label htmlFor="propietario">
+                        {/* Cliente y comprobante en una sola franja */}
+                        <section className="rounded-lg border border-border/60 bg-card px-3 py-2.5 shadow-xs ring-1 ring-border/10">
+                            <div className="grid gap-2.5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+                                <div className="min-w-0 space-y-1">
+                                    <div className="flex items-center justify-between gap-2">
+                                        <Label htmlFor="propietario" className="text-xs text-muted-foreground">
                                             {t('caja:ventas.create.propietario')}
                                         </Label>
                                         {!desdeCargo ? (
                                             <Button
                                                 type="button"
-                                                variant="outline"
+                                                variant="ghost"
                                                 size="sm"
-                                                className="h-7 gap-1.5 text-xs"
+                                                className="h-6 gap-1 px-2 text-[11px] text-primary"
                                                 disabled={!puede_vender}
                                                 onClick={() => setNuevoClienteOpen(true)}
                                             >
-                                                <UserPlus className="size-3.5" aria-hidden />
+                                                <UserPlus className="size-3" aria-hidden />
                                                 {t('caja:ventas.create.nuevo_cliente')}
                                             </Button>
                                         ) : null}
@@ -691,298 +686,286 @@ export default function Create({
                                         disabled={!puede_vender || Boolean(desdeCargo)}
                                     />
                                     {desdeCargo ? (
-                                        <p className="text-xs text-muted-foreground">
+                                        <p className="text-[11px] text-muted-foreground">
                                             {t('caja:ventas.desde_cargo.cliente_bloqueado')}
                                         </p>
                                     ) : null}
                                     {form.errors.propietario_id ? (
-                                        <p className="text-xs text-destructive">
-                                            {form.errors.propietario_id}
-                                        </p>
+                                        <p className="text-[11px] text-destructive">{form.errors.propietario_id}</p>
                                     ) : null}
                                 </div>
 
-                                <div className="flex flex-col gap-2 sm:col-span-2">
-                                    <Label>{t('caja:ventas.create.tipo_comprobante')}</Label>
+                                <div className="min-w-0 space-y-1 lg:max-w-sm lg:justify-self-end">
+                                    <Label className="text-xs text-muted-foreground">
+                                        {t('caja:ventas.create.tipo_comprobante')}
+                                    </Label>
                                     <ToggleGroup
                                         type="single"
                                         variant="outline"
-                                        className="flex w-full flex-wrap justify-start gap-1"
+                                        size="sm"
+                                        className="flex w-full flex-wrap justify-start gap-0.5"
                                         value={String(form.data.tipo_comprobante_sunat)}
                                         onValueChange={(v) => {
                                             if (v === '0' || v === '1' || v === '2') {
-                                                form.setData(
-                                                    'tipo_comprobante_sunat',
-                                                    Number(v) as 0 | 1 | 2,
-                                                );
+                                                form.setData('tipo_comprobante_sunat', Number(v) as 0 | 1 | 2);
                                             }
                                         }}
                                         disabled={!puede_vender}
                                     >
-                                        {/* Ticket siempre disponible */}
-                                        <ToggleGroupItem value="0" className="min-w-24 cursor-pointer px-4">
+                                        <ToggleGroupItem value="0" className="h-7 min-w-0 flex-1 cursor-pointer px-2 text-xs">
                                             {t('caja:ventas.create.comprobante_ticket')}
                                         </ToggleGroupItem>
-                                        {/* Boleta: solo si el plan lo permite */}
-                                        {puedeEmitirBoleta && (
-                                            <ToggleGroupItem value="2" className="min-w-24 cursor-pointer px-4">
+                                        {puedeEmitirBoleta ? (
+                                            <ToggleGroupItem value="2" className="h-7 min-w-0 flex-1 cursor-pointer px-2 text-xs">
                                                 {t('caja:ventas.create.comprobante_boleta')}
                                             </ToggleGroupItem>
-                                        )}
-                                        {/* Factura: solo si el plan lo permite */}
-                                        {puedeEmitirFactura && (
-                                            <ToggleGroupItem value="1" className="min-w-24 cursor-pointer px-4">
+                                        ) : null}
+                                        {puedeEmitirFactura ? (
+                                            <ToggleGroupItem value="1" className="h-7 min-w-0 flex-1 cursor-pointer px-2 text-xs">
                                                 {t('caja:ventas.create.comprobante_factura')}
                                             </ToggleGroupItem>
-                                        )}
+                                        ) : null}
                                     </ToggleGroup>
-                                    <p className="text-xs text-muted-foreground">
-                                        {form.data.tipo_comprobante_sunat === 0
-                                            ? t('caja:ventas.create.comprobante_ticket_hint')
-                                            : t('caja:ventas.create.comprobante_hint')}
-                                    </p>
                                     {form.errors.tipo_comprobante_sunat ? (
-                                        <p className="text-xs text-destructive">
-                                            {form.errors.tipo_comprobante_sunat}
-                                        </p>
+                                        <p className="text-[11px] text-destructive">{form.errors.tipo_comprobante_sunat}</p>
                                     ) : null}
                                 </div>
-
                             </div>
-                        </PosPanel>
+                        </section>
 
-                        {/* ─ Productos ─ */}
+                        {/* Catálogo unificado: productos | servicios */}
                         <PosPanel
+                            compact
                             title={t('caja:ventas.create.card_productos')}
-                            description={t('caja:ventas.create.card_productos_desc')}
                             icon={PackageSearch}
+                            className="min-h-0"
                         >
-                            <div className="relative">
-                                <Search
-                                    className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-                                    aria-hidden
-                                />
-                                <Input
-                                    className="w-full pl-9"
-                                    placeholder={t('caja:ventas.create.buscar_producto_ph')}
-                                    value={qProducto}
-                                    onChange={(e) => setQProducto(e.target.value)}
-                                    disabled={!puede_vender}
-                                />
-                                {buscando ? (
-                                    <Loader2
-                                        className="absolute top-1/2 right-3 size-4 -translate-y-1/2 animate-spin text-muted-foreground"
-                                        aria-hidden
-                                    />
-                                ) : null}
-                            </div>
-                            {hits.length > 0 ? (
-                                <ul className="max-h-56 overflow-auto rounded-lg border border-border/60 bg-muted/15 text-sm shadow-inner">
-                                    {hits.map((p) => {
-                                        const stock = parseStock(p.stock_sede);
-                                        const sinStock = stock <= 0;
+                            <Tabs
+                                value={catalogTab}
+                                onValueChange={(v) => {
+                                    if (v === 'productos' || v === 'servicios') {
+                                        setCatalogTab(v);
+                                    }
+                                }}
+                                className="flex min-h-0 flex-1 flex-col gap-2.5"
+                            >
+                                <TabsList className="grid h-8 w-full grid-cols-2">
+                                    <TabsTrigger value="productos" className="gap-1.5 text-xs">
+                                        <PackageSearch className="size-3" aria-hidden />
+                                        {t('caja:ventas.create.card_productos')}
+                                    </TabsTrigger>
+                                    <TabsTrigger value="servicios" className="gap-1.5 text-xs">
+                                        <Stethoscope className="size-3" aria-hidden />
+                                        {t('caja:ventas.create.card_servicios')}
+                                    </TabsTrigger>
+                                </TabsList>
 
-                                        return (
-                                            <li
-                                                key={p.id}
-                                                className={cn(
-                                                    'border-b border-border/40 last:border-0',
-                                                    sinStock && 'bg-destructive/5',
-                                                )}
-                                            >
-                                                <button
-                                                    type="button"
-                                                    disabled={sinStock || !puede_vender}
-                                                    className={cn(
-                                                        'flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left transition-colors focus-visible:outline-none',
-                                                        sinStock
-                                                            ? 'cursor-not-allowed text-destructive'
-                                                            : 'cursor-pointer hover:bg-muted/50 focus-visible:bg-muted/50',
-                                                    )}
-                                                    onClick={() => addProduct(p)}
-                                                >
-                                                    <span className="min-w-0 font-medium">
-                                                        {p.nombre}
-                                                    </span>
-                                                    <span
+                                <TabsContent value="productos" className="mt-0 flex flex-col gap-2">
+                                    <div className="relative">
+                                        <Search
+                                            className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground"
+                                            aria-hidden
+                                        />
+                                        <Input
+                                            className="h-8 w-full pl-8 text-sm"
+                                            placeholder={t('caja:ventas.create.buscar_producto_ph')}
+                                            value={qProducto}
+                                            onChange={(e) => setQProducto(e.target.value)}
+                                            disabled={!puede_vender}
+                                        />
+                                        {buscando ? (
+                                            <Loader2
+                                                className="absolute top-1/2 right-2.5 size-3.5 -translate-y-1/2 animate-spin text-muted-foreground"
+                                                aria-hidden
+                                            />
+                                        ) : null}
+                                    </div>
+                                    {hits.length > 0 ? (
+                                        <ul className="max-h-44 overflow-auto rounded-md border border-border/50 bg-muted/10 text-sm">
+                                            {hits.map((p) => {
+                                                const stock = parseStock(p.stock_sede);
+                                                const sinStock = stock <= 0;
+
+                                                return (
+                                                    <li
+                                                        key={p.id}
                                                         className={cn(
-                                                            'flex shrink-0 flex-col items-end gap-0.5 text-xs tabular-nums',
-                                                            sinStock
-                                                                ? 'font-medium text-destructive'
-                                                                : 'text-muted-foreground',
+                                                            'border-b border-border/30 last:border-0',
+                                                            sinStock && 'bg-destructive/5',
                                                         )}
                                                     >
-                                                        <span>
-                                                            {p.precio_venta
-                                                                ? formatMoney(Number(p.precio_venta))
-                                                                : '—'}{' '}
-                                                            / {p.unidad}
-                                                        </span>
-                                                        <span>
-                                                            {sinStock
-                                                                ? t('caja:ventas.create.stock_cero')
-                                                                : t('caja:ventas.create.stock_disponible', {
-                                                                      stock,
-                                                                  })}
-                                                        </span>
-                                                    </span>
-                                                </button>
-                                            </li>
-                                        );
-                                    })}
-                                </ul>
-                            ) : qProducto.trim().length >= 2 && !buscando ? (
-                                <p className="text-center text-xs text-muted-foreground">
-                                    {t('caja:ventas.create.sin_resultados')}
-                                </p>
-                            ) : null}
-                        </PosPanel>
+                                                        <button
+                                                            type="button"
+                                                            disabled={sinStock || !puede_vender}
+                                                            className={cn(
+                                                                'flex w-full items-center justify-between gap-2 px-2.5 py-2 text-left transition-colors focus-visible:outline-none',
+                                                                sinStock
+                                                                    ? 'cursor-not-allowed text-destructive'
+                                                                    : 'cursor-pointer hover:bg-muted/40 focus-visible:bg-muted/40',
+                                                            )}
+                                                            onClick={() => addProduct(p)}
+                                                        >
+                                                            <span className="min-w-0 truncate text-xs font-medium">{p.nombre}</span>
+                                                            <span
+                                                                className={cn(
+                                                                    'flex shrink-0 flex-col items-end gap-0 text-[10px] tabular-nums',
+                                                                    sinStock ? 'text-destructive' : 'text-muted-foreground',
+                                                                )}
+                                                            >
+                                                                <span>
+                                                                    {p.precio_venta ? formatMoney(Number(p.precio_venta)) : '—'} /{' '}
+                                                                    {p.unidad}
+                                                                </span>
+                                                                <span>
+                                                                    {sinStock
+                                                                        ? t('caja:ventas.create.stock_cero')
+                                                                        : t('caja:ventas.create.stock_disponible', { stock })}
+                                                                </span>
+                                                            </span>
+                                                        </button>
+                                                    </li>
+                                                );
+                                            })}
+                                        </ul>
+                                    ) : qProducto.trim().length >= 2 && !buscando ? (
+                                        <p className="py-1 text-center text-[11px] text-muted-foreground">
+                                            {t('caja:ventas.create.sin_resultados')}
+                                        </p>
+                                    ) : null}
+                                </TabsContent>
 
-                        {/* ─ Servicios ─ */}
-                        <PosPanel
-                            title={t('caja:ventas.create.card_servicios')}
-                            description={t('caja:ventas.create.card_servicios_desc')}
-                            icon={Stethoscope}
-                        >
-                            <div className="relative">
-                                <Search
-                                    className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-                                    aria-hidden
-                                />
-                                <Input
-                                    className="w-full pl-9"
-                                    placeholder={t('caja:ventas.create.buscar_servicio_ph')}
-                                    value={qServicio}
-                                    onChange={(e) => setQServicio(e.target.value)}
-                                    disabled={!puede_vender}
-                                />
-                                {buscandoServicio ? (
-                                    <Loader2
-                                        className="absolute top-1/2 right-3 size-4 -translate-y-1/2 animate-spin text-muted-foreground"
-                                        aria-hidden
-                                    />
-                                ) : null}
-                            </div>
-                            {hitsServicio.length > 0 ? (
-                                <ul className="max-h-40 overflow-auto rounded-lg border border-border/60 bg-muted/15 text-sm shadow-inner">
-                                    {hitsServicio.map((s) => (
-                                        <li
-                                            key={`${s.nombre}:${s.precio_lista}`}
-                                            className="border-b border-border/40 last:border-0"
-                                        >
-                                            <button
-                                                type="button"
+                                <TabsContent value="servicios" className="mt-0 flex flex-col gap-2">
+                                    <div className="relative">
+                                        <Search
+                                            className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground"
+                                            aria-hidden
+                                        />
+                                        <Input
+                                            className="h-8 w-full pl-8 text-sm"
+                                            placeholder={t('caja:ventas.create.buscar_servicio_ph')}
+                                            value={qServicio}
+                                            onChange={(e) => setQServicio(e.target.value)}
+                                            disabled={!puede_vender}
+                                        />
+                                        {buscandoServicio ? (
+                                            <Loader2
+                                                className="absolute top-1/2 right-2.5 size-3.5 -translate-y-1/2 animate-spin text-muted-foreground"
+                                                aria-hidden
+                                            />
+                                        ) : null}
+                                    </div>
+                                    {hitsServicio.length > 0 ? (
+                                        <ul className="max-h-32 overflow-auto rounded-md border border-border/50 bg-muted/10 text-sm">
+                                            {hitsServicio.map((s) => (
+                                                <li
+                                                    key={`${s.nombre}:${s.precio_lista}`}
+                                                    className="border-b border-border/30 last:border-0"
+                                                >
+                                                    <button
+                                                        type="button"
+                                                        disabled={!puede_vender}
+                                                        className="flex w-full cursor-pointer items-center justify-between gap-2 px-2.5 py-2 text-left text-xs transition-colors hover:bg-muted/40 focus-visible:bg-muted/40 focus-visible:outline-none"
+                                                        onClick={() => addServicioFromTarifa(s)}
+                                                    >
+                                                        <span className="min-w-0 truncate font-medium">{s.nombre}</span>
+                                                        <span className="shrink-0 tabular-nums text-[10px] text-muted-foreground">
+                                                            {formatMoney(Number(s.precio_lista))}
+                                                        </span>
+                                                    </button>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    ) : qServicio.trim().length > 0 && !buscandoServicio ? (
+                                        <p className="py-1 text-center text-[11px] text-muted-foreground">
+                                            {t('caja:ventas.create.sin_tarifas_servicio')}
+                                        </p>
+                                    ) : null}
+
+                                    <div className="grid grid-cols-[minmax(0,1fr)_5.5rem_auto] items-end gap-2 border-t border-border/40 pt-2">
+                                        <div className="min-w-0 space-y-1">
+                                            <Label htmlFor="servicio-concepto" className="text-[11px] text-muted-foreground">
+                                                {t('caja:ventas.create.servicio_concepto')}
+                                            </Label>
+                                            <Input
+                                                id="servicio-concepto"
+                                                className="h-8 text-sm"
+                                                placeholder={t('caja:ventas.create.servicio_concepto_ph')}
+                                                value={servicioConcepto}
+                                                onChange={(e) => setServicioConcepto(e.target.value)}
                                                 disabled={!puede_vender}
-                                                className="flex w-full cursor-pointer items-center justify-between gap-3 px-3 py-2.5 text-left transition-colors hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none"
-                                                onClick={() => addServicioFromTarifa(s)}
-                                            >
-                                                <span className="min-w-0 font-medium">{s.nombre}</span>
-                                                <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
-                                                    {formatMoney(Number(s.precio_lista))}
-                                                </span>
-                                            </button>
-                                        </li>
-                                    ))}
-                                </ul>
-                            ) : qServicio.trim().length > 0 && !buscandoServicio ? (
-                                <p className="text-center text-xs text-muted-foreground">
-                                    {t('caja:ventas.create.sin_tarifas_servicio')}
-                                </p>
-                            ) : null}
-
-                            <div className="grid gap-3 border-t border-border/50 pt-4 sm:grid-cols-[1fr_140px_auto] sm:items-end">
-                                <div className="flex flex-col gap-2">
-                                    <Label htmlFor="servicio-concepto">
-                                        {t('caja:ventas.create.servicio_concepto')}
-                                    </Label>
-                                    <Input
-                                        id="servicio-concepto"
-                                        placeholder={t('caja:ventas.create.servicio_concepto_ph')}
-                                        value={servicioConcepto}
-                                        onChange={(e) => setServicioConcepto(e.target.value)}
-                                        disabled={!puede_vender}
-                                    />
-                                </div>
-                                <div className="flex flex-col gap-2">
-                                    <Label htmlFor="servicio-precio">
-                                        {t('caja:ventas.create.servicio_precio')}
-                                    </Label>
-                                    <Input
-                                        id="servicio-precio"
-                                        type="number"
-                                        inputMode="decimal"
-                                        min={0}
-                                        step={0.01}
-                                        placeholder={t('caja:ventas.create.servicio_precio_ph')}
-                                        value={servicioPrecio}
-                                        onChange={(e) => setServicioPrecio(e.target.value)}
-                                        disabled={!puede_vender}
-                                    />
-                                </div>
-                                <Button
-                                    type="button"
-                                    className="gap-1.5 sm:mb-0.5"
-                                    disabled={!puede_vender}
-                                    onClick={() =>
-                                        addServicioLine(servicioConcepto, servicioPrecio)
-                                    }
-                                >
-                                    <Plus className="size-4" aria-hidden />
-                                    {t('caja:ventas.create.agregar_servicio')}
-                                </Button>
-                            </div>
+                                            />
+                                        </div>
+                                        <div className="min-w-0 space-y-1">
+                                            <Label htmlFor="servicio-precio" className="text-[11px] text-muted-foreground">
+                                                {t('caja:ventas.create.servicio_precio')}
+                                            </Label>
+                                            <Input
+                                                id="servicio-precio"
+                                                className="h-8 text-sm tabular-nums"
+                                                type="number"
+                                                inputMode="decimal"
+                                                min={0}
+                                                step={0.01}
+                                                placeholder="0.00"
+                                                value={servicioPrecio}
+                                                onChange={(e) => setServicioPrecio(e.target.value)}
+                                                disabled={!puede_vender}
+                                            />
+                                        </div>
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            className="h-8 gap-1 px-2.5"
+                                            disabled={!puede_vender}
+                                            onClick={() => addServicioLine(servicioConcepto, servicioPrecio)}
+                                        >
+                                            <Plus className="size-3.5" aria-hidden />
+                                            <span className="hidden sm:inline">{t('caja:ventas.create.agregar_servicio')}</span>
+                                        </Button>
+                                    </div>
+                                </TabsContent>
+                            </Tabs>
                         </PosPanel>
                     </div>
 
-                    {/* Columna derecha: carrito + cobro (sticky en xl) */}
-                    <div className="flex flex-col gap-5 xl:sticky xl:top-4 xl:self-start">
+                    {/* Columna derecha: carrito + cobro (sticky) */}
+                    <div className="flex flex-col gap-3 xl:sticky xl:top-3 xl:max-h-[calc(100dvh-9rem)] xl:min-h-0">
 
-                        {/* ─ Carrito ─ */}
                         <PosPanel
+                            compact
                             title={t('caja:ventas.create.card_carrito')}
-                            description={t('caja:ventas.create.card_carrito_desc')}
                             icon={ShoppingBag}
+                            className="min-h-0 flex-1 xl:flex xl:flex-col"
+                            contentClassName="min-h-0 flex-1"
                             badge={
                                 cart.length > 0 ? (
-                                    <Badge variant="outline" className="tabular-nums">
-                                        {formatMoney(totales.total)}
+                                    <Badge variant="secondary" className="h-5 px-1.5 text-[10px] tabular-nums">
+                                        {cart.length}
                                     </Badge>
                                 ) : null
                             }
                         >
                             {cart.length === 0 ? (
-                                <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border/70 bg-muted/10 px-6 py-10 text-center">
-                                    <span className="flex size-11 items-center justify-center rounded-full bg-muted/50 text-muted-foreground">
-                                        <ShoppingBag
-                                            className="size-5"
-                                            strokeWidth={1.75}
-                                            aria-hidden
-                                        />
-                                    </span>
-                                    <div className="space-y-0.5">
-                                        <p className="text-sm font-medium text-foreground">
-                                            {t('caja:ventas.create.carrito_vacio')}
-                                        </p>
-                                        <p className="text-xs text-muted-foreground">
-                                            {t('caja:ventas.create.carrito_vacio_hint')}
-                                        </p>
-                                    </div>
+                                <div className="flex flex-col items-center justify-center gap-2 rounded-md border border-dashed border-border/60 bg-muted/5 px-4 py-8 text-center">
+                                    <ShoppingBag className="size-8 text-muted-foreground/40" strokeWidth={1.5} aria-hidden />
+                                    <p className="text-xs font-medium text-foreground">{t('caja:ventas.create.carrito_vacio')}</p>
+                                    <p className="text-[11px] text-muted-foreground">{t('caja:ventas.create.carrito_vacio_hint')}</p>
                                 </div>
                             ) : (
-                                <div className="max-h-[38vh] overflow-y-auto rounded-lg border border-border/50">
-                                    <table className="w-full border-collapse text-sm">
-                                        <thead className="sticky top-0 bg-muted/70 backdrop-blur-sm">
+                                <div className="min-h-0 flex-1 overflow-y-auto rounded-md border border-border/50">
+                                    <table className="w-full border-collapse text-xs">
+                                        <thead className="sticky top-0 z-10 bg-muted/80 backdrop-blur-sm">
                                             <tr>
-                                                <th className="border-b border-border/60 px-3 py-2 text-left text-xs font-semibold text-muted-foreground">
+                                                <th className="border-b border-border/50 px-2 py-1.5 text-left font-medium text-muted-foreground">
                                                     {t('caja:ventas.create.col_item')}
                                                 </th>
-                                                <th className="w-28 border-b border-border/60 px-2 py-2 text-center text-xs font-semibold text-muted-foreground">
+                                                <th className="w-24 border-b border-border/50 px-1 py-1.5 text-center font-medium text-muted-foreground">
                                                     {t('caja:ventas.create.col_cantidad')}
                                                 </th>
-                                                <th className="w-24 border-b border-border/60 px-3 py-2 text-right text-xs font-semibold text-muted-foreground">
+                                                <th className="w-[4.5rem] border-b border-border/50 px-2 py-1.5 text-right font-medium text-muted-foreground">
                                                     {t('caja:ventas.create.col_total')}
                                                 </th>
-                                                <th className="w-9 border-b border-border/60" />
+                                                <th className="w-7 border-b border-border/50" />
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -1002,13 +985,13 @@ export default function Create({
                                                     <tr
                                                         key={line.key}
                                                         className={cn(
-                                                            'border-b border-border/40 last:border-b-0 hover:bg-muted/20',
+                                                            'border-b border-border/30 last:border-b-0',
                                                             excedeStock && 'bg-destructive/5',
                                                         )}
                                                     >
-                                                        <td className="px-3 py-2 align-middle">
+                                                        <td className="px-2 py-1.5 align-middle">
                                                             <div className="flex flex-col gap-0.5">
-                                                                <span className="text-xs font-medium leading-snug">
+                                                                <span className="line-clamp-2 text-[11px] font-medium leading-snug">
                                                                     {line.nombre}
                                                                 </span>
                                                                 {line.producto_id === null ? (
@@ -1017,62 +1000,43 @@ export default function Create({
                                                                         inputMode="decimal"
                                                                         min={0}
                                                                         step={0.01}
-                                                                        className="mt-1 h-6 w-20 text-right text-xs tabular-nums"
+                                                                        className="h-6 w-16 text-right text-[10px] tabular-nums"
                                                                         value={lista}
                                                                         onChange={(e) =>
-                                                                            setPrecioListaLinea(
-                                                                                line.key,
-                                                                                e.target.value,
-                                                                            )
+                                                                            setPrecioListaLinea(line.key, e.target.value)
                                                                         }
                                                                         disabled={!puede_vender}
-                                                                        aria-label={t(
-                                                                            'caja:ventas.create.col_precio_unit',
-                                                                        )}
+                                                                        aria-label={t('caja:ventas.create.col_precio_unit')}
                                                                     />
                                                                 ) : (
                                                                     <span
                                                                         className={cn(
-                                                                            'text-xs tabular-nums',
-                                                                            excedeStock
-                                                                                ? 'text-destructive'
-                                                                                : 'text-muted-foreground',
+                                                                            'text-[10px] tabular-nums',
+                                                                            excedeStock ? 'text-destructive' : 'text-muted-foreground',
                                                                         )}
                                                                     >
-                                                                        {formatMoney(lista)} /{' '}
-                                                                        {line.unidad}
+                                                                        {formatMoney(lista)} / {line.unidad}
                                                                     </span>
                                                                 )}
                                                             </div>
                                                         </td>
-                                                        <td className="px-1 py-2 align-middle">
-                                                            <div className="flex items-center justify-center gap-0.5">
+                                                        <td className="px-0.5 py-1.5 align-middle">
+                                                            <div className="flex items-center justify-center gap-0">
                                                                 <Button
                                                                     type="button"
-                                                                    variant="outline"
+                                                                    variant="ghost"
                                                                     size="icon"
-                                                                    className="size-6 shrink-0"
-                                                                    onClick={() =>
-                                                                        setCantidad(
-                                                                            line.key,
-                                                                            line.cantidad - 1,
-                                                                        )
-                                                                    }
+                                                                    className="size-5 shrink-0"
+                                                                    onClick={() => setCantidad(line.key, line.cantidad - 1)}
                                                                     disabled={!puede_vender}
                                                                 >
                                                                     <Minus className="size-2.5" aria-hidden />
                                                                 </Button>
                                                                 <Input
-                                                                    className="h-6 w-10 text-center text-xs tabular-nums"
+                                                                    className="h-6 w-9 border-0 bg-transparent px-0 text-center text-[10px] tabular-nums shadow-none focus-visible:ring-0"
                                                                     value={String(line.cantidad)}
                                                                     onChange={(e) => {
-                                                                        const v = Number(
-                                                                            e.target.value.replace(
-                                                                                ',',
-                                                                                '.',
-                                                                            ),
-                                                                        );
-
+                                                                        const v = Number(e.target.value.replace(',', '.'));
                                                                         if (!Number.isNaN(v)) {
                                                                             setCantidad(line.key, v);
                                                                         }
@@ -1081,36 +1045,29 @@ export default function Create({
                                                                 />
                                                                 <Button
                                                                     type="button"
-                                                                    variant="outline"
+                                                                    variant="ghost"
                                                                     size="icon"
-                                                                    className="size-6 shrink-0"
-                                                                    onClick={() =>
-                                                                        setCantidad(
-                                                                            line.key,
-                                                                            line.cantidad + 1,
-                                                                        )
-                                                                    }
+                                                                    className="size-5 shrink-0"
+                                                                    onClick={() => setCantidad(line.key, line.cantidad + 1)}
                                                                     disabled={
                                                                         !puede_vender ||
                                                                         (!line.omitir_stock &&
-                                                                            line.cantidad >=
-                                                                                line.stock_disponible -
-                                                                                    0.0001)
+                                                                            line.cantidad >= line.stock_disponible - 0.0001)
                                                                     }
                                                                 >
                                                                     <Plus className="size-2.5" aria-hidden />
                                                                 </Button>
                                                             </div>
                                                         </td>
-                                                        <td className="px-3 py-2 text-right align-middle text-xs font-semibold tabular-nums">
+                                                        <td className="px-2 py-1.5 text-right align-middle text-[11px] font-semibold tabular-nums">
                                                             {formatMoney(lineTotal)}
                                                         </td>
-                                                        <td className="px-1 py-2 align-middle">
+                                                        <td className="px-0.5 py-1.5 align-middle">
                                                             <Button
                                                                 type="button"
                                                                 variant="ghost"
                                                                 size="icon"
-                                                                className="size-6 text-muted-foreground hover:text-destructive"
+                                                                className="size-5 text-muted-foreground hover:text-destructive"
                                                                 onClick={() => removeLine(line.key)}
                                                                 disabled={!puede_vender}
                                                             >
@@ -1125,205 +1082,187 @@ export default function Create({
                                 </div>
                             )}
                             {form.errors.lineas ? (
-                                <p className="text-xs text-destructive">{form.errors.lineas}</p>
+                                <p className="text-[11px] text-destructive">{form.errors.lineas}</p>
                             ) : null}
                         </PosPanel>
 
-                        {/* ─ Cobro ─ */}
-                        <PosPanel
-                            title={t('caja:ventas.create.card_pago')}
-                            description={t('caja:ventas.create.card_pago_desc')}
-                            icon={CreditCard}
-                        >
-                            {/* Método de pago: tarjetas visuales */}
-                            <div className="flex flex-col gap-2">
-                                <Label>{t('caja:ventas.create.metodo_pago')}</Label>
-                                <div className="grid grid-cols-5 gap-1.5">
-                                    {paymentMethods.map(({ value, label, icon: PMIcon }) => (
-                                        <button
-                                            key={value}
-                                            type="button"
-                                            disabled={!puede_vender}
-                                            onClick={() => form.setData('metodo_pago', value)}
-                                            className={cn(
-                                                'flex flex-col items-center gap-1 rounded-xl border-2 px-1 py-2.5 text-center text-xs font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                                                puede_vender
-                                                    ? 'cursor-pointer'
-                                                    : 'cursor-not-allowed opacity-50',
-                                                form.data.metodo_pago === value
-                                                    ? 'border-primary bg-primary/10 text-primary shadow-sm'
-                                                    : 'border-border/60 bg-muted/30 text-muted-foreground hover:border-primary/40 hover:bg-muted/60 hover:text-foreground',
-                                            )}
-                                        >
-                                            <PMIcon className="size-4" aria-hidden />
-                                            <span className="w-full truncate leading-tight">
-                                                {label}
-                                            </span>
-                                        </button>
-                                    ))}
+                        <PosPanel compact title={t('caja:ventas.create.card_pago')} icon={CreditCard} className="shrink-0">
+                            <div className="space-y-2.5">
+                                <div className="space-y-1">
+                                    <Label className="text-[11px] text-muted-foreground">{t('caja:ventas.create.metodo_pago')}</Label>
+                                    <div className="grid grid-cols-5 gap-1">
+                                        {paymentMethods.map(({ value, label, icon: PMIcon }) => (
+                                            <button
+                                                key={value}
+                                                type="button"
+                                                disabled={!puede_vender}
+                                                onClick={() => form.setData('metodo_pago', value)}
+                                                className={cn(
+                                                    'flex flex-col items-center gap-0.5 rounded-md border px-0.5 py-1.5 text-center transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                                                    puede_vender ? 'cursor-pointer' : 'cursor-not-allowed opacity-50',
+                                                    form.data.metodo_pago === value
+                                                        ? 'border-primary bg-primary/10 text-primary shadow-sm'
+                                                        : 'border-border/50 bg-muted/20 text-muted-foreground hover:border-primary/30 hover:text-foreground',
+                                                )}
+                                            >
+                                                <PMIcon className="size-3.5" aria-hidden />
+                                                <span className="w-full truncate text-[9px] font-medium leading-tight">{label}</span>
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
 
-                            <div className="flex flex-col gap-2">
-                                <Label htmlFor="promotion_code">{t('caja:ventas.create.promotion_code')}</Label>
-                                <Input
-                                    id="promotion_code"
-                                    className="font-mono uppercase"
-                                    placeholder={t('caja:ventas.create.promotion_code_ph')}
-                                    value={form.data.promotion_code}
-                                    onChange={(e) =>
-                                        form.setData('promotion_code', e.target.value.toUpperCase())
-                                    }
-                                    disabled={!puede_vender}
-                                />
-                            </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div className="min-w-0 space-y-1">
+                                        <Label htmlFor="promotion_code" className="text-[11px] text-muted-foreground">
+                                            {t('caja:ventas.create.promotion_code')}
+                                        </Label>
+                                        <Input
+                                            id="promotion_code"
+                                            className="h-8 font-mono text-xs uppercase"
+                                            placeholder={t('caja:ventas.create.promotion_code_ph')}
+                                            value={form.data.promotion_code}
+                                            onChange={(e) => form.setData('promotion_code', e.target.value.toUpperCase())}
+                                            disabled={!puede_vender}
+                                        />
+                                    </div>
+                                    {esEfectivo ? (
+                                        <div className="min-w-0 space-y-1">
+                                            <Label htmlFor="monto_recibido" className="text-[11px] text-muted-foreground">
+                                                {t('caja:ventas.create.monto_recibido')}
+                                            </Label>
+                                            <Input
+                                                id="monto_recibido"
+                                                className="h-8 tabular-nums"
+                                                inputMode="decimal"
+                                                placeholder={formatMoney(totales.total)}
+                                                value={form.data.monto_recibido}
+                                                onChange={(e) => form.setData('monto_recibido', e.target.value)}
+                                                disabled={!puede_vender}
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div className="min-w-0 space-y-1">
+                                            <Label htmlFor="notas" className="text-[11px] text-muted-foreground">
+                                                {t('caja:ventas.create.notas')}
+                                            </Label>
+                                            <Input
+                                                id="notas"
+                                                className="h-8 text-sm"
+                                                value={form.data.notas}
+                                                onChange={(e) => form.setData('notas', e.target.value)}
+                                                disabled={!puede_vender}
+                                                placeholder="…"
+                                            />
+                                        </div>
+                                    )}
+                                </div>
 
-                            {/* Monto recibido (solo efectivo) */}
-                            {esEfectivo ? (
-                                <div className="flex flex-col gap-2">
-                                    <Label htmlFor="monto_recibido">
-                                        {t('caja:ventas.create.monto_recibido')}
-                                    </Label>
-                                    <Input
-                                        id="monto_recibido"
-                                        className="w-full tabular-nums"
-                                        inputMode="decimal"
-                                        placeholder={formatMoney(totales.total)}
-                                        value={form.data.monto_recibido}
-                                        onChange={(e) =>
-                                            form.setData('monto_recibido', e.target.value)
-                                        }
-                                        disabled={!puede_vender}
-                                    />
-                                    {form.errors.monto_recibido ? (
-                                        <p className="text-xs text-destructive">
-                                            {form.errors.monto_recibido}
+                                {esEfectivo && form.errors.monto_recibido ? (
+                                    <p className="text-[11px] text-destructive">{form.errors.monto_recibido}</p>
+                                ) : null}
+
+                                <div
+                                    className={cn(
+                                        'space-y-1 rounded-lg border border-primary/15 bg-linear-to-br from-primary/5 to-transparent p-2.5',
+                                        cart.length === 0 && 'opacity-60',
+                                    )}
+                                >
+                                    <div className="flex justify-between gap-2 text-[11px]">
+                                        <span className="text-muted-foreground">{t('caja:ventas.create.res_subtotal')}</span>
+                                        <span className="tabular-nums">{formatMoney(totales.subtotal)}</span>
+                                    </div>
+                                    <div className="flex justify-between gap-2 text-[11px]">
+                                        <span className="text-muted-foreground">
+                                            {t('caja:ventas.create.res_igv', { pct: clinica.igv_porcentaje })}
+                                        </span>
+                                        <span className="tabular-nums">{formatMoney(totales.igv)}</span>
+                                    </div>
+                                    {'discount' in totales && totales.discount > 0 ? (
+                                        <div className="flex justify-between gap-2 text-[11px] text-emerald-700 dark:text-emerald-400">
+                                            <span>{t('caja:ventas.create.res_descuento')}</span>
+                                            <span className="tabular-nums">− {formatMoney(totales.discount)}</span>
+                                        </div>
+                                    ) : null}
+                                    {promoPreview?.promotion_name ? (
+                                        <p className="truncate text-[10px] text-emerald-700 dark:text-emerald-400">
+                                            {t('caja:ventas.create.promotion_applied', {
+                                                name: promoPreview.promotion_name,
+                                                amount: formatMoney(Number(promoPreview.discount_amount)),
+                                            })}
                                         </p>
                                     ) : null}
-                                </div>
-                            ) : null}
-
-                            {/* Totales — bloque prominente */}
-                            <div
-                                className={cn(
-                                    'flex flex-col gap-1.5 rounded-2xl border-2 border-primary/20 bg-primary/5 p-4',
-                                    cart.length === 0 && 'opacity-60',
-                                )}
-                            >
-                                <div className="flex justify-between gap-4 text-sm">
-                                    <span className="text-muted-foreground">
-                                        {t('caja:ventas.create.res_subtotal')}
-                                    </span>
-                                    <span className="tabular-nums">
-                                        {formatMoney(totales.subtotal)}
-                                    </span>
-                                </div>
-                                <div className="flex justify-between gap-4 text-sm">
-                                    <span className="text-muted-foreground">
-                                        {t('caja:ventas.create.res_igv', {
-                                            pct: clinica.igv_porcentaje,
-                                        })}
-                                    </span>
-                                    <span className="tabular-nums">{formatMoney(totales.igv)}</span>
-                                </div>
-                                {'discount' in totales && totales.discount > 0 ? (
-                                    <div className="flex justify-between gap-4 text-sm text-emerald-700 dark:text-emerald-400">
-                                        <span>{t('caja:ventas.create.res_descuento')}</span>
-                                        <span className="tabular-nums">− {formatMoney(totales.discount)}</span>
-                                    </div>
-                                ) : null}
-                                {promoPreview?.promotion_name ? (
-                                    <p className="text-xs text-emerald-700 dark:text-emerald-400">
-                                        {t('caja:ventas.create.promotion_applied', {
-                                            name: promoPreview.promotion_name,
-                                            amount: formatMoney(Number(promoPreview.discount_amount)),
-                                        })}
-                                    </p>
-                                ) : null}
-                                <div className="mt-1 flex items-baseline justify-between gap-4 border-t border-primary/20 pt-3">
-                                    <span className="text-base font-bold">
-                                        {t('caja:ventas.create.res_total')}
-                                    </span>
-                                    <span className="text-2xl font-bold tabular-nums text-primary">
-                                        {formatMoney(totales.total)}
-                                    </span>
-                                </div>
-                                {esEfectivo && form.data.monto_recibido ? (
-                                    <div className="flex justify-between gap-4 rounded-xl bg-emerald-500/10 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-400">
-                                        <span>{t('caja:ventas.create.res_vuelto')}</span>
-                                        <span className="tabular-nums font-semibold">
-                                            {formatMoney(
-                                                Math.max(
-                                                    0,
-                                                    Number(
-                                                        String(form.data.monto_recibido).replace(
-                                                            ',',
-                                                            '.',
-                                                        ),
-                                                    ) - totales.total,
-                                                ),
-                                            )}
+                                    <div className="flex items-baseline justify-between gap-2 border-t border-primary/15 pt-1.5">
+                                        <span className="text-xs font-semibold">{t('caja:ventas.create.res_total')}</span>
+                                        <span className="text-lg font-bold tabular-nums text-primary">
+                                            {formatMoney(totales.total)}
                                         </span>
                                     </div>
+                                    {esEfectivo && form.data.monto_recibido ? (
+                                        <div className="flex justify-between gap-2 rounded-md bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-700 dark:text-emerald-400">
+                                            <span>{t('caja:ventas.create.res_vuelto')}</span>
+                                            <span className="font-semibold tabular-nums">
+                                                {formatMoney(
+                                                    Math.max(
+                                                        0,
+                                                        Number(String(form.data.monto_recibido).replace(',', '.')) -
+                                                            totales.total,
+                                                    ),
+                                                )}
+                                            </span>
+                                        </div>
+                                    ) : null}
+                                </div>
+
+                                {!esEfectivo ? (
+                                    <Textarea
+                                        id="notas-full"
+                                        rows={2}
+                                        className="min-h-14 resize-none text-sm"
+                                        value={form.data.notas}
+                                        onChange={(e) => form.setData('notas', e.target.value)}
+                                        disabled={!puede_vender}
+                                        placeholder={t('caja:ventas.create.notas')}
+                                    />
                                 ) : null}
+
+                                {form.errors.caja_sesion_id ? (
+                                    <p className="text-[11px] text-destructive">{form.errors.caja_sesion_id}</p>
+                                ) : null}
+
+                                {erroresFormulario.length > 0 ? (
+                                    <Alert variant="destructive" className="py-2">
+                                        <AlertTitle className="text-xs">{t('caja:ventas.create.error_guardar_title')}</AlertTitle>
+                                        <AlertDescription>
+                                            <ul className="list-inside list-disc space-y-0.5 text-[11px]">
+                                                {erroresFormulario.map((msg) => (
+                                                    <li key={msg}>{msg}</li>
+                                                ))}
+                                            </ul>
+                                        </AlertDescription>
+                                    </Alert>
+                                ) : null}
+
+                                <Button
+                                    type="button"
+                                    className="h-10 w-full gap-2 text-sm font-semibold shadow-md shadow-primary/15"
+                                    disabled={!puedeConfirmar || form.processing}
+                                    onClick={submit}
+                                >
+                                    {form.processing ? (
+                                        <>
+                                            <Loader2 className="size-4 animate-spin" aria-hidden />
+                                            {t('caja:ventas.create.guardando')}
+                                        </>
+                                    ) : (
+                                        <>
+                                            <ShoppingCart className="size-4" aria-hidden />
+                                            {t('caja:ventas.create.confirmar')} · {formatMoney(totales.total)}
+                                        </>
+                                    )}
+                                </Button>
                             </div>
-
-                            {/* Notas */}
-                            <div className="flex flex-col gap-2">
-                                <Label htmlFor="notas">{t('caja:ventas.create.notas')}</Label>
-                                <Textarea
-                                    id="notas"
-                                    rows={2}
-                                    className="min-h-[56px] resize-none"
-                                    value={form.data.notas}
-                                    onChange={(e) => form.setData('notas', e.target.value)}
-                                    disabled={!puede_vender}
-                                />
-                            </div>
-
-                            {form.errors.caja_sesion_id ? (
-                                <p className="text-xs text-destructive">
-                                    {form.errors.caja_sesion_id}
-                                </p>
-                            ) : null}
-
-                            {erroresFormulario.length > 0 ? (
-                                <Alert variant="destructive">
-                                    <AlertTitle>
-                                        {t('caja:ventas.create.error_guardar_title')}
-                                    </AlertTitle>
-                                    <AlertDescription>
-                                        <ul className="list-inside list-disc space-y-1 text-sm">
-                                            {erroresFormulario.map((msg) => (
-                                                <li key={msg}>{msg}</li>
-                                            ))}
-                                        </ul>
-                                    </AlertDescription>
-                                </Alert>
-                            ) : null}
-
-                            {/* Botón confirmar — CTA principal */}
-                            <Button
-                                type="button"
-                                className="h-12 w-full gap-2 text-base font-semibold"
-                                size="lg"
-                                disabled={!puedeConfirmar || form.processing}
-                                onClick={submit}
-                            >
-                                {form.processing ? (
-                                    <>
-                                        <Loader2 className="size-5 animate-spin" aria-hidden />
-                                        {t('caja:ventas.create.guardando')}
-                                    </>
-                                ) : (
-                                    <>
-                                        <ShoppingCart className="size-5" aria-hidden />
-                                        {t('caja:ventas.create.confirmar')}
-                                    </>
-                                )}
-                            </Button>
                         </PosPanel>
-
                     </div>
                 </div>
             </div>
