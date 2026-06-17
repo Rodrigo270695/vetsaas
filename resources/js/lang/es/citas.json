@@ -23,10 +23,27 @@
     },
     "calendar": {
         "today": "Hoy",
+        "prev_month": "Mes anterior",
+        "next_month": "Mes siguiente",
         "prev_week": "Semana anterior",
         "next_week": "Semana siguiente",
-        "empty_week_title": "Sin citas esta semana",
-        "empty_week_description": "No hay citas programadas en la semana seleccionada."
+        "more": "más",
+        "click_day_hint": "Haz clic en un día para agendar — solo elige la hora.",
+        "day_agenda": "Agenda del día",
+        "day_empty": "Sin citas programadas",
+        "day_count_one": "{{count}} cita",
+        "day_count_other": "{{count}} citas",
+        "schedule_day": "Agendar en este día",
+        "schedule_at": "Agendar a las {{hour}}",
+        "weekdays": {
+            "mon": "Lun",
+            "tue": "Mar",
+            "wed": "Mié",
+            "thu": "Jue",
+            "fri": "Vie",
+            "sat": "Sáb",
+            "sun": "Dom"
+        }
     },
     "detail": {
         "edit": "Editar cita"
@@ -65,7 +82,11 @@
     },
     "form": {
         "title_create": "Nueva cita",
+        "title_create_day": "Agendar cita",
         "title_edit": "Editar cita",
+        "description_create_day": "La fecha ya está definida. Elige la hora y completa los datos.",
+        "fecha_seleccionada": "Fecha seleccionada",
+        "hora": "Hora de la cita",
         "paciente": "Paciente",
         "paciente_placeholder": "Selecciona paciente…",
         "paciente_search": "Buscar paciente…",

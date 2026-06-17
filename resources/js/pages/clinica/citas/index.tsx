@@ -26,9 +26,10 @@ import { CitaDetailModal } from './components/cita-detail-modal';
 import { CitaDeleteDialog } from './components/cita-delete-dialog';
 import { CitaFormModal } from './components/cita-form-modal';
 import { CitaRowActions } from './components/cita-row-actions';
-import { CitasCalendar, displayPropietarioCita } from './components/citas-calendar';
+import { CitasCalendar, displayPropietarioCita, monthRangeFromMes, shiftMes } from './components/citas-calendar';
 import type {
     CitaFilters,
+    CitaFormPrefill,
     CitaFiltroUi,
     CitaRow,
     CitaStats,
@@ -50,40 +51,17 @@ type Props = {
     cita_abrir_editar: CitaRow | null;
 };
 
-type CitasTableExtra = Pick<CitaFilters, 'cita_desde' | 'cita_hasta' | 'vista' | 'semana_desde'>;
+type CitasTableExtra = Pick<CitaFilters, 'cita_desde' | 'cita_hasta' | 'vista' | 'mes'>;
 
 type ModalState =
     | { type: 'idle' }
-    | { type: 'create' }
+    | { type: 'create'; prefill?: CitaFormPrefill }
     | { type: 'detail'; cita: CitaRow }
     | { type: 'edit'; cita: CitaRow }
     | { type: 'delete'; cita: CitaRow }
     | { type: 'cancel'; cita: CitaRow };
 
 const DEFAULT_PER_PAGE = 10;
-
-function shiftIsoDate(isoDate: string, days: number): string {
-    const [y, m, d] = isoDate.split('-').map(Number);
-    const dt = new Date(y, m - 1, d, 12, 0, 0);
-    dt.setDate(dt.getDate() + days);
-
-    return formatIsoDate(dt);
-}
-
-function formatIsoDate(d: Date): string {
-    const pad = (n: number) => String(n).padStart(2, '0');
-
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-}
-
-function monthRangeFromWeek(semanaDesde: string): { desde: string; hasta: string } {
-    const [y, m, d] = semanaDesde.split('-').map(Number);
-    const dt = new Date(y, m - 1, d, 12, 0, 0);
-    const start = new Date(dt.getFullYear(), dt.getMonth(), 1);
-    const end = new Date(dt.getFullYear(), dt.getMonth() + 1, 0);
-
-    return { desde: formatIsoDate(start), hasta: formatIsoDate(end) };
-}
 
 function estadoBadgeVariant(estado: string): 'default' | 'secondary' | 'destructive' | 'outline' {
     if (estado === 'completada') {
@@ -127,8 +105,7 @@ export default function Index({
     const showRowActions = canUpdate || canDelete || canCancel;
 
     const vista = (filters.vista ?? 'calendario') as VistaCita;
-    const semanaDesde =
-        filters.semana_desde ?? cita_filtro_ui.default_semana_desde ?? filters.cita_desde;
+    const mesActivo = filters.mes ?? cita_filtro_ui.default_mes ?? filters.cita_desde.slice(0, 7);
 
     const {
         search,
@@ -164,6 +141,10 @@ export default function Index({
     const [modal, setModal] = useState<ModalState>({ type: 'idle' });
     const closeModal = useCallback(() => setModal({ type: 'idle' }), []);
     const openCreate = useCallback(() => setModal({ type: 'create' }), []);
+    const openCreateOnDay = useCallback(
+        (fecha: string, hora?: string) => setModal({ type: 'create', prefill: { fecha, hora } }),
+        [],
+    );
     const openDetail = useCallback((c: CitaRow) => setModal({ type: 'detail', cita: c }), []);
     const openEdit = useCallback((c: CitaRow) => setModal({ type: 'edit', cita: c }), []);
     const openDelete = useCallback((c: CitaRow) => setModal({ type: 'delete', cita: c }), []);
@@ -221,22 +202,22 @@ export default function Index({
             if (next === 'calendario') {
                 applyFilter({
                     vista: 'calendario',
-                    semana_desde: semanaDesde,
+                    mes: mesActivo,
                 });
 
                 return;
             }
 
-            const range = monthRangeFromWeek(semanaDesde);
+            const range = monthRangeFromMes(mesActivo);
 
             applyFilter({
                 vista: 'lista',
                 cita_desde: range.desde,
                 cita_hasta: range.hasta,
-                semana_desde: null,
+                mes: null,
             });
         },
-        [applyFilter, semanaDesde],
+        [applyFilter, mesActivo],
     );
 
     const columns = useMemo<DataTableColumn<CitaRow>[]>(() => {
@@ -479,20 +460,18 @@ export default function Index({
 
                         <CitasCalendar
                             citas={citas_agenda}
-                            semanaDesde={semanaDesde}
+                            mes={mesActivo}
                             timeZone={appTz}
                             localeCode={appLocale}
                             isLoading={isLoading}
+                            canCreate={canCreate}
                             onSelectCita={openDetail}
-                            onPrevWeek={() =>
-                                applyFilter({ semana_desde: shiftIsoDate(semanaDesde, -7) })
-                            }
-                            onNextWeek={() =>
-                                applyFilter({ semana_desde: shiftIsoDate(semanaDesde, 7) })
-                            }
+                            onScheduleDay={openCreateOnDay}
+                            onPrevMonth={() => applyFilter({ mes: shiftMes(mesActivo, -1) })}
+                            onNextMonth={() => applyFilter({ mes: shiftMes(mesActivo, 1) })}
                             onToday={() =>
                                 applyFilter({
-                                    semana_desde: cita_filtro_ui.default_semana_desde,
+                                    mes: cita_filtro_ui.default_mes,
                                 })
                             }
                         />
@@ -529,6 +508,7 @@ export default function Index({
                                     cita_desde: filters.cita_desde,
                                     cita_hasta: filters.cita_hasta,
                                     vista: filters.vista,
+                                    mes: filters.mes ?? undefined,
                                 }}
                             />
                         }
@@ -583,6 +563,7 @@ export default function Index({
                     }
                 }}
                 cita={modal.type === 'edit' ? modal.cita : null}
+                prefill={modal.type === 'create' ? modal.prefill ?? null : null}
                 pacientesOpciones={pacientes_opciones}
                 usuariosOpciones={usuarios_opciones}
                 sedesOpciones={sedes_opciones}

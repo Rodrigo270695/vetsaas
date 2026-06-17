@@ -1,344 +1,68 @@
 import { TZDate } from '@date-fns/tz';
-import { addDays, format, isSameDay } from 'date-fns';
-import { enUS, es } from 'date-fns/locale';
 import {
-    CalendarClock,
-    ChevronLeft,
-    ChevronRight,
-    MapPin,
-    Stethoscope,
-    User,
-} from 'lucide-react';
-import { useMemo } from 'react';
+    addDays,
+    addMonths,
+    endOfMonth,
+    format,
+    isSameMonth,
+    startOfMonth,
+    startOfWeek,
+} from 'date-fns';
+import { enUS, es } from 'date-fns/locale';
+import { ChevronLeft, ChevronRight, Clock, Plus } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { CitaRow } from '../types';
 
+const WEEKDAY_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
 const HOUR_START = 7;
 const HOUR_END = 21;
-const SLOT_HEIGHT = 52;
+const MAX_PILLS = 2;
 
 type Props = {
     citas: readonly CitaRow[];
-    semanaDesde: string;
+    mes: string;
     timeZone: string;
     localeCode: string;
     isLoading?: boolean;
+    canCreate: boolean;
     onSelectCita: (cita: CitaRow) => void;
-    onPrevWeek: () => void;
-    onNextWeek: () => void;
+    onScheduleDay: (fecha: string, hora?: string) => void;
+    onPrevMonth: () => void;
+    onNextMonth: () => void;
     onToday: () => void;
 };
 
-type PlacedCita = {
-    cita: CitaRow;
-    dayIndex: number;
-    topPx: number;
-    heightPx: number;
-    lane: number;
-    laneCount: number;
-};
+function parseMes(mes: string): Date {
+    const [y, m] = mes.split('-').map(Number);
 
-function parseWeekStart(isoDate: string): Date {
-    const [y, m, d] = isoDate.split('-').map(Number);
-
-    return new Date(y, m - 1, d, 12, 0, 0);
+    return new Date(y, m - 1, 1, 12, 0, 0);
 }
 
-function getEstadoStyles(estado: string): string {
+function toDateKey(d: Date, timeZone: string): string {
+    const tz = new TZDate(d, timeZone);
+    const pad = (n: number) => String(n).padStart(2, '0');
+
+    return `${tz.getFullYear()}-${pad(tz.getMonth() + 1)}-${pad(tz.getDate())}`;
+}
+
+function getEstadoAccent(estado: string): string {
     switch (estado) {
         case 'confirmada':
-            return 'border-primary/70 bg-primary text-primary-foreground shadow-sm hover:bg-primary/90';
+            return 'border-l-primary bg-primary/15 text-primary hover:bg-primary/25';
         case 'programada':
-            return 'border-primary/35 bg-primary/12 text-primary hover:bg-primary/20';
+            return 'border-l-primary/60 bg-primary/8 text-primary hover:bg-primary/15';
         case 'completada':
-            return 'border-emerald-400/50 bg-emerald-50 text-emerald-900 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:text-emerald-100';
+            return 'border-l-emerald-500 bg-emerald-50/90 text-emerald-900 hover:bg-emerald-100 dark:bg-emerald-950/50 dark:text-emerald-100';
         case 'cancelada':
-            return 'border-border bg-muted/80 text-muted-foreground line-through opacity-75';
+            return 'border-l-muted-foreground/40 bg-muted/70 text-muted-foreground line-through opacity-80';
         case 'no_asistio':
-            return 'border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/15';
+            return 'border-l-destructive bg-destructive/10 text-destructive hover:bg-destructive/15';
         default:
-            return 'border-primary/30 bg-primary/10 text-primary';
+            return 'border-l-primary/40 bg-primary/10 text-primary';
     }
-}
-
-function placeCitas(
-    citas: readonly CitaRow[],
-    weekStart: Date,
-    timeZone: string,
-): PlacedCita[] {
-    const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
-    const byDay: CitaRow[][] = Array.from({ length: 7 }, () => []);
-
-    for (const cita of citas) {
-        const start = new TZDate(cita.inicio_at, timeZone);
-        const dayIndex = weekDays.findIndex((day) => isSameDay(start, day));
-
-        if (dayIndex >= 0) {
-            byDay[dayIndex].push(cita);
-        }
-    }
-
-    const placed: PlacedCita[] = [];
-
-    byDay.forEach((dayCitas, dayIndex) => {
-        const sorted = [...dayCitas].sort(
-            (a, b) => new TZDate(a.inicio_at, timeZone).getTime() - new TZDate(b.inicio_at, timeZone).getTime(),
-        );
-
-        const lanes: { endMin: number }[] = [];
-
-        for (const cita of sorted) {
-            const start = new TZDate(cita.inicio_at, timeZone);
-            const startMin = start.getHours() * 60 + start.getMinutes();
-            const endMin = startMin + cita.duracion_minutos;
-
-            let lane = lanes.findIndex((l) => l.endMin <= startMin);
-
-            if (lane === -1) {
-                lane = lanes.length;
-                lanes.push({ endMin });
-            } else {
-                lanes[lane].endMin = endMin;
-            }
-
-            const topMin = Math.max(0, startMin - HOUR_START * 60);
-            const visibleEndMin = Math.min(endMin, HOUR_END * 60) - HOUR_START * 60;
-            const heightMin = Math.max(24, visibleEndMin - topMin);
-
-            placed.push({
-                cita,
-                dayIndex,
-                topPx: (topMin / 60) * SLOT_HEIGHT,
-                heightPx: Math.max(28, (heightMin / 60) * SLOT_HEIGHT),
-                lane,
-                laneCount: 1,
-            });
-        }
-
-        const laneCount = Math.max(1, lanes.length);
-
-        for (const item of placed.filter((p) => p.dayIndex === dayIndex)) {
-            item.laneCount = laneCount;
-        }
-    });
-
-    return placed;
-}
-
-export function CitasCalendar({
-    citas,
-    semanaDesde,
-    timeZone,
-    localeCode,
-    isLoading,
-    onSelectCita,
-    onPrevWeek,
-    onNextWeek,
-    onToday,
-}: Props) {
-    const { t } = useTranslation('citas');
-    const dateFnsLocale = localeCode.toLowerCase().startsWith('es') ? es : enUS;
-
-    const weekStart = useMemo(() => parseWeekStart(semanaDesde), [semanaDesde]);
-
-    const weekDays = useMemo(
-        () => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)),
-        [weekStart],
-    );
-
-    const weekLabel = useMemo(() => {
-        const end = addDays(weekStart, 6);
-
-        return `${format(weekStart, 'd MMM', { locale: dateFnsLocale })} — ${format(end, 'd MMM yyyy', { locale: dateFnsLocale })}`;
-    }, [weekStart, dateFnsLocale]);
-
-    const placed = useMemo(() => placeCitas(citas, weekStart, timeZone), [citas, weekStart, timeZone]);
-
-    const today = useMemo(() => {
-        const now = new TZDate(new Date(), timeZone);
-
-        return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12);
-    }, [timeZone]);
-
-    const hours = useMemo(
-        () => Array.from({ length: HOUR_END - HOUR_START }, (_, i) => HOUR_START + i),
-        [],
-    );
-
-    const gridHeight = (HOUR_END - HOUR_START) * SLOT_HEIGHT;
-
-    return (
-        <div
-            className={cn(
-                'overflow-hidden rounded-xl border border-border/70 bg-card shadow-sm ring-1 ring-primary/5',
-                isLoading && 'pointer-events-none opacity-60',
-            )}
-        >
-            <div className="flex flex-col gap-3 border-b border-border/60 bg-gradient-to-r from-primary/[0.07] via-primary/[0.03] to-transparent px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex flex-wrap items-center gap-2">
-                    <div className="flex items-center rounded-lg border border-border/70 bg-background/80 p-0.5 shadow-xs">
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="size-8 cursor-pointer"
-                            onClick={onPrevWeek}
-                            aria-label={t('calendar.prev_week')}
-                        >
-                            <ChevronLeft className="size-4" />
-                        </Button>
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 cursor-pointer px-3 text-xs font-medium"
-                            onClick={onToday}
-                        >
-                            {t('calendar.today')}
-                        </Button>
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="size-8 cursor-pointer"
-                            onClick={onNextWeek}
-                            aria-label={t('calendar.next_week')}
-                        >
-                            <ChevronRight className="size-4" />
-                        </Button>
-                    </div>
-                    <span className="text-sm font-semibold tracking-tight text-foreground">{weekLabel}</span>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2">
-                    {(['programada', 'confirmada', 'completada', 'cancelada'] as const).map((estado) => (
-                        <span key={estado} className="flex items-center gap-1.5 text-[0.65rem] text-muted-foreground">
-                            <span className={cn('size-2.5 rounded-full border', getEstadoStyles(estado))} />
-                            {t(`estado.${estado}`)}
-                        </span>
-                    ))}
-                </div>
-            </div>
-
-            <div className="overflow-x-auto">
-                <div className="min-w-[760px]">
-                    <div className="grid grid-cols-[3.5rem_repeat(7,minmax(0,1fr))] border-b border-border/60 bg-muted/30">
-                        <div className="border-r border-border/40" />
-                        {weekDays.map((day, index) => {
-                            const isToday = isSameDay(day, today);
-
-                            return (
-                                <div
-                                    key={index}
-                                    className={cn(
-                                        'border-r border-border/40 px-2 py-3 text-center last:border-r-0',
-                                        isToday && 'bg-primary/[0.08]',
-                                    )}
-                                >
-                                    <p className="text-[0.65rem] font-medium uppercase tracking-wide text-muted-foreground">
-                                        {format(day, 'EEE', { locale: dateFnsLocale })}
-                                    </p>
-                                    <p
-                                        className={cn(
-                                            'mt-0.5 text-lg font-semibold tabular-nums',
-                                            isToday ? 'text-primary' : 'text-foreground',
-                                        )}
-                                    >
-                                        {format(day, 'd')}
-                                    </p>
-                                </div>
-                            );
-                        })}
-                    </div>
-
-                    <div className="grid grid-cols-[3.5rem_repeat(7,minmax(0,1fr))]">
-                        <div className="relative border-r border-border/40 bg-muted/20">
-                            {hours.map((hour) => (
-                                <div
-                                    key={hour}
-                                    className="flex h-[52px] items-start justify-end border-b border-border/30 pr-2 pt-1"
-                                >
-                                    <span className="text-[0.65rem] tabular-nums text-muted-foreground">
-                                        {String(hour).padStart(2, '0')}:00
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
-
-                        {weekDays.map((day, dayIndex) => {
-                            const isToday = isSameDay(day, today);
-
-                            return (
-                                <div
-                                    key={dayIndex}
-                                    className={cn(
-                                        'relative border-r border-border/40 last:border-r-0',
-                                        isToday && 'bg-primary/[0.03]',
-                                    )}
-                                    style={{ height: gridHeight }}
-                                >
-                                    {hours.map((hour) => (
-                                        <div
-                                            key={hour}
-                                            className="h-[52px] border-b border-border/20"
-                                        />
-                                    ))}
-
-                                    {placed
-                                        .filter((p) => p.dayIndex === dayIndex)
-                                        .map(({ cita, topPx, heightPx, lane, laneCount }) => {
-                                            const widthPct = 100 / laneCount;
-                                            const leftPct = lane * widthPct;
-
-                                            return (
-                                                <button
-                                                    key={cita.id}
-                                                    type="button"
-                                                    onClick={() => onSelectCita(cita)}
-                                                    className={cn(
-                                                        'absolute z-10 cursor-pointer overflow-hidden rounded-md border px-1.5 py-1 text-left transition-all',
-                                                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1',
-                                                        getEstadoStyles(cita.estado),
-                                                    )}
-                                                    style={{
-                                                        top: topPx,
-                                                        height: heightPx,
-                                                        left: `calc(${leftPct}% + 2px)`,
-                                                        width: `calc(${widthPct}% - 4px)`,
-                                                    }}
-                                                >
-                                                    <p className="truncate text-[0.65rem] font-semibold leading-tight">
-                                                        {format(new TZDate(cita.inicio_at, timeZone), 'HH:mm')}
-                                                        {' · '}
-                                                        {cita.paciente.nombre}
-                                                    </p>
-                                                    {heightPx > 36 && cita.veterinario ? (
-                                                        <p className="mt-0.5 truncate text-[0.6rem] opacity-80">
-                                                            {cita.veterinario.name}
-                                                        </p>
-                                                    ) : null}
-                                                </button>
-                                            );
-                                        })}
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-            </div>
-
-            {citas.length === 0 ? (
-                <div className="border-t border-border/60 bg-muted/20 px-4 py-8 text-center">
-                    <CalendarClock className="mx-auto size-8 text-primary/40" strokeWidth={1.5} />
-                    <p className="mt-2 text-sm font-medium text-foreground">{t('calendar.empty_week_title')}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">{t('calendar.empty_week_description')}</p>
-                </div>
-            ) : null}
-        </div>
-    );
 }
 
 export function displayPropietarioCita(p: CitaRow['paciente']['propietario']): string {
@@ -351,4 +75,352 @@ export function displayPropietarioCita(p: CitaRow['paciente']['propietario']): s
     }
 
     return [p.nombres, p.apellidos].filter(Boolean).join(' ') || '—';
+}
+
+export function CitasCalendar({
+    citas,
+    mes,
+    timeZone,
+    localeCode,
+    isLoading,
+    canCreate,
+    onSelectCita,
+    onScheduleDay,
+    onPrevMonth,
+    onNextMonth,
+    onToday,
+}: Props) {
+    const { t } = useTranslation('citas');
+    const dateFnsLocale = localeCode.toLowerCase().startsWith('es') ? es : enUS;
+
+    const monthStart = useMemo(() => parseMes(mes), [mes]);
+    const [selectedDay, setSelectedDay] = useState<string | null>(null);
+
+    useEffect(() => {
+        setSelectedDay(null);
+    }, [mes]);
+
+    const todayKey = useMemo(() => toDateKey(new Date(), timeZone), [timeZone]);
+
+    const defaultPanelDay = useMemo(() => {
+        if (todayKey.startsWith(`${mes}-`)) {
+            return todayKey;
+        }
+
+        return `${mes}-01`;
+    }, [todayKey, mes]);
+
+    const citasByDay = useMemo(() => {
+        const map = new Map<string, CitaRow[]>();
+
+        for (const cita of citas) {
+            const key = toDateKey(new TZDate(cita.inicio_at, timeZone), timeZone);
+            const list = map.get(key) ?? [];
+            list.push(cita);
+            map.set(key, list);
+        }
+
+        for (const [, list] of map) {
+            list.sort(
+                (a, b) =>
+                    new TZDate(a.inicio_at, timeZone).getTime() -
+                    new TZDate(b.inicio_at, timeZone).getTime(),
+            );
+        }
+
+        return map;
+    }, [citas, timeZone]);
+
+    const gridDays = useMemo(() => {
+        const start = startOfWeek(startOfMonth(monthStart), { weekStartsOn: 1 });
+
+        return Array.from({ length: 42 }, (_, i) => addDays(start, i));
+    }, [monthStart]);
+
+    const monthLabel = format(monthStart, 'MMMM yyyy', { locale: dateFnsLocale });
+
+    const activeDay = selectedDay ?? defaultPanelDay;
+    const activeDayCitas = citasByDay.get(activeDay) ?? [];
+
+    const activeDayLabel = useMemo(() => {
+        const [y, m, d] = activeDay.split('-').map(Number);
+        const dt = new Date(y, m - 1, d, 12);
+
+        return format(dt, "EEEE d 'de' MMMM", { locale: dateFnsLocale });
+    }, [activeDay, dateFnsLocale]);
+
+    const hourSlots = useMemo(
+        () => Array.from({ length: HOUR_END - HOUR_START }, (_, i) => HOUR_START + i),
+        [],
+    );
+
+    const handleDayClick = (dateKey: string, inMonth: boolean) => {
+        if (!inMonth) {
+            return;
+        }
+
+        setSelectedDay(dateKey);
+
+        if (canCreate) {
+            onScheduleDay(dateKey);
+        }
+    };
+
+    return (
+        <div
+            className={cn(
+                'overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm ring-1 ring-primary/5',
+                isLoading && 'pointer-events-none opacity-60',
+            )}
+        >
+            <div className="flex flex-col gap-3 border-b border-border/50 bg-gradient-to-r from-primary/[0.08] via-primary/[0.03] to-transparent px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex items-center rounded-xl border border-border/60 bg-background/90 p-0.5 shadow-xs">
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="size-8 cursor-pointer rounded-lg"
+                            onClick={onPrevMonth}
+                            aria-label={t('calendar.prev_month')}
+                        >
+                            <ChevronLeft className="size-4" />
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 cursor-pointer rounded-lg px-3 text-xs font-semibold capitalize"
+                            onClick={onToday}
+                        >
+                            {t('calendar.today')}
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="size-8 cursor-pointer rounded-lg"
+                            onClick={onNextMonth}
+                            aria-label={t('calendar.next_month')}
+                        >
+                            <ChevronRight className="size-4" />
+                        </Button>
+                    </div>
+                    <h2 className="text-base font-semibold capitalize tracking-tight text-foreground">
+                        {monthLabel}
+                    </h2>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3 text-[0.65rem] text-muted-foreground">
+                    {(['programada', 'confirmada', 'completada', 'cancelada'] as const).map((estado) => (
+                        <span key={estado} className="flex items-center gap-1.5">
+                            <span className={cn('size-2 rounded-full border-l-2', getEstadoAccent(estado))} />
+                            {t(`estado.${estado}`)}
+                        </span>
+                    ))}
+                </div>
+            </div>
+
+            <div className="grid lg:grid-cols-[1fr_minmax(17rem,22rem)]">
+                <div className="border-b border-border/50 p-3 sm:p-4 lg:border-b-0 lg:border-r">
+                    <div className="mb-2 grid grid-cols-7 gap-1">
+                        {WEEKDAY_KEYS.map((key) => (
+                            <div
+                                key={key}
+                                className="py-1 text-center text-[0.65rem] font-semibold uppercase tracking-wider text-muted-foreground"
+                            >
+                                {t(`calendar.weekdays.${key}`)}
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="grid grid-cols-7 gap-1.5">
+                        {gridDays.map((day) => {
+                            const dateKey = toDateKey(day, timeZone);
+                            const inMonth = isSameMonth(day, monthStart);
+                            const isToday = dateKey === todayKey;
+                            const isSelected = dateKey === activeDay;
+                            const dayCitas = citasByDay.get(dateKey) ?? [];
+                            const overflow = Math.max(0, dayCitas.length - MAX_PILLS);
+
+                            return (
+                                <div
+                                    key={dateKey}
+                                    role="button"
+                                    tabIndex={inMonth ? 0 : -1}
+                                    onClick={() => handleDayClick(dateKey, inMonth)}
+                                    onKeyDown={(e) => {
+                                        if (inMonth && (e.key === 'Enter' || e.key === ' ')) {
+                                            e.preventDefault();
+                                            handleDayClick(dateKey, inMonth);
+                                        }
+                                    }}
+                                    className={cn(
+                                        'group relative flex min-h-[5.5rem] flex-col rounded-xl border p-1.5 text-left transition-all sm:min-h-[6.5rem]',
+                                        inMonth
+                                            ? 'cursor-pointer border-border/50 bg-background hover:border-primary/40 hover:bg-primary/[0.03] hover:shadow-sm'
+                                            : 'cursor-default border-transparent bg-muted/20 opacity-40',
+                                        isToday && inMonth && 'ring-1 ring-primary/50',
+                                        isSelected &&
+                                            inMonth &&
+                                            'border-primary/60 bg-primary/[0.06] shadow-md ring-2 ring-primary/30',
+                                    )}
+                                >
+                                    <span
+                                        className={cn(
+                                            'mb-1 flex size-7 items-center justify-center rounded-full text-sm font-semibold tabular-nums',
+                                            isToday && 'bg-primary text-primary-foreground',
+                                            isSelected && !isToday && 'bg-primary/15 text-primary',
+                                            !isToday && !isSelected && 'text-foreground',
+                                        )}
+                                    >
+                                        {format(day, 'd')}
+                                    </span>
+
+                                    <div className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-hidden">
+                                        {dayCitas.slice(0, MAX_PILLS).map((cita) => (
+                                            <button
+                                                key={cita.id}
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setSelectedDay(dateKey);
+                                                    onSelectCita(cita);
+                                                }}
+                                                className={cn(
+                                                    'w-full truncate rounded-md border-l-[3px] px-1 py-0.5 text-left text-[0.6rem] font-medium leading-tight transition-colors',
+                                                    getEstadoAccent(cita.estado),
+                                                )}
+                                            >
+                                                {format(new TZDate(cita.inicio_at, timeZone), 'HH:mm')}{' '}
+                                                {cita.paciente.nombre}
+                                            </button>
+                                        ))}
+                                        {overflow > 0 ? (
+                                            <span className="px-1 text-[0.6rem] font-medium text-primary">
+                                                +{overflow} {t('calendar.more')}
+                                            </span>
+                                        ) : null}
+                                    </div>
+
+                                    {inMonth && canCreate ? (
+                                        <span className="pointer-events-none absolute bottom-1 right-1 opacity-0 transition-opacity group-hover:opacity-100">
+                                            <Plus className="size-3.5 text-primary" />
+                                        </span>
+                                    ) : null}
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    {canCreate ? (
+                        <p className="mt-3 text-center text-xs text-muted-foreground">{t('calendar.click_day_hint')}</p>
+                    ) : null}
+                </div>
+
+                <aside className="flex flex-col bg-gradient-to-b from-muted/30 to-background p-4">
+                    <div className="mb-4">
+                        <p className="text-[0.65rem] font-semibold uppercase tracking-wider text-primary">
+                            {t('calendar.day_agenda')}
+                        </p>
+                        <h3 className="mt-1 text-sm font-semibold capitalize text-foreground">{activeDayLabel}</h3>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                            {activeDayCitas.length === 0
+                                ? t('calendar.day_empty')
+                                : t('calendar.day_count', { count: activeDayCitas.length })}
+                        </p>
+                    </div>
+
+                    <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto pr-1">
+                        {hourSlots.map((hour) => {
+                            const slotCitas = activeDayCitas.filter((c) => {
+                                const h = new TZDate(c.inicio_at, timeZone).getHours();
+
+                                return h === hour;
+                            });
+
+                            const isOccupied = slotCitas.length > 0;
+
+                            return (
+                                <div key={hour} className="grid grid-cols-[3rem_1fr] items-start gap-2">
+                                    <span className="pt-1 text-[0.65rem] tabular-nums text-muted-foreground">
+                                        {String(hour).padStart(2, '0')}:00
+                                    </span>
+                                    {isOccupied ? (
+                                        <div className="space-y-1">
+                                            {slotCitas.map((cita) => (
+                                                <button
+                                                    key={cita.id}
+                                                    type="button"
+                                                    onClick={() => onSelectCita(cita)}
+                                                    className={cn(
+                                                        'w-full rounded-lg border-l-[3px] px-2.5 py-2 text-left transition-colors',
+                                                        getEstadoAccent(cita.estado),
+                                                    )}
+                                                >
+                                                    <p className="text-xs font-semibold">
+                                                        {format(new TZDate(cita.inicio_at, timeZone), 'HH:mm')}
+                                                        {' · '}
+                                                        {cita.paciente.nombre}
+                                                    </p>
+                                                    {cita.veterinario ? (
+                                                        <p className="mt-0.5 truncate text-[0.65rem] opacity-80">
+                                                            {cita.veterinario.name}
+                                                        </p>
+                                                    ) : null}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    ) : canCreate ? (
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                onScheduleDay(activeDay, `${String(hour).padStart(2, '0')}:00`)
+                                            }
+                                            className="group/slot flex h-9 w-full items-center gap-2 rounded-lg border border-dashed border-primary/25 px-2 text-left text-[0.65rem] text-muted-foreground transition-colors hover:border-primary/50 hover:bg-primary/5 hover:text-primary"
+                                        >
+                                            <Clock className="size-3 opacity-60 group-hover/slot:opacity-100" />
+                                            {t('calendar.schedule_at', {
+                                                hour: `${String(hour).padStart(2, '0')}:00`,
+                                            })}
+                                        </button>
+                                    ) : (
+                                        <div className="h-9 rounded-lg border border-dashed border-border/40" />
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    {canCreate ? (
+                        <Button
+                            type="button"
+                            className="mt-4 w-full cursor-pointer gap-2 shadow-sm"
+                            onClick={() => onScheduleDay(activeDay)}
+                        >
+                            <Plus className="size-4" />
+                            {t('calendar.schedule_day')}
+                        </Button>
+                    ) : null}
+                </aside>
+            </div>
+        </div>
+    );
+}
+
+export function shiftMes(mes: string, delta: number): string {
+    const start = parseMes(mes);
+    const next = addMonths(start, delta);
+    const pad = (n: number) => String(n).padStart(2, '0');
+
+    return `${next.getFullYear()}-${pad(next.getMonth() + 1)}`;
+}
+
+export function monthRangeFromMes(mes: string): { desde: string; hasta: string } {
+    const start = parseMes(mes);
+    const end = endOfMonth(start);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const fmt = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+    return { desde: fmt(start), hasta: fmt(end) };
 }

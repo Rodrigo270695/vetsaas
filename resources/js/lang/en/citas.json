@@ -23,10 +23,27 @@
     },
     "calendar": {
         "today": "Today",
+        "prev_month": "Previous month",
+        "next_month": "Next month",
         "prev_week": "Previous week",
         "next_week": "Next week",
-        "empty_week_title": "No appointments this week",
-        "empty_week_description": "There are no appointments scheduled for the selected week."
+        "more": "more",
+        "click_day_hint": "Click a day to schedule — just pick the time.",
+        "day_agenda": "Day agenda",
+        "day_empty": "No appointments scheduled",
+        "day_count_one": "{{count}} appointment",
+        "day_count_other": "{{count}} appointments",
+        "schedule_day": "Schedule on this day",
+        "schedule_at": "Schedule at {{hour}}",
+        "weekdays": {
+            "mon": "Mon",
+            "tue": "Tue",
+            "wed": "Wed",
+            "thu": "Thu",
+            "fri": "Fri",
+            "sat": "Sat",
+            "sun": "Sun"
+        }
     },
     "detail": {
         "edit": "Edit appointment"
@@ -65,7 +82,11 @@
     },
     "form": {
         "title_create": "New appointment",
+        "title_create_day": "Schedule appointment",
         "title_edit": "Edit appointment",
+        "description_create_day": "The date is already set. Pick the time and fill in the details.",
+        "fecha_seleccionada": "Selected date",
+        "hora": "Appointment time",
         "paciente": "Patient",
         "paciente_placeholder": "Select patient…",
         "paciente_search": "Search patient…",

@@ -7,14 +7,20 @@ export type CitaFilters = BaseFilters & {
     cita_desde: string;
     cita_hasta: string;
     vista: VistaCita;
-    semana_desde: string | null;
+    /** Mes visible en calendario (YYYY-MM). */
+    mes: string | null;
 };
 
 export type CitaFiltroUi = {
     default_desde: string;
     default_hasta: string;
-    default_semana_desde: string;
+    default_mes: string;
     fuera_del_mes_actual: boolean;
+};
+
+export type CitaFormPrefill = {
+    fecha: string;
+    hora?: string;
 };
 
 export type CitaStats = {

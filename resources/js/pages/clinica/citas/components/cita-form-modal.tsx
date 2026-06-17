@@ -1,7 +1,7 @@
 import { useForm, usePage } from '@inertiajs/react';
-import { Loader2 } from 'lucide-react';
-import { useEffect  } from 'react';
-import type {FormEvent} from 'react';
+import { CalendarDays, Clock, Loader2 } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import type { FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FormField, FormModal, SedeFormField } from '@/components/forms';
 import { Button } from '@/components/ui/button';
@@ -17,12 +17,31 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { resolveDefaultSedeId } from '@/lib/default-sede';
+import { cn } from '@/lib/utils';
 import clinica from '@/routes/clinica';
-import type { CitaRow, PacienteCitaOpcion, SedeCitaOpcion, UsuarioCitaOpcion } from '../types';
+import type { CitaFormPrefill, CitaRow, PacienteCitaOpcion, SedeCitaOpcion, UsuarioCitaOpcion } from '../types';
+import { formatDateOnlyLabel } from '../../historias-clinicas/format-atendido';
 
 const controlClass = 'h-10 w-full min-w-0';
 
 const CITA_ESTADOS = ['programada', 'confirmada', 'completada', 'cancelada', 'no_asistio'] as const;
+
+const QUICK_TIMES = [
+    '08:00',
+    '08:30',
+    '09:00',
+    '09:30',
+    '10:00',
+    '10:30',
+    '11:00',
+    '11:30',
+    '12:00',
+    '14:00',
+    '15:00',
+    '16:00',
+    '17:00',
+    '18:00',
+] as const;
 
 function toDatetimeLocalValue(d: Date): string {
     const pad = (n: number) => String(n).padStart(2, '0');
@@ -56,6 +75,7 @@ export type CitaFormModalProps = {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     cita: CitaRow | null;
+    prefill?: CitaFormPrefill | null;
     pacientesOpciones: readonly PacienteCitaOpcion[];
     usuariosOpciones: readonly UsuarioCitaOpcion[];
     sedesOpciones: readonly SedeCitaOpcion[];
@@ -105,19 +125,31 @@ export function CitaFormModal({
     open,
     onOpenChange,
     cita,
+    prefill,
     pacientesOpciones,
     usuariosOpciones,
     sedesOpciones,
 }: CitaFormModalProps) {
-    const { t } = useTranslation(['citas', 'common']);
+    const { t, i18n } = useTranslation(['citas', 'common']);
     const authUser = usePage().props.auth?.user as { id?: string } | undefined;
     const defaultVetId = authUser?.id ?? null;
 
     const { data, setData, post, put, processing, errors, clearErrors, transform, setDefaults } =
         useForm<FormShape>(emptyForm(defaultVetId, sedesOpciones));
 
+    const [hora, setHora] = useState('09:00');
+
     const isEdit = cita !== null;
     const lockPaciente = isEdit;
+    const lockedDate = !isEdit && prefill?.fecha ? prefill.fecha : null;
+
+    const lockedDateLabel = useMemo(() => {
+        if (!lockedDate) {
+            return null;
+        }
+
+        return formatDateOnlyLabel(lockedDate, i18n.language);
+    }, [lockedDate, i18n.language]);
 
     useEffect(() => {
         transform((raw) => {
@@ -149,13 +181,30 @@ export function CitaFormModal({
 
         if (cita !== null) {
             setData(fromCita(cita, defaultVetId));
+            setHora(fromCita(cita, defaultVetId).inicio_at.slice(11, 16));
+        } else if (prefill?.fecha) {
+            const nextHora = prefill.hora ?? '09:00';
+            setHora(nextHora);
+            setData({
+                ...emptyForm(defaultVetId, sedesOpciones),
+                inicio_at: `${prefill.fecha}T${nextHora}`,
+            });
         } else {
             setData(emptyForm(defaultVetId, sedesOpciones));
+            setHora('09:00');
         }
 
         setDefaults();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [open, cita?.id, defaultVetId, cita, sedesOpciones]);
+    }, [open, cita?.id, defaultVetId, cita, prefill?.fecha, prefill?.hora, sedesOpciones]);
+
+    const applyHora = (nextHora: string) => {
+        setHora(nextHora);
+
+        if (lockedDate) {
+            setData('inicio_at', `${lockedDate}T${nextHora}`);
+        }
+    };
 
     const pacienteComboboxOptions: ComboboxOption[] = pacientesOpciones.map((p) => ({
         value: p.id,
@@ -184,8 +233,10 @@ export function CitaFormModal({
         <FormModal
             open={open}
             onOpenChange={onOpenChange}
-            title={isEdit ? t('form.title_edit') : t('form.title_create')}
-            description={isEdit ? undefined : t('description')}
+            title={isEdit ? t('form.title_edit') : lockedDate ? t('form.title_create_day') : t('form.title_create')}
+            description={
+                isEdit ? undefined : lockedDate ? t('form.description_create_day') : t('description')
+            }
             onSubmit={onSubmit}
             footer={
                 <>
@@ -221,19 +272,68 @@ export function CitaFormModal({
 
                 <FormField
                     id="cf-inicio"
-                    label={t('form.inicio_at')}
+                    label={lockedDate ? t('form.hora') : t('form.inicio_at')}
                     required
                     error={errors.inicio_at as string | undefined}
                 >
-                    <Input
-                        id="cf-inicio"
-                        type="datetime-local"
-                        className={controlClass}
-                        value={data.inicio_at}
-                        onChange={(e) => setData('inicio_at', e.target.value)}
-                        aria-invalid={Boolean(errors.inicio_at)}
-                        disabled={processing}
-                    />
+                    {lockedDate ? (
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-2 rounded-xl border border-primary/25 bg-primary/[0.06] px-3 py-2.5">
+                                <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
+                                    <CalendarDays className="size-4" />
+                                </span>
+                                <div>
+                                    <p className="text-[0.65rem] font-medium uppercase tracking-wide text-muted-foreground">
+                                        {t('form.fecha_seleccionada')}
+                                    </p>
+                                    <p className="text-sm font-semibold capitalize text-foreground">
+                                        {lockedDateLabel}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                                <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                                    <Clock className="size-4" />
+                                </span>
+                                <Input
+                                    id="cf-inicio"
+                                    type="time"
+                                    className={cn(controlClass, 'max-w-[9rem]')}
+                                    value={hora}
+                                    onChange={(e) => applyHora(e.target.value)}
+                                    aria-invalid={Boolean(errors.inicio_at)}
+                                    disabled={processing}
+                                />
+                            </div>
+
+                            <div className="flex flex-wrap gap-1.5">
+                                {QUICK_TIMES.map((slot) => (
+                                    <Button
+                                        key={slot}
+                                        type="button"
+                                        size="sm"
+                                        variant={hora === slot ? 'default' : 'outline'}
+                                        className="h-7 cursor-pointer px-2.5 text-xs tabular-nums"
+                                        onClick={() => applyHora(slot)}
+                                        disabled={processing}
+                                    >
+                                        {slot}
+                                    </Button>
+                                ))}
+                            </div>
+                        </div>
+                    ) : (
+                        <Input
+                            id="cf-inicio"
+                            type="datetime-local"
+                            className={controlClass}
+                            value={data.inicio_at}
+                            onChange={(e) => setData('inicio_at', e.target.value)}
+                            aria-invalid={Boolean(errors.inicio_at)}
+                            disabled={processing}
+                        />
+                    )}
                 </FormField>
 
                 <FormField
