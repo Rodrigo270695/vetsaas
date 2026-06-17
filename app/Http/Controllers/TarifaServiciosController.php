@@ -8,14 +8,14 @@ use App\Grooming\GroomingCatalogoMode;
 use App\Grooming\GroomingCatalogoServicio;
 use App\Hotel\HotelCatalogoMode;
 use App\Hotel\HotelCatalogoTipoEstancia;
-use App\Http\Requests\GroomingServicioRequest;
 use App\Http\Requests\GroomingServicioTarifaRequest;
 use App\Http\Requests\HotelEstanciaTarifaRequest;
-use App\Http\Requests\HotelTipoEstanciaRequest;
 use App\Models\GroomingServicio;
 use App\Models\GroomingServicioTarifa;
 use App\Models\HotelEstanciaTarifa;
 use App\Models\HotelTipoEstancia;
+use App\Support\Catalog\CatalogoClinicaValidator;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -113,10 +113,7 @@ class TarifaServiciosController extends Controller
                 __('tarifas-servicios.grooming.missing_table'),
             );
 
-            /** @var GroomingServicioRequest $formRequest */
-            $formRequest = $this->resolveFormRequest(GroomingServicioRequest::class, $request);
-
-            return app(GroomingServicioController::class)->store($formRequest);
+            return $this->storeGroomingCatalogo($request);
         }
 
         abort_unless(
@@ -140,10 +137,7 @@ class TarifaServiciosController extends Controller
                 __('tarifas-servicios.grooming.missing_table'),
             );
 
-            /** @var GroomingServicioRequest $formRequest */
-            $formRequest = $this->resolveFormRequest(GroomingServicioRequest::class, $request);
-
-            return app(GroomingServicioController::class)->update($formRequest, $servicio);
+            return $this->updateGroomingCatalogo($request, $servicio);
         }
 
         abort_unless(
@@ -181,10 +175,7 @@ class TarifaServiciosController extends Controller
                 __('tarifas-servicios.hotel.missing_table'),
             );
 
-            /** @var HotelTipoEstanciaRequest $formRequest */
-            $formRequest = $this->resolveFormRequest(HotelTipoEstanciaRequest::class, $request);
-
-            return app(HotelTipoEstanciaController::class)->store($formRequest);
+            return $this->storeHotelCatalogo($request);
         }
 
         abort_unless(
@@ -208,10 +199,7 @@ class TarifaServiciosController extends Controller
                 __('tarifas-servicios.hotel.missing_table'),
             );
 
-            /** @var HotelTipoEstanciaRequest $formRequest */
-            $formRequest = $this->resolveFormRequest(HotelTipoEstanciaRequest::class, $request);
-
-            return app(HotelTipoEstanciaController::class)->update($formRequest, $tipo);
+            return $this->updateHotelCatalogo($request, $tipo);
         }
 
         abort_unless(
@@ -300,6 +288,106 @@ class TarifaServiciosController extends Controller
         return back()->with('success', __('tarifas-servicios.hotel.updated'));
     }
 
+    private function storeGroomingCatalogo(Request $request): RedirectResponse
+    {
+        $data = CatalogoClinicaValidator::grooming($request);
+        $maxOrden = (int) GroomingServicio::query()->max('orden');
+
+        try {
+            GroomingServicio::query()->create([
+                'nombre' => $data['nombre'],
+                'categoria' => $data['categoria'] ?? null,
+                'precio_lista' => $data['precio_lista'],
+                'moneda' => $data['moneda'] ?? 'PEN',
+                'duracion_minutos' => (int) ($data['duracion_minutos'] ?? 60),
+                'activo' => $data['activo'] ?? true,
+                'orden' => isset($data['orden']) ? (int) $data['orden'] : ($maxOrden + 1),
+            ]);
+        } catch (QueryException $exception) {
+            report($exception);
+
+            return back()
+                ->withInput()
+                ->withErrors(['nombre' => __('tarifas-servicios.grooming.save_failed')]);
+        }
+
+        return back()->with('success', __('tarifas-servicios.grooming.created'));
+    }
+
+    private function updateGroomingCatalogo(Request $request, GroomingServicio $servicio): RedirectResponse
+    {
+        $data = CatalogoClinicaValidator::grooming($request);
+
+        try {
+            $servicio->update([
+                'nombre' => $data['nombre'],
+                'categoria' => $data['categoria'] ?? null,
+                'precio_lista' => $data['precio_lista'],
+                'moneda' => $data['moneda'] ?? $servicio->moneda,
+                'duracion_minutos' => (int) ($data['duracion_minutos'] ?? $servicio->duracion_minutos ?? 60),
+                'activo' => $data['activo'] ?? $servicio->activo,
+                'orden' => isset($data['orden']) ? (int) $data['orden'] : $servicio->orden,
+            ]);
+        } catch (QueryException $exception) {
+            report($exception);
+
+            return back()
+                ->withInput()
+                ->withErrors(['nombre' => __('tarifas-servicios.grooming.save_failed')]);
+        }
+
+        return back()->with('success', __('tarifas-servicios.grooming.updated'));
+    }
+
+    private function storeHotelCatalogo(Request $request): RedirectResponse
+    {
+        $data = CatalogoClinicaValidator::hotel($request);
+        $maxOrden = (int) HotelTipoEstancia::query()->max('orden');
+
+        try {
+            HotelTipoEstancia::query()->create([
+                'nombre' => $data['nombre'],
+                'categoria' => $data['categoria'] ?? null,
+                'precio_lista' => $data['precio_lista'],
+                'moneda' => $data['moneda'] ?? 'PEN',
+                'activo' => $data['activo'] ?? true,
+                'orden' => isset($data['orden']) ? (int) $data['orden'] : ($maxOrden + 1),
+            ]);
+        } catch (QueryException $exception) {
+            report($exception);
+
+            return back()
+                ->withInput()
+                ->withErrors(['nombre' => __('tarifas-servicios.hotel.save_failed')]);
+        }
+
+        return back()->with('success', __('tarifas-servicios.hotel.created'));
+    }
+
+    private function updateHotelCatalogo(Request $request, HotelTipoEstancia $tipo): RedirectResponse
+    {
+        $data = CatalogoClinicaValidator::hotel($request);
+
+        try {
+            $tipo->update([
+                'nombre' => $data['nombre'],
+                'categoria' => $data['categoria'] ?? null,
+                'precio_lista' => $data['precio_lista'],
+                'moneda' => $data['moneda'] ?? $tipo->moneda,
+                'activo' => $data['activo'] ?? $tipo->activo,
+                'orden' => isset($data['orden']) ? (int) $data['orden'] : $tipo->orden,
+            ]);
+        } catch (QueryException $exception) {
+            report($exception);
+
+            return back()
+                ->withInput()
+                ->withErrors(['nombre' => __('tarifas-servicios.hotel.save_failed')]);
+        }
+
+        return back()->with('success', __('tarifas-servicios.hotel.updated'));
+    }
+
     /**
      * @param  class-string<FormRequest>  $formRequestClass
      */
@@ -309,6 +397,7 @@ class TarifaServiciosController extends Controller
         $formRequest = $formRequestClass::createFrom($request);
         $formRequest->setContainer(app());
         $formRequest->setRedirector(app('redirect'));
+        $formRequest->setRouteResolver(fn () => $request->route());
 
         if ($request->hasSession()) {
             $formRequest->setSession($request->session());

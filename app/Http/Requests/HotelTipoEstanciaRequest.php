@@ -28,6 +28,10 @@ class HotelTipoEstanciaRequest extends FormRequest
             $trim = trim($categoria);
             $this->merge(['categoria' => $trim === '' ? null : $trim]);
         }
+
+        if ($this->has('activo')) {
+            $this->merge(['activo' => $this->boolean('activo')]);
+        }
     }
 
     /**
