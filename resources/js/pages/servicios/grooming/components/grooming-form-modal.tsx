@@ -22,6 +22,7 @@ import { resolveDefaultSedeId } from '@/lib/default-sede';
 import servicios from '@/routes/servicios';
 import type {
     GroomingServicioGrupo,
+    GroomingServicioRow,
     GroomingTurnoRow,
     PacienteGroomingOpcion,
     SedeGroomingOpcion,
@@ -73,6 +74,8 @@ export type GroomingFormModalProps = {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     turno: GroomingTurnoRow | null;
+    catalogoPersonalizado: boolean;
+    serviciosOpciones: readonly GroomingServicioRow[];
     servicioGrupos: readonly GroomingServicioGrupo[];
     servicioDuraciones: Readonly<Record<string, number>>;
     pacientesOpciones: readonly PacienteGroomingOpcion[];
@@ -86,6 +89,7 @@ type FormShape = {
     duracion_minutos: string;
     estado?: string;
     servicio: string;
+    grooming_servicio_id: string;
     servicio_detalle: string;
     notas: string;
     responsable_id: string | null;
@@ -96,14 +100,20 @@ function emptyForm(
     defaultResponsableId: string | null,
     duraciones: Readonly<Record<string, number>>,
     sedes: readonly SedeGroomingOpcion[],
+    catalogoPersonalizado: boolean,
+    servicios: readonly GroomingServicioRow[],
 ): FormShape {
     const slugDefault = 'bano_higienico';
+    const firstServicio = servicios.find((s) => s.activo) ?? servicios[0];
 
     return {
         paciente_id: '',
         inicio_at: toDatetimeLocalValue(new Date()),
-        duracion_minutos: String(duraciones[slugDefault] ?? 60),
-        servicio: slugDefault,
+        duracion_minutos: catalogoPersonalizado
+            ? String(firstServicio?.duracion_minutos ?? 60)
+            : String(duraciones[slugDefault] ?? 60),
+        servicio: catalogoPersonalizado ? '' : slugDefault,
+        grooming_servicio_id: firstServicio?.id ?? '',
         servicio_detalle: '',
         notas: '',
         responsable_id: defaultResponsableId,
@@ -118,6 +128,7 @@ function fromTurno(t: GroomingTurnoRow, defaultResponsableId: string | null): Fo
         duracion_minutos: String(t.duracion_minutos),
         estado: t.estado,
         servicio: t.servicio,
+        grooming_servicio_id: t.grooming_servicio_id ?? t.servicio,
         servicio_detalle: t.servicio_detalle ?? '',
         notas: t.notas ?? '',
         responsable_id: t.responsable_id ?? defaultResponsableId,
@@ -129,6 +140,8 @@ export function GroomingFormModal({
     open,
     onOpenChange,
     turno,
+    catalogoPersonalizado,
+    serviciosOpciones,
     servicioGrupos,
     servicioDuraciones,
     pacientesOpciones,
@@ -140,7 +153,27 @@ export function GroomingFormModal({
     const defaultResponsableId = authUser?.id ?? null;
 
     const { data, setData, post, put, processing, errors, clearErrors, transform, setDefaults } =
-        useForm<FormShape>(emptyForm(defaultResponsableId, servicioDuraciones, sedesOpciones));
+        useForm<FormShape>(
+            emptyForm(defaultResponsableId, servicioDuraciones, sedesOpciones, catalogoPersonalizado, serviciosOpciones),
+        );
+
+    const serviciosActivos = useMemo(
+        () => serviciosOpciones.filter((s) => s.activo),
+        [serviciosOpciones],
+    );
+
+    const serviciosPorCategoria = useMemo(() => {
+        const map = new Map<string, GroomingServicioRow[]>();
+
+        for (const s of serviciosActivos) {
+            const key = s.categoria?.trim() || 'general';
+            const list = map.get(key) ?? [];
+            list.push(s);
+            map.set(key, list);
+        }
+
+        return [...map.entries()];
+    }, [serviciosActivos]);
 
     const isEdit = turno !== null;
     const lockPaciente = isEdit;
@@ -172,13 +205,18 @@ export function GroomingFormModal({
                 paciente_id: r.paciente_id,
                 inicio_at: r.inicio_at,
                 duracion_minutos: Number.isNaN(dmVal) ? 60 : dmVal,
-                servicio: r.servicio,
-                servicio_detalle: det,
                 notas: r.notas.trim() === '' ? null : r.notas.trim(),
                 responsable_id:
                     r.responsable_id != null && r.responsable_id !== '' ? r.responsable_id : null,
                 sede_id: r.sede_id != null && r.sede_id !== '' ? r.sede_id : null,
             };
+
+            if (catalogoPersonalizado) {
+                base.grooming_servicio_id = r.grooming_servicio_id;
+            } else {
+                base.servicio = r.servicio;
+                base.servicio_detalle = det;
+            }
 
             if (r.estado !== undefined) {
                 base.estado = r.estado;
@@ -199,12 +237,20 @@ export function GroomingFormModal({
         if (turno !== null) {
             setData(fromTurno(turno, defaultResponsableId));
         } else {
-            setData(emptyForm(defaultResponsableId, servicioDuraciones, sedesOpciones));
+            setData(
+                emptyForm(
+                    defaultResponsableId,
+                    servicioDuraciones,
+                    sedesOpciones,
+                    catalogoPersonalizado,
+                    serviciosOpciones,
+                ),
+            );
         }
 
         setDefaults();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [open, turno?.id, defaultResponsableId, turno, sedesOpciones]);
+    }, [open, turno?.id, defaultResponsableId, turno, sedesOpciones, catalogoPersonalizado, serviciosOpciones]);
 
     const pacienteComboboxOptions: ComboboxOption[] = pacientesOpciones.map((p) => ({
         value: p.id,
@@ -241,7 +287,7 @@ export function GroomingFormModal({
                     <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={processing}>
                         {t('common:actions.cancel')}
                     </Button>
-                    <Button type="submit" disabled={processing} className="gap-2">
+                    <Button type="submit" disabled={processing || (catalogoPersonalizado && serviciosActivos.length === 0 && !isEdit)} className="gap-2">
                         {processing && <Loader2 className="size-4 animate-spin" aria-hidden />}
                         {isEdit ? t('form.submit_edit') : t('form.submit_create')}
                     </Button>
@@ -289,44 +335,96 @@ export function GroomingFormModal({
                     id="gf-servicio"
                     label={t('form.servicio')}
                     required
-                    error={(errors.servicio ?? errors.servicio_detalle) as string | undefined}
+                    error={
+                        (errors.grooming_servicio_id ??
+                            errors.servicio ??
+                            errors.servicio_detalle) as string | undefined
+                    }
                 >
-                    <Select
-                        value={data.servicio}
-                        onValueChange={(v) => {
-                            setData('servicio', v);
-                            setData('duracion_minutos', String(servicioDuraciones[v] ?? 60));
-                            if (v !== OTRO_PERSONALIZADO) {
-                                setData('servicio_detalle', '');
-                            }
-                        }}
-                        disabled={processing}
-                    >
-                        <SelectTrigger id="gf-servicio" className={controlClass} aria-invalid={Boolean(errors.servicio)}>
-                            <SelectValue placeholder={t('form.servicio_placeholder')} />
-                        </SelectTrigger>
-                        <SelectContent className="max-h-72">
-                            {servicioGrupos.map((bloque) => (
-                                <SelectGroup key={bloque.grupo}>
-                                    <SelectLabel className="text-xs font-semibold">
-                                        {t(`tipos_servicio.grupos.${bloque.grupo}`)}
-                                    </SelectLabel>
-                                    {bloque.items.map((slug) => (
-                                        <SelectItem key={slug} value={slug} className="text-sm">
-                                            {t(`tipos_servicio.items.${slug}.label`)}
-                                        </SelectItem>
+                    {catalogoPersonalizado ? (
+                        serviciosActivos.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">{t('servicios.empty_turno')}</p>
+                        ) : (
+                            <Select
+                                value={data.grooming_servicio_id}
+                                onValueChange={(v) => {
+                                    setData('grooming_servicio_id', v);
+                                    const row = serviciosActivos.find((s) => s.id === v);
+                                    if (row) {
+                                        setData('duracion_minutos', String(row.duracion_minutos));
+                                    }
+                                }}
+                                disabled={processing}
+                            >
+                                <SelectTrigger
+                                    id="gf-servicio"
+                                    className={controlClass}
+                                    aria-invalid={Boolean(errors.grooming_servicio_id)}
+                                >
+                                    <SelectValue placeholder={t('form.servicio_placeholder')} />
+                                </SelectTrigger>
+                                <SelectContent className="max-h-72">
+                                    {serviciosPorCategoria.map(([categoria, items]) => (
+                                        <SelectGroup key={categoria}>
+                                            <SelectLabel className="text-xs font-semibold">
+                                                {categoria === 'general'
+                                                    ? t('servicios.categoria_general')
+                                                    : categoria}
+                                            </SelectLabel>
+                                            {items.map((s) => (
+                                                <SelectItem key={s.id} value={s.id} className="text-sm">
+                                                    {s.nombre}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectGroup>
                                     ))}
-                                </SelectGroup>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    <p className="text-xs text-muted-foreground">{t('form.servicio_hint')}</p>
-                    {servicioHint ? (
-                        <p className="text-xs text-foreground/80">{servicioHint}</p>
-                    ) : null}
+                                </SelectContent>
+                            </Select>
+                        )
+                    ) : (
+                        <>
+                            <Select
+                                value={data.servicio}
+                                onValueChange={(v) => {
+                                    setData('servicio', v);
+                                    setData('duracion_minutos', String(servicioDuraciones[v] ?? 60));
+                                    if (v !== OTRO_PERSONALIZADO) {
+                                        setData('servicio_detalle', '');
+                                    }
+                                }}
+                                disabled={processing}
+                            >
+                                <SelectTrigger
+                                    id="gf-servicio"
+                                    className={controlClass}
+                                    aria-invalid={Boolean(errors.servicio)}
+                                >
+                                    <SelectValue placeholder={t('form.servicio_placeholder')} />
+                                </SelectTrigger>
+                                <SelectContent className="max-h-72">
+                                    {servicioGrupos.map((bloque) => (
+                                        <SelectGroup key={bloque.grupo}>
+                                            <SelectLabel className="text-xs font-semibold">
+                                                {t(`tipos_servicio.grupos.${bloque.grupo}`)}
+                                            </SelectLabel>
+                                            {bloque.items.map((slug) => (
+                                                <SelectItem key={slug} value={slug} className="text-sm">
+                                                    {t(`tipos_servicio.items.${slug}.label`)}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectGroup>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <p className="text-xs text-muted-foreground">{t('form.servicio_hint')}</p>
+                            {servicioHint ? (
+                                <p className="text-xs text-foreground/80">{servicioHint}</p>
+                            ) : null}
+                        </>
+                    )}
                 </FormField>
 
-                {data.servicio === OTRO_PERSONALIZADO ? (
+                {!catalogoPersonalizado && data.servicio === OTRO_PERSONALIZADO ? (
                     <FormField
                         id="gf-servicio-detalle"
                         label={t('form.servicio_detalle')}

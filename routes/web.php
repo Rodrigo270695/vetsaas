@@ -20,6 +20,7 @@ use App\Http\Controllers\ConsultaPlanTratamientoController;
 use App\Http\Controllers\FelDocumentController;
 use App\Http\Controllers\FelSerieController;
 use App\Http\Controllers\GeoController;
+use App\Http\Controllers\GroomingServicioController;
 use App\Http\Controllers\GroomingTurnoController;
 use App\Http\Controllers\HotelEstanciaController;
 use App\Http\Controllers\LaboratorioController;
@@ -379,6 +380,17 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
                 Route::middleware('permission:grooming.delete')
                     ->delete('grooming/{grooming_turno}', [GroomingTurnoController::class, 'destroy'])
                     ->name('grooming.destroy');
+                Route::middleware('permission:grooming.create')
+                    ->post('grooming/servicios', [GroomingServicioController::class, 'store'])
+                    ->name('grooming.servicios.store');
+                Route::middleware('permission:grooming.update')
+                    ->put('grooming/servicios/{groomingServicio}', [GroomingServicioController::class, 'update'])
+                    ->whereUuid('groomingServicio')
+                    ->name('grooming.servicios.update');
+                Route::middleware('permission:grooming.delete')
+                    ->delete('grooming/servicios/{groomingServicio}', [GroomingServicioController::class, 'destroy'])
+                    ->whereUuid('groomingServicio')
+                    ->name('grooming.servicios.destroy');
                 Route::middleware('permission:hotel.view')
                     ->get('hotel', [HotelEstanciaController::class, 'index'])
                     ->name('hotel');

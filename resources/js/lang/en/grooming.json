@@ -202,5 +202,40 @@
                 "hint": "Describe clearly what was agreed with the owner."
             }
         }
+    },
+    "servicios": {
+        "title": "Service types",
+        "description": "Configure grooming services with price and duration. Used when booking and at checkout.",
+        "add": "New service",
+        "empty": "No services configured yet. Create at least one to schedule appointments.",
+        "empty_turno": "Configure at least one active service in the table above first.",
+        "categoria_general": "General",
+        "count": "{{count}} services",
+        "activo_si": "Active",
+        "activo_no": "Inactive",
+        "delete_confirm": "Delete service «{{nombre}}»?",
+        "create_title": "New service",
+        "edit_title": "Edit service",
+        "columns": {
+            "nombre": "Service",
+            "precio": "Price",
+            "duracion": "Duration",
+            "activo": "Status"
+        },
+        "form": {
+            "nombre": "Name",
+            "categoria": "Category (optional)",
+            "precio": "List price",
+            "duracion": "Duration (min)",
+            "activo": "Active"
+        },
+        "flash": {
+            "created": "Service created.",
+            "updated": "Service updated.",
+            "deleted": "Service deleted."
+        },
+        "errors": {
+            "en_uso": "Cannot delete: appointments use this service."
+        }
     }
 }

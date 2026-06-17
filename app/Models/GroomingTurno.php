@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Grooming\GroomingCatalogoServicio;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -18,6 +19,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property int $duracion_minutos
  * @property string $estado
  * @property string $servicio
+ * @property ?string $grooming_servicio_id
  * @property ?string $servicio_detalle
  * @property ?string $notas
  * @property ?string $created_by_id
@@ -62,6 +64,7 @@ class GroomingTurno extends Model
         'duracion_minutos',
         'estado',
         'servicio',
+        'grooming_servicio_id',
         'servicio_detalle',
         'notas',
         'created_by_id',
@@ -77,11 +80,25 @@ class GroomingTurno extends Model
         ];
     }
 
+    protected $appends = [
+        'servicio_label',
+    ];
+
     /**
      * Texto de línea de venta (concepto) según el tipo de servicio del turno.
      */
     public function descripcionParaVenta(): string
     {
+        if ($this->grooming_servicio_id !== null) {
+            $nombre = $this->relationLoaded('groomingServicio')
+                ? $this->groomingServicio?->nombre
+                : GroomingServicio::query()->whereKey($this->grooming_servicio_id)->value('nombre');
+
+            if (is_string($nombre) && $nombre !== '') {
+                return mb_substr('Grooming · '.$nombre, 0, 300);
+            }
+        }
+
         if ($this->servicio === GroomingCatalogoServicio::OTRO_PERSONALIZADO) {
             $d = trim((string) ($this->servicio_detalle ?? ''));
 
@@ -92,6 +109,32 @@ class GroomingTurno extends Model
         $readable = mb_convert_case(str_replace('_', ' ', $slug), MB_CASE_TITLE, 'UTF-8');
 
         return mb_substr('Grooming · '.$readable, 0, 300);
+    }
+
+    protected function servicioLabel(): Attribute
+    {
+        return Attribute::make(
+            get: function (): string {
+                if ($this->grooming_servicio_id !== null) {
+                    if ($this->relationLoaded('groomingServicio') && $this->groomingServicio !== null) {
+                        return $this->groomingServicio->nombre;
+                    }
+
+                    $nombre = GroomingServicio::query()->whereKey($this->grooming_servicio_id)->value('nombre');
+
+                    if (is_string($nombre) && $nombre !== '') {
+                        return $nombre;
+                    }
+                }
+
+                return $this->servicio;
+            },
+        );
+    }
+
+    public function groomingServicio(): BelongsTo
+    {
+        return $this->belongsTo(GroomingServicio::class, 'grooming_servicio_id');
     }
 
     public function paciente(): BelongsTo

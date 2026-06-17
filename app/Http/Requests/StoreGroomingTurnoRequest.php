@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Grooming\GroomingCatalogoServicio;
+use App\Support\Grooming\GroomingTurnoServicioRules;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -76,17 +77,7 @@ class StoreGroomingTurnoRequest extends FormRequest
             ],
             'inicio_at' => ['required', 'date'],
             'duracion_minutos' => ['required', 'integer', 'min:5', 'max:480'],
-            'servicio' => ['required', 'string', Rule::in(GroomingCatalogoServicio::slugs())],
-            'servicio_detalle' => [
-                'nullable',
-                'string',
-                'max:500',
-                Rule::requiredIf(fn () => $this->input('servicio') === GroomingCatalogoServicio::OTRO_PERSONALIZADO),
-                Rule::when(
-                    $this->input('servicio') === GroomingCatalogoServicio::OTRO_PERSONALIZADO,
-                    ['min:3'],
-                ),
-            ],
+            ...GroomingTurnoServicioRules::servicioFields(),
             'notas' => ['nullable', 'string', 'max:20000'],
         ];
     }

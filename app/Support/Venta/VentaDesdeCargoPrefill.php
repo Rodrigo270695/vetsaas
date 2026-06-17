@@ -6,6 +6,7 @@ use App\Models\CajaSesion;
 use App\Models\ClinicSetting;
 use App\Models\Consulta;
 use App\Models\ConsultaCargo;
+use App\Models\GroomingServicio;
 use App\Models\GroomingServicioTarifa;
 use App\Models\GroomingTurno;
 use App\Models\HotelEstancia;
@@ -305,7 +306,16 @@ final class VentaDesdeCargoPrefill
             ->where('activo', true)
             ->first();
         $precioLista = '0.00';
-        if ($tarifa !== null) {
+
+        if ($turno->grooming_servicio_id !== null) {
+            $servicioPersonalizado = GroomingServicio::query()
+                ->whereKey($turno->grooming_servicio_id)
+                ->where('activo', true)
+                ->first();
+            if ($servicioPersonalizado !== null) {
+                $precioLista = number_format((float) (string) $servicioPersonalizado->precio_lista, 2, '.', '');
+            }
+        } elseif ($tarifa !== null) {
             $precioLista = number_format((float) (string) $tarifa->precio_lista, 2, '.', '');
         }
 

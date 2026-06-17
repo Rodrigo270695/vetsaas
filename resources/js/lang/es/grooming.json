@@ -202,5 +202,40 @@
                 "hint": "Describe con claridad el servicio acordado con el propietario."
             }
         }
+    },
+    "servicios": {
+        "title": "Tipos de servicio",
+        "description": "Configura los servicios de grooming con precio y duración. Se usan al agendar turnos y al cobrar en caja.",
+        "add": "Nuevo servicio",
+        "empty": "Aún no hay servicios configurados. Crea al menos uno para agendar turnos.",
+        "empty_turno": "Primero configura al menos un servicio activo en la tabla de arriba.",
+        "categoria_general": "General",
+        "count": "{{count}} servicios",
+        "activo_si": "Activo",
+        "activo_no": "Inactivo",
+        "delete_confirm": "¿Eliminar el servicio «{{nombre}}»?",
+        "create_title": "Nuevo servicio",
+        "edit_title": "Editar servicio",
+        "columns": {
+            "nombre": "Servicio",
+            "precio": "Precio",
+            "duracion": "Duración",
+            "activo": "Estado"
+        },
+        "form": {
+            "nombre": "Nombre",
+            "categoria": "Categoría (opcional)",
+            "precio": "Precio lista",
+            "duracion": "Duración (min)",
+            "activo": "Activo"
+        },
+        "flash": {
+            "created": "Servicio creado.",
+            "updated": "Servicio actualizado.",
+            "deleted": "Servicio eliminado."
+        },
+        "errors": {
+            "en_uso": "No se puede eliminar: hay turnos que usan este servicio."
+        }
     }
 }

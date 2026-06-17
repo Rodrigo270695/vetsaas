@@ -215,6 +215,7 @@ class TenantProvisioner
             'ruc' => $tenant->ruc,
             'email_institucional' => $tenant->email_admin,
             'telefono_principal' => $tenant->telefono,
+            'grooming_catalogo_personalizado' => true,
             'created_at' => now(),
             'updated_at' => now(),
         ]);

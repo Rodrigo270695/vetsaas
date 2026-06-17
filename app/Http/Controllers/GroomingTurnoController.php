@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Grooming\GroomingCatalogoMode;
 use App\Grooming\GroomingCatalogoServicio;
 use App\Http\Requests\StoreGroomingTurnoRequest;
 use App\Http\Requests\UpdateGroomingTurnoRequest;
@@ -9,6 +10,7 @@ use App\Models\GroomingTurno;
 use App\Models\Paciente;
 use App\Models\Sede;
 use App\Models\User;
+use App\Support\Grooming\GroomingTurnoServicioRules;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -99,6 +101,7 @@ class GroomingTurnoController extends Controller
                 'paciente.propietario:id,nombres,apellidos,razon_social',
                 'responsable:id,name',
                 'sede:id,nombre,codigo',
+                'groomingServicio:id,nombre',
             ]);
 
         if ($canAudit) {
@@ -168,10 +171,23 @@ class GroomingTurnoController extends Controller
             ->limit(100)
             ->get(['id', 'nombre', 'codigo']);
 
+        $catalogoPersonalizado = GroomingCatalogoMode::usaCatalogoPersonalizado();
+
+        $groomingServicios = $catalogoPersonalizado
+            ? \App\Models\GroomingServicio::query()
+                ->orderBy('orden')
+                ->orderBy('nombre')
+                ->get(['id', 'nombre', 'categoria', 'precio_lista', 'moneda', 'duracion_minutos', 'activo', 'orden'])
+            : collect();
+
         return Inertia::render('servicios/grooming/index', [
             'turnos' => $turnos,
-            'grooming_servicio_grupos' => GroomingCatalogoServicio::grupos(),
-            'grooming_servicio_duraciones' => GroomingCatalogoServicio::duracionesSugeridas(),
+            'grooming_catalogo_personalizado' => $catalogoPersonalizado,
+            'grooming_servicios' => $groomingServicios,
+            'grooming_servicio_grupos' => $catalogoPersonalizado ? [] : GroomingCatalogoServicio::grupos(),
+            'grooming_servicio_duraciones' => $catalogoPersonalizado
+                ? $groomingServicios->mapWithKeys(fn ($s) => [$s->id => $s->duracion_minutos])->all()
+                : GroomingCatalogoServicio::duracionesSugeridas(),
             'pacientes_opciones' => $pacientesOpciones,
             'usuarios_opciones' => $usuariosOpciones,
             'sedes_opciones' => $sedesOpciones,
@@ -198,7 +214,7 @@ class GroomingTurnoController extends Controller
 
     public function store(StoreGroomingTurnoRequest $request): RedirectResponse
     {
-        $data = $request->validated();
+        $data = GroomingTurnoServicioRules::normalizarParaPersistencia($request->validated());
         $data['estado'] = GroomingTurno::ESTADO_PROGRAMADA;
         $data['created_by_id'] = Auth::id();
         $data['updated_by_id'] = Auth::id();
@@ -214,7 +230,7 @@ class GroomingTurnoController extends Controller
 
     public function update(UpdateGroomingTurnoRequest $request, GroomingTurno $groomingTurno): RedirectResponse
     {
-        $data = $request->validated();
+        $data = GroomingTurnoServicioRules::normalizarParaPersistencia($request->validated());
         $data['updated_by_id'] = Auth::id();
 
         $groomingTurno->fill($data);

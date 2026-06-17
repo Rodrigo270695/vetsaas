@@ -21,10 +21,12 @@ import { formatAtendidoInAppTimezone } from '@/pages/clinica/historias-clinicas/
 import { GroomingDeleteDialog } from './components/grooming-delete-dialog';
 import { GroomingFormModal } from './components/grooming-form-modal';
 import { GroomingRowActions } from './components/grooming-row-actions';
+import { GroomingServiciosPanel } from './components/grooming-servicios-panel';
 import type {
     GroomingFilters,
     GroomingFiltroUi,
     GroomingServicioGrupo,
+    GroomingServicioRow,
     GroomingStats,
     GroomingTurnoRow,
     PacienteGroomingOpcion,
@@ -36,6 +38,8 @@ const LIST_URL = '/servicios/grooming';
 
 type Props = {
     turnos: Paginated<GroomingTurnoRow>;
+    grooming_catalogo_personalizado: boolean;
+    grooming_servicios: readonly GroomingServicioRow[];
     grooming_servicio_grupos: readonly GroomingServicioGrupo[];
     grooming_servicio_duraciones: Record<string, number>;
     pacientes_opciones: readonly PacienteGroomingOpcion[];
@@ -91,6 +95,8 @@ function estadoBadgeVariant(estado: string): 'default' | 'secondary' | 'destruct
 
 export default function Index({
     turnos: paginated,
+    grooming_catalogo_personalizado,
+    grooming_servicios,
     grooming_servicio_grupos,
     grooming_servicio_duraciones,
     pacientes_opciones,
@@ -117,6 +123,8 @@ export default function Index({
             initialFilters: filters,
             only: [
                 'turnos',
+                'grooming_catalogo_personalizado',
+                'grooming_servicios',
                 'grooming_servicio_grupos',
                 'grooming_servicio_duraciones',
                 'pacientes_opciones',
@@ -240,7 +248,17 @@ export default function Index({
                 key: 'servicio',
                 header: t('columns.servicio'),
                 cell: (row) => {
-                    const label = t(`tipos_servicio.items.${row.servicio}.label`, { defaultValue: row.servicio });
+                    if (grooming_catalogo_personalizado) {
+                        return (
+                            <span className="truncate text-sm text-muted-foreground">
+                                {row.servicio_label ?? row.servicio}
+                            </span>
+                        );
+                    }
+
+                    const label = t(`tipos_servicio.items.${row.servicio}.label`, {
+                        defaultValue: row.servicio,
+                    });
                     const showDetalle =
                         row.servicio === 'otro_personalizado' &&
                         row.servicio_detalle != null &&
@@ -323,12 +341,12 @@ export default function Index({
                         />
                     </div>
                 ),
-                className: 'w-12',
+                className: 'w-36',
             });
         }
 
         return base;
-    }, [t, appLocale, appTz, canSeeAudit, showRowActions, canUpdate, canDelete, canCobrarGrooming, openEdit, openDelete]);
+    }, [t, appLocale, appTz, canSeeAudit, showRowActions, canUpdate, canDelete, canCobrarGrooming, grooming_catalogo_personalizado, openEdit, openDelete]);
 
     return (
         <>
@@ -367,6 +385,10 @@ export default function Index({
                         </Can>
                     }
                 />
+
+                {grooming_catalogo_personalizado ? (
+                    <GroomingServiciosPanel servicios={grooming_servicios} />
+                ) : null}
 
                 <DataTable
                     columns={columns}
@@ -446,6 +468,8 @@ export default function Index({
                     }
                 }}
                 turno={modal.type === 'edit' ? modal.turno : null}
+                catalogoPersonalizado={grooming_catalogo_personalizado}
+                serviciosOpciones={grooming_servicios}
                 servicioGrupos={grooming_servicio_grupos}
                 servicioDuraciones={grooming_servicio_duraciones}
                 pacientesOpciones={pacientes_opciones}

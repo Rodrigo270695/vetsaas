@@ -39,7 +39,16 @@ export function GroomingRowActions({
     }
 
     return (
-        <DropdownMenu>
+        <div className="flex items-center justify-end gap-1">
+            {urlCobrar ? (
+                <Button variant="default" size="sm" className="h-8 gap-1.5" asChild>
+                    <Link href={urlCobrar}>
+                        <Wallet className="size-3.5" aria-hidden />
+                        {t('actions.cobrar')}
+                    </Link>
+                </Button>
+            ) : null}
+            <DropdownMenu>
             <DropdownMenuTrigger asChild>
                 <Button
                     type="button"
@@ -52,14 +61,6 @@ export function GroomingRowActions({
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-52">
-                {urlCobrar ? (
-                    <DropdownMenuItem asChild>
-                        <Link href={urlCobrar} className="flex cursor-pointer items-center gap-2">
-                            <Wallet className="size-4 shrink-0" strokeWidth={2.25} />
-                            {t('actions.cobrar')}
-                        </Link>
-                    </DropdownMenuItem>
-                ) : null}
                 {canUpdate ? (
                     <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => onEdit(turno)}>
                         <Pencil className="size-4" strokeWidth={2.25} />
@@ -77,5 +78,6 @@ export function GroomingRowActions({
                 ) : null}
             </DropdownMenuContent>
         </DropdownMenu>
+        </div>
     );
 }

@@ -44,6 +44,17 @@ export type GroomingServicioGrupo = {
     items: string[];
 };
 
+export type GroomingServicioRow = {
+    id: string;
+    nombre: string;
+    categoria: string | null;
+    precio_lista: string;
+    moneda: string;
+    duracion_minutos: number;
+    activo: boolean;
+    orden: number;
+};
+
 export type GroomingTurnoRow = {
     id: string;
     paciente_id: string;
@@ -53,6 +64,8 @@ export type GroomingTurnoRow = {
     duracion_minutos: number;
     estado: string;
     servicio: string;
+    grooming_servicio_id?: string | null;
+    servicio_label?: string;
     servicio_detalle: string | null;
     notas: string | null;
     created_at: string;

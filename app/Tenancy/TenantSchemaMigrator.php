@@ -271,6 +271,10 @@ class TenantSchemaMigrator
             '2026_06_17_100000_t091_add_resultado_archivo_to_pedido_laboratorio_lineas' => Schema::hasTable('pedido_laboratorio_lineas')
                 && Schema::hasColumn('pedido_laboratorio_lineas', 'resultado_archivo_path'),
             '2026_06_18_100000_t092_create_notifications_queue_table' => Schema::hasTable('notifications_queue'),
+            '2026_06_18_120000_t093_add_apisunat_payload_to_fel_documents' => Schema::hasTable('fel_documents')
+                && Schema::hasColumn('fel_documents', 'apisunat_payload'),
+            '2026_06_19_100000_t094_grooming_servicios_personalizados' => Schema::hasTable('grooming_servicios')
+                && Schema::hasColumn('cfg_clinic_settings', 'grooming_catalogo_personalizado'),
             default => false,
         };
     }
