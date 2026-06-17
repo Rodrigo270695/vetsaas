@@ -1,0 +1,11 @@
+{
+    "date_filter": {
+        "placeholder": "Date range (issue date)",
+        "aria": "Filter by receipt issue date",
+        "reset_month": "Current month",
+        "preset_this_week": "This week",
+        "preset_last_week": "Last week",
+        "preset_last_month": "Last month",
+        "apply_single_day": "Single day"
+    }
+}

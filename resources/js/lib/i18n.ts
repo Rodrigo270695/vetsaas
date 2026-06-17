@@ -3,6 +3,7 @@ import LanguageDetector from 'i18next-browser-languagedetector';
 import { initReactI18next } from 'react-i18next';
 
 import alertasStockEn from '@/lang/en/alertas-stock.json';
+import facturacionDocumentosEn from '@/lang/en/facturacion-documentos.json';
 import authEn from '@/lang/en/auth.json';
 import cajaEn from '@/lang/en/caja.json';
 import categoriasInventarioEn from '@/lang/en/categorias-inventario.json';
@@ -41,6 +42,7 @@ import tenantsEn from '@/lang/en/tenants.json';
 import usuariosEn from '@/lang/en/usuarios.json';
 import vacunacionesEn from '@/lang/en/vacunaciones.json';
 import alertasStockEs from '@/lang/es/alertas-stock.json';
+import facturacionDocumentosEs from '@/lang/es/facturacion-documentos.json';
 import authEs from '@/lang/es/auth.json';
 import cajaEs from '@/lang/es/caja.json';
 import categoriasInventarioEs from '@/lang/es/categorias-inventario.json';
@@ -136,6 +138,7 @@ const resources = {
         recetas: recetasEs,
         laboratorio: laboratorioEs,
         caja: cajaEs,
+        'facturacion-documentos': facturacionDocumentosEs,
         'tarifas-servicios': tarifasServiciosEs,
     },
     en: {
@@ -176,6 +179,7 @@ const resources = {
         recetas: recetasEn,
         laboratorio: laboratorioEn,
         caja: cajaEn,
+        'facturacion-documentos': facturacionDocumentosEn,
         'tarifas-servicios': tarifasServiciosEn,
     },
 } as const;

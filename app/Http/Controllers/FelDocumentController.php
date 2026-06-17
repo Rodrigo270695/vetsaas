@@ -44,6 +44,31 @@ class FelDocumentController extends Controller
             $estado = 'todos';
         }
 
+        $tz = config('app.timezone');
+        $now = now($tz);
+        $defaultDesde = $now->copy()->startOfMonth()->toDateString();
+        $defaultHasta = $now->copy()->endOfMonth()->toDateString();
+
+        $fechaDesde = $this->parseDateParam($request->query('fecha_desde'));
+        $fechaHasta = $this->parseDateParam($request->query('fecha_hasta'));
+
+        if ($fechaDesde === null || $fechaHasta === null) {
+            $fechaDesde = $defaultDesde;
+            $fechaHasta = $defaultHasta;
+            $fueraDelMesActual = false;
+        } else {
+            if ($fechaDesde > $fechaHasta) {
+                [$fechaDesde, $fechaHasta] = [$fechaHasta, $fechaDesde];
+            }
+            $fueraDelMesActual = ($fechaDesde !== $defaultDesde) || ($fechaHasta !== $defaultHasta);
+        }
+
+        $documentoFiltroUi = [
+            'default_desde' => $defaultDesde,
+            'default_hasta' => $defaultHasta,
+            'fuera_del_mes_actual' => $fueraDelMesActual,
+        ];
+
         $query = FelDocument::query()
             ->with([
                 'venta:id,numero,sede_id,estado',
@@ -62,6 +87,9 @@ class FelDocumentController extends Controller
         if ($estado !== 'todos') {
             $query->where('estado', $estado);
         }
+
+        $query->whereRaw('DATE(COALESCE(emitido_at, created_at)) >= ?', [$fechaDesde])
+            ->whereRaw('DATE(COALESCE(emitido_at, created_at)) <= ?', [$fechaHasta]);
 
         if ($sortValid) {
             $query->orderBy($sort, $directionSql);
@@ -124,7 +152,10 @@ class FelDocumentController extends Controller
                 'sort' => $sortValid ? $sort : null,
                 'direction' => $sortValid && $directionValid ? $direction : null,
                 'estado' => $estado,
+                'fecha_desde' => $fechaDesde,
+                'fecha_hasta' => $fechaHasta,
             ],
+            'documento_filtro_ui' => $documentoFiltroUi,
             'stats' => [
                 'total' => FelDocument::query()->count(),
                 'emitidos' => FelDocument::query()->where('estado', FelDocument::ESTADO_EMITIDO)->count(),
@@ -233,5 +264,14 @@ class FelDocumentController extends Controller
         }
 
         return null;
+    }
+
+    private function parseDateParam(mixed $value): ?string
+    {
+        if (! is_string($value) || preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) !== 1) {
+            return null;
+        }
+
+        return $value;
     }
 }

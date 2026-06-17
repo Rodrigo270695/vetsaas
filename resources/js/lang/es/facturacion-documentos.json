@@ -1,0 +1,11 @@
+{
+    "date_filter": {
+        "placeholder": "Rango de fechas (emisión)",
+        "aria": "Filtrar por fecha de emisión del comprobante",
+        "reset_month": "Mes actual",
+        "preset_this_week": "Esta semana",
+        "preset_last_week": "Semana pasada",
+        "preset_last_month": "Mes pasado",
+        "apply_single_day": "Un solo día"
+    }
+}

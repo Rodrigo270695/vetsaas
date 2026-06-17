@@ -15,6 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useDataTablePage } from '@/hooks/use-data-table-page';
 import AppLayout from '@/layouts/app-layout';
+import { AtencionDateRangeFilter } from '@/pages/clinica/historias-clinicas/components/atencion-date-range-filter';
 import caja from '@/routes/caja';
 import type { Paginated } from '@/types';
 import { DocumentoDownloadMenu, type DocumentoDownloadRow } from './components/documento-download-menu';
@@ -43,6 +44,13 @@ type Props = {
         sort: string | null;
         direction: string | null;
         estado: DocumentoEstadoFiltro;
+        fecha_desde: string;
+        fecha_hasta: string;
+    };
+    documento_filtro_ui: {
+        default_desde: string;
+        default_hasta: string;
+        fuera_del_mes_actual: boolean;
     };
     stats: {
         total: number;
@@ -53,6 +61,8 @@ type Props = {
 
 type TableExtraFilters = {
     estado: DocumentoEstadoFiltro;
+    fecha_desde: string;
+    fecha_hasta: string;
 };
 
 const ROUTE_URL = '/facturacion/documentos';
@@ -85,7 +95,7 @@ function formatMonto(amount: string, moneda: string, locale: string): string {
     return new Intl.NumberFormat(locale, { style: 'currency', currency: cur }).format(n);
 }
 
-export default function Index({ documentos: paginated, filters, stats }: Props) {
+export default function Index({ documentos: paginated, filters, documento_filtro_ui, stats }: Props) {
     const { search, setSearch, isLoading, sort, setSort, setPerPage, applyFilter } =
         useDataTablePage<TableExtraFilters>({
             routeUrl: ROUTE_URL,
@@ -113,8 +123,12 @@ export default function Index({ documentos: paginated, filters, stats }: Props) 
             n += 1;
         }
 
+        if (documento_filtro_ui.fuera_del_mes_actual) {
+            n += 1;
+        }
+
         return n;
-    }, [estado, filters.search]);
+    }, [documento_filtro_ui.fuera_del_mes_actual, estado, filters.search]);
 
     const estadoOptions: readonly FilterChip<DocumentoEstadoFiltro>[] = useMemo(
         () => [
@@ -260,14 +274,28 @@ export default function Index({ documentos: paginated, filters, stats }: Props) 
                             onSearchChange={setSearch}
                             isSearching={isLoading}
                             placeholder="Buscar por número CPE, cliente o venta…"
-                            filtersClassName="items-end"
+                            filtersClassName="sm:flex-1 sm:justify-end"
                         >
-                            <FilterChips
-                                ariaLabel="Filtrar por estado"
-                                value={estado}
-                                onChange={(v) => applyFilter({ estado: v })}
-                                options={estadoOptions}
-                            />
+                            <div className="flex w-full flex-col gap-2 lg:flex-row lg:items-center lg:justify-end">
+                                <FilterChips
+                                    ariaLabel="Filtrar por estado"
+                                    value={estado}
+                                    onChange={(v) => applyFilter({ estado: v })}
+                                    options={estadoOptions}
+                                />
+                                <AtencionDateRangeFilter
+                                    desde={filters.fecha_desde}
+                                    hasta={filters.fecha_hasta}
+                                    defaultDesde={documento_filtro_ui.default_desde}
+                                    defaultHasta={documento_filtro_ui.default_hasta}
+                                    disabled={isLoading}
+                                    translationNs="facturacion-documentos"
+                                    triggerClassName="h-10 min-w-[12rem]"
+                                    onApply={(desde, hasta) =>
+                                        applyFilter({ fecha_desde: desde, fecha_hasta: hasta })
+                                    }
+                                />
+                            </div>
                         </DataToolbar>
                     }
                     footer={
@@ -280,6 +308,8 @@ export default function Index({ documentos: paginated, filters, stats }: Props) 
                                 sort: filters.sort ?? undefined,
                                 direction: filters.direction ?? undefined,
                                 estado: filters.estado !== DEFAULT_ESTADO ? filters.estado : undefined,
+                                fecha_desde: filters.fecha_desde,
+                                fecha_hasta: filters.fecha_hasta,
                             }}
                         />
                     }
