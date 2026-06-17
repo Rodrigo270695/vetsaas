@@ -74,12 +74,14 @@ class VentaController extends Controller
                 'propietario:id,nombres,apellidos,razon_social',
                 'paciente:id,nombre',
                 'creadoPor:id,name',
+                'felDocument:id,venta_id,numero_completo,estado',
             ]);
 
         if ($search !== '') {
             $like = '%'.addcslashes($search, '%_\\').'%';
             $query->where(function ($q) use ($like, $search): void {
                 $q->where('numero', 'ILIKE', $like)
+                    ->orWhereHas('felDocument', fn ($fq) => $fq->where('numero_completo', 'ILIKE', $like))
                     ->orWhereHas('propietario', function ($q2) use ($like): void {
                         $q2->where('nombres', 'ILIKE', $like)
                             ->orWhere('apellidos', 'ILIKE', $like)
@@ -121,6 +123,7 @@ class VentaController extends Controller
             return [
                 'id' => $v->id,
                 'numero' => $v->numero,
+                'numero_display' => $v->felDocument?->numero_completo ?? $v->numero,
                 'estado' => $v->estado,
                 'moneda' => $v->moneda,
                 'total' => (string) $v->total,

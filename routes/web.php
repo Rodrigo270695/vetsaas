@@ -17,6 +17,7 @@ use App\Http\Controllers\ConsultaCargoController;
 use App\Http\Controllers\ConsultaHistoriaController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ConsultaPlanTratamientoController;
+use App\Http\Controllers\FelDocumentController;
 use App\Http\Controllers\FelSerieController;
 use App\Http\Controllers\GeoController;
 use App\Http\Controllers\GroomingTurnoController;
@@ -553,7 +554,21 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
 
         // ===== Facturación =====
         Route::prefix('facturacion')->name('facturacion.')->group(function () {
-            Route::inertia('documentos', 'facturacion/documentos/index')->name('documentos');
+            Route::middleware('permission:documentos.view')
+                ->get('documentos', [FelDocumentController::class, 'index'])
+                ->name('documentos');
+            Route::middleware('permission:documentos.view')
+                ->get('documentos/{felDocument}/download-xml', [FelDocumentController::class, 'downloadXml'])
+                ->whereUuid('felDocument')
+                ->name('documentos.download-xml');
+            Route::middleware('permission:documentos.view')
+                ->get('documentos/{felDocument}/download-cdr', [FelDocumentController::class, 'downloadCdr'])
+                ->whereUuid('felDocument')
+                ->name('documentos.download-cdr');
+            Route::middleware('permission:documentos.view')
+                ->get('documentos/{felDocument}/json', [FelDocumentController::class, 'json'])
+                ->whereUuid('felDocument')
+                ->name('documentos.json');
 
             // Series de comprobantes
             Route::middleware('permission:series.view')

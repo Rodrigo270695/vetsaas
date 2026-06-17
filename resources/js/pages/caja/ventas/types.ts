@@ -10,6 +10,7 @@ export type VentaEstadoFiltro =
 export type VentaRow = {
     id: string;
     numero: string;
+    numero_display: string;
     estado: string;
     moneda: string;
     total: string;

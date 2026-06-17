@@ -90,8 +90,9 @@ export default function Index({ ventas: paginated, filters, stats }: VentasIndex
                     <Link
                         href={caja.ventas.show.url(row.id)}
                         className="font-mono text-sm tabular-nums text-primary hover:underline"
+                        title={row.numero_display !== row.numero ? row.numero : undefined}
                     >
-                        {row.numero}
+                        {row.numero_display}
                     </Link>
                 ),
                 sortable: true,
@@ -154,7 +155,7 @@ export default function Index({ ventas: paginated, filters, stats }: VentasIndex
                     <Button variant="ghost" size="icon" className="size-8" asChild>
                         <Link
                             href={caja.ventas.show.url(row.id)}
-                            aria-label={t('caja:ventas.actions.ver_detalle', { numero: row.numero })}
+                            aria-label={t('caja:ventas.actions.ver_detalle', { numero: row.numero_display })}
                         >
                             <Eye className="size-4" aria-hidden />
                         </Link>

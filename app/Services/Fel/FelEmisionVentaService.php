@@ -140,6 +140,7 @@ final class FelEmisionVentaService
                 'url_xml' => $enlaces['xml'],
                 'url_cdr' => $enlaces['cdr'],
                 'enlace_consulta' => $enlaces['consulta'],
+                'apisunat_payload' => $respuesta,
                 'error_mensaje' => null,
                 'emitido_at' => now(),
             ]);

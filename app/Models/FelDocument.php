@@ -27,6 +27,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property ?string $url_xml
  * @property ?string $url_cdr
  * @property ?string $enlace_consulta
+ * @property ?array $apisunat_payload
  * @property ?string $error_mensaje
  * @property ?\Illuminate\Support\Carbon $emitido_at
  */
@@ -64,6 +65,7 @@ class FelDocument extends Model
         'url_xml',
         'url_cdr',
         'enlace_consulta',
+        'apisunat_payload',
         'error_mensaje',
         'emitido_at',
         'anulado_at',
@@ -80,6 +82,7 @@ class FelDocument extends Model
             'total' => 'decimal:2',
             'emitido_at' => 'datetime',
             'anulado_at' => 'datetime',
+            'apisunat_payload' => 'array',
         ];
     }
 
