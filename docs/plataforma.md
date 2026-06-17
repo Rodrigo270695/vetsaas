@@ -5,7 +5,7 @@
 > Pensado para el equipo de soporte / desarrollo: explica qué hace cada pantalla, por qué existe, qué endpoints expone y cómo se conecta con el resto.
 
 ---
-
+php artisan vetsaas:tenant-migrate-all --slug=mi-clinica
 ## Tabla de contenidos
 
 1. [Contexto general](#contexto-general)

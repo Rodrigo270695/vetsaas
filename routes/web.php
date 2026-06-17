@@ -17,6 +17,7 @@ use App\Http\Controllers\ConsultaCargoController;
 use App\Http\Controllers\ConsultaHistoriaController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ConsultaPlanTratamientoController;
+use App\Http\Controllers\FelSerieController;
 use App\Http\Controllers\GeoController;
 use App\Http\Controllers\GroomingTurnoController;
 use App\Http\Controllers\HotelEstanciaController;
@@ -553,7 +554,13 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         // ===== Facturación =====
         Route::prefix('facturacion')->name('facturacion.')->group(function () {
             Route::inertia('documentos', 'facturacion/documentos/index')->name('documentos');
-            Route::inertia('series', 'facturacion/series/index')->name('series');
+
+            // Series de comprobantes
+            Route::get('series', [FelSerieController::class, 'index'])->name('series');
+            Route::post('series', [FelSerieController::class, 'store'])->name('series.store');
+            Route::patch('series/{felSerie}', [FelSerieController::class, 'update'])->name('series.update');
+            Route::delete('series/{felSerie}', [FelSerieController::class, 'destroy'])->name('series.destroy');
+
             Route::inertia('notas-baja', 'facturacion/notas-baja/index')->name('notas-baja');
             Route::inertia('resumenes', 'facturacion/resumenes/index')->name('resumenes');
         });
