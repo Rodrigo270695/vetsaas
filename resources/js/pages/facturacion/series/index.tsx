@@ -44,8 +44,16 @@ type FelSerie = {
 
 type Props = {
     series: FelSerie[];
-    tipos: TipoOption[];
+    tipos?: TipoOption[];
 };
+
+const TIPOS_DEFAULT: TipoOption[] = [
+    { value: 1, label: 'Factura',           hint: 'F### (ej. F001)' },
+    { value: 2, label: 'Boleta de Venta',   hint: 'B### (ej. B001)' },
+    { value: 3, label: 'Nota de Crédito',   hint: 'FC## o BC## (ej. FC01)' },
+    { value: 4, label: 'Nota de Débito',    hint: 'FD## o BD## (ej. FD01)' },
+    { value: 5, label: 'Guía de Remisión',  hint: 'T### (ej. T001)' },
+];
 
 const TIPO_COLORS: Record<number, string> = {
     1: 'bg-blue-50 text-blue-700 ring-blue-200',
@@ -55,7 +63,8 @@ const TIPO_COLORS: Record<number, string> = {
     5: 'bg-amber-50 text-amber-700 ring-amber-200',
 };
 
-export default function Index({ series = [], tipos = [] }: Props) {
+export default function Index({ series = [], tipos }: Props) {
+    const tiposResolved = (tipos && tipos.length > 0) ? tipos : TIPOS_DEFAULT;
     const { can } = usePermission();
     const canCreate = can('series.create');
     const canUpdate = can('series.update');
@@ -72,7 +81,7 @@ export default function Index({ series = [], tipos = [] }: Props) {
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [togglingId, setTogglingId] = useState<string | null>(null);
 
-    const selectedTipo = tipos.find((t) => String(t.value) === formTipo);
+    const selectedTipo = tiposResolved.find((t) => String(t.value) === formTipo);
 
     const handleStore = () => {
         if (!formTipo || !formSerie.trim()) {
@@ -123,7 +132,7 @@ export default function Index({ series = [], tipos = [] }: Props) {
 
     const activas = series.filter((s) => s.activo).length;
 
-    const byTipo = tipos.map((t) => ({
+    const byTipo = tiposResolved.map((t) => ({
         ...t,
         count: series.filter((s) => s.tipo_comprobante === t.value).length,
     }));
@@ -200,7 +209,7 @@ export default function Index({ series = [], tipos = [] }: Props) {
                                         <SelectValue placeholder="Seleccionar tipo…" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {tipos.map((t) => (
+                                        {tiposResolved.map((t) => (
                                             <SelectItem key={t.value} value={String(t.value)}>
                                                 {t.label}
                                             </SelectItem>
