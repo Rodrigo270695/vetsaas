@@ -100,6 +100,15 @@ export default function Index({
         [t],
     );
 
+    const activeFiltersCount = useMemo(() => {
+        let count = 0;
+        if (filters.search) count += 1;
+        if (filters.sort) count += 1;
+        if (filters.estado !== DEFAULT_ESTADO) count += 1;
+        if (filters.per_page !== DEFAULT_PER_PAGE) count += 1;
+        return count;
+    }, [filters]);
+
     const columns = useMemo<DataTableColumn<Promotion>[]>(() => {
         const base: DataTableColumn<Promotion>[] = [
             {
@@ -197,9 +206,6 @@ export default function Index({
         return base;
     }, [t, canUpdate, canDelete]);
 
-    const hasRecords = stats.total > 0;
-    const showEmpty = paginated.total === 0 && !filters.search && filters.estado === DEFAULT_ESTADO;
-
     return (
         <>
             <Head title={t('title')} />
@@ -214,9 +220,9 @@ export default function Index({
                         { label: t('stats.inactive'), value: stats.inactivas, variant: 'muted', icon: Tag },
                         { label: t('stats.matches'), value: stats.coincidencias, variant: 'default', icon: Tag },
                     ]}
-                    actions={
+                    action={
                         <Can permission="descuentos.create">
-                            <Button className="gap-2" onClick={() => setModal({ type: 'create' })}>
+                            <Button type="button" className="cursor-pointer gap-2" onClick={() => setModal({ type: 'create' })}>
                                 <Plus className="size-4" aria-hidden />
                                 <span className="hidden sm:inline">{t('actions.new')}</span>
                                 <span className="sm:hidden">{t('actions.new_short')}</span>
@@ -225,51 +231,60 @@ export default function Index({
                     }
                 />
 
-                <DataToolbar
-                    search={search}
-                    onSearchChange={setSearch}
-                    searchPlaceholder={t('search_placeholder')}
+                <DataTable
+                    columns={columns}
+                    data={paginated.data}
+                    rowKey={(p) => p.id}
+                    sort={sort}
+                    onSortChange={setSort}
                     isLoading={isLoading}
-                    filtersSlot={
-                        <FilterChips
-                            label={t('filter_estado')}
-                            value={filters.estado}
-                            options={estadoOptions}
-                            onChange={(estado) => applyFilter('estado', estado)}
+                    ariaLiveMessage={t('common:aria.results_count_other', { count: stats.coincidencias })}
+                    toolbar={
+                        <DataToolbar
+                            search={search}
+                            onSearchChange={setSearch}
+                            isSearching={isLoading}
+                            placeholder={t('search_placeholder')}
+                        >
+                            <FilterChips
+                                ariaLabel={t('filter_estado')}
+                                value={filters.estado}
+                                onChange={(estado) => applyFilter({ estado })}
+                                options={estadoOptions}
+                            />
+                        </DataToolbar>
+                    }
+                    footer={
+                        <DataPagination
+                            meta={paginated}
+                            onPerPageChange={setPerPage}
+                            preservedQuery={{
+                                search: filters.search || undefined,
+                                per_page: filters.per_page,
+                                sort: filters.sort ?? undefined,
+                                direction: filters.direction ?? undefined,
+                                estado: filters.estado !== DEFAULT_ESTADO ? filters.estado : undefined,
+                            }}
+                        />
+                    }
+                    emptyState={
+                        <EmptyState
+                            icon={Percent}
+                            title={activeFiltersCount > 0 ? t('empty.no_results_title') : t('empty.no_records_title')}
+                            description={
+                                activeFiltersCount > 0 ? t('empty.no_results_description') : t('empty.no_records_description')
+                            }
+                            action={
+                                activeFiltersCount === 0 && canCreate ? (
+                                    <Button type="button" onClick={() => setModal({ type: 'create' })} className="cursor-pointer gap-2">
+                                        <Plus className="size-4" strokeWidth={2.5} />
+                                        {t('actions.create_first')}
+                                    </Button>
+                                ) : undefined
+                            }
                         />
                     }
                 />
-
-                {showEmpty && !hasRecords ? (
-                    <EmptyState
-                        icon={Percent}
-                        title={t('empty.no_records_title')}
-                        description={t('empty.no_records_description')}
-                        action={
-                            canCreate ? (
-                                <Button onClick={() => setModal({ type: 'create' })}>{t('actions.create_first')}</Button>
-                            ) : undefined
-                        }
-                    />
-                ) : paginated.total === 0 ? (
-                    <EmptyState
-                        icon={Percent}
-                        title={t('empty.no_results_title')}
-                        description={t('empty.no_results_description')}
-                    />
-                ) : (
-                    <>
-                        <DataTable
-                            columns={columns}
-                            rows={paginated.data}
-                            rowKey={(p) => p.id}
-                            sort={sort}
-                            onSort={setSort}
-                            isLoading={isLoading}
-                        />
-                        <DataPagination paginated={paginated} onPerPageChange={setPerPage} />
-                    </>
-                )}
             </div>
 
             <PromotionFormModal
