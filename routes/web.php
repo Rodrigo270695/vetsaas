@@ -556,10 +556,14 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             Route::inertia('documentos', 'facturacion/documentos/index')->name('documentos');
 
             // Series de comprobantes
-            Route::get('series', [FelSerieController::class, 'index'])->name('series');
-            Route::post('series', [FelSerieController::class, 'store'])->name('series.store');
-            Route::patch('series/{felSerie}', [FelSerieController::class, 'update'])->name('series.update');
-            Route::delete('series/{felSerie}', [FelSerieController::class, 'destroy'])->name('series.destroy');
+            Route::middleware('permission:series.view')
+                ->get('series', [FelSerieController::class, 'index'])->name('series');
+            Route::middleware('permission:series.create')
+                ->post('series', [FelSerieController::class, 'store'])->name('series.store');
+            Route::middleware('permission:series.update')
+                ->patch('series/{felSerie}', [FelSerieController::class, 'update'])->name('series.update');
+            Route::middleware('permission:series.delete')
+                ->delete('series/{felSerie}', [FelSerieController::class, 'destroy'])->name('series.destroy');
 
             Route::inertia('notas-baja', 'facturacion/notas-baja/index')->name('notas-baja');
             Route::inertia('resumenes', 'facturacion/resumenes/index')->name('resumenes');
