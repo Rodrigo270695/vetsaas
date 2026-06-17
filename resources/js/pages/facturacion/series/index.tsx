@@ -55,7 +55,7 @@ const TIPO_COLORS: Record<number, string> = {
     5: 'bg-amber-50 text-amber-700 ring-amber-200',
 };
 
-export default function Index({ series, tipos }: Props) {
+export default function Index({ series = [], tipos = [] }: Props) {
     const { can } = usePermission();
     const canCreate = can('series.create');
     const canUpdate = can('series.update');
