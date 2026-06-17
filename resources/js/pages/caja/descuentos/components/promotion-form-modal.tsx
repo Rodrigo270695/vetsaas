@@ -121,6 +121,8 @@ export function PromotionFormModal({ open, onOpenChange, promotion, meta, groomi
 
     const isPct = data.discount_type === 'pct_line' || data.discount_type === 'pct_sale';
     const showGroomingService = data.scope === 'grooming';
+    const selectTriggerClass = 'w-full min-w-0';
+    const gridFieldClass = 'min-w-0';
 
     const onSubmit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -171,11 +173,11 @@ export function PromotionFormModal({ open, onOpenChange, promotion, meta, groomi
             }
         >
             <div className="grid gap-4">
-                <div className="grid gap-4 sm:grid-cols-2">
-                    <FormField id="promo-name" label={t('form.name')} error={errors.name} required>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <FormField id="promo-name" label={t('form.name')} error={errors.name} required className={gridFieldClass}>
                         <Input id="promo-name" value={data.name} onChange={(e) => setData('name', e.target.value)} />
                     </FormField>
-                    <FormField id="promo-code" label={t('form.code')} error={errors.code} hint={t('form.code_hint')}>
+                    <FormField id="promo-code" label={t('form.code')} error={errors.code} hint={t('form.code_hint')} className={gridFieldClass}>
                         <Input
                             id="promo-code"
                             value={data.code}
@@ -194,10 +196,10 @@ export function PromotionFormModal({ open, onOpenChange, promotion, meta, groomi
                     />
                 </FormField>
 
-                <div className="grid gap-4 sm:grid-cols-2">
-                    <FormField id="promo-discount-type" label={t('form.discount_type')} error={errors.discount_type}>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <FormField id="promo-discount-type" label={t('form.discount_type')} error={errors.discount_type} className={gridFieldClass}>
                         <Select value={data.discount_type} onValueChange={(v) => setData('discount_type', v)}>
-                            <SelectTrigger id="promo-discount-type">
+                            <SelectTrigger id="promo-discount-type" className={selectTriggerClass}>
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -214,6 +216,7 @@ export function PromotionFormModal({ open, onOpenChange, promotion, meta, groomi
                         label={t('form.value')}
                         error={errors.value}
                         hint={isPct ? t('form.value_pct_hint') : t('form.value_amount_hint')}
+                        className={gridFieldClass}
                     >
                         <Input
                             id="promo-value"
@@ -227,10 +230,10 @@ export function PromotionFormModal({ open, onOpenChange, promotion, meta, groomi
                     </FormField>
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-2">
-                    <FormField id="promo-scope" label={t('form.scope')} error={errors.scope}>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <FormField id="promo-scope" label={t('form.scope')} error={errors.scope} className={gridFieldClass}>
                         <Select value={data.scope} onValueChange={(v) => setData('scope', v)}>
-                            <SelectTrigger id="promo-scope">
+                            <SelectTrigger id="promo-scope" className={selectTriggerClass}>
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -242,9 +245,9 @@ export function PromotionFormModal({ open, onOpenChange, promotion, meta, groomi
                             </SelectContent>
                         </Select>
                     </FormField>
-                    <FormField id="promo-condition" label={t('form.condition_type')} error={errors.condition_type}>
+                    <FormField id="promo-condition" label={t('form.condition_type')} error={errors.condition_type} className={gridFieldClass}>
                         <Select value={data.condition_type} onValueChange={(v) => setData('condition_type', v)}>
-                            <SelectTrigger id="promo-condition">
+                            <SelectTrigger id="promo-condition" className={selectTriggerClass}>
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -263,6 +266,7 @@ export function PromotionFormModal({ open, onOpenChange, promotion, meta, groomi
                         id="promo-grooming-svc"
                         label={t('form.grooming_service_slug')}
                         error={errors.grooming_service_slug}
+                        className={gridFieldClass}
                     >
                         <Combobox
                             id="promo-grooming-svc"
@@ -274,8 +278,8 @@ export function PromotionFormModal({ open, onOpenChange, promotion, meta, groomi
                     </FormField>
                 ) : null}
 
-                <div className="grid gap-4 sm:grid-cols-2">
-                    <FormField id="promo-valid-from" label={t('form.valid_from')} error={errors.valid_from}>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <FormField id="promo-valid-from" label={t('form.valid_from')} error={errors.valid_from} className={gridFieldClass}>
                         <Input
                             id="promo-valid-from"
                             type="datetime-local"
@@ -283,7 +287,7 @@ export function PromotionFormModal({ open, onOpenChange, promotion, meta, groomi
                             onChange={(e) => setData('valid_from', e.target.value)}
                         />
                     </FormField>
-                    <FormField id="promo-valid-until" label={t('form.valid_until')} error={errors.valid_until}>
+                    <FormField id="promo-valid-until" label={t('form.valid_until')} error={errors.valid_until} className={gridFieldClass}>
                         <Input
                             id="promo-valid-until"
                             type="datetime-local"
@@ -293,12 +297,13 @@ export function PromotionFormModal({ open, onOpenChange, promotion, meta, groomi
                     </FormField>
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <FormField
                         id="promo-max-uses"
                         label={t('form.max_uses')}
                         error={errors.max_uses}
                         hint={t('form.max_uses_hint')}
+                        className={gridFieldClass}
                     >
                         <Input
                             id="promo-max-uses"
@@ -313,6 +318,7 @@ export function PromotionFormModal({ open, onOpenChange, promotion, meta, groomi
                         label={t('form.priority')}
                         error={errors.priority}
                         hint={t('form.priority_hint')}
+                        className={gridFieldClass}
                     >
                         <Input
                             id="promo-priority"
@@ -324,8 +330,8 @@ export function PromotionFormModal({ open, onOpenChange, promotion, meta, groomi
                     </FormField>
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-2">
-                    <FormField id="promo-auto" label={t('form.auto_apply')}>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <FormField id="promo-auto" label={t('form.auto_apply')} className={gridFieldClass}>
                         <label htmlFor="promo-auto" className="flex items-center gap-3 text-sm">
                             <Checkbox
                                 id="promo-auto"
@@ -335,7 +341,7 @@ export function PromotionFormModal({ open, onOpenChange, promotion, meta, groomi
                             <span>{t('form.auto_apply_label')}</span>
                         </label>
                     </FormField>
-                    <FormField id="promo-active" label={t('form.is_active')}>
+                    <FormField id="promo-active" label={t('form.is_active')} className={gridFieldClass}>
                         <label htmlFor="promo-active" className="flex items-center gap-3 text-sm">
                             <Checkbox
                                 id="promo-active"
