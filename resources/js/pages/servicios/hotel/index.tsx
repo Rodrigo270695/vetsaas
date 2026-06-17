@@ -33,7 +33,6 @@ import type {
     SedeHotelOpcion,
     UsuarioHotelOpcion,
 } from './types';
-import { CatalogoClinicaPanel } from '@/pages/configuracion/tarifas/components/catalogo-clinica-panel';
 
 const LIST_URL = '/servicios/hotel';
 
@@ -110,9 +109,6 @@ export default function Index({
     const { t } = useTranslation(['hotel', 'common']);
     const { locale: appLocale, timezone: appTz } = usePage().props;
     const { can } = usePermission();
-    const canCreateTipos = can('hotel.create') || can('tarifas.create');
-    const canUpdateTipos = can('hotel.update') || can('tarifas.update');
-    const canDeleteTipos = can('hotel.delete') || can('tarifas.delete');
     const canCreate = can('hotel.create');
     const canUpdate = can('hotel.update');
     const canDelete = can('hotel.delete');
@@ -398,20 +394,6 @@ export default function Index({
                         </Can>
                     }
                 />
-
-                {hotel_catalogo_personalizado ? (
-                    <CatalogoClinicaPanel
-                        kind="hotel"
-                        rows={hotel_tipos.map((row) => ({
-                            ...row,
-                            codigo_legacy: row.codigo_legacy ?? null,
-                        }))}
-                        canCreate={canCreateTipos}
-                        canUpdate={canUpdateTipos}
-                        canDelete={canDeleteTipos}
-                        routesBase="servicios"
-                    />
-                ) : null}
 
                 <DataTable
                     columns={columns}

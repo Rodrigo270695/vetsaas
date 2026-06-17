@@ -208,7 +208,7 @@
         "description": "Configura los servicios de grooming con precio y duración. Se usan al agendar turnos y al cobrar en caja.",
         "add": "Nuevo servicio",
         "empty": "Aún no hay servicios configurados. Crea al menos uno para agendar turnos.",
-        "empty_turno": "Primero configura al menos un servicio activo en la tabla de arriba.",
+        "empty_turno": "No hay servicios activos. Configúralos en Configuración › Tarifas (pestaña Grooming).",
         "categoria_general": "General",
         "count": "{{count}} servicios",
         "activo_si": "Activo",

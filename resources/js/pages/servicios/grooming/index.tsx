@@ -21,7 +21,6 @@ import { formatAtendidoInAppTimezone } from '@/pages/clinica/historias-clinicas/
 import { GroomingDeleteDialog } from './components/grooming-delete-dialog';
 import { GroomingFormModal } from './components/grooming-form-modal';
 import { GroomingRowActions } from './components/grooming-row-actions';
-import { GroomingServiciosPanel } from './components/grooming-servicios-panel';
 import type {
     GroomingFilters,
     GroomingFiltroUi,
@@ -385,10 +384,6 @@ export default function Index({
                         </Can>
                     }
                 />
-
-                {grooming_catalogo_personalizado ? (
-                    <GroomingServiciosPanel servicios={grooming_servicios} />
-                ) : null}
 
                 <DataTable
                     columns={columns}

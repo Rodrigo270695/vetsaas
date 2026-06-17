@@ -108,7 +108,7 @@
         }
     },
     "tipos": {
-        "empty_turno": "Primero configura al menos un tipo de estancia activo en la tabla de arriba o en Configuración › Tarifas."
+        "empty_turno": "No hay tipos de estancia activos. Configúralos en Configuración › Tarifas (pestaña Hotel)."
     },
     "tipos_estancia": {
         "grupos": {
