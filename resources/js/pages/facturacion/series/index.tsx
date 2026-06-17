@@ -76,6 +76,7 @@ export default function Index({ series = [], tipos }: Props) {
     const [showForm, setShowForm] = useState(false);
     const [formTipo, setFormTipo] = useState<string>('');
     const [formSerie, setFormSerie] = useState('');
+    const [formCorrelativo, setFormCorrelativo] = useState('0');
     const [formErrors, setFormErrors] = useState<Record<string, string>>({});
     const [submitting, setSubmitting] = useState(false);
     const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -95,13 +96,18 @@ export default function Index({ series = [], tipos }: Props) {
         setSubmitting(true);
         router.post(
             '/facturacion/series',
-            { tipo_comprobante: Number(formTipo), serie: formSerie.trim().toUpperCase() },
+            {
+                tipo_comprobante: Number(formTipo),
+                serie: formSerie.trim().toUpperCase(),
+                ultimo_correlativo: Number(formCorrelativo) || 0,
+            },
             {
                 preserveScroll: true,
                 onSuccess: () => {
                     setShowForm(false);
                     setFormTipo('');
                     setFormSerie('');
+                    setFormCorrelativo('0');
                     setFormErrors({});
                 },
                 onError: (errs) => setFormErrors(errs as Record<string, string>),
@@ -205,7 +211,7 @@ export default function Index({ series = [], tipos }: Props) {
                                     Tipo de comprobante
                                 </label>
                                 <Select value={formTipo} onValueChange={setFormTipo}>
-                                    <SelectTrigger className="h-9">
+                                    <SelectTrigger className="h-9 cursor-pointer">
                                         <SelectValue placeholder="Seleccionar tipo…" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -245,6 +251,25 @@ export default function Index({ series = [], tipos }: Props) {
                                 {formErrors.serie && (
                                     <p className="text-xs text-destructive">{formErrors.serie}</p>
                                 )}
+                            </div>
+
+                            {/* Correlativo inicial */}
+                            <div className="flex min-w-[140px] flex-col gap-1">
+                                <label className="text-xs font-medium text-muted-foreground">
+                                    Correlativo inicial
+                                    <span className="ml-1 text-muted-foreground/60">(opcional)</span>
+                                </label>
+                                <Input
+                                    type="number"
+                                    value={formCorrelativo}
+                                    onChange={(e) => setFormCorrelativo(e.target.value)}
+                                    min={0}
+                                    placeholder="0"
+                                    className="h-9 font-mono tabular-nums"
+                                />
+                                <span className="text-[10px] text-muted-foreground">
+                                    Siguiente: {formSerie || '????'}-{String((Number(formCorrelativo) || 0) + 1).padStart(8, '0')}
+                                </span>
                             </div>
 
                             <Button

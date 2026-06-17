@@ -47,8 +47,9 @@ class FelSerieController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'tipo_comprobante' => ['required', 'integer', 'in:1,2,3,4,5'],
-            'serie'            => ['required', 'string', 'size:4', 'regex:/^[A-Z0-9]{4}$/'],
+            'tipo_comprobante'   => ['required', 'integer', 'in:1,2,3,4,5'],
+            'serie'              => ['required', 'string', 'size:4', 'regex:/^[A-Z0-9]{4}$/'],
+            'ultimo_correlativo' => ['nullable', 'integer', 'min:0'],
         ]);
 
         $data['serie'] = strtoupper($data['serie']);
@@ -65,7 +66,7 @@ class FelSerieController extends Controller
         FelSerie::create([
             'tipo_comprobante'   => $data['tipo_comprobante'],
             'serie'              => $data['serie'],
-            'ultimo_correlativo' => 0,
+            'ultimo_correlativo' => $data['ultimo_correlativo'] ?? 0,
             'activo'             => true,
         ]);
 
