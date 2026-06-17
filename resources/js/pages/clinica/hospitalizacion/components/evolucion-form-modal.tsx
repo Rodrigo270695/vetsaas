@@ -6,15 +6,8 @@ import { useTranslation } from 'react-i18next';
 import { FormField, FormModal, FormSection } from '@/components/forms';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import type { InternamientoEvolucionRow, UsuarioHospitalizacionOpcion } from '../types';
+import type { InternamientoEvolucionRow } from '../types';
 
 const controlClass = 'h-10 w-full min-w-0';
 
@@ -76,7 +69,6 @@ export type EvolucionFormModalProps = {
     onOpenChange: (open: boolean) => void;
     internamientoId: string;
     evolucion: InternamientoEvolucionRow | null;
-    usuariosOpciones: readonly UsuarioHospitalizacionOpcion[];
 };
 
 export function EvolucionFormModal({
@@ -84,7 +76,6 @@ export function EvolucionFormModal({
     onOpenChange,
     internamientoId,
     evolucion,
-    usuariosOpciones,
 }: EvolucionFormModalProps) {
     const { t } = useTranslation(['hospitalizacion', 'common']);
     const authUser = usePage().props.auth?.user as { id?: string } | undefined;
@@ -205,25 +196,6 @@ export function EvolucionFormModal({
                         onChange={(e) => setData('registrado_at', e.target.value)}
                         disabled={processing}
                     />
-                </FormField>
-                <FormField id="evo-vet" label={t('form.veterinario')} error={err('veterinario_id')}>
-                    <Select
-                        value={data.veterinario_id ?? '__none__'}
-                        onValueChange={(v) => setData('veterinario_id', v === '__none__' ? null : v)}
-                        disabled={processing}
-                    >
-                        <SelectTrigger id="evo-vet" className={`${controlClass} cursor-pointer`}>
-                            <SelectValue placeholder={t('form.veterinario_placeholder')} />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="__none__">{t('form.veterinario_placeholder')}</SelectItem>
-                            {usuariosOpciones.map((u) => (
-                                <SelectItem key={u.id} value={u.id}>
-                                    {u.name}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
                 </FormField>
                 <FormField
                     id="evo-texto"

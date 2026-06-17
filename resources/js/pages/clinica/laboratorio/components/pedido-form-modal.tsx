@@ -27,7 +27,6 @@ import type {
     PedidoLaboratorioLineaRow,
     PedidoLaboratorioRow,
     SedeLaboratorioOpcion,
-    UsuarioLaboratorioOpcion,
 } from '../types';
 
 const controlClass = 'h-10 w-full min-w-0';
@@ -192,7 +191,6 @@ export type PedidoFormModalProps = {
     onOpenChange: (open: boolean) => void;
     pedido: PedidoLaboratorioRow | null;
     pacientesOpciones: readonly PacienteLaboratorioOpcion[];
-    usuariosOpciones: readonly UsuarioLaboratorioOpcion[];
     sedesOpciones: readonly SedeLaboratorioOpcion[];
     consultasOpciones: readonly ConsultaLaboratorioOpcion[];
 };
@@ -202,7 +200,6 @@ export function PedidoFormModal({
     onOpenChange,
     pedido,
     pacientesOpciones,
-    usuariosOpciones,
     sedesOpciones,
     consultasOpciones,
 }: PedidoFormModalProps) {
@@ -622,30 +619,6 @@ export function PedidoFormModal({
                     icon={UserCheck}
                     columns={2}
                 >
-                    <FormField
-                        id="lab-vet"
-                        label={t('form.veterinario')}
-                        error={errors.veterinario_id as string | undefined}
-                    >
-                        <Select
-                            value={data.veterinario_id ?? '__none__'}
-                            onValueChange={(v) => setData('veterinario_id', v === '__none__' ? null : v)}
-                            disabled={processing}
-                        >
-                            <SelectTrigger id="lab-vet" className={controlClass}>
-                                <SelectValue placeholder={t('form.veterinario_placeholder')} />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="__none__">{t('form.veterinario_placeholder')}</SelectItem>
-                                {usuariosOpciones.map((u) => (
-                                    <SelectItem key={u.id} value={u.id}>
-                                        {u.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </FormField>
-
                     <SedeFormField
                         id="lab-sede"
                         label={t('form.sede')}

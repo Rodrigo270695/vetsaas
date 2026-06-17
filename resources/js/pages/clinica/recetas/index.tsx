@@ -482,7 +482,6 @@ export default function Index({
                 }}
                 receta={modal.type === 'edit' ? modal.receta : null}
                 pacientesOpciones={pacientes_opciones}
-                usuariosOpciones={usuarios_opciones}
                 sedesOpciones={sedes_opciones}
                 consultasOpciones={consultas_opciones}
             />

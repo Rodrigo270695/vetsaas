@@ -336,7 +336,6 @@ export default function Show({ internamiento, usuarios_opciones, cobro }: Props)
                 }}
                 internamientoId={internamiento.id}
                 evolucion={evoModal.type === 'edit' ? evoModal.evolucion : null}
-                usuariosOpciones={usuarios_opciones}
             />
 
             <EvolucionDeleteDialog

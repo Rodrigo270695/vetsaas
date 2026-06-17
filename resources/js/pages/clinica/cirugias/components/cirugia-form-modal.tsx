@@ -24,7 +24,6 @@ import type {
     ConsultaCirugiaOpcion,
     PacienteCirugiaOpcion,
     SedeCirugiaOpcion,
-    UsuarioCirugiaOpcion,
 } from '../types';
 
 const controlClass = 'h-10 w-full min-w-0';
@@ -119,7 +118,6 @@ export type CirugiaFormModalProps = {
     onOpenChange: (open: boolean) => void;
     cirugia: CirugiaRow | null;
     pacientesOpciones: readonly PacienteCirugiaOpcion[];
-    usuariosOpciones: readonly UsuarioCirugiaOpcion[];
     sedesOpciones: readonly SedeCirugiaOpcion[];
     consultasOpciones: readonly ConsultaCirugiaOpcion[];
 };
@@ -129,7 +127,6 @@ export function CirugiaFormModal({
     onOpenChange,
     cirugia,
     pacientesOpciones,
-    usuariosOpciones,
     sedesOpciones,
     consultasOpciones,
 }: CirugiaFormModalProps) {
@@ -478,30 +475,8 @@ export function CirugiaFormModal({
                     index={1}
                     title={t('form.section_context')}
                     description={t('form.section_context_hint')}
-                    columns={2}
+                    columns={1}
                 >
-                    <FormField id="cirugia-vet" label={t('form.veterinario')} error={err('veterinario_id')}>
-                        <Select
-                            value={data.veterinario_id ?? '__none__'}
-                            onValueChange={(v) =>
-                                setData('veterinario_id', v === '__none__' ? null : v)
-                            }
-                            disabled={processing}
-                        >
-                            <SelectTrigger id="cirugia-vet" className={`${controlClass} cursor-pointer`}>
-                                <SelectValue placeholder={t('form.veterinario_placeholder')} />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="__none__">{t('form.veterinario_placeholder')}</SelectItem>
-                                {usuariosOpciones.map((u) => (
-                                    <SelectItem key={u.id} value={u.id}>
-                                        {u.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </FormField>
-
                     <SedeFormField
                         id="cirugia-sede"
                         label={t('form.sede')}

@@ -613,7 +613,6 @@ export default function Index({
                 cita={modal.type === 'edit' ? modal.cita : null}
                 prefill={modal.type === 'create' ? modal.prefill ?? null : null}
                 pacientesOpciones={pacientes_opciones}
-                usuariosOpciones={usuarios_opciones}
                 sedesOpciones={sedes_opciones}
             />
 

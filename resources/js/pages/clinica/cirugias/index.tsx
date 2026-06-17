@@ -491,7 +491,6 @@ export default function Index({
                 }}
                 cirugia={modal.type === 'edit' ? modal.cirugia : null}
                 pacientesOpciones={pacientes_opciones}
-                usuariosOpciones={usuarios_opciones}
                 sedesOpciones={sedes_opciones}
                 consultasOpciones={consultas_opciones}
             />

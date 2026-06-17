@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\AssignsAuthenticatedVeterinario;
 use App\Models\Consulta;
 use App\Models\Internamiento;
 use Illuminate\Foundation\Http\FormRequest;
@@ -9,6 +10,8 @@ use Illuminate\Validation\Rule;
 
 class StoreInternamientoRequest extends FormRequest
 {
+    use AssignsAuthenticatedVeterinario;
+
     public function authorize(): bool
     {
         return $this->user()?->can('hospitalizacion.create') ?? false;
@@ -36,6 +39,8 @@ class StoreInternamientoRequest extends FormRequest
         if ($out !== []) {
             $this->merge($out);
         }
+
+        $this->mergeAuthenticatedVeterinario();
     }
 
     public function withValidator(\Illuminate\Validation\Validator $validator): void

@@ -510,7 +510,6 @@ export default function Index({
                 }}
                 internamiento={modal.type === 'edit' ? modal.internamiento : null}
                 pacientesOpciones={pacientes_opciones}
-                usuariosOpciones={usuarios_opciones}
                 sedesOpciones={sedes_opciones}
                 consultasOpciones={consultas_opciones}
             />

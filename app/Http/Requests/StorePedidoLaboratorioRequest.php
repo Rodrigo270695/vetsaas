@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\AssignsAuthenticatedVeterinario;
 use App\Models\Consulta;
 use App\Models\PedidoLaboratorio;
 use Illuminate\Foundation\Http\FormRequest;
@@ -9,6 +10,8 @@ use Illuminate\Validation\Rule;
 
 class StorePedidoLaboratorioRequest extends FormRequest
 {
+    use AssignsAuthenticatedVeterinario;
+
     public function authorize(): bool
     {
         return $this->user()?->can('laboratorio.create') ?? false;
@@ -63,6 +66,8 @@ class StorePedidoLaboratorioRequest extends FormRequest
         if ($out !== []) {
             $this->merge($out);
         }
+
+        $this->mergeAuthenticatedVeterinario();
     }
 
     public function withValidator(\Illuminate\Validation\Validator $validator): void

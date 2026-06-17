@@ -19,7 +19,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { resolveDefaultSedeId } from '@/lib/default-sede';
 import { cn } from '@/lib/utils';
 import clinica from '@/routes/clinica';
-import type { CitaFormPrefill, CitaRow, PacienteCitaOpcion, SedeCitaOpcion, UsuarioCitaOpcion } from '../types';
+import type { CitaFormPrefill, CitaRow, PacienteCitaOpcion, SedeCitaOpcion } from '../types';
 import { formatDateOnlyLabel } from '../../historias-clinicas/format-atendido';
 
 const controlClass = 'h-10 w-full min-w-0';
@@ -77,7 +77,6 @@ export type CitaFormModalProps = {
     cita: CitaRow | null;
     prefill?: CitaFormPrefill | null;
     pacientesOpciones: readonly PacienteCitaOpcion[];
-    usuariosOpciones: readonly UsuarioCitaOpcion[];
     sedesOpciones: readonly SedeCitaOpcion[];
 };
 
@@ -127,7 +126,6 @@ export function CitaFormModal({
     cita,
     prefill,
     pacientesOpciones,
-    usuariosOpciones,
     sedesOpciones,
 }: CitaFormModalProps) {
     const { t, i18n } = useTranslation(['citas', 'common']);
@@ -404,30 +402,6 @@ export function CitaFormModal({
                         aria-invalid={Boolean(errors.notas)}
                         disabled={processing}
                     />
-                </FormField>
-
-                <FormField
-                    id="cf-vet"
-                    label={t('form.veterinario')}
-                    error={errors.veterinario_id as string | undefined}
-                >
-                    <Select
-                        value={data.veterinario_id ?? '__none__'}
-                        onValueChange={(v) => setData('veterinario_id', v === '__none__' ? null : v)}
-                        disabled={processing}
-                    >
-                        <SelectTrigger id="cf-vet" className={controlClass}>
-                            <SelectValue placeholder={t('form.veterinario_placeholder')} />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="__none__">{t('form.veterinario_placeholder')}</SelectItem>
-                            {usuariosOpciones.map((u) => (
-                                <SelectItem key={u.id} value={u.id}>
-                                    {u.name}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
                 </FormField>
 
                 <SedeFormField

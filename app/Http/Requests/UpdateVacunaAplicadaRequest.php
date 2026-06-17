@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\AssignsAuthenticatedVeterinario;
 use App\Models\Consulta;
 use App\Models\VacunaAplicada;
 use Illuminate\Foundation\Http\FormRequest;
@@ -9,6 +10,8 @@ use Illuminate\Validation\Rule;
 
 class UpdateVacunaAplicadaRequest extends FormRequest
 {
+    use AssignsAuthenticatedVeterinario;
+
     public function authorize(): bool
     {
         return $this->user()?->can('vacunaciones.update') ?? false;
@@ -41,6 +44,8 @@ class UpdateVacunaAplicadaRequest extends FormRequest
         if ($out !== []) {
             $this->merge($out);
         }
+
+        $this->stripVeterinarioFromUpdate();
     }
 
     public function withValidator(\Illuminate\Validation\Validator $validator): void
@@ -92,13 +97,6 @@ class UpdateVacunaAplicadaRequest extends FormRequest
             'numero_dosis' => ['nullable', 'integer', 'min:1', 'max:99'],
             'lote' => ['nullable', 'string', 'max:128'],
             'notas' => ['nullable', 'string', 'max:20000'],
-            'veterinario_id' => [
-                'nullable',
-                'uuid',
-                Rule::exists('users', 'id')->where(
-                    fn ($q) => $q->where('tenant_id', $tenantId),
-                ),
-            ],
             'sede_id' => [
                 $this->filled('producto_id') ? 'required' : 'nullable',
                 'uuid',

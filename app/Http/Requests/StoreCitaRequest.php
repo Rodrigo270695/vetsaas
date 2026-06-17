@@ -2,11 +2,14 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\AssignsAuthenticatedVeterinario;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class StoreCitaRequest extends FormRequest
 {
+    use AssignsAuthenticatedVeterinario;
+
     public function authorize(): bool
     {
         return $this->user()?->can('citas.create') ?? false;
@@ -32,6 +35,8 @@ class StoreCitaRequest extends FormRequest
         if ($out !== []) {
             $this->merge($out);
         }
+
+        $this->mergeAuthenticatedVeterinario();
     }
 
     /**

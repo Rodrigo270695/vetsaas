@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\AssignsAuthenticatedVeterinario;
 use App\Models\Consulta;
 use App\Models\Receta;
 use Illuminate\Foundation\Http\FormRequest;
@@ -9,6 +10,8 @@ use Illuminate\Validation\Rule;
 
 class StoreRecetaRequest extends FormRequest
 {
+    use AssignsAuthenticatedVeterinario;
+
     public function authorize(): bool
     {
         return $this->user()?->can('recetas.create') ?? false;
@@ -58,6 +61,8 @@ class StoreRecetaRequest extends FormRequest
         if ($out !== []) {
             $this->merge($out);
         }
+
+        $this->mergeAuthenticatedVeterinario();
     }
 
     public function withValidator(\Illuminate\Validation\Validator $validator): void

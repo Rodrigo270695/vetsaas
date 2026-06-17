@@ -573,7 +573,6 @@ export default function Index({
                 }}
                 pedido={modal.type === 'edit' ? modal.pedido : null}
                 pacientesOpciones={pacientes_opciones}
-                usuariosOpciones={usuarios_opciones}
                 sedesOpciones={sedes_opciones}
                 consultasOpciones={consultas_opciones}
             />

@@ -26,7 +26,6 @@ import type {
     RecetaLineaRow,
     RecetaRow,
     SedeRecetaOpcion,
-    UsuarioRecetaOpcion,
 } from '../types';
 import { RecetaProductoPicker } from './receta-producto-picker';
 import type { RecetaProductoOption } from './receta-producto-picker';
@@ -175,7 +174,6 @@ export type RecetaFormModalProps = {
     onOpenChange: (open: boolean) => void;
     receta: RecetaRow | null;
     pacientesOpciones: readonly PacienteRecetaOpcion[];
-    usuariosOpciones: readonly UsuarioRecetaOpcion[];
     sedesOpciones: readonly SedeRecetaOpcion[];
     consultasOpciones: readonly ConsultaRecetaOpcion[];
 };
@@ -188,7 +186,6 @@ export function RecetaFormModal({
     onOpenChange,
     receta,
     pacientesOpciones,
-    usuariosOpciones,
     sedesOpciones,
     consultasOpciones,
 }: RecetaFormModalProps) {
@@ -598,30 +595,6 @@ export function RecetaFormModal({
                     description={t('form.section_context_hint')}
                     columns={2}
                 >
-                    <FormField
-                        id="rf-vet"
-                        label={t('form.veterinario')}
-                        error={errors.veterinario_id as string | undefined}
-                    >
-                        <Select
-                            value={data.veterinario_id ?? '__none__'}
-                            onValueChange={(v) => setData('veterinario_id', v === '__none__' ? null : v)}
-                            disabled={processing}
-                        >
-                            <SelectTrigger id="rf-vet" className={controlClass}>
-                                <SelectValue placeholder={t('form.veterinario_placeholder')} />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="__none__">{t('form.veterinario_placeholder')}</SelectItem>
-                                {usuariosOpciones.map((u) => (
-                                    <SelectItem key={u.id} value={u.id}>
-                                        {u.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </FormField>
-
                     <SedeFormField
                         id="rf-sede"
                         label={t('form.sede')}

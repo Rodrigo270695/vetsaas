@@ -510,7 +510,6 @@ export default function Index({
                 }}
                 vacuna={modal.type === 'edit' ? modal.vacuna : null}
                 pacientesOpciones={pacientes_opciones}
-                usuariosOpciones={usuarios_opciones}
                 sedesOpciones={sedes_opciones}
                 prefillCreate={modal.type === 'create' ? vacuna_prefill : null}
             />

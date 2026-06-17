@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\AssignsAuthenticatedVeterinario;
 use App\Models\Consulta;
 use App\Models\PedidoLaboratorio;
 use Illuminate\Foundation\Http\FormRequest;
@@ -9,6 +10,8 @@ use Illuminate\Validation\Rule;
 
 class UpdatePedidoLaboratorioRequest extends FormRequest
 {
+    use AssignsAuthenticatedVeterinario;
+
     public function authorize(): bool
     {
         return $this->user()?->can('laboratorio.update') ?? false;
@@ -63,6 +66,8 @@ class UpdatePedidoLaboratorioRequest extends FormRequest
         if ($out !== []) {
             $this->merge($out);
         }
+
+        $this->stripVeterinarioFromUpdate();
     }
 
     public function withValidator(\Illuminate\Validation\Validator $validator): void
@@ -99,13 +104,6 @@ class UpdatePedidoLaboratorioRequest extends FormRequest
                 ),
             ],
             'consulta_id' => ['nullable', 'uuid', 'exists:consultas,id'],
-            'veterinario_id' => [
-                'nullable',
-                'uuid',
-                Rule::exists('users', 'id')->where(
-                    fn ($q) => $q->where('tenant_id', $tenantId),
-                ),
-            ],
             'sede_id' => [
                 'nullable',
                 'uuid',

@@ -2,12 +2,15 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\AssignsAuthenticatedVeterinario;
 use App\Models\Cita;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class UpdateCitaRequest extends FormRequest
 {
+    use AssignsAuthenticatedVeterinario;
+
     public function authorize(): bool
     {
         return $this->user()?->can('citas.update') ?? false;
@@ -33,6 +36,8 @@ class UpdateCitaRequest extends FormRequest
         if ($out !== []) {
             $this->merge($out);
         }
+
+        $this->stripVeterinarioFromUpdate();
     }
 
     /**
@@ -48,13 +53,6 @@ class UpdateCitaRequest extends FormRequest
                 'uuid',
                 Rule::exists('pacientes', 'id')->where(
                     fn ($q) => $q->where('activo', true),
-                ),
-            ],
-            'veterinario_id' => [
-                'nullable',
-                'uuid',
-                Rule::exists('users', 'id')->where(
-                    fn ($q) => $q->where('tenant_id', $tenantId),
                 ),
             ],
             'sede_id' => [

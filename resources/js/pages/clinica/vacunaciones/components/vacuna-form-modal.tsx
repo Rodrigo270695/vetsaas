@@ -21,7 +21,6 @@ import { formatAtendidoInAppTimezone } from '../../historias-clinicas/format-ate
 import type {
     PacienteVacunaOpcion,
     SedeVacunaOpcion,
-    UsuarioVacunaOpcion,
     VacunaAplicadaRow,
     VacunaPrefillCreate,
 } from '../types';
@@ -75,7 +74,6 @@ export type VacunaFormModalProps = {
     onOpenChange: (open: boolean) => void;
     vacuna: VacunaAplicadaRow | null;
     pacientesOpciones: readonly PacienteVacunaOpcion[];
-    usuariosOpciones: readonly UsuarioVacunaOpcion[];
     sedesOpciones: readonly SedeVacunaOpcion[];
     /** Desde `vacuna_prefill` del servidor al crear (p. ej. URL con prefill). */
     prefillCreate?: VacunaPrefillCreate | null;
@@ -141,7 +139,6 @@ export function VacunaFormModal({
     onOpenChange,
     vacuna,
     pacientesOpciones,
-    usuariosOpciones,
     sedesOpciones,
     prefillCreate = null,
 }: VacunaFormModalProps) {
@@ -430,31 +427,6 @@ export function VacunaFormModal({
                         />
                     </FormField>
                 </div>
-
-                <FormField
-                    id="vf-vet"
-                    label={t('form.veterinario')}
-                    error={errors.veterinario_id as string | undefined}
-                >
-                    <Select
-                        value={data.veterinario_id ?? '__none__'}
-                        onValueChange={(v) =>
-                            setData('veterinario_id', v === '__none__' ? null : v)
-                        }
-                    >
-                        <SelectTrigger id="vf-vet" className={controlClass}>
-                            <SelectValue placeholder={t('form.veterinario_placeholder')} />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="__none__">{t('form.veterinario_placeholder')}</SelectItem>
-                            {usuariosOpciones.map((u) => (
-                                <SelectItem key={u.id} value={u.id}>
-                                    {u.name}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </FormField>
 
                 <SedeFormField
                     id="vf-sede"
