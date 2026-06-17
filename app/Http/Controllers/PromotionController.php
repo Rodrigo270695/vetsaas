@@ -12,6 +12,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -32,6 +33,10 @@ class PromotionController extends Controller
 
     public function index(Request $request): Response
     {
+        if (! Schema::hasTable('promotions')) {
+            abort(503, 'Faltan migraciones del tenant (promotions). Ejecuta: php artisan vetsaas:tenant-migrate-all --slug=<tu-clinica>');
+        }
+
         $search = trim((string) $request->string('search', ''));
         $perPageRequested = (int) $request->integer('per_page', 10);
         $perPage = in_array($perPageRequested, self::PER_PAGE_OPTIONS, true) ? $perPageRequested : 10;
@@ -159,19 +164,22 @@ class PromotionController extends Controller
             ];
         }
 
-        $servicios = GroomingServicio::query()
-            ->where('activo', true)
-            ->orderBy('nombre')
-            ->get(['slug', 'nombre']);
+        if (Schema::hasTable('grooming_servicios')) {
+            $servicios = GroomingServicio::query()
+                ->where('activo', true)
+                ->orderBy('nombre')
+                ->get(['codigo_legacy', 'nombre']);
 
-        foreach ($servicios as $servicio) {
-            if ($servicio->slug === null) {
-                continue;
+            foreach ($servicios as $servicio) {
+                $legacy = trim((string) ($servicio->codigo_legacy ?? ''));
+                if ($legacy === '') {
+                    continue;
+                }
+                $options[$legacy] = [
+                    'value' => $legacy,
+                    'label' => $servicio->nombre,
+                ];
             }
-            $options[$servicio->slug] = [
-                'value' => $servicio->slug,
-                'label' => $servicio->nombre,
-            ];
         }
 
         return array_values($options);
