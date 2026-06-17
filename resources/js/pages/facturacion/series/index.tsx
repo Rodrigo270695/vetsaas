@@ -204,83 +204,117 @@ export default function Index({ series = [], tipos }: Props) {
                             </button>
                         </div>
 
-                        <div className="flex flex-wrap items-end gap-3">
-                            {/* Tipo */}
-                            <div className="flex min-w-[200px] flex-1 flex-col gap-1">
-                                <label className="text-xs font-medium text-muted-foreground">
-                                    Tipo de comprobante
-                                </label>
-                                <Select value={formTipo} onValueChange={setFormTipo}>
-                                    <SelectTrigger className="h-9 cursor-pointer">
-                                        <SelectValue placeholder="Seleccionar tipo…" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {tiposResolved.map((t) => (
-                                            <SelectItem key={t.value} value={String(t.value)}>
-                                                {t.label}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                {formErrors.tipo_comprobante && (
-                                    <p className="text-xs text-destructive">{formErrors.tipo_comprobante}</p>
-                                )}
+                        <div className="flex flex-col gap-3">
+                            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_9rem_7rem_auto] sm:items-end">
+                                {/* Tipo */}
+                                <div className="flex min-w-0 flex-col gap-1.5">
+                                    <label
+                                        htmlFor="serie-tipo"
+                                        className="text-xs font-medium text-muted-foreground"
+                                    >
+                                        Tipo de comprobante
+                                    </label>
+                                    <Select value={formTipo} onValueChange={setFormTipo}>
+                                        <SelectTrigger id="serie-tipo" className="h-9 w-full cursor-pointer">
+                                            <SelectValue placeholder="Seleccionar tipo…" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {tiposResolved.map((t) => (
+                                                <SelectItem key={t.value} value={String(t.value)}>
+                                                    {t.label}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <p className="min-h-4 text-xs text-destructive">
+                                        {formErrors.tipo_comprobante ?? ''}
+                                    </p>
+                                </div>
+
+                                {/* Serie */}
+                                <div className="flex flex-col gap-1.5">
+                                    <label
+                                        htmlFor="serie-codigo"
+                                        className="text-xs font-medium text-muted-foreground"
+                                    >
+                                        Serie (4 chars)
+                                    </label>
+                                    <Input
+                                        id="serie-codigo"
+                                        value={formSerie}
+                                        onChange={(e) =>
+                                            setFormSerie(
+                                                e.target.value
+                                                    .toUpperCase()
+                                                    .replace(/[^A-Z0-9]/g, '')
+                                                    .slice(0, 4),
+                                            )
+                                        }
+                                        placeholder="F001"
+                                        maxLength={4}
+                                        className="h-9 font-mono tracking-widest"
+                                    />
+                                    <p className="min-h-4 text-xs text-destructive">
+                                        {formErrors.serie ?? ''}
+                                    </p>
+                                </div>
+
+                                {/* Correlativo inicial */}
+                                <div className="flex flex-col gap-1.5">
+                                    <label
+                                        htmlFor="serie-correlativo"
+                                        className="text-xs font-medium text-muted-foreground"
+                                    >
+                                        Correlativo
+                                        <span className="font-normal text-muted-foreground/60"> (opc.)</span>
+                                    </label>
+                                    <Input
+                                        id="serie-correlativo"
+                                        type="number"
+                                        value={formCorrelativo}
+                                        onChange={(e) => setFormCorrelativo(e.target.value)}
+                                        min={0}
+                                        placeholder="0"
+                                        className="h-9 font-mono tabular-nums"
+                                    />
+                                    <p className="min-h-4 text-xs text-transparent select-none" aria-hidden>
+                                        .
+                                    </p>
+                                </div>
+
+                                <Button
+                                    type="button"
+                                    onClick={handleStore}
+                                    disabled={submitting}
+                                    size="sm"
+                                    className="h-9 w-full cursor-pointer gap-2 sm:w-auto sm:shrink-0"
+                                >
+                                    <Plus className="size-4" />
+                                    Guardar
+                                </Button>
                             </div>
 
-                            {/* Serie */}
-                            <div className="flex min-w-[160px] flex-1 flex-col gap-1">
-                                <label className="text-xs font-medium text-muted-foreground">
-                                    Serie (4 caracteres)
+                            {(selectedTipo || formSerie) && (
+                                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-primary/10 pt-3 text-xs text-muted-foreground">
                                     {selectedTipo && (
-                                        <span className="ml-2 text-muted-foreground/70">
-                                            — {selectedTipo.hint}
+                                        <span>
+                                            Formato:{' '}
+                                            <span className="font-medium text-foreground">
+                                                {selectedTipo.hint}
+                                            </span>
                                         </span>
                                     )}
-                                </label>
-                                <Input
-                                    value={formSerie}
-                                    onChange={(e) =>
-                                        setFormSerie(
-                                            e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4),
-                                        )
-                                    }
-                                    placeholder="F001"
-                                    maxLength={4}
-                                    className="h-9 font-mono tracking-widest"
-                                />
-                                {formErrors.serie && (
-                                    <p className="text-xs text-destructive">{formErrors.serie}</p>
-                                )}
-                            </div>
-
-                            {/* Correlativo inicial */}
-                            <div className="flex min-w-[140px] flex-col gap-1">
-                                <label className="text-xs font-medium text-muted-foreground">
-                                    Correlativo inicial
-                                    <span className="ml-1 text-muted-foreground/60">(opcional)</span>
-                                </label>
-                                <Input
-                                    type="number"
-                                    value={formCorrelativo}
-                                    onChange={(e) => setFormCorrelativo(e.target.value)}
-                                    min={0}
-                                    placeholder="0"
-                                    className="h-9 font-mono tabular-nums"
-                                />
-                                <span className="text-[10px] text-muted-foreground">
-                                    Siguiente: {formSerie || '????'}-{String((Number(formCorrelativo) || 0) + 1).padStart(8, '0')}
-                                </span>
-                            </div>
-
-                            <Button
-                                onClick={handleStore}
-                                disabled={submitting}
-                                size="sm"
-                                className="h-9 cursor-pointer gap-2"
-                            >
-                                <Plus className="size-4" />
-                                Guardar
-                            </Button>
+                                    {formSerie && (
+                                        <span>
+                                            Próximo número:{' '}
+                                            <span className="font-mono font-medium text-foreground">
+                                                {formSerie}-
+                                                {String((Number(formCorrelativo) || 0) + 1).padStart(8, '0')}
+                                            </span>
+                                        </span>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}
