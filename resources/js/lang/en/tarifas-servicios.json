@@ -5,26 +5,51 @@
         "grooming": "Grooming",
         "hotel": "Boarding / hotel"
     },
+    "stats": {
+        "total": "Total",
+        "active": "Active",
+        "inactive": "Inactive",
+        "on_screen": "On screen"
+    },
+    "search": {
+        "grooming": "Search grooming service or code…",
+        "hotel": "Search stay type or code…"
+    },
     "columns": {
         "servicio": "Service",
         "tipo": "Stay type",
         "precio": "List price",
         "moneda": "Currency",
-        "activo": "Active"
+        "activo": "Status",
+        "acciones": "Actions"
     },
     "actions": {
         "nueva_grooming": "New grooming rate",
         "nueva_hotel": "New hotel rate",
+        "new_short": "New",
         "editar": "Edit",
         "eliminar": "Delete"
     },
     "form": {
+        "title_create_grooming": "New grooming rate",
+        "title_create_hotel": "New hotel rate",
+        "title_edit": "Edit rate",
+        "description_grooming": "Set the suggested list price for a grooming service at checkout.",
+        "description_hotel": "Set the suggested list price per night or stay at checkout.",
         "servicio": "Service type",
         "tipo_estancia": "Stay type",
         "precio_lista": "List price",
         "moneda": "Currency",
-        "activo": "Active rate",
+        "estado": "Status",
+        "activo": "Active rate (shown at checkout)",
+        "codigo_placeholder": "Select a catalog service…",
+        "codigo_search": "Search service…",
+        "codigo_empty": "No matching services.",
+        "codigo_locked": "The service cannot be changed when editing.",
+        "moneda_placeholder": "Select currency…",
         "guardar": "Save",
+        "submit_create": "Create rate",
+        "submit_edit": "Save changes",
         "cancelar": "Cancel"
     },
     "delete": {
@@ -33,8 +58,10 @@
         "confirm": "Delete"
     },
     "empty": {
-        "grooming": "No grooming rates yet. Add one to suggest prices when charging appointments.",
-        "hotel": "No hotel rates yet. Add one to suggest nightly prices when charging stays."
+        "grooming_title": "No grooming rates",
+        "hotel_title": "No hotel rates",
+        "grooming": "Create a rate to suggest prices when charging grooming appointments.",
+        "hotel": "Create a rate to suggest nightly prices when charging stays."
     },
     "toast": {
         "load_error": "Could not load rates."

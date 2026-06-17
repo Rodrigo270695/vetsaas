@@ -1,20 +1,12 @@
 import { router, useForm } from '@inertiajs/react';
 import { Loader2 } from 'lucide-react';
-import { useEffect, type FormEvent } from 'react';
+import { useEffect, useMemo, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FormField, FormModal } from '@/components/forms';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
 import { Input } from '@/components/ui/input';
-import {
-    Select,
-    SelectContent,
-    SelectGroup,
-    SelectItem,
-    SelectLabel,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import type { CatalogoGrupo, GroomingTarifa, HotelTarifa } from '../types';
 
 type TarifaKind = 'grooming' | 'hotel';
@@ -43,12 +35,44 @@ const empty: FormData = {
     activo: true,
 };
 
+const MONEDA_OPTIONS: ComboboxOption[] = [
+    { value: 'PEN', label: 'PEN — Soles' },
+    { value: 'USD', label: 'USD — Dólares' },
+];
+
 export function TarifaFormModal({ kind, open, onOpenChange, tarifa, catalogo }: TarifaFormModalProps) {
     const { t } = useTranslation(['tarifas-servicios', 'grooming', 'hotel', 'common']);
     const isEdit = tarifa !== null;
     const isGrooming = kind === 'grooming';
 
     const { data, setData, processing, errors, reset, clearErrors } = useForm<FormData>(empty);
+
+    const labelForSlug = (slug: string) => {
+        if (isGrooming) {
+            return t(`grooming:tipos_servicio.${slug}`, { defaultValue: slug });
+        }
+
+        return t(`hotel:tipos_estancia.${slug}`, { defaultValue: slug });
+    };
+
+    const catalogoOptions = useMemo<ComboboxOption[]>(() => {
+        const options: ComboboxOption[] = [];
+
+        for (const grupo of catalogo) {
+            const groupLabel = isGrooming
+                ? t(`grooming:grupos.${grupo.grupo}`, { defaultValue: grupo.grupo })
+                : t(`hotel:grupos.${grupo.grupo}`, { defaultValue: grupo.grupo });
+
+            for (const slug of grupo.items) {
+                options.push({
+                    value: slug,
+                    label: `${groupLabel} · ${labelForSlug(slug)}`,
+                });
+            }
+        }
+
+        return options;
+    }, [catalogo, isGrooming, t]);
 
     useEffect(() => {
         if (!open) {
@@ -80,13 +104,8 @@ export function TarifaFormModal({ kind, open, onOpenChange, tarifa, catalogo }: 
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, tarifa?.id, kind]);
 
-    const labelForSlug = (slug: string) => {
-        if (isGrooming) {
-            return t(`grooming:tipos_servicio.${slug}`, { defaultValue: slug });
-        }
-
-        return t(`hotel:tipos_estancia.${slug}`, { defaultValue: slug });
-    };
+    const codigoValue = isGrooming ? data.servicio : data.tipo_estancia;
+    const codigoField = isGrooming ? 'servicio' : 'tipo_estancia';
 
     const onSubmit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -120,93 +139,106 @@ export function TarifaFormModal({ kind, open, onOpenChange, tarifa, catalogo }: 
         router.post(url, payload, opts);
     };
 
-    const codigoValue = isGrooming ? data.servicio : data.tipo_estancia;
-    const codigoField = isGrooming ? 'servicio' : 'tipo_estancia';
+    const canSubmit =
+        codigoValue.trim() !== '' &&
+        data.precio_lista.trim() !== '' &&
+        !Number.isNaN(Number(data.precio_lista));
 
     return (
         <FormModal
             open={open}
             onOpenChange={onOpenChange}
+            size="md"
             title={
                 isEdit
-                    ? t('actions.editar')
+                    ? t('form.title_edit')
                     : isGrooming
-                      ? t('actions.nueva_grooming')
-                      : t('actions.nueva_hotel')
+                      ? t('form.title_create_grooming')
+                      : t('form.title_create_hotel')
             }
-        >
-            <form onSubmit={onSubmit} className="flex flex-col gap-4">
-                <FormField
-                    label={isGrooming ? t('form.servicio') : t('form.tipo_estancia')}
-                    error={errors[codigoField]}
-                >
-                    <Select
-                        value={codigoValue || undefined}
-                        onValueChange={(v) => setData(codigoField, v)}
-                        disabled={isEdit}
-                    >
-                        <SelectTrigger>
-                            <SelectValue placeholder={t('common:select.placeholder')} />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {catalogo.map((grupo) => (
-                                <SelectGroup key={grupo.grupo}>
-                                    <SelectLabel>
-                                        {isGrooming
-                                            ? t(`grooming:grupos.${grupo.grupo}`, { defaultValue: grupo.grupo })
-                                            : t(`hotel:grupos.${grupo.grupo}`, { defaultValue: grupo.grupo })}
-                                    </SelectLabel>
-                                    {grupo.items.map((slug) => (
-                                        <SelectItem key={slug} value={slug}>
-                                            {labelForSlug(slug)}
-                                        </SelectItem>
-                                    ))}
-                                </SelectGroup>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </FormField>
-
-                <FormField label={t('form.precio_lista')} error={errors.precio_lista}>
-                    <Input
-                        type="number"
-                        min={0}
-                        step="0.01"
-                        value={data.precio_lista}
-                        onChange={(e) => setData('precio_lista', e.target.value)}
-                    />
-                </FormField>
-
-                <FormField label={t('form.moneda')} error={errors.moneda}>
-                    <Select value={data.moneda} onValueChange={(v) => setData('moneda', v)}>
-                        <SelectTrigger>
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="PEN">PEN</SelectItem>
-                            <SelectItem value="USD">USD</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </FormField>
-
-                <label className="flex items-center gap-2 text-sm">
-                    <Checkbox
-                        checked={data.activo}
-                        onCheckedChange={(c) => setData('activo', c === true)}
-                    />
-                    {t('form.activo')}
-                </label>
-
-                <div className="flex justify-end gap-2 pt-2">
-                    <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            description={isGrooming ? t('form.description_grooming') : t('form.description_hotel')}
+            onSubmit={onSubmit}
+            footer={
+                <>
+                    <Button type="button" variant="outline" disabled={processing} onClick={() => onOpenChange(false)}>
                         {t('form.cancelar')}
                     </Button>
-                    <Button type="submit" disabled={processing}>
-                        {processing ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
-                        {t('form.guardar')}
+                    <Button type="submit" disabled={processing || !canSubmit} className="gap-2">
+                        {processing ? <Loader2 className="size-4 animate-spin" /> : null}
+                        {isEdit ? t('form.submit_edit') : t('form.submit_create')}
                     </Button>
+                </>
+            }
+        >
+            <div className="grid gap-5">
+                <FormField
+                    id="tarifa-codigo"
+                    label={isGrooming ? t('form.servicio') : t('form.tipo_estancia')}
+                    error={errors[codigoField]}
+                    required
+                    hint={isEdit ? t('form.codigo_locked') : undefined}
+                >
+                    <Combobox
+                        id="tarifa-codigo"
+                        options={catalogoOptions}
+                        value={codigoValue || null}
+                        onChange={(value) => setData(codigoField, value ?? '')}
+                        placeholder={t('form.codigo_placeholder')}
+                        searchPlaceholder={t('form.codigo_search')}
+                        emptyMessage={t('form.codigo_empty')}
+                        disabled={isEdit}
+                        clearable={!isEdit}
+                        aria-invalid={Boolean(errors[codigoField])}
+                    />
+                </FormField>
+
+                <div className="grid gap-5 sm:grid-cols-2">
+                    <FormField
+                        id="tarifa-precio"
+                        label={t('form.precio_lista')}
+                        error={errors.precio_lista}
+                        required
+                    >
+                        <Input
+                            id="tarifa-precio"
+                            type="number"
+                            min={0}
+                            step="0.01"
+                            inputMode="decimal"
+                            value={data.precio_lista}
+                            onChange={(e) => setData('precio_lista', e.target.value)}
+                            className="tabular-nums"
+                            aria-invalid={Boolean(errors.precio_lista)}
+                        />
+                    </FormField>
+
+                    <FormField id="tarifa-moneda" label={t('form.moneda')} error={errors.moneda} required>
+                        <Combobox
+                            id="tarifa-moneda"
+                            options={MONEDA_OPTIONS}
+                            value={data.moneda || null}
+                            onChange={(value) => setData('moneda', value ?? 'PEN')}
+                            placeholder={t('form.moneda_placeholder')}
+                            clearable={false}
+                            aria-invalid={Boolean(errors.moneda)}
+                        />
+                    </FormField>
                 </div>
-            </form>
+
+                <FormField id="tarifa-activo" label={t('form.estado')}>
+                    <label
+                        htmlFor="tarifa-activo"
+                        className="flex cursor-pointer items-center gap-3 rounded-lg border border-border/60 bg-muted/25 px-4 py-3 text-sm transition-colors hover:bg-muted/40"
+                    >
+                        <Checkbox
+                            id="tarifa-activo"
+                            checked={data.activo}
+                            onCheckedChange={(checked) => setData('activo', checked === true)}
+                        />
+                        <span className="leading-snug">{t('form.activo')}</span>
+                    </label>
+                </FormField>
+            </div>
         </FormModal>
     );
 }

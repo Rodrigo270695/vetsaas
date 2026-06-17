@@ -1,25 +1,28 @@
 import { Head, router } from '@inertiajs/react';
-import { Plus, Tags, Trash2 } from 'lucide-react';
-import type { ReactNode } from 'react';
-import { useCallback, useMemo, useState } from 'react';
+import {
+    Ban,
+    BedDouble,
+    CheckCircle2,
+    LayoutGrid,
+    Plus,
+    Scissors,
+    ShieldCheck,
+    Tags,
+} from 'lucide-react';
+import type { LucideIcon, ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Can } from '@/components/can';
-import { DataPagination, DataTable, EmptyState, PageHeader } from '@/components/data-page';
+import { DataPagination, DataTable, DataToolbar, EmptyState, PageHeader, StatBadge } from '@/components/data-page';
 import type { DataTableColumn } from '@/components/data-page';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { usePermission } from '@/hooks/use-permission';
 import AppLayout from '@/layouts/app-layout';
+import { TarifaDeleteDialog } from './components/tarifa-delete-dialog';
 import { TarifaFormModal } from './components/tarifa-form-modal';
+import { TarifaRowActions } from './components/tarifa-row-actions';
 import type {
     GroomingTarifa,
     HotelTarifa,
@@ -32,6 +35,17 @@ type ModalState =
     | { type: 'create'; kind: TarifaTab }
     | { type: 'edit'; kind: TarifaTab; tarifa: GroomingTarifa | HotelTarifa }
     | { type: 'delete'; kind: TarifaTab; tarifa: GroomingTarifa | HotelTarifa };
+
+const SEARCH_DEBOUNCE_MS = 350;
+
+function formatPrecio(amount: string, moneda: string) {
+    const n = Number(amount);
+    const cur = moneda === 'USD' ? 'USD' : 'PEN';
+
+    return Number.isNaN(n)
+        ? amount
+        : new Intl.NumberFormat(undefined, { style: 'currency', currency: cur }).format(n);
+}
 
 export default function Index({
     tab,
@@ -48,14 +62,11 @@ export default function Index({
     const canDelete = can('tarifas.delete');
 
     const [modal, setModal] = useState<ModalState>({ type: 'idle' });
+    const [isSearching, setIsSearching] = useState(false);
+    const [groomingSearch, setGroomingSearch] = useState(filters.grooming_search);
+    const [hotelSearch, setHotelSearch] = useState(filters.hotel_search);
 
-    const setTab = useCallback((value: string) => {
-        router.get(
-            '/configuracion/tarifas',
-            { tab: value },
-            { preserveState: true, preserveScroll: true, only: ['tab', 'groomingTarifas', 'hotelTarifas'] },
-        );
-    }, []);
+    const closeModal = useCallback(() => setModal({ type: 'idle' }), []);
 
     const labelGrooming = useCallback(
         (slug: string) => t(`grooming:tipos_servicio.${slug}`, { defaultValue: slug }),
@@ -67,69 +78,155 @@ export default function Index({
         [t],
     );
 
-    const formatPrecio = (amount: string, moneda: string) => {
-        const n = Number(amount);
-        const cur = moneda === 'USD' ? 'USD' : 'PEN';
+    const setTab = useCallback((value: string) => {
+        router.get(
+            '/configuracion/tarifas',
+            {
+                tab: value,
+                grooming_search: filters.grooming_search || undefined,
+                hotel_search: filters.hotel_search || undefined,
+            },
+            {
+                preserveState: true,
+                preserveScroll: true,
+                only: ['tab', 'groomingTarifas', 'hotelTarifas', 'filters'],
+            },
+        );
+    }, [filters.grooming_search, filters.hotel_search]);
 
-        return Number.isNaN(n)
-            ? amount
-            : new Intl.NumberFormat(undefined, { style: 'currency', currency: cur }).format(n);
-    };
+    useEffect(() => {
+        setGroomingSearch(filters.grooming_search);
+        setHotelSearch(filters.hotel_search);
+        setIsSearching(false);
+    }, [filters.grooming_search, filters.hotel_search]);
+
+    useEffect(() => {
+        const query = tab === 'grooming' ? groomingSearch : hotelSearch;
+        const serverQuery = tab === 'grooming' ? filters.grooming_search : filters.hotel_search;
+
+        if (query === serverQuery) {
+            return;
+        }
+
+        const timer = window.setTimeout(() => {
+            setIsSearching(true);
+            router.get(
+                '/configuracion/tarifas',
+                {
+                    tab,
+                    grooming_search: tab === 'grooming' ? query || undefined : filters.grooming_search || undefined,
+                    hotel_search: tab === 'hotel' ? query || undefined : filters.hotel_search || undefined,
+                },
+                {
+                    preserveState: true,
+                    preserveScroll: true,
+                    only: ['groomingTarifas', 'hotelTarifas', 'filters'],
+                    onFinish: () => setIsSearching(false),
+                },
+            );
+        }, SEARCH_DEBOUNCE_MS);
+
+        return () => window.clearTimeout(timer);
+    }, [groomingSearch, hotelSearch, tab, filters.grooming_search, filters.hotel_search]);
+
+    const activePaginated = tab === 'grooming' ? groomingTarifas : hotelTarifas;
+    const activeRows = activePaginated.data;
+    const activeTotal = activePaginated.total;
+    const activeOnScreen = activeRows.length;
+    const activeCount = activeRows.filter((row) => row.activo).length;
+    const inactiveCount = activeRows.filter((row) => !row.activo).length;
+
+    const headerStats = useMemo(
+        () => [
+            {
+                label: t('stats.total'),
+                value: activeTotal,
+                variant: 'info' as const,
+                icon: Tags,
+            },
+            {
+                label: t('stats.active'),
+                value: activeCount,
+                variant: 'success' as const,
+                icon: ShieldCheck,
+            },
+            {
+                label: t('stats.inactive'),
+                value: inactiveCount,
+                variant: 'danger' as const,
+                icon: Ban as LucideIcon,
+            },
+            {
+                label: t('stats.on_screen'),
+                value: activeOnScreen,
+                variant: 'primary' as const,
+                icon: LayoutGrid,
+            },
+        ],
+        [t, activeTotal, activeCount, inactiveCount, activeOnScreen],
+    );
 
     const groomingColumns = useMemo<DataTableColumn<GroomingTarifa>[]>(
         () => [
             {
+                key: 'activo',
+                header: t('columns.activo'),
+                className: 'w-28',
+                cell: (row) =>
+                    row.activo ? (
+                        <StatBadge label={t('common:filters.active')} value="" variant="success" icon={CheckCircle2} />
+                    ) : (
+                        <StatBadge label={t('common:filters.inactive')} value="" variant="muted" icon={Ban as LucideIcon} />
+                    ),
+            },
+            {
                 key: 'servicio',
                 header: t('columns.servicio'),
-                cell: (row) => labelGrooming(row.servicio),
+                cell: (row) => (
+                    <div className="flex flex-col gap-0.5">
+                        <span className="font-medium text-foreground">{labelGrooming(row.servicio)}</span>
+                        <span className="font-mono text-[0.7rem] text-muted-foreground">{row.servicio}</span>
+                    </div>
+                ),
             },
             {
                 key: 'precio_lista',
                 header: t('columns.precio'),
+                className: 'w-36',
                 cell: (row) => (
-                    <span className="tabular-nums font-medium">{formatPrecio(row.precio_lista, row.moneda)}</span>
+                    <span className="tabular-nums font-semibold text-foreground">
+                        {formatPrecio(row.precio_lista, row.moneda)}
+                    </span>
                 ),
             },
             {
-                key: 'activo',
-                header: t('columns.activo'),
+                key: 'moneda',
+                header: t('columns.moneda'),
+                className: 'w-24',
                 cell: (row) => (
-                    <Badge variant={row.activo ? 'default' : 'outline'}>
-                        {row.activo ? t('common:filters.active') : t('common:filters.inactive')}
-                    </Badge>
+                    <span className="inline-flex rounded-md bg-muted/60 px-2 py-0.5 font-mono text-xs text-muted-foreground">
+                        {row.moneda}
+                    </span>
                 ),
             },
-            {
-                key: 'actions',
-                header: '',
-                className: 'w-[120px] text-right',
-                cell: (row) => (
-                    <div className="flex justify-end gap-1">
-                        {canUpdate ? (
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setModal({ type: 'edit', kind: 'grooming', tarifa: row })}
-                            >
-                                {t('actions.editar')}
-                            </Button>
-                        ) : null}
-                        {canDelete ? (
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="text-destructive"
-                                onClick={() => setModal({ type: 'delete', kind: 'grooming', tarifa: row })}
-                                aria-label={t('actions.eliminar')}
-                            >
-                                <Trash2 className="size-4" />
-                            </Button>
-                        ) : null}
-                    </div>
-                ),
-            },
+            ...(canUpdate || canDelete
+                ? [
+                      {
+                          key: 'actions',
+                          header: <span className="md:sr-only">{t('columns.acciones')}</span>,
+                          align: 'right' as const,
+                          className: 'w-24',
+                          cell: (row: GroomingTarifa) => (
+                              <TarifaRowActions
+                                  canUpdate={canUpdate}
+                                  canDelete={canDelete}
+                                  onEdit={() => setModal({ type: 'edit', kind: 'grooming', tarifa: row })}
+                                  onDelete={() => setModal({ type: 'delete', kind: 'grooming', tarifa: row })}
+                              />
+                          ),
+                      },
+                  ]
+                : []),
         ],
         [t, labelGrooming, canUpdate, canDelete],
     );
@@ -137,74 +234,67 @@ export default function Index({
     const hotelColumns = useMemo<DataTableColumn<HotelTarifa>[]>(
         () => [
             {
+                key: 'activo',
+                header: t('columns.activo'),
+                className: 'w-28',
+                cell: (row) =>
+                    row.activo ? (
+                        <StatBadge label={t('common:filters.active')} value="" variant="success" icon={CheckCircle2} />
+                    ) : (
+                        <StatBadge label={t('common:filters.inactive')} value="" variant="muted" icon={Ban as LucideIcon} />
+                    ),
+            },
+            {
                 key: 'tipo_estancia',
                 header: t('columns.tipo'),
-                cell: (row) => labelHotel(row.tipo_estancia),
+                cell: (row) => (
+                    <div className="flex flex-col gap-0.5">
+                        <span className="font-medium text-foreground">{labelHotel(row.tipo_estancia)}</span>
+                        <span className="font-mono text-[0.7rem] text-muted-foreground">{row.tipo_estancia}</span>
+                    </div>
+                ),
             },
             {
                 key: 'precio_lista',
                 header: t('columns.precio'),
+                className: 'w-36',
                 cell: (row) => (
-                    <span className="tabular-nums font-medium">{formatPrecio(row.precio_lista, row.moneda)}</span>
+                    <span className="tabular-nums font-semibold text-foreground">
+                        {formatPrecio(row.precio_lista, row.moneda)}
+                    </span>
                 ),
             },
             {
-                key: 'activo',
-                header: t('columns.activo'),
+                key: 'moneda',
+                header: t('columns.moneda'),
+                className: 'w-24',
                 cell: (row) => (
-                    <Badge variant={row.activo ? 'default' : 'outline'}>
-                        {row.activo ? t('common:filters.active') : t('common:filters.inactive')}
-                    </Badge>
+                    <span className="inline-flex rounded-md bg-muted/60 px-2 py-0.5 font-mono text-xs text-muted-foreground">
+                        {row.moneda}
+                    </span>
                 ),
             },
-            {
-                key: 'actions',
-                header: '',
-                className: 'w-[120px] text-right',
-                cell: (row) => (
-                    <div className="flex justify-end gap-1">
-                        {canUpdate ? (
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setModal({ type: 'edit', kind: 'hotel', tarifa: row })}
-                            >
-                                {t('actions.editar')}
-                            </Button>
-                        ) : null}
-                        {canDelete ? (
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="text-destructive"
-                                onClick={() => setModal({ type: 'delete', kind: 'hotel', tarifa: row })}
-                                aria-label={t('actions.eliminar')}
-                            >
-                                <Trash2 className="size-4" />
-                            </Button>
-                        ) : null}
-                    </div>
-                ),
-            },
+            ...(canUpdate || canDelete
+                ? [
+                      {
+                          key: 'actions',
+                          header: <span className="md:sr-only">{t('columns.acciones')}</span>,
+                          align: 'right' as const,
+                          className: 'w-24',
+                          cell: (row: HotelTarifa) => (
+                              <TarifaRowActions
+                                  canUpdate={canUpdate}
+                                  canDelete={canDelete}
+                                  onEdit={() => setModal({ type: 'edit', kind: 'hotel', tarifa: row })}
+                                  onDelete={() => setModal({ type: 'delete', kind: 'hotel', tarifa: row })}
+                              />
+                          ),
+                      },
+                  ]
+                : []),
         ],
         [t, labelHotel, canUpdate, canDelete],
     );
-
-    const confirmDelete = () => {
-        if (modal.type !== 'delete') {
-            return;
-        }
-        const url =
-            modal.kind === 'grooming'
-                ? `/configuracion/tarifas/grooming/${modal.tarifa.id}`
-                : `/configuracion/tarifas/hotel/${modal.tarifa.id}`;
-        router.delete(url, {
-            preserveScroll: true,
-            onSuccess: () => setModal({ type: 'idle' }),
-        });
-    };
 
     const deleteNombre =
         modal.type === 'delete'
@@ -215,128 +305,153 @@ export default function Index({
                   : ''
             : '';
 
+    const createButton = (kind: TarifaTab) => (
+        <Can permission="tarifas.create">
+            <Button
+                type="button"
+                className="cursor-pointer gap-2"
+                onClick={() => setModal({ type: 'create', kind })}
+            >
+                <Plus className="size-4" strokeWidth={2.5} />
+                <span className="hidden sm:inline">
+                    {kind === 'hotel' ? t('actions.nueva_hotel') : t('actions.nueva_grooming')}
+                </span>
+                <span className="sm:hidden">{t('actions.new_short')}</span>
+            </Button>
+        </Can>
+    );
+
     return (
         <>
             <Head title={t('title')} />
 
-            <div className="flex flex-col gap-6">
+            <div className="flex flex-1 flex-col gap-5 p-4 sm:p-6">
                 <PageHeader
-                    icon={Tags}
                     title={t('title')}
                     description={t('description')}
-                    actions={
-                        canCreate ? (
-                            <Can permission="tarifas.create">
-                                <Button
-                                    type="button"
-                                    size="sm"
-                                    className="gap-1.5"
-                                    onClick={() =>
-                                        setModal({
-                                            type: 'create',
-                                            kind: tab === 'hotel' ? 'hotel' : 'grooming',
-                                        })
-                                    }
-                                >
-                                    <Plus className="size-4" aria-hidden />
-                                    {tab === 'hotel'
-                                        ? t('actions.nueva_hotel')
-                                        : t('actions.nueva_grooming')}
-                                </Button>
-                            </Can>
-                        ) : null
-                    }
+                    stats={headerStats}
+                    action={canCreate ? createButton(tab) : undefined}
                 />
 
-                <Tabs value={tab} onValueChange={setTab}>
-                    <TabsList>
-                        <TabsTrigger value="grooming">{t('tabs.grooming')}</TabsTrigger>
-                        <TabsTrigger value="hotel">{t('tabs.hotel')}</TabsTrigger>
-                    </TabsList>
+                <Tabs value={tab} onValueChange={setTab} className="gap-4">
+                    <Card className="gap-0 overflow-hidden py-0 shadow-sm">
+                        <CardHeader className="gap-4 border-b border-border/60 bg-muted/20 px-4 py-4 sm:px-6">
+                            <TabsList className="h-auto w-full justify-start gap-1 bg-background/80 p-1 sm:w-auto">
+                                <TabsTrigger value="grooming" className="cursor-pointer gap-2 px-4">
+                                    <Scissors className="size-4" />
+                                    {t('tabs.grooming')}
+                                </TabsTrigger>
+                                <TabsTrigger value="hotel" className="cursor-pointer gap-2 px-4">
+                                    <BedDouble className="size-4" />
+                                    {t('tabs.hotel')}
+                                </TabsTrigger>
+                            </TabsList>
+                        </CardHeader>
 
-                    <TabsContent value="grooming" className="mt-4 space-y-4">
-                        <DataTable
-                            columns={groomingColumns}
-                            data={groomingTarifas.data}
-                            rowKey={(row) => row.id}
-                            emptyState={
-                                <EmptyState
-                                    title={t('empty.grooming')}
-                                    action={
-                                        canCreate ? (
-                                            <Button
-                                                type="button"
-                                                size="sm"
-                                                onClick={() => setModal({ type: 'create', kind: 'grooming' })}
-                                            >
-                                                {t('actions.nueva_grooming')}
-                                            </Button>
-                                        ) : undefined
+                        <CardContent className="p-0">
+                            <TabsContent value="grooming" className="mt-0">
+                                <DataTable
+                                    columns={groomingColumns}
+                                    data={groomingTarifas.data}
+                                    rowKey={(row) => row.id}
+                                    isLoading={tab === 'grooming' && isSearching}
+                                    toolbar={
+                                        <DataToolbar
+                                            search={groomingSearch}
+                                            onSearchChange={setGroomingSearch}
+                                            isSearching={tab === 'grooming' && isSearching}
+                                            placeholder={t('search.grooming')}
+                                        />
+                                    }
+                                    footer={
+                                        <DataPagination
+                                            meta={groomingTarifas}
+                                            pageQueryKey="grooming_page"
+                                            preservedQuery={{
+                                                tab: 'grooming',
+                                                grooming_search: filters.grooming_search || undefined,
+                                                hotel_search: filters.hotel_search || undefined,
+                                            }}
+                                        />
+                                    }
+                                    emptyState={
+                                        <EmptyState
+                                            icon={Scissors}
+                                            title={t('empty.grooming_title')}
+                                            description={t('empty.grooming')}
+                                            action={canCreate ? createButton('grooming') : undefined}
+                                        />
                                     }
                                 />
-                            }
-                        />
-                        <DataPagination meta={groomingTarifas} pageQueryKey="grooming_page" preservedQuery={{ tab: 'grooming' }} />
-                    </TabsContent>
+                            </TabsContent>
 
-                    <TabsContent value="hotel" className="mt-4 space-y-4">
-                        <DataTable
-                            columns={hotelColumns}
-                            data={hotelTarifas.data}
-                            rowKey={(row) => row.id}
-                            emptyState={
-                                <EmptyState
-                                    title={t('empty.hotel')}
-                                    action={
-                                        canCreate ? (
-                                            <Button
-                                                type="button"
-                                                size="sm"
-                                                onClick={() => setModal({ type: 'create', kind: 'hotel' })}
-                                            >
-                                                {t('actions.nueva_hotel')}
-                                            </Button>
-                                        ) : undefined
+                            <TabsContent value="hotel" className="mt-0">
+                                <DataTable
+                                    columns={hotelColumns}
+                                    data={hotelTarifas.data}
+                                    rowKey={(row) => row.id}
+                                    isLoading={tab === 'hotel' && isSearching}
+                                    toolbar={
+                                        <DataToolbar
+                                            search={hotelSearch}
+                                            onSearchChange={setHotelSearch}
+                                            isSearching={tab === 'hotel' && isSearching}
+                                            placeholder={t('search.hotel')}
+                                        />
+                                    }
+                                    footer={
+                                        <DataPagination
+                                            meta={hotelTarifas}
+                                            pageQueryKey="hotel_page"
+                                            preservedQuery={{
+                                                tab: 'hotel',
+                                                grooming_search: filters.grooming_search || undefined,
+                                                hotel_search: filters.hotel_search || undefined,
+                                            }}
+                                        />
+                                    }
+                                    emptyState={
+                                        <EmptyState
+                                            icon={BedDouble}
+                                            title={t('empty.hotel_title')}
+                                            description={t('empty.hotel')}
+                                            action={canCreate ? createButton('hotel') : undefined}
+                                        />
                                     }
                                 />
-                            }
-                        />
-                        <DataPagination meta={hotelTarifas} pageQueryKey="hotel_page" preservedQuery={{ tab: 'hotel' }} />
-                    </TabsContent>
+                            </TabsContent>
+                        </CardContent>
+                    </Card>
                 </Tabs>
             </div>
 
-            {(modal.type === 'create' || modal.type === 'edit') && (
-                <TarifaFormModal
-                    kind={modal.kind}
-                    open
-                    onOpenChange={(open) => !open && setModal({ type: 'idle' })}
-                    tarifa={modal.type === 'edit' ? modal.tarifa : null}
-                    catalogo={modal.kind === 'grooming' ? catalogoGrooming : catalogoHotel}
-                />
-            )}
+            <TarifaFormModal
+                kind={modal.type === 'create' || modal.type === 'edit' ? modal.kind : tab}
+                open={modal.type === 'create' || modal.type === 'edit'}
+                onOpenChange={(open) => {
+                    if (!open) closeModal();
+                }}
+                tarifa={modal.type === 'edit' ? modal.tarifa : null}
+                catalogo={
+                    modal.type === 'create' || modal.type === 'edit'
+                        ? modal.kind === 'grooming'
+                            ? catalogoGrooming
+                            : catalogoHotel
+                        : tab === 'grooming'
+                          ? catalogoGrooming
+                          : catalogoHotel
+                }
+            />
 
-            <Dialog
+            <TarifaDeleteDialog
                 open={modal.type === 'delete'}
-                onOpenChange={(open) => !open && setModal({ type: 'idle' })}
-            >
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>{t('delete.title')}</DialogTitle>
-                        <DialogDescription>
-                            {t('delete.description', { nombre: deleteNombre })}
-                        </DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter>
-                        <Button type="button" variant="outline" onClick={() => setModal({ type: 'idle' })}>
-                            {t('form.cancelar')}
-                        </Button>
-                        <Button type="button" variant="destructive" onClick={confirmDelete}>
-                            {t('delete.confirm')}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+                onOpenChange={(open) => {
+                    if (!open) closeModal();
+                }}
+                kind={modal.type === 'delete' ? modal.kind : null}
+                tarifa={modal.type === 'delete' ? modal.tarifa : null}
+                nombre={deleteNombre}
+            />
         </>
     );
 }

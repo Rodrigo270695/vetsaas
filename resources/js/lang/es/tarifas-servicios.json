@@ -5,26 +5,51 @@
         "grooming": "Grooming",
         "hotel": "Hotel / guardería"
     },
+    "stats": {
+        "total": "Total",
+        "active": "Activas",
+        "inactive": "Inactivas",
+        "on_screen": "En pantalla"
+    },
+    "search": {
+        "grooming": "Buscar por código o servicio de grooming…",
+        "hotel": "Buscar por código o tipo de estancia…"
+    },
     "columns": {
         "servicio": "Servicio",
         "tipo": "Tipo de estancia",
         "precio": "Precio lista",
         "moneda": "Moneda",
-        "activo": "Activo"
+        "activo": "Estado",
+        "acciones": "Acciones"
     },
     "actions": {
         "nueva_grooming": "Nueva tarifa grooming",
         "nueva_hotel": "Nueva tarifa hotel",
+        "new_short": "Nueva",
         "editar": "Editar",
         "eliminar": "Eliminar"
     },
     "form": {
+        "title_create_grooming": "Nueva tarifa grooming",
+        "title_create_hotel": "Nueva tarifa hotel",
+        "title_edit": "Editar tarifa",
+        "description_grooming": "Define el precio lista sugerido para un servicio de grooming al cobrar en caja.",
+        "description_hotel": "Define el precio lista sugerido por noche o estancia al cobrar en caja.",
         "servicio": "Tipo de servicio",
         "tipo_estancia": "Tipo de estancia",
         "precio_lista": "Precio lista",
         "moneda": "Moneda",
-        "activo": "Tarifa activa",
+        "estado": "Estado",
+        "activo": "Tarifa activa (visible al cobrar)",
+        "codigo_placeholder": "Selecciona un servicio del catálogo…",
+        "codigo_search": "Buscar servicio…",
+        "codigo_empty": "No hay servicios que coincidan.",
+        "codigo_locked": "El servicio no se puede cambiar al editar.",
+        "moneda_placeholder": "Selecciona moneda…",
         "guardar": "Guardar",
+        "submit_create": "Crear tarifa",
+        "submit_edit": "Guardar cambios",
         "cancelar": "Cancelar"
     },
     "delete": {
@@ -33,8 +58,10 @@
         "confirm": "Eliminar"
     },
     "empty": {
-        "grooming": "No hay tarifas de grooming. Crea una para sugerir precios al cobrar turnos.",
-        "hotel": "No hay tarifas de hotel. Crea una para sugerir precio por noche al cobrar estancias."
+        "grooming_title": "Sin tarifas de grooming",
+        "hotel_title": "Sin tarifas de hotel",
+        "grooming": "Crea una tarifa para sugerir precios al cobrar turnos de grooming.",
+        "hotel": "Crea una tarifa para sugerir el precio por noche al cobrar estancias."
     },
     "toast": {
         "load_error": "No se pudieron cargar las tarifas."
