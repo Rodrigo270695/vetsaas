@@ -10,7 +10,6 @@ use App\Tenancy\TenantManager;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Crypt;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -121,28 +120,15 @@ class ClinicSettingController extends Controller
             'updated_by_id' => Auth::id(),
         ]);
 
-        if ($planPermiteFacturaElectronica) {
-            $setting->nubefact_ruc = $data['nubefact_ruc'] ?? null;
-        }
-
         $this->applyLogo($setting, $request, $tenants);
 
         if ($planPermiteFacturaElectronica) {
-            $this->applyNubefactSecret($setting, $data);
+            $this->applyApisunatToken($setting, $data);
         }
 
         $setting->save();
 
-        $flash = ['success' => 'Configuración actualizada correctamente.'];
-
-        if (
-            ! empty($data['nubefact_api_ruta'])
-            && ! $this->tenantSupportsNubefactApiRutaColumn()
-        ) {
-            $flash['warning'] = __('config_clinic.nubefact_ruta_migration_pending');
-        }
-
-        return back()->with($flash);
+        return back()->with(['success' => 'Configuración actualizada correctamente.']);
     }
 
     /**
@@ -207,59 +193,31 @@ class ClinicSettingController extends Controller
     }
 
     /**
-     * Aplica los cambios a la credencial de Nubefact (única integración
-     * del cliente). Sigue el mismo patrón "tres caminos":
+     * Aplica los cambios al token APISUNAT del tenant. Tres caminos:
      *
-     *   1) Si `clear_nubefact=true`, se limpia la credencial y se baja
-     *      el flag a false.
-     *   2) Si llegó `nubefact_token`, se cifra con `Crypt::encryptString`
-     *      y se levanta el flag.
-     *   3) Si no llegó ni una cosa ni la otra, NO se toca el campo
-     *      (preservamos lo que ya estaba guardado).
+     *   1) Si `clear_apisunat=true`, limpia token y baja el flag.
+     *   2) Si llegó `apisunat_token`, se cifra y se levanta el flag.
+     *   3) Si no llegó nada, se preserva lo existente.
      *
      * @param  array<string, mixed>  $data
      */
-    private function applyNubefactSecret(ClinicSetting $setting, array $data): void
+    private function applyApisunatToken(ClinicSetting $setting, array $data): void
     {
-        $supportsApiRuta = $this->tenantSupportsNubefactApiRutaColumn();
-
-        if (($data['clear_nubefact'] ?? false) === true) {
-            $setting->nubefact_token_enc = null;
-            if ($supportsApiRuta) {
-                $setting->nubefact_api_ruta = null;
-            }
-            $setting->nubefact_configurado = false;
+        if (($data['clear_apisunat'] ?? false) === true) {
+            $setting->apisunat_token_enc = null;
+            $setting->apisunat_configurado = false;
 
             return;
         }
 
-        if ($supportsApiRuta && ! empty($data['nubefact_api_ruta'])) {
-            $setting->nubefact_api_ruta = trim((string) $data['nubefact_api_ruta']);
+        if (! empty($data['apisunat_mode'])) {
+            $setting->apisunat_mode = $data['apisunat_mode'];
         }
 
-        if (! empty($data['nubefact_token'])) {
-            $setting->nubefact_token_enc = Crypt::encryptString($data['nubefact_token']);
+        if (! empty($data['apisunat_token'])) {
+            $setting->apisunat_token_enc = Crypt::encryptString($data['apisunat_token']);
+            $setting->apisunat_configurado = true;
         }
-
-        $setting->nubefact_configurado = $this->nubefactEstaConfigurado($setting, $supportsApiRuta);
-    }
-
-    private function tenantSupportsNubefactApiRutaColumn(): bool
-    {
-        return Schema::hasColumn('cfg_clinic_settings', 'nubefact_api_ruta');
-    }
-
-    private function nubefactEstaConfigurado(ClinicSetting $setting, bool $supportsApiRuta): bool
-    {
-        if (! filled($setting->nubefact_token_enc)) {
-            return false;
-        }
-
-        if ($supportsApiRuta) {
-            return filled($setting->nubefact_api_ruta);
-        }
-
-        return true;
     }
 
     /**
@@ -322,12 +280,9 @@ class ClinicSettingController extends Controller
                 ? (string) $setting->ticket_ancho_mm
                 : '80',
             'emite_comprobantes_sunat' => $planPermiteFacturaElectronica && (bool) $setting->emite_comprobantes_sunat,
-            // Nubefact: solo expuesto con plan Clínica (jamás token en claro).
-            'nubefact_ruc' => $planPermiteFacturaElectronica ? $setting->nubefact_ruc : null,
-            'nubefact_api_ruta' => $planPermiteFacturaElectronica && $this->tenantSupportsNubefactApiRutaColumn()
-                ? $setting->nubefact_api_ruta
-                : null,
-            'nubefact_configurado' => $planPermiteFacturaElectronica && (bool) $setting->nubefact_configurado,
+            // APISUNAT: solo expuesto con plan que permite facturación (jamás token en claro).
+            'apisunat_mode' => $planPermiteFacturaElectronica ? ($setting->apisunat_mode ?? 'sandbox') : 'sandbox',
+            'apisunat_configurado' => $planPermiteFacturaElectronica && (bool) $setting->apisunat_configurado,
             // Remitente comercial visible
             'whatsapp_display_number' => $setting->whatsapp_display_number,
             'email_from' => $setting->email_from,

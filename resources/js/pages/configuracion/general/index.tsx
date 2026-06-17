@@ -5,7 +5,10 @@ import {
     Building2,
     CalendarClock,
     CheckCircle2,
+    Eye,
+    EyeOff,
     Info,
+    KeyRound,
     Loader2,
     Megaphone,
     Palette,
@@ -13,6 +16,7 @@ import {
     Receipt,
     Save,
     ShieldCheck,
+    Trash2,
     XCircle,
 } from 'lucide-react';
 import {
@@ -22,6 +26,7 @@ import {
     useRef,
     useState,
 } from 'react';
+
 import type { FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PageHeader, StatBadge } from '@/components/data-page';
@@ -65,13 +70,11 @@ type ConfiguracionGeneralProps = {
  * `useForm` (que mantiene su data como JSON para diffs).
  *
  * Notas:
- *   - Las credenciales sensibles de Nubefact (`nubefact_token`) NO
+ *   - Las credenciales sensibles de APISUNAT (`apisunat_token`) NO
  *     vienen del backend. El usuario las escribe en claro y, al guardar,
  *     el controller las cifra.
- *   - `clear_nubefact` y `clear_logo` marcan "borrar credencial/archivo
+ *   - `clear_apisunat` y `clear_logo` marcan "borrar credencial/archivo
  *     existente": permiten distinguir "no tocó" de "borró".
- *   - Twilio y Brevo dejaron de existir aquí: viven en `platform_settings`
- *     (configuración global del SaaS, accesible solo al superadmin).
  */
 type FormState = {
     // Identidad
@@ -104,6 +107,9 @@ type FormState = {
     precio_incluye_igv: boolean;
     ticket_ancho_mm: '58' | '80';
     emite_comprobantes_sunat: boolean;
+    // APISUNAT
+    apisunat_token: string;
+    apisunat_mode: 'sandbox' | 'produccion';
     // Remitente comercial visible
     whatsapp_display_number: string;
     email_from: string;
@@ -135,6 +141,8 @@ const buildInitialState = (setting: ClinicSetting): FormState => ({
     precio_incluye_igv: setting.precio_incluye_igv,
     ticket_ancho_mm: setting.ticket_ancho_mm === '58' ? '58' : '80',
     emite_comprobantes_sunat: setting.emite_comprobantes_sunat,
+    apisunat_token: '',
+    apisunat_mode: setting.apisunat_mode ?? 'sandbox',
     whatsapp_display_number: setting.whatsapp_display_number ?? '',
     email_from: setting.email_from ?? '',
     email_from_nombre: setting.email_from_nombre ?? '',
@@ -185,6 +193,8 @@ export default function Index({
     const [data, setDataInternal] = useState<FormState>(() => buildInitialState(setting));
     const [logoFile, setLogoFile] = useState<File | null>(null);
     const [clearLogo, setClearLogo] = useState(false);
+    const [clearApisunat, setClearApisunat] = useState(false);
+    const [showApisunatToken, setShowApisunatToken] = useState(false);
     const [geo, setGeo] = useState<GeoCascadeValue>(() => buildInitialGeo(setting));
     const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
     const [processing, setProcessing] = useState(false);
@@ -202,6 +212,7 @@ export default function Index({
         setGeo(buildInitialGeo(setting));
         setLogoFile(null);
         setClearLogo(false);
+        setClearApisunat(false);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [setting.updated_at]);
     /* eslint-enable react-hooks/set-state-in-effect */
@@ -255,6 +266,9 @@ export default function Index({
             precio_incluye_igv: data.precio_incluye_igv ? 1 : 0,
             emite_comprobantes_sunat: data.emite_comprobantes_sunat ? 1 : 0,
             clear_logo: clearLogo ? 1 : 0,
+            clear_apisunat: clearApisunat ? 1 : 0,
+            ...(data.apisunat_token ? { apisunat_token: data.apisunat_token } : {}),
+            apisunat_mode: data.apisunat_mode,
         };
 
         if (logoFile) {
@@ -974,6 +988,119 @@ export default function Index({
                                 </p>
                             ) : null}
                         </div>
+
+                        {/* APISUNAT: solo visible si el plan permite facturación */}
+                        {plan_permite_factura_electronica && (
+                            <div className="sm:col-span-2">
+                                <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
+                                    <div className="mb-3 flex items-center gap-2">
+                                        <span className="flex size-7 items-center justify-center rounded-md bg-primary/10 text-primary ring-1 ring-primary/20">
+                                            <KeyRound className="size-4" strokeWidth={2} />
+                                        </span>
+                                        <div>
+                                            <p className="text-sm font-semibold">Integración APISUNAT</p>
+                                            <p className="text-xs text-muted-foreground">
+                                                Configura el token de tu cuenta APISUNAT para emitir comprobantes electrónicos.
+                                            </p>
+                                        </div>
+                                        {setting.apisunat_configurado && (
+                                            <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-emerald-200">
+                                                <CheckCircle2 className="size-3" />
+                                                Configurado
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    <div className="flex flex-col gap-3">
+                                        {/* Modo sandbox / producción */}
+                                        <FormField
+                                            id="apisunat-mode"
+                                            label="Modo de operación"
+                                            error={errors.apisunat_mode}
+                                        >
+                                            <Select
+                                                value={data.apisunat_mode}
+                                                onValueChange={(v) =>
+                                                    setData('apisunat_mode', v as 'sandbox' | 'produccion')
+                                                }
+                                                disabled={!canUpdate}
+                                            >
+                                                <SelectTrigger id="apisunat-mode">
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="sandbox">
+                                                        Sandbox — pruebas (beta SUNAT)
+                                                    </SelectItem>
+                                                    <SelectItem value="produccion">
+                                                        Producción — emite comprobantes reales
+                                                    </SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </FormField>
+
+                                        {/* Token APISUNAT */}
+                                        <FormField
+                                            id="apisunat-token"
+                                            label={
+                                                setting.apisunat_configurado
+                                                    ? 'Nuevo token (dejar vacío para conservar el actual)'
+                                                    : 'Token de APISUNAT'
+                                            }
+                                            error={errors.apisunat_token}
+                                            hint="Lo encuentras en app.apisunat.pe → tu organización → API Token."
+                                        >
+                                            <div className="relative">
+                                                <Input
+                                                    id="apisunat-token"
+                                                    type={showApisunatToken ? 'text' : 'password'}
+                                                    value={data.apisunat_token}
+                                                    onChange={(e) =>
+                                                        setData('apisunat_token', e.target.value)
+                                                    }
+                                                    placeholder={
+                                                        setting.apisunat_configurado
+                                                            ? '••••••••••••••••'
+                                                            : 'eyJhbGciOiJIUzI1NiIs...'
+                                                    }
+                                                    className="pr-10 font-mono text-xs"
+                                                    disabled={!canUpdate || clearApisunat}
+                                                    autoComplete="off"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowApisunatToken((v) => !v)}
+                                                    className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground hover:text-foreground"
+                                                    tabIndex={-1}
+                                                    aria-label={showApisunatToken ? 'Ocultar token' : 'Mostrar token'}
+                                                >
+                                                    {showApisunatToken
+                                                        ? <EyeOff className="size-4" />
+                                                        : <Eye className="size-4" />
+                                                    }
+                                                </button>
+                                            </div>
+                                        </FormField>
+
+                                        {/* Borrar credencial */}
+                                        {setting.apisunat_configurado && canUpdate && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setClearApisunat((v) => !v)}
+                                                className={`inline-flex items-center gap-1.5 self-start rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                                                    clearApisunat
+                                                        ? 'bg-destructive/10 text-destructive ring-1 ring-destructive/30 hover:bg-destructive/20'
+                                                        : 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-destructive'
+                                                }`}
+                                            >
+                                                <Trash2 className="size-3.5" />
+                                                {clearApisunat ? 'Cancelar borrado' : 'Borrar token guardado'}
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                     </FormSection>
                 </SectionCard>

@@ -39,8 +39,8 @@ export type DistritoChain = {
  * `plataforma/configuracion`. El cliente solo conserva Nubefact (su
  * propio RUC/token) y las preferencias de "remitente comercial visible".
  *
- * Las credenciales sensibles (Nubefact) JAMÁS viajan en claro. Solo se
- * expone el flag booleano `nubefact_configurado` para que la UI pueda
+ * Las credenciales sensibles (APISUNAT) JAMÁS viajan en claro. Solo se
+ * expone el flag booleano `apisunat_configurado` para que la UI pueda
  * indicar visualmente si hay clave guardada.
  */
 export type ClinicSetting = {
@@ -80,10 +80,9 @@ export type ClinicSetting = {
     precio_incluye_igv: boolean;
     ticket_ancho_mm: '58' | '80';
     emite_comprobantes_sunat: boolean;
-    // Nubefact (única integración del cliente)
-    nubefact_ruc: string | null;
-    nubefact_api_ruta: string | null;
-    nubefact_configurado: boolean;
+    // APISUNAT (integración por tenant)
+    apisunat_mode: 'sandbox' | 'produccion';
+    apisunat_configurado: boolean;
     // Remitente comercial visible (NO autentica con Twilio/Brevo, solo
     // personaliza la firma de los mensajes que envía la plataforma).
     whatsapp_display_number: string | null;

@@ -96,10 +96,9 @@ class ClinicSetting extends Model
         'recordatorio_vacuna_activo',
         'recordatorio_vacuna_dias_antes',
         'recordatorio_cumple_activo',
-        'nubefact_token_enc',
-        'nubefact_ruc',
-        'nubefact_api_ruta',
-        'nubefact_configurado',
+        'apisunat_token_enc',
+        'apisunat_mode',
+        'apisunat_configurado',
         'whatsapp_display_number',
         'email_from',
         'email_from_nombre',
@@ -120,7 +119,7 @@ class ClinicSetting extends Model
      * por un flag booleano `*_configurado`.
      */
     protected $hidden = [
-        'nubefact_token_enc',
+        'apisunat_token_enc',
     ];
 
     /**

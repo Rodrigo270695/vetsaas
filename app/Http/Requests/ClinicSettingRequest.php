@@ -74,17 +74,10 @@ class ClinicSettingRequest extends FormRequest
             'ticket_ancho_mm' => ['required', Rule::in(['58', '80'])],
             'emite_comprobantes_sunat' => ['required', 'boolean'],
 
-            // Nubefact (única integración del cliente). Credenciales en
-            // claro; el controller las cifra antes de persistir.
-            'nubefact_api_ruta' => [
-                'nullable',
-                'string',
-                'max:500',
-                'regex:/^https:\/\/api\.nubefact\.com\/api\/v1\/[^\s?#]+/i',
-            ],
-            'nubefact_token' => ['nullable', 'string', 'max:8192'],
-            'nubefact_ruc' => ['nullable', 'string', 'size:11', 'regex:/^\d{11}$/'],
-            'clear_nubefact' => ['nullable', 'boolean'],
+            // APISUNAT (integración por tenant). Token en claro; el controller lo cifra.
+            'apisunat_token' => ['nullable', 'string', 'max:8192'],
+            'apisunat_mode' => ['nullable', Rule::in(['sandbox', 'produccion'])],
+            'clear_apisunat' => ['nullable', 'boolean'],
 
             // "Remitente comercial visible". NO autentica nada (la
             // autenticación con Twilio/Brevo la hace el SaaS con sus
@@ -124,9 +117,8 @@ class ClinicSettingRequest extends FormRequest
             'precio_incluye_igv' => 'precio incluye IGV',
             'ticket_ancho_mm' => 'ancho del ticket térmico',
             'emite_comprobantes_sunat' => 'emisión de comprobantes SUNAT',
-            'nubefact_api_ruta' => 'ruta de API de Nubefact',
-            'nubefact_token' => 'token de Nubefact',
-            'nubefact_ruc' => 'RUC de Nubefact',
+            'apisunat_token' => 'token de APISUNAT',
+            'apisunat_mode' => 'modo de APISUNAT',
             'whatsapp_display_number' => 'número visible de WhatsApp',
             'email_from' => 'correo de respuesta',
             'email_from_nombre' => 'nombre del remitente',
@@ -135,14 +127,6 @@ class ClinicSettingRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $ruta = $this->input('nubefact_api_ruta');
-        if (is_string($ruta)) {
-            $ruta = trim($ruta);
-            $this->merge([
-                'nubefact_api_ruta' => $ruta === '' ? null : rtrim($ruta, '/'),
-            ]);
-        }
-
         $this->merge([
             'recordatorio_48h_activo' => $this->boolean('recordatorio_48h_activo'),
             'recordatorio_2h_activo' => $this->boolean('recordatorio_2h_activo'),
@@ -150,7 +134,7 @@ class ClinicSettingRequest extends FormRequest
             'recordatorio_cumple_activo' => $this->boolean('recordatorio_cumple_activo'),
             'precio_incluye_igv' => $this->boolean('precio_incluye_igv'),
             'emite_comprobantes_sunat' => $this->boolean('emite_comprobantes_sunat'),
-            'clear_nubefact' => $this->boolean('clear_nubefact'),
+            'clear_apisunat' => $this->boolean('clear_apisunat'),
             'clear_logo' => $this->boolean('clear_logo'),
         ]);
     }
