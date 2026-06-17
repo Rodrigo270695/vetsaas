@@ -487,6 +487,9 @@ class VentaController extends Controller
                 'motivo' => $venta->motivo_anulacion,
             ],
             'consulta_vinculo' => $consultaVinculo,
+            'ui' => [
+                'auto_imprimir' => $request->boolean('imprimir'),
+            ],
         ]);
     }
 
@@ -503,7 +506,7 @@ class VentaController extends Controller
         }
 
         return redirect()
-            ->route('caja.ventas.show', $venta)
+            ->route('caja.ventas.show', ['venta' => $venta, 'imprimir' => 1])
             ->with('success', __('caja.ventas.fel.emitida_ok'));
     }
 
@@ -620,7 +623,7 @@ class VentaController extends Controller
         $venta = $checkout->registrar($request->validated(), $user, $tenants->current()?->tenant);
 
         return redirect()
-            ->route('caja.ventas.show', $venta)
+            ->route('caja.ventas.show', ['venta' => $venta, 'imprimir' => 1])
             ->with('success', __('caja.ventas.flash.registrada', ['numero' => $venta->numero]));
     }
 

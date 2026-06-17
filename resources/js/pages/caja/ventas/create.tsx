@@ -750,11 +750,11 @@ export default function Create({
                                 className="flex min-h-0 flex-1 flex-col gap-2.5"
                             >
                                 <TabsList className="grid h-8 w-full grid-cols-2">
-                                    <TabsTrigger value="productos" className="gap-1.5 text-xs">
+                                    <TabsTrigger value="productos" className="cursor-pointer gap-1.5 text-xs">
                                         <PackageSearch className="size-3" aria-hidden />
                                         {t('caja:ventas.create.card_productos')}
                                     </TabsTrigger>
-                                    <TabsTrigger value="servicios" className="gap-1.5 text-xs">
+                                    <TabsTrigger value="servicios" className="cursor-pointer gap-1.5 text-xs">
                                         <Stethoscope className="size-3" aria-hidden />
                                         {t('caja:ventas.create.card_servicios')}
                                     </TabsTrigger>

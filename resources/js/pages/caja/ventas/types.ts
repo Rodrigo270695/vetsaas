@@ -180,6 +180,9 @@ export type VentaShowProps = {
         motivo: string | null;
     };
     consulta_vinculo?: ConsultaVinculoShow | null;
+    ui: {
+        auto_imprimir: boolean;
+    };
 };
 
 export type ServicioTarifaBusqueda = {

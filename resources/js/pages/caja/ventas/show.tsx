@@ -72,6 +72,7 @@ export default function Show({
     ticket,
     anulacion,
     consulta_vinculo: consultaVinculo,
+    ui,
 }: VentaShowProps) {
     const { t, i18n } = useTranslation(['caja', 'common']);
     const { t: tCommon } = useTranslation('common');
@@ -84,18 +85,24 @@ export default function Show({
     const [cpeModalOpen, setCpeModalOpen] = useState(false);
     const [cpePdfFormat, setCpePdfFormat] = useState<'ticket' | 'a4'>('ticket');
     const [cpeIframeBust, setCpeIframeBust] = useState(() => Date.now());
+    const [ticketConAutoPrint, setTicketConAutoPrint] = useState(false);
+    const [cpeConAutoPrint, setCpeConAutoPrint] = useState(false);
+    const autoImprimirProcesado = useRef(false);
     const ticketIframeRef = useRef<HTMLIFrameElement>(null);
     const cpeIframeRef = useRef<HTMLIFrameElement>(null);
-    const autoImpresionHecha = useRef(false);
 
     const fecha = venta.fecha_pago ?? venta.created_at;
 
     const ticketIframeSrc = useMemo(() => {
         const base = caja.ventas.ticket.url(venta.id);
-        const sep = base.includes('?') ? '&' : '?';
+        const params = new URLSearchParams({ _pv: String(ticketIframeBust) });
 
-        return `${base}${sep}_pv=${ticketIframeBust}`;
-    }, [venta.id, ticketIframeBust]);
+        if (ticketConAutoPrint) {
+            params.set('print', '1');
+        }
+
+        return `${base}?${params.toString()}`;
+    }, [venta.id, ticketIframeBust, ticketConAutoPrint]);
 
     const abrirTicketEnModal = () => {
         setTicketIframeBust(Date.now());
@@ -191,21 +198,26 @@ export default function Show({
     }, [felPdfUrl, cpePdfFormat, cpeIframeBust]);
 
     useEffect(() => {
-        if (autoImpresionHecha.current || esAnulada) {
+        if (!ui.auto_imprimir || autoImprimirProcesado.current || esAnulada) {
             return;
         }
+
+        autoImprimirProcesado.current = true;
 
         if (esTicketInterno && puedeVerTicket) {
-            autoImpresionHecha.current = true;
+            setTicketConAutoPrint(true);
             abrirTicketEnModal();
-            return;
-        }
-
-        if (cpeEmitido) {
-            autoImpresionHecha.current = true;
+        } else if (cpeEmitido) {
+            setCpeConAutoPrint(true);
             abrirCpeEnModal();
         }
-    }, [cpeEmitido, esAnulada, esTicketInterno, puedeVerTicket]);
+
+        if (typeof window !== 'undefined' && window.location.search.includes('imprimir=')) {
+            const url = new URL(window.location.href);
+            url.searchParams.delete('imprimir');
+            window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
+        }
+    }, [ui.auto_imprimir, cpeEmitido, esAnulada, esTicketInterno, puedeVerTicket]);
     const anularVentaDesc = esComprobanteSunat
         ? t('caja:ventas.show.anular_venta_desc_sunat')
         : t('caja:ventas.show.anular_venta_desc_ticket');
@@ -275,7 +287,15 @@ export default function Show({
                 </DialogContent>
             </Dialog>
 
-            <Dialog open={ticketModalOpen} onOpenChange={setTicketModalOpen}>
+            <Dialog
+                open={ticketModalOpen}
+                onOpenChange={(open) => {
+                    setTicketModalOpen(open);
+                    if (!open) {
+                        setTicketConAutoPrint(false);
+                    }
+                }}
+            >
                 <DialogContent className="flex max-h-[90vh] max-w-[calc(100%-1rem)] flex-col gap-3 p-4 sm:max-w-2xl sm:p-6">
                     <DialogHeader className="shrink-0 space-y-1 pr-8 text-left">
                         <DialogTitle>{t('caja:ventas.show.ticket_modal_title')}</DialogTitle>
@@ -305,7 +325,15 @@ export default function Show({
                 </DialogContent>
             </Dialog>
 
-            <Dialog open={cpeModalOpen} onOpenChange={setCpeModalOpen}>
+            <Dialog
+                open={cpeModalOpen}
+                onOpenChange={(open) => {
+                    setCpeModalOpen(open);
+                    if (!open) {
+                        setCpeConAutoPrint(false);
+                    }
+                }}
+            >
                 <DialogContent className="flex max-h-[90vh] max-w-[calc(100%-1rem)] flex-col gap-3 p-4 sm:max-w-2xl sm:p-6">
                     <DialogHeader className="shrink-0 space-y-1 pr-8 text-left">
                         <DialogTitle>
@@ -339,6 +367,14 @@ export default function Show({
                             title={t('caja:ventas.show.cpe_iframe_title')}
                             src={cpeIframeSrc}
                             className="min-h-[50vh] w-full flex-1 rounded-md border border-border bg-white"
+                            onLoad={() => {
+                                if (!cpeConAutoPrint) {
+                                    return;
+                                }
+
+                                setCpeConAutoPrint(false);
+                                window.setTimeout(() => imprimirCpeDesdeIframe(), 400);
+                            }}
                         />
                     ) : null}
                     <DialogFooter className="shrink-0 gap-2 sm:justify-between">
