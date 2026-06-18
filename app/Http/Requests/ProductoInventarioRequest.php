@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Http\Requests\Concerns\ValidatesPlanIntLimits;
 use App\Models\Producto;
+use App\Support\Inventario\UnidadMedidaOpciones;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -48,9 +49,7 @@ class ProductoInventarioRequest extends FormRequest
                 'required',
                 'string',
                 'max:20',
-                Rule::exists('unidades_medida', 'codigo')->where(
-                    fn ($q) => $q->where('activo', true)->whereNull('deleted_at'),
-                ),
+                Rule::in(UnidadMedidaOpciones::allowedCodigos()),
             ],
             'precio_venta' => ['nullable', 'numeric', 'min:0', 'max:99999999.99'],
             'precio_compra' => ['nullable', 'numeric', 'min:0', 'max:99999999.99'],

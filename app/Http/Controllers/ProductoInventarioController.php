@@ -9,6 +9,7 @@ use App\Support\Inventario\UnidadMedidaOpciones;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -86,9 +87,11 @@ class ProductoInventarioController extends Controller
 
         $productos = $query->paginate($perPage)->withQueryString();
 
-        $categoriaOptions = CategoriaProducto::query()
-            ->where('activo', true)
-            ->orderBy('orden')
+        $categoriaQuery = CategoriaProducto::query()->where('activo', true);
+        if (Schema::hasColumn('categorias_productos', 'orden')) {
+            $categoriaQuery->orderBy('orden');
+        }
+        $categoriaOptions = $categoriaQuery
             ->orderBy('nombre')
             ->get(['id', 'nombre']);
 

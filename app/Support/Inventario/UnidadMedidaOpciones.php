@@ -5,6 +5,7 @@ namespace App\Support\Inventario;
 use App\Models\Producto;
 use App\Models\UnidadMedida;
 use Illuminate\Support\Facades\Schema;
+use Throwable;
 
 final class UnidadMedidaOpciones
 {
@@ -51,23 +52,83 @@ final class UnidadMedidaOpciones
      */
     public static function forProductoForm(): array
     {
-        if (Schema::hasTable('unidades_medida')) {
-            return UnidadMedida::query()
-                ->where('activo', true)
-                ->orderByDesc('es_sistema')
-                ->orderBy('nombre')
-                ->get(['id', 'codigo', 'nombre', 'es_sistema', 'created_at'])
-                ->map(static fn (UnidadMedida $u): array => [
-                    'id' => (string) $u->id,
-                    'codigo' => (string) $u->codigo,
-                    'nombre' => (string) $u->nombre,
-                    'es_sistema' => (bool) $u->es_sistema,
-                    'created_at' => $u->created_at?->toIso8601String(),
-                ])
-                ->all();
+        if (self::canQueryUnidadesMedidaTable()) {
+            try {
+                return self::fromDatabase();
+            } catch (Throwable $e) {
+                report($e);
+            }
         }
 
         return self::fallbackFromLegacyProductos();
+    }
+
+    /**
+     * Códigos válidos para validación de formularios (store/update producto).
+     *
+     * @return list<string>
+     */
+    public static function allowedCodigos(): array
+    {
+        return array_values(array_unique(array_map(
+            static fn (array $row): string => (string) $row['codigo'],
+            self::forProductoForm(),
+        )));
+    }
+
+    /**
+     * @return list<array{id: string, codigo: string, nombre: string, es_sistema: bool, created_at: string|null}>
+     */
+    private static function fromDatabase(): array
+    {
+        $query = UnidadMedida::query()->where('activo', true);
+
+        if (Schema::hasColumn('unidades_medida', 'es_sistema')) {
+            $query->orderByDesc('es_sistema');
+        }
+
+        $columns = ['id', 'codigo', 'nombre'];
+        if (Schema::hasColumn('unidades_medida', 'es_sistema')) {
+            $columns[] = 'es_sistema';
+        }
+        if (Schema::hasColumn('unidades_medida', 'created_at')) {
+            $columns[] = 'created_at';
+        }
+
+        return $query
+            ->orderBy('nombre')
+            ->get($columns)
+            ->map(static function (UnidadMedida $u): array {
+                $createdAt = $u->created_at;
+
+                return [
+                    'id' => (string) $u->id,
+                    'codigo' => (string) $u->codigo,
+                    'nombre' => (string) $u->nombre,
+                    'es_sistema' => Schema::hasColumn('unidades_medida', 'es_sistema')
+                        ? (bool) $u->es_sistema
+                        : false,
+                    'created_at' => $createdAt instanceof \DateTimeInterface
+                        ? $createdAt->format(\DateTimeInterface::ATOM)
+                        : null,
+                ];
+            })
+            ->all();
+    }
+
+    private static function canQueryUnidadesMedidaTable(): bool
+    {
+        if (! Schema::hasTable('unidades_medida')) {
+            return false;
+        }
+
+        foreach (['id', 'codigo', 'nombre', 'activo', 'deleted_at'] as $column) {
+            if (! Schema::hasColumn('unidades_medida', $column)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -88,27 +149,31 @@ final class UnidadMedidaOpciones
             ];
         }
 
-        if (Schema::hasTable('productos')) {
-            $usados = Producto::query()
-                ->select('unidad')
-                ->whereNotNull('unidad')
-                ->where('unidad', '!=', '')
-                ->distinct()
-                ->pluck('unidad');
+        if (Schema::hasTable('productos') && Schema::hasColumn('productos', 'unidad')) {
+            try {
+                $usados = Producto::query()
+                    ->select('unidad')
+                    ->whereNotNull('unidad')
+                    ->where('unidad', '!=', '')
+                    ->distinct()
+                    ->pluck('unidad');
 
-            foreach ($usados as $codigo) {
-                $c = strtoupper(trim((string) $codigo));
-                if ($c === '' || isset($byCodigo[$c])) {
-                    continue;
+                foreach ($usados as $codigo) {
+                    $c = strtoupper(trim((string) $codigo));
+                    if ($c === '' || isset($byCodigo[$c])) {
+                        continue;
+                    }
+
+                    $byCodigo[$c] = [
+                        'id' => self::fallbackId($c),
+                        'codigo' => substr($c, 0, 20),
+                        'nombre' => $c,
+                        'es_sistema' => false,
+                        'created_at' => null,
+                    ];
                 }
-
-                $byCodigo[$c] = [
-                    'id' => self::fallbackId($c),
-                    'codigo' => substr($c, 0, 20),
-                    'nombre' => $c,
-                    'es_sistema' => false,
-                    'created_at' => null,
-                ];
+            } catch (Throwable $e) {
+                report($e);
             }
         }
 

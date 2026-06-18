@@ -275,6 +275,11 @@ class TenantSchemaMigrator
                 && Schema::hasColumn('fel_documents', 'apisunat_payload'),
             '2026_06_19_100000_t094_grooming_servicios_personalizados' => Schema::hasTable('grooming_servicios')
                 && Schema::hasColumn('cfg_clinic_settings', 'grooming_catalogo_personalizado'),
+            '2026_06_20_100000_t095_clinic_catalogos_por_clinica' => Schema::hasTable('hotel_tipos_estancia')
+                && Schema::hasColumn('cfg_clinic_settings', 'hotel_catalogo_personalizado'),
+            '2026_06_21_100000_t096_add_precio_compra_to_productos_table' => Schema::hasTable('productos')
+                && Schema::hasColumn('productos', 'precio_compra'),
+            '2026_06_22_100000_t097_create_promotions_table' => Schema::hasTable('promotions'),
             default => false,
         };
     }
