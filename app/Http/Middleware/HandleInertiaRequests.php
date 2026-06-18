@@ -8,7 +8,9 @@ use App\Support\Tenancy\TenantSubdomainUrl;
 use App\Tenancy\TenantManager;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Inertia\Middleware;
+use Throwable;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -59,6 +61,8 @@ class HandleInertiaRequests extends Middleware
         /** @var User|null $user */
         $user = Auth::guard('web')->user();
 
+        $skipHeavySharedProps = $request->routeIs('password.change.form', 'password.change.update');
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
@@ -70,23 +74,25 @@ class HandleInertiaRequests extends Middleware
                 'scheme' => TenantSubdomainUrl::scheme(),
                 'login_path' => TenantSubdomainUrl::loginPath(),
             ],
-            'plan_limits' => static function () {
-                try {
-                    return PlanLimits::snapshot();
-                } catch (\Throwable $e) {
-                    report($e);
+            'plan_limits' => $skipHeavySharedProps
+                ? null
+                : static function () {
+                    try {
+                        return PlanLimits::snapshot();
+                    } catch (Throwable $e) {
+                        report($e);
 
-                    return null;
-                }
-            },
+                        return null;
+                    }
+                },
             'auth' => [
                 'user' => $user,
-                'permissions' => $user
-                    ? $user->getAllPermissions()->pluck('name')->values()->all()
-                    : [],
-                'roles' => $user
-                    ? $user->getRoleNames()->values()->all()
-                    : [],
+                'permissions' => $skipHeavySharedProps
+                    ? []
+                    : $this->resolveUserPermissions($user),
+                'roles' => $skipHeavySharedProps
+                    ? []
+                    : $this->resolveUserRoles($user),
             ],
             /*
              * Flash session compartido como UN solo closure (no por key).
@@ -140,5 +146,49 @@ class HandleInertiaRequests extends Middleware
             },
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function resolveUserPermissions(?User $user): array
+    {
+        if ($user === null) {
+            return [];
+        }
+
+        try {
+            return $user->getAllPermissions()->pluck('name')->values()->all();
+        } catch (Throwable $e) {
+            report($e);
+            Log::error('No se pudieron cargar permisos Inertia.', [
+                'user_id' => $user->id,
+                'exception' => $e->getMessage(),
+            ]);
+
+            return [];
+        }
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function resolveUserRoles(?User $user): array
+    {
+        if ($user === null) {
+            return [];
+        }
+
+        try {
+            return $user->getRoleNames()->values()->all();
+        } catch (Throwable $e) {
+            report($e);
+            Log::error('No se pudieron cargar roles Inertia.', [
+                'user_id' => $user->id,
+                'exception' => $e->getMessage(),
+            ]);
+
+            return [];
+        }
     }
 }

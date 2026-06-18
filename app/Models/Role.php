@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\UsesPublicSchema;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Spatie\Permission\Models\Role as SpatieRole;
@@ -26,6 +27,8 @@ use Spatie\Permission\Models\Role as SpatieRole;
  */
 class Role extends SpatieRole
 {
+    use UsesPublicSchema;
+
     /**
      * Nombres de roles reservados por la plataforma. NO son editables ni
      * eliminables desde el panel. Si en el futuro agregas más (admin_clinica,
