@@ -1,10 +1,11 @@
 import { Form, Head, usePage } from '@inertiajs/react';
 import { ShieldCheck } from 'lucide-react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import InputError from '@/components/input-error';
-import PasswordInput from '@/components/password-input';
+import NewPasswordFields, {
+    isNewPasswordReady,
+} from '@/components/auth/new-password-fields';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import type { TenantShared } from '@/types/tenant';
 
@@ -21,6 +22,8 @@ export default function ChangePassword() {
     const { t } = useTranslation('auth');
     const page = usePage();
     const tenant = page.props.tenant as TenantShared | null;
+    const [password, setPassword] = useState('');
+    const [passwordConfirmation, setPasswordConfirmation] = useState('');
 
     const brandName = tenant
         ? tenant.nombre_comercial || tenant.razon_social
@@ -46,56 +49,46 @@ export default function ChangePassword() {
                 method="post"
                 resetOnSuccess={['password', 'password_confirmation']}
                 className="flex flex-col"
+                onSuccess={() => {
+                    setPassword('');
+                    setPasswordConfirmation('');
+                }}
             >
-                {({ processing, errors }) => (
-                    <div className="grid gap-6">
-                        <div className="grid gap-2">
-                            <Label htmlFor="password">
-                                {t('change_password.new_password')}
-                            </Label>
-                            <PasswordInput
-                                id="password"
-                                name="password"
-                                required
+                {({ processing, errors }) => {
+                    const ready = isNewPasswordReady(
+                        password,
+                        passwordConfirmation,
+                    );
+
+                    return (
+                        <div className="grid gap-6">
+                            <NewPasswordFields
+                                password={password}
+                                passwordConfirmation={passwordConfirmation}
+                                onPasswordChange={setPassword}
+                                onPasswordConfirmationChange={
+                                    setPasswordConfirmation
+                                }
+                                errors={errors}
+                                passwordLabel={t('change_password.new_password')}
                                 autoFocus
-                                autoComplete="new-password"
-                                placeholder={t('common.password_placeholder')}
-                                className="h-11"
-                                aria-invalid={!!errors.password}
                             />
-                            <InputError message={errors.password} />
-                        </div>
 
-                        <div className="grid gap-2">
-                            <Label htmlFor="password_confirmation">
-                                {t('reset_password.password_confirm')}
-                            </Label>
-                            <PasswordInput
-                                id="password_confirmation"
-                                name="password_confirmation"
-                                required
-                                autoComplete="new-password"
-                                placeholder={t('common.password_placeholder')}
-                                className="h-11"
-                                aria-invalid={!!errors.password_confirmation}
-                            />
-                            <InputError message={errors.password_confirmation} />
+                            <Button
+                                type="submit"
+                                size="lg"
+                                className="h-11 w-full text-base font-medium"
+                                disabled={processing || !ready}
+                                data-test="change-password-button"
+                            >
+                                {processing && <Spinner />}
+                                {processing
+                                    ? t('common.submit_loading')
+                                    : t('change_password.submit')}
+                            </Button>
                         </div>
-
-                        <Button
-                            type="submit"
-                            size="lg"
-                            className="h-11 w-full text-base font-medium"
-                            disabled={processing}
-                            data-test="change-password-button"
-                        >
-                            {processing && <Spinner />}
-                            {processing
-                                ? t('common.submit_loading')
-                                : t('change_password.submit')}
-                        </Button>
-                    </div>
-                )}
+                    );
+                }}
             </Form>
         </>
     );

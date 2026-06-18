@@ -3,6 +3,7 @@
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules\Password;
 
 uses(RefreshDatabase::class);
 
@@ -86,6 +87,28 @@ it('rechaza confirmación distinta', function (): void {
         ]);
 
     $response->assertSessionHasErrors('password');
+});
+
+it('devuelve error de validación en lugar de 500 cuando la contraseña es débil', function (): void {
+    config(['app.debug' => false]);
+
+    Password::defaults(fn () => Password::min(12)
+        ->mixedCase()
+        ->letters()
+        ->numbers()
+        ->symbols());
+
+    $response = $this
+        ->actingAs($this->user, 'web')
+        ->withHeaders(['X-Inertia' => 'true'])
+        ->post(route('password.change.update'), [
+            'password' => '12345678',
+            'password_confirmation' => '12345678',
+        ]);
+
+    expect($response->status())->not->toBe(500);
+    $response->assertInvalid(['password']);
+    expect($this->user->fresh()->must_change_password)->toBeTrue();
 });
 
 it('un usuario sin el flag entra al dashboard sin redirect', function (): void {

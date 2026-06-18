@@ -1,8 +1,11 @@
 import { Form } from '@inertiajs/react';
 import { Mail } from 'lucide-react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import NewPasswordFields, {
+    isNewPasswordReady,
+} from '@/components/auth/new-password-fields';
 import InputError from '@/components/input-error';
-import PasswordInput from '@/components/password-input';
 import { Button } from '@/components/ui/button';
 import { FieldWithIcon } from '@/components/ui/field-with-icon';
 import { Label } from '@/components/ui/label';
@@ -23,6 +26,8 @@ export default function ResetPasswordForm({
     email,
 }: ResetPasswordFormProps) {
     const { t } = useTranslation('auth');
+    const [password, setPassword] = useState('');
+    const [passwordConfirmation, setPasswordConfirmation] = useState('');
 
     return (
         <Form
@@ -30,72 +35,61 @@ export default function ResetPasswordForm({
             transform={(data) => ({ ...data, token, email })}
             resetOnSuccess={['password', 'password_confirmation']}
             className="flex flex-col"
+            onSuccess={() => {
+                setPassword('');
+                setPasswordConfirmation('');
+            }}
         >
-            {({ processing, errors }) => (
-                <div className="grid gap-6">
-                    <div className="grid gap-2">
-                        <Label htmlFor="email">{t('common.email')}</Label>
-                        <FieldWithIcon
-                            id="email"
-                            type="email"
-                            name="email"
-                            icon={Mail}
-                            autoComplete="email"
-                            defaultValue={email}
-                            className="h-11"
-                            readOnly
-                            aria-invalid={!!errors.email}
-                        />
-                        <InputError message={errors.email} />
-                    </div>
+            {({ processing, errors }) => {
+                const ready = isNewPasswordReady(
+                    password,
+                    passwordConfirmation,
+                );
 
-                    <div className="grid gap-2">
-                        <Label htmlFor="password">
-                            {t('common.password')}
-                        </Label>
-                        <PasswordInput
-                            id="password"
-                            name="password"
-                            required
+                return (
+                    <div className="grid gap-6">
+                        <div className="grid gap-2">
+                            <Label htmlFor="email">{t('common.email')}</Label>
+                            <FieldWithIcon
+                                id="email"
+                                type="email"
+                                name="email"
+                                icon={Mail}
+                                autoComplete="email"
+                                defaultValue={email}
+                                className="h-11"
+                                readOnly
+                                aria-invalid={!!errors.email}
+                            />
+                            <InputError message={errors.email} />
+                        </div>
+
+                        <NewPasswordFields
+                            password={password}
+                            passwordConfirmation={passwordConfirmation}
+                            onPasswordChange={setPassword}
+                            onPasswordConfirmationChange={
+                                setPasswordConfirmation
+                            }
+                            errors={errors}
                             autoFocus
-                            autoComplete="new-password"
-                            placeholder={t('common.password_placeholder')}
-                            className="h-11"
-                            aria-invalid={!!errors.password}
                         />
-                        <InputError message={errors.password} />
-                    </div>
 
-                    <div className="grid gap-2">
-                        <Label htmlFor="password_confirmation">
-                            {t('reset_password.password_confirm')}
-                        </Label>
-                        <PasswordInput
-                            id="password_confirmation"
-                            name="password_confirmation"
-                            required
-                            autoComplete="new-password"
-                            placeholder={t('common.password_placeholder')}
-                            className="h-11"
-                            aria-invalid={!!errors.password_confirmation}
-                        />
-                        <InputError message={errors.password_confirmation} />
+                        <Button
+                            type="submit"
+                            size="lg"
+                            className="mt-1 h-11 w-full text-base font-medium"
+                            disabled={processing || !ready}
+                            data-test="reset-password-button"
+                        >
+                            {processing && <Spinner />}
+                            {processing
+                                ? t('common.submit_loading')
+                                : t('reset_password.submit')}
+                        </Button>
                     </div>
-
-                    <Button
-                        type="submit"
-                        size="lg"
-                        className="mt-1 h-11 w-full text-base font-medium"
-                        disabled={processing}
-                        data-test="reset-password-button"
-                    >
-                        {processing && <Spinner />}
-                        {processing
-                            ? t('common.submit_loading')
-                            : t('reset_password.submit')}
-                    </Button>
-                </div>
-            )}
+                );
+            }}
         </Form>
     );
 }

@@ -14,6 +14,7 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Illuminate\Console\Scheduling\Schedule;
@@ -230,6 +231,10 @@ return Application::configure(basePath: dirname(__DIR__))
             }
 
             if ($e instanceof HttpException) {
+                return null;
+            }
+
+            if ($e instanceof ValidationException) {
                 return null;
             }
 
