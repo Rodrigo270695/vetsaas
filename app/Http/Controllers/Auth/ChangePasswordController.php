@@ -48,13 +48,21 @@ class ChangePasswordController extends Controller
             ]);
         }
 
-        $user->forceFill([
+        $updates = [
             'password' => $data['password'],
             'must_change_password' => false,
-        ])->save();
+        ];
+
+        // Tras el alta SaaS el admin entra con clave temporal: al definir la
+        // suya damos por verificado el email usado en el registro.
+        if ($user->tenant_id !== null && $user->email_verified_at === null) {
+            $updates['email_verified_at'] = now();
+        }
+
+        $user->forceFill($updates)->save();
 
         return redirect()
-            ->intended(route('dashboard'))
+            ->route('dashboard')
             ->with('success', __('Tu contraseña fue actualizada.'));
     }
 }

@@ -12,6 +12,8 @@ use App\Models\Sede;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Tenancy\TenantManager;
+use Illuminate\Support\Facades\Schema;
+use Throwable;
 
 /**
  * Límites numéricos y módulos del plan activo del tenant.
@@ -92,21 +94,35 @@ final class PlanLimits
             return 0;
         }
 
-        if ($feature === 'max_usuarios' || $feature === 'max_sedes') {
-            $tenantId = self::tenant()?->id;
+        try {
+            if ($feature === 'max_usuarios' || $feature === 'max_sedes') {
+                $tenantId = self::tenant()?->id;
 
-            if ($tenantId === null) {
+                if ($tenantId === null) {
+                    return 0;
+                }
+
+                if ($feature === 'max_usuarios') {
+                    return User::query()->where('tenant_id', $tenantId)->count();
+                }
+
+                if (! self::tableExistsForModel(Sede::class)) {
+                    return 0;
+                }
+
+                return Sede::query()->where('tenant_id', $tenantId)->count();
+            }
+
+            if (! self::tableExistsForModel($model)) {
                 return 0;
             }
 
-            if ($feature === 'max_usuarios') {
-                return User::query()->where('tenant_id', $tenantId)->count();
-            }
+            return $model::query()->count();
+        } catch (Throwable $e) {
+            report($e);
 
-            return Sede::query()->where('tenant_id', $tenantId)->count();
+            return 0;
         }
-
-        return $model::query()->count();
     }
 
     public static function wouldExceed(
@@ -156,23 +172,42 @@ final class PlanLimits
             return null;
         }
 
-        $out = [];
+        try {
+            $out = [];
 
-        foreach (self::INT_LIMIT_FEATURES as $feature) {
-            $limit = self::intLimit($tenant, $feature);
-            $used = self::currentCount($feature);
-            $unlimited = $limit === null;
+            foreach (self::INT_LIMIT_FEATURES as $feature) {
+                $limit = self::intLimit($tenant, $feature);
+                $used = self::currentCount($feature);
+                $unlimited = $limit === null;
 
-            $out[$feature] = [
-                'limit' => $limit,
-                'used' => $used,
-                'remaining' => $unlimited ? null : max(0, $limit - $used),
-                'reached' => ! $unlimited && $used >= $limit,
-                'unlimited' => $unlimited,
-            ];
+                $out[$feature] = [
+                    'limit' => $limit,
+                    'used' => $used,
+                    'remaining' => $unlimited ? null : max(0, $limit - $used),
+                    'reached' => ! $unlimited && $used >= $limit,
+                    'unlimited' => $unlimited,
+                ];
+            }
+
+            return $out;
+        } catch (Throwable $e) {
+            report($e);
+
+            return null;
         }
+    }
 
-        return $out;
+    /**
+     * @param  class-string  $modelClass
+     */
+    private static function tableExistsForModel(string $modelClass): bool
+    {
+        $table = (new $modelClass)->getTable();
+        $name = str_contains($table, '.')
+            ? substr($table, strrpos($table, '.') + 1)
+            : $table;
+
+        return Schema::hasTable($name);
     }
 
     public static function moduleEnabled(?Tenant $tenant, string $feature): bool

@@ -224,6 +224,8 @@ return Application::configure(basePath: dirname(__DIR__))
                 return null;
             }
 
+            report($e);
+
             return $renderInertiaHttpError(
                 $request,
                 500,

@@ -70,7 +70,15 @@ class HandleInertiaRequests extends Middleware
                 'scheme' => TenantSubdomainUrl::scheme(),
                 'login_path' => TenantSubdomainUrl::loginPath(),
             ],
-            'plan_limits' => static fn () => PlanLimits::snapshot(),
+            'plan_limits' => static function () {
+                try {
+                    return PlanLimits::snapshot();
+                } catch (\Throwable $e) {
+                    report($e);
+
+                    return null;
+                }
+            },
             'auth' => [
                 'user' => $user,
                 'permissions' => $user
