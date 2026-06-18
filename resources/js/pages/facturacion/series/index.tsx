@@ -492,8 +492,8 @@ export default function Index({ series = [], tipos }: Props) {
 Index.layout = (page: React.ReactNode) => (
     <AppLayout
         breadcrumbs={[
-            { title: 'Facturación', href: '#' },
-            { title: 'Series', href: '/facturacion/series' },
+        { title: 'Facturación', href: '#' },
+        { title: 'Series', href: '/facturacion/series' },
         ]}
     >
         {page}

@@ -32,6 +32,7 @@ use App\Http\Controllers\PlatformSettingController;
 use App\Http\Controllers\PlatformWhatsAppController;
 use App\Http\Controllers\PromotionController;
 use App\Http\Controllers\ProveedorInventarioController;
+use App\Http\Controllers\ProductoInventarioController;
 use App\Http\Controllers\StockInventarioController;
 use App\Http\Controllers\UnidadMedidaInventarioController;
 use App\Http\Controllers\PropietarioController;
