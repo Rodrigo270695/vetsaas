@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\AssignsAuthenticatedResponsable;
 use App\Hotel\HotelCatalogoMode;
 use App\Hotel\HotelCatalogoTipoEstancia;
 use App\Models\HotelEstancia;
@@ -11,6 +12,8 @@ use Illuminate\Validation\Rule;
 
 class UpdateHotelEstanciaRequest extends FormRequest
 {
+    use AssignsAuthenticatedResponsable;
+
     public function authorize(): bool
     {
         return $this->user()?->can('hotel.update') ?? false;
@@ -50,6 +53,8 @@ class UpdateHotelEstanciaRequest extends FormRequest
         if ($out !== []) {
             $this->merge($out);
         }
+
+        $this->stripResponsableFromUpdate();
     }
 
     /**
@@ -65,13 +70,6 @@ class UpdateHotelEstanciaRequest extends FormRequest
                 'uuid',
                 Rule::exists('pacientes', 'id')->where(
                     fn ($q) => $q->where('activo', true),
-                ),
-            ],
-            'responsable_id' => [
-                'nullable',
-                'uuid',
-                Rule::exists('users', 'id')->where(
-                    fn ($q) => $q->where('tenant_id', $tenantId),
                 ),
             ],
             'sede_id' => [

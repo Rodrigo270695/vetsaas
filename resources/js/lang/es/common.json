@@ -102,6 +102,11 @@
             "title": "Página no encontrada",
             "description": "La ruta que intentaste abrir no existe o ya no está disponible.",
             "helper": "Revisa la dirección o vuelve al panel principal. Si el enlace venía del menú, puede que el módulo aún no esté habilitado para tu clínica."
+        },
+        "server_error": {
+            "title": "Error del servidor",
+            "description": "Ocurrió un problema inesperado al procesar tu solicitud.",
+            "helper": "Intenta de nuevo en unos momentos. Si el error persiste, contacta al soporte de tu clínica o al administrador del sistema."
         }
     }
 }

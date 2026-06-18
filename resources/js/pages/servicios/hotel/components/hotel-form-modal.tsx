@@ -26,7 +26,6 @@ import type {
     HotelTipoRow,
     PacienteHotelOpcion,
     SedeHotelOpcion,
-    UsuarioHotelOpcion,
 } from '../types';
 
 const controlClass = 'h-10 w-full min-w-0';
@@ -78,7 +77,6 @@ export type HotelFormModalProps = {
     hotelTipos: readonly HotelTipoRow[];
     tipoGrupos: readonly HotelTipoGrupo[];
     pacientesOpciones: readonly PacienteHotelOpcion[];
-    usuariosOpciones: readonly UsuarioHotelOpcion[];
     sedesOpciones: readonly SedeHotelOpcion[];
 };
 
@@ -139,7 +137,6 @@ export function HotelFormModal({
     hotelTipos,
     tipoGrupos,
     pacientesOpciones,
-    usuariosOpciones,
     sedesOpciones,
 }: HotelFormModalProps) {
     const { t } = useTranslation(['hotel', 'common']);
@@ -438,30 +435,6 @@ export function HotelFormModal({
                         </Select>
                     </FormField>
                 ) : null}
-
-                <FormField
-                    id="hf-responsable"
-                    label={t('form.responsable')}
-                    error={errors.responsable_id as string | undefined}
-                >
-                    <Select
-                        value={data.responsable_id ?? '__none__'}
-                        onValueChange={(v) => setData('responsable_id', v === '__none__' ? null : v)}
-                        disabled={processing}
-                    >
-                        <SelectTrigger id="hf-responsable" className={controlClass}>
-                            <SelectValue placeholder={t('form.responsable_placeholder')} />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="__none__">{t('form.responsable_placeholder')}</SelectItem>
-                            {usuariosOpciones.map((u) => (
-                                <SelectItem key={u.id} value={u.id}>
-                                    {u.name}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </FormField>
 
                 <SedeFormField
                     id="hf-sede"

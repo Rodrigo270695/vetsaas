@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\AssignsAuthenticatedResponsable;
 use App\Hotel\HotelCatalogoMode;
 use App\Hotel\HotelCatalogoTipoEstancia;
 use App\Support\Hotel\HotelEstanciaTipoRules;
@@ -10,6 +11,8 @@ use Illuminate\Validation\Rule;
 
 class StoreHotelEstanciaRequest extends FormRequest
 {
+    use AssignsAuthenticatedResponsable;
+
     public function authorize(): bool
     {
         return $this->user()?->can('hotel.create') ?? false;
@@ -49,6 +52,8 @@ class StoreHotelEstanciaRequest extends FormRequest
         if ($out !== []) {
             $this->merge($out);
         }
+
+        $this->mergeAuthenticatedResponsable();
     }
 
     /**

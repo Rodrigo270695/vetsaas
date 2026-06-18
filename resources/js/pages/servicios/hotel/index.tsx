@@ -477,7 +477,6 @@ export default function Index({
                 hotelTipos={hotel_tipos}
                 tipoGrupos={hotel_tipo_grupos}
                 pacientesOpciones={pacientes_opciones}
-                usuariosOpciones={usuarios_opciones}
                 sedesOpciones={sedes_opciones}
             />
 

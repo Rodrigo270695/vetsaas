@@ -102,6 +102,11 @@
             "title": "Page not found",
             "description": "The route you tried to open does not exist or is no longer available.",
             "helper": "Check the address or return to the main panel. If the link came from the menu, the module may not be enabled for your clinic yet."
+        },
+        "server_error": {
+            "title": "Server error",
+            "description": "An unexpected problem occurred while processing your request.",
+            "helper": "Try again in a few moments. If the error persists, contact your clinic support or system administrator."
         }
     }
 }

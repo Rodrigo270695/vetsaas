@@ -26,7 +26,6 @@ import type {
     GroomingTurnoRow,
     PacienteGroomingOpcion,
     SedeGroomingOpcion,
-    UsuarioGroomingOpcion,
 } from '../types';
 
 const controlClass = 'h-10 w-full min-w-0';
@@ -79,7 +78,6 @@ export type GroomingFormModalProps = {
     servicioGrupos: readonly GroomingServicioGrupo[];
     servicioDuraciones: Readonly<Record<string, number>>;
     pacientesOpciones: readonly PacienteGroomingOpcion[];
-    usuariosOpciones: readonly UsuarioGroomingOpcion[];
     sedesOpciones: readonly SedeGroomingOpcion[];
 };
 
@@ -145,7 +143,6 @@ export function GroomingFormModal({
     servicioGrupos,
     servicioDuraciones,
     pacientesOpciones,
-    usuariosOpciones,
     sedesOpciones,
 }: GroomingFormModalProps) {
     const { t } = useTranslation(['grooming', 'common']);
@@ -506,30 +503,6 @@ export function GroomingFormModal({
                         aria-invalid={Boolean(errors.notas)}
                         disabled={processing}
                     />
-                </FormField>
-
-                <FormField
-                    id="gf-responsable"
-                    label={t('form.responsable')}
-                    error={errors.responsable_id as string | undefined}
-                >
-                    <Select
-                        value={data.responsable_id ?? '__none__'}
-                        onValueChange={(v) => setData('responsable_id', v === '__none__' ? null : v)}
-                        disabled={processing}
-                    >
-                        <SelectTrigger id="gf-responsable" className={controlClass}>
-                            <SelectValue placeholder={t('form.responsable_placeholder')} />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="__none__">{t('form.responsable_placeholder')}</SelectItem>
-                            {usuariosOpciones.map((u) => (
-                                <SelectItem key={u.id} value={u.id}>
-                                    {u.name}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
                 </FormField>
 
                 <SedeFormField

@@ -199,7 +199,37 @@ return Application::configure(basePath: dirname(__DIR__))
                 );
             }
 
+            if ($status === 500) {
+                return $renderInertiaHttpError(
+                    $request,
+                    500,
+                    'errors/server-error',
+                    null,
+                );
+            }
+
             return null;
+        });
+
+        $exceptions->renderable(function (\Throwable $e, Request $request) use ($renderInertiaHttpError) {
+            if (app()->hasDebugModeEnabled()) {
+                return null;
+            }
+
+            if ($e instanceof HttpException) {
+                return null;
+            }
+
+            if ($request->expectsJson() && ! $request->header('X-Inertia')) {
+                return null;
+            }
+
+            return $renderInertiaHttpError(
+                $request,
+                500,
+                'errors/server-error',
+                null,
+            );
         });
 
         // Cuando el middleware `ResolveTenant` no encuentra el tenant,

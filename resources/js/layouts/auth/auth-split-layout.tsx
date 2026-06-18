@@ -16,6 +16,7 @@ const PAGES_WITH_OWN_CARD = new Set([
     'auth/login',
     'errors/forbidden',
     'errors/not-found',
+    'errors/server-error',
 ]);
 
 /**

@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\ProductoInventarioRequest;
 use App\Models\CategoriaProducto;
 use App\Models\Producto;
-use App\Models\UnidadMedida;
+use App\Support\Inventario\UnidadMedidaOpciones;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -92,11 +92,7 @@ class ProductoInventarioController extends Controller
             ->orderBy('nombre')
             ->get(['id', 'nombre']);
 
-        $unidadOptions = UnidadMedida::query()
-            ->where('activo', true)
-            ->orderByDesc('es_sistema')
-            ->orderBy('nombre')
-            ->get(['id', 'codigo', 'nombre', 'es_sistema', 'created_at']);
+        $unidadOptions = UnidadMedidaOpciones::forProductoForm();
 
         return Inertia::render('inventario/productos/index', [
             'productos' => $productos,

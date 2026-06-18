@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\AssignsAuthenticatedResponsable;
 use App\Grooming\GroomingCatalogoServicio;
 use App\Support\Grooming\GroomingTurnoServicioRules;
 use Illuminate\Foundation\Http\FormRequest;
@@ -9,6 +10,8 @@ use Illuminate\Validation\Rule;
 
 class StoreGroomingTurnoRequest extends FormRequest
 {
+    use AssignsAuthenticatedResponsable;
+
     public function authorize(): bool
     {
         return $this->user()?->can('grooming.create') ?? false;
@@ -44,6 +47,8 @@ class StoreGroomingTurnoRequest extends FormRequest
         if ($out !== []) {
             $this->merge($out);
         }
+
+        $this->mergeAuthenticatedResponsable();
     }
 
     /**

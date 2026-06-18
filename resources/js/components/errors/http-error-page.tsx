@@ -1,12 +1,12 @@
 import { Head, Link } from '@inertiajs/react';
-import { ArrowLeft, Home, LayoutGrid, Lock, SearchX } from 'lucide-react';
+import { ArrowLeft, Home, LayoutGrid, Lock, SearchX, TriangleAlert } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { dashboard } from '@/routes';
 
 type HttpErrorPageProps = {
-    status: 403 | 404;
+    status: 403 | 404 | 500;
     message?: string | null;
     attempted_path?: string | null;
     is_authenticated?: boolean;
@@ -21,11 +21,18 @@ export function HttpErrorPage({
     const { t } = useTranslation('common');
 
     const isForbidden = status === 403;
-    const Icon = isForbidden ? Lock : SearchX;
-    const title = isForbidden ? t('http_errors.forbidden.title') : t('http_errors.not_found.title');
+    const isServerError = status === 500;
+    const Icon = isForbidden ? Lock : isServerError ? TriangleAlert : SearchX;
+    const title = isForbidden
+        ? t('http_errors.forbidden.title')
+        : isServerError
+          ? t('http_errors.server_error.title')
+          : t('http_errors.not_found.title');
     const description = isForbidden
         ? t('http_errors.forbidden.description')
-        : t('http_errors.not_found.description');
+        : isServerError
+          ? t('http_errors.server_error.description')
+          : t('http_errors.not_found.description');
 
     return (
         <>
@@ -36,7 +43,9 @@ export function HttpErrorPage({
                     className={
                         isForbidden
                             ? 'flex h-20 w-20 items-center justify-center rounded-2xl bg-amber-50 text-amber-700 ring-1 ring-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:ring-amber-900'
-                            : 'flex h-20 w-20 items-center justify-center rounded-2xl bg-muted text-muted-foreground ring-1 ring-border'
+                            : isServerError
+                              ? 'flex h-20 w-20 items-center justify-center rounded-2xl bg-rose-50 text-rose-700 ring-1 ring-rose-200 dark:bg-rose-950/30 dark:text-rose-400 dark:ring-rose-900'
+                              : 'flex h-20 w-20 items-center justify-center rounded-2xl bg-muted text-muted-foreground ring-1 ring-border'
                     }
                 >
                     <Icon className="size-10" aria-hidden />
@@ -101,7 +110,11 @@ export function HttpErrorPage({
                 )}
 
                 <p className="max-w-xl text-xs leading-relaxed text-muted-foreground sm:text-sm">
-                    {isForbidden ? t('http_errors.forbidden.helper') : t('http_errors.not_found.helper')}
+                    {isForbidden
+                        ? t('http_errors.forbidden.helper')
+                        : isServerError
+                          ? t('http_errors.server_error.helper')
+                          : t('http_errors.not_found.helper')}
                 </p>
             </div>
         </>
