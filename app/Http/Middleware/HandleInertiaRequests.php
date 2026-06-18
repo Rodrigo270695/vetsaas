@@ -42,6 +42,41 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        try {
+            return $this->buildSharedProps($request);
+        } catch (Throwable $e) {
+            report($e);
+            $this->appendEmergencyLog($e);
+
+            return [
+                ...parent::share($request),
+                'name' => config('app.name'),
+                'locale' => $request->getLocale(),
+                'timezone' => config('app.timezone'),
+                'tenant' => null,
+                'tenancy' => [
+                    'root_domain' => TenantSubdomainUrl::rootDomain(),
+                    'scheme' => TenantSubdomainUrl::scheme(),
+                    'login_path' => TenantSubdomainUrl::loginPath(),
+                ],
+                'plan_limits' => null,
+                'auth' => [
+                    'user' => Auth::guard('web')->user(),
+                    'permissions' => [],
+                    'roles' => [],
+                ],
+                'flash' => null,
+                'tenant_impersonation' => null,
+                'sidebarOpen' => true,
+            ];
+        }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function buildSharedProps(Request $request): array
+    {
         // Snapshot del tenant activo (si lo hay). Se expone como prop
         // global `page.props.tenant` para que cualquier layout, sidebar
         // o componente React pueda saber en qué clínica está sin tener
@@ -61,7 +96,9 @@ class HandleInertiaRequests extends Middleware
         /** @var User|null $user */
         $user = Auth::guard('web')->user();
 
-        $skipHeavySharedProps = $request->routeIs('password.change.form', 'password.change.update');
+        $skipHeavySharedProps = $request->routeIs('password.change.form', 'password.change.update')
+            || $request->is('cuenta/cambiar-password')
+            || ($user instanceof User && $user->must_change_password === true);
 
         return [
             ...parent::share($request),
@@ -190,5 +227,18 @@ class HandleInertiaRequests extends Middleware
 
             return [];
         }
+    }
+
+    private function appendEmergencyLog(Throwable $e): void
+    {
+        $line = sprintf(
+            "[%s] inertia.share.ERROR: %s in %s:%d\n",
+            now()->toDateTimeString(),
+            $e->getMessage(),
+            $e->getFile(),
+            $e->getLine(),
+        );
+
+        @file_put_contents(storage_path('logs/laravel.log'), $line, FILE_APPEND | LOCK_EX);
     }
 }

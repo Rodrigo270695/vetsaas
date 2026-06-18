@@ -31,7 +31,7 @@ class EnsureTenantSubscriptionAccess
             return $next($request);
         }
 
-        if ($request->routeIs('logout')) {
+        if ($request->routeIs('logout', 'password.change.form', 'password.change.update')) {
             return $next($request);
         }
 

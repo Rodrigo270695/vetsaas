@@ -4,24 +4,20 @@ namespace App\Http\Controllers\Auth;
 
 use App\Concerns\PasswordValidationRules;
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use Throwable;
 
 /**
  * Cambio obligatorio de contraseña al primer login (o tras un reset
  * administrativo del flag).
- *
- * Funciona junto con el middleware {@see \App\Http\Middleware\EnsurePasswordIsChanged}
- * que redirige aquí mientras `users.must_change_password = true`.
- *
- * No exige la contraseña actual a propósito: el usuario llega aquí
- * porque alguien (admin / job de provisión) le configuró una clave
- * temporal que no debería conservar. Sí exige que la nueva sea
- * distinta de la actual (para que el flag tenga sentido).
  */
 class ChangePasswordController extends Controller
 {
@@ -37,32 +33,59 @@ class ChangePasswordController extends Controller
         $user = $request->user('web');
 
         abort_if($user === null, 401);
+        abort_if(! $user instanceof User, 401);
 
-        $data = $request->validate([
-            'password' => $this->passwordRules(),
-        ]);
+        try {
+            $data = $request->validate([
+                'password' => $this->passwordRules(),
+            ]);
 
-        if (Hash::check($data['password'], $user->password)) {
+            if (Hash::check($data['password'], $user->getAuthPassword())) {
+                throw ValidationException::withMessages([
+                    'password' => __('La nueva contraseña debe ser distinta a la actual.'),
+                ]);
+            }
+
+            $updates = [
+                'password' => $data['password'],
+                'must_change_password' => false,
+            ];
+
+            if ($user->tenant_id !== null && $user->email_verified_at === null) {
+                $updates['email_verified_at'] = now();
+            }
+
+            $user->forceFill($updates)->save();
+
+            Auth::guard('web')->setUser($user->fresh());
+
+            $request->session()->regenerate();
+
+            return redirect('/dashboard')
+                ->with('success', __('Tu contraseña fue actualizada.'));
+        } catch (ValidationException $e) {
+            throw $e;
+        } catch (Throwable $e) {
+            report($e);
+            Log::error('Fallo al cambiar contraseña obligatoria.', [
+                'user_id' => $user->id,
+                'exception' => $e->getMessage(),
+            ]);
+
+            @file_put_contents(
+                storage_path('logs/laravel.log'),
+                sprintf(
+                    "[%s] password.change.ERROR user=%s: %s\n",
+                    now()->toDateTimeString(),
+                    $user->id,
+                    $e->getMessage(),
+                ),
+                FILE_APPEND | LOCK_EX,
+            );
+
             throw ValidationException::withMessages([
-                'password' => __('La nueva contraseña debe ser distinta a la actual.'),
+                'password' => __('No se pudo guardar la contraseña. Intenta de nuevo o contacta a soporte.'),
             ]);
         }
-
-        $updates = [
-            'password' => $data['password'],
-            'must_change_password' => false,
-        ];
-
-        // Tras el alta SaaS el admin entra con clave temporal: al definir la
-        // suya damos por verificado el email usado en el registro.
-        if ($user->tenant_id !== null && $user->email_verified_at === null) {
-            $updates['email_verified_at'] = now();
-        }
-
-        $user->forceFill($updates)->save();
-
-        return redirect()
-            ->route('dashboard')
-            ->with('success', __('Tu contraseña fue actualizada.'));
     }
 }

@@ -120,6 +120,19 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('vetsaas:whatsapp-sync-sessions')->hourly();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        $exceptions->reportable(function (\Throwable $e): void {
+            $line = sprintf(
+                "[%s] %s.ERROR: %s in %s:%d\n",
+                now()->toDateTimeString(),
+                app()->environment(),
+                $e->getMessage(),
+                $e->getFile(),
+                $e->getLine(),
+            );
+
+            @file_put_contents(storage_path('logs/laravel.log'), $line, FILE_APPEND | LOCK_EX);
+        });
+
         $userFacingHttpMessage = static function (?string $message): ?string {
             if ($message === null || $message === '') {
                 return null;
