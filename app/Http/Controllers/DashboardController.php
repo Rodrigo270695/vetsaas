@@ -10,6 +10,7 @@ use App\Tenancy\TenantManager;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Throwable;
 
 class DashboardController extends Controller
 {
@@ -28,18 +29,18 @@ class DashboardController extends Controller
         $user = $request->user();
 
         $capabilities = [
-            'citas' => $user->can('citas.view'),
-            'consultas' => $user->can('historias-clinicas.view'),
-            'ventas' => $user->can('ventas.view'),
-            'pacientes' => $user->can('pacientes.view'),
-            'propietarios' => $user->can('propietarios.view'),
-            'vacunaciones' => $user->can('vacunaciones.view'),
-            'grooming' => $user->can('grooming.view'),
-            'hotel' => $user->can('hotel.view'),
-            'hospitalizacion' => $user->can('hospitalizacion.view'),
-            'productos' => $user->can('productos.view'),
-            'alertas_stock' => $user->can('alertas-stock.view'),
-            'caja_sesiones' => $user->can('caja-sesiones.view'),
+            'citas' => $this->userCan($user, 'citas.view'),
+            'consultas' => $this->userCan($user, 'historias-clinicas.view'),
+            'ventas' => $this->userCan($user, 'ventas.view'),
+            'pacientes' => $this->userCan($user, 'pacientes.view'),
+            'propietarios' => $this->userCan($user, 'propietarios.view'),
+            'vacunaciones' => $this->userCan($user, 'vacunaciones.view'),
+            'grooming' => $this->userCan($user, 'grooming.view'),
+            'hotel' => $this->userCan($user, 'hotel.view'),
+            'hospitalizacion' => $this->userCan($user, 'hospitalizacion.view'),
+            'productos' => $this->userCan($user, 'productos.view'),
+            'alertas_stock' => $this->userCan($user, 'alertas-stock.view'),
+            'caja_sesiones' => $this->userCan($user, 'caja-sesiones.view'),
         ];
 
         $context = $this->tenantManager->current();
@@ -52,5 +53,16 @@ class DashboardController extends Controller
             'capabilities' => $capabilities,
             ...$this->stats->build($user, $capabilities),
         ]);
+    }
+
+    private function userCan(User $user, string $ability): bool
+    {
+        try {
+            return $user->can($ability);
+        } catch (Throwable $e) {
+            report($e);
+
+            return false;
+        }
     }
 }

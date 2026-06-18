@@ -22,6 +22,7 @@ use App\Tenancy\TenantManager;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Throwable;
 
 /**
  * Métricas del panel principal. Solo tiene sentido con tenant resuelto
@@ -41,6 +42,21 @@ final class DashboardStatsService
     {
         abort_unless($this->tenantManager->check(), 403);
 
+        try {
+            return $this->buildPayload($user, $capabilities);
+        } catch (Throwable $e) {
+            report($e);
+
+            return $this->emptyPayload();
+        }
+    }
+
+    /**
+     * @param  array<string, bool>  $capabilities
+     * @return array<string, mixed>
+     */
+    private function buildPayload(User $user, array $capabilities): array
+    {
         $tz = (string) config('app.timezone');
         $now = now($tz);
         $todayStart = $now->copy()->startOfDay();
@@ -177,6 +193,39 @@ final class DashboardStatsService
             'proximas_citas' => ($capabilities['citas'] ?? false)
                 ? $this->proximasCitas($now)
                 : [],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function emptyPayload(): array
+    {
+        return [
+            'moneda' => 'PEN',
+            'kpis' => [
+                'citas_hoy' => 0,
+                'citas_pendientes_hoy' => 0,
+                'consultas_hoy' => 0,
+                'consultas_abiertas' => 0,
+                'ventas_hoy_count' => 0,
+                'ventas_hoy_total' => '0.00',
+                'pacientes_nuevos_mes' => 0,
+                'propietarios_nuevos_mes' => 0,
+                'vacunaciones_mes' => 0,
+                'grooming_hoy' => 0,
+                'hotel_en_estancia' => 0,
+                'internamientos_activos' => 0,
+                'fel_pendientes' => 0,
+                'productos_activos' => 0,
+                'alertas_stock' => 0,
+                'caja_abierta' => false,
+            ],
+            'ventas_por_dia' => [],
+            'consultas_por_dia' => [],
+            'ventas_por_metodo' => [],
+            'citas_por_estado' => [],
+            'proximas_citas' => [],
         ];
     }
 

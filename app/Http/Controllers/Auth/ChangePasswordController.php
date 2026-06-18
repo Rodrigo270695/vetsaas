@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Auth;
 use App\Concerns\PasswordValidationRules;
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -13,6 +12,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\Response as HttpResponse;
 use Throwable;
 
 /**
@@ -28,7 +28,7 @@ class ChangePasswordController extends Controller
         return Inertia::render('auth/change-password');
     }
 
-    public function update(Request $request): RedirectResponse
+    public function update(Request $request): HttpResponse
     {
         $user = $request->user('web');
 
@@ -61,8 +61,15 @@ class ChangePasswordController extends Controller
 
             $request->session()->regenerate();
 
-            return redirect('/dashboard')
-                ->with('success', __('Tu contraseña fue actualizada.'));
+            $request->session()->flash('success', __('Tu contraseña fue actualizada.'));
+
+            // Evita que fetch siga el 302 al dashboard en el mismo POST (el fallo
+            // del dashboard se veía como 500 en /cuenta/cambiar-password).
+            if ($request->header('X-Inertia')) {
+                return Inertia::location(route('dashboard'));
+            }
+
+            return redirect()->route('dashboard');
         } catch (ValidationException $e) {
             throw $e;
         } catch (Throwable $e) {
