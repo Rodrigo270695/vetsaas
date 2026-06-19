@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Models\User;
 use App\Support\Plan\PlanLimits;
+use App\Support\Subscriptions\TenantSubscriptionSummary;
 use App\Support\Tenancy\TenantSubdomainUrl;
 use App\Tenancy\TenantManager;
 use Illuminate\Http\Request;
@@ -60,6 +61,7 @@ class HandleInertiaRequests extends Middleware
                     'login_path' => TenantSubdomainUrl::loginPath(),
                 ],
                 'plan_limits' => null,
+                'subscription_renewal_alert' => null,
                 'auth' => [
                     'user' => Auth::guard('web')->user(),
                     'permissions' => [],
@@ -116,6 +118,27 @@ class HandleInertiaRequests extends Middleware
                 : static function () {
                     try {
                         return PlanLimits::snapshot();
+                    } catch (Throwable $e) {
+                        report($e);
+
+                        return null;
+                    }
+                },
+            'subscription_renewal_alert' => $skipHeavySharedProps
+                ? null
+                : static function () use ($tenantContext, $user) {
+                    if ($tenantContext === null || ! ($user instanceof User)) {
+                        return null;
+                    }
+
+                    try {
+                        if (! $user->can('config-general.view')) {
+                            return null;
+                        }
+
+                        return TenantSubscriptionSummary::renewalAlertForTenant(
+                            $tenantContext->tenant,
+                        );
                     } catch (Throwable $e) {
                         report($e);
 

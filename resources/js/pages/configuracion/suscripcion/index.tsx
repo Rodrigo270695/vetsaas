@@ -13,6 +13,7 @@ import { PageHeader, StatBadge } from '@/components/data-page';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
+import { cn } from '@/lib/utils';
 import { SectionCard } from '../general/components/section-card';
 
 type SubscriptionPlan = {
@@ -43,7 +44,7 @@ type SubscriptionSummary = {
     renewal_anchor_at: string | null;
     renewal_anchor_source: string;
     days_until_renewal: number | null;
-    urgency: 'ok' | 'warning' | 'danger' | 'muted';
+    urgency: 'ok' | 'yellow' | 'amber' | 'red' | 'danger' | 'muted';
     renewal_url: string | null;
 };
 
@@ -80,25 +81,59 @@ function estadoVariant(
 }
 
 function urgencyAlertClass(urgency: SubscriptionSummary['urgency']): string {
-    if (urgency === 'danger') {
-        return 'border-destructive/40 bg-destructive/5 text-destructive';
+    switch (urgency) {
+        case 'red':
+            return 'border-red-500/40 bg-red-500/5 text-red-800 dark:text-red-300';
+        case 'amber':
+            return 'border-amber-500/40 bg-amber-500/5 text-amber-800 dark:text-amber-300';
+        case 'yellow':
+            return 'border-yellow-500/40 bg-yellow-500/5 text-yellow-800 dark:text-yellow-300';
+        case 'danger':
+            return 'border-destructive/40 bg-destructive/5 text-destructive';
+        case 'ok':
+            return 'border-emerald-500/30 bg-emerald-500/5 text-emerald-800 dark:text-emerald-300';
+        default:
+            return 'border-border/60 bg-muted/30 text-muted-foreground';
     }
-    if (urgency === 'warning') {
-        return 'border-amber-500/40 bg-amber-500/5 text-amber-800 dark:text-amber-300';
-    }
-    if (urgency === 'ok') {
-        return 'border-primary/30 bg-primary/5 text-foreground';
-    }
-    return 'border-border/60 bg-muted/30 text-muted-foreground';
 }
 
-function DetailRow({ label, value }: { label: string; value: string }) {
+function DetailRow({
+    label,
+    value,
+    valueClassName,
+}: {
+    label: string;
+    value: string;
+    valueClassName?: string;
+}) {
     return (
         <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
             <dt className="text-sm text-muted-foreground">{label}</dt>
-            <dd className="text-sm font-medium text-foreground">{value}</dd>
+            <dd
+                className={cn(
+                    'text-sm font-medium text-foreground',
+                    valueClassName,
+                )}
+            >
+                {value}
+            </dd>
         </div>
     );
+}
+
+function dateValueClass(urgency: SubscriptionSummary['urgency']): string | undefined {
+    switch (urgency) {
+        case 'red':
+            return 'text-red-700 dark:text-red-400';
+        case 'amber':
+            return 'text-amber-700 dark:text-amber-400';
+        case 'yellow':
+            return 'text-yellow-700 dark:text-yellow-400';
+        case 'ok':
+            return 'text-emerald-700 dark:text-emerald-400';
+        default:
+            return undefined;
+    }
 }
 
 export default function Index({ subscription }: SuscripcionIndexProps) {
@@ -129,6 +164,9 @@ export default function Index({ subscription }: SuscripcionIndexProps) {
         summary?.ciclo !== null && summary?.ciclo !== undefined
             ? t(`ciclos.${summary.ciclo}`)
             : '—';
+
+    const urgency = summary?.urgency ?? 'muted';
+    const highlightDates = dateValueClass(urgency);
 
     return (
         <>
@@ -218,6 +256,7 @@ export default function Index({ subscription }: SuscripcionIndexProps) {
                                 summary?.proximo_cobro_at ?? null,
                                 locale,
                             )}
+                            valueClassName={highlightDates}
                         />
                         <DetailRow
                             label={t('fields.renewal_anchor')}
@@ -225,6 +264,7 @@ export default function Index({ subscription }: SuscripcionIndexProps) {
                                 summary?.renewal_anchor_at ?? null,
                                 locale,
                             )}
+                            valueClassName={highlightDates}
                         />
                     </dl>
                 </SectionCard>

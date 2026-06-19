@@ -19,6 +19,7 @@ declare module '@inertiajs/core' {
             tenant: TenantShared | null;
             tenancy: TenancyShared;
             plan_limits: PlanLimitsSnapshot | null;
+            subscription_renewal_alert: import('@/components/subscription-renewal-reminder-modal').SubscriptionRenewalAlert | null;
             tenant_impersonation: SharedTenantImpersonation | null;
             [key: string]: unknown;
         };

@@ -37,9 +37,18 @@
     },
     "alerts": {
         "ok": "Your subscription is up to date. Check the next charge date to plan renewal.",
-        "warning": "Renewal is coming soon. We recommend paying before the due date to avoid interruptions.",
-        "danger": "Your subscription needs attention. Renew as soon as possible to restore full access.",
+        "yellow": "Your next charge is within 7 days. Review your plan and renew on time.",
+        "amber": "Only a few days left until the next charge. Renew soon to avoid interruptions.",
+        "red": "Your subscription expires very soon or has expired. Renew as soon as possible.",
+        "danger": "Your subscription needs immediate attention. Contact support or renew your plan.",
         "muted": "If you have questions about your plan or dates, contact Orvae support."
+    },
+    "modal": {
+        "title": "Your subscription is about to expire",
+        "description": "Plan {{plan}} needs renewal before the next charge.",
+        "due_date": "Due date: {{date}}",
+        "view_subscription": "View my subscription",
+        "dismiss": "Got it, remind me tomorrow"
     },
     "renew_hint": "Payment is processed on Orvae's secure portal. Once confirmed, your access is extended automatically.",
     "renew_cta": "Renew or pay plan",

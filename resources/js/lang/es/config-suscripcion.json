@@ -37,9 +37,18 @@
     },
     "alerts": {
         "ok": "Tu suscripción está al día. Revisa la fecha de próximo cobro para planificar la renovación.",
-        "warning": "Tu renovación está cerca. Te recomendamos pagar antes del vencimiento para evitar interrupciones.",
-        "danger": "Tu suscripción requiere atención. Renueva cuanto antes para recuperar el acceso completo.",
+        "yellow": "Tu próximo cobro está en los próximos 7 días. Te recomendamos revisar tu plan y renovar a tiempo.",
+        "amber": "Quedan pocos días para el próximo cobro. Renueva pronto para evitar interrupciones.",
+        "red": "Tu suscripción vence muy pronto o ya venció. Renueva cuanto antes para mantener el acceso.",
+        "danger": "Tu suscripción requiere atención inmediata. Contacta soporte o renueva tu plan.",
         "muted": "Si tienes dudas sobre tu plan o fechas, contacta al soporte de Orvae."
+    },
+    "modal": {
+        "title": "Tu suscripción está por vencer",
+        "description": "El plan {{plan}} necesita renovación antes del próximo cobro.",
+        "due_date": "Fecha de vencimiento: {{date}}",
+        "view_subscription": "Ver mi suscripción",
+        "dismiss": "Entendido, recordarme mañana"
     },
     "renew_hint": "El pago se procesa en el portal seguro de Orvae. Tras confirmarse, tu acceso se extiende automáticamente.",
     "renew_cta": "Renovar o pagar plan",

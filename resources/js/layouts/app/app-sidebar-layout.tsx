@@ -3,6 +3,7 @@ import { AppShell } from '@/components/app-shell';
 import { AppSidebar } from '@/components/app-sidebar';
 import { AppSidebarHeader } from '@/components/app-sidebar-header';
 import { TenantImpersonationBanner } from '@/components/tenant-impersonation-banner';
+import { SubscriptionRenewalReminderModal } from '@/components/subscription-renewal-reminder-modal';
 import type { AppLayoutProps } from '@/types';
 
 /**
@@ -28,6 +29,7 @@ export default function AppSidebarLayout({
                 className="h-svh max-h-svh overflow-hidden md:h-[calc(100svh-(--spacing(4)))] md:max-h-[calc(100svh-(--spacing(4)))]"
             >
                 <TenantImpersonationBanner />
+                <SubscriptionRenewalReminderModal />
                 <AppSidebarHeader breadcrumbs={breadcrumbs} />
                 <div className="flex-1 overflow-y-auto overflow-x-hidden">
                     {children}

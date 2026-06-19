@@ -6,6 +6,7 @@ namespace App\Support\Subscriptions;
 
 use App\Models\Subscription;
 use App\Models\Tenant;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
 
 /**
@@ -64,11 +65,40 @@ final class TenantSubscriptionSummary
     }
 
     /**
+     * Payload compacto para el modal de aviso al ingresar (7→0 días).
+     *
+     * @return array<string, mixed>|null
+     */
+    public static function renewalAlertForTenant(?Tenant $tenant): ?array
+    {
+        $summary = self::forTenant($tenant);
+
+        if ($summary === null) {
+            return null;
+        }
+
+        $daysUntil = $summary['days_until_renewal'];
+
+        if (! is_int($daysUntil) || $daysUntil < 0 || $daysUntil > 7) {
+            return null;
+        }
+
+        return [
+            'days_until_renewal' => $daysUntil,
+            'renewal_anchor_at' => $summary['renewal_anchor_at'],
+            'urgency' => $summary['urgency'],
+            'plan_nombre' => is_array($summary['plan']) ? ($summary['plan']['nombre'] ?? null) : null,
+            'renewal_url' => $summary['renewal_url'],
+            'subscription_url' => '/configuracion/suscripcion',
+        ];
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private static function withoutSubscription(Tenant $tenant): array
     {
-        $trialEnd = $tenant->trial_ends_at;
+        $trialEnd = self::toCarbon($tenant->trial_ends_at);
         $daysUntil = self::daysUntil($trialEnd);
 
         return [
@@ -92,18 +122,18 @@ final class TenantSubscriptionSummary
     private static function billingAnchor(Subscription $subscription, Tenant $tenant): ?Carbon
     {
         if ($subscription->estado === 'trial') {
-            return $subscription->trial_ends_at ?? $tenant->trial_ends_at;
+            return self::toCarbon($subscription->trial_ends_at ?? $tenant->trial_ends_at);
         }
 
         if ($subscription->proximo_cobro_at !== null) {
-            return $subscription->proximo_cobro_at->copy();
+            return self::toCarbon($subscription->proximo_cobro_at);
         }
 
         if ($subscription->current_period_end !== null) {
-            return $subscription->current_period_end->copy();
+            return self::toCarbon($subscription->current_period_end);
         }
 
-        return $subscription->trial_ends_at ?? $tenant->trial_ends_at;
+        return self::toCarbon($subscription->trial_ends_at ?? $tenant->trial_ends_at);
     }
 
     private static function anchorSource(Subscription $subscription, Tenant $tenant): string
@@ -123,17 +153,36 @@ final class TenantSubscriptionSummary
         return 'trial_ends_at';
     }
 
-    private static function daysUntil(?Carbon $anchor): ?int
+    private static function toCarbon(mixed $value): ?Carbon
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        if ($value instanceof CarbonInterface) {
+            return Carbon::instance($value);
+        }
+
+        return Carbon::parse($value);
+    }
+
+    private static function daysUntil(?CarbonInterface $anchor): ?int
     {
         if ($anchor === null) {
             return null;
         }
 
-        return (int) now()->startOfDay()->diffInDays($anchor->copy()->startOfDay(), false);
+        return (int) now()->startOfDay()->diffInDays(
+            Carbon::instance($anchor)->startOfDay(),
+            false,
+        );
     }
 
     /**
-     * @return 'ok'|'warning'|'danger'|'muted'
+     * ok = verde (>7 días), yellow = 4–7, amber = 2–3, red = 0–1 o vencido,
+     * danger = suspendida/cancelada/gracia, muted = sin fecha.
+     *
+     * @return 'ok'|'yellow'|'amber'|'red'|'danger'|'muted'
      */
     private static function urgency(string $estado, ?int $daysUntil): string
     {
@@ -146,11 +195,19 @@ final class TenantSubscriptionSummary
         }
 
         if ($daysUntil < 0) {
-            return 'danger';
+            return 'red';
+        }
+
+        if ($daysUntil <= 1) {
+            return 'red';
+        }
+
+        if ($daysUntil <= 3) {
+            return 'amber';
         }
 
         if ($daysUntil <= 7) {
-            return 'warning';
+            return 'yellow';
         }
 
         return 'ok';
@@ -162,6 +219,6 @@ final class TenantSubscriptionSummary
             return null;
         }
 
-        return Carbon::parse($value)->toIso8601String();
+        return self::toCarbon($value)?->toIso8601String();
     }
 }
