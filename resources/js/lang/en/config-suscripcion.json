@@ -53,5 +53,16 @@
     "renew_hint": "Payment is processed on Orvae's secure portal. Once confirmed, your access is extended automatically.",
     "renew_cta": "Renew or pay plan",
     "no_renewal_url": "No payment link is configured yet. Contact support to renew your plan.",
-    "support": "If you need to change plans or have a pending charge, contact the Orvae team."
+    "support": "If you need to change plans or have a pending charge, contact the Orvae team.",
+    "hero": {
+        "badge": "VetSaaS subscription",
+        "days_label": "days until next charge",
+        "due_today": "Charge due today"
+    },
+    "stats": {
+        "plan": "Active plan",
+        "estado": "Status",
+        "precio": "Agreed price",
+        "renewal": "Next charge"
+    }
 }

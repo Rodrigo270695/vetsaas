@@ -53,5 +53,16 @@
     "renew_hint": "El pago se procesa en el portal seguro de Orvae. Tras confirmarse, tu acceso se extiende automáticamente.",
     "renew_cta": "Renovar o pagar plan",
     "no_renewal_url": "Por ahora no hay un enlace de pago configurado. Escríbenos a soporte para renovar tu plan.",
-    "support": "Si necesitas cambiar de plan o tienes un cobro pendiente, contacta al equipo de Orvae."
+    "support": "Si necesitas cambiar de plan o tienes un cobro pendiente, contacta al equipo de Orvae.",
+    "hero": {
+        "badge": "Suscripción VetSaaS",
+        "days_label": "días para el próximo cobro",
+        "due_today": "El cobro vence hoy"
+    },
+    "stats": {
+        "plan": "Plan activo",
+        "estado": "Estado",
+        "precio": "Precio pactado",
+        "renewal": "Próximo cobro"
+    }
 }
