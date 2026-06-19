@@ -30,6 +30,7 @@ import clinica from '@/routes/clinica';
 import propietarios from '@/routes/clinica/propietarios';
 import { PacienteDeleteDialog } from '../pacientes/components/paciente-delete-dialog';
 import { PacienteFormModal } from '../pacientes/components/paciente-form-modal';
+import type { EspecieRazaCatalogo } from '@/lib/paciente-especie-raza-options';
 import { MascotaTarjetaFicha } from './components/mascota-tarjeta-ficha';
 import { PropietarioFormModal } from './components/propietario-form-modal';
 import type { GeoOption, Paciente, Propietario } from './types';
@@ -54,6 +55,7 @@ type Props = {
     propietario: Propietario;
     pacientes: readonly Paciente[];
     departamentos: readonly GeoOption[];
+    especie_raza_catalogo: EspecieRazaCatalogo;
 };
 
 type ModalState =
@@ -76,7 +78,12 @@ function DatoCompacto({ label, children, className }: DatoProps) {
     );
 }
 
-export default function Show({ propietario, pacientes, departamentos }: Props) {
+export default function Show({
+    propietario,
+    pacientes,
+    departamentos,
+    especie_raza_catalogo,
+}: Props) {
     const { t } = useTranslation(['propietarios', 'pacientes', 'nav']);
     const { can } = usePermission();
     const canEditOwner = can('propietarios.update');
@@ -427,6 +434,7 @@ export default function Show({ propietario, pacientes, departamentos }: Props) {
                 paciente={modal.type === 'edit-pet' ? modal.paciente : null}
                 propietarioFijoId={propietario.id}
                 propietariosOpciones={[]}
+                especieRazaCatalogo={especie_raza_catalogo}
             />
 
             <PacienteDeleteDialog

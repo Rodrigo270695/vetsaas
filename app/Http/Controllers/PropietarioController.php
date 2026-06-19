@@ -10,6 +10,7 @@ use App\Models\Paciente;
 use App\Models\Propietario;
 use App\Services\Integrations\ApiPeruDniService;
 use App\Services\Integrations\ApiPeruRucService;
+use App\Support\Pacientes\PacienteEspecieRazaCatalogo;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -160,6 +161,7 @@ class PropietarioController extends Controller
             'propietario' => $propietario,
             'pacientes' => $pacientes,
             'departamentos' => $departamentos,
+            'especie_raza_catalogo' => PacienteEspecieRazaCatalogo::payload(),
         ]);
     }
 

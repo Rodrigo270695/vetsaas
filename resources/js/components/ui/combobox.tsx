@@ -32,6 +32,9 @@ export type ComboboxProps = {
     disabled?: boolean;
     loading?: boolean;
     clearable?: boolean;
+    createOptionLabel?: (query: string) => string;
+    /** Permite confirmar un valor que no está en la lista (se guardará en la clínica). */
+    creatable?: boolean;
     id?: string;
     name?: string;
     className?: string;
@@ -62,6 +65,8 @@ export function Combobox({
     disabled = false,
     loading = false,
     clearable = true,
+    creatable = false,
+    createOptionLabel,
     id,
     name,
     className,
@@ -69,11 +74,32 @@ export function Combobox({
     'aria-describedby': ariaDescribedBy,
 }: ComboboxProps) {
     const [open, setOpen] = React.useState(false);
+    const [search, setSearch] = React.useState('');
 
     const selected = React.useMemo(
         () => options.find((opt) => opt.value === value) ?? null,
         [options, value],
     );
+
+    const trimmedSearch = search.trim();
+    const canCreate =
+        creatable &&
+        trimmedSearch.length > 0 &&
+        !options.some(
+            (opt) =>
+                opt.label.localeCompare(trimmedSearch, undefined, {
+                    sensitivity: 'accent',
+                }) === 0 ||
+                opt.value.localeCompare(trimmedSearch, undefined, {
+                    sensitivity: 'accent',
+                }) === 0,
+        );
+
+    React.useEffect(() => {
+        if (!open) {
+            setSearch('');
+        }
+    }, [open]);
 
     const handleClear = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -103,10 +129,14 @@ export function Combobox({
                     )}
                 >
                     <span className="truncate">
-                        {selected ? selected.label : placeholder}
+                        {selected
+                            ? selected.label
+                            : value?.trim()
+                              ? value
+                              : placeholder}
                     </span>
                     <div className="flex items-center gap-1">
-                        {clearable && selected && !disabled && !loading && (
+                        {clearable && (selected || value) && !disabled && !loading && (
                             <span
                                 role="button"
                                 aria-label="Limpiar selección"
@@ -149,9 +179,29 @@ export function Combobox({
                 onTouchMove={(e) => e.stopPropagation()}
             >
                 <Command>
-                    <CommandInput placeholder={searchPlaceholder} />
+                    <CommandInput
+                        placeholder={searchPlaceholder}
+                        onValueChange={creatable ? setSearch : undefined}
+                    />
                     <CommandList>
                         <CommandEmpty>{emptyMessage}</CommandEmpty>
+                        {canCreate ? (
+                            <CommandGroup>
+                                <CommandItem
+                                    key={`__create__:${trimmedSearch}`}
+                                    value={trimmedSearch}
+                                    onSelect={() => {
+                                        onChange(trimmedSearch);
+                                        setOpen(false);
+                                        setSearch('');
+                                    }}
+                                    className="cursor-pointer font-medium text-primary"
+                                >
+                                    {createOptionLabel?.(trimmedSearch) ??
+                                        `Usar «${trimmedSearch}»`}
+                                </CommandItem>
+                            </CommandGroup>
+                        ) : null}
                         <CommandGroup>
                             {options.map((opt) => (
                                 <CommandItem

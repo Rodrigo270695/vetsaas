@@ -13,10 +13,12 @@ use App\Models\PedidoLaboratorio;
 use App\Models\Propietario;
 use App\Models\Receta;
 use App\Models\VacunaAplicada;
+use App\Support\Pacientes\PacienteEspecieRazaCatalogo;
 use App\Support\Pdf\HistorialClinicoPdfBuilder;
 use App\Tenancy\TenantManager;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -116,6 +118,7 @@ class PacienteController extends Controller
         return Inertia::render('clinica/pacientes/index', [
             'pacientes' => $pacientes,
             'propietarios_opciones' => $propietariosOpciones,
+            'especie_raza_catalogo' => PacienteEspecieRazaCatalogo::payload(),
             'filters' => [
                 'search' => $search,
                 'per_page' => $perPage,
@@ -130,6 +133,13 @@ class PacienteController extends Controller
                 'coincidencias' => $pacientes->total(),
             ],
         ]);
+    }
+
+    public function catalogoEspecieRaza(Request $request): JsonResponse
+    {
+        abort_unless($request->user()?->can('pacientes.view') ?? false, 403);
+
+        return response()->json(PacienteEspecieRazaCatalogo::payload());
     }
 
     public function show(Request $request, Paciente $paciente): Response

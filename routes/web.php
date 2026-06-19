@@ -178,6 +178,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
                     ->delete('pacientes/bulk', [PacienteController::class, 'bulkDestroy'])
                     ->name('pacientes.bulk-destroy');
                 Route::middleware('permission:pacientes.view')
+                    ->get('pacientes/catalogo-especie-raza', [PacienteController::class, 'catalogoEspecieRaza'])
+                    ->name('pacientes.catalogo-especie-raza');
+                Route::middleware('permission:pacientes.view')
                     ->get('pacientes', [PacienteController::class, 'index'])
                     ->name('pacientes.index');
                 Route::middleware('permission:pacientes.view')

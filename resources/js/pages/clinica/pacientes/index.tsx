@@ -45,6 +45,7 @@ import type {
     PacienteStats,
     PropietarioOpcion,
 } from '../propietarios/types';
+import type { EspecieRazaCatalogo } from '@/lib/paciente-especie-raza-options';
 import { PacienteBulkDeleteDialog } from './components/paciente-bulk-delete-dialog';
 import { PacienteDeleteDialog } from './components/paciente-delete-dialog';
 import { PacienteFormModal } from './components/paciente-form-modal';
@@ -54,6 +55,7 @@ import { PacienteRowActions } from './components/paciente-row-actions';
 type Props = {
     pacientes: Paginated<Paciente>;
     propietarios_opciones: readonly PropietarioOpcion[];
+    especie_raza_catalogo: EspecieRazaCatalogo;
     filters: PacienteFilters;
     stats: PacienteStats;
 };
@@ -101,6 +103,7 @@ function sexoLabel(
 export default function Index({
     pacientes: paginated,
     propietarios_opciones,
+    especie_raza_catalogo,
     filters,
     stats,
 }: Props) {
@@ -453,6 +456,7 @@ export default function Index({
                 paciente={modal.type === 'edit' ? modal.paciente : null}
                 propietarioFijoId={null}
                 propietariosOpciones={propietarios_opciones}
+                especieRazaCatalogo={especie_raza_catalogo}
             />
 
             <PacienteDeleteDialog

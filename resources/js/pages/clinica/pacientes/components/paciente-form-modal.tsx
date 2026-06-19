@@ -10,11 +10,12 @@ import {
 import { useTranslation } from 'react-i18next';
 import { FormField, FormModal, FormSection } from '@/components/forms';
 import {
+    appendCatalogValue,
+    mergeSortedCatalog,
     PACIENTE_ESPECIES,
-    PACIENTE_OTRO_KEY,
     PACIENTE_RAZAS,
-    mergeCatalogAndOtro,
-    splitStoredAgainstCatalog,
+    toComboboxOptions,
+    type EspecieRazaCatalogo,
 } from '@/lib/paciente-especie-raza-options';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -40,15 +41,14 @@ export type PacienteFormModalProps = {
     /** Creación desde ficha de propietario: no se muestra selector ni se envía `propietario_id`. */
     propietarioFijoId: string | null;
     propietariosOpciones: readonly PropietarioOpcion[];
+    especieRazaCatalogo?: EspecieRazaCatalogo;
 };
 
 type InternalForm = {
     propietario_id: string;
     nombre: string;
-    especie_catalog: string;
-    especie_otro: string;
-    raza_catalog: string;
-    raza_otro: string;
+    especie: string;
+    raza: string;
     sexo: '' | 'M' | 'H' | 'U';
     fecha_nacimiento: string;
     peso_kg: string;
@@ -67,10 +67,8 @@ type PacienteFormData = InternalForm & {
 const emptyInternal: InternalForm = {
     propietario_id: '',
     nombre: '',
-    especie_catalog: '',
-    especie_otro: '',
-    raza_catalog: '',
-    raza_otro: '',
+    especie: '',
+    raza: '',
     sexo: '',
     fecha_nacimiento: '',
     peso_kg: '',
@@ -99,16 +97,11 @@ function labelPropietario(o: PropietarioOpcion): string {
 const fromModel = (
     p: Paciente | null,
     fijoId: string | null,
-): InternalForm => {
-    const esp = splitStoredAgainstCatalog(p?.especie, PACIENTE_ESPECIES);
-    const rza = splitStoredAgainstCatalog(p?.raza, PACIENTE_RAZAS);
-    return {
+): InternalForm => ({
         propietario_id: fijoId ?? p?.propietario_id ?? '',
         nombre: p?.nombre ?? '',
-        especie_catalog: esp.catalog,
-        especie_otro: esp.otro,
-        raza_catalog: rza.catalog,
-        raza_otro: rza.otro,
+        especie: p?.especie?.trim() ?? '',
+        raza: p?.raza?.trim() ?? '',
         sexo: (p?.sexo as InternalForm['sexo']) || '',
         fecha_nacimiento: p?.fecha_nacimiento
             ? p.fecha_nacimiento.slice(0, 10)
@@ -124,8 +117,7 @@ const fromModel = (
                   : '',
         notas: p?.notas ?? '',
         activo: p?.activo ?? true,
-    };
-};
+    });
 
 export function PacienteFormModal({
     open,
@@ -133,6 +125,7 @@ export function PacienteFormModal({
     paciente,
     propietarioFijoId,
     propietariosOpciones,
+    especieRazaCatalogo = { especies: [], razas: [] },
 }: PacienteFormModalProps) {
     const { t } = useTranslation(['pacientes', 'common']);
     const isEdit = paciente !== null;
@@ -154,15 +147,15 @@ export function PacienteFormModal({
         hadFotoUrl: false,
     });
     const [ownerTouched, setOwnerTouched] = useState(false);
+    const [especiesLista, setEspeciesLista] = useState<string[]>([]);
+    const [razasLista, setRazasLista] = useState<string[]>([]);
 
     useEffect(() => {
         transform((raw) => {
-            const especie = mergeCatalogAndOtro(raw.especie_catalog, raw.especie_otro);
-            const raza = mergeCatalogAndOtro(raw.raza_catalog, raw.raza_otro);
             const next: Record<string, unknown> = {
                 nombre: raw.nombre.trim(),
-                especie,
-                raza,
+                especie: raw.especie.trim() || null,
+                raza: raw.raza.trim() || null,
                 fecha_nacimiento: raw.fecha_nacimiento || null,
                 microchip: raw.microchip.trim() || null,
                 color: raw.color.trim() || null,
@@ -203,6 +196,20 @@ export function PacienteFormModal({
                 internal,
                 hadFotoUrl: Boolean(paciente?.foto_url),
             };
+            setEspeciesLista(
+                mergeSortedCatalog(
+                    PACIENTE_ESPECIES,
+                    especieRazaCatalogo.especies,
+                    paciente?.especie,
+                ),
+            );
+            setRazasLista(
+                mergeSortedCatalog(
+                    PACIENTE_RAZAS,
+                    especieRazaCatalogo.razas,
+                    paciente?.raza,
+                ),
+            );
             (Object.keys(internal) as Array<keyof InternalForm>).forEach((key) => {
                 setData(key, internal[key]);
             });
@@ -212,7 +219,16 @@ export function PacienteFormModal({
             clearErrors();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [open, paciente?.id, propietarioFijoId]);
+    }, [open, paciente?.id, propietarioFijoId, especieRazaCatalogo]);
+
+    const especieComboboxOptions = useMemo(
+        () => toComboboxOptions(especiesLista),
+        [especiesLista],
+    );
+    const razaComboboxOptions = useMemo(
+        () => toComboboxOptions(razasLista),
+        [razasLista],
+    );
 
     const previewUrl = useMemo(() => {
         if (data.foto instanceof File) {
@@ -276,30 +292,44 @@ export function PacienteFormModal({
         };
 
         const hasNewFoto = data.foto instanceof File;
+        const submitOptions = {
+            preserveScroll: true,
+            onSuccess,
+        } as const;
 
         if (isEdit && paciente) {
             post(pacientes.update(paciente.id).url, {
-                preserveScroll: true,
+                ...submitOptions,
                 forceFormData: true,
-                onSuccess,
             });
         } else if (propietarioFijoId) {
             post(propPacientes.store(propietarioFijoId).url, {
-                preserveScroll: true,
+                ...submitOptions,
                 forceFormData: hasNewFoto,
-                onSuccess,
             });
         } else {
             post(pacientes.store().url, {
-                preserveScroll: true,
+                ...submitOptions,
                 forceFormData: hasNewFoto,
-                onSuccess,
             });
         }
     };
 
-    const especieOtroAbierto = data.especie_catalog === PACIENTE_OTRO_KEY;
-    const razaOtroAbierto = data.raza_catalog === PACIENTE_OTRO_KEY;
+    const handleEspecieChange = (value: string | null) => {
+        const next = value?.trim() ?? '';
+        setData('especie', next);
+        if (next) {
+            setEspeciesLista((prev) => appendCatalogValue(prev, next));
+        }
+    };
+
+    const handleRazaChange = (value: string | null) => {
+        const next = value?.trim() ?? '';
+        setData('raza', next);
+        if (next) {
+            setRazasLista((prev) => appendCatalogValue(prev, next));
+        }
+    };
 
     const fotoPreviewSrc =
         previewUrl ??
@@ -451,123 +481,47 @@ export function PacienteFormModal({
                         id="pac-esp"
                         label={t('form.especie')}
                         error={errors.especie}
-                        hint={especieOtroAbierto ? t('form.especie_otro_hint') : undefined}
+                        hint={t('form.especie_hint')}
                         className="min-w-0"
                     >
-                        <Select
-                            value={data.especie_catalog || '__none__'}
-                            onValueChange={(v) => {
-                                if (v === '__none__') {
-                                    setData('especie_catalog', '');
-                                    setData('especie_otro', '');
-                                } else {
-                                    setData('especie_catalog', v);
-                                    if (v !== PACIENTE_OTRO_KEY) {
-                                        setData('especie_otro', '');
-                                    }
-                                }
-                            }}
-                        >
-                            <SelectTrigger
-                                id="pac-esp"
-                                className={`${controlClass} cursor-pointer`}
-                            >
-                                <SelectValue placeholder={t('form.especie_placeholder')} />
-                            </SelectTrigger>
-                            <SelectContent className="max-h-72">
-                                <SelectItem value="__none__" className="cursor-pointer">
-                                    {t('form.especie_placeholder')}
-                                </SelectItem>
-                                {PACIENTE_ESPECIES.map((opt) => (
-                                    <SelectItem
-                                        key={opt}
-                                        value={opt}
-                                        className="cursor-pointer"
-                                    >
-                                        {opt}
-                                    </SelectItem>
-                                ))}
-                                <SelectItem
-                                    value={PACIENTE_OTRO_KEY}
-                                    className="cursor-pointer"
-                                >
-                                    {t('form.option_otro')}
-                                </SelectItem>
-                            </SelectContent>
-                        </Select>
-                        {especieOtroAbierto && (
-                            <Input
-                                id="pac-esp-otro"
-                                value={data.especie_otro}
-                                onChange={(e) =>
-                                    setData('especie_otro', e.target.value)
-                                }
-                                placeholder={t('form.especie_otro_placeholder')}
-                                className={`${controlClass} mt-2`}
-                                aria-label={t('form.especie_otro_placeholder')}
-                            />
-                        )}
+                        <Combobox
+                            id="pac-esp"
+                            options={especieComboboxOptions}
+                            value={data.especie || null}
+                            onChange={handleEspecieChange}
+                            placeholder={t('form.especie_placeholder')}
+                            searchPlaceholder={t('form.especie_search')}
+                            emptyMessage={t('form.especie_empty')}
+                            createOptionLabel={(value) =>
+                                t('form.especie_create', { value })
+                            }
+                            creatable
+                            className={`${controlClass} cursor-pointer`}
+                            aria-invalid={!!errors.especie}
+                        />
                     </FormField>
                     <FormField
                         id="pac-raza"
                         label={t('form.raza')}
                         error={errors.raza}
-                        hint={razaOtroAbierto ? t('form.raza_otro_hint') : undefined}
+                        hint={t('form.raza_hint')}
                         className="min-w-0"
                     >
-                        <Select
-                            value={data.raza_catalog || '__none__'}
-                            onValueChange={(v) => {
-                                if (v === '__none__') {
-                                    setData('raza_catalog', '');
-                                    setData('raza_otro', '');
-                                } else {
-                                    setData('raza_catalog', v);
-                                    if (v !== PACIENTE_OTRO_KEY) {
-                                        setData('raza_otro', '');
-                                    }
-                                }
-                            }}
-                        >
-                            <SelectTrigger
-                                id="pac-raza"
-                                className={`${controlClass} cursor-pointer`}
-                            >
-                                <SelectValue placeholder={t('form.raza_placeholder')} />
-                            </SelectTrigger>
-                            <SelectContent className="max-h-72">
-                                <SelectItem value="__none__" className="cursor-pointer">
-                                    {t('form.raza_placeholder')}
-                                </SelectItem>
-                                {PACIENTE_RAZAS.map((opt) => (
-                                    <SelectItem
-                                        key={opt}
-                                        value={opt}
-                                        className="cursor-pointer"
-                                    >
-                                        {opt}
-                                    </SelectItem>
-                                ))}
-                                <SelectItem
-                                    value={PACIENTE_OTRO_KEY}
-                                    className="cursor-pointer"
-                                >
-                                    {t('form.option_otro')}
-                                </SelectItem>
-                            </SelectContent>
-                        </Select>
-                        {razaOtroAbierto && (
-                            <Input
-                                id="pac-raza-otro"
-                                value={data.raza_otro}
-                                onChange={(e) =>
-                                    setData('raza_otro', e.target.value)
-                                }
-                                placeholder={t('form.raza_otro_placeholder')}
-                                className={`${controlClass} mt-2`}
-                                aria-label={t('form.raza_otro_placeholder')}
-                            />
-                        )}
+                        <Combobox
+                            id="pac-raza"
+                            options={razaComboboxOptions}
+                            value={data.raza || null}
+                            onChange={handleRazaChange}
+                            placeholder={t('form.raza_placeholder')}
+                            searchPlaceholder={t('form.raza_search')}
+                            emptyMessage={t('form.raza_empty')}
+                            createOptionLabel={(value) =>
+                                t('form.raza_create', { value })
+                            }
+                            creatable
+                            className={`${controlClass} cursor-pointer`}
+                            aria-invalid={!!errors.raza}
+                        />
                     </FormField>
                     <FormField
                         id="pac-sexo"

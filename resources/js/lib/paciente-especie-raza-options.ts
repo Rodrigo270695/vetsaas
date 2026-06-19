@@ -1,10 +1,9 @@
-/**
- * Catálogos de especie y raza para el formulario de mascotas.
- * Si el valor guardado no coincide con ninguna opción, se trata como «Otro» (texto libre).
- */
-export const PACIENTE_OTRO_KEY = '__OTRO__';
+import type { ComboboxOption } from '@/components/ui/combobox';
 
-/** Valores que se guardan tal cual en `pacientes.especie` (salvo «Otro» → texto personalizado). */
+/**
+ * Catálogos base de especie y raza para el formulario de mascotas.
+ * Se combinan con valores ya usados en la clínica (desde el backend).
+ */
 export const PACIENTE_ESPECIES: readonly string[] = [
     'Perro',
     'Gato',
@@ -15,7 +14,6 @@ export const PACIENTE_ESPECIES: readonly string[] = [
     'Roedor',
 ];
 
-/** Razas frecuentes; el usuario puede elegir «Otro» y escribir la suya. */
 export const PACIENTE_RAZAS: readonly string[] = [
     'Mestizo',
     'Cruce',
@@ -38,28 +36,48 @@ export const PACIENTE_RAZAS: readonly string[] = [
     'Scottish fold',
 ];
 
-export function splitStoredAgainstCatalog(
-    stored: string | null | undefined,
-    catalogOptions: readonly string[],
-): { catalog: string; otro: string } {
-    const s = (stored ?? '').trim();
-    if (!s) {
-        return { catalog: '', otro: '' };
+export type EspecieRazaCatalogo = {
+    especies: readonly string[];
+    razas: readonly string[];
+};
+
+export function mergeSortedCatalog(
+    defaults: readonly string[],
+    fromDb: readonly string[],
+    current?: string | null,
+): string[] {
+    const unique = new Map<string, string>();
+
+    for (const value of [...defaults, ...fromDb, current ?? '']) {
+        const trimmed = value.trim();
+        if (!trimmed) {
+            continue;
+        }
+        const key = trimmed.toLocaleLowerCase();
+        if (!unique.has(key)) {
+            unique.set(key, trimmed);
+        }
     }
-    if (catalogOptions.includes(s)) {
-        return { catalog: s, otro: '' };
-    }
-    return { catalog: PACIENTE_OTRO_KEY, otro: s };
+
+    return [...unique.values()].sort((a, b) =>
+        a.localeCompare(b, undefined, { sensitivity: 'base' }),
+    );
 }
 
-export function mergeCatalogAndOtro(
-    catalog: string,
-    otro: string,
-): string | null {
-    const c = catalog.trim();
-    const o = otro.trim();
-    if (c === PACIENTE_OTRO_KEY) {
-        return o === '' ? null : o;
+export function toComboboxOptions(values: readonly string[]): ComboboxOption[] {
+    return values.map((value) => ({
+        value,
+        label: value,
+    }));
+}
+
+export function appendCatalogValue(
+    values: readonly string[],
+    value: string | null,
+): string[] {
+    if (!value?.trim()) {
+        return [...values];
     }
-    return c === '' ? null : c;
+
+    return mergeSortedCatalog([], values, value);
 }
