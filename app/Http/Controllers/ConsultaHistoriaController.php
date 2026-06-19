@@ -401,7 +401,7 @@ class ConsultaHistoriaController extends Controller
             'veterinario:id,name',
             'recetas:id,consulta_id,estado',
             'pedidosLaboratorio:id,consulta_id,estado',
-            'cirugias:id,consulta_id,estado,titulo',
+            'cirugias:id,consulta_id,estado,nombre_procedimiento',
             'internamientos:id,consulta_id,estado,motivo_ingreso',
         ]);
 
