@@ -12,7 +12,8 @@
         "create_first": "Registrar primera mascota",
         "delete_selected": "Eliminar seleccionados",
         "open_carnet_vacunas": "Ver carnet en nueva pestaña",
-        "open_historial": "Historial clínico"
+        "open_historial": "Historial clínico",
+        "open_historial_pdf": "Historial clínico (PDF)"
     },
     "bulk": {
         "selected_singular": "mascota seleccionada",
@@ -124,6 +125,7 @@
         "back_list": "Volver a pacientes",
         "action_nueva_consulta": "Nueva consulta",
         "action_nueva_aplicacion": "Registrar aplicación",
+        "action_historial_pdf": "Descargar historial (PDF)",
         "timeline_title": "Línea de tiempo",
         "timeline_hint": "Consulta el resumen aquí o abre el registro completo en Historias clínicas o Vacunaciones. Las recetas, pedidos de laboratorio y cirugías ligados a la visita aparecen dentro del resumen de cada consulta.",
         "timeline_empty": "No hay consultas ni aplicaciones en el historial.",
@@ -139,6 +141,7 @@
         "ocultar_resumen": "Ocultar resumen",
         "ver_consulta_completa": "Abrir consulta completa",
         "ver_aplicacion_completa": "Abrir registro completo",
+        "pdf_registro": "PDF / Imprimir",
         "det_peso": "Peso",
         "det_temp": "Temp.",
         "det_fc": "FC",

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Exports\PacientesXlsxExport;
+use App\Http\Controllers\Concerns\ResolvesClinicPdfBranding;
 use App\Http\Requests\PacienteRequest;
 use App\Models\Cirugia;
 use App\Models\Internamiento;
@@ -12,7 +13,9 @@ use App\Models\PedidoLaboratorio;
 use App\Models\Propietario;
 use App\Models\Receta;
 use App\Models\VacunaAplicada;
+use App\Support\Pdf\HistorialClinicoPdfBuilder;
 use App\Tenancy\TenantManager;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -21,10 +24,12 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\Response as HttpResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PacienteController extends Controller
 {
+    use ResolvesClinicPdfBranding;
     private const PER_PAGE_OPTIONS = [10, 15, 20, 25, 50, 100];
 
     private const SORTABLE_COLUMNS = [
@@ -172,6 +177,7 @@ class PacienteController extends Controller
                             'atendido_desde' => $at->copy()->startOfMonth()->toDateString(),
                             'atendido_hasta' => $at->copy()->endOfMonth()->toDateString(),
                         ]),
+                        'pdf_url' => route('clinica.historias-clinicas.consultas.pdf', $c),
                         'detalle' => [
                             'peso_kg' => $c->peso_kg !== null && trim((string) $c->peso_kg) !== '' ? trim((string) $c->peso_kg) : null,
                             'temperatura_c' => $c->temperatura_c !== null && trim((string) $c->temperatura_c) !== '' ? trim((string) $c->temperatura_c) : null,
@@ -220,6 +226,7 @@ class PacienteController extends Controller
                     'consulta_id' => $v->consulta_id,
                     'veterinario' => $v->veterinario?->name,
                     'vacunaciones_url' => route('clinica.vacunaciones.index', $vacunacionesParams),
+                    'pdf_url' => route('clinica.vacunaciones.aplicacion-pdf', $v),
                     'detalle' => [
                         'producto_nombre' => $v->producto?->nombre,
                         'producto_sku' => $v->producto?->sku,
@@ -241,6 +248,9 @@ class PacienteController extends Controller
             'links' => [
                 'nueva_consulta' => route('clinica.historias-clinicas', ['nuevo_para_paciente' => $paciente->id]),
                 'nueva_aplicacion' => route('clinica.vacunaciones.index', ['prefill_paciente_id' => $paciente->id]),
+                'historial_pdf' => ($canVerConsultas || $canVerVacunas)
+                    ? route('clinica.pacientes.historial-clinico-pdf', $paciente)
+                    : null,
             ],
             'permisos' => [
                 'consultas_ver' => $canVerConsultas,
@@ -249,6 +259,38 @@ class PacienteController extends Controller
                 'vacunas_crear' => $canCrearVacuna,
             ],
         ]);
+    }
+
+    public function historialClinicoPdf(Request $request, Paciente $paciente): HttpResponse
+    {
+        abort_unless($request->user()?->can('pacientes.view') ?? false, 403);
+
+        $canVerConsultas = $request->user()?->can('historias-clinicas.view') ?? false;
+        $canVerVacunas = $request->user()?->can('vacunaciones.view') ?? false;
+        abort_unless($canVerConsultas || $canVerVacunas, 403);
+
+        $paciente->load(['propietario:id,nombres,apellidos,razon_social']);
+
+        $entries = HistorialClinicoPdfBuilder::make()->entriesForPaciente(
+            $paciente,
+            $canVerConsultas,
+            $canVerVacunas,
+        );
+
+        $pdf = Pdf::loadView('pdf.historial-clinico', array_merge(
+            $this->clinicPdfBranding(),
+            [
+                'paciente' => $paciente,
+                'propietarioNombre' => $this->propietarioNombreParaPdf($paciente),
+                'entries' => $entries,
+                'entriesCount' => $entries->count(),
+            ],
+        ));
+
+        $slug = Str::slug($paciente->nombre) ?: 'paciente';
+        $filename = 'historial-clinico-'.$slug.'.pdf';
+
+        return $this->respondClinicPdf($request, $pdf, $filename);
     }
 
     public function store(PacienteRequest $request, TenantManager $tenants): RedirectResponse

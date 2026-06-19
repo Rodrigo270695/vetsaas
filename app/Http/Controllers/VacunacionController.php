@@ -343,6 +343,37 @@ class VacunacionController extends Controller
         return $pdf->stream($filename);
     }
 
+    public function aplicacionPdf(Request $request, VacunaAplicada $vacuna_aplicada): Response
+    {
+        abort_unless($request->user()?->can('vacunaciones.view') ?? false, 403);
+
+        $vacuna_aplicada->load([
+            'paciente.propietario:id,nombres,apellidos,razon_social',
+            'veterinario:id,name',
+            'sede:id,nombre,codigo',
+            'producto:id,nombre,sku',
+        ]);
+
+        $paciente = $vacuna_aplicada->paciente;
+        abort_if($paciente === null, 404);
+
+        $entry = HistorialClinicoPdfBuilder::make()->fromAplicacion($vacuna_aplicada);
+
+        $pdf = Pdf::loadView('pdf.aplicacion-clinica', array_merge(
+            $this->clinicPdfBranding(),
+            [
+                'paciente' => $paciente,
+                'propietarioNombre' => $this->propietarioNombreParaPdf($paciente),
+                'entry' => $entry,
+            ],
+        ));
+
+        $slug = Str::slug($paciente->nombre) ?: 'paciente';
+        $filename = 'aplicacion-'.$slug.'-'.Str::substr($vacuna_aplicada->id, 0, 8).'.pdf';
+
+        return $this->respondClinicPdf($request, $pdf, $filename);
+    }
+
     public function store(StoreVacunaAplicadaRequest $request): RedirectResponse
     {
         $data = $request->validated();

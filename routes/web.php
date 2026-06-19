@@ -183,6 +183,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
                 Route::middleware('permission:pacientes.view')
                     ->get('pacientes/{paciente}', [PacienteController::class, 'show'])
                     ->name('pacientes.show');
+                Route::middleware('permission:pacientes.view')
+                    ->get('pacientes/{paciente}/historial-clinico.pdf', [PacienteController::class, 'historialClinicoPdf'])
+                    ->name('pacientes.historial-clinico-pdf');
                 Route::middleware('permission:pacientes.create')
                     ->post('pacientes', [PacienteController::class, 'store'])
                     ->name('pacientes.store');
@@ -199,6 +202,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
                 Route::middleware('permission:historias-clinicas.view')
                     ->get('historias-clinicas', [ConsultaHistoriaController::class, 'index'])
                     ->name('historias-clinicas');
+                Route::middleware('permission:historias-clinicas.view')
+                    ->get('historias-clinicas/consultas/{consulta}/pdf', [ConsultaHistoriaController::class, 'pdf'])
+                    ->name('historias-clinicas.consultas.pdf');
                 Route::middleware('permission:historias-clinicas-planes.manage')
                     ->get('historias-clinicas/productos-medicamento', [ConsultaPlanTratamientoController::class, 'productosMedicamento'])
                     ->name('historias-clinicas.productos-medicamento');
@@ -249,6 +255,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
                 Route::middleware('permission:vacunaciones.view')
                     ->get('vacunaciones', [VacunacionController::class, 'index'])
                     ->name('vacunaciones.index');
+                Route::middleware('permission:vacunaciones.view')
+                    ->get('vacunaciones/{vacuna_aplicada}/pdf', [VacunacionController::class, 'aplicacionPdf'])
+                    ->name('vacunaciones.aplicacion-pdf');
                 Route::middleware('permission:vacunaciones.create')
                     ->post('vacunaciones', [VacunacionController::class, 'store'])
                     ->name('vacunaciones.store');

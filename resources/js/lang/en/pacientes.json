@@ -12,7 +12,8 @@
         "create_first": "Register first pet",
         "delete_selected": "Delete selected",
         "open_carnet_vacunas": "Open vaccination record in new tab",
-        "open_historial": "Clinical history"
+        "open_historial": "Clinical history",
+        "open_historial_pdf": "Clinical history (PDF)"
     },
     "bulk": {
         "selected_singular": "pet selected",
@@ -124,6 +125,7 @@
         "back_list": "Back to patients",
         "action_nueva_consulta": "New consultation",
         "action_nueva_aplicacion": "Record application",
+        "action_historial_pdf": "Download history (PDF)",
         "timeline_title": "Timeline",
         "timeline_hint": "Review the summary here or open the full record in Medical records or Vaccinations. Prescriptions, lab orders, and surgeries linked to the visit appear inside each consultation’s summary.",
         "timeline_empty": "No consultations or applications in the history yet.",
@@ -139,6 +141,7 @@
         "ocultar_resumen": "Hide summary",
         "ver_consulta_completa": "Open full consultation",
         "ver_aplicacion_completa": "Open full record",
+        "pdf_registro": "PDF / Print",
         "det_peso": "Weight",
         "det_temp": "Temp.",
         "det_fc": "HR",

@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\ResolvesClinicPdfBranding;
 use App\Http\Requests\StoreConsultaHistoriaRequest;
 use App\Http\Requests\UpdateConsultaHistoriaRequest;
 use App\Models\Consulta;
 use App\Models\HistoriaClinica;
 use App\Models\Paciente;
+use App\Support\Pdf\HistorialClinicoPdfBuilder;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -15,9 +18,11 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\Response as HttpResponse;
 
 class ConsultaHistoriaController extends Controller
 {
+    use ResolvesClinicPdfBranding;
     private const PER_PAGE_OPTIONS = [10, 15, 20, 25, 50, 100];
 
     private const SORTABLE_COLUMNS = [
@@ -385,5 +390,38 @@ class ConsultaHistoriaController extends Controller
         return redirect()
             ->route('clinica.historias-clinicas')
             ->with('success', __('historias-clinicas.flash.deleted'));
+    }
+
+    public function pdf(Request $request, Consulta $consulta): HttpResponse
+    {
+        abort_unless($request->user()?->can('historias-clinicas.view') ?? false, 403);
+
+        $consulta->load([
+            'historiaClinica.paciente.propietario:id,nombres,apellidos,razon_social',
+            'veterinario:id,name',
+            'recetas:id,consulta_id,estado',
+            'pedidosLaboratorio:id,consulta_id,estado',
+            'cirugias:id,consulta_id,estado,titulo',
+            'internamientos:id,consulta_id,estado,motivo_ingreso',
+        ]);
+
+        $paciente = $consulta->historiaClinica?->paciente;
+        abort_if($paciente === null, 404);
+
+        $entry = HistorialClinicoPdfBuilder::make()->fromConsulta($consulta);
+
+        $pdf = Pdf::loadView('pdf.consulta-clinica', array_merge(
+            $this->clinicPdfBranding(),
+            [
+                'paciente' => $paciente,
+                'propietarioNombre' => $this->propietarioNombreParaPdf($paciente),
+                'entry' => $entry,
+            ],
+        ));
+
+        $slug = Str::slug($paciente->nombre) ?: 'paciente';
+        $filename = 'consulta-'.$slug.'-'.Str::substr($consulta->id, 0, 8).'.pdf';
+
+        return $this->respondClinicPdf($request, $pdf, $filename);
     }
 }

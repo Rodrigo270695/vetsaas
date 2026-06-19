@@ -5,6 +5,7 @@ import {
     ChevronDown,
     ClipboardList,
     ExternalLink,
+    FileDown,
     Plus,
     Syringe,
 } from 'lucide-react';
@@ -60,6 +61,7 @@ export type TimelineItem =
           cerrada: boolean;
           veterinario: string | null | undefined;
           historia_url: string;
+          pdf_url: string;
           detalle: TimelineConsultaDetalle;
       }
     | {
@@ -71,6 +73,7 @@ export type TimelineItem =
           consulta_id: string | null;
           veterinario: string | null | undefined;
           vacunaciones_url: string;
+          pdf_url: string;
           detalle: TimelineAplicacionDetalle;
       };
 
@@ -80,6 +83,7 @@ type Props = {
     links: {
         nueva_consulta: string;
         nueva_aplicacion: string;
+        historial_pdf: string | null;
     };
     permisos: {
         consultas_ver: boolean;
@@ -563,20 +567,44 @@ function TimelineRow({ item, appLocale, appTz, permisos }: TimelineRowProps) {
 
                 <div className="mt-3 flex flex-wrap gap-2">
                     {item.kind === 'consulta' && permisos.consultas_ver ? (
-                        <Button type="button" size="sm" variant="default" className="gap-2" asChild>
-                            <a href={item.historia_url}>
-                                <ExternalLink className="size-3.5" strokeWidth={2.25} />
-                                {t('historial.ver_consulta_completa')}
-                            </a>
-                        </Button>
+                        <>
+                            <Button type="button" size="sm" variant="default" className="gap-2" asChild>
+                                <a href={item.historia_url}>
+                                    <ExternalLink className="size-3.5" strokeWidth={2.25} />
+                                    {t('historial.ver_consulta_completa')}
+                                </a>
+                            </Button>
+                            <Button type="button" size="sm" variant="outline" className="gap-2" asChild>
+                                <a
+                                    href={item.pdf_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    <FileDown className="size-3.5" strokeWidth={2.25} />
+                                    {t('historial.pdf_registro')}
+                                </a>
+                            </Button>
+                        </>
                     ) : null}
                     {item.kind === 'aplicacion' && permisos.vacunas_ver ? (
-                        <Button type="button" size="sm" variant="default" className="gap-2" asChild>
-                            <Link href={item.vacunaciones_url} prefetch>
-                                <ExternalLink className="size-3.5" strokeWidth={2.25} />
-                                {t('historial.ver_aplicacion_completa')}
-                            </Link>
-                        </Button>
+                        <>
+                            <Button type="button" size="sm" variant="default" className="gap-2" asChild>
+                                <Link href={item.vacunaciones_url} prefetch>
+                                    <ExternalLink className="size-3.5" strokeWidth={2.25} />
+                                    {t('historial.ver_aplicacion_completa')}
+                                </Link>
+                            </Button>
+                            <Button type="button" size="sm" variant="outline" className="gap-2" asChild>
+                                <a
+                                    href={item.pdf_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    <FileDown className="size-3.5" strokeWidth={2.25} />
+                                    {t('historial.pdf_registro')}
+                                </a>
+                            </Button>
+                        </>
                     ) : null}
                 </div>
             </div>
@@ -635,6 +663,18 @@ export default function PacienteShow({ paciente, timeline, links, permisos }: Pr
                             <a href={links.nueva_aplicacion}>
                                 <Syringe className="size-4" strokeWidth={2.25} />
                                 {t('historial.action_nueva_aplicacion')}
+                            </a>
+                        </Button>
+                    ) : null}
+                    {links.historial_pdf && timeline.length > 0 ? (
+                        <Button type="button" size="sm" variant="outline" className="gap-2" asChild>
+                            <a
+                                href={links.historial_pdf}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                <FileDown className="size-4" strokeWidth={2.25} />
+                                {t('historial.action_historial_pdf')}
                             </a>
                         </Button>
                     ) : null}
