@@ -25,6 +25,7 @@ import generalEn from '@/lang/en/general.json';
 import historiasClinicasEn from '@/lang/en/historias-clinicas.json';
 import laboratorioEn from '@/lang/en/laboratorio.json';
 import movimientosInventarioEn from '@/lang/en/movimientos-inventario.json';
+import offlineEn from '@/lang/en/offline.json';
 import navEn from '@/lang/en/nav.json';
 import pacientesEn from '@/lang/en/pacientes.json';
 import planesEn from '@/lang/en/planes.json';
@@ -66,6 +67,7 @@ import generalEs from '@/lang/es/general.json';
 import historiasClinicasEs from '@/lang/es/historias-clinicas.json';
 import laboratorioEs from '@/lang/es/laboratorio.json';
 import movimientosInventarioEs from '@/lang/es/movimientos-inventario.json';
+import offlineEs from '@/lang/es/offline.json';
 import navEs from '@/lang/es/nav.json';
 import pacientesEs from '@/lang/es/pacientes.json';
 import planesEs from '@/lang/es/planes.json';
@@ -130,6 +132,7 @@ const resources = {
         platform: platformEs,
         'historias-clinicas': historiasClinicasEs,
         'movimientos-inventario': movimientosInventarioEs,
+        offline: offlineEs,
         'alertas-stock': alertasStockEs,
         'proveedores-inventario': proveedoresInventarioEs,
         'compras-inventario': comprasInventarioEs,
@@ -173,6 +176,7 @@ const resources = {
         platform: platformEn,
         'historias-clinicas': historiasClinicasEn,
         'movimientos-inventario': movimientosInventarioEn,
+        offline: offlineEn,
         'alertas-stock': alertasStockEn,
         'proveedores-inventario': proveedoresInventarioEn,
         'compras-inventario': comprasInventarioEn,
@@ -225,6 +229,7 @@ void i18n
             'platform',
             'historias-clinicas',
             'movimientos-inventario',
+            'offline',
             'alertas-stock',
             'proveedores-inventario',
             'compras-inventario',

@@ -1,0 +1,14 @@
+{
+    "banner": {
+        "offline_title": "Offline — local mode active",
+        "offline_body": "You can register sales at the register; they will sync when you're back online.",
+        "sync_title": "{{count}} sale(s) pending sync",
+        "sync_body": "Offline sales are waiting to upload to the server.",
+        "sync_now": "Sync now",
+        "syncing": "Syncing..."
+    },
+    "venta": {
+        "queued_title": "Sale saved offline",
+        "queued_body": "Reference {{label}}. It will upload when connection is restored."
+    }
+}

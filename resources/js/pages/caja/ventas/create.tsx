@@ -39,7 +39,12 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import AppLayout from '@/layouts/app-layout';
 import { PropietarioFormModal } from '@/pages/clinica/propietarios/components/propietario-form-modal';
 import { toastManager } from '@/lib/toast';
+import { fetchCajaBootstrap } from '@/lib/offline/api';
+import { loadCajaBootstrap, saveCajaBootstrap, searchCachedProductos } from '@/lib/offline/cache';
+import { isIndexedDbSupported } from '@/lib/offline/idb';
+import { enqueueOutbox } from '@/lib/offline/outbox';
 import { cn } from '@/lib/utils';
+import { useOfflineSync } from '@/hooks/use-offline-sync';
 import caja from '@/routes/caja';
 import { PosPanel } from './components/pos-panel';
 import type { ProductoBusqueda, ServicioTarifaBusqueda, VentasCreateProps } from './types';
@@ -127,7 +132,8 @@ export default function Create({
     departamentos,
     desde_cargo: desdeCargo = null,
 }: VentasCreateProps) {
-    const { t, i18n } = useTranslation(['caja', 'common']);
+    const { t, i18n } = useTranslation(['caja', 'common', 'offline']);
+    const { isOnline, refreshPending } = useOfflineSync();
     const [cart, setCart] = useState<CartLine[]>([]);
     const desdeCargoInicializado = useRef(false);
     const [qProducto, setQProducto] = useState('');
@@ -249,7 +255,7 @@ export default function Create({
     }, [promoPreview, totalesBase]);
 
     useEffect(() => {
-        if (!form.data.propietario_id || cart.length === 0) {
+        if (!form.data.propietario_id || cart.length === 0 || !navigator.onLine) {
             setPromoPreview(null);
 
             return;
@@ -298,6 +304,32 @@ export default function Create({
                 return;
             }
 
+            if (!navigator.onLine && isIndexedDbSupported()) {
+                setBuscando(true);
+                void loadCajaBootstrap()
+                    .then((cache) => {
+                        if (!cache) {
+                            setHits([]);
+
+                            return;
+                        }
+
+                        setHits(
+                            searchCachedProductos(cache, q).map((p) => ({
+                                id: p.id,
+                                nombre: p.nombre,
+                                sku: p.sku,
+                                precio_venta: p.precio_venta,
+                                unidad: p.unidad,
+                                stock_sede: p.stock_sede,
+                            })),
+                        );
+                    })
+                    .finally(() => setBuscando(false));
+
+                return;
+            }
+
             setBuscando(true);
             const url = caja.ventas.buscarProductos.url({ query: { q } });
             jsonGet(url)
@@ -311,6 +343,28 @@ export default function Create({
 
         return () => window.clearTimeout(tmr);
     }, [qProducto]);
+
+    useEffect(() => {
+        if (!isIndexedDbSupported()) {
+            return;
+        }
+
+        void saveCajaBootstrap({
+            cached_at: new Date().toISOString(),
+            puede_vender,
+            mi_sesion,
+            clinica,
+            propietarios_opciones: [...propietariosOpciones],
+            productos: [],
+            pacientes: [],
+        });
+
+        if (navigator.onLine) {
+            void fetchCajaBootstrap()
+                .then((data) => saveCajaBootstrap(data as never))
+                .catch(() => undefined);
+        }
+    }, [clinica, mi_sesion, propietariosOpciones, puede_vender]);
 
     useEffect(() => {
         const tmr = window.setTimeout(() => {
@@ -489,8 +543,74 @@ export default function Create({
         [clinica.moneda, i18n.language],
     );
 
+    const buildVentaPayload = useCallback(() => {
+        const d = form.data;
+
+        return {
+            caja_sesion_id: mi_sesion!.id,
+            propietario_id: d.propietario_id,
+            paciente_id: d.paciente_id || null,
+            consulta_id: d.consulta_id || null,
+            consulta_cargo_id: d.consulta_cargo_id || null,
+            grooming_turno_id: d.grooming_turno_id || null,
+            hotel_estancia_id: d.hotel_estancia_id || null,
+            promotion_code: d.promotion_code.trim() || null,
+            metodo_pago: d.metodo_pago,
+            monto_recibido: d.metodo_pago === 'efectivo' ? d.monto_recibido : null,
+            notas: d.notas || null,
+            tipo_comprobante_sunat:
+                d.tipo_comprobante_sunat === 0 ? null : d.tipo_comprobante_sunat,
+            lineas: cart.map((l) => ({
+                producto_id: l.producto_id,
+                concepto: l.producto_id ? null : l.nombre,
+                precio_lista:
+                    l.precio_venta === '' || l.precio_venta === null
+                        ? '0'
+                        : String(l.precio_venta),
+                tipo_linea: l.tipo_linea ?? (l.producto_id ? 'producto' : 'servicio'),
+                consulta_cargo_linea_id: l.consulta_cargo_linea_id ?? null,
+                cantidad: l.cantidad,
+            })),
+        };
+    }, [cart, form.data, mi_sesion]);
+
     const submit = useCallback(() => {
         if (!puede_vender || !mi_sesion || cart.length === 0) {
+            return;
+        }
+
+        if (!isOnline && isIndexedDbSupported()) {
+            void (async () => {
+                try {
+                    const item = await enqueueOutbox(
+                        'caja.venta.create',
+                        buildVentaPayload(),
+                    );
+                    await refreshPending();
+                    setCart([]);
+                    setHits([]);
+                    setQProducto('');
+                    form.setData((prev) => ({
+                        ...prev,
+                        paciente_id: null,
+                        promotion_code: '',
+                        monto_recibido: '',
+                        notas: '',
+                    }));
+                    toastManager.success({
+                        title: t('offline:venta.queued_title'),
+                        description: t('offline:venta.queued_body', {
+                            label: item.local_label ?? item.uuid.slice(0, 8),
+                        }),
+                    });
+                } catch {
+                    toastManager.error({
+                        title: t('caja:ventas.create.error_guardar_title'),
+                        description: t('caja:ventas.create.error_guardar_generico'),
+                    });
+                }
+            })();
+
             return;
         }
 
@@ -528,7 +648,16 @@ export default function Create({
                 });
             },
         });
-    }, [cart, form, mi_sesion, puede_vender, t]);
+    }, [
+        buildVentaPayload,
+        cart,
+        form,
+        isOnline,
+        mi_sesion,
+        puede_vender,
+        refreshPending,
+        t,
+    ]);
 
     const cartSinStock = useMemo(
         () =>

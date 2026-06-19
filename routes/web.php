@@ -26,6 +26,7 @@ use App\Http\Controllers\GroomingTurnoController;
 use App\Http\Controllers\HotelEstanciaController;
 use App\Http\Controllers\LaboratorioController;
 use App\Http\Controllers\MovimientoInventarioController;
+use App\Http\Controllers\OfflineSyncController;
 use App\Http\Controllers\PacienteController;
 use App\Http\Controllers\PlanController;
 use App\Http\Controllers\PlatformRenewalReminderController;
@@ -575,6 +576,18 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             Route::middleware('permission:ventas.create')
                 ->get('ventas/buscar-servicios', [VentaController::class, 'buscarServiciosTarifa'])
                 ->name('ventas.buscar-servicios');
+
+            // Modo offline — bootstrap de cache y cola de sync (JSON).
+            Route::middleware(['tenant.required', 'permission:ventas.create'])
+                ->prefix('offline')
+                ->name('offline.')
+                ->group(function (): void {
+                    Route::get('bootstrap', [OfflineSyncController::class, 'bootstrap'])
+                        ->name('bootstrap');
+                    Route::post('sync/push', [OfflineSyncController::class, 'push'])
+                        ->name('sync.push');
+                });
+
             Route::middleware('permission:ventas.view')
                 ->get('ventas/{venta}/ticket', [VentaController::class, 'ticket'])
                 ->whereUuid('venta')

@@ -1,0 +1,14 @@
+{
+    "banner": {
+        "offline_title": "Sin conexión — modo local activo",
+        "offline_body": "Puedes registrar ventas en caja; se sincronizarán cuando vuelva el internet.",
+        "sync_title": "{{count}} venta(s) pendiente(s) de sincronizar",
+        "sync_body": "Hay cobros guardados offline esperando subir al servidor.",
+        "sync_now": "Sincronizar ahora",
+        "syncing": "Sincronizando..."
+    },
+    "venta": {
+        "queued_title": "Venta guardada offline",
+        "queued_body": "Referencia {{label}}. Se enviará al servidor cuando haya conexión."
+    }
+}
