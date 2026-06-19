@@ -355,6 +355,12 @@ function useNavConfig(): { singles: NavItem[]; groups: NavGroup[] } {
                             permission: 'config-general.view',
                         },
                         {
+                            title: t('items.suscripcion'),
+                            href: '/configuracion/suscripcion',
+                            icon: CreditCard,
+                            permission: 'config-general.view',
+                        },
+                        {
                             title: t('items.sedes'),
                             href: '/configuracion/sedes',
                             icon: Building2,

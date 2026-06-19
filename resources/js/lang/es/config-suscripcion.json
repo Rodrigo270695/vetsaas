@@ -1,0 +1,48 @@
+{
+    "title": "Mi suscripción",
+    "description": "Plan contratado, estado del servicio y fechas de renovación de VetSaaS.",
+    "empty_plan": "Sin plan asignado",
+    "sections": {
+        "plan": "Tu plan",
+        "dates": "Fechas importantes",
+        "renew": "Renovar servicio"
+    },
+    "fields": {
+        "plan": "Plan",
+        "estado": "Estado",
+        "ciclo": "Ciclo de facturación",
+        "precio": "Precio pactado",
+        "period_start": "Inicio del período",
+        "period_end": "Fin del período",
+        "proximo_cobro": "Próximo cobro",
+        "trial_end": "Fin del período de prueba",
+        "renewal_anchor": "Próximo vencimiento"
+    },
+    "estados": {
+        "trial": "En prueba",
+        "active": "Activa",
+        "grace": "Período de gracia",
+        "suspended": "Suspendida",
+        "cancelled": "Cancelada",
+        "unknown": "Sin información"
+    },
+    "ciclos": {
+        "mensual": "Mensual",
+        "anual": "Anual"
+    },
+    "days_until": {
+        "past": "Venció hace {{count}} día(s)",
+        "today": "Vence hoy",
+        "future": "Faltan {{count}} día(s)"
+    },
+    "alerts": {
+        "ok": "Tu suscripción está al día. Revisa la fecha de próximo cobro para planificar la renovación.",
+        "warning": "Tu renovación está cerca. Te recomendamos pagar antes del vencimiento para evitar interrupciones.",
+        "danger": "Tu suscripción requiere atención. Renueva cuanto antes para recuperar el acceso completo.",
+        "muted": "Si tienes dudas sobre tu plan o fechas, contacta al soporte de Orvae."
+    },
+    "renew_hint": "El pago se procesa en el portal seguro de Orvae. Tras confirmarse, tu acceso se extiende automáticamente.",
+    "renew_cta": "Renovar o pagar plan",
+    "no_renewal_url": "Por ahora no hay un enlace de pago configurado. Escríbenos a soporte para renovar tu plan.",
+    "support": "Si necesitas cambiar de plan o tienes un cobro pendiente, contacta al equipo de Orvae."
+}

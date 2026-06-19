@@ -10,6 +10,7 @@ use App\Http\Controllers\CirugiaController;
 use App\Http\Controllers\HospitalizacionController;
 use App\Http\Controllers\InternamientoCargoController;
 use App\Http\Controllers\ClinicSettingController;
+use App\Http\Controllers\ClinicSubscriptionController;
 use App\Http\Controllers\NotificationQueueController;
 use App\Http\Controllers\TenantWhatsAppController;
 use App\Http\Controllers\RecetaController;
@@ -687,6 +688,10 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             Route::middleware(['tenant.required', 'permission:config-general.update'])
                 ->match(['put', 'patch'], 'general', [ClinicSettingController::class, 'update'])
                 ->name('general.update');
+
+            Route::middleware(['tenant.required', 'permission:config-general.view'])
+                ->get('suscripcion', [ClinicSubscriptionController::class, 'show'])
+                ->name('suscripcion.show');
 
             // Sedes — CRUD real. Cada verbo HTTP exige su permiso específico.
             Route::middleware('permission:sedes.view')

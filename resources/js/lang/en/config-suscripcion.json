@@ -1,0 +1,48 @@
+{
+    "title": "My subscription",
+    "description": "Your VetSaaS plan, service status, and renewal dates.",
+    "empty_plan": "No plan assigned",
+    "sections": {
+        "plan": "Your plan",
+        "dates": "Important dates",
+        "renew": "Renew service"
+    },
+    "fields": {
+        "plan": "Plan",
+        "estado": "Status",
+        "ciclo": "Billing cycle",
+        "precio": "Agreed price",
+        "period_start": "Period start",
+        "period_end": "Period end",
+        "proximo_cobro": "Next charge",
+        "trial_end": "Trial end",
+        "renewal_anchor": "Next due date"
+    },
+    "estados": {
+        "trial": "Trial",
+        "active": "Active",
+        "grace": "Grace period",
+        "suspended": "Suspended",
+        "cancelled": "Cancelled",
+        "unknown": "No information"
+    },
+    "ciclos": {
+        "mensual": "Monthly",
+        "anual": "Annual"
+    },
+    "days_until": {
+        "past": "Expired {{count}} day(s) ago",
+        "today": "Due today",
+        "future": "{{count}} day(s) remaining"
+    },
+    "alerts": {
+        "ok": "Your subscription is up to date. Check the next charge date to plan renewal.",
+        "warning": "Renewal is coming soon. We recommend paying before the due date to avoid interruptions.",
+        "danger": "Your subscription needs attention. Renew as soon as possible to restore full access.",
+        "muted": "If you have questions about your plan or dates, contact Orvae support."
+    },
+    "renew_hint": "Payment is processed on Orvae's secure portal. Once confirmed, your access is extended automatically.",
+    "renew_cta": "Renew or pay plan",
+    "no_renewal_url": "No payment link is configured yet. Contact support to renew your plan.",
+    "support": "If you need to change plans or have a pending charge, contact the Orvae team."
+}

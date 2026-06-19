@@ -13,6 +13,7 @@ import groomingEn from '@/lang/en/grooming.json';
 import hotelEn from '@/lang/en/hotel.json';
 import citasEn from '@/lang/en/citas.json';
 import cobrosEn from '@/lang/en/cobros.json';
+import configSuscripcionEn from '@/lang/en/config-suscripcion.json';
 import comunicacionesEn from '@/lang/en/comunicaciones.json';
 import plataformaAuditoriaSoporteEn from '@/lang/en/plataforma-auditoria-soporte.json';
 import dashboardEn from '@/lang/en/dashboard.json';
@@ -53,6 +54,7 @@ import groomingEs from '@/lang/es/grooming.json';
 import hotelEs from '@/lang/es/hotel.json';
 import citasEs from '@/lang/es/citas.json';
 import cobrosEs from '@/lang/es/cobros.json';
+import configSuscripcionEs from '@/lang/es/config-suscripcion.json';
 import comunicacionesEs from '@/lang/es/comunicaciones.json';
 import plataformaAuditoriaSoporteEs from '@/lang/es/plataforma-auditoria-soporte.json';
 import dashboardEs from '@/lang/es/dashboard.json';
@@ -119,6 +121,7 @@ const resources = {
         suscripciones: suscripcionesEs,
         'avisos-renovacion': avisosRenovacionEs,
         cobros: cobrosEs,
+        'config-suscripcion': configSuscripcionEs,
         comunicaciones: comunicacionesEs,
         'plataforma-auditoria-soporte': plataformaAuditoriaSoporteEs,
         dashboard: dashboardEs,
@@ -161,6 +164,7 @@ const resources = {
         suscripciones: suscripcionesEn,
         'avisos-renovacion': avisosRenovacionEn,
         cobros: cobrosEn,
+        'config-suscripcion': configSuscripcionEn,
         comunicaciones: comunicacionesEn,
         'plataforma-auditoria-soporte': plataformaAuditoriaSoporteEn,
         dashboard: dashboardEn,
@@ -213,6 +217,7 @@ void i18n
             'suscripciones',
             'avisos-renovacion',
             'cobros',
+            'config-suscripcion',
             'comunicaciones',
             'dashboard',
             'auth',
