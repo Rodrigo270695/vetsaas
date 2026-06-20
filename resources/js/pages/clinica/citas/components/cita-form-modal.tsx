@@ -17,7 +17,9 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { resolveDefaultSedeId } from '@/lib/default-sede';
+import { enqueueIfOffline } from '@/lib/offline/enqueue-if-offline';
 import { cn } from '@/lib/utils';
+import { useOfflineSync } from '@/hooks/use-offline-sync';
 import clinica from '@/routes/clinica';
 import type { CitaFormPrefill, CitaRow, PacienteCitaOpcion, SedeCitaOpcion } from '../types';
 import { formatDateOnlyLabel } from '../../historias-clinicas/format-atendido';
@@ -128,7 +130,8 @@ export function CitaFormModal({
     pacientesOpciones,
     sedesOpciones,
 }: CitaFormModalProps) {
-    const { t, i18n } = useTranslation(['citas', 'common']);
+    const { t, i18n } = useTranslation(['citas', 'common', 'offline']);
+    const { refreshPending } = useOfflineSync();
     const authUser = usePage().props.auth?.user as { id?: string } | undefined;
     const defaultVetId = authUser?.id ?? null;
 
@@ -209,6 +212,22 @@ export function CitaFormModal({
         label: `${p.nombre} · ${displayPropietario(p.propietario) || '—'}`,
     }));
 
+    const buildCreatePayload = (raw: FormShape): Record<string, unknown> => {
+        const dm = raw.duracion_minutos.trim();
+        const dmVal = dm === '' ? NaN : Number.parseInt(dm, 10);
+
+        return {
+            paciente_id: raw.paciente_id,
+            inicio_at: raw.inicio_at,
+            duracion_minutos: Number.isNaN(dmVal) ? 30 : dmVal,
+            motivo: raw.motivo.trim() === '' ? null : raw.motivo.trim(),
+            notas: raw.notas.trim() === '' ? null : raw.notas.trim(),
+            veterinario_id:
+                raw.veterinario_id != null && raw.veterinario_id !== '' ? raw.veterinario_id : null,
+            sede_id: raw.sede_id != null && raw.sede_id !== '' ? raw.sede_id : null,
+        };
+    };
+
     const onSubmit = (e: FormEvent) => {
         e.preventDefault();
 
@@ -221,10 +240,27 @@ export function CitaFormModal({
             return;
         }
 
-        post(clinica.citas.store().url, {
-            preserveScroll: true,
-            onSuccess: () => onOpenChange(false),
-        });
+        void (async () => {
+            const queued = await enqueueIfOffline(
+                'clinica.cita.create',
+                buildCreatePayload(data),
+                {
+                    refreshPending,
+                    onSuccess: () => onOpenChange(false),
+                    title: t('offline:cita.queued_title'),
+                    description: t('offline:cita.queued_body'),
+                },
+            );
+
+            if (queued) {
+                return;
+            }
+
+            post(clinica.citas.store().url, {
+                preserveScroll: true,
+                onSuccess: () => onOpenChange(false),
+            });
+        })();
     };
 
     return (

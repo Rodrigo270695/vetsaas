@@ -19,6 +19,8 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { resolveDefaultSedeId } from '@/lib/default-sede';
+import { enqueueIfOffline } from '@/lib/offline/enqueue-if-offline';
+import { useOfflineSync } from '@/hooks/use-offline-sync';
 import servicios from '@/routes/servicios';
 import type {
     HotelEstanciaRow,
@@ -139,7 +141,8 @@ export function HotelFormModal({
     pacientesOpciones,
     sedesOpciones,
 }: HotelFormModalProps) {
-    const { t } = useTranslation(['hotel', 'common']);
+    const { t } = useTranslation(['hotel', 'common', 'offline']);
+    const { refreshPending } = useOfflineSync();
     const authUser = usePage().props.auth?.user as { id?: string } | undefined;
     const defaultResponsableId = authUser?.id ?? null;
 
@@ -229,6 +232,33 @@ export function HotelFormModal({
         label: `${p.nombre} · ${displayPropietario(p.propietario) || '—'}`,
     }));
 
+    const buildCreatePayload = (raw: FormShape): Record<string, unknown> => {
+        const base: Record<string, unknown> = {
+            paciente_id: raw.paciente_id,
+            ingreso_at: raw.ingreso_at,
+            egreso_at: raw.egreso_at.trim() === '' ? null : raw.egreso_at.trim(),
+            notas: raw.notas.trim() === '' ? null : raw.notas.trim(),
+            responsable_id:
+                raw.responsable_id != null && raw.responsable_id !== '' ? raw.responsable_id : null,
+            sede_id: raw.sede_id != null && raw.sede_id !== '' ? raw.sede_id : null,
+        };
+
+        if (catalogoPersonalizado) {
+            base.hotel_tipo_id = raw.hotel_tipo_id;
+        } else {
+            const det =
+                raw.tipo_estancia === OTRO_PERSONALIZADO
+                    ? raw.tipo_detalle.trim() === ''
+                        ? null
+                        : raw.tipo_detalle.trim()
+                    : null;
+            base.tipo_estancia = raw.tipo_estancia;
+            base.tipo_detalle = det;
+        }
+
+        return base;
+    };
+
     const onSubmit = (e: FormEvent) => {
         e.preventDefault();
 
@@ -241,10 +271,27 @@ export function HotelFormModal({
             return;
         }
 
-        post(servicios.hotel.store().url, {
-            preserveScroll: true,
-            onSuccess: () => onOpenChange(false),
-        });
+        void (async () => {
+            const queued = await enqueueIfOffline(
+                'servicios.hotel.create',
+                buildCreatePayload(data),
+                {
+                    refreshPending,
+                    onSuccess: () => onOpenChange(false),
+                    title: t('offline:hotel.queued_title'),
+                    description: t('offline:hotel.queued_body'),
+                },
+            );
+
+            if (queued) {
+                return;
+            }
+
+            post(servicios.hotel.store().url, {
+                preserveScroll: true,
+                onSuccess: () => onOpenChange(false),
+            });
+        })();
     };
 
     return (

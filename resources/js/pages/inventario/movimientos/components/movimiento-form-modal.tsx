@@ -15,6 +15,8 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { resolveDefaultSedeIdOrEmpty } from '@/lib/default-sede';
+import { enqueueIfOffline } from '@/lib/offline/enqueue-if-offline';
+import { useOfflineSync } from '@/hooks/use-offline-sync';
 import inventario from '@/routes/inventario';
 import type { ProductoOptionMovimiento, SedeOptionMovimiento } from '../types';
 
@@ -51,7 +53,8 @@ export function MovimientoFormModal({
     productoOptions,
     defaultSedeId,
 }: MovimientoFormModalProps) {
-    const { t } = useTranslation(['movimientos-inventario', 'common']);
+    const { t } = useTranslation(['movimientos-inventario', 'common', 'offline']);
+    const { refreshPending } = useOfflineSync();
     const { data, setData, post, processing, errors, reset, clearErrors } = useForm<FormData>(empty);
 
     useEffect(() => {
@@ -83,7 +86,7 @@ export function MovimientoFormModal({
 
     const onSubmit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        if (sinOpciones) {
+        if (sinOpciones || !data.producto_id) {
             return;
         }
 
@@ -93,10 +96,31 @@ export function MovimientoFormModal({
             clearErrors();
         };
 
-        post(inventario.movimientos.store.url(), {
-            preserveScroll: true,
-            onSuccess,
-        });
+        const payload = {
+            producto_id: data.producto_id,
+            sede_id: data.sede_id,
+            tipo: data.tipo,
+            cantidad: data.cantidad,
+            notas: data.notas.trim() === '' ? null : data.notas.trim(),
+        };
+
+        void (async () => {
+            const queued = await enqueueIfOffline('inventario.movimiento.create', payload, {
+                refreshPending,
+                onSuccess,
+                title: t('offline:movimiento.queued_title'),
+                description: t('offline:movimiento.queued_body'),
+            });
+
+            if (queued) {
+                return;
+            }
+
+            post(inventario.movimientos.store.url(), {
+                preserveScroll: true,
+                onSuccess,
+            });
+        })();
     };
 
     return (

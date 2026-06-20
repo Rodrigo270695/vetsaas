@@ -2,7 +2,7 @@ import { router } from '@inertiajs/react';
 import type { Page } from '@inertiajs/core';
 
 import { idbGet, idbSet, isIndexedDbSupported } from './idb';
-import { isCajaOfflinePath, normalizeOfflinePath } from './caja-routes';
+import { isOfflinePath, normalizeOfflinePath } from './offline-routes';
 
 const PAGE_CACHE_PREFIX = 'inertia:';
 
@@ -13,7 +13,7 @@ type CachedInertiaPage = {
 };
 
 export function rememberInertiaPage(page: Page): void {
-    if (!isIndexedDbSupported() || !isCajaOfflinePath(page.url)) {
+    if (!isIndexedDbSupported() || !isOfflinePath(page.url)) {
         return;
     }
 

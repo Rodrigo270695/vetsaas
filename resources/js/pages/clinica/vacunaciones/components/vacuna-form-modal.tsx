@@ -16,6 +16,8 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { resolveDefaultSedeId } from '@/lib/default-sede';
+import { enqueueIfOffline } from '@/lib/offline/enqueue-if-offline';
+import { useOfflineSync } from '@/hooks/use-offline-sync';
 import clinica from '@/routes/clinica';
 import { formatAtendidoInAppTimezone } from '../../historias-clinicas/format-atendido';
 import type {
@@ -142,7 +144,8 @@ export function VacunaFormModal({
     sedesOpciones,
     prefillCreate = null,
 }: VacunaFormModalProps) {
-    const { t } = useTranslation(['vacunaciones', 'common']);
+    const { t } = useTranslation(['vacunaciones', 'common', 'offline']);
+    const { refreshPending } = useOfflineSync();
     const authUser = usePage().props.auth?.user as { id?: string } | undefined;
     const { locale: appLocale, timezone: appTz } = usePage().props;
     const defaultVetId = authUser?.id ?? null;
@@ -219,6 +222,28 @@ export function VacunaFormModal({
         }
     };
 
+    const buildCreatePayload = (raw: FormShape): Record<string, unknown> => {
+        const nd = raw.numero_dosis.trim();
+        const ndVal = nd === '' ? null : Number.parseInt(nd, 10);
+
+        return {
+            paciente_id: raw.paciente_id,
+            consulta_id: raw.consulta_id.trim() === '' ? null : raw.consulta_id.trim(),
+            producto_id: raw.producto_id && raw.producto_id !== '' ? raw.producto_id : null,
+            categoria_registro: raw.categoria_registro,
+            nombre_vacuna: raw.nombre_vacuna.trim(),
+            esquema_antigenos: raw.esquema_antigenos.trim() === '' ? null : raw.esquema_antigenos.trim(),
+            fecha_proxima_sugerida: dateInputToPayload(raw.fecha_proxima_sugerida),
+            aplicada_at: raw.aplicada_at,
+            numero_dosis: nd === '' || ndVal === null || Number.isNaN(ndVal) ? null : ndVal,
+            lote: raw.lote.trim() === '' ? null : raw.lote.trim(),
+            notas: raw.notas.trim() === '' ? null : raw.notas.trim(),
+            veterinario_id:
+                raw.veterinario_id != null && raw.veterinario_id !== '' ? raw.veterinario_id : null,
+            sede_id: raw.sede_id != null && raw.sede_id !== '' ? raw.sede_id : null,
+        };
+    };
+
     const onSubmit = (e: FormEvent) => {
         e.preventDefault();
         if (isEdit && vacuna) {
@@ -230,10 +255,27 @@ export function VacunaFormModal({
             return;
         }
 
-        post(clinica.vacunaciones.store().url, {
-            preserveScroll: true,
-            onSuccess: () => onOpenChange(false),
-        });
+        void (async () => {
+            const queued = await enqueueIfOffline(
+                'clinica.vacuna.create',
+                buildCreatePayload(data),
+                {
+                    refreshPending,
+                    onSuccess: () => onOpenChange(false),
+                    title: t('offline:vacuna.queued_title'),
+                    description: t('offline:vacuna.queued_body'),
+                },
+            );
+
+            if (queued) {
+                return;
+            }
+
+            post(clinica.vacunaciones.store().url, {
+                preserveScroll: true,
+                onSuccess: () => onOpenChange(false),
+            });
+        })();
     };
 
     return (

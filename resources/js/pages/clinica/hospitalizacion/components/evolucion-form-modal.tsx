@@ -7,6 +7,8 @@ import { FormField, FormModal, FormSection } from '@/components/forms';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { enqueueIfOffline } from '@/lib/offline/enqueue-if-offline';
+import { useOfflineSync } from '@/hooks/use-offline-sync';
 import type { InternamientoEvolucionRow } from '../types';
 
 const controlClass = 'h-10 w-full min-w-0';
@@ -77,7 +79,8 @@ export function EvolucionFormModal({
     internamientoId,
     evolucion,
 }: EvolucionFormModalProps) {
-    const { t } = useTranslation(['hospitalizacion', 'common']);
+    const { t } = useTranslation(['hospitalizacion', 'common', 'offline']);
+    const { refreshPending } = useOfflineSync();
     const authUser = usePage().props.auth?.user as { id?: string } | undefined;
     const defaultVetId = authUser?.id ?? null;
 
@@ -148,10 +151,44 @@ export function EvolucionFormModal({
             return;
         }
 
-        post(`/clinica/hospitalizacion/${internamientoId}/evoluciones`, {
-            preserveScroll: true,
-            onSuccess,
-        });
+        void (async () => {
+            const peso = data.peso_kg.trim();
+            const temp = data.temperatura_c.trim();
+            const payload: Record<string, unknown> = {
+                internamiento_id: internamientoId,
+                registrado_at: data.registrado_at,
+                evolucion: data.evolucion.trim(),
+                tratamiento: data.tratamiento.trim() === '' ? null : data.tratamiento.trim(),
+                peso_kg: peso === '' ? null : Number.parseFloat(peso),
+                temperatura_c: temp === '' ? null : Number.parseFloat(temp),
+                fc_lpm: data.fc_lpm.trim() === '' ? null : Number.parseInt(data.fc_lpm, 10),
+                fr_rpm: data.fr_rpm.trim() === '' ? null : Number.parseInt(data.fr_rpm, 10),
+                veterinario_id:
+                    data.veterinario_id != null && data.veterinario_id !== ''
+                        ? data.veterinario_id
+                        : null,
+            };
+
+            const queued = await enqueueIfOffline(
+                'clinica.internamiento.evolucion.create',
+                payload,
+                {
+                    refreshPending,
+                    onSuccess,
+                    title: t('offline:evolucion.queued_title'),
+                    description: t('offline:evolucion.queued_body'),
+                },
+            );
+
+            if (queued) {
+                return;
+            }
+
+            post(`/clinica/hospitalizacion/${internamientoId}/evoluciones`, {
+                preserveScroll: true,
+                onSuccess,
+            });
+        })();
     };
 
     const err = (key: string): string | undefined => {

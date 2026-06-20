@@ -1,15 +1,196 @@
 {
     "banner": {
         "offline_title": "Offline — local mode active",
-        "offline_body": "You can register sales at the register; they will sync when you're back online.",
-        "sync_title": "{{count}} sale(s) pending sync",
-        "sync_body": "Offline sales are waiting to upload to the server.",
+        "offline_body": "You can register sales, clinic, services, inventory, prescriptions, vaccinations and locations; they will sync when you're back online.",
+        "sync_title": "{{count}} record(s) pending sync",
+        "sync_body": "Offline data is waiting to upload to the server.",
         "sync_now": "Sync now",
-        "syncing": "Syncing..."
+        "syncing": "Syncing...",
+        "view_queue": "View queue"
+    },
+    "sync_center": {
+        "breadcrumb_root": "Offline",
+        "title": "Sync queue",
+        "description": "Records saved on this device waiting to upload to the server.",
+        "offline_hint": "You can review the queue offline. Sync requires an internet connection.",
+        "unsupported_title": "Local storage unavailable",
+        "unsupported_body": "Your browser does not support IndexedDB. Offline mode is not available on this device.",
+        "empty_title": "Queue is empty",
+        "empty_body": "No pending records. Successfully synced changes are removed from the local queue.",
+        "synced_note": "Successfully synced records disappear from this list.",
+        "discard_confirm": "Discard {{label}}? The local record will be lost and will not upload to the server.",
+        "stats": {
+            "pending": "Pending",
+            "syncing": "Syncing",
+            "failed": "Failed",
+            "total": "Total"
+        },
+        "filters": {
+            "status": "Status",
+            "status_all": "All statuses",
+            "type": "Type",
+            "type_all": "All types"
+        },
+        "status": {
+            "pending": "Pending",
+            "syncing": "Syncing",
+            "failed": "Failed",
+            "synced": "Synced"
+        },
+        "table": {
+            "reference": "Reference",
+            "type": "Type",
+            "summary": "Summary",
+            "status": "Status",
+            "created": "Created",
+            "actions": "Actions"
+        },
+        "actions": {
+            "refresh": "Refresh",
+            "retry": "Retry",
+            "discard": "Discard",
+            "detail": "View details"
+        },
+        "detail": {
+            "uuid": "Identifier",
+            "created": "Local date",
+            "error": "Server error",
+            "payload": "Payload"
+        },
+        "toast": {
+            "synced_title": "Synced",
+            "synced_body": "{{label}} uploaded successfully.",
+            "offline_title": "Offline",
+            "offline_body": "Connect to the internet to sync.",
+            "busy_title": "Sync in progress",
+            "busy_body": "Wait for the current operation to finish.",
+            "discarded_title": "Discarded",
+            "discarded_body": "The record was removed from the local queue."
+        }
+    },
+    "types": {
+        "caja_venta_create": "Sale",
+        "clinica_cita_create": "Appointment",
+        "clinica_consulta_create": "Consultation",
+        "clinica_propietario_create": "Owner",
+        "clinica_paciente_create": "Patient",
+        "clinica_vacuna_create": "Vaccination",
+        "clinica_cirugia_create": "Surgery",
+        "clinica_internamiento_create": "Hospitalization",
+        "clinica_internamiento_evolucion_create": "Progress note",
+        "servicios_grooming_create": "Grooming appointment",
+        "servicios_hotel_create": "Hotel stay",
+        "inventario_movimiento_create": "Stock movement",
+        "inventario_compra_create": "Purchase",
+        "inventario_producto_create": "Product",
+        "inventario_categoria_create": "Category",
+        "inventario_proveedor_create": "Supplier",
+        "inventario_stock_adjust": "Stock adjustment",
+        "clinica_receta_create": "Prescription",
+        "clinica_laboratorio_create": "Lab order",
+        "configuracion_sede_create": "Location"
+    },
+    "link": {
+        "offline_only_title": "Offline",
+        "offline_only_body": "This section requires internet. Register, Clinic, Services, Inventory, Billing (read-only), Communications, Reports and Settings remain available offline.",
+        "cache_miss_title": "Offline",
+        "cache_miss_body": "Open this screen at least once online to use it offline."
     },
     "venta": {
         "queued_title": "Sale saved offline",
         "queued_body": "Reference {{label}}. It will upload when connection is restored."
+    },
+    "cita": {
+        "queued_title": "Appointment saved offline",
+        "queued_body": "Reference {{label}}. It will sync when you're back online."
+    },
+    "consulta": {
+        "queued_title": "Consultation saved offline",
+        "queued_body": "Reference {{label}}. It will sync when you're back online."
+    },
+    "propietario": {
+        "queued_title": "Owner saved offline",
+        "queued_body": "Reference {{label}}. It will sync when you're back online."
+    },
+    "paciente": {
+        "queued_title": "Patient saved offline",
+        "queued_body": "Reference {{label}}. It will sync when you're back online.",
+        "foto_requires_online": "Photo requires a connection. Save without photo or go online."
+    },
+    "vacuna": {
+        "queued_title": "Vaccination saved offline",
+        "queued_body": "Reference {{label}}. It will sync when you're back online."
+    },
+    "movimiento": {
+        "queued_title": "Stock movement saved offline",
+        "queued_body": "Reference {{label}}. It will sync when you're back online."
+    },
+    "compra": {
+        "queued_title": "Purchase saved offline",
+        "queued_body": "Reference {{label}}. It will sync when you're back online.",
+        "factura_requires_online": "Invoice attachment requires a connection. Save without file or go online."
+    },
+    "producto": {
+        "queued_title": "Product saved offline",
+        "queued_body": "Reference {{label}}. It will sync when you're back online."
+    },
+    "categoria": {
+        "queued_title": "Category saved offline",
+        "queued_body": "Reference {{label}}. It will sync when you're back online."
+    },
+    "proveedor_inventario": {
+        "queued_title": "Supplier saved offline",
+        "queued_body": "Reference {{label}}. It will sync when you're back online."
+    },
+    "grooming": {
+        "queued_title": "Grooming appointment saved offline",
+        "queued_body": "Reference {{label}}. It will sync when you're back online."
+    },
+    "hotel": {
+        "queued_title": "Hotel stay saved offline",
+        "queued_body": "Reference {{label}}. It will sync when you're back online."
+    },
+    "cirugia": {
+        "queued_title": "Surgery saved offline",
+        "queued_body": "Reference {{label}}. It will sync when you're back online."
+    },
+    "internamiento": {
+        "queued_title": "Hospitalization saved offline",
+        "queued_body": "Reference {{label}}. It will sync when you're back online."
+    },
+    "evolucion": {
+        "queued_title": "Progress note saved offline",
+        "queued_body": "Reference {{label}}. It will sync when you're back online."
+    },
+    "stock_adjust": {
+        "queued_title": "Stock adjustment saved offline",
+        "queued_body": "Reference {{label}}. It will sync when you're back online."
+    },
+    "receta": {
+        "queued_title": "Prescription saved offline",
+        "queued_body": "Reference {{label}}. It will sync when you're back online.",
+        "pdf_requires_online": "PDF requires a connection. The prescription will queue and you can print after reconnecting."
+    },
+    "laboratorio": {
+        "queued_title": "Lab order saved offline",
+        "queued_body": "Reference {{label}}. It will sync when you're back online.",
+        "archivo_requires_online": "Result attachments require a connection. Save without files or go online."
+    },
+    "facturacion": {
+        "emision_requires_online": "SUNAT electronic invoicing requires an internet connection."
+    },
+    "comunicaciones": {
+        "actions_requires_online": "Sending, retrying or cancelling messages requires an internet connection."
+    },
+    "reportes": {
+        "refresh_requires_online": "Refreshing reports requires an internet connection."
+    },
+    "configuracion": {
+        "edit_requires_online": "Editing users, roles, rates and schedules requires an internet connection."
+    },
+    "sede": {
+        "queued_title": "Location saved offline",
+        "queued_body": "Reference {{label}}. It will sync when you're back online."
     },
     "ventas": {
         "pending_list": "{{count}} sale(s) pending sync:"

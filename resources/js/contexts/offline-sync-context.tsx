@@ -8,12 +8,13 @@ import {
     type ReactNode,
 } from 'react';
 import { router } from '@inertiajs/react';
-import { fetchCajaBootstrap } from '@/lib/offline/api';
-import { CAJA_OFFLINE_PATHS } from '@/lib/offline/caja-routes';
-import { saveCajaBootstrap } from '@/lib/offline/cache';
+import { fetchOfflineBootstrap } from '@/lib/offline/api';
+import { saveCajaBootstrap, saveClinicaBootstrap, saveConfiguracionBootstrap, saveInventarioBootstrap, saveServiciosBootstrap } from '@/lib/offline/cache';
 import { isIndexedDbSupported } from '@/lib/offline/idb';
+import { OFFLINE_PATHS } from '@/lib/offline/offline-routes';
 import { flushOfflineOutbox, getPendingSummary } from '@/lib/offline/sync-engine';
 import { subscribePendingCount } from '@/lib/offline/sync-coordinator';
+import type { CajaBootstrapCache, ClinicaBootstrapCache, ConfiguracionBootstrapCache, InventarioBootstrapCache, ServiciosBootstrapCache } from '@/lib/offline/types';
 
 type OfflineSyncContextValue = {
     isOnline: boolean;
@@ -25,10 +26,30 @@ type OfflineSyncContextValue = {
 
 const OfflineSyncContext = createContext<OfflineSyncContextValue | null>(null);
 
-function prefetchCajaWithInertia(): void {
-    for (const path of CAJA_OFFLINE_PATHS) {
+function prefetchOfflineWithInertia(): void {
+    for (const path of OFFLINE_PATHS) {
         router.prefetch(path);
     }
+}
+
+async function refreshBootstrapCaches(): Promise<void> {
+    await Promise.all([
+        fetchOfflineBootstrap('caja')
+            .then((data) => saveCajaBootstrap(data as CajaBootstrapCache))
+            .catch(() => undefined),
+        fetchOfflineBootstrap('clinica')
+            .then((data) => saveClinicaBootstrap(data as ClinicaBootstrapCache))
+            .catch(() => undefined),
+        fetchOfflineBootstrap('inventario')
+            .then((data) => saveInventarioBootstrap(data as InventarioBootstrapCache))
+            .catch(() => undefined),
+        fetchOfflineBootstrap('servicios')
+            .then((data) => saveServiciosBootstrap(data as ServiciosBootstrapCache))
+            .catch(() => undefined),
+        fetchOfflineBootstrap('configuracion')
+            .then((data) => saveConfiguracionBootstrap(data as ConfiguracionBootstrapCache))
+            .catch(() => undefined),
+    ]);
 }
 
 export function OfflineSyncProvider({ children }: { children: ReactNode }) {
@@ -59,6 +80,7 @@ export function OfflineSyncProvider({ children }: { children: ReactNode }) {
         try {
             await flushOfflineOutbox();
             await refreshPending();
+            await refreshBootstrapCaches();
         } finally {
             setIsSyncing(false);
         }
@@ -76,10 +98,8 @@ export function OfflineSyncProvider({ children }: { children: ReactNode }) {
         const onOnline = () => {
             setIsOnline(true);
             void syncNow();
-            void fetchCajaBootstrap()
-                .then((data) => saveCajaBootstrap(data as never))
-                .catch(() => undefined);
-            prefetchCajaWithInertia();
+            void refreshBootstrapCaches();
+            prefetchOfflineWithInertia();
         };
         const onOffline = () => setIsOnline(false);
 
@@ -87,10 +107,8 @@ export function OfflineSyncProvider({ children }: { children: ReactNode }) {
         window.addEventListener('offline', onOffline);
 
         if (navigator.onLine) {
-            void fetchCajaBootstrap()
-                .then((data) => saveCajaBootstrap(data as never))
-                .catch(() => undefined);
-            prefetchCajaWithInertia();
+            void refreshBootstrapCaches();
+            prefetchOfflineWithInertia();
         }
 
         return () => {

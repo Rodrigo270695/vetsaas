@@ -19,6 +19,8 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { enqueueIfOffline } from '@/lib/offline/enqueue-if-offline';
+import { useOfflineSync } from '@/hooks/use-offline-sync';
 import type { Producto, ProductoCategoriaOption, ProductoUnidadOption } from '../types';
 import { UnidadesMedidaManageDialog } from './unidades-medida-manage-dialog';
 
@@ -71,7 +73,8 @@ export function ProductoFormModal({
     canGestionarUnidadesCatalogo,
     canEditUnidadesPersonalizadas,
 }: ProductoFormModalProps) {
-    const { t } = useTranslation(['productos-inventario', 'common']);
+    const { t } = useTranslation(['productos-inventario', 'common', 'offline']);
+    const { refreshPending } = useOfflineSync();
     const isEdit = producto !== null;
 
     const { data, setData, post, put, processing, errors, reset, clearErrors } = useForm<FormData>(empty);
@@ -145,6 +148,30 @@ export function ProductoFormModal({
         return { unidadesSistema: sistema, unidadesPersonal: personal };
     }, [unidadOptions]);
 
+    const buildCreatePayload = (raw: FormData): Record<string, unknown> => {
+        const slug = raw.slug.trim().toLowerCase();
+        const sku = raw.sku.trim();
+        const barras = raw.codigo_barras.trim();
+        const precioVenta = raw.precio_venta.trim();
+        const precioCompra = raw.precio_compra.trim();
+        const stockMin = raw.stock_minimo.trim();
+
+        return {
+            categoria_id: raw.categoria_id,
+            nombre: raw.nombre.trim(),
+            slug: slug === '' ? null : slug,
+            descripcion: raw.descripcion.trim() === '' ? null : raw.descripcion.trim(),
+            sku: sku === '' ? null : sku,
+            codigo_barras: barras === '' ? null : barras,
+            unidad: raw.unidad.trim() === '' ? 'UN' : raw.unidad.trim().toUpperCase().slice(0, 20),
+            precio_venta: precioVenta === '' ? null : precioVenta,
+            precio_compra: precioCompra === '' ? null : precioCompra,
+            stock_minimo: stockMin === '' ? null : stockMin,
+            medicamento: raw.medicamento,
+            activo: raw.activo,
+        };
+    };
+
     const onSubmit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
@@ -160,7 +187,24 @@ export function ProductoFormModal({
             return;
         }
 
-        post('/inventario/productos', { preserveScroll: true, onSuccess });
+        void (async () => {
+            const queued = await enqueueIfOffline(
+                'inventario.producto.create',
+                buildCreatePayload(data),
+                {
+                    refreshPending,
+                    onSuccess,
+                    title: t('offline:producto.queued_title'),
+                    description: t('offline:producto.queued_body'),
+                },
+            );
+
+            if (queued) {
+                return;
+            }
+
+            post('/inventario/productos', { preserveScroll: true, onSuccess });
+        })();
     };
 
     return (

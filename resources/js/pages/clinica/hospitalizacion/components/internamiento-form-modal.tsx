@@ -17,6 +17,8 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { resolveDefaultSedeId } from '@/lib/default-sede';
+import { enqueueIfOffline } from '@/lib/offline/enqueue-if-offline';
+import { useOfflineSync } from '@/hooks/use-offline-sync';
 import { formatAtendidoInAppTimezone } from '../../historias-clinicas/format-atendido';
 import type {
     ConsultaHospitalizacionOpcion,
@@ -133,7 +135,8 @@ export function InternamientoFormModal({
     sedesOpciones,
     consultasOpciones,
 }: InternamientoFormModalProps) {
-    const { t } = useTranslation(['hospitalizacion', 'common']);
+    const { t } = useTranslation(['hospitalizacion', 'common', 'offline']);
+    const { refreshPending } = useOfflineSync();
     const authUser = usePage().props.auth?.user as { id?: string } | undefined;
     const { locale: appLocale, timezone: appTz } = usePage().props;
     const defaultVetId = authUser?.id ?? null;
@@ -287,6 +290,21 @@ export function InternamientoFormModal({
         (!requiereAltaAt || data.alta_at.trim().length > 0) &&
         !processing;
 
+    const buildCreatePayload = (raw: FormShape): Record<string, unknown> => ({
+        paciente_id: raw.paciente_id,
+        consulta_id: raw.consulta_id.trim() === '' ? null : raw.consulta_id.trim(),
+        ingreso_at: raw.ingreso_at,
+        alta_at: raw.alta_at.trim() === '' ? null : raw.alta_at,
+        estado: raw.estado,
+        motivo_ingreso: raw.motivo_ingreso.trim(),
+        ubicacion: raw.ubicacion.trim() === '' ? null : raw.ubicacion.trim(),
+        diagnostico_ingreso: raw.diagnostico_ingreso.trim() === '' ? null : raw.diagnostico_ingreso.trim(),
+        notas: raw.notas.trim() === '' ? null : raw.notas.trim(),
+        veterinario_id:
+            raw.veterinario_id != null && raw.veterinario_id !== '' ? raw.veterinario_id : null,
+        sede_id: raw.sede_id != null && raw.sede_id !== '' ? raw.sede_id : null,
+    });
+
     const onSubmit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
@@ -305,10 +323,27 @@ export function InternamientoFormModal({
             return;
         }
 
-        post('/clinica/hospitalizacion', {
-            preserveScroll: true,
-            onSuccess,
-        });
+        void (async () => {
+            const queued = await enqueueIfOffline(
+                'clinica.internamiento.create',
+                buildCreatePayload(data),
+                {
+                    refreshPending,
+                    onSuccess,
+                    title: t('offline:internamiento.queued_title'),
+                    description: t('offline:internamiento.queued_body'),
+                },
+            );
+
+            if (queued) {
+                return;
+            }
+
+            post('/clinica/hospitalizacion', {
+                preserveScroll: true,
+                onSuccess,
+            });
+        })();
     };
 
     const estadoOptions = isEdit ? ESTADOS_EDITAR : ESTADOS_CREAR;

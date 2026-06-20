@@ -19,6 +19,9 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { resolveDefaultSedeId } from '@/lib/default-sede';
+import { enqueueIfOffline, isOfflineMode } from '@/lib/offline/enqueue-if-offline';
+import { useOfflineSync } from '@/hooks/use-offline-sync';
+import { toastManager } from '@/lib/toast';
 import clinica from '@/routes/clinica';
 import { formatAtendidoInAppTimezone } from '../../historias-clinicas/format-atendido';
 import type {
@@ -203,7 +206,8 @@ export function PedidoFormModal({
     sedesOpciones,
     consultasOpciones,
 }: PedidoFormModalProps) {
-    const { t } = useTranslation(['laboratorio', 'common']);
+    const { t } = useTranslation(['laboratorio', 'common', 'offline']);
+    const { refreshPending } = useOfflineSync();
     const authUser = usePage().props.auth?.user as { id?: string } | undefined;
     const { locale: appLocale, timezone: appTz } = usePage().props;
     const defaultVetId = authUser?.id ?? null;
@@ -391,6 +395,31 @@ export function PedidoFormModal({
         data.lineas.some((ln) => ln.nombre_examen.trim().length > 0) &&
         !processing;
 
+    const buildCreatePayload = (raw: FormShape): Record<string, unknown> => {
+        const lineasOut = raw.lineas.map((ln, idx) => ({
+            nombre_examen: ln.nombre_examen.trim(),
+            indicaciones: ln.indicaciones.trim() === '' ? null : ln.indicaciones.trim(),
+            resultado: ln.resultado.trim() === '' ? null : ln.resultado.trim(),
+            resultado_at: ln.resultado_at.trim() === '' ? null : ln.resultado_at.trim(),
+            clear_resultado_archivo: ln.clear_resultado_archivo ? 1 : 0,
+            orden: idx,
+        }));
+
+        return {
+            paciente_id: raw.paciente_id,
+            consulta_id: raw.consulta_id.trim() === '' ? null : raw.consulta_id.trim(),
+            solicitado_at: raw.solicitado_at,
+            estado: raw.estado,
+            laboratorio_destino:
+                raw.laboratorio_destino.trim() === '' ? null : raw.laboratorio_destino.trim(),
+            observaciones: raw.observaciones.trim() === '' ? null : raw.observaciones.trim(),
+            veterinario_id:
+                raw.veterinario_id != null && raw.veterinario_id !== '' ? raw.veterinario_id : null,
+            sede_id: raw.sede_id != null && raw.sede_id !== '' ? raw.sede_id : null,
+            lineas: lineasOut,
+        };
+    };
+
     const onSubmit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
@@ -402,19 +431,48 @@ export function PedidoFormModal({
 
         const hasArchivos = data.lineas.some((ln) => ln.resultado_archivo instanceof File);
 
-        const submitOpts = {
-            preserveScroll: true,
-            forceFormData: hasArchivos || isEdit,
-            onSuccess,
-        } as const;
-
         if (isEdit && pedido) {
+            const submitOpts = {
+                preserveScroll: true,
+                forceFormData: hasArchivos || isEdit,
+                onSuccess,
+            } as const;
+
             post(clinica.laboratorio.update({ pedido_laboratorio: pedido.id }).url, submitOpts);
 
             return;
         }
 
-        post(clinica.laboratorio.store().url, submitOpts);
+        if (isOfflineMode() && hasArchivos) {
+            toastManager.warning({
+                title: t('offline:laboratorio.archivo_requires_online'),
+            });
+
+            return;
+        }
+
+        void (async () => {
+            const queued = await enqueueIfOffline(
+                'clinica.laboratorio.create',
+                buildCreatePayload(data),
+                {
+                    refreshPending,
+                    onSuccess,
+                    title: t('offline:laboratorio.queued_title'),
+                    description: t('offline:laboratorio.queued_body'),
+                },
+            );
+
+            if (queued) {
+                return;
+            }
+
+            post(clinica.laboratorio.store().url, {
+                preserveScroll: true,
+                forceFormData: hasArchivos,
+                onSuccess,
+            });
+        })();
     };
 
     const err = (key: string): string | undefined => {

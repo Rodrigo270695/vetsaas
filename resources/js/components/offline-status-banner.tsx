@@ -1,12 +1,16 @@
-import { CloudOff, CloudUpload, RefreshCw, Wifi } from 'lucide-react';
+import { Link } from '@inertiajs/react';
+import { CloudOff, CloudUpload, ListTodo, RefreshCw, Wifi } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { OfflineAwareLink } from '@/components/offline-aware-link';
 import { Button } from '@/components/ui/button';
 import { useOfflineSync } from '@/hooks/use-offline-sync';
 import { cn } from '@/lib/utils';
 
+const SYNC_CENTER_URL = '/offline/cola';
+
 /**
  * Banner global de conectividad y cola offline.
- * Visible cuando no hay internet o hay ventas pendientes de sync.
+ * Visible cuando no hay internet o hay registros pendientes de sync.
  */
 export function OfflineStatusBanner() {
     const { t } = useTranslation('offline');
@@ -19,6 +23,7 @@ export function OfflineStatusBanner() {
     }
 
     const isOfflineMode = !isOnline;
+    const QueueLink = isOfflineMode ? OfflineAwareLink : Link;
 
     return (
         <div
@@ -51,23 +56,38 @@ export function OfflineStatusBanner() {
                     </div>
                 </div>
 
-                {isOnline && pendingCount > 0 && (
+                <div className="flex flex-wrap items-center gap-2">
                     <Button
                         type="button"
                         size="sm"
                         variant="outline"
                         className="shrink-0"
-                        disabled={isSyncing}
-                        onClick={() => void syncNow()}
+                        asChild
                     >
-                        {isSyncing ? (
-                            <RefreshCw className="size-4 animate-spin" />
-                        ) : (
-                            <Wifi className="size-4" />
-                        )}
-                        {isSyncing ? t('banner.syncing') : t('banner.sync_now')}
+                        <QueueLink href={SYNC_CENTER_URL}>
+                            <ListTodo className="size-4" />
+                            {t('banner.view_queue')}
+                        </QueueLink>
                     </Button>
-                )}
+
+                    {isOnline && pendingCount > 0 && (
+                        <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="shrink-0"
+                            disabled={isSyncing}
+                            onClick={() => void syncNow()}
+                        >
+                            {isSyncing ? (
+                                <RefreshCw className="size-4 animate-spin" />
+                            ) : (
+                                <Wifi className="size-4" />
+                            )}
+                            {isSyncing ? t('banner.syncing') : t('banner.sync_now')}
+                        </Button>
+                    )}
+                </div>
             </div>
         </div>
     );

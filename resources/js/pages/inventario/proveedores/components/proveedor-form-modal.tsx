@@ -9,6 +9,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toastManager } from '@/lib/toast';
+import { enqueueIfOffline } from '@/lib/offline/enqueue-if-offline';
+import { useOfflineSync } from '@/hooks/use-offline-sync';
 import inventario from '@/routes/inventario';
 import type { ProveedorFila } from '../types';
 
@@ -49,7 +51,8 @@ function soloDigitosRuc(value: string): string {
 }
 
 export function ProveedorFormModal({ open, onOpenChange, proveedor }: ProveedorFormModalProps) {
-    const { t } = useTranslation(['proveedores-inventario', 'common']);
+    const { t } = useTranslation(['proveedores-inventario', 'common', 'offline']);
+    const { refreshPending } = useOfflineSync();
     const isEdit = proveedor !== null;
     const [consultandoRuc, setConsultandoRuc] = useState(false);
 
@@ -161,7 +164,24 @@ export function ProveedorFormModal({ open, onOpenChange, proveedor }: ProveedorF
             return;
         }
 
-        post(inventario.proveedores.store.url(), { preserveScroll: true, onSuccess });
+        void (async () => {
+            const queued = await enqueueIfOffline(
+                'inventario.proveedor.create',
+                { ...data },
+                {
+                    refreshPending,
+                    onSuccess,
+                    title: t('offline:proveedor_inventario.queued_title'),
+                    description: t('offline:proveedor_inventario.queued_body'),
+                },
+            );
+
+            if (queued) {
+                return;
+            }
+
+            post(inventario.proveedores.store.url(), { preserveScroll: true, onSuccess });
+        })();
     };
 
     return (

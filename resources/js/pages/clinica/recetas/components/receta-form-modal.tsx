@@ -18,6 +18,8 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { usePermission } from '@/hooks/use-permission';
 import { resolveDefaultSedeId } from '@/lib/default-sede';
+import { enqueueIfOffline } from '@/lib/offline/enqueue-if-offline';
+import { useOfflineSync } from '@/hooks/use-offline-sync';
 import clinica from '@/routes/clinica';
 import { formatAtendidoInAppTimezone } from '../../historias-clinicas/format-atendido';
 import type {
@@ -189,7 +191,8 @@ export function RecetaFormModal({
     sedesOpciones,
     consultasOpciones,
 }: RecetaFormModalProps) {
-    const { t } = useTranslation(['recetas', 'common']);
+    const { t } = useTranslation(['recetas', 'common', 'offline']);
+    const { refreshPending } = useOfflineSync();
     const { can } = usePermission();
     const canPrintPdf = can('recetas.view');
     const authUser = usePage().props.auth?.user as { id?: string } | undefined;
@@ -387,6 +390,34 @@ export function RecetaFormModal({
         data.lineas.some((ln) => ln.nombre_medicamento.trim().length > 0) &&
         !processing;
 
+    const buildCreatePayload = (raw: FormShape): Record<string, unknown> => {
+        const lineasOut = raw.lineas.map((ln, idx) => {
+            const dd = ln.duracion_dias.trim();
+            const ddVal = dd === '' ? null : Number.parseInt(dd, 10);
+
+            return {
+                producto_id: ln.producto_id && ln.producto_id !== '' ? ln.producto_id : null,
+                nombre_medicamento: ln.nombre_medicamento.trim(),
+                posologia: ln.posologia.trim() === '' ? null : ln.posologia.trim(),
+                duracion_dias: dd === '' || ddVal === null || Number.isNaN(ddVal) ? null : ddVal,
+                instrucciones: ln.instrucciones.trim() === '' ? null : ln.instrucciones.trim(),
+                orden: idx,
+            };
+        });
+
+        return {
+            paciente_id: raw.paciente_id,
+            consulta_id: raw.consulta_id.trim() === '' ? null : raw.consulta_id.trim(),
+            emitida_at: raw.emitida_at,
+            estado: raw.estado,
+            observaciones: raw.observaciones.trim() === '' ? null : raw.observaciones.trim(),
+            veterinario_id:
+                raw.veterinario_id != null && raw.veterinario_id !== '' ? raw.veterinario_id : null,
+            sede_id: raw.sede_id != null && raw.sede_id !== '' ? raw.sede_id : null,
+            lineas: lineasOut,
+        };
+    };
+
     const onSubmit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
@@ -405,10 +436,27 @@ export function RecetaFormModal({
             return;
         }
 
-        post(clinica.recetas.store().url, {
-            preserveScroll: true,
-            onSuccess,
-        });
+        void (async () => {
+            const queued = await enqueueIfOffline(
+                'clinica.receta.create',
+                buildCreatePayload(data),
+                {
+                    refreshPending,
+                    onSuccess,
+                    title: t('offline:receta.queued_title'),
+                    description: t('offline:receta.queued_body'),
+                },
+            );
+
+            if (queued) {
+                return;
+            }
+
+            post(clinica.recetas.store().url, {
+                preserveScroll: true,
+                onSuccess,
+            });
+        })();
     };
 
     const err = (key: string): string | undefined => {

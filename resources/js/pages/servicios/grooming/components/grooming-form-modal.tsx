@@ -19,6 +19,8 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { resolveDefaultSedeId } from '@/lib/default-sede';
+import { enqueueIfOffline } from '@/lib/offline/enqueue-if-offline';
+import { useOfflineSync } from '@/hooks/use-offline-sync';
 import servicios from '@/routes/servicios';
 import type {
     GroomingServicioGrupo,
@@ -145,7 +147,8 @@ export function GroomingFormModal({
     pacientesOpciones,
     sedesOpciones,
 }: GroomingFormModalProps) {
-    const { t } = useTranslation(['grooming', 'common']);
+    const { t } = useTranslation(['grooming', 'common', 'offline']);
+    const { refreshPending } = useOfflineSync();
     const authUser = usePage().props.auth?.user as { id?: string } | undefined;
     const defaultResponsableId = authUser?.id ?? null;
 
@@ -254,6 +257,36 @@ export function GroomingFormModal({
         label: `${p.nombre} · ${displayPropietario(p.propietario) || '—'}`,
     }));
 
+    const buildCreatePayload = (raw: FormShape): Record<string, unknown> => {
+        const dm = raw.duracion_minutos.trim();
+        const dmVal = dm === '' ? NaN : Number.parseInt(dm, 10);
+        const det =
+            raw.servicio === OTRO_PERSONALIZADO
+                ? raw.servicio_detalle.trim() === ''
+                    ? null
+                    : raw.servicio_detalle.trim()
+                : null;
+
+        const base: Record<string, unknown> = {
+            paciente_id: raw.paciente_id,
+            inicio_at: raw.inicio_at,
+            duracion_minutos: Number.isNaN(dmVal) ? 60 : dmVal,
+            notas: raw.notas.trim() === '' ? null : raw.notas.trim(),
+            responsable_id:
+                raw.responsable_id != null && raw.responsable_id !== '' ? raw.responsable_id : null,
+            sede_id: raw.sede_id != null && raw.sede_id !== '' ? raw.sede_id : null,
+        };
+
+        if (catalogoPersonalizado) {
+            base.grooming_servicio_id = raw.grooming_servicio_id;
+        } else {
+            base.servicio = raw.servicio;
+            base.servicio_detalle = det;
+        }
+
+        return base;
+    };
+
     const onSubmit = (e: FormEvent) => {
         e.preventDefault();
 
@@ -266,10 +299,27 @@ export function GroomingFormModal({
             return;
         }
 
-        post(servicios.grooming.store().url, {
-            preserveScroll: true,
-            onSuccess: () => onOpenChange(false),
-        });
+        void (async () => {
+            const queued = await enqueueIfOffline(
+                'servicios.grooming.create',
+                buildCreatePayload(data),
+                {
+                    refreshPending,
+                    onSuccess: () => onOpenChange(false),
+                    title: t('offline:grooming.queued_title'),
+                    description: t('offline:grooming.queued_body'),
+                },
+            );
+
+            if (queued) {
+                return;
+            }
+
+            post(servicios.grooming.store().url, {
+                preserveScroll: true,
+                onSuccess: () => onOpenChange(false),
+            });
+        })();
     };
 
     return (

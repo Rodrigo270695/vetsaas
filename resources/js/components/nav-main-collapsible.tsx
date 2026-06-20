@@ -21,7 +21,7 @@ import { useCurrentUrl } from '@/hooks/use-current-url';
 import { usePermission } from '@/hooks/use-permission';
 import { cn } from '@/lib/utils';
 import { OfflineAwareLink } from '@/components/offline-aware-link';
-import { isCajaOfflinePath } from '@/lib/offline/caja-routes';
+import { isOfflinePath } from '@/lib/offline/offline-routes';
 import type { NavContext, NavGroup, NavItem } from '@/types';
 
 function isItemImplemented(item: NavItem): boolean {
@@ -248,7 +248,7 @@ type NavSubItemProps = {
  * Lleva su propia animación de entrada (stagger por índice).
  */
 function NavSubItem({ item, active, index, onNavigate }: NavSubItemProps) {
-    const LinkComponent = isCajaOfflinePath(item.href) ? OfflineAwareLink : Link;
+    const LinkComponent = isOfflinePath(item.href) ? OfflineAwareLink : Link;
 
     return (
         <SidebarMenuSubItem

@@ -1,11 +1,19 @@
 /**
- * Service Worker VetSaaS — Fase 2 offline (Caja + assets).
- * - Cache de assets estáticos (Vite build).
- * - Cache de respuestas Inertia/HTML de rutas /caja/*.
+ * Service Worker VetSaaS — Fase 8 offline (+ centro de sync /offline/cola).
  */
-const STATIC_CACHE = 'vetsaas-static-v3';
-const INERTIA_CAJA_CACHE = 'vetsaas-inertia-caja-v3';
-const CAJA_PREFIX = '/caja';
+const STATIC_CACHE = 'vetsaas-static-v9';
+const INERTIA_OFFLINE_CACHE = 'vetsaas-inertia-offline-v9';
+const OFFLINE_PREFIXES = [
+    '/offline',
+    '/caja',
+    '/clinica',
+    '/servicios',
+    '/inventario',
+    '/facturacion',
+    '/comunicaciones',
+    '/reportes',
+    '/configuracion',
+];
 
 self.addEventListener('install', (event) => {
     self.skipWaiting();
@@ -21,7 +29,7 @@ self.addEventListener('activate', (event) => {
                         .filter(
                             (key) =>
                                 key !== STATIC_CACHE &&
-                                key !== INERTIA_CAJA_CACHE,
+                                key !== INERTIA_OFFLINE_CACHE,
                         )
                         .map((key) => caches.delete(key)),
                 ),
@@ -38,8 +46,10 @@ function isNavigationOrInertia(request) {
     );
 }
 
-function isCajaPath(pathname) {
-    return pathname === CAJA_PREFIX || pathname.startsWith(`${CAJA_PREFIX}/`);
+function isOfflineModulePath(pathname) {
+    return OFFLINE_PREFIXES.some(
+        (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+    );
 }
 
 function isStaticAsset(url) {
@@ -57,12 +67,12 @@ async function cachePut(request, response) {
         return;
     }
 
-    const cache = await caches.open(INERTIA_CAJA_CACHE);
+    const cache = await caches.open(INERTIA_OFFLINE_CACHE);
     await cache.put(request, response.clone());
 }
 
-async function matchCajaByPathname(url) {
-    const cache = await caches.open(INERTIA_CAJA_CACHE);
+async function matchByPathname(url) {
+    const cache = await caches.open(INERTIA_OFFLINE_CACHE);
     const keys = await cache.keys();
 
     for (const req of keys) {
@@ -113,7 +123,7 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    if (!isCajaPath(url.pathname)) {
+    if (!isOfflineModulePath(url.pathname)) {
         return;
     }
 
@@ -135,7 +145,7 @@ self.addEventListener('fetch', (event) => {
                     return exact;
                 }
 
-                const byPath = await matchCajaByPathname(url);
+                const byPath = await matchByPathname(url);
 
                 if (byPath) {
                     return byPath;
@@ -143,7 +153,8 @@ self.addEventListener('fetch', (event) => {
 
                 return new Response(
                     JSON.stringify({
-                        message: 'Sin conexión. Abre Caja con internet al menos una vez.',
+                        message:
+                            'Sin conexión. Abre Caja, Clínica o Inventario con internet al menos una vez.',
                     }),
                     {
                         status: 503,

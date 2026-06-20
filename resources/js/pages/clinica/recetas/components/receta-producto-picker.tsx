@@ -16,6 +16,8 @@ import {
     PopoverTrigger,
 } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
+import { loadClinicaBootstrap, searchCachedMedicamentos } from '@/lib/offline/cache';
+import { isOfflineMode } from '@/lib/offline/enqueue-if-offline';
 import clinica from '@/routes/clinica';
 
 export type RecetaProductoOption = {
@@ -61,6 +63,24 @@ export function RecetaProductoPicker({
 
         const q = search;
         const handle = window.setTimeout(() => {
+            if (isOfflineMode()) {
+                setLoading(true);
+                void loadClinicaBootstrap()
+                    .then((cache) => {
+                        if (!cache) {
+                            setOptions([]);
+
+                            return;
+                        }
+
+                        setOptions(searchCachedMedicamentos(cache, q));
+                    })
+                    .catch(() => setOptions([]))
+                    .finally(() => setLoading(false));
+
+                return;
+            }
+
             setLoading(true);
             void fetch(fetchUrl(q), {
                 method: 'GET',

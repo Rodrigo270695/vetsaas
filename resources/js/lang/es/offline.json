@@ -1,15 +1,196 @@
 {
     "banner": {
         "offline_title": "Sin conexión — modo local activo",
-        "offline_body": "Puedes registrar ventas en caja; se sincronizarán cuando vuelva el internet.",
-        "sync_title": "{{count}} venta(s) pendiente(s) de sincronizar",
-        "sync_body": "Hay cobros guardados offline esperando subir al servidor.",
+        "offline_body": "Puedes registrar ventas, clínica, servicios, inventario, recetas, vacunas y sedes; se sincronizarán al reconectar.",
+        "sync_title": "{{count}} registro(s) pendiente(s) de sincronizar",
+        "sync_body": "Hay datos guardados offline esperando subir al servidor.",
         "sync_now": "Sincronizar ahora",
-        "syncing": "Sincronizando..."
+        "syncing": "Sincronizando...",
+        "view_queue": "Ver cola"
+    },
+    "sync_center": {
+        "breadcrumb_root": "Offline",
+        "title": "Cola de sincronización",
+        "description": "Registros guardados en este dispositivo pendientes de subir al servidor.",
+        "offline_hint": "Puedes revisar la cola sin conexión. La sincronización requiere internet.",
+        "unsupported_title": "Almacenamiento local no disponible",
+        "unsupported_body": "Tu navegador no soporta IndexedDB. El modo offline no está disponible en este dispositivo.",
+        "empty_title": "Cola vacía",
+        "empty_body": "No hay registros pendientes. Los cambios exitosos se eliminan de la cola local.",
+        "synced_note": "Los registros sincronizados correctamente desaparecen de esta lista.",
+        "discard_confirm": "¿Descartar {{label}}? Se perderá el registro local y no se subirá al servidor.",
+        "stats": {
+            "pending": "Pendientes",
+            "syncing": "Sincronizando",
+            "failed": "Fallidos",
+            "total": "Total"
+        },
+        "filters": {
+            "status": "Estado",
+            "status_all": "Todos los estados",
+            "type": "Tipo",
+            "type_all": "Todos los tipos"
+        },
+        "status": {
+            "pending": "Pendiente",
+            "syncing": "Sincronizando",
+            "failed": "Fallido",
+            "synced": "Sincronizado"
+        },
+        "table": {
+            "reference": "Referencia",
+            "type": "Tipo",
+            "summary": "Resumen",
+            "status": "Estado",
+            "created": "Creado",
+            "actions": "Acciones"
+        },
+        "actions": {
+            "refresh": "Actualizar",
+            "retry": "Reintentar",
+            "discard": "Descartar",
+            "detail": "Ver detalle"
+        },
+        "detail": {
+            "uuid": "Identificador",
+            "created": "Fecha local",
+            "error": "Error del servidor",
+            "payload": "Datos enviados"
+        },
+        "toast": {
+            "synced_title": "Sincronizado",
+            "synced_body": "{{label}} se subió correctamente.",
+            "offline_title": "Sin conexión",
+            "offline_body": "Conecta a internet para sincronizar.",
+            "busy_title": "Sincronización en curso",
+            "busy_body": "Espera a que termine la operación actual.",
+            "discarded_title": "Descartado",
+            "discarded_body": "El registro se eliminó de la cola local."
+        }
+    },
+    "types": {
+        "caja_venta_create": "Venta",
+        "clinica_cita_create": "Cita",
+        "clinica_consulta_create": "Consulta",
+        "clinica_propietario_create": "Propietario",
+        "clinica_paciente_create": "Paciente",
+        "clinica_vacuna_create": "Vacuna",
+        "clinica_cirugia_create": "Cirugía",
+        "clinica_internamiento_create": "Internamiento",
+        "clinica_internamiento_evolucion_create": "Evolución",
+        "servicios_grooming_create": "Turno grooming",
+        "servicios_hotel_create": "Estancia hotel",
+        "inventario_movimiento_create": "Movimiento stock",
+        "inventario_compra_create": "Compra",
+        "inventario_producto_create": "Producto",
+        "inventario_categoria_create": "Categoría",
+        "inventario_proveedor_create": "Proveedor",
+        "inventario_stock_adjust": "Ajuste stock",
+        "clinica_receta_create": "Receta",
+        "clinica_laboratorio_create": "Laboratorio",
+        "configuracion_sede_create": "Sede"
+    },
+    "link": {
+        "offline_only_title": "Sin conexión",
+        "offline_only_body": "Esta sección requiere internet. Caja, Clínica, Servicios, Inventario, Facturación (consulta), Comunicaciones, Reportes y Configuración siguen disponibles offline.",
+        "cache_miss_title": "Sin conexión",
+        "cache_miss_body": "Abre esta pantalla al menos una vez con internet para usarla offline."
     },
     "venta": {
         "queued_title": "Venta guardada offline",
         "queued_body": "Referencia {{label}}. Se enviará al servidor cuando haya conexión."
+    },
+    "cita": {
+        "queued_title": "Cita guardada offline",
+        "queued_body": "Referencia {{label}}. Se sincronizará al reconectar."
+    },
+    "consulta": {
+        "queued_title": "Consulta guardada offline",
+        "queued_body": "Referencia {{label}}. Se sincronizará al reconectar."
+    },
+    "propietario": {
+        "queued_title": "Propietario guardado offline",
+        "queued_body": "Referencia {{label}}. Se sincronizará al reconectar."
+    },
+    "paciente": {
+        "queued_title": "Paciente guardado offline",
+        "queued_body": "Referencia {{label}}. Se sincronizará al reconectar.",
+        "foto_requires_online": "La foto requiere conexión. Guarda el paciente sin foto o conecta a internet."
+    },
+    "vacuna": {
+        "queued_title": "Vacuna guardada offline",
+        "queued_body": "Referencia {{label}}. Se sincronizará al reconectar."
+    },
+    "movimiento": {
+        "queued_title": "Movimiento guardado offline",
+        "queued_body": "Referencia {{label}}. Se sincronizará al reconectar."
+    },
+    "compra": {
+        "queued_title": "Compra guardada offline",
+        "queued_body": "Referencia {{label}}. Se sincronizará al reconectar.",
+        "factura_requires_online": "El adjunto de factura requiere conexión. Registra la compra sin archivo o conecta a internet."
+    },
+    "producto": {
+        "queued_title": "Producto guardado offline",
+        "queued_body": "Referencia {{label}}. Se sincronizará al reconectar."
+    },
+    "categoria": {
+        "queued_title": "Categoría guardada offline",
+        "queued_body": "Referencia {{label}}. Se sincronizará al reconectar."
+    },
+    "proveedor_inventario": {
+        "queued_title": "Proveedor guardado offline",
+        "queued_body": "Referencia {{label}}. Se sincronizará al reconectar."
+    },
+    "grooming": {
+        "queued_title": "Turno de grooming guardado offline",
+        "queued_body": "Referencia {{label}}. Se sincronizará al reconectar."
+    },
+    "hotel": {
+        "queued_title": "Estancia de hotel guardada offline",
+        "queued_body": "Referencia {{label}}. Se sincronizará al reconectar."
+    },
+    "cirugia": {
+        "queued_title": "Cirugía guardada offline",
+        "queued_body": "Referencia {{label}}. Se sincronizará al reconectar."
+    },
+    "internamiento": {
+        "queued_title": "Internamiento guardado offline",
+        "queued_body": "Referencia {{label}}. Se sincronizará al reconectar."
+    },
+    "evolucion": {
+        "queued_title": "Evolución guardada offline",
+        "queued_body": "Referencia {{label}}. Se sincronizará al reconectar."
+    },
+    "stock_adjust": {
+        "queued_title": "Ajuste de stock guardado offline",
+        "queued_body": "Referencia {{label}}. Se sincronizará al reconectar."
+    },
+    "receta": {
+        "queued_title": "Receta guardada offline",
+        "queued_body": "Referencia {{label}}. Se sincronizará al reconectar.",
+        "pdf_requires_online": "El PDF requiere conexión. La receta quedará en cola y podrás imprimirla al reconectar."
+    },
+    "laboratorio": {
+        "queued_title": "Pedido de laboratorio guardado offline",
+        "queued_body": "Referencia {{label}}. Se sincronizará al reconectar.",
+        "archivo_requires_online": "Los adjuntos de resultado requieren conexión. Guarda el pedido sin archivos o conecta a internet."
+    },
+    "facturacion": {
+        "emision_requires_online": "La emisión electrónica SUNAT requiere conexión a internet."
+    },
+    "comunicaciones": {
+        "actions_requires_online": "Enviar, reintentar o cancelar mensajes requiere conexión a internet."
+    },
+    "reportes": {
+        "refresh_requires_online": "Actualizar reportes requiere conexión a internet."
+    },
+    "configuracion": {
+        "edit_requires_online": "Editar usuarios, roles, tarifas y horarios requiere conexión a internet."
+    },
+    "sede": {
+        "queued_title": "Sede guardada offline",
+        "queued_body": "Referencia {{label}}. Se sincronizará al reconectar."
     },
     "ventas": {
         "pending_list": "{{count}} venta(s) pendiente(s) de sincronizar:"

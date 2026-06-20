@@ -98,3 +98,84 @@ export async function listPendingOutbox(): Promise<OutboxItem[]> {
 export async function listPendingOutboxForDisplay(): Promise<OutboxItem[]> {
     return listPendingOutbox();
 }
+
+export async function getOutboxSummary(): Promise<{
+    pending: number;
+    syncing: number;
+    failed: number;
+    total: number;
+}> {
+    const rows = await listOutbox();
+    let pending = 0;
+    let syncing = 0;
+    let failed = 0;
+
+    for (const row of rows) {
+        if (row.status === 'pending') {
+            pending += 1;
+        } else if (row.status === 'syncing') {
+            syncing += 1;
+        } else if (row.status === 'failed') {
+            failed += 1;
+        }
+    }
+
+    return {
+        pending,
+        syncing,
+        failed,
+        total: rows.length,
+    };
+}
+
+export async function retryOutboxItem(uuid: string): Promise<boolean> {
+    const current = await idbGetOutbox<OutboxItem>(uuid);
+
+    if (!current) {
+        return false;
+    }
+
+    await idbPutOutbox({
+        ...current,
+        status: 'pending',
+        error: undefined,
+    });
+    notifyOutboxChanged();
+
+    return true;
+}
+
+export async function discardOutboxItem(uuid: string): Promise<boolean> {
+    const current = await idbGetOutbox<OutboxItem>(uuid);
+
+    if (!current) {
+        return false;
+    }
+
+    await idbDeleteOutbox(uuid);
+
+    return true;
+}
+
+export async function resetStuckSyncingOutbox(): Promise<number> {
+    const rows = await listOutbox();
+    let reset = 0;
+
+    for (const row of rows) {
+        if (row.status !== 'syncing') {
+            continue;
+        }
+
+        await idbPutOutbox({
+            ...row,
+            status: 'pending',
+        });
+        reset += 1;
+    }
+
+    if (reset > 0) {
+        notifyOutboxChanged();
+    }
+
+    return reset;
+}

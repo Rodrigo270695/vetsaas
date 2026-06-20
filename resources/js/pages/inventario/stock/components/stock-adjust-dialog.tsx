@@ -5,6 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { FormField, FormModal } from '@/components/forms';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { enqueueIfOffline } from '@/lib/offline/enqueue-if-offline';
+import { useOfflineSync } from '@/hooks/use-offline-sync';
 import inventario from '@/routes/inventario';
 import type { StockProductoFila } from '../types';
 
@@ -43,7 +45,8 @@ function cantidadToInputValue(value: string | number | null | undefined): string
 }
 
 export function StockAdjustDialog({ open, onOpenChange, producto, sedeId }: StockAdjustDialogProps) {
-    const { t } = useTranslation(['stock-inventario', 'common']);
+    const { t } = useTranslation(['stock-inventario', 'common', 'offline']);
+    const { refreshPending } = useOfflineSync();
     const { data, setData, patch, processing, errors, reset, clearErrors } = useForm<FormData>(empty);
 
     useEffect(() => {
@@ -65,14 +68,37 @@ export function StockAdjustDialog({ open, onOpenChange, producto, sedeId }: Stoc
             return;
         }
 
-        patch(inventario.stock.adjust.url(), {
-            preserveScroll: true,
-            onSuccess: () => {
-                onOpenChange(false);
-                reset();
-                clearErrors();
-            },
-        });
+        void (async () => {
+            const payload = {
+                producto_id: producto.id,
+                sede_id: sedeId,
+                cantidad: data.cantidad,
+            };
+
+            const queued = await enqueueIfOffline('inventario.stock.adjust', payload, {
+                refreshPending,
+                onSuccess: () => {
+                    onOpenChange(false);
+                    reset();
+                    clearErrors();
+                },
+                title: t('offline:stock_adjust.queued_title'),
+                description: t('offline:stock_adjust.queued_body'),
+            });
+
+            if (queued) {
+                return;
+            }
+
+            patch(inventario.stock.adjust.url(), {
+                preserveScroll: true,
+                onSuccess: () => {
+                    onOpenChange(false);
+                    reset();
+                    clearErrors();
+                },
+            });
+        })();
     };
 
     const puedeEnviar = Boolean(producto) && sedeId !== '' && !processing;

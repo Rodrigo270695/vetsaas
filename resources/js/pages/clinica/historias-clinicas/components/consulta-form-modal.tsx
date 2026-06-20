@@ -9,6 +9,8 @@ import { Combobox } from '@/components/ui/combobox';
 import type { ComboboxOption } from '@/components/ui/combobox';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { enqueueIfOffline } from '@/lib/offline/enqueue-if-offline';
+import { useOfflineSync } from '@/hooks/use-offline-sync';
 import clinica from '@/routes/clinica';
 import type { ConsultaHistoriaRow, PacienteHistoriaOpcion } from '../types';
 
@@ -93,7 +95,8 @@ export function ConsultaFormModal({
     pacienteIdPrefillNueva = null,
     puedeCerrarConsulta = false,
 }: ConsultaFormModalProps) {
-    const { t } = useTranslation(['historias-clinicas', 'common']);
+    const { t } = useTranslation(['historias-clinicas', 'common', 'offline']);
+    const { refreshPending } = useOfflineSync();
     const isEdit = consulta !== null;
     const isCerrada = Boolean(consulta?.cerrada_at);
     const prefillIdRef = useRef<string | null>(null);
@@ -187,6 +190,28 @@ export function ConsultaFormModal({
         !processing &&
         (isEdit || data.paciente_id.length > 0);
 
+    const buildCreatePayload = (raw: FormData): Record<string, unknown> => {
+        const next: Record<string, unknown> = {
+            atendido_at: raw.atendido_at,
+            motivo: raw.motivo.trim() === '' ? null : raw.motivo.trim(),
+            subjetivo: raw.subjetivo.trim() === '' ? null : raw.subjetivo.trim(),
+            objetivo: raw.objetivo.trim() === '' ? null : raw.objetivo.trim(),
+            analisis: raw.analisis.trim() === '' ? null : raw.analisis.trim(),
+            plan: raw.plan.trim() === '' ? null : raw.plan.trim(),
+        };
+        const peso = raw.peso_kg.trim();
+        next.peso_kg = peso === '' ? null : Number.parseFloat(peso);
+        const temp = raw.temperatura_c.trim();
+        next.temperatura_c = temp === '' ? null : Number.parseFloat(temp);
+        next.fc_lpm = numOrNull(raw.fc_lpm);
+        next.fr_rpm = numOrNull(raw.fr_rpm);
+        if (raw.paciente_id) {
+            next.paciente_id = raw.paciente_id;
+        }
+
+        return next;
+    };
+
     const onSubmit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (isCerrada) {
@@ -203,12 +228,31 @@ export function ConsultaFormModal({
                 preserveScroll: true,
                 onSuccess,
             });
-        } else {
+
+            return;
+        }
+
+        void (async () => {
+            const queued = await enqueueIfOffline(
+                'clinica.consulta.create',
+                buildCreatePayload(data),
+                {
+                    refreshPending,
+                    onSuccess,
+                    title: t('offline:consulta.queued_title'),
+                    description: t('offline:consulta.queued_body'),
+                },
+            );
+
+            if (queued) {
+                return;
+            }
+
             post(clinica.historiasClinicas.consultas.store.url(), {
                 preserveScroll: true,
                 onSuccess,
             });
-        }
+        })();
     };
 
     const pacienteNombreEdit =

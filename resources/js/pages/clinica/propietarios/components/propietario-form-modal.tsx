@@ -12,8 +12,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { isPropietarioDocumentTypeCode } from '@/lib/document-type-options';
+import { enqueueIfOffline } from '@/lib/offline/enqueue-if-offline';
 import { cn } from '@/lib/utils';
 import { toastManager } from '@/lib/toast';
+import { useOfflineSync } from '@/hooks/use-offline-sync';
 import propietarios from '@/routes/clinica/propietarios';
 import type { GeoOption, Propietario } from '../types';
 
@@ -115,7 +117,8 @@ export function PropietarioFormModal({
     jsonStoreUrl,
     onCreated,
 }: PropietarioFormModalProps) {
-    const { t } = useTranslation(['propietarios', 'common']);
+    const { t } = useTranslation(['propietarios', 'common', 'offline']);
+    const { refreshPending } = useOfflineSync();
     const isEdit = propietario !== null;
 
     const { data, setData, post, put, processing, errors, reset, clearErrors, setError } =
@@ -293,6 +296,32 @@ export function PropietarioFormModal({
         }
 
         if (jsonStoreUrl && onCreated) {
+            const offlinePayload = {
+                ...data,
+                tipo_documento: normalizeTipoDocumento(data.tipo_documento) || null,
+            };
+            const queued = await enqueueIfOffline(
+                'clinica.propietario.create',
+                offlinePayload,
+                {
+                    refreshPending,
+                    onSuccess: () => undefined,
+                    title: t('offline:propietario.queued_title'),
+                    description: t('offline:propietario.queued_body'),
+                },
+            );
+
+            if (queued) {
+                onCreated({
+                    id: queued.uuid,
+                    label: data.razon_social.trim() || data.nombres.trim(),
+                    doc: data.numero_documento.trim() || null,
+                });
+                onSuccess();
+
+                return;
+            }
+
             setJsonSubmitting(true);
             clearErrors();
             try {
@@ -336,6 +365,25 @@ export function PropietarioFormModal({
                 setJsonSubmitting(false);
             }
 
+            return;
+        }
+
+        const offlinePayload = {
+            ...data,
+            tipo_documento: normalizeTipoDocumento(data.tipo_documento) || null,
+        };
+        const queued = await enqueueIfOffline(
+            'clinica.propietario.create',
+            offlinePayload,
+            {
+                refreshPending,
+                onSuccess,
+                title: t('offline:propietario.queued_title'),
+                description: t('offline:propietario.queued_body'),
+            },
+        );
+
+        if (queued) {
             return;
         }
 

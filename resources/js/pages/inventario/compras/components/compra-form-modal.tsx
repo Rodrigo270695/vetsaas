@@ -15,6 +15,9 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { resolveDefaultSedeIdOrEmpty } from '@/lib/default-sede';
+import { enqueueIfOffline, isOfflineMode } from '@/lib/offline/enqueue-if-offline';
+import { useOfflineSync } from '@/hooks/use-offline-sync';
+import { toastManager } from '@/lib/toast';
 import inventario from '@/routes/inventario';
 import type { ProductoOptionCompra, ProveedorOptionCompra, SedeOptionCompra } from '../types';
 
@@ -73,7 +76,8 @@ export function CompraFormModal({
     productoOptions,
     defaultSedeId,
 }: CompraFormModalProps) {
-    const { t } = useTranslation(['compras-inventario', 'common']);
+    const { t } = useTranslation(['compras-inventario', 'common', 'offline']);
+    const { refreshPending } = useOfflineSync();
     const { data, setData, post, processing, errors, reset, clearErrors } = useForm<FormData>(emptyForm());
 
     useEffect(() => {
@@ -126,6 +130,24 @@ export function CompraFormModal({
 
     const fieldErr = (key: string) => (errors as Record<string, string | undefined>)[key];
 
+    const buildCreatePayload = (raw: FormData): Record<string, unknown> => ({
+        sede_id: raw.sede_id,
+        proveedor_id: raw.proveedor_id.trim() === '' ? null : raw.proveedor_id.trim(),
+        fecha_documento: raw.fecha_documento,
+        numero_documento: raw.numero_documento.trim() === '' ? null : raw.numero_documento.trim(),
+        serie: raw.serie.trim() === '' ? null : raw.serie.trim(),
+        moneda: raw.moneda.trim() === '' ? 'PEN' : raw.moneda.trim(),
+        total: raw.total.trim() === '' ? null : raw.total.trim(),
+        notas: raw.notas.trim() === '' ? null : raw.notas.trim(),
+        lineas: raw.lineas
+            .filter((l) => l.producto_id)
+            .map((l) => ({
+                producto_id: l.producto_id,
+                cantidad: l.cantidad,
+                costo_unitario: l.costo_unitario.trim() === '' ? null : l.costo_unitario.trim(),
+            })),
+    });
+
     const onSubmit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (sinOpciones) {
@@ -137,6 +159,41 @@ export function CompraFormModal({
             reset();
             clearErrors();
         };
+
+        if (isOfflineMode()) {
+            if (data.factura instanceof File) {
+                toastManager.warning({
+                    title: t('offline:compra.factura_requires_online'),
+                });
+
+                return;
+            }
+
+            void (async () => {
+                const queued = await enqueueIfOffline(
+                    'inventario.compra.create',
+                    buildCreatePayload(data),
+                    {
+                        refreshPending,
+                        onSuccess,
+                        title: t('offline:compra.queued_title'),
+                        description: t('offline:compra.queued_body'),
+                    },
+                );
+
+                if (queued) {
+                    return;
+                }
+
+                post(inventario.compras.store.url(), {
+                    preserveScroll: true,
+                    forceFormData: true,
+                    onSuccess,
+                });
+            })();
+
+            return;
+        }
 
         post(inventario.compras.store.url(), {
             preserveScroll: true,

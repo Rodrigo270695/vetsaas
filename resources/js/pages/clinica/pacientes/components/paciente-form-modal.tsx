@@ -30,6 +30,9 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { enqueueIfOffline, isOfflineMode } from '@/lib/offline/enqueue-if-offline';
+import { useOfflineSync } from '@/hooks/use-offline-sync';
+import { toastManager } from '@/lib/toast';
 import pacientes from '@/routes/clinica/pacientes';
 import propPacientes from '@/routes/clinica/propietarios/pacientes';
 import type { Paciente, PropietarioOpcion } from '../../propietarios/types';
@@ -127,7 +130,8 @@ export function PacienteFormModal({
     propietariosOpciones,
     especieRazaCatalogo = { especies: [], razas: [] },
 }: PacienteFormModalProps) {
-    const { t } = useTranslation(['pacientes', 'common']);
+    const { t } = useTranslation(['pacientes', 'common', 'offline']);
+    const { refreshPending } = useOfflineSync();
     const isEdit = paciente !== null;
     const fijoRef = useRef(propietarioFijoId);
     fijoRef.current = propietarioFijoId;
@@ -283,6 +287,36 @@ export function PacienteFormModal({
         !processing &&
         (!needsOwnerSelect || data.propietario_id.length > 0);
 
+    const buildCreatePayload = (raw: PacienteFormData): Record<string, unknown> => {
+        const next: Record<string, unknown> = {
+            nombre: raw.nombre.trim(),
+            especie: raw.especie.trim() || null,
+            raza: raw.raza.trim() || null,
+            fecha_nacimiento: raw.fecha_nacimiento || null,
+            microchip: raw.microchip.trim() || null,
+            color: raw.color.trim() || null,
+            notas: raw.notas.trim() || null,
+            activo: raw.activo,
+        };
+        const peso = raw.peso_kg.trim();
+        next.peso_kg = peso === '' ? null : Number.parseFloat(peso);
+        if (raw.sexo) {
+            next.sexo = raw.sexo;
+        }
+        if (raw.esterilizado === 'yes') {
+            next.esterilizado = true;
+        } else if (raw.esterilizado === 'no') {
+            next.esterilizado = false;
+        }
+
+        const ownerId = propietarioFijoId ?? raw.propietario_id;
+        if (ownerId) {
+            next.propietario_id = ownerId;
+        }
+
+        return next;
+    };
+
     const onSubmit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         const onSuccess = () => {
@@ -302,7 +336,46 @@ export function PacienteFormModal({
                 ...submitOptions,
                 forceFormData: true,
             });
-        } else if (propietarioFijoId) {
+
+            return;
+        }
+
+        if (isOfflineMode()) {
+            if (hasNewFoto) {
+                toastManager.warning({
+                    title: t('offline:paciente.foto_requires_online'),
+                });
+
+                return;
+            }
+
+            void (async () => {
+                const queued = await enqueueIfOffline(
+                    'clinica.paciente.create',
+                    buildCreatePayload(data),
+                    {
+                        refreshPending,
+                        onSuccess,
+                        title: t('offline:paciente.queued_title'),
+                        description: t('offline:paciente.queued_body'),
+                    },
+                );
+
+                if (queued) {
+                    return;
+                }
+
+                if (propietarioFijoId) {
+                    post(propPacientes.store(propietarioFijoId).url, submitOptions);
+                } else {
+                    post(pacientes.store().url, submitOptions);
+                }
+            })();
+
+            return;
+        }
+
+        if (propietarioFijoId) {
             post(propPacientes.store(propietarioFijoId).url, {
                 ...submitOptions,
                 forceFormData: hasNewFoto,

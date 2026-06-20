@@ -17,6 +17,8 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { resolveDefaultSedeId } from '@/lib/default-sede';
+import { enqueueIfOffline } from '@/lib/offline/enqueue-if-offline';
+import { useOfflineSync } from '@/hooks/use-offline-sync';
 import clinica from '@/routes/clinica';
 import { formatAtendidoInAppTimezone } from '../../historias-clinicas/format-atendido';
 import type {
@@ -130,7 +132,8 @@ export function CirugiaFormModal({
     sedesOpciones,
     consultasOpciones,
 }: CirugiaFormModalProps) {
-    const { t } = useTranslation(['cirugia', 'common']);
+    const { t } = useTranslation(['cirugia', 'common', 'offline']);
+    const { refreshPending } = useOfflineSync();
     const authUser = usePage().props.auth?.user as { id?: string } | undefined;
     const { locale: appLocale, timezone: appTz } = usePage().props;
     const defaultVetId = authUser?.id ?? null;
@@ -265,6 +268,19 @@ export function CirugiaFormModal({
         data.programada_at.trim().length > 0 &&
         !processing;
 
+    const buildCreatePayload = (raw: FormShape): Record<string, unknown> => ({
+        paciente_id: raw.paciente_id,
+        consulta_id: raw.consulta_id.trim() === '' ? null : raw.consulta_id.trim(),
+        programada_at: raw.programada_at,
+        estado: raw.estado,
+        nombre_procedimiento: raw.nombre_procedimiento.trim(),
+        tipo_anestesia: raw.tipo_anestesia.trim() === '' ? null : raw.tipo_anestesia.trim(),
+        observaciones: raw.observaciones.trim() === '' ? null : raw.observaciones.trim(),
+        veterinario_id:
+            raw.veterinario_id != null && raw.veterinario_id !== '' ? raw.veterinario_id : null,
+        sede_id: raw.sede_id != null && raw.sede_id !== '' ? raw.sede_id : null,
+    });
+
     const onSubmit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
@@ -283,10 +299,27 @@ export function CirugiaFormModal({
             return;
         }
 
-        post(clinica.cirugias.store().url, {
-            preserveScroll: true,
-            onSuccess,
-        });
+        void (async () => {
+            const queued = await enqueueIfOffline(
+                'clinica.cirugia.create',
+                buildCreatePayload(data),
+                {
+                    refreshPending,
+                    onSuccess,
+                    title: t('offline:cirugia.queued_title'),
+                    description: t('offline:cirugia.queued_body'),
+                },
+            );
+
+            if (queued) {
+                return;
+            }
+
+            post(clinica.cirugias.store().url, {
+                preserveScroll: true,
+                onSuccess,
+            });
+        })();
     };
 
     const estadoOptions = isEdit ? ESTADOS_EDITAR : ESTADOS_CREAR;

@@ -14,6 +14,8 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { enqueueIfOffline } from '@/lib/offline/enqueue-if-offline';
+import { useOfflineSync } from '@/hooks/use-offline-sync';
 import type { CategoriaParentOption, CategoriaProducto } from '../types';
 
 type CategoriaFormModalProps = {
@@ -42,7 +44,8 @@ const empty: FormData = {
 };
 
 export function CategoriaFormModal({ open, onOpenChange, categoria, parentOptions }: CategoriaFormModalProps) {
-    const { t } = useTranslation(['categorias-inventario', 'common']);
+    const { t } = useTranslation(['categorias-inventario', 'common', 'offline']);
+    const { refreshPending } = useOfflineSync();
     const isEdit = categoria !== null;
 
     const { data, setData, post, put, processing, errors, reset, clearErrors } = useForm<FormData>(empty);
@@ -82,11 +85,35 @@ export function CategoriaFormModal({ open, onOpenChange, categoria, parentOption
             clearErrors();
         };
 
+        const payload = {
+            parent_id: data.parent_id,
+            nombre: data.nombre.trim(),
+            slug: data.slug.trim().toLowerCase() || null,
+            descripcion: data.descripcion.trim() === '' ? null : data.descripcion.trim(),
+            orden: data.orden,
+            activo: data.activo,
+        };
+
         if (isEdit && categoria) {
             put(`/inventario/categorias/${categoria.id}`, { preserveScroll: true, onSuccess });
+
             return;
         }
-        post('/inventario/categorias', { preserveScroll: true, onSuccess });
+
+        void (async () => {
+            const queued = await enqueueIfOffline('inventario.categoria.create', payload, {
+                refreshPending,
+                onSuccess,
+                title: t('offline:categoria.queued_title'),
+                description: t('offline:categoria.queued_body'),
+            });
+
+            if (queued) {
+                return;
+            }
+
+            post('/inventario/categorias', { preserveScroll: true, onSuccess });
+        })();
     };
 
     return (

@@ -10,6 +10,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
+import { useOfflineSync } from '@/hooks/use-offline-sync';
+import { enqueueIfOffline } from '@/lib/offline/enqueue-if-offline';
 import sedes from '@/routes/configuracion/sedes';
 import type { GeoOption, Sede } from '../types';
 
@@ -100,7 +102,8 @@ export function SedeFormModal({
     sede,
     departamentos,
 }: SedeFormModalProps) {
-    const { t } = useTranslation(['sedes', 'common']);
+    const { t } = useTranslation(['sedes', 'common', 'offline']);
+    const { refreshPending } = useOfflineSync();
     const isEdit = sede !== null;
 
     const { data, setData, post, put, processing, errors, reset, clearErrors } =
@@ -191,12 +194,38 @@ export function SedeFormModal({
                 preserveScroll: true,
                 onSuccess,
             });
-        } else {
+
+            return;
+        }
+
+        const payload = {
+            nombre: data.nombre.trim(),
+            direccion: data.direccion.trim() === '' ? null : data.direccion.trim(),
+            telefono: data.telefono.trim() === '' ? null : data.telefono.trim(),
+            email: data.email.trim() === '' ? null : data.email.trim(),
+            distrito_id: data.distrito_id,
+            serie_factura: data.serie_factura.trim() === '' ? null : data.serie_factura.trim(),
+            serie_boleta: data.serie_boleta.trim() === '' ? null : data.serie_boleta.trim(),
+            activa: data.activa,
+        };
+
+        void (async () => {
+            const queued = await enqueueIfOffline('configuracion.sede.create', payload, {
+                refreshPending,
+                onSuccess,
+                title: t('offline:sede.queued_title'),
+                description: t('offline:sede.queued_body'),
+            });
+
+            if (queued) {
+                return;
+            }
+
             post(sedes.store().url, {
                 preserveScroll: true,
                 onSuccess,
             });
-        }
+        })();
     };
 
     return (
