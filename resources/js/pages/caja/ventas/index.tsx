@@ -13,8 +13,9 @@ import {
     EmptyState,
     FilterChips,
     PageHeader,
+    StatBadge,
 } from '@/components/data-page';
-import type { DataTableColumn, FilterChip } from '@/components/data-page';
+import type { DataTableColumn, FilterChip, StatBadgeVariant } from '@/components/data-page';
 import { Button } from '@/components/ui/button';
 import { useDataTablePage } from '@/hooks/use-data-table-page';
 import { usePermission } from '@/hooks/use-permission';
@@ -36,6 +37,38 @@ type TableExtraFilters = {
 
 const DEFAULT_PER_PAGE = 15;
 const DEFAULT_ESTADO: VentaEstadoFiltro = 'todas';
+
+function ventaEstadoBadgeVariant(estado: string): StatBadgeVariant {
+    switch (estado) {
+        case 'pagado':
+            return 'success';
+        case 'pendiente':
+            return 'warning';
+        case 'parcial':
+            return 'info';
+        case 'anulado':
+            return 'danger';
+        default:
+            return 'muted';
+    }
+}
+
+function ventaFelBadgeVariant(felEstado: string): StatBadgeVariant {
+    switch (felEstado) {
+        case 'emitido':
+            return 'success';
+        case 'pendiente_emision':
+            return 'warning';
+        case 'rechazado':
+            return 'danger';
+        case 'anulado':
+            return 'muted';
+        case 'sin_cpe':
+            return 'muted';
+        default:
+            return 'muted';
+    }
+}
 
 function formatMonto(amount: string, moneda: string, locale: string): string {
     const n = Number(amount);
@@ -188,35 +221,58 @@ export default function Index({ ventas: paginated, filters, stats, venta_filtro_
             {
                 key: 'total',
                 header: t('caja:ventas.columns.total'),
-                cell: (row) => formatMonto(row.total, row.moneda, i18n.language),
+                cell: (row) => (
+                    <span className="font-medium tabular-nums">
+                        {formatMonto(row.total, row.moneda, i18n.language)}
+                    </span>
+                ),
                 sortable: true,
                 sortKey: 'total',
             },
             {
                 key: 'estado',
                 header: t('caja:ventas.columns.estado'),
-                cell: (row) => t(`caja:ventas.estado_valor.${row.estado}`, { defaultValue: row.estado }),
+                cell: (row) => (
+                    <StatBadge
+                        label={t(`caja:ventas.estado_valor.${row.estado}`, { defaultValue: row.estado })}
+                        value=""
+                        variant={ventaEstadoBadgeVariant(row.estado)}
+                    />
+                ),
                 sortable: true,
                 sortKey: 'estado',
             },
             {
                 key: 'fel',
                 header: t('caja:ventas.columns.fel'),
-                cell: (row) =>
-                    t(`caja:ventas.fel.${row.fel_estado}`, { defaultValue: row.fel_estado }),
+                cell: (row) => (
+                    <StatBadge
+                        label={t(`caja:ventas.fel.${row.fel_estado}`, { defaultValue: row.fel_estado })}
+                        value=""
+                        variant={ventaFelBadgeVariant(row.fel_estado)}
+                    />
+                ),
             },
             {
                 key: 'acciones',
                 header: t('caja:ventas.columns.acciones'),
+                align: 'right',
                 cell: (row) => (
-                    <Button variant="ghost" size="icon" className="size-8" asChild>
-                        <Link
-                            href={caja.ventas.show.url(row.id)}
-                            aria-label={t('caja:ventas.actions.ver_detalle', { numero: row.numero_display })}
+                    <div className="flex justify-end">
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            className="size-8 shrink-0 cursor-pointer border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 hover:text-primary"
+                            asChild
                         >
-                            <Eye className="size-4" aria-hidden />
-                        </Link>
-                    </Button>
+                            <Link
+                                href={caja.ventas.show.url(row.id)}
+                                aria-label={t('caja:ventas.actions.ver_detalle', { numero: row.numero_display })}
+                            >
+                                <Eye className="size-4" strokeWidth={2.25} aria-hidden />
+                            </Link>
+                        </Button>
+                    </div>
                 ),
             },
         ],
@@ -232,7 +288,7 @@ export default function Index({ ventas: paginated, filters, stats, venta_filtro_
                     title={t('caja:ventas.title')}
                     description={t('caja:ventas.description')}
                     stats={[
-                        { label: t('caja:ventas.stats.total'), value: stats.total, variant: 'muted' },
+                        { label: t('caja:ventas.stats.total'), value: stats.total, variant: 'info', icon: ReceiptText },
                         {
                             label: t('caja:ventas.stats.matches'),
                             value: stats.coincidencias,
