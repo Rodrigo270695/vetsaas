@@ -20,6 +20,7 @@ use App\Models\VacunaAplicada;
 use App\Models\Venta;
 use App\Tenancy\TenantManager;
 use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Throwable;
@@ -175,6 +176,10 @@ final class DashboardStatsService
                 ->exists();
         }
 
+        $monthEnd = $now->copy()->endOfMonth();
+        $prevMonthStart = $now->copy()->subMonth()->startOfMonth();
+        $prevMonthEnd = $now->copy()->subMonth()->endOfMonth();
+
         return [
             'moneda' => $moneda,
             'kpis' => $kpis,
@@ -192,6 +197,27 @@ final class DashboardStatsService
                 : [],
             'proximas_citas' => ($capabilities['citas'] ?? false)
                 ? $this->proximasCitas($now)
+                : [],
+            'ingresos_mensuales' => ($capabilities['ventas'] ?? false)
+                ? $this->ingresosMensuales($now)
+                : [],
+            'comparacion_ingresos_mes' => ($capabilities['ventas'] ?? false)
+                ? $this->comparacionIngresosMes($monthStart, $monthEnd, $prevMonthStart, $prevMonthEnd)
+                : null,
+            'top_productos_mes' => ($capabilities['ventas'] ?? false)
+                ? $this->topProductosMes($monthStart, $monthEnd)
+                : [],
+            'fel_estado_mes' => ($capabilities['ventas'] ?? false)
+                ? $this->felEstadoMes($monthStart, $monthEnd)
+                : [],
+            'vacunaciones_por_dia' => ($capabilities['vacunaciones'] ?? false)
+                ? $this->vacunacionesPorDia($now)
+                : [],
+            'nuevos_clientes_mensuales' => (($capabilities['pacientes'] ?? false) || ($capabilities['propietarios'] ?? false))
+                ? $this->nuevosClientesMensuales($now, $capabilities)
+                : [],
+            'citas_asistencia_mes' => ($capabilities['citas'] ?? false)
+                ? $this->citasAsistenciaMes($monthStart, $monthEnd)
                 : [],
         ];
     }
@@ -226,6 +252,13 @@ final class DashboardStatsService
             'ventas_por_metodo' => [],
             'citas_por_estado' => [],
             'proximas_citas' => [],
+            'ingresos_mensuales' => [],
+            'comparacion_ingresos_mes' => null,
+            'top_productos_mes' => [],
+            'fel_estado_mes' => [],
+            'vacunaciones_por_dia' => [],
+            'nuevos_clientes_mensuales' => [],
+            'citas_asistencia_mes' => [],
         ];
     }
 
@@ -236,7 +269,7 @@ final class DashboardStatsService
         return is_string($moneda) && $moneda !== '' ? strtoupper($moneda) : 'PEN';
     }
 
-    /** @return \Illuminate\Database\Eloquent\Builder<Venta> */
+    /** @return Builder<Venta> */
     private function ventasPagadasEntre(CarbonInterface $start, CarbonInterface $end)
     {
         return Venta::query()
@@ -383,6 +416,231 @@ final class DashboardStatsService
             ->select('estado', DB::raw('COUNT(*) as aggregate'))
             ->groupBy('estado')
             ->orderBy('estado')
+            ->get();
+
+        return $grouped
+            ->map(fn (object $row): array => [
+                'estado' => (string) $row->estado,
+                'count' => (int) $row->aggregate,
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return list<array{month: string, label: string, total: float, count: int, is_current: bool}>
+     */
+    private function ingresosMensuales(CarbonInterface $now): array
+    {
+        $locale = app()->getLocale();
+        $rows = [];
+
+        for ($i = 5; $i >= 0; $i--) {
+            $month = $now->copy()->subMonths($i);
+            $start = $month->copy()->startOfMonth();
+            $end = $month->copy()->endOfMonth();
+
+            $agg = $this->ventasPagadasEntre($start, $end)
+                ->selectRaw('COUNT(*) as ventas_count, COALESCE(SUM(total), 0) as ventas_total')
+                ->first();
+
+            $rows[] = [
+                'month' => $month->format('Y-m'),
+                'label' => $month->locale($locale)->isoFormat('MMM YY'),
+                'total' => round((float) ($agg->ventas_total ?? 0), 2),
+                'count' => (int) ($agg->ventas_count ?? 0),
+                'is_current' => $i === 0,
+            ];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * @return array{
+     *     mes_actual_total: float,
+     *     mes_anterior_total: float,
+     *     variacion_pct: ?float,
+     *     mes_actual_count: int,
+     *     mes_anterior_count: int,
+     *     ticket_promedio_actual: float,
+     *     ticket_promedio_anterior: float
+     * }
+     */
+    private function comparacionIngresosMes(
+        CarbonInterface $monthStart,
+        CarbonInterface $monthEnd,
+        CarbonInterface $prevMonthStart,
+        CarbonInterface $prevMonthEnd,
+    ): array {
+        $actualAgg = $this->ventasPagadasEntre($monthStart, $monthEnd)
+            ->selectRaw('COUNT(*) as ventas_count, COALESCE(SUM(total), 0) as ventas_total')
+            ->first();
+
+        $prevAgg = $this->ventasPagadasEntre($prevMonthStart, $prevMonthEnd)
+            ->selectRaw('COUNT(*) as ventas_count, COALESCE(SUM(total), 0) as ventas_total')
+            ->first();
+
+        $actualTotal = round((float) ($actualAgg->ventas_total ?? 0), 2);
+        $prevTotal = round((float) ($prevAgg->ventas_total ?? 0), 2);
+        $actualCount = (int) ($actualAgg->ventas_count ?? 0);
+        $prevCount = (int) ($prevAgg->ventas_count ?? 0);
+
+        $variacionPct = null;
+        if ($prevTotal > 0) {
+            $variacionPct = round((($actualTotal - $prevTotal) / $prevTotal) * 100, 1);
+        }
+
+        return [
+            'mes_actual_total' => $actualTotal,
+            'mes_anterior_total' => $prevTotal,
+            'variacion_pct' => $variacionPct,
+            'mes_actual_count' => $actualCount,
+            'mes_anterior_count' => $prevCount,
+            'ticket_promedio_actual' => $actualCount > 0
+                ? round($actualTotal / $actualCount, 2)
+                : 0.0,
+            'ticket_promedio_anterior' => $prevCount > 0
+                ? round($prevTotal / $prevCount, 2)
+                : 0.0,
+        ];
+    }
+
+    /**
+     * @return list<array{nombre: string, total: float, cantidad: float}>
+     */
+    private function topProductosMes(CarbonInterface $monthStart, CarbonInterface $monthEnd): array
+    {
+        /** @var Collection<int, object{nombre: string, total: string, cantidad: string}> $rows */
+        $rows = DB::table('venta_lineas')
+            ->join('ventas', 'ventas.id', '=', 'venta_lineas.venta_id')
+            ->where('ventas.estado', Venta::ESTADO_PAGADO)
+            ->where(function ($q) use ($monthStart, $monthEnd): void {
+                $q->whereBetween('ventas.fecha_pago', [$monthStart, $monthEnd])
+                    ->orWhere(function ($q2) use ($monthStart, $monthEnd): void {
+                        $q2->whereNull('ventas.fecha_pago')
+                            ->whereBetween('ventas.created_at', [$monthStart, $monthEnd]);
+                    });
+            })
+            ->whereNull('ventas.deleted_at')
+            ->select(
+                'venta_lineas.descripcion_snapshot as nombre',
+                DB::raw('COALESCE(SUM(venta_lineas.subtotal), 0) as total'),
+                DB::raw('COALESCE(SUM(venta_lineas.cantidad), 0) as cantidad'),
+            )
+            ->groupBy('venta_lineas.descripcion_snapshot')
+            ->orderByDesc('total')
+            ->limit(5)
+            ->get();
+
+        return $rows
+            ->map(fn (object $row): array => [
+                'nombre' => (string) $row->nombre,
+                'total' => round((float) $row->total, 2),
+                'cantidad' => round((float) $row->cantidad, 2),
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return list<array{estado: string, count: int}>
+     */
+    private function felEstadoMes(CarbonInterface $monthStart, CarbonInterface $monthEnd): array
+    {
+        /** @var Collection<int, object{fel_estado: string, aggregate: int}> $grouped */
+        $grouped = $this->ventasPagadasEntre($monthStart, $monthEnd)
+            ->select('fel_estado as estado', DB::raw('COUNT(*) as aggregate'))
+            ->groupBy('fel_estado')
+            ->orderByDesc('aggregate')
+            ->get();
+
+        return $grouped
+            ->map(fn (object $row): array => [
+                'estado' => (string) $row->estado,
+                'count' => (int) $row->aggregate,
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return list<array{date: string, label: string, count: int}>
+     */
+    private function vacunacionesPorDia(CarbonInterface $now): array
+    {
+        $locale = app()->getLocale();
+        $rows = [];
+
+        for ($i = 6; $i >= 0; $i--) {
+            $day = $now->copy()->subDays($i);
+            $start = $day->copy()->startOfDay();
+            $end = $day->copy()->endOfDay();
+
+            $count = VacunaAplicada::query()
+                ->whereBetween('aplicada_at', [$start, $end])
+                ->count();
+
+            $rows[] = [
+                'date' => $day->toDateString(),
+                'label' => $day->locale($locale)->isoFormat('ddd D/M'),
+                'count' => $count,
+            ];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * @param  array<string, bool>  $capabilities
+     * @return list<array{month: string, label: string, pacientes: int, propietarios: int, is_current: bool}>
+     */
+    private function nuevosClientesMensuales(CarbonInterface $now, array $capabilities): array
+    {
+        $locale = app()->getLocale();
+        $rows = [];
+
+        for ($i = 5; $i >= 0; $i--) {
+            $month = $now->copy()->subMonths($i);
+            $start = $month->copy()->startOfMonth();
+            $end = $month->copy()->endOfMonth();
+
+            $pacientes = ($capabilities['pacientes'] ?? false)
+                ? Paciente::query()->whereBetween('created_at', [$start, $end])->count()
+                : 0;
+
+            $propietarios = ($capabilities['propietarios'] ?? false)
+                ? Propietario::query()->whereBetween('created_at', [$start, $end])->count()
+                : 0;
+
+            $rows[] = [
+                'month' => $month->format('Y-m'),
+                'label' => $month->locale($locale)->isoFormat('MMM YY'),
+                'pacientes' => $pacientes,
+                'propietarios' => $propietarios,
+                'is_current' => $i === 0,
+            ];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * @return list<array{estado: string, count: int}>
+     */
+    private function citasAsistenciaMes(CarbonInterface $monthStart, CarbonInterface $monthEnd): array
+    {
+        /** @var Collection<int, object{estado: string, aggregate: int}> $grouped */
+        $grouped = Cita::query()
+            ->whereBetween('inicio_at', [$monthStart, $monthEnd])
+            ->whereIn('estado', [
+                Cita::ESTADO_COMPLETADA,
+                Cita::ESTADO_NO_ASISTIO,
+                Cita::ESTADO_CANCELADA,
+            ])
+            ->select('estado', DB::raw('COUNT(*) as aggregate'))
+            ->groupBy('estado')
+            ->orderByDesc('aggregate')
             ->get();
 
         return $grouped

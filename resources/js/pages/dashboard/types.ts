@@ -65,3 +65,46 @@ export type ProximaCitaRow = {
     veterinario_nombre: string | null;
     sede_nombre: string | null;
 };
+
+export type IngresosMensualRow = {
+    month: string;
+    label: string;
+    total: number;
+    count: number;
+    is_current: boolean;
+};
+
+export type ComparacionIngresosMes = {
+    mes_actual_total: number;
+    mes_anterior_total: number;
+    variacion_pct: number | null;
+    mes_actual_count: number;
+    mes_anterior_count: number;
+    ticket_promedio_actual: number;
+    ticket_promedio_anterior: number;
+};
+
+export type TopProductoRow = {
+    nombre: string;
+    total: number;
+    cantidad: number;
+};
+
+export type FelEstadoRow = {
+    estado: string;
+    count: number;
+};
+
+export type VacunacionesPorDiaRow = {
+    date: string;
+    label: string;
+    count: number;
+};
+
+export type NuevosClientesMensualRow = {
+    month: string;
+    label: string;
+    pacientes: number;
+    propietarios: number;
+    is_current: boolean;
+};

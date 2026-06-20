@@ -33,6 +33,8 @@ it('muestra el panel del tenant con KPIs en el subdominio de la clínica', funct
         ->has('kpis')
         ->has('capabilities')
         ->has('ventas_por_dia')
+        ->has('ingresos_mensuales')
+        ->has('comparacion_ingresos_mes')
         ->where('clinic_label', 'Test Clinic')
     );
 });

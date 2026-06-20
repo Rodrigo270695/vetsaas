@@ -17,8 +17,12 @@
         "operations_hint": "Today's sales and pending e-invoices.",
         "inventory": "Patients & inventory",
         "inventory_hint": "New records this month and stock alerts.",
-        "analytics": "Trends",
-        "analytics_hint": "Last 7 days and this week's breakdown."
+        "financial": "Financial analysis",
+        "financial_hint": "Monthly revenue, top products, and e-invoices.",
+        "analytics": "Weekly trends",
+        "analytics_hint": "Last 7 days and current week breakdown.",
+        "growth": "Growth & retention",
+        "growth_hint": "Vaccinations, new clients, and appointment attendance this month."
     },
     "central": {
         "title": "Central dashboard",
@@ -55,6 +59,25 @@
         "citas_semana_hint": "Breakdown by status (current week).",
         "ventas_metodo": "Sales by payment method",
         "ventas_metodo_hint": "Current week (paid sales only).",
+        "ingresos_mensuales": "Revenue — last 6 months",
+        "ingresos_mensuales_hint": "Paid sales per month. Highlighted bar is the current month.",
+        "vs_mes_anterior": "vs previous month",
+        "ticket_promedio": "Average ticket",
+        "ventas_label": "sales",
+        "sin_mes_anterior": "No comparison base (no revenue last month)",
+        "top_productos": "Top products this month",
+        "top_productos_hint": "Top 5 items by revenue in the current month.",
+        "unidades": "units",
+        "fel_mes": "E-invoices (month)",
+        "fel_mes_hint": "FEL/SUNAT status for paid sales this month.",
+        "vacunaciones_7d": "Vaccines / deworming — 7 days",
+        "vacunaciones_7d_hint": "Applications recorded per day.",
+        "clientes_mensuales": "New clients — 6 months",
+        "clientes_mensuales_hint": "New patients and owners per month.",
+        "pacientes_serie": "Patients",
+        "propietarios_serie": "Owners",
+        "citas_asistencia": "Appointment attendance (month)",
+        "citas_asistencia_hint": "Completed, cancelled, and no-shows in the current month.",
         "empty": "No activity in this period yet. Data will appear here as you work."
     },
     "proximas_citas": {
@@ -84,6 +107,13 @@
         "tarjeta": "Card",
         "transferencia": "Bank transfer",
         "sin_especificar": "Unspecified"
+    },
+    "estados_fel": {
+        "sin_cpe": "No e-invoice",
+        "pendiente_emision": "Pending issue",
+        "emitido": "Issued",
+        "rechazado": "Rejected",
+        "anulado": "Voided"
     },
     "no_permission_section": "You don't have permission to view this section"
 }

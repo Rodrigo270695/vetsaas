@@ -34,17 +34,28 @@ import {
     DashboardQuickActions,
     type QuickActionItem,
 } from '@/components/dashboard/dashboard-quick-actions';
+import { DashboardClientesMensualesChart } from '@/components/dashboard/dashboard-clientes-mensuales-chart';
+import { DashboardFelChart } from '@/components/dashboard/dashboard-fel-chart';
+import { DashboardMonthlyRevenueChart } from '@/components/dashboard/dashboard-monthly-revenue-chart';
 import { DashboardSalesChart } from '@/components/dashboard/dashboard-sales-chart';
 import { DashboardSectionTitle } from '@/components/dashboard/dashboard-section-title';
+import { DashboardTopProductsChart } from '@/components/dashboard/dashboard-top-products-chart';
+import { DashboardVacunacionesChart } from '@/components/dashboard/dashboard-vacunaciones-chart';
 import { usePermission } from '@/hooks/use-permission';
 import AppLayout from '@/layouts/app-layout';
 import { dashboard } from '@/routes';
 import type {
     CitasPorEstadoRow,
+    ComparacionIngresosMes,
     ConsultasPorDiaRow,
     DashboardCapabilities,
     DashboardKpis,
+    FelEstadoRow,
+    IngresosMensualRow,
+    NuevosClientesMensualRow,
     ProximaCitaRow,
+    TopProductoRow,
+    VacunacionesPorDiaRow,
     VentasPorDiaRow,
     VentasPorMetodoRow,
 } from '@/pages/dashboard/types';
@@ -60,6 +71,13 @@ type Props = {
     ventas_por_metodo: VentasPorMetodoRow[];
     citas_por_estado: CitasPorEstadoRow[];
     proximas_citas: ProximaCitaRow[];
+    ingresos_mensuales: IngresosMensualRow[];
+    comparacion_ingresos_mes: ComparacionIngresosMes | null;
+    top_productos_mes: TopProductoRow[];
+    fel_estado_mes: FelEstadoRow[];
+    vacunaciones_por_dia: VacunacionesPorDiaRow[];
+    nuevos_clientes_mensuales: NuevosClientesMensualRow[];
+    citas_asistencia_mes: CitasPorEstadoRow[];
 };
 
 function formatMoney(value: string | number, moneda: string, locale: string): string {
@@ -90,6 +108,13 @@ export default function DashboardIndex({
     ventas_por_metodo,
     citas_por_estado,
     proximas_citas,
+    ingresos_mensuales,
+    comparacion_ingresos_mes,
+    top_productos_mes,
+    fel_estado_mes,
+    vacunaciones_por_dia,
+    nuevos_clientes_mensuales,
+    citas_asistencia_mes,
 }: Props) {
     const { t, i18n } = useTranslation(['dashboard', 'common']);
     const { can } = usePermission();
@@ -103,6 +128,11 @@ export default function DashboardIndex({
 
     const metodoLabel = useCallback(
         (metodo: string) => t(`metodos_pago.${metodo}`, { defaultValue: metodo }),
+        [t],
+    );
+
+    const felEstadoLabel = useCallback(
+        (estado: string) => t(`estados_fel.${estado}`, { defaultValue: estado }),
         [t],
     );
 
@@ -319,8 +349,14 @@ export default function DashboardIndex({
         return items;
     }, [can, t]);
 
-    const hasCharts =
+    const hasFinancialCharts = capabilities.ventas;
+    const hasWeeklyCharts =
         capabilities.ventas || capabilities.consultas || capabilities.citas;
+    const hasGrowthCharts =
+        capabilities.vacunaciones ||
+        capabilities.pacientes ||
+        capabilities.propietarios ||
+        (capabilities.citas && citas_asistencia_mes.length > 0);
 
     return (
         <>
@@ -369,7 +405,66 @@ export default function DashboardIndex({
                     </section>
                 )}
 
-                {hasCharts && (
+                {hasFinancialCharts && (
+                    <section className="space-y-4">
+                        <DashboardSectionTitle
+                            title={t('sections.financial')}
+                            description={t('sections.financial_hint')}
+                            icon={Wallet}
+                            accent="emerald"
+                        />
+                        <div className="grid min-w-0 gap-4 lg:grid-cols-2">
+                            <DashboardChartCard
+                                title={t('charts.ingresos_mensuales')}
+                                description={t('charts.ingresos_mensuales_hint')}
+                                icon={TrendingUp}
+                                accent="brand"
+                                className="lg:col-span-2"
+                            >
+                                <DashboardMonthlyRevenueChart
+                                    data={ingresos_mensuales}
+                                    comparacion={comparacion_ingresos_mes}
+                                    moneda={moneda}
+                                    locale={locale}
+                                    labels={{
+                                        vsPrevious: t('charts.vs_mes_anterior'),
+                                        ticketAvg: t('charts.ticket_promedio'),
+                                        sales: t('charts.ventas_label'),
+                                        noChange: t('charts.sin_mes_anterior'),
+                                    }}
+                                />
+                            </DashboardChartCard>
+
+                            <DashboardChartCard
+                                title={t('charts.top_productos')}
+                                description={t('charts.top_productos_hint')}
+                                icon={Package}
+                                accent="emerald"
+                            >
+                                <DashboardTopProductsChart
+                                    data={top_productos_mes}
+                                    moneda={moneda}
+                                    locale={locale}
+                                    qtyLabel={t('charts.unidades')}
+                                />
+                            </DashboardChartCard>
+
+                            <DashboardChartCard
+                                title={t('charts.fel_mes')}
+                                description={t('charts.fel_mes_hint')}
+                                icon={ReceiptText}
+                                accent="amber"
+                            >
+                                <DashboardFelChart
+                                    data={fel_estado_mes}
+                                    estadoLabel={felEstadoLabel}
+                                />
+                            </DashboardChartCard>
+                        </div>
+                    </section>
+                )}
+
+                {hasWeeklyCharts && (
                     <section className="space-y-4">
                         <DashboardSectionTitle
                             title={t('sections.analytics')}
@@ -430,6 +525,62 @@ export default function DashboardIndex({
                                         metodoLabel={metodoLabel}
                                         moneda={moneda}
                                         locale={locale}
+                                    />
+                                </DashboardChartCard>
+                            )}
+                        </div>
+                    </section>
+                )}
+
+                {hasGrowthCharts && (
+                    <section className="space-y-4">
+                        <DashboardSectionTitle
+                            title={t('sections.growth')}
+                            description={t('sections.growth_hint')}
+                            icon={Users}
+                            accent="sky"
+                        />
+                        <div className="grid min-w-0 gap-4 lg:grid-cols-2">
+                            {capabilities.vacunaciones && (
+                                <DashboardChartCard
+                                    title={t('charts.vacunaciones_7d')}
+                                    description={t('charts.vacunaciones_7d_hint')}
+                                    icon={Syringe}
+                                    accent="violet"
+                                >
+                                    <DashboardVacunacionesChart data={vacunaciones_por_dia} />
+                                </DashboardChartCard>
+                            )}
+
+                            {(capabilities.pacientes || capabilities.propietarios) && (
+                                <DashboardChartCard
+                                    title={t('charts.clientes_mensuales')}
+                                    description={t('charts.clientes_mensuales_hint')}
+                                    icon={Users}
+                                    accent="sky"
+                                >
+                                    <DashboardClientesMensualesChart
+                                        data={nuevos_clientes_mensuales}
+                                        showPacientes={capabilities.pacientes}
+                                        showPropietarios={capabilities.propietarios}
+                                        labels={{
+                                            pacientes: t('charts.pacientes_serie'),
+                                            propietarios: t('charts.propietarios_serie'),
+                                        }}
+                                    />
+                                </DashboardChartCard>
+                            )}
+
+                            {capabilities.citas && citas_asistencia_mes.length > 0 && (
+                                <DashboardChartCard
+                                    title={t('charts.citas_asistencia')}
+                                    description={t('charts.citas_asistencia_hint')}
+                                    icon={CalendarDays}
+                                    accent="amber"
+                                >
+                                    <DashboardAppointmentsChart
+                                        data={citas_asistencia_mes}
+                                        estadoLabel={estadoLabel}
                                     />
                                 </DashboardChartCard>
                             )}

@@ -17,8 +17,12 @@
         "operations_hint": "Ventas del día y comprobantes pendientes.",
         "inventory": "Pacientes e inventario",
         "inventory_hint": "Altas del mes y alertas de stock.",
-        "analytics": "Tendencias",
-        "analytics_hint": "Últimos 7 días y distribución de la semana."
+        "financial": "Análisis financiero",
+        "financial_hint": "Ingresos mensuales, productos estrella y comprobantes electrónicos.",
+        "analytics": "Tendencias semanales",
+        "analytics_hint": "Últimos 7 días y distribución de la semana en curso.",
+        "growth": "Crecimiento y retención",
+        "growth_hint": "Vacunaciones, nuevos clientes y asistencia a citas del mes."
     },
     "central": {
         "title": "Panel central",
@@ -55,6 +59,25 @@
         "citas_semana_hint": "Distribución por estado (semana en curso).",
         "ventas_metodo": "Ventas por método de pago",
         "ventas_metodo_hint": "Semana en curso (solo ventas pagadas).",
+        "ingresos_mensuales": "Ingresos — últimos 6 meses",
+        "ingresos_mensuales_hint": "Ventas pagadas por mes. La barra resaltada es el mes en curso.",
+        "vs_mes_anterior": "vs mes anterior",
+        "ticket_promedio": "Ticket promedio",
+        "ventas_label": "ventas",
+        "sin_mes_anterior": "Sin base de comparación (mes anterior sin ingresos)",
+        "top_productos": "Top productos del mes",
+        "top_productos_hint": "Los 5 ítems con mayor facturación en el mes en curso.",
+        "unidades": "uds.",
+        "fel_mes": "Comprobantes electrónicos (mes)",
+        "fel_mes_hint": "Estado FEL/SUNAT de ventas pagadas este mes.",
+        "vacunaciones_7d": "Vacunas / desparas. — 7 días",
+        "vacunaciones_7d_hint": "Aplicaciones registradas por día.",
+        "clientes_mensuales": "Nuevos clientes — 6 meses",
+        "clientes_mensuales_hint": "Altas de pacientes y propietarios por mes.",
+        "pacientes_serie": "Pacientes",
+        "propietarios_serie": "Propietarios",
+        "citas_asistencia": "Asistencia a citas (mes)",
+        "citas_asistencia_hint": "Completadas, canceladas y no asistió en el mes en curso.",
         "empty": "Aún no hay movimiento en este periodo. Cuando registres actividad, verás la tendencia aquí."
     },
     "proximas_citas": {
@@ -84,6 +107,13 @@
         "tarjeta": "Tarjeta",
         "transferencia": "Transferencia",
         "sin_especificar": "Sin especificar"
+    },
+    "estados_fel": {
+        "sin_cpe": "Sin CPE",
+        "pendiente_emision": "Pendiente emisión",
+        "emitido": "Emitido",
+        "rechazado": "Rechazado",
+        "anulado": "Anulado"
     },
     "no_permission_section": "Sin permiso para ver esta sección"
 }
