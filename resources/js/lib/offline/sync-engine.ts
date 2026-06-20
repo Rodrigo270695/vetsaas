@@ -1,8 +1,17 @@
+import { coordinatedFlush } from './sync-coordinator';
 import { offlineFetchJson } from './api';
-import { countPendingOutbox, listPendingOutbox, removeSyncedOutbox, updateOutboxStatus } from './outbox';
+import {
+    countPendingOutbox,
+    listPendingOutbox,
+    notifyOutboxChanged,
+    removeSyncedOutbox,
+    tryClaimSync,
+    releaseSync,
+    updateOutboxStatus,
+} from './outbox';
 import type { OutboxItem, SyncPushResult } from './types';
 
-export async function flushOfflineOutbox(): Promise<{ synced: number; failed: number }> {
+async function flushOfflineOutboxInternal(): Promise<{ synced: number; failed: number }> {
     if (!navigator.onLine) {
         return { synced: 0, failed: 0 };
     }
@@ -17,6 +26,10 @@ export async function flushOfflineOutbox(): Promise<{ synced: number; failed: nu
     let failed = 0;
 
     for (const item of pending) {
+        if (!tryClaimSync(item.uuid)) {
+            continue;
+        }
+
         await updateOutboxStatus(item.uuid, 'syncing');
 
         try {
@@ -46,19 +59,23 @@ export async function flushOfflineOutbox(): Promise<{ synced: number; failed: nu
                 continue;
             }
 
-            await updateOutboxStatus(item.uuid, 'synced', {
-                venta_id: result.venta_id,
-                numero: result.numero,
-            });
             await removeSyncedOutbox(item.uuid);
             synced += 1;
         } catch {
             await updateOutboxStatus(item.uuid, 'pending');
             failed += 1;
+        } finally {
+            releaseSync(item.uuid);
         }
     }
 
+    notifyOutboxChanged();
+
     return { synced, failed };
+}
+
+export async function flushOfflineOutbox(): Promise<{ synced: number; failed: number }> {
+    return coordinatedFlush(flushOfflineOutboxInternal);
 }
 
 export async function getPendingSummary(): Promise<{

@@ -10,5 +10,8 @@
     "venta": {
         "queued_title": "Sale saved offline",
         "queued_body": "Reference {{label}}. It will upload when connection is restored."
+    },
+    "ventas": {
+        "pending_list": "{{count}} sale(s) pending sync:"
     }
 }

@@ -10,5 +10,8 @@
     "venta": {
         "queued_title": "Venta guardada offline",
         "queued_body": "Referencia {{label}}. Se enviará al servidor cuando haya conexión."
+    },
+    "ventas": {
+        "pending_list": "{{count}} venta(s) pendiente(s) de sincronizar:"
     }
 }

@@ -1,8 +1,10 @@
 import { Head, Link } from '@inertiajs/react';
+import { OfflineAwareLink } from '@/components/offline-aware-link';
 import { Download, Eye, Plus, ReceiptText } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Can } from '@/components/can';
 import {
     DataPagination,
@@ -18,6 +20,9 @@ import { useDataTablePage } from '@/hooks/use-data-table-page';
 import { usePermission } from '@/hooks/use-permission';
 import AppLayout from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
+import { listPendingOutboxForDisplay } from '@/lib/offline/outbox';
+import type { OutboxItem } from '@/lib/offline/types';
+import { useOfflineSync } from '@/hooks/use-offline-sync';
 import { AtencionDateRangeFilter } from '@/pages/clinica/historias-clinicas/components/atencion-date-range-filter';
 import caja from '@/routes/caja';
 import { exportMethod as ventasExportExcel } from '@/routes/caja/ventas';
@@ -45,9 +50,15 @@ function formatMonto(amount: string, moneda: string, locale: string): string {
 }
 
 export default function Index({ ventas: paginated, filters, stats, venta_filtro_ui }: VentasIndexProps) {
-    const { t, i18n } = useTranslation(['caja', 'common']);
+    const { t, i18n } = useTranslation(['caja', 'common', 'offline']);
     const { can } = usePermission();
+    const { isOnline, pendingCount } = useOfflineSync();
+    const [pendingOffline, setPendingOffline] = useState<OutboxItem[]>([]);
     const canView = can('ventas.view');
+
+    useEffect(() => {
+        void listPendingOutboxForDisplay().then(setPendingOffline);
+    }, [isOnline, paginated.data.length, pendingCount]);
 
     const { search, setSearch, isLoading, sort, setSort, setPerPage, applyFilter } = useDataTablePage<TableExtraFilters>({
         routeUrl: caja.ventas.index.url(),
@@ -240,15 +251,28 @@ export default function Index({ ventas: paginated, filters, stats, venta_filtro_
                             ) : null}
                             <Can permission="ventas.create">
                                 <Button asChild size="sm" className="gap-1">
-                                    <Link href={caja.ventas.create.url()}>
+                                    <OfflineAwareLink href={caja.ventas.create.url()}>
                                         <Plus className="size-4" />
                                         {t('caja:ventas.actions.nueva')}
-                                    </Link>
+                                    </OfflineAwareLink>
                                 </Button>
                             </Can>
                         </div>
                     }
                 />
+
+                {pendingOffline.length > 0 && (
+                    <Alert className="border-amber-500/30 bg-amber-500/5">
+                        <AlertDescription>
+                            {t('offline:ventas.pending_list', {
+                                count: pendingOffline.length,
+                            })}{' '}
+                            {pendingOffline
+                                .map((item) => item.local_label ?? item.uuid.slice(0, 8))
+                                .join(', ')}
+                        </AlertDescription>
+                    </Alert>
+                )}
 
                 <DataTable
                     columns={columns}

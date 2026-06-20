@@ -11,11 +11,15 @@ use App\Models\User;
 use App\Models\Venta;
 use App\Services\Venta\VentaCheckoutService;
 use App\Tenancy\TenantManager;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 final class OfflineSyncPushService
 {
+    private const MAX_WAIT_SECONDS = 30;
+
     public function __construct(
         private readonly VentaCheckoutService $checkout,
         private readonly TenantManager $tenants,
@@ -35,60 +39,131 @@ final class OfflineSyncPushService
             return $this->failed($uuid, 'Payload inválido.');
         }
 
-        $tenantId = (string) $user->tenant_id;
-        $existing = OfflineSyncEvent::query()
-            ->where('client_uuid', $uuid)
-            ->where('tenant_id', $tenantId)
-            ->first();
+        [$event, $isOwner] = $this->acquireOrLoad($user, $uuid, $type, $payload);
 
-        if ($existing !== null) {
-            return $this->resultFromEvent($existing);
+        if ($event === null) {
+            return $this->failed($uuid, __('offline.sync.error_generico'));
+        }
+
+        if (in_array($event->status, ['synced', 'failed'], true)) {
+            return $this->resultFromEvent($event);
+        }
+
+        if (! $isOwner) {
+            return $this->waitForCompletion($uuid);
         }
 
         return match ($type) {
-            'caja.venta.create' => $this->processVenta($user, $uuid, $payload),
-            default => $this->failed($uuid, __('offline.sync.tipo_no_soportado')),
+            'caja.venta.create' => $this->completeVenta($user, $event, $payload),
+            default => $this->markFailed($event, __('offline.sync.tipo_no_soportado')),
         };
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array{0: OfflineSyncEvent|null, 1: bool}
+     */
+    private function acquireOrLoad(
+        User $user,
+        string $uuid,
+        string $type,
+        array $payload,
+    ): array {
+        try {
+            $event = OfflineSyncEvent::query()->create([
+                'client_uuid' => $uuid,
+                'tenant_id' => $user->tenant_id,
+                'user_id' => $user->id,
+                'type' => $type,
+                'payload' => $payload,
+                'status' => 'processing',
+                'synced_at' => now(),
+            ]);
+
+            return [$event, true];
+        } catch (QueryException $e) {
+            if (! $this->isUniqueViolation($e)) {
+                throw $e;
+            }
+
+            $existing = OfflineSyncEvent::query()
+                ->where('client_uuid', $uuid)
+                ->first();
+
+            return [$existing, false];
+        }
     }
 
     /**
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed>
      */
-    private function processVenta(User $user, string $uuid, array $payload): array
+    private function completeVenta(User $user, OfflineSyncEvent $event, array $payload): array
     {
         try {
             $validated = $this->validateVentaPayload($payload, $user);
             $tenant = $this->tenants->current()?->tenant
                 ?? Tenant::query()->find($user->tenant_id);
 
-            $venta = $this->checkout->registrar($validated, $user, $tenant);
+            $venta = DB::transaction(fn () => $this->checkout->registrar($validated, $user, $tenant));
 
-            $event = OfflineSyncEvent::query()->create([
-                'client_uuid' => $uuid,
-                'tenant_id' => $user->tenant_id,
-                'user_id' => $user->id,
-                'type' => 'caja.venta.create',
-                'payload' => $payload,
+            $event->update([
                 'status' => 'synced',
                 'resource_type' => Venta::class,
                 'resource_id' => $venta->id,
                 'resource_label' => $venta->numero,
+                'error_message' => null,
                 'synced_at' => now(),
             ]);
 
-            return $this->resultFromEvent($event);
+            return $this->resultFromEvent($event->fresh());
         } catch (ValidationException $e) {
-            $message = collect($e->errors())->flatten()->first();
-            $this->storeFailure($user, $uuid, 'caja.venta.create', $payload, (string) $message);
+            $message = (string) collect($e->errors())->flatten()->first();
 
-            return $this->failed($uuid, (string) $message);
+            return $this->markFailed($event, $message);
         } catch (\Throwable $e) {
             report($e);
-            $this->storeFailure($user, $uuid, 'caja.venta.create', $payload, $e->getMessage());
 
-            return $this->failed($uuid, __('offline.sync.error_generico'));
+            return $this->markFailed($event, __('offline.sync.error_generico'));
         }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function waitForCompletion(string $uuid): array
+    {
+        $deadline = now()->addSeconds(self::MAX_WAIT_SECONDS);
+
+        while (now()->lessThan($deadline)) {
+            $event = OfflineSyncEvent::query()->where('client_uuid', $uuid)->first();
+
+            if ($event === null) {
+                break;
+            }
+
+            if ($event->status !== 'processing') {
+                return $this->resultFromEvent($event);
+            }
+
+            usleep(200_000);
+        }
+
+        return $this->failed($uuid, __('offline.sync.error_generico'));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function markFailed(OfflineSyncEvent $event, string $message): array
+    {
+        $event->update([
+            'status' => 'failed',
+            'error_message' => $message,
+            'synced_at' => now(),
+        ]);
+
+        return $this->failed($event->client_uuid, $message);
     }
 
     /**
@@ -110,30 +185,6 @@ final class OfflineSyncPushService
     }
 
     /**
-     * @param  array<string, mixed>  $payload
-     */
-    private function storeFailure(
-        User $user,
-        string $uuid,
-        string $type,
-        array $payload,
-        string $message,
-    ): void {
-        OfflineSyncEvent::query()->updateOrCreate(
-            ['client_uuid' => $uuid],
-            [
-                'tenant_id' => $user->tenant_id,
-                'user_id' => $user->id,
-                'type' => $type,
-                'payload' => $payload,
-                'status' => 'failed',
-                'error_message' => $message,
-                'synced_at' => now(),
-            ],
-        );
-    }
-
-    /**
      * @return array<string, mixed>
      */
     private function resultFromEvent(OfflineSyncEvent $event): array
@@ -143,6 +194,10 @@ final class OfflineSyncPushService
                 $event->client_uuid,
                 (string) ($event->error_message ?? __('offline.sync.error_generico')),
             );
+        }
+
+        if ($event->status === 'processing') {
+            return $this->failed($event->client_uuid, __('offline.sync.error_generico'));
         }
 
         return [
@@ -164,5 +219,14 @@ final class OfflineSyncPushService
             'status' => 'failed',
             'error' => $error,
         ];
+    }
+
+    private function isUniqueViolation(QueryException $e): bool
+    {
+        $code = (string) $e->getCode();
+
+        return str_contains($e->getMessage(), 'offline_sync_events_client_uuid_unique')
+            || $code === '23505'
+            || str_contains(strtolower($e->getMessage()), 'unique');
     }
 }

@@ -39,8 +39,7 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import AppLayout from '@/layouts/app-layout';
 import { PropietarioFormModal } from '@/pages/clinica/propietarios/components/propietario-form-modal';
 import { toastManager } from '@/lib/toast';
-import { fetchCajaBootstrap } from '@/lib/offline/api';
-import { loadCajaBootstrap, saveCajaBootstrap, searchCachedProductos } from '@/lib/offline/cache';
+import { loadCajaBootstrap, searchCachedProductos } from '@/lib/offline/cache';
 import { isIndexedDbSupported } from '@/lib/offline/idb';
 import { enqueueOutbox } from '@/lib/offline/outbox';
 import { cn } from '@/lib/utils';
@@ -343,28 +342,6 @@ export default function Create({
 
         return () => window.clearTimeout(tmr);
     }, [qProducto]);
-
-    useEffect(() => {
-        if (!isIndexedDbSupported()) {
-            return;
-        }
-
-        void saveCajaBootstrap({
-            cached_at: new Date().toISOString(),
-            puede_vender,
-            mi_sesion,
-            clinica,
-            propietarios_opciones: [...propietariosOpciones],
-            productos: [],
-            pacientes: [],
-        });
-
-        if (navigator.onLine) {
-            void fetchCajaBootstrap()
-                .then((data) => saveCajaBootstrap(data as never))
-                .catch(() => undefined);
-        }
-    }, [clinica, mi_sesion, propietariosOpciones, puede_vender]);
 
     useEffect(() => {
         const tmr = window.setTimeout(() => {

@@ -20,6 +20,8 @@ import { isNavRouteImplemented } from '@/config/nav-implemented';
 import { useCurrentUrl } from '@/hooks/use-current-url';
 import { usePermission } from '@/hooks/use-permission';
 import { cn } from '@/lib/utils';
+import { OfflineAwareLink } from '@/components/offline-aware-link';
+import { isCajaOfflinePath } from '@/lib/offline/caja-routes';
 import type { NavContext, NavGroup, NavItem } from '@/types';
 
 function isItemImplemented(item: NavItem): boolean {
@@ -246,12 +248,14 @@ type NavSubItemProps = {
  * Lleva su propia animación de entrada (stagger por índice).
  */
 function NavSubItem({ item, active, index, onNavigate }: NavSubItemProps) {
+    const LinkComponent = isCajaOfflinePath(item.href) ? OfflineAwareLink : Link;
+
     return (
         <SidebarMenuSubItem
             style={{ animationDelay: `${index * 30}ms` }}
             className="animate-in fade-in slide-in-from-left-2 fill-mode-both duration-300"
         >
-            <Link
+            <LinkComponent
                 href={item.href}
                 prefetch
                 onClick={onNavigate}
@@ -287,7 +291,7 @@ function NavSubItem({ item, active, index, onNavigate }: NavSubItemProps) {
                 )}
 
                 <span className="truncate">{item.title}</span>
-            </Link>
+            </LinkComponent>
         </SidebarMenuSubItem>
     );
 }

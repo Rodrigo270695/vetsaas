@@ -6,7 +6,9 @@
     "start_url": "/",
     "scope": "/",
     "display": "standalone",
+    "display_override": ["standalone", "minimal-ui", "browser"],
     "orientation": "any",
+    "categories": ["business", "medical", "productivity"],
     "background_color": "#FAFAF9",
     "theme_color": "#008064",
     "icons": [
@@ -75,6 +77,29 @@
             "sizes": "512x512",
             "type": "image/png",
             "purpose": "maskable"
+        }
+    ],
+    "shortcuts": [
+        {
+            "name": "Nueva venta",
+            "short_name": "Venta",
+            "description": "Registrar venta en caja",
+            "url": "/caja/ventas/nuevo",
+            "icons": [{ "src": "/icons/pwa/icon-192.png", "sizes": "192x192" }]
+        },
+        {
+            "name": "Ventas",
+            "short_name": "Ventas",
+            "description": "Listado de ventas",
+            "url": "/caja/ventas",
+            "icons": [{ "src": "/icons/pwa/icon-192.png", "sizes": "192x192" }]
+        },
+        {
+            "name": "Sesión de caja",
+            "short_name": "Caja",
+            "description": "Abrir o cerrar sesión de caja",
+            "url": "/caja/sesiones",
+            "icons": [{ "src": "/icons/pwa/icon-192.png", "sizes": "192x192" }]
         }
     ]
 }
