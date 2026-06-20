@@ -99,6 +99,7 @@ class CategoriaInventarioController extends Controller
 
         CategoriaProducto::create([
             ...$data,
+            'orden' => CategoriaProducto::generateNextOrden($data['parent_id'] ?? null),
             'created_by_id' => $userId,
             'updated_by_id' => $userId,
         ]);

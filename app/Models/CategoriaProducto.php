@@ -46,6 +46,19 @@ class CategoriaProducto extends Model
         return $this->hasMany(self::class, 'parent_id');
     }
 
+    /**
+     * Siguiente orden dentro del mismo nivel (misma categoría padre).
+     * Incrementos de 10 para alinear con el catálogo sembrado.
+     */
+    public static function generateNextOrden(?string $parentId): int
+    {
+        $max = self::query()
+            ->where('parent_id', $parentId)
+            ->max('orden');
+
+        return ((int) ($max ?? 0)) + 10;
+    }
+
     public function productos(): HasMany
     {
         return $this->hasMany(Producto::class, 'categoria_id');

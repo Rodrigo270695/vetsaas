@@ -30,7 +30,6 @@ type FormData = {
     nombre: string;
     slug: string;
     descripcion: string;
-    orden: number;
     activo: boolean;
 };
 
@@ -39,7 +38,6 @@ const empty: FormData = {
     nombre: '',
     slug: '',
     descripcion: '',
-    orden: 0,
     activo: true,
 };
 
@@ -64,7 +62,6 @@ export function CategoriaFormModal({ open, onOpenChange, categoria, parentOption
             nombre: categoria.nombre,
             slug: categoria.slug ?? '',
             descripcion: categoria.descripcion ?? '',
-            orden: categoria.orden,
             activo: categoria.activo,
         });
         clearErrors();
@@ -90,7 +87,6 @@ export function CategoriaFormModal({ open, onOpenChange, categoria, parentOption
             nombre: data.nombre.trim(),
             slug: data.slug.trim().toLowerCase() || null,
             descripcion: data.descripcion.trim() === '' ? null : data.descripcion.trim(),
-            orden: data.orden,
             activo: data.activo,
         };
 
@@ -156,20 +152,9 @@ export function CategoriaFormModal({ open, onOpenChange, categoria, parentOption
                     </Select>
                 </FormField>
 
-                <div className="grid gap-4 sm:grid-cols-2">
-                    <FormField id="cat-slug" label={t('form.slug')} error={errors.slug}>
-                        <Input id="cat-slug" value={data.slug} onChange={(e) => setData('slug', e.target.value)} />
-                    </FormField>
-                    <FormField id="cat-orden" label={t('form.orden')} error={errors.orden}>
-                        <Input
-                            id="cat-orden"
-                            type="number"
-                            min={0}
-                            value={String(data.orden)}
-                            onChange={(e) => setData('orden', Number(e.target.value || 0))}
-                        />
-                    </FormField>
-                </div>
+                <FormField id="cat-slug" label={t('form.slug')} error={errors.slug}>
+                    <Input id="cat-slug" value={data.slug} onChange={(e) => setData('slug', e.target.value)} />
+                </FormField>
 
                 <FormField id="cat-descripcion" label={t('form.descripcion')} error={errors.descripcion}>
                     <Textarea

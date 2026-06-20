@@ -27,7 +27,6 @@ class CategoriaProductoRequest extends FormRequest
             'nombre' => ['required', 'string', 'max:120'],
             'slug' => ['nullable', 'string', 'max:140', 'alpha_dash', Rule::unique('categorias_productos', 'slug')->ignore($categoriaId)],
             'descripcion' => ['nullable', 'string', 'max:20000'],
-            'orden' => ['nullable', 'integer', 'min:0', 'max:9999'],
             'activo' => ['required', 'boolean'],
         ];
     }
@@ -39,7 +38,6 @@ class CategoriaProductoRequest extends FormRequest
 
         $this->merge([
             'slug' => $slug === '' ? null : $slug,
-            'orden' => $this->input('orden') === '' ? 0 : $this->input('orden', 0),
             'activo' => $this->boolean('activo'),
         ]);
     }

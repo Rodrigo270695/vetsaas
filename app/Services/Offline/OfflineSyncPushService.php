@@ -688,6 +688,7 @@ final class OfflineSyncPushService
             $categoria = DB::transaction(function () use ($validated, $uid): CategoriaProducto {
                 return CategoriaProducto::query()->create([
                     ...$validated,
+                    'orden' => CategoriaProducto::generateNextOrden($validated['parent_id'] ?? null),
                     'created_by_id' => $uid,
                     'updated_by_id' => $uid,
                 ]);
