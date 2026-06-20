@@ -1,6 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
 import { OfflineAwareLink } from '@/components/offline-aware-link';
-import { Download, Eye, Plus, ReceiptText } from 'lucide-react';
+import { Download, Eye, FileCheck2, Plus, ReceiptText } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -15,7 +15,7 @@ import {
     PageHeader,
     StatBadge,
 } from '@/components/data-page';
-import type { DataTableColumn, FilterChip, StatBadgeVariant } from '@/components/data-page';
+import type { DataTableColumn, FilterChip, PageHeaderStat, StatBadgeVariant } from '@/components/data-page';
 import { Button } from '@/components/ui/button';
 import { useDataTablePage } from '@/hooks/use-data-table-page';
 import { usePermission } from '@/hooks/use-permission';
@@ -279,6 +279,46 @@ export default function Index({ ventas: paginated, filters, stats, venta_filtro_
         [i18n.language, t],
     );
 
+    const headerStats = useMemo((): PageHeaderStat[] => {
+        const items: PageHeaderStat[] = [
+            { label: t('caja:ventas.stats.total'), value: stats.total, variant: 'info', icon: ReceiptText },
+            { label: t('caja:ventas.stats.pagado'), value: stats.pagado, variant: 'success' },
+            { label: t('caja:ventas.stats.pendiente'), value: stats.pendiente, variant: 'warning' },
+        ];
+
+        if (stats.parcial > 0) {
+            items.push({
+                label: t('caja:ventas.stats.parcial'),
+                value: stats.parcial,
+                variant: 'info',
+            });
+        }
+
+        if (stats.anulado > 0) {
+            items.push({
+                label: t('caja:ventas.stats.anulado'),
+                value: stats.anulado,
+                variant: 'danger',
+            });
+        }
+
+        items.push(
+            {
+                label: t('caja:ventas.stats.cpe_emitidos'),
+                value: stats.cpe_emitidos,
+                variant: 'primary',
+                icon: FileCheck2,
+            },
+            {
+                label: t('caja:ventas.stats.matches'),
+                value: stats.coincidencias,
+                variant: 'muted',
+            },
+        );
+
+        return items;
+    }, [stats, t]);
+
     return (
         <>
             <Head title={t('caja:ventas.title')} />
@@ -287,14 +327,7 @@ export default function Index({ ventas: paginated, filters, stats, venta_filtro_
                 <PageHeader
                     title={t('caja:ventas.title')}
                     description={t('caja:ventas.description')}
-                    stats={[
-                        { label: t('caja:ventas.stats.total'), value: stats.total, variant: 'info', icon: ReceiptText },
-                        {
-                            label: t('caja:ventas.stats.matches'),
-                            value: stats.coincidencias,
-                            variant: 'primary',
-                        },
-                    ]}
+                    stats={headerStats}
                     action={
                         <div className="flex flex-row flex-wrap items-center justify-end gap-2">
                             {canView ? (

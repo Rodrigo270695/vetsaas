@@ -94,6 +94,11 @@
         "filter_estado_label": "Status",
         "stats": {
             "total": "Sales",
+            "pagado": "Paid",
+            "pendiente": "Pending",
+            "parcial": "Partial",
+            "anulado": "Voided",
+            "cpe_emitidos": "CPE issued",
             "matches": "Matches"
         },
         "columns": {

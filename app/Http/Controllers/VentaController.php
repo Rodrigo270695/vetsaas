@@ -7,26 +7,26 @@ use App\Grooming\GroomingCatalogoMode;
 use App\Http\Requests\AnularVentaRequest;
 use App\Http\Requests\PropietarioRequest;
 use App\Http\Requests\StoreVentaRequest;
-use App\Models\FelSerie;
-use App\Services\Venta\VentaAnulacionService;
 use App\Models\CajaSesion;
 use App\Models\ClinicSetting;
 use App\Models\Consulta;
 use App\Models\Departamento;
 use App\Models\Distrito;
+use App\Models\GroomingServicio;
+use App\Models\GroomingServicioTarifa;
 use App\Models\GroomingTurno;
 use App\Models\HotelEstancia;
 use App\Models\Internamiento;
 use App\Models\Paciente;
-use App\Models\GroomingServicio;
-use App\Models\GroomingServicioTarifa;
 use App\Models\Producto;
 use App\Models\Propietario;
 use App\Models\Sede;
 use App\Models\Venta;
 use App\Services\Fel\FelEmisionVentaService;
+use App\Services\Venta\VentaAnulacionService;
 use App\Services\Venta\VentaCheckoutService;
 use App\Support\Caja\VentaTicketPolicy;
+use App\Support\Fel\ApisunatCredentialResolver;
 use App\Support\Fel\FelReceptorResolver;
 use App\Support\Fel\FelSerieResolver;
 use App\Support\PlanCapabilities;
@@ -36,8 +36,10 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -113,7 +115,7 @@ class VentaController extends Controller
             'filters' => $filtersPayload,
             'venta_filtro_ui' => $ctx['venta_filtro_ui'],
             'stats' => [
-                'total' => $ctx['total_en_rango'],
+                ...$ctx['stats_summary'],
                 'coincidencias' => $ventas->total(),
             ],
         ]);
@@ -184,6 +186,14 @@ class VentaController extends Controller
      *     per_page: int,
      *     base_query: Builder<Venta>,
      *     total_en_rango: int,
+     *     stats_summary: array{
+     *         total: int,
+     *         pagado: int,
+     *         pendiente: int,
+     *         parcial: int,
+     *         anulado: int,
+     *         cpe_emitidos: int,
+     *     },
      * }
      */
     private function resolveVentasListaContext(Request $request): array
@@ -256,6 +266,12 @@ class VentaController extends Controller
 
         $totalEnRango = (clone $baseQuery)->count();
 
+        $statsSummary = $this->ventasStatsSummary(
+            $fechaDesde,
+            $fechaHasta,
+            $search,
+        );
+
         return [
             'search' => $search,
             'fecha_desde' => $fechaDesde,
@@ -270,6 +286,55 @@ class VentaController extends Controller
             'per_page' => $perPage,
             'base_query' => $baseQuery,
             'total_en_rango' => $totalEnRango,
+            'stats_summary' => $statsSummary,
+        ];
+    }
+
+    /**
+     * Conteos agregados del periodo (fecha + búsqueda), sin filtro de estado.
+     *
+     * @return array{
+     *     total: int,
+     *     pagado: int,
+     *     pendiente: int,
+     *     parcial: int,
+     *     anulado: int,
+     *     cpe_emitidos: int,
+     * }
+     */
+    private function ventasStatsSummary(string $fechaDesde, string $fechaHasta, string $search): array
+    {
+        $query = Venta::query()
+            ->whereRaw('DATE(COALESCE(fecha_pago, created_at)) >= ?', [$fechaDesde])
+            ->whereRaw('DATE(COALESCE(fecha_pago, created_at)) <= ?', [$fechaHasta]);
+
+        if ($search !== '') {
+            $this->applyVentasSearchFilter($query, $search);
+        }
+
+        $row = (clone $query)->selectRaw(
+            'COUNT(*) as total,
+            SUM(CASE WHEN estado = ? THEN 1 ELSE 0 END) as pagado,
+            SUM(CASE WHEN estado = ? THEN 1 ELSE 0 END) as pendiente,
+            SUM(CASE WHEN estado = ? THEN 1 ELSE 0 END) as parcial,
+            SUM(CASE WHEN estado = ? THEN 1 ELSE 0 END) as anulado,
+            SUM(CASE WHEN fel_estado = ? THEN 1 ELSE 0 END) as cpe_emitidos',
+            [
+                Venta::ESTADO_PAGADO,
+                Venta::ESTADO_PENDIENTE,
+                Venta::ESTADO_PARCIAL,
+                Venta::ESTADO_ANULADO,
+                Venta::FEL_EMITIDO,
+            ],
+        )->first();
+
+        return [
+            'total' => (int) ($row->total ?? 0),
+            'pagado' => (int) ($row->pagado ?? 0),
+            'pendiente' => (int) ($row->pendiente ?? 0),
+            'parcial' => (int) ($row->parcial ?? 0),
+            'anulado' => (int) ($row->anulado ?? 0),
+            'cpe_emitidos' => (int) ($row->cpe_emitidos ?? 0),
         ];
     }
 
@@ -335,7 +400,7 @@ class VentaController extends Controller
 
         try {
             $desdeCargo = $prefill->build($consulta);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             return redirect()
                 ->route('clinica.historias-clinicas.consultas.cargos.show', ['consulta' => $consulta])
                 ->withErrors($e->errors());
@@ -382,7 +447,7 @@ class VentaController extends Controller
 
         try {
             $desdeCargo = $prefill->buildFromInternamiento($internamiento);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             return redirect()
                 ->route('clinica.hospitalizacion.cargos.show', ['internamiento' => $internamiento])
                 ->withErrors($e->errors());
@@ -429,7 +494,7 @@ class VentaController extends Controller
 
         try {
             $desdeCargo = $prefill->buildFromGrooming($groomingTurno);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             return redirect()
                 ->route('servicios.grooming')
                 ->withErrors($e->errors());
@@ -476,7 +541,7 @@ class VentaController extends Controller
 
         try {
             $desdeCargo = $prefill->buildFromHotelEstancia($hotelEstancia);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             return redirect()
                 ->route('servicios.hotel')
                 ->withErrors($e->errors());
@@ -602,9 +667,9 @@ class VentaController extends Controller
                     ? (string) $clinic->ticket_ancho_mm
                     : '80',
                 'emite_comprobantes_sunat' => (bool) $clinic->emite_comprobantes_sunat,
-                'apisunat_configurado' => \App\Support\Fel\ApisunatCredentialResolver::estaConfigurado($clinic),
-                'plan_permite_boletas'   => PlanCapabilities::boletasElectronicas($tenantModel),
-                'plan_permite_facturas'  => PlanCapabilities::facturasElectronicas($tenantModel),
+                'apisunat_configurado' => ApisunatCredentialResolver::estaConfigurado($clinic),
+                'plan_permite_boletas' => PlanCapabilities::boletasElectronicas($tenantModel),
+                'plan_permite_facturas' => PlanCapabilities::facturasElectronicas($tenantModel),
             ],
             'fel' => [
                 'puede_emitir' => $puedeEmitirFel,
@@ -764,7 +829,7 @@ class VentaController extends Controller
     }
 
     /**
-     * @param  \Illuminate\Support\Collection<int, array{id: string, label: string, doc: ?string}>  $propietarios
+     * @param  Collection<int, array{id: string, label: string, doc: ?string}>  $propietarios
      * @return array<string, mixed>
      */
     public function storePropietarioRapido(PropietarioRequest $request): JsonResponse
@@ -852,8 +917,8 @@ class VentaController extends Controller
                 'igv_porcentaje' => (string) $clinic->igv_porcentaje,
                 'precio_incluye_igv' => (bool) $clinic->precio_incluye_igv,
                 'emite_comprobantes_sunat' => (bool) $clinic->emite_comprobantes_sunat,
-                'plan_permite_boletas'    => PlanCapabilities::boletasElectronicas($tenantModel),
-                'plan_permite_facturas'   => PlanCapabilities::facturasElectronicas($tenantModel),
+                'plan_permite_boletas' => PlanCapabilities::boletasElectronicas($tenantModel),
+                'plan_permite_facturas' => PlanCapabilities::facturasElectronicas($tenantModel),
             ],
             'propietarios_opciones' => $propietarios,
             'departamentos' => $departamentos,

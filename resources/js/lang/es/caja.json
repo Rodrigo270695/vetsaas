@@ -94,6 +94,11 @@
         "filter_estado_label": "Estado",
         "stats": {
             "total": "Ventas",
+            "pagado": "Pagado",
+            "pendiente": "Pendiente",
+            "parcial": "Parcial",
+            "anulado": "Anulado",
+            "cpe_emitidos": "CPE emitidos",
             "matches": "Coincidencias"
         },
         "columns": {

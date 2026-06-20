@@ -49,6 +49,11 @@ export type VentasIndexProps = {
     venta_filtro_ui: VentaFiltroUi;
     stats: {
         total: number;
+        pagado: number;
+        pendiente: number;
+        parcial: number;
+        anulado: number;
+        cpe_emitidos: number;
         coincidencias: number;
     };
 };
