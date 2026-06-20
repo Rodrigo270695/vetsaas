@@ -282,6 +282,7 @@ class TenantSchemaMigrator
             '2026_06_22_100000_t097_create_promotions_table' => Schema::hasTable('promotions'),
             '2026_06_23_100000_t098_add_apisunat_mode_to_fel_documents' => Schema::hasTable('fel_documents')
                 && Schema::hasColumn('fel_documents', 'apisunat_mode'),
+            '2026_06_24_100000_t099_backfill_apisunat_mode_on_fel_documents' => false,
             default => false,
         };
     }

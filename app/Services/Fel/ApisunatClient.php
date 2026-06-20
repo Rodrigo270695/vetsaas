@@ -48,6 +48,8 @@ final class ApisunatClient
             }
 
             $json['_http_status'] = $response->status();
+            $json['_vetsaas_emission_mode'] = $credenciales['mode'];
+            $json['_vetsaas_api_base'] = $url;
 
             return $json;
         } catch (RuntimeException $e) {

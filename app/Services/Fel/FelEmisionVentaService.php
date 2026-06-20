@@ -118,14 +118,14 @@ final class FelEmisionVentaService
             try {
                 $respuesta = $this->apisunat->generarComprobante($credenciales, $payload);
             } catch (RuntimeException $e) {
-                $this->marcarRechazado($documento, $venta, $e->getMessage());
+                $this->marcarRechazado($documento, $venta, $e->getMessage(), $emisionModo);
 
                 throw $e;
             }
 
             if (! $this->apisunat->respuestaExitosa($respuesta)) {
                 $mensaje = $this->apisunat->extraerMensajeError($respuesta);
-                $this->marcarRechazado($documento, $venta, $mensaje);
+                $this->marcarRechazado($documento, $venta, $mensaje, $emisionModo);
 
                 throw new RuntimeException($mensaje);
             }
@@ -173,11 +173,12 @@ final class FelEmisionVentaService
         };
     }
 
-    private function marcarRechazado(FelDocument $documento, Venta $venta, string $mensaje): void
+    private function marcarRechazado(FelDocument $documento, Venta $venta, string $mensaje, ?string $emisionModo = null): void
     {
         $documento->update([
             'estado' => FelDocument::ESTADO_RECHAZADO,
             'error_mensaje' => mb_substr($mensaje, 0, 2000),
+            'apisunat_mode' => in_array($emisionModo, ['sandbox', 'produccion'], true) ? $emisionModo : $documento->apisunat_mode,
         ]);
         $venta->update(['fel_estado' => Venta::FEL_RECHAZADO]);
     }

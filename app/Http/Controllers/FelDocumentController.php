@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\FelDocument;
 use App\Models\FelSerie;
 use App\Models\Sede;
+use App\Support\Fel\FelDocumentApisunatModeResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -141,7 +142,7 @@ class FelDocumentController extends Controller
                 'download_xml_url' => route('facturacion.documentos.download-xml', $doc),
                 'download_cdr_url' => route('facturacion.documentos.download-cdr', $doc),
                 'json_url' => route('facturacion.documentos.json', $doc),
-                'apisunat_mode' => $doc->apisunat_mode,
+                'apisunat_mode' => FelDocumentApisunatModeResolver::resolveAndPersist($doc),
             ];
         });
 
