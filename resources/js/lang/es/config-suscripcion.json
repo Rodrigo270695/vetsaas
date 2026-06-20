@@ -64,5 +64,27 @@
         "estado": "Estado",
         "precio": "Precio pactado",
         "renewal": "Próximo cobro"
+    },
+    "comprobantes": {
+        "title": "Comprobantes electrónicos",
+        "description": "Boletas, facturas y notas emitidas en tu período de facturación.",
+        "usage": "Has emitido {{used}} de {{included}} comprobantes",
+        "usage_unlimited": "Has emitido {{used}} comprobantes (cupo ilimitado)",
+        "remaining": "Cupos incluidos restantes",
+        "progress_label": "Uso del cupo incluido",
+        "period_mensual": "Período mensual: {{start}} – {{end}}",
+        "period_anual": "Período anual: {{start}} – {{end}}",
+        "overage_title": "Cargo adicional estimado: {{cost}}",
+        "overage_hint": "Por superar el cupo incluido: {{blocks}} bloque(s) de {{block}} comprobantes × S/. {{price}} c/u.",
+        "annual_over_title": "Has superado el cupo anual incluido",
+        "annual_over_hint": "Puedes seguir emitiendo. Contacta a Orvae para revisar tu plan o un ajuste de cupo.",
+        "allow_overage": "Al llegar al límite incluido puedes seguir emitiendo comprobantes; en planes mensuales cada 100 extras adiciona S/. 8.00 al cobro.",
+        "semaphore": {
+            "unlimited": "Ilimitado",
+            "ok": "Normal",
+            "caution": "Atención",
+            "warning": "Cerca del límite",
+            "over": "Sobre el cupo"
+        }
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\Plan\ComprobantesQuota;
 use App\Support\Subscriptions\TenantSubscriptionSummary;
 use App\Tenancy\TenantManager;
 use Illuminate\Http\Request;
@@ -22,6 +23,7 @@ class ClinicSubscriptionController extends Controller
 
         return Inertia::render('configuracion/suscripcion/index', [
             'subscription' => TenantSubscriptionSummary::forTenant($tenant),
+            'comprobantes' => ComprobantesQuota::forTenant($tenant),
         ]);
     }
 }

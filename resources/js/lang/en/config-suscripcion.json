@@ -64,5 +64,27 @@
         "estado": "Status",
         "precio": "Agreed price",
         "renewal": "Next charge"
+    },
+    "comprobantes": {
+        "title": "Electronic receipts",
+        "description": "Boletas, invoices, and notes issued in your billing period.",
+        "usage": "You have issued {{used}} of {{included}} receipts",
+        "usage_unlimited": "You have issued {{used}} receipts (unlimited quota)",
+        "remaining": "Remaining included quota",
+        "progress_label": "Included quota usage",
+        "period_mensual": "Monthly period: {{start}} – {{end}}",
+        "period_anual": "Annual period: {{start}} – {{end}}",
+        "overage_title": "Estimated additional charge: {{cost}}",
+        "overage_hint": "Over included quota: {{blocks}} block(s) of {{block}} receipts × S/. {{price}} each.",
+        "annual_over_title": "You exceeded the annual included quota",
+        "annual_over_hint": "You can keep issuing receipts. Contact Orvae to review your plan or quota.",
+        "allow_overage": "When you reach the included limit you can still issue receipts; on monthly plans every extra 100 adds S/. 8.00 to your bill.",
+        "semaphore": {
+            "unlimited": "Unlimited",
+            "ok": "Normal",
+            "caution": "Attention",
+            "warning": "Near limit",
+            "over": "Over quota"
+        }
     }
 }

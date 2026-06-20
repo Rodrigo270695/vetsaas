@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
 import { SectionCard } from '../general/components/section-card';
+import { ComprobantesQuotaCard, type ComprobantesQuota } from './components/comprobantes-quota-card';
 
 type SubscriptionPlan = {
     nombre: string;
@@ -51,6 +52,7 @@ type SubscriptionSummary = {
 
 type SuscripcionIndexProps = {
     subscription: SubscriptionSummary | null;
+    comprobantes: ComprobantesQuota | null;
 };
 
 const formatDate = (value: string | null, locale: string): string => {
@@ -190,7 +192,7 @@ function MetricTile({
     );
 }
 
-export default function Index({ subscription }: SuscripcionIndexProps) {
+export default function Index({ subscription, comprobantes }: SuscripcionIndexProps) {
     const { t, i18n } = useTranslation(['config-suscripcion', 'common']);
 
     const summary = subscription;
@@ -423,6 +425,8 @@ export default function Index({ subscription }: SuscripcionIndexProps) {
                             />
                         </dl>
                     </SectionCard>
+
+                    <ComprobantesQuotaCard quota={comprobantes} locale={locale} />
 
                     <SectionCard
                         title={t('sections.renew')}
