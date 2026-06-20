@@ -137,8 +137,14 @@ export function CategoriaFormModal({ open, onOpenChange, categoria, parentOption
                 </FormField>
 
                 <FormField id="cat-parent" label={t('form.parent')}>
-                    <Select value={data.parent_id ?? '__none__'} onValueChange={(v) => setData('parent_id', v === '__none__' ? null : v)}>
-                        <SelectTrigger id="cat-parent">
+                    <Select
+                        value={data.parent_id ?? '__none__'}
+                        onValueChange={(v) => setData('parent_id', v === '__none__' ? null : v)}
+                    >
+                        <SelectTrigger
+                            id="cat-parent"
+                            className="h-9 w-full min-w-0 cursor-pointer justify-between bg-card/70 shadow-xs"
+                        >
                             <SelectValue placeholder={t('form.parent_placeholder')} />
                         </SelectTrigger>
                         <SelectContent>
