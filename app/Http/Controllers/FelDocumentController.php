@@ -141,6 +141,7 @@ class FelDocumentController extends Controller
                 'download_xml_url' => route('facturacion.documentos.download-xml', $doc),
                 'download_cdr_url' => route('facturacion.documentos.download-cdr', $doc),
                 'json_url' => route('facturacion.documentos.json', $doc),
+                'apisunat_mode' => $doc->apisunat_mode,
             ];
         });
 

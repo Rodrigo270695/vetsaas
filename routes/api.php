@@ -23,6 +23,9 @@ Route::prefix('internal/saas')
         Route::post('renew', [SaasProvisionController::class, 'renew'])
             ->name('api.internal.saas.renew');
 
+        Route::get('tenants/{slug}/comprobantes-overage', [SaasProvisionController::class, 'comprobantesOverage'])
+            ->name('api.internal.saas.comprobantes-overage');
+
         Route::get('tenants/{slug}', [SaasProvisionController::class, 'status'])
             ->name('api.internal.saas.status');
 

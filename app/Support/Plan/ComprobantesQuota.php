@@ -172,6 +172,72 @@ final class ComprobantesQuota
         return [$now->copy()->startOfMonth()->startOfDay(), $now->copy()->endOfMonth()->endOfDay()];
     }
 
+    /**
+     * Excedente de comprobantes del período en curso (solo planes mensuales).
+     *
+     * @return array<string, mixed>
+     */
+    public static function renewalOverage(?Tenant $tenant): array
+    {
+        if ($tenant === null) {
+            return self::emptyRenewalOverage();
+        }
+
+        $snapshot = self::forTenant($tenant);
+
+        if ($snapshot === null || ! ($snapshot['enabled'] ?? false)) {
+            return self::emptyRenewalOverage();
+        }
+
+        $ciclo = $snapshot['ciclo'] ?? 'mensual';
+        $applies = $ciclo === 'mensual' && ! ($snapshot['unlimited'] ?? false);
+        $cost = $applies ? (float) ($snapshot['overage_cost'] ?? 0) : 0.0;
+
+        return [
+            'applies' => $applies && $cost > 0,
+            'ciclo' => $ciclo,
+            'used' => (int) ($snapshot['used'] ?? 0),
+            'included' => $snapshot['included'],
+            'overage_units' => (int) ($snapshot['overage_units'] ?? 0),
+            'overage_blocks' => (int) ($snapshot['overage_blocks'] ?? 0),
+            'overage_cost' => number_format($cost, 2, '.', ''),
+            'currency' => 'PEN',
+            'period_start' => $snapshot['period_start'] ?? null,
+            'period_end' => $snapshot['period_end'] ?? null,
+            'block_size' => self::OVERAGE_BLOCK_SIZE,
+            'cost_per_block' => number_format(self::OVERAGE_COST_PER_BLOCK, 2, '.', ''),
+            'description' => $applies && $cost > 0
+                ? sprintf(
+                    'Comprobantes adicionales (%d bloque(s) × S/. %s)',
+                    (int) ($snapshot['overage_blocks'] ?? 0),
+                    number_format(self::OVERAGE_COST_PER_BLOCK, 2, '.', ''),
+                )
+                : null,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function emptyRenewalOverage(): array
+    {
+        return [
+            'applies' => false,
+            'ciclo' => null,
+            'used' => 0,
+            'included' => null,
+            'overage_units' => 0,
+            'overage_blocks' => 0,
+            'overage_cost' => '0.00',
+            'currency' => 'PEN',
+            'period_start' => null,
+            'period_end' => null,
+            'block_size' => self::OVERAGE_BLOCK_SIZE,
+            'cost_per_block' => number_format(self::OVERAGE_COST_PER_BLOCK, 2, '.', ''),
+            'description' => null,
+        ];
+    }
+
     public static function countEmittedBetween(CarbonInterface $start, CarbonInterface $end): int
     {
         if (! Schema::hasTable('fel_documents')) {

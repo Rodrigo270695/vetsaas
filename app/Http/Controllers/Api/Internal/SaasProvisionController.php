@@ -8,6 +8,7 @@ use App\Http\Requests\Api\Internal\RenewTenantRequest;
 use App\Models\Tenant;
 use App\Services\Subscriptions\SubscriptionRenewalService;
 use App\Services\Tenancy\TenantProvisioner;
+use App\Support\Plan\ComprobantesQuota;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -144,6 +145,26 @@ class SaasProvisionController extends Controller
         ];
 
         return $this->storeAndReturn($idempotencyKey, $tenant->id, 200, $body);
+    }
+
+    public function comprobantesOverage(string $slug): JsonResponse
+    {
+        $tenant = Tenant::query()->where('slug', $slug)->first();
+
+        if ($tenant === null) {
+            return response()->json([
+                'error' => 'not_found',
+                'message' => 'Tenant no encontrado.',
+            ], 404);
+        }
+
+        $overage = ComprobantesQuota::renewalOverage($tenant);
+
+        return response()->json([
+            'status' => 'ok',
+            'tenant_slug' => $tenant->slug,
+            ...$overage,
+        ]);
     }
 
     public function status(Request $request, string $slug): JsonResponse

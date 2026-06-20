@@ -72,7 +72,7 @@ class SubscriptionRenewalService
         // Al renovar, las fechas nuevas reinician el contador sin campo aparte.
 
         if (is_array($payload['payment'] ?? null)) {
-            $this->recordPayment($subscription, $tenant, $plan, $payload['payment'], $periodStart, $periodEnd);
+            $this->recordPayment($subscription, $tenant, $plan, $payload['payment'], $periodStart, $periodEnd, $payload['comprobantes_overage'] ?? null);
         }
 
         return $subscription->fresh(['plan']);
@@ -98,6 +98,7 @@ class SubscriptionRenewalService
         array $payment,
         CarbonInterface $periodStart,
         CarbonInterface $periodEnd,
+        ?array $comprobantesOverage = null,
     ): void {
         $transactionId = $payment['transaction_id'] ?? null;
 
@@ -124,7 +125,10 @@ class SubscriptionRenewalService
             'estado' => $payment['estado'] ?? 'procesado',
             'pasarela' => $payment['pasarela'] ?? 'orvae',
             'pasarela_transaction_id' => $transactionId,
-            'pasarela_response' => $payment['raw_response'] ?? null,
+            'pasarela_response' => array_filter([
+                'raw' => $payment['raw_response'] ?? null,
+                'comprobantes_overage' => $comprobantesOverage,
+            ], fn ($v) => $v !== null),
             'periodo_inicio' => $periodStart,
             'periodo_fin' => $periodEnd,
             'pagado_at' => isset($payment['pagado_at']) ? Carbon::parse($payment['pagado_at']) : now(),

@@ -37,6 +37,11 @@ class RenewTenantRequest extends FormRequest
             'payment.transaction_id' => ['nullable', 'string', 'max:200'],
             'payment.pagado_at' => ['nullable', 'date'],
             'payment.raw_response' => ['nullable', 'array'],
+
+            'comprobantes_overage' => ['nullable', 'array'],
+            'comprobantes_overage.blocks' => ['nullable', 'integer', 'min:0'],
+            'comprobantes_overage.units' => ['nullable', 'integer', 'min:0'],
+            'comprobantes_overage.amount' => ['nullable', 'numeric', 'min:0'],
         ];
     }
 }

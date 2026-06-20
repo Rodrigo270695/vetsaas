@@ -26,6 +26,7 @@ type DocumentoRow = DocumentoDownloadRow & {
     tipo_comprobante: number;
     tipo_label: string;
     estado: string;
+    apisunat_mode: 'sandbox' | 'produccion' | null;
     receptor_nombre: string;
     receptor_num_doc: string;
     total: string;
@@ -82,6 +83,21 @@ const ESTADO_LABEL: Record<string, string> = {
     rechazado: 'Rechazado',
     pendiente: 'Pendiente',
 };
+
+function modoBadge(mode: DocumentoRow['apisunat_mode']): {
+    label: string;
+    variant: 'default' | 'secondary' | 'outline';
+} {
+    if (mode === 'produccion') {
+        return { label: 'Producción', variant: 'default' };
+    }
+
+    if (mode === 'sandbox') {
+        return { label: 'Prueba', variant: 'secondary' };
+    }
+
+    return { label: 'Sin dato', variant: 'outline' };
+}
 
 function formatMonto(amount: string, moneda: string, locale: string): string {
     const n = Number(amount);
@@ -182,6 +198,19 @@ export default function Index({ documentos: paginated, filters, documento_filtro
                         : '—',
                 sortable: true,
                 sortKey: 'emitido_at',
+            },
+            {
+                key: 'modo',
+                header: 'Modo',
+                cell: (row) => {
+                    const badge = modoBadge(row.apisunat_mode);
+
+                    return (
+                        <Badge variant={badge.variant} className="font-normal">
+                            {badge.label}
+                        </Badge>
+                    );
+                },
             },
             {
                 key: 'cliente',
