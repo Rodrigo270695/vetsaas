@@ -7,13 +7,18 @@ import type { KpiAccent } from '@/components/dashboard/dashboard-kpi-grid';
 type ChartAccent = KpiAccent;
 
 const headerAccent: Record<ChartAccent, string> = {
-    brand: 'from-brand-500/20 via-transparent to-transparent',
-    sky: 'from-sky-500/20 via-transparent to-transparent',
-    emerald: 'from-emerald-500/20 via-transparent to-transparent',
-    amber: 'from-amber-500/20 via-transparent to-transparent',
-    violet: 'from-violet-500/20 via-transparent to-transparent',
-    rose: 'from-rose-500/15 via-transparent to-transparent',
-    slate: 'from-muted/40 via-transparent to-transparent',
+    brand:
+        'border-brand-200/60 bg-gradient-to-br from-brand-50/95 via-brand-50/50 to-brand-50/10 dark:border-brand-800/40 dark:from-brand-950/50 dark:via-brand-950/25 dark:to-transparent',
+    sky: 'border-sky-200/60 bg-gradient-to-br from-sky-50/95 via-sky-50/50 to-sky-50/10 dark:border-sky-800/40 dark:from-sky-950/50 dark:via-sky-950/25 dark:to-transparent',
+    emerald:
+        'border-emerald-200/60 bg-gradient-to-br from-emerald-50/95 via-emerald-50/50 to-emerald-50/10 dark:border-emerald-800/40 dark:from-emerald-950/50 dark:via-emerald-950/25 dark:to-transparent',
+    amber:
+        'border-amber-200/60 bg-gradient-to-br from-amber-50/95 via-amber-50/50 to-amber-50/10 dark:border-amber-800/40 dark:from-amber-950/50 dark:via-amber-950/25 dark:to-transparent',
+    violet:
+        'border-violet-200/60 bg-gradient-to-br from-violet-50/95 via-violet-50/50 to-violet-50/10 dark:border-violet-800/40 dark:from-violet-950/50 dark:via-violet-950/25 dark:to-transparent',
+    rose: 'border-rose-200/60 bg-gradient-to-br from-rose-50/95 via-rose-50/50 to-rose-50/10 dark:border-rose-800/40 dark:from-rose-950/50 dark:via-rose-950/25 dark:to-transparent',
+    slate:
+        'border-border/70 bg-gradient-to-br from-muted/80 via-muted/40 to-transparent dark:from-muted/30 dark:via-muted/15',
 };
 
 const iconAccent: Record<ChartAccent, string> = {
@@ -46,19 +51,12 @@ export function DashboardChartCard({
     return (
         <Card
             className={cn(
-                'min-w-0 overflow-hidden border-border/80 shadow-sm transition-shadow hover:shadow-md',
+                'min-w-0 gap-0 overflow-hidden border-border/80 py-0 shadow-sm transition-shadow hover:shadow-md',
                 className,
             )}
         >
-            <CardHeader className="relative border-b border-border/50 bg-gradient-to-r pb-4">
-                <div
-                    className={cn(
-                        'pointer-events-none absolute inset-0 bg-gradient-to-br',
-                        headerAccent[accent],
-                    )}
-                    aria-hidden
-                />
-                <div className="relative flex items-start gap-3">
+            <CardHeader className={cn('border-b pb-4 pt-5', headerAccent[accent])}>
+                <div className="flex items-start gap-3">
                     <div
                         className={cn(
                             'flex size-9 shrink-0 items-center justify-center rounded-lg',
@@ -75,7 +73,7 @@ export function DashboardChartCard({
                     </div>
                 </div>
             </CardHeader>
-            <CardContent className="min-w-0 bg-muted/20 pt-4">{children}</CardContent>
+            <CardContent className="min-w-0 bg-muted/20 px-6 pb-6 pt-4">{children}</CardContent>
         </Card>
     );
 }
