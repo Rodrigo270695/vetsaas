@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 /**
  * @property string $id
@@ -28,8 +29,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property ?string $url_cdr
  * @property ?string $enlace_consulta
  * @property ?array $apisunat_payload
+ * @property ?string $apisunat_mode
  * @property ?string $error_mensaje
- * @property ?\Illuminate\Support\Carbon $emitido_at
+ * @property ?Carbon $emitido_at
  */
 class FelDocument extends Model
 {
@@ -66,6 +68,7 @@ class FelDocument extends Model
         'url_cdr',
         'enlace_consulta',
         'apisunat_payload',
+        'apisunat_mode',
         'error_mensaje',
         'emitido_at',
         'anulado_at',

@@ -426,13 +426,17 @@ export default function Index({ subscription, comprobantes }: SuscripcionIndexPr
                         </dl>
                     </SectionCard>
 
-                    <ComprobantesQuotaCard quota={comprobantes} locale={locale} />
+                    <ComprobantesQuotaCard
+                        quota={comprobantes}
+                        locale={locale}
+                        className="xl:col-span-6"
+                    />
 
                     <SectionCard
                         title={t('sections.renew')}
                         description={t('renew_hint')}
                         icon={CreditCard}
-                        className="xl:col-span-12"
+                        className="xl:col-span-6 flex h-full flex-col"
                         badge={
                             summary?.renewal_url ? (
                                 <CheckCircle2 className="size-5 text-primary" />

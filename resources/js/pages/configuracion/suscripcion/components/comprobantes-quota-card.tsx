@@ -26,6 +26,7 @@ export type ComprobantesQuota = {
 type Props = {
     quota: ComprobantesQuota | null;
     locale: string;
+    className?: string;
 };
 
 const formatDate = (value: string, locale: string): string => {
@@ -69,7 +70,7 @@ const semaphoreStyles: Record<
     },
 };
 
-export function ComprobantesQuotaCard({ quota, locale }: Props) {
+export function ComprobantesQuotaCard({ quota, locale, className }: Props) {
     const { t } = useTranslation(['config-suscripcion']);
 
     const styles = quota ? semaphoreStyles[quota.semaphore] : semaphoreStyles.ok;
@@ -100,7 +101,7 @@ export function ComprobantesQuotaCard({ quota, locale }: Props) {
             title={t('comprobantes.title')}
             description={t('comprobantes.description')}
             icon={ReceiptText}
-            className="xl:col-span-12"
+            className={cn('h-full', className)}
             badge={
                 <span
                     className={cn(
@@ -125,6 +126,8 @@ export function ComprobantesQuotaCard({ quota, locale }: Props) {
                                 end: formatDate(quota.period_end, locale),
                             })}
                         </p>
+                        <p className="text-xs text-muted-foreground">{t('comprobantes.production_only')}</p>
+                        <p className="text-xs text-muted-foreground">{t('comprobantes.period_reset_hint')}</p>
                     </div>
 
                     {!quota.unlimited && quota.remaining !== null && (

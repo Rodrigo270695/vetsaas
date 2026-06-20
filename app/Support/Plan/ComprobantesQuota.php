@@ -86,6 +86,7 @@ final class ComprobantesQuota
                 'overage_cost' => number_format($overage['cost'], 2, '.', ''),
                 'overage_block_size' => self::OVERAGE_BLOCK_SIZE,
                 'overage_cost_per_block' => number_format(self::OVERAGE_COST_PER_BLOCK, 2, '.', ''),
+                'production_only' => true,
             ];
         } catch (Throwable $e) {
             report($e);
@@ -177,10 +178,15 @@ final class ComprobantesQuota
             return 0;
         }
 
-        return FelDocument::query()
+        $query = FelDocument::query()
             ->whereNotNull('emitido_at')
-            ->whereBetween('emitido_at', [$start, $end])
-            ->count();
+            ->whereBetween('emitido_at', [$start, $end]);
+
+        if (Schema::hasColumn('fel_documents', 'apisunat_mode')) {
+            $query->where('apisunat_mode', 'produccion');
+        }
+
+        return $query->count();
     }
 
     private static function planTieneFacturacion(Plan $plan): bool

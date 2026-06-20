@@ -59,6 +59,7 @@ final class FelEmisionVentaService
         }
 
         $credenciales = ApisunatCredentialResolver::fromClinicSetting($clinic);
+        $emisionModo = $credenciales['mode'];
         $receptor = FelReceptorResolver::datosReceptor($venta->propietario);
         $tipoComprobante = (int) $venta->tipo_comprobante_sunat;
 
@@ -66,7 +67,7 @@ final class FelEmisionVentaService
             throw new RuntimeException(__('caja.ventas.fel.factura_requiere_ruc'));
         }
 
-        return DB::transaction(function () use ($venta, $credenciales, $receptor, $tipoComprobante): FelDocument {
+        return DB::transaction(function () use ($venta, $credenciales, $receptor, $tipoComprobante, $emisionModo): FelDocument {
             $venta = Venta::query()->whereKey($venta->id)->lockForUpdate()->firstOrFail();
 
             if (! $this->estadoPermiteEmision($venta)) {
@@ -96,6 +97,7 @@ final class FelEmisionVentaService
                     'estado' => FelDocument::ESTADO_PENDIENTE,
                     'error_mensaje' => null,
                     'emitido_at' => null,
+                    'apisunat_mode' => $emisionModo,
                 ],
             );
 
@@ -141,6 +143,7 @@ final class FelEmisionVentaService
                 'url_cdr' => $enlaces['cdr'],
                 'enlace_consulta' => $enlaces['consulta'],
                 'apisunat_payload' => $respuesta,
+                'apisunat_mode' => $emisionModo,
                 'error_mensaje' => null,
                 'emitido_at' => now(),
             ]);

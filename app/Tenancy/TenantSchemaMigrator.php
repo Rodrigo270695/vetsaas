@@ -280,6 +280,8 @@ class TenantSchemaMigrator
             '2026_06_21_100000_t096_add_precio_compra_to_productos_table' => Schema::hasTable('productos')
                 && Schema::hasColumn('productos', 'precio_compra'),
             '2026_06_22_100000_t097_create_promotions_table' => Schema::hasTable('promotions'),
+            '2026_06_23_100000_t098_add_apisunat_mode_to_fel_documents' => Schema::hasTable('fel_documents')
+                && Schema::hasColumn('fel_documents', 'apisunat_mode'),
             default => false,
         };
     }

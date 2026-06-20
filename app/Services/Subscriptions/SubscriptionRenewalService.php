@@ -38,7 +38,7 @@ class SubscriptionRenewalService
             ?? $tenant->subscriptions()->latest()->first();
 
         if ($subscription === null) {
-            throw new InvalidArgumentException("El tenant no tiene suscripción para renovar.");
+            throw new InvalidArgumentException('El tenant no tiene suscripción para renovar.');
         }
 
         $ciclo = in_array($payload['ciclo'] ?? $subscription->ciclo, ['mensual', 'anual'], true)
@@ -67,6 +67,9 @@ class SubscriptionRenewalService
             'proximo_cobro_at' => $periodEnd,
             'precio_pactado' => $precio,
         ]);
+
+        // El cupo de comprobantes en UI usa emitido_at dentro de [period_start, period_end].
+        // Al renovar, las fechas nuevas reinician el contador sin campo aparte.
 
         if (is_array($payload['payment'] ?? null)) {
             $this->recordPayment($subscription, $tenant, $plan, $payload['payment'], $periodStart, $periodEnd);
