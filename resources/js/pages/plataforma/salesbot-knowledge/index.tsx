@@ -1,4 +1,5 @@
-import { Head, router } from '@inertiajs/react';
+import { Head } from '@inertiajs/react';
+import axios from 'axios';
 import {
     Activity,
     Bot,
@@ -32,6 +33,7 @@ import type {
 import { Button } from '@/components/ui/button';
 import { useDataTablePage } from '@/hooks/use-data-table-page';
 import { usePermission } from '@/hooks/use-permission';
+import { toastManager } from '@/lib/toast';
 import { useRowSelection } from '@/hooks/use-row-selection';
 import AppLayout from '@/layouts/app-layout';
 import salesbotKnowledge from '@/routes/plataforma/salesbot-knowledge';
@@ -93,19 +95,22 @@ export default function Index({
 
     const handleFlushCache = useCallback(() => {
         setFlushingCache(true);
-        router.post(
-            salesbotKnowledge.flushCache.url(),
-            { product: 'vetsaas' },
-            {
-                onSuccess: () => {
-                    setFlushingCache(false);
-                },
-                onError: () => {
-                    setFlushingCache(false);
-                },
-            },
-        );
-    }, []);
+        axios
+            .post(salesbotKnowledge.flushCache.url(), { product: 'vetsaas' })
+            .then(() => {
+                toastManager.success({
+                    title: t('salesbot-knowledge:toast.cache_flushed'),
+                });
+            })
+            .catch(() => {
+                toastManager.error({
+                    title: t('salesbot-knowledge:toast.cache_error'),
+                });
+            })
+            .finally(() => {
+                setFlushingCache(false);
+            });
+    }, [t]);
 
     const {
         search,
