@@ -171,118 +171,34 @@ function csrfPostJson(url: string, body: Record<string, unknown>): Promise<Respo
     });
 }
 
-// ─── Panel de importación CSV ───────────────────────────────────────────────
-function ImportCsvPanel({ canUpdate }: { canUpdate: boolean }) {
-    const [file, setFile] = useState<File | null>(null);
-    const [days, setDays] = useState(5);
-    const [uploading, setUploading] = useState(false);
-    const [result, setResult] = useState<{ imported: number; skipped: number; errors: string[] } | null>(null);
-
-    const handleUpload = () => {
-        if (!file) return;
-        const xsrf = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/)?.[1] ?? '';
-        const form = new FormData();
-        form.append('file', file);
-        form.append('days', String(days));
-
-        setUploading(true);
-        setResult(null);
-        fetch('/plataforma/salesbot-conversations/import-csv', {
-            method: 'POST',
-            credentials: 'same-origin',
-            headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-XSRF-TOKEN': decodeURIComponent(xsrf),
-            },
-            body: form,
-        })
-            .then((r) => r.json())
-            .then((data) => {
-                setResult({ imported: data.imported, skipped: data.skipped, errors: data.errors ?? [] });
-                setFile(null);
-            })
-            .catch(() => setResult({ imported: 0, skipped: 0, errors: ['Error al subir el archivo.'] }))
-            .finally(() => setUploading(false));
-    };
-
-    return (
-        <div className="rounded-xl border bg-card p-4 shadow-sm">
-            <div className="mb-3 flex items-center justify-between">
-                <div>
-                    <p className="text-sm font-semibold text-foreground">Importar leads desde CSV</p>
-                    <p className="text-xs text-muted-foreground">
-                        Sube un CSV con números de WhatsApp para reactivarlos automáticamente.
-                        Duplicados son ignorados.
-                    </p>
-                </div>
-                <a
-                    href="/plataforma/salesbot-conversations/csv-template"
-                    download
-                    className="flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                >
-                    <Download className="size-3.5" />
-                    Descargar plantilla
-                </a>
-            </div>
-
-            <div className="flex flex-wrap items-end gap-3">
-                <div className="flex flex-col gap-1">
-                    <label className="text-xs text-muted-foreground">Archivo CSV</label>
-                    <input
-                        type="file"
-                        accept=".csv,text/csv"
-                        onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-                        className="text-xs file:mr-2 file:cursor-pointer file:rounded file:border-0 file:bg-primary file:px-2 file:py-1 file:text-xs file:text-primary-foreground"
-                    />
-                </div>
-                <div className="flex flex-col gap-1">
-                    <label className="text-xs text-muted-foreground">Días de inactividad simulada</label>
-                    <input
-                        type="number"
-                        min={1}
-                        max={30}
-                        value={days}
-                        onChange={(e) => setDays(Number(e.target.value))}
-                        className="w-20 rounded-md border bg-background px-2 py-1.5 text-xs"
-                    />
-                </div>
-                {canUpdate && (
-                    <button
-                        type="button"
-                        disabled={!file || uploading}
-                        onClick={handleUpload}
-                        className="flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-opacity disabled:opacity-50"
-                    >
-                        <Upload className="size-3.5" />
-                        {uploading ? 'Subiendo…' : 'Importar'}
-                    </button>
-                )}
-            </div>
-
-            {result && (
-                <div className={`mt-3 rounded-md px-3 py-2 text-xs ${result.errors.length > 0 ? 'bg-destructive/10 text-destructive' : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400'}`}>
-                    {result.errors.length > 0
-                        ? result.errors.join(' | ')
-                        : `✅ ${result.imported} leads importados, ${result.skipped} duplicados omitidos. El scheduler los reactivará a las 10:00 AM.`
-                    }
-                </div>
-            )}
-        </div>
-    );
-}
-
-// ─── Activar IA por teléfono (lead no listado) ───────────────────────────────
-function EngagePhonePanel({ canUpdate, onSuccess }: { canUpdate: boolean; onSuccess: () => void }) {
+// ─── Barra compacta de acciones (IA + CSV) ─────────────────────────────────
+function SalesBotQuickActions({
+    canUpdate,
+    onSuccess,
+}: {
+    canUpdate: boolean;
+    onSuccess: () => void;
+}) {
+    const [engageOpen, setEngageOpen] = useState(false);
+    const [importOpen, setImportOpen] = useState(false);
     const [phone, setPhone] = useState('');
     const [name, setName] = useState('');
     const [message, setMessage] = useState('Hola, quisiera información sobre VetSaaS y los costos.');
-    const [sending, setSending] = useState(false);
-    const [open, setOpen] = useState(false);
+    const [engageSending, setEngageSending] = useState(false);
+    const [file, setFile] = useState<File | null>(null);
+    const [days, setDays] = useState(5);
+    const [uploading, setUploading] = useState(false);
+    const [importResult, setImportResult] = useState<{
+        imported: number;
+        skipped: number;
+        errors: string[];
+    } | null>(null);
 
-    const handleSubmit = () => {
+    if (!canUpdate) return null;
+
+    const handleEngage = () => {
         if (!phone.trim()) return;
-        setSending(true);
+        setEngageSending(true);
         csrfPostJson('/plataforma/salesbot-conversations/engage-phone', {
             phone: phone.trim(),
             name: name.trim() || undefined,
@@ -293,59 +209,105 @@ function EngagePhonePanel({ canUpdate, onSuccess }: { canUpdate: boolean; onSucc
                 if (!res.ok) throw new Error(data?.error ?? 'Error');
                 toastManager.success({
                     title: 'IA activada y mensaje enviado',
-                    description: data.reply?.slice(0, 120) ?? undefined,
+                    description: data.reply?.slice(0, 100) ?? undefined,
                 });
                 setPhone('');
                 setName('');
-                setOpen(false);
+                setEngageOpen(false);
                 onSuccess();
             })
             .catch((e: Error) => toastManager.error({ title: e.message || 'Error al activar la IA' }))
-            .finally(() => setSending(false));
+            .finally(() => setEngageSending(false));
     };
 
-    if (!canUpdate) return null;
+    const handleImport = () => {
+        if (!file) return;
+        const xsrf = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/)?.[1] ?? '';
+        const form = new FormData();
+        form.append('file', file);
+        form.append('days', String(days));
+        setUploading(true);
+        setImportResult(null);
+        fetch('/plataforma/salesbot-conversations/import-csv', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                Accept: 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-XSRF-TOKEN': decodeURIComponent(xsrf),
+            },
+            body: form,
+        })
+            .then((r) => r.json())
+            .then((data) => {
+                setImportResult({
+                    imported: data.imported,
+                    skipped: data.skipped,
+                    errors: data.errors ?? [],
+                });
+                if ((data.errors ?? []).length === 0) {
+                    setFile(null);
+                    onSuccess();
+                }
+            })
+            .catch(() =>
+                setImportResult({ imported: 0, skipped: 0, errors: ['Error al subir el archivo.'] }),
+            )
+            .finally(() => setUploading(false));
+    };
 
     return (
-        <div className="rounded-xl border border-dashed border-primary/30 bg-primary/5 p-4 shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-start gap-3">
-                    <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
-                        <Sparkles className="size-4" strokeWidth={2.25} />
-                    </span>
-                    <div>
-                        <p className="text-sm font-semibold text-foreground">Activar IA manualmente</p>
-                        <p className="text-xs text-muted-foreground">
-                            Para leads de Facebook que no aparecieron solos o cuando el bot no respondió.
-                            Funciona desde el celular — sin terminal.
-                        </p>
-                    </div>
-                </div>
+        <>
+            <div className="flex flex-wrap items-center gap-1.5">
                 <Button
                     type="button"
                     size="sm"
-                    className="cursor-pointer gap-1.5"
-                    onClick={() => setOpen(true)}
+                    variant="outline"
+                    className="h-8 cursor-pointer gap-1.5 text-xs"
+                    onClick={() => setEngageOpen(true)}
                 >
-                    <Bot className="size-3.5" />
-                    Responder con IA
+                    <Sparkles className="size-3.5 text-primary" />
+                    <span className="hidden sm:inline">Responder con IA</span>
+                    <span className="sm:hidden">IA</span>
                 </Button>
+                <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-8 cursor-pointer gap-1.5 text-xs"
+                    onClick={() => {
+                        setImportResult(null);
+                        setImportOpen(true);
+                    }}
+                >
+                    <Upload className="size-3.5" />
+                    <span className="hidden sm:inline">Importar CSV</span>
+                    <span className="sm:hidden">CSV</span>
+                </Button>
+                <a
+                    href="/plataforma/salesbot-conversations/csv-template"
+                    download
+                    className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                    title="Descargar plantilla CSV"
+                >
+                    <Download className="size-3.5" />
+                </a>
             </div>
 
-            <Dialog open={open} onOpenChange={setOpen}>
+            <Dialog open={engageOpen} onOpenChange={setEngageOpen}>
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
                         <DialogTitle>Activar bot y enviar respuesta</DialogTitle>
                         <DialogDescription>
-                            El bot generará una respuesta con IA y la enviará por WhatsApp al número indicado.
+                            Para leads de Facebook que no entraron solos o cuando el bot no respondió.
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="grid gap-3 py-2">
+                    <div className="grid gap-3 py-1">
                         <div className="grid gap-1.5">
                             <Label htmlFor="engage-phone">Teléfono WhatsApp</Label>
                             <Input
                                 id="engage-phone"
-                                placeholder="961777549 o 51961777549"
+                                placeholder="961777549"
                                 value={phone}
                                 onChange={(e) => setPhone(e.target.value)}
                             />
@@ -360,7 +322,7 @@ function EngagePhonePanel({ canUpdate, onSuccess }: { canUpdate: boolean; onSucc
                             />
                         </div>
                         <div className="grid gap-1.5">
-                            <Label htmlFor="engage-message">Lo que escribió el lead (contexto)</Label>
+                            <Label htmlFor="engage-message">Mensaje del lead</Label>
                             <Textarea
                                 id="engage-message"
                                 rows={3}
@@ -370,16 +332,83 @@ function EngagePhonePanel({ canUpdate, onSuccess }: { canUpdate: boolean; onSucc
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                        <Button type="button" variant="outline" onClick={() => setEngageOpen(false)}>
                             Cancelar
                         </Button>
-                        <Button type="button" disabled={sending || !phone.trim()} onClick={handleSubmit}>
-                            {sending ? 'Enviando…' : 'Activar y enviar'}
+                        <Button
+                            type="button"
+                            disabled={engageSending || !phone.trim()}
+                            onClick={handleEngage}
+                        >
+                            {engageSending ? 'Enviando…' : 'Activar y enviar'}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-        </div>
+
+            <Dialog open={importOpen} onOpenChange={setImportOpen}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Importar leads desde CSV</DialogTitle>
+                        <DialogDescription>
+                            Duplicados se ignoran. El scheduler los reactivará según los días de inactividad.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-3 py-1">
+                        <div className="grid gap-1.5">
+                            <Label>Archivo CSV</Label>
+                            <input
+                                type="file"
+                                accept=".csv,text/csv"
+                                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                                className="text-xs file:mr-2 file:cursor-pointer file:rounded file:border-0 file:bg-primary file:px-2 file:py-1 file:text-xs file:text-primary-foreground"
+                            />
+                        </div>
+                        <div className="grid gap-1.5">
+                            <Label htmlFor="import-days">Días de inactividad simulada</Label>
+                            <Input
+                                id="import-days"
+                                type="number"
+                                min={1}
+                                max={30}
+                                value={days}
+                                onChange={(e) => setDays(Number(e.target.value))}
+                                className="w-24"
+                            />
+                        </div>
+                        {importResult && (
+                            <p
+                                className={`rounded-md px-2 py-1.5 text-xs ${
+                                    importResult.errors.length > 0
+                                        ? 'bg-destructive/10 text-destructive'
+                                        : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400'
+                                }`}
+                            >
+                                {importResult.errors.length > 0
+                                    ? importResult.errors.join(' | ')
+                                    : `✅ ${importResult.imported} importados, ${importResult.skipped} duplicados.`}
+                            </p>
+                        )}
+                    </div>
+                    <DialogFooter className="flex-col gap-2 sm:flex-row">
+                        <a
+                            href="/plataforma/salesbot-conversations/csv-template"
+                            download
+                            className="mr-auto inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                        >
+                            <Download className="size-3.5" />
+                            Descargar plantilla
+                        </a>
+                        <Button type="button" variant="outline" onClick={() => setImportOpen(false)}>
+                            Cerrar
+                        </Button>
+                        <Button type="button" disabled={!file || uploading} onClick={handleImport}>
+                            {uploading ? 'Subiendo…' : 'Importar'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </>
     );
 }
 
@@ -749,12 +778,14 @@ export default function SalesBotConversationsIndex({ conversations, filters, sta
         <>
             <Head title="Conversaciones del bot" />
 
-            <div className="flex flex-1 flex-col gap-5 p-4 sm:p-6">
+            <div className="flex flex-1 flex-col gap-3 p-4 sm:p-6">
                 <PageHeader
                     title="Conversaciones del bot"
                     description={
                         <span className="flex items-center gap-3">
-                            <span>Leads del bot de VetSaaS. Pausa por lead, activa la IA con ✨, o importa CSV. Se actualiza solo cada 15 s.</span>
+                            <span className="hidden sm:inline">
+                                Pausa por lead · IA con ✨ en cada fila · actualización cada 15 s
+                            </span>
                             <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
                                 <span
                                     className={`inline-block size-2 rounded-full ${isRefreshing ? 'animate-ping bg-amber-400' : 'bg-emerald-400'}`}
@@ -787,10 +818,6 @@ export default function SalesBotConversationsIndex({ conversations, filters, sta
                     ]}
                 />
 
-                <EngagePhonePanel canUpdate={canUpdate} onSuccess={doRefresh} />
-
-                <ImportCsvPanel canUpdate={canUpdate} />
-
                 <DataTable
                     columns={columns}
                     data={conversations.data}
@@ -805,6 +832,7 @@ export default function SalesBotConversationsIndex({ conversations, filters, sta
                             onSearchChange={setSearch}
                             isSearching={isLoading}
                             placeholder="Buscar por nombre o teléfono..."
+                            filtersClassName="sm:flex-1 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-2"
                         >
                             <FilterChips
                                 ariaLabel="Filtrar por estado del bot"
@@ -812,6 +840,7 @@ export default function SalesBotConversationsIndex({ conversations, filters, sta
                                 onChange={(estado) => applyFilter({ estado })}
                                 options={estadoOptions}
                             />
+                            <SalesBotQuickActions canUpdate={canUpdate} onSuccess={doRefresh} />
                         </DataToolbar>
                     }
                     footer={
