@@ -17,8 +17,9 @@ import {
     Upload,
     User,
     XCircle,
+    Loader2,
 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     DataPagination,
@@ -30,17 +31,9 @@ import {
     StatBadge,
 } from '@/components/data-page';
 import type { DataTableColumn, FilterChip } from '@/components/data-page';
+import { FormField, FormModal, FormSection } from '@/components/forms';
 import { Button } from '@/components/ui/button';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useDataTablePage } from '@/hooks/use-data-table-page';
 import { usePermission } from '@/hooks/use-permission';
@@ -197,7 +190,8 @@ function SalesBotQuickActions({
 
     if (!canUpdate) return null;
 
-    const handleEngage = () => {
+    const handleEngage = (e?: FormEvent) => {
+        e?.preventDefault();
         if (!phone.trim()) return;
         setEngageSending(true);
         csrfPostJson('/plataforma/salesbot-conversations/engage-phone', {
@@ -221,7 +215,8 @@ function SalesBotQuickActions({
             .finally(() => setEngageSending(false));
     };
 
-    const handleImport = () => {
+    const handleImport = (e?: FormEvent) => {
+        e?.preventDefault();
         if (!file) return;
         const xsrf = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/)?.[1] ?? '';
         const form = new FormData();
@@ -316,143 +311,145 @@ function SalesBotQuickActions({
                 </a>
             </div>
 
-            <Dialog open={engageOpen} onOpenChange={setEngageOpen}>
-                <DialogContent className="sm:max-w-md">
-                    <DialogHeader>
-                        <DialogTitle>Activar bot y enviar respuesta</DialogTitle>
-                        <DialogDescription>
-                            Para leads de Facebook que no entraron solos o cuando el bot no respondió.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="grid gap-3 py-1">
-                        <div className="grid gap-1.5">
-                            <Label htmlFor="engage-phone">Teléfono WhatsApp</Label>
-                            <Input
-                                id="engage-phone"
-                                placeholder="961777549"
-                                value={phone}
-                                onChange={(e) => setPhone(e.target.value)}
-                            />
-                        </div>
-                        <div className="grid gap-1.5">
-                            <Label htmlFor="engage-name">Nombre (opcional)</Label>
-                            <Input
-                                id="engage-name"
-                                placeholder="Beatriz Moscol"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                            />
-                        </div>
-                        <div className="grid gap-1.5">
-                            <Label htmlFor="engage-message">Mensaje del lead</Label>
-                            <Textarea
-                                id="engage-message"
-                                rows={3}
-                                value={message}
-                                onChange={(e) => setMessage(e.target.value)}
-                            />
-                        </div>
-                    </div>
-                    <DialogFooter>
+            <FormModal
+                open={engageOpen}
+                onOpenChange={setEngageOpen}
+                title="Activar bot y enviar respuesta"
+                description="Para leads de Facebook que no entraron solos o cuando el bot no respondió."
+                size="sm"
+                onSubmit={handleEngage}
+                footer={
+                    <div className="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                         <Button type="button" variant="outline" onClick={() => setEngageOpen(false)}>
                             Cancelar
                         </Button>
                         <Button
-                            type="button"
+                            type="submit"
                             disabled={engageSending || !phone.trim()}
-                            onClick={handleEngage}
+                            className="gap-2"
                         >
+                            {engageSending && <Loader2 className="size-4 animate-spin" />}
                             {engageSending ? 'Enviando…' : 'Activar y enviar'}
                         </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
-            <Dialog open={importOpen} onOpenChange={setImportOpen}>
-                <DialogContent className="sm:max-w-md">
-                    <DialogHeader>
-                        <DialogTitle>Importar leads desde CSV</DialogTitle>
-                        <DialogDescription>
-                            Duplicados se ignoran. El scheduler los reactivará según los días de inactividad.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="grid gap-3 py-1">
-                        <div className="grid gap-1.5">
-                            <Label>Archivo CSV</Label>
-                            <input
-                                type="file"
-                                accept=".csv,text/csv"
-                                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-                                className="text-xs file:mr-2 file:cursor-pointer file:rounded file:border-0 file:bg-primary file:px-2 file:py-1 file:text-xs file:text-primary-foreground"
-                            />
-                        </div>
-                        <div className="grid gap-1.5">
-                            <Label htmlFor="import-days">Días de inactividad simulada</Label>
-                            <Input
-                                id="import-days"
-                                type="number"
-                                min={1}
-                                max={30}
-                                value={days}
-                                onChange={(e) => setDays(Number(e.target.value))}
-                                className="w-24"
-                            />
-                        </div>
-                        {importResult && (
-                            <div className="space-y-2">
-                                <p
-                                    className={`rounded-md px-2 py-1.5 text-xs ${
-                                        importResult.errors.length > 0 && importResult.imported === 0
-                                            ? 'bg-destructive/10 text-destructive'
-                                            : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400'
-                                    }`}
-                                >
-                                    {importResult.errors.length > 0 && importResult.imported === 0
-                                        ? importResult.errors.join(' | ')
-                                        : `✅ ${importResult.imported} importados, ${importResult.skipped} duplicados omitidos.`}
-                                </p>
-                                {importResult.errors.length > 0 && importResult.imported > 0 && (
-                                    <p className="rounded-md bg-amber-50 px-2 py-1.5 text-xs text-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
-                                        Advertencias: {importResult.errors.join(' | ')}
-                                    </p>
-                                )}
-                                {importResult.duplicates.length > 0 && (
-                                    <div className="rounded-md border bg-muted/30 px-2 py-1.5 text-xs">
-                                        <p className="mb-1 font-medium text-foreground">Duplicados (no importados):</p>
-                                        <ul className="max-h-28 space-y-0.5 overflow-y-auto text-muted-foreground">
-                                            {importResult.duplicates.map((dup) => (
-                                                <li key={`${dup.phone}-${dup.reason}`}>
-                                                    {dup.phone}
-                                                    {dup.name ? ` — ${dup.name}` : ''}
-                                                    {dup.reason === 'ya_registrado'
-                                                        ? ' (ya en el panel)'
-                                                        : ' (repetido en el CSV)'}
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                )}
-                            </div>
-                        )}
                     </div>
-                    <DialogFooter className="flex-col gap-2 sm:flex-row">
+                }
+            >
+                <FormSection>
+                    <FormField id="engage-phone" label="Teléfono WhatsApp" required>
+                        <Input
+                            id="engage-phone"
+                            placeholder="961777549"
+                            value={phone}
+                            onChange={(e) => setPhone(e.target.value)}
+                        />
+                    </FormField>
+                    <FormField id="engage-name" label="Nombre (opcional)">
+                        <Input
+                            id="engage-name"
+                            placeholder="Beatriz Moscol"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                        />
+                    </FormField>
+                    <FormField id="engage-message" label="Mensaje del lead">
+                        <Textarea
+                            id="engage-message"
+                            rows={3}
+                            value={message}
+                            onChange={(e) => setMessage(e.target.value)}
+                        />
+                    </FormField>
+                </FormSection>
+            </FormModal>
+
+            <FormModal
+                open={importOpen}
+                onOpenChange={setImportOpen}
+                title="Importar leads desde CSV"
+                description="Duplicados se ignoran. El scheduler los reactivará según los días de inactividad."
+                size="sm"
+                onSubmit={handleImport}
+                footer={
+                    <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                         <a
                             href="/plataforma/salesbot-conversations/csv-template"
                             download
-                            className="mr-auto inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
                         >
                             <Download className="size-3.5" />
                             Descargar plantilla
                         </a>
-                        <Button type="button" variant="outline" onClick={() => setImportOpen(false)}>
-                            Cerrar
-                        </Button>
-                        <Button type="button" disabled={!file || uploading} onClick={handleImport}>
-                            {uploading ? 'Subiendo…' : 'Importar'}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+                        <div className="flex flex-col-reverse gap-2 sm:flex-row">
+                            <Button type="button" variant="outline" onClick={() => setImportOpen(false)}>
+                                Cerrar
+                            </Button>
+                            <Button type="submit" disabled={!file || uploading} className="gap-2">
+                                {uploading && <Loader2 className="size-4 animate-spin" />}
+                                {uploading ? 'Subiendo…' : 'Importar'}
+                            </Button>
+                        </div>
+                    </div>
+                }
+            >
+                <FormSection>
+                    <FormField id="import-csv-file" label="Archivo CSV" required>
+                        <input
+                            id="import-csv-file"
+                            type="file"
+                            accept=".csv,text/csv"
+                            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                            className="text-xs file:mr-2 file:cursor-pointer file:rounded file:border-0 file:bg-primary file:px-2 file:py-1 file:text-xs file:text-primary-foreground"
+                        />
+                    </FormField>
+                    <FormField id="import-days" label="Días de inactividad simulada">
+                        <Input
+                            id="import-days"
+                            type="number"
+                            min={1}
+                            max={30}
+                            value={days}
+                            onChange={(e) => setDays(Number(e.target.value))}
+                            className="w-24"
+                        />
+                    </FormField>
+                    {importResult && (
+                        <div className="space-y-2">
+                            <p
+                                className={`rounded-md px-2 py-1.5 text-xs ${
+                                    importResult.errors.length > 0 && importResult.imported === 0
+                                        ? 'bg-destructive/10 text-destructive'
+                                        : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400'
+                                }`}
+                            >
+                                {importResult.errors.length > 0 && importResult.imported === 0
+                                    ? importResult.errors.join(' | ')
+                                    : `✅ ${importResult.imported} importados, ${importResult.skipped} duplicados omitidos.`}
+                            </p>
+                            {importResult.errors.length > 0 && importResult.imported > 0 && (
+                                <p className="rounded-md bg-amber-50 px-2 py-1.5 text-xs text-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
+                                    Advertencias: {importResult.errors.join(' | ')}
+                                </p>
+                            )}
+                            {importResult.duplicates.length > 0 && (
+                                <div className="rounded-md border bg-muted/30 px-2 py-1.5 text-xs">
+                                    <p className="mb-1 font-medium text-foreground">Duplicados (no importados):</p>
+                                    <ul className="max-h-28 space-y-0.5 overflow-y-auto text-muted-foreground">
+                                        {importResult.duplicates.map((dup) => (
+                                            <li key={`${dup.phone}-${dup.reason}`}>
+                                                {dup.phone}
+                                                {dup.name ? ` — ${dup.name}` : ''}
+                                                {dup.reason === 'ya_registrado'
+                                                    ? ' (ya en el panel)'
+                                                    : ' (repetido en el CSV)'}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </FormSection>
+            </FormModal>
         </>
     );
 }
@@ -581,7 +578,8 @@ export default function SalesBotConversationsIndex({ conversations, filters, sta
         );
     }, []);
 
-    const handleEngageSubmit = useCallback(() => {
+    const handleEngageSubmit = useCallback((e?: FormEvent) => {
+        e?.preventDefault();
         if (!engageTarget) return;
         setEngageSending(true);
         csrfPostJson(`/plataforma/salesbot-conversations/${engageTarget.id}/engage`, {
@@ -908,35 +906,40 @@ export default function SalesBotConversationsIndex({ conversations, filters, sta
                     }
                 />
 
-                <Dialog open={engageTarget !== null} onOpenChange={(open) => !open && setEngageTarget(null)}>
-                    <DialogContent className="sm:max-w-md">
-                        <DialogHeader>
-                            <DialogTitle>Responder con IA</DialogTitle>
-                            <DialogDescription>
-                                {engageTarget
-                                    ? `${engageTarget.prospect_name ?? 'Sin nombre'} · ${formatPhone(engageTarget.phone)}`
-                                    : ''}
-                            </DialogDescription>
-                        </DialogHeader>
-                        <div className="grid gap-1.5 py-2">
-                            <Label htmlFor="row-engage-message">Mensaje del lead (contexto para la IA)</Label>
+                <FormModal
+                    open={engageTarget !== null}
+                    onOpenChange={(open) => !open && setEngageTarget(null)}
+                    title="Responder con IA"
+                    description={
+                        engageTarget
+                            ? `${engageTarget.prospect_name ?? 'Sin nombre'} · ${formatPhone(engageTarget.phone)}`
+                            : undefined
+                    }
+                    size="sm"
+                    onSubmit={handleEngageSubmit}
+                    footer={
+                        <div className="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                            <Button type="button" variant="outline" onClick={() => setEngageTarget(null)}>
+                                Cancelar
+                            </Button>
+                            <Button type="submit" disabled={engageSending} className="gap-2">
+                                {engageSending && <Loader2 className="size-4 animate-spin" />}
+                                {engageSending ? 'Enviando…' : 'Activar y enviar'}
+                            </Button>
+                        </div>
+                    }
+                >
+                    <FormSection>
+                        <FormField id="row-engage-message" label="Mensaje del lead (contexto para la IA)">
                             <Textarea
                                 id="row-engage-message"
                                 rows={4}
                                 value={engageMessage}
                                 onChange={(e) => setEngageMessage(e.target.value)}
                             />
-                        </div>
-                        <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setEngageTarget(null)}>
-                                Cancelar
-                            </Button>
-                            <Button type="button" disabled={engageSending} onClick={handleEngageSubmit}>
-                                {engageSending ? 'Enviando…' : 'Activar y enviar'}
-                            </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
+                        </FormField>
+                    </FormSection>
+                </FormModal>
             </div>
         </>
     );
