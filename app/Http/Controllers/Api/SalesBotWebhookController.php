@@ -96,6 +96,19 @@ final class SalesBotWebhookController extends Controller
 
         $isAudio = in_array($type, ['ptt', 'audio'], true);
 
+        // Log de diagnóstico — detectar tipo real y estructura del payload.
+        // Quitar una vez confirmado el formato de OpenWA.
+        Log::info('SalesBot webhook payload', [
+            'event'    => $event,
+            'type'     => $type,
+            'fromMe'   => $fromMe,
+            'waChatId' => $waChatId,
+            'body_len' => strlen($body),
+            'body_preview' => substr($body, 0, 80),
+            'is_audio' => $isAudio,
+            'data_keys' => array_keys(is_array($data) ? $data : []),
+        ]);
+
         // Saltar si: es mensaje propio, no es evento de mensaje,
         // o está vacío Y no es un audio que podamos transcribir.
         if ($fromMe || ! $esEventoMensaje || ($body === '' && ! $isAudio)) {
