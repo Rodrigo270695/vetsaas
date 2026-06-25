@@ -660,7 +660,9 @@ PROMPT;
             'veterinari'    => 'veterinaria',
             'clinica vet'   => 'veterinaria',
             'clínica vet'   => 'veterinaria',
-            // Intención de compra / información
+            'mascotas'      => 'veterinaria',
+            'pacientes vet' => 'veterinaria',
+            // Intención de compra / información (con contexto VetSaaS)
             'me interesa'   => 'interes',
             'quiero info'   => 'interes',
             'más informaci' => 'interes',
@@ -674,12 +676,8 @@ PROMPT;
             'precio'        => 'precio',
             'cuánto cuesta' => 'precio',
             'cuanto cuesta' => 'precio',
-            'plan'          => 'plan',
-            // Sistema / software
-            'sistema'       => 'sistema',
-            'software'      => 'sistema',
-            'gestión'       => 'sistema',
-            'gestion'       => 'sistema',
+            'cuánto vale'   => 'precio',
+            'cuanto vale'   => 'precio',
         ];
 
         foreach ($triggers as $keyword => $trigger) {
@@ -689,5 +687,52 @@ PROMPT;
         }
 
         return null;
+    }
+
+    /**
+     * Detecta mensajes que indican conversación manual (no ventas VetSaaS).
+     * Ej: cliente envía datos de registro, habla con Rodrigo, proyecto a medida.
+     */
+    public function isHumanHandoffMessage(string $message): bool
+    {
+        $lower = mb_strtolower($message);
+
+        if (preg_match('/\brodrigo\b/u', $lower)) {
+            return true;
+        }
+
+        $signals = [
+            'dni:',
+            'ruc:',
+            'empresa:',
+            'razón social',
+            'razon social',
+            'dominio a registrar',
+            'software a medida',
+            'a medida',
+            'corporacion',
+            'corporación',
+            'eirl',
+            's.a.c.',
+            'sac ',
+        ];
+
+        $matchCount = 0;
+        foreach ($signals as $signal) {
+            if (str_contains($lower, $signal)) {
+                $matchCount++;
+            }
+        }
+
+        // Formulario con varios campos (Nombre + Teléfono + Email, etc.)
+        if ($matchCount >= 2) {
+            return true;
+        }
+
+        if (str_contains($lower, 'nombre:') && (str_contains($lower, 'teléfono:') || str_contains($lower, 'telefono:'))) {
+            return true;
+        }
+
+        return false;
     }
 }

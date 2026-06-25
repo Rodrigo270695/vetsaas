@@ -104,9 +104,26 @@ final class SalesBotWebhookController extends Controller
         $isAudio   = in_array($type, ['ptt', 'audio'], true);
         $messageId = (string) ($data['id'] ?? '');
 
-        // Saltar si: es mensaje propio, no es evento de mensaje,
-        // o está vacío Y no es un audio que podamos transcribir.
-        if ($fromMe || ! $esEventoMensaje || ($body === '' && ! $isAudio)) {
+        // Si Rodrigo escribe manualmente desde WhatsApp → pausar bot en ese chat.
+        if ($fromMe && $esEventoMensaje) {
+            $openWaSessionId = (string) ($payload['sessionId'] ?? $data['sessionId'] ?? '');
+            $contact         = $this->contactResolver->resolve($data, $openWaSessionId !== '' ? $openWaSessionId : null);
+            $conversation    = $this->botService->findExistingConversation($contact['phone'], $contact['wa_chat_id']);
+
+            if ($conversation !== null && $conversation->bot_active) {
+                $conversation->pauseBot();
+                $conversation->activation_trigger = 'auto-pausa:humano';
+                $conversation->save();
+                Log::info('SalesBot auto-paused: mensaje manual de Rodrigo', [
+                    'phone' => $contact['phone'],
+                ]);
+            }
+
+            return response()->json(['ok' => true, 'skipped' => 'fromMe']);
+        }
+
+        // Saltar si: no es evento de mensaje, o está vacío Y no es audio transcribible.
+        if (! $esEventoMensaje || ($body === '' && ! $isAudio)) {
             return response()->json(['ok' => true, 'skipped' => true]);
         }
 
@@ -125,6 +142,20 @@ final class SalesBotWebhookController extends Controller
 
         if ($phone === '') {
             return response()->json(['ok' => false, 'reason' => 'no phone'], 422);
+        }
+
+        // Cliente habla con Rodrigo o envía datos de proyecto → no intervenir.
+        if ($this->botService->isHumanHandoffMessage($body)) {
+            $conversation = $this->botService->findExistingConversation($phone, $waChatId);
+
+            if ($conversation !== null && $conversation->bot_active) {
+                $conversation->pauseBot();
+                $conversation->activation_trigger = 'auto-pausa:humano-cliente';
+                $conversation->save();
+                Log::info('SalesBot auto-paused: conversación manual detectada', ['phone' => $phone]);
+            }
+
+            return response()->json(['ok' => true, 'skipped' => 'human_handoff']);
         }
 
         // ── Deduplicación por message ID ──────────────────────────────────
