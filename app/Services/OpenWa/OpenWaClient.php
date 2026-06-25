@@ -177,25 +177,45 @@ final class OpenWaClient
                 $publicUrl = rtrim((string) config('app.url'), '/') . $publicUrl;
             }
 
-            // Intentar endpoint de voz nativo primero.
-            try {
-                $response = $this->request('post', '/api/sessions/' . $sessionId . '/messages/send-voice', [
-                    'chatId' => $chatId,
-                    'url'    => $publicUrl,
-                    'ptt'    => true,
-                ]);
-            } catch (RuntimeException $e) {
-                if (str_contains($e->getMessage(), '404') || str_contains($e->getMessage(), 'Not Found')) {
-                    // Fallback: send-file con flag ptt.
-                    $response = $this->request('post', '/api/sessions/' . $sessionId . '/messages/send-file', [
-                        'chatId'   => $chatId,
-                        'file'     => $publicUrl,
-                        'filename' => 'voice.ogg',
-                        'ptt'      => true,
+            // Probar endpoints en orden hasta encontrar el que acepta tu versión de OpenWA.
+            $endpoints = [
+                [
+                    'path' => '/api/sessions/' . $sessionId . '/messages/send-audio',
+                    'body' => ['chatId' => $chatId, 'url' => $publicUrl, 'ptt' => true],
+                ],
+                [
+                    'path' => '/api/sessions/' . $sessionId . '/messages/send-ptt',
+                    'body' => ['chatId' => $chatId, 'url' => $publicUrl],
+                ],
+                [
+                    'path' => '/api/sessions/' . $sessionId . '/messages/send-media',
+                    'body' => ['chatId' => $chatId, 'url' => $publicUrl, 'type' => 'ptt', 'ptt' => true],
+                ],
+                [
+                    'path' => '/api/sessions/' . $sessionId . '/messages/send-voice',
+                    'body' => ['chatId' => $chatId, 'url' => $publicUrl, 'ptt' => true],
+                ],
+            ];
+
+            $response     = null;
+            $lastError    = null;
+
+            foreach ($endpoints as $ep) {
+                try {
+                    $response = $this->request('post', $ep['path'], $ep['body']);
+                    \Illuminate\Support\Facades\Log::info('OpenWA sendVoice success', ['endpoint' => $ep['path']]);
+                    break;
+                } catch (RuntimeException $e) {
+                    \Illuminate\Support\Facades\Log::debug('OpenWA sendVoice endpoint failed', [
+                        'endpoint' => $ep['path'],
+                        'error'    => substr($e->getMessage(), 0, 120),
                     ]);
-                } else {
-                    throw $e;
+                    $lastError = $e;
                 }
+            }
+
+            if ($response === null) {
+                throw new RuntimeException('Ningún endpoint de voz de OpenWA funcionó. Último error: ' . ($lastError?->getMessage() ?? 'desconocido'));
             }
         } finally {
             // Borrar el archivo temporal siempre, haya éxito o error.
