@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Services\Sales;
 
+use App\Models\Plan;
 use App\Models\SalesBotKnowledge;
 use App\Models\SalesConversation;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
@@ -50,25 +52,79 @@ final class SalesBotService
      * Define personalidad, flujo y reglas estrictas de conversación.
      */
     /**
-     * Construye el system prompt combinando las instrucciones fijas de comportamiento
-     * con el contexto de producto que viene de la base de datos.
+     * Construye el system prompt combinando:
+     *  - Precios y límites REALES desde la tabla `plans` (fuente única de verdad).
+     *  - Módulos, FAQs y objeciones desde `salesbot_knowledge` (editables en el panel).
      *
-     * Las instrucciones fijas (tono, flujo, reglas) están aquí porque son parte
-     * de la lógica del negocio y no cambian con la frecuencia de los precios.
-     *
-     * El contexto del producto (planes, módulos, FAQs, objeciones) viene de la BD
-     * para que Rodrigo pueda actualizarlo sin tocar código.
+     * Rodrigo solo actualiza UN lugar:
+     *  - Precio cambia → edita en Plataforma → Planes → bot lo sabe solo.
+     *  - Módulo/FAQ/Objeción → edita en Plataforma → Bot de ventas.
      */
     private function buildSystemPrompt(string $product = 'vetsaas'): string
     {
-        // Cargar el contexto de producto desde la BD (cacheado 5 min).
-        $productContext = SalesBotKnowledge::buildContext($product);
+        // ── Precios desde la tabla real de planes (cacheado 5 min) ───────────
+        $plansContext = Cache::remember("salesbot_plans_{$product}", now()->addMinutes(5), function (): string {
+            $plans = Plan::query()
+                ->where('activo', true)
+                ->where('es_publico', true)
+                ->orderBy('orden')
+                ->get(['nombre', 'codigo', 'precio_mensual', 'precio_anual', 'descripcion']);
 
-        // Si por alguna razón la BD está vacía, usar un fallback mínimo.
-        if (trim($productContext) === '') {
-            $productContext = "VetSaaS es un sistema de gestión para clínicas veterinarias de Orvae (orvae.pe). "
-                ."Planes: Free S/0, Starter S/39.90/mes, Pro S/59.90/mes, Clínica S/99.90/mes. "
-                ."Demo: demo.orvae.pe / demo\@vetsaas.pe / demo1234.";
+            if ($plans->isEmpty()) {
+                return '';
+            }
+
+            $lines = ["## PLANES Y PRECIOS (fuente oficial — actualizado automáticamente)\n"];
+            foreach ($plans as $plan) {
+                $mensual = number_format((float) $plan->precio_mensual, 2);
+                $anual   = $plan->precio_anual ? 'S/'.number_format((float) $plan->precio_anual, 2).'/año' : 'sin precio anual';
+                $lines[] = "### {$plan->nombre} — S/{$mensual}/mes ({$anual})";
+                if ($plan->descripcion) {
+                    $lines[] = $plan->descripcion;
+                }
+                $lines[] = '';
+            }
+
+            return implode("\n", $lines);
+        });
+
+        // ── Módulos, FAQs y Objeciones desde salesbot_knowledge ──────────────
+        // La sección "plan" se EXCLUYE porque los precios vienen de la tabla real.
+        $knowledgeContext = Cache::remember("salesbot_knowledge_{$product}_no_plans", now()->addMinutes(5), function () use ($product): string {
+            $entries = \App\Models\SalesBotKnowledge::query()
+                ->where('product', $product)
+                ->where('is_active', true)
+                ->where('section', '!=', 'plan') // precios = tabla planes, no aquí
+                ->orderBy('section')
+                ->orderBy('sort_order')
+                ->get();
+
+            if ($entries->isEmpty()) {
+                return '';
+            }
+
+            $sections = [];
+            foreach ($entries->groupBy('section') as $section => $items) {
+                $sectionTitle = match ($section) {
+                    'modulo'   => 'MÓDULOS Y FUNCIONALIDADES',
+                    'faq'      => 'PREGUNTAS FRECUENTES',
+                    'objecion' => 'CÓMO MANEJAR OBJECIONES',
+                    default    => strtoupper($section),
+                };
+                $block = "## {$sectionTitle}\n\n";
+                foreach ($items as $item) {
+                    $block .= "### {$item->title}\n{$item->content}\n\n";
+                }
+                $sections[] = trim($block);
+            }
+
+            return implode("\n\n---\n\n", $sections);
+        });
+
+        $productContext = trim($plansContext."\n\n---\n\n".$knowledgeContext);
+
+        if ($productContext === '---') {
+            $productContext = "VetSaaS es un sistema de gestión para clínicas veterinarias de Orvae (orvae.pe).";
         }
 
         return <<<PROMPT

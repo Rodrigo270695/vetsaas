@@ -107,5 +107,7 @@ final class SalesBotKnowledge extends Model
     public static function flushCache(string $product = 'vetsaas'): void
     {
         Cache::forget("salesbot_knowledge_{$product}");
+        Cache::forget("salesbot_knowledge_{$product}_no_plans");
+        Cache::forget("salesbot_plans_{$product}");
     }
 }

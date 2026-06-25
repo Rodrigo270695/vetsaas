@@ -1,5 +1,4 @@
 import { Head } from '@inertiajs/react';
-import axios from 'axios';
 import {
     Activity,
     Bot,
@@ -95,12 +94,28 @@ export default function Index({
 
     const handleFlushCache = useCallback(() => {
         setFlushingCache(true);
-        axios
-            .post(salesbotKnowledge.flushCache.url(), { product: 'vetsaas' })
-            .then(() => {
-                toastManager.success({
-                    title: t('salesbot-knowledge:toast.cache_flushed'),
-                });
+
+        const xsrf = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/)?.[1] ?? '';
+
+        fetch(salesbotKnowledge.flushCache.url(), {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-XSRF-TOKEN': decodeURIComponent(xsrf),
+            },
+            body: JSON.stringify({ product: 'vetsaas' }),
+        })
+            .then((res) => {
+                if (res.ok) {
+                    toastManager.success({
+                        title: t('salesbot-knowledge:toast.cache_flushed'),
+                    });
+                } else {
+                    throw new Error(`HTTP ${res.status}`);
+                }
             })
             .catch(() => {
                 toastManager.error({

@@ -121,6 +121,8 @@ class PlanController extends Controller
     {
         Plan::create($request->validated());
 
+        \Illuminate\Support\Facades\Cache::forget('salesbot_plans_vetsaas');
+
         return back()->with('success', 'Plan creado correctamente.');
     }
 
@@ -136,6 +138,10 @@ class PlanController extends Controller
         }
 
         $plan->update($data);
+
+        // Invalidar el caché del bot de ventas para que use los precios nuevos.
+        \Illuminate\Support\Facades\Cache::forget('salesbot_plans_vetsaas');
+        \Illuminate\Support\Facades\Cache::forget('salesbot_knowledge_vetsaas_no_plans');
 
         return back()->with('success', 'Plan actualizado correctamente.');
     }
