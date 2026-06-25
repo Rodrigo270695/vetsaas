@@ -91,9 +91,15 @@ const formatWhen = (iso: string | null): string => {
 
 /** Muestra el teléfono como número legible. */
 const formatPhone = (raw: string): string => {
+    if (raw.startsWith('lid:')) {
+        return 'WhatsApp (ID privado)';
+    }
     const digits = raw.replace('@c.us', '').replace(/\D/g, '');
     if (digits.startsWith('51') && digits.length === 11) {
         return `+51 ${digits.slice(2, 3)} ${digits.slice(3, 6)} ${digits.slice(6, 9)} ${digits.slice(9)}`;
+    }
+    if (digits.length >= 13) {
+        return 'WhatsApp (ID privado)';
     }
     return `+${digits}`;
 };

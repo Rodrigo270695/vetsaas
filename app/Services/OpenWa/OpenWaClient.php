@@ -77,6 +77,28 @@ final class OpenWaClient
     /**
      * @return array<string, mixed>
      */
+    public function getContact(string $sessionId, string $contactId): array
+    {
+        // OpenWA acepta número, 51999@c.us o 141...@lid (URL-encoded).
+        $encoded = rawurlencode($contactId);
+
+        $response = $this->request('get', '/api/sessions/' . $sessionId . '/contacts/' . $encoded);
+
+        if (! is_array($response)) {
+            throw new RuntimeException('OpenWA no devolvió datos del contacto.');
+        }
+
+        // Respuesta puede venir envuelta en { success, data: {...} }.
+        if (isset($response['data']) && is_array($response['data'])) {
+            return $response['data'];
+        }
+
+        return $response;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
     public function sendText(string $sessionId, string $chatId, string $text): array
     {
         $response = $this->request('post', '/api/sessions/'.$sessionId.'/messages/send-text', [

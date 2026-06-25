@@ -326,13 +326,99 @@ PROMPT;
     }
 
     /**
-     * Busca una conversación existente por número de teléfono.
-     * Devuelve null si no existe (prospecto nuevo).
+     * Busca una conversación existente por teléfono o por chat ID de WhatsApp.
      */
-    public function findExistingConversation(string $phone): ?SalesConversation
+    public function findExistingConversation(string $phone, ?string $waChatId = null): ?SalesConversation
     {
         /** @var SalesConversation|null */
-        return SalesConversation::query()->where('phone', $phone)->first();
+        $conversation = SalesConversation::query()->where('phone', $phone)->first();
+
+        if ($conversation !== null) {
+            return $conversation;
+        }
+
+        if (str_starts_with($phone, 'lid:')) {
+            $digits = substr($phone, 4);
+            /** @var SalesConversation|null */
+            $conversation = SalesConversation::query()->where('phone', $digits)->first();
+
+            if ($conversation !== null) {
+                return $conversation;
+            }
+        } elseif ($this->phoneLooksLikeLid($phone)) {
+            /** @var SalesConversation|null */
+            $conversation = SalesConversation::query()->where('phone', 'lid:'.$phone)->first();
+
+            if ($conversation !== null) {
+                return $conversation;
+            }
+        }
+
+        if ($waChatId !== null && $waChatId !== '') {
+            /** @var SalesConversation|null */
+            return SalesConversation::query()->where('wa_chat_id', $waChatId)->first();
+        }
+
+        return null;
+    }
+
+    private function phoneLooksLikeLid(string $phone): bool
+    {
+        if (str_starts_with($phone, 'lid:')) {
+            return true;
+        }
+
+        $digits = preg_replace('/\D/', '', $phone) ?? '';
+        $len    = strlen($digits);
+
+        if ($len === 11 && str_starts_with($digits, '51')) {
+            return false;
+        }
+
+        if ($len === 9 && str_starts_with($digits, '9')) {
+            return false;
+        }
+
+        return $len >= 13;
+    }
+
+    /**
+     * Actualiza teléfono/nombre cuando OpenWA nos da datos mejores (ej. resolver @lid).
+     */
+    public function syncContactMetadata(
+        SalesConversation $conversation,
+        string $phone,
+        string $waChatId,
+        ?string $prospectName,
+    ): void {
+        $dirty = false;
+
+        if ($conversation->wa_chat_id !== $waChatId) {
+            $conversation->wa_chat_id = $waChatId;
+            $dirty = true;
+        }
+
+        $currentPhone = $conversation->phone;
+        $hasRealPhone = ! str_starts_with($phone, 'lid:');
+        $currentIsLid = str_starts_with($currentPhone, 'lid:')
+            || $this->phoneLooksLikeLid($currentPhone);
+
+        if ($hasRealPhone && $currentIsLid) {
+            $conversation->phone = $phone;
+            $dirty = true;
+        } elseif (str_starts_with($phone, 'lid:') && $currentIsLid && $conversation->phone !== $phone) {
+            $conversation->phone = $phone;
+            $dirty = true;
+        }
+
+        if ($prospectName !== null && ($conversation->prospect_name === null || $conversation->prospect_name === '')) {
+            $conversation->prospect_name = $prospectName;
+            $dirty = true;
+        }
+
+        if ($dirty) {
+            $conversation->save();
+        }
     }
 
     /**

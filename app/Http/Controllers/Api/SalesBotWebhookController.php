@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Services\OpenWa\PlatformWhatsAppMessenger;
 use App\Services\Sales\SalesBotService;
+use App\Support\WhatsApp\WhatsAppContactResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -42,6 +43,7 @@ final class SalesBotWebhookController extends Controller
     public function __construct(
         private readonly SalesBotService $botService,
         private readonly PlatformWhatsAppMessenger $messenger,
+        private readonly WhatsAppContactResolver $contactResolver,
     ) {}
 
     public function handle(Request $request): JsonResponse
@@ -94,7 +96,6 @@ final class SalesBotWebhookController extends Controller
         $event   = (string) ($payload['event'] ?? $payload['type'] ?? '');
         $fromMe  = (bool) ($data['fromMe'] ?? $data['from_me'] ?? false);
         $type    = (string) ($data['type'] ?? 'chat');
-        $waChatId = (string) ($data['from'] ?? $data['chatId'] ?? $data['chat_id'] ?? '');
         $body    = trim((string) ($data['body'] ?? $data['content'] ?? $data['text'] ?? ''));
 
         // Aceptar tanto "message.received" (esta versión OpenWA) como "onMessage" (versiones antiguas).
@@ -109,35 +110,31 @@ final class SalesBotWebhookController extends Controller
             return response()->json(['ok' => true, 'skipped' => true]);
         }
 
+        // Resolver contacto: número real, nombre y chat ID para responder.
+        $openWaSessionId = (string) ($payload['sessionId'] ?? $data['sessionId'] ?? '');
+        $contact         = $this->contactResolver->resolve($data, $openWaSessionId !== '' ? $openWaSessionId : null);
+
+        $waChatId     = $contact['wa_chat_id'];
+        $phone        = $contact['phone'];
+        $prospectName = $contact['prospect_name'];
+
         // Ignorar grupos (@g.us).
         if (str_ends_with($waChatId, '@g.us')) {
             return response()->json(['ok' => true, 'skipped' => 'group']);
         }
 
-        // ── Deduplicación por message ID ──────────────────────────────────
-        // OpenWA reintenta el webhook si tarda mucho (audios: ~25s).
-        // Guardamos el ID del mensaje en caché 60s. Si ya lo procesamos,
-        // respondemos 200 inmediatamente sin volver a procesar.
-        if ($messageId !== '') {
-            $cacheKey = 'salesbot_msg_' . md5($messageId);
-            if (\Illuminate\Support\Facades\Cache::has($cacheKey)) {
-                return response()->json(['ok' => true, 'skipped' => 'duplicate']);
-            }
-            // Marcar como en proceso durante 60 segundos.
-            \Illuminate\Support\Facades\Cache::put($cacheKey, 1, 60);
-        }
-
-        // Extraer número limpio — soporta @c.us y @lid (nueva versión WhatsApp).
-        $phone = preg_replace('/@(c\.us|lid|s\.whatsapp\.net)$/', '', $waChatId);
         if ($phone === '') {
             return response()->json(['ok' => false, 'reason' => 'no phone'], 422);
         }
 
-        // Nombre del prospecto (si WhatsApp lo envía).
-        $senderData   = is_array($data['sender'] ?? null) ? $data['sender'] : [];
-        $prospectName = ($senderData['pushname'] ?? null) !== null
-            ? (string) $senderData['pushname']
-            : null;
+        // ── Deduplicación por message ID ──────────────────────────────────
+        if ($messageId !== '') {
+            $cacheKey = 'salesbot_msg_'.md5($messageId);
+            if (\Illuminate\Support\Facades\Cache::has($cacheKey)) {
+                return response()->json(['ok' => true, 'skipped' => 'duplicate']);
+            }
+            \Illuminate\Support\Facades\Cache::put($cacheKey, 1, 60);
+        }
 
         // ── Soporte de audios (Whisper) ────────────────────────────────────
         // OpenWA envía los audios como base64 en data.media.data
@@ -190,9 +187,11 @@ final class SalesBotWebhookController extends Controller
         // Si "Pepito" escribe "hola Rodrigo" sin palabras clave → silencio.
         // Si el usuario toma el control manualmente (bot_active=false) → silencio.
 
-        $conversation = $this->botService->findExistingConversation($phone);
+        $conversation = $this->botService->findExistingConversation($phone, $waChatId);
 
         if ($conversation !== null) {
+            $this->botService->syncContactMetadata($conversation, $phone, $waChatId, $prospectName);
+
             // Conversación existente con bot pausado: verificar si el cliente
             // vuelve a preguntar por VetSaaS. Si es así, reactivar el bot
             // automáticamente para no perder el lead.
@@ -208,11 +207,6 @@ final class SalesBotWebhookController extends Controller
                     // mientras Rodrigo maneja la conversación. No interrumpir.
                     return response()->json(['ok' => true, 'skipped' => 'paused']);
                 }
-            }
-            // Actualizar nombre si llegó uno nuevo.
-            if ($prospectName !== null && $conversation->prospect_name === null) {
-                $conversation->prospect_name = $prospectName;
-                $conversation->save();
             }
         } else {
             // Conversación nueva: solo activar si hay palabras clave de ventas.
