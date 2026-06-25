@@ -45,12 +45,34 @@ class DemoTenantsSeeder extends Seeder
      *
      * Cada entrada se traduce en:
      *   · subdomain  → http://<slug>.localhost:8000
-     *   · login      → admin@<slug>.test
+     *   · login      → admin@<slug>.test  (o email_override si se define)
      *   · password   → clave123456 (fija, sin force-change)
      *
-     * @var list<array{slug:string,nombre_comercial:string,razon_social:string,ruc:string,color_primario:string,color_secundario:string,plan_codigo?:string}>
+     * Claves opcionales por entrada:
+     *   · email_override  → email del usuario admin (sustituye admin@<slug>.test)
+     *   · password_override → contraseña del usuario admin
+     *
+     * @var list<array{slug:string,nombre_comercial:string,razon_social:string,ruc:string,color_primario:string,color_secundario:string,email_override?:string,password_override?:string}>
      */
     private const TENANTS = [
+        /*
+         * ── Tenant público de demostración ────────────────────────────────
+         * Credenciales que se publican en WhatsApp / Facebook Ads:
+         *   Usuario : demo@vetsaas.pe
+         *   Clave   : demo1234
+         * Plan PRO para mostrar todos los módulos al prospecto.
+         * Sus datos son recargados periódicamente por DemoDataSeeder.
+         */
+        [
+            'slug'              => 'demo',
+            'nombre_comercial'  => 'Clínica Veterinaria Demo',
+            'razon_social'      => 'VetSaaS Demo SAC',
+            'ruc'               => '20999999999',
+            'color_primario'    => '#1F6F43',
+            'color_secundario'  => '#94C7A8',
+            'email_override'    => 'demo@vetsaas.pe',
+            'password_override' => 'demo1234',
+        ],
         [
             'slug' => 'mi-clinica',
             'nombre_comercial' => 'Mi Clínica Veterinaria',
@@ -102,12 +124,15 @@ class DemoTenantsSeeder extends Seeder
             }
             $invSeeder->seedForSchema($schemaName, $config['slug']);
 
+            $loginEmail = (string) ($config['email_override'] ?? ('admin@'.$config['slug'].'.test'));
+            $loginPass  = (string) ($config['password_override'] ?? self::DEMO_PASSWORD);
+
             $this->command?->info(sprintf(
-                '✓ %s — http://%s.localhost:8000/login  (admin@%s.test / %s)',
+                '✓ %s — http://%s.localhost:8000/login  (%s / %s)',
                 $config['nombre_comercial'],
                 $config['slug'],
-                $config['slug'],
-                self::DEMO_PASSWORD,
+                $loginEmail,
+                $loginPass,
             ));
         }
 
@@ -169,17 +194,22 @@ class DemoTenantsSeeder extends Seeder
      * (`clave123456`) y `must_change_password=false` para no forzar
      * el flujo de cambio en el primer login.
      *
+     * Si la entrada tiene `email_override` o `password_override`, se
+     * usan esos valores en lugar de los predeterminados. Esto permite
+     * exponer credenciales públicas para el tenant de demostración.
+     *
      * @param  array<string,mixed>  $config
      */
     private function ensureAdmin(Tenant $tenant, array $config): void
     {
-        $email = 'admin@'.$config['slug'].'.test';
+        $email    = (string) ($config['email_override'] ?? ('admin@'.$config['slug'].'.test'));
+        $password = (string) ($config['password_override'] ?? self::DEMO_PASSWORD);
 
         $user = User::query()->updateOrCreate(
             ['tenant_id' => $tenant->id, 'email' => $email],
             [
                 'name' => 'Admin '.$config['nombre_comercial'],
-                'password' => Hash::make(self::DEMO_PASSWORD),
+                'password' => Hash::make($password),
                 'is_active' => true,
                 'must_change_password' => false,
                 'email_verified_at' => now(),
