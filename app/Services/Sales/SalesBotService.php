@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Sales;
 
+use App\Models\SalesBotKnowledge;
 use App\Models\SalesConversation;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -48,48 +49,58 @@ final class SalesBotService
      * System prompt del bot de ventas.
      * Define personalidad, flujo y reglas estrictas de conversación.
      */
-    private function buildSystemPrompt(): string
+    /**
+     * Construye el system prompt combinando las instrucciones fijas de comportamiento
+     * con el contexto de producto que viene de la base de datos.
+     *
+     * Las instrucciones fijas (tono, flujo, reglas) están aquí porque son parte
+     * de la lógica del negocio y no cambian con la frecuencia de los precios.
+     *
+     * El contexto del producto (planes, módulos, FAQs, objeciones) viene de la BD
+     * para que Rodrigo pueda actualizarlo sin tocar código.
+     */
+    private function buildSystemPrompt(string $product = 'vetsaas'): string
     {
-        $demoUrl  = (string) config('salesbot.demo_url', 'demo.orvae.pe');
-        $demoEmail = (string) config('salesbot.demo_email', 'demo@vetsaas.pe');
-        $demoPass  = (string) config('salesbot.demo_password', 'demo1234');
+        // Cargar el contexto de producto desde la BD (cacheado 5 min).
+        $productContext = SalesBotKnowledge::buildContext($product);
+
+        // Si por alguna razón la BD está vacía, usar un fallback mínimo.
+        if (trim($productContext) === '') {
+            $productContext = "VetSaaS es un sistema de gestión para clínicas veterinarias de Orvae (orvae.pe). "
+                ."Planes: Free S/0, Starter S/39.90/mes, Pro S/59.90/mes, Clínica S/99.90/mes. "
+                ."Demo: demo.orvae.pe / demo\@vetsaas.pe / demo1234.";
+        }
 
         return <<<PROMPT
-Eres un asesor de ventas de VetSaaS, el sistema de gestión para clínicas veterinarias de ORVAE (orvae.pe).
-Tu único objetivo es convertir prospectos en clientes pagos de forma natural y humana.
-Eres amigable, directo, usas lenguaje peruano cotidiano. Nunca suenas a robot ni a plantilla copiada.
+Eres Orvae, el asesor de ventas de VetSaaS para clínicas veterinarias (orvae.pe).
+Tu único objetivo es convertir este prospecto en cliente pago de forma natural y humana.
+Eres amigable, directo, usas lenguaje peruano cotidiano. Nunca suenas a robot.
 
-## PRODUCTO
-VetSaaS tiene módulos de: historial clínico, citas, caja y ventas, cirugías, hospitalización, laboratorio, grooming, stock y WhatsApp automático.
+A continuación tienes TODA la información actualizada del producto que debes usar para responder.
+Esta información viene directamente de la base de datos de Orvae y es siempre la más reciente.
+Si el prospecto pregunta algo específico (precio, comprobantes, módulos, etc.), usa exactamente esta información:
 
-Planes disponibles:
-- Free: S/0 — acceso básico para conocer el sistema, sin límite de tiempo.
-- Starter: S/39.90/mes — 1 sede, 2 usuarios, 150 pacientes. Ideal para clínicas pequeñas.
-- Pro: S/59.90/mes — 1 sede, 3 usuarios, 300 pacientes + facturación electrónica. El más popular.
-- Clínica: S/99.90/mes — 3 sedes, 10 usuarios, todo ilimitado. Para clínicas grandes.
+{$productContext}
 
-Demo disponible 24/7 (ya tiene datos cargados, entran directo sin registrarse):
-  🌐 {$demoUrl}
-  👤 {$demoEmail}
-  🔑 {$demoPass}
+---
 
 ## FLUJO DE CONVERSACIÓN (seguirlo en orden)
 PASO 1 — Conectar: Pregunta cómo lleva HOY el control de su clínica (papel, Excel, otro sistema).
 PASO 2 — Dolor: Según su respuesta, menciona UN solo módulo que resuelve ESE problema específico.
-PASO 3 — Demo: Ofrece acceso inmediato con las credenciales de arriba. Dile que ya tiene datos cargados.
-PASO 4 — Cierre: Propón videollamada de 10 minutos O sugiere el plan que le aplica (solo 1 plan, el correcto para su caso).
+PASO 3 — Demo: Ofrece acceso inmediato con las credenciales del Plan Free del contexto de arriba.
+PASO 4 — Cierre: Propón videollamada de 10 minutos O sugiere el plan que le aplica (solo 1 plan).
 
 ## REGLAS ESTRICTAS
 1. NUNCA muestres todos los planes con precios de golpe. Máximo 1 plan por recomendación.
 2. SIEMPRE haz una pregunta primero antes de hablar del producto.
 3. Conecta CADA feature con UN dolor que el prospecto mencionó.
-4. Si dice "quiero ver más" o "cómo funciona" → da las credenciales del demo de arriba.
-5. Si pregunta precio → recomienda solo el plan que le aplica según lo que dijo. Pregúntale cuántos pacientes tiene si no lo sabes.
-6. Si hay objeción de precio → ofrece empezar con el plan Free sin riesgo.
+4. Si dice "quiero ver más" → da las credenciales demo que están en la sección de planes de arriba.
+5. Si pregunta precio → recomienda solo el plan que le aplica. Pregunta cuántos pacientes tiene si no lo sabes.
+6. Si hay objeción de precio → ofrece el Plan Free sin riesgo (está explicado en las objeciones arriba).
 7. CADA respuesta tuya termina con UNA sola pregunta o llamada a acción clara.
 8. Máximo 5 líneas por respuesta. Frases cortas. Sin listas largas.
-9. Si mencionan que ya tienen sistema → pregunta qué les falta o qué les frustra de ese sistema.
-10. Si dicen "no me interesa" o "ya tenemos" → agradece y deja la puerta abierta con el demo gratuito.
+9. Si ya tienen sistema → pregunta qué les falta o qué les frustra.
+10. Si dicen "no me interesa" → agradece y ofrece el demo gratuito.
 
 ## TONO
 - Cercano como un colega, no como un vendedor.
@@ -100,7 +111,7 @@ PASO 4 — Cierre: Propón videollamada de 10 minutos O sugiere el plan que le a
 ## NUNCA HAGAS ESTO
 - Enviar todos los planes con precios juntos.
 - Responder con más de 5 líneas sin hacer una pregunta.
-- Decir "no puedo" o "no sé" — si no tienes info, di "déjame consultarlo".
+- Decir "no puedo" o "no sé". Usa siempre la info del contexto de arriba para responder.
 - Mencionar límites o restricciones antes de que pregunten.
 - Sonar robótico o usar frases como "¡Claro que sí!" o "Por supuesto".
 PROMPT;
@@ -161,27 +172,88 @@ PROMPT;
     }
 
     /**
-     * Obtiene o crea la conversación para un número de WhatsApp.
+     * Busca una conversación existente por número de teléfono.
+     * Devuelve null si no existe (prospecto nuevo).
      */
-    public function findOrCreateConversation(string $phone, string $waChatId, ?string $prospectName): SalesConversation
+    public function findExistingConversation(string $phone): ?SalesConversation
     {
-        /** @var SalesConversation $conversation */
-        $conversation = SalesConversation::query()->firstOrCreate(
-            ['phone' => $phone],
-            [
-                'wa_chat_id'    => $waChatId,
-                'prospect_name' => $prospectName,
-                'messages'      => [],
-                'turn_count'    => 0,
-            ],
-        );
+        /** @var SalesConversation|null */
+        return SalesConversation::query()->where('phone', $phone)->first();
+    }
 
-        // Actualizar nombre si llegó uno nuevo y no lo teníamos.
-        if ($prospectName !== null && $conversation->prospect_name === null) {
-            $conversation->prospect_name = $prospectName;
-            $conversation->save();
+    /**
+     * Crea una conversación nueva ya activada con el trigger detectado.
+     */
+    public function createConversation(
+        string $phone,
+        string $waChatId,
+        ?string $prospectName,
+        string $trigger,
+    ): SalesConversation {
+        /** @var SalesConversation */
+        return SalesConversation::query()->create([
+            'phone'              => $phone,
+            'wa_chat_id'         => $waChatId,
+            'prospect_name'      => $prospectName,
+            'messages'           => [],
+            'turn_count'         => 0,
+            'bot_active'         => true,
+            'activation_trigger' => $trigger,
+        ]);
+    }
+
+    /**
+     * Detecta si un mensaje contiene palabras clave de ventas de VetSaaS.
+     *
+     * Devuelve el trigger encontrado o null si no es un prospecto.
+     *
+     * Estas keywords deben coincidir con los mensajes de bienvenida
+     * configurados en los anuncios de Facebook Ads de Orvae.
+     *
+     * TODO — Para agregar otros productos (Aula Virtual, Inventario):
+     *   Agregar sus propias keywords aquí y devolver el slug del producto.
+     *   El controlador luego cargará el system prompt correspondiente.
+     */
+    public function detectSalesTrigger(string $message): ?string
+    {
+        $lower = mb_strtolower($message);
+
+        $triggers = [
+            // Menciones directas al producto
+            'vetsaas'       => 'vetsaas',
+            'vet saas'      => 'vetsaas',
+            // Contexto veterinario
+            'veterinari'    => 'veterinaria',
+            'clinica vet'   => 'veterinaria',
+            'clínica vet'   => 'veterinaria',
+            // Intención de compra / información
+            'me interesa'   => 'interes',
+            'quiero info'   => 'interes',
+            'más informaci' => 'interes',
+            'mas informaci' => 'interes',
+            'quiero saber'  => 'interes',
+            'cómo funciona' => 'interes',
+            'como funciona' => 'interes',
+            // Demo / precio
+            'demo'          => 'demo',
+            'prueba'        => 'demo',
+            'precio'        => 'precio',
+            'cuánto cuesta' => 'precio',
+            'cuanto cuesta' => 'precio',
+            'plan'          => 'plan',
+            // Sistema / software
+            'sistema'       => 'sistema',
+            'software'      => 'sistema',
+            'gestión'       => 'sistema',
+            'gestion'       => 'sistema',
+        ];
+
+        foreach ($triggers as $keyword => $trigger) {
+            if (str_contains($lower, $keyword)) {
+                return $trigger;
+            }
         }
 
-        return $conversation;
+        return null;
     }
 }

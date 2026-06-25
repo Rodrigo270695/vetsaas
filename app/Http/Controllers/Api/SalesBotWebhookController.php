@@ -115,12 +115,46 @@ final class SalesBotWebhookController extends Controller
             ? (string) $senderData['pushname']
             : null;
 
-        // ── 4. Obtener / crear conversación ───────────────────────────────
-        $conversation = $this->botService->findOrCreateConversation(
-            phone: $phone,
-            waChatId: $waChatId,
-            prospectName: $prospectName,
-        );
+        // ── 4. Lógica de activación del bot ───────────────────────────────
+        //
+        // REGLA: el bot solo interviene en dos casos:
+        //   A) La conversación YA existe y bot_active = true
+        //      (el prospecto ya está en el funnel, bot sigue respondiendo)
+        //   B) La conversación NO existe y el mensaje contiene palabras
+        //      clave de ventas de VetSaaS (viene del anuncio de Facebook)
+        //
+        // Si "Pepito" escribe "hola Rodrigo" sin palabras clave → silencio.
+        // Si el usuario toma el control manualmente (bot_active=false) → silencio.
+
+        $conversation = $this->botService->findExistingConversation($phone);
+
+        if ($conversation !== null) {
+            // Conversación existente: respetar bot_active.
+            if (! $conversation->bot_active) {
+                return response()->json(['ok' => true, 'skipped' => 'paused']);
+            }
+            // Actualizar nombre si llegó uno nuevo.
+            if ($prospectName !== null && $conversation->prospect_name === null) {
+                $conversation->prospect_name = $prospectName;
+                $conversation->save();
+            }
+        } else {
+            // Conversación nueva: solo activar si hay palabras clave de ventas.
+            $trigger = $this->botService->detectSalesTrigger($body);
+
+            if ($trigger === null) {
+                // No es un prospecto de VetSaaS — ignorar completamente.
+                return response()->json(['ok' => true, 'skipped' => 'no_trigger']);
+            }
+
+            // Crear conversación con el trigger detectado.
+            $conversation = $this->botService->createConversation(
+                phone: $phone,
+                waChatId: $waChatId,
+                prospectName: $prospectName,
+                trigger: $trigger,
+            );
+        }
 
         // ── 5. Generar respuesta con IA ───────────────────────────────────
         try {
