@@ -85,8 +85,18 @@ final class SalesBotKnowledgeController extends Controller
 
     public function store(SalesBotKnowledgeRequest $request): RedirectResponse
     {
-        SalesBotKnowledge::create($request->validated());
-        SalesBotKnowledge::flushCache((string) $request->input('product', 'vetsaas'));
+        $data = $request->validated();
+
+        // Auto-generar sort_order: último de su sección + 1.
+        if (empty($data['sort_order'])) {
+            $data['sort_order'] = (int) SalesBotKnowledge::query()
+                ->where('product', $data['product'] ?? 'vetsaas')
+                ->where('section', $data['section'])
+                ->max('sort_order') + 1;
+        }
+
+        SalesBotKnowledge::create($data);
+        SalesBotKnowledge::flushCache((string) ($data['product'] ?? 'vetsaas'));
 
         return back()->with('success', 'Entrada creada correctamente.');
     }

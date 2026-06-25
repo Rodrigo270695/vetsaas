@@ -32,7 +32,7 @@ final class SalesBotKnowledgeRequest extends FormRequest
             'title'      => ['required', 'string', 'max:200'],
             'content'    => ['required', 'string'],
             'meta'       => ['nullable', 'array'],
-            'sort_order' => ['required', 'integer', 'min:0', 'max:999'],
+            'sort_order' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:999'],
             'is_active'  => ['required', 'boolean'],
         ];
     }

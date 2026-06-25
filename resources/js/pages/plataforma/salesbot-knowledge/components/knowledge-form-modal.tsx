@@ -1,5 +1,5 @@
 import { useForm } from '@inertiajs/react';
-import { Loader2 } from 'lucide-react';
+import { BookOpen, HelpCircle, Loader2, MessageSquareQuote, ShieldAlert } from 'lucide-react';
 import { useEffect, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FormField, FormModal, FormSection } from '@/components/forms';
@@ -18,6 +18,13 @@ import { Textarea } from '@/components/ui/textarea';
 import salesbotKnowledge from '@/routes/plataforma/salesbot-knowledge';
 import type { KnowledgeEntry } from '../types';
 
+const SECTION_DESCRIPTIONS: Record<string, { icon: React.ElementType; color: string; desc: string }> = {
+    modulo:   { icon: BookOpen,           color: 'text-blue-600',   desc: 'Describe qué hace cada módulo (historial, citas, grooming…) y cómo funciona. El bot lo usa para conectar el dolor del prospecto con la feature correcta.' },
+    faq:      { icon: HelpCircle,         color: 'text-violet-600', desc: 'Preguntas frecuentes con respuesta lista. Ej: "¿Puedo emitir facturas?", "¿Hay contrato?". El bot responde con esta info exacta.' },
+    objecion: { icon: MessageSquareQuote, color: 'text-orange-600', desc: 'Objeciones típicas de venta y cómo rebatirlas. Ej: "Está muy caro", "Ya tengo sistema". El bot usa estos guiones cuando detecta resistencia.' },
+    general:  { icon: ShieldAlert,        color: 'text-muted-foreground', desc: 'Información general del producto que no encaja en otra categoría.' },
+};
+
 export type KnowledgeFormModalProps = {
     open: boolean;
     onOpenChange: (open: boolean) => void;
@@ -30,7 +37,6 @@ type FormData = {
     slug: string;
     title: string;
     content: string;
-    sort_order: number;
     is_active: boolean;
 };
 
@@ -40,7 +46,6 @@ const emptyForm: FormData = {
     slug: '',
     title: '',
     content: '',
-    sort_order: 0,
     is_active: true,
 };
 
@@ -69,13 +74,12 @@ export function KnowledgeFormModal({ open, onOpenChange, entry }: KnowledgeFormM
             if (entry) {
                 reset();
                 setData({
-                    product:    entry.product,
-                    section:    entry.section,
-                    slug:       entry.slug,
-                    title:      entry.title,
-                    content:    entry.content,
-                    sort_order: entry.sort_order,
-                    is_active:  entry.is_active,
+                    product:   entry.product,
+                    section:   entry.section,
+                    slug:      entry.slug,
+                    title:     entry.title,
+                    content:   entry.content,
+                    is_active: entry.is_active,
                 });
             } else {
                 reset();
@@ -135,42 +139,38 @@ export function KnowledgeFormModal({ open, onOpenChange, entry }: KnowledgeFormM
             }
         >
             <FormSection>
-                {/* Sección + Producto en fila */}
-                <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                        label={t('salesbot-knowledge:form.section_label')}
-                        error={errors.section}
-                        required
+                {/* Sección — sin "Plan" (los precios vienen de Plataforma › Planes) */}
+                <FormField
+                    label={t('salesbot-knowledge:form.section_label')}
+                    error={errors.section}
+                    required
+                >
+                    <Select
+                        value={data.section}
+                        onValueChange={(v) => setData('section', v)}
                     >
-                        <Select
-                            value={data.section}
-                            onValueChange={(v) => setData('section', v)}
-                        >
-                            <SelectTrigger className="w-full">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="plan">Plan</SelectItem>
-                                <SelectItem value="modulo">Módulo</SelectItem>
-                                <SelectItem value="faq">FAQ</SelectItem>
-                                <SelectItem value="objecion">Objeción</SelectItem>
-                                <SelectItem value="general">General</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </FormField>
+                        <SelectTrigger className="w-full">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="modulo">Módulo</SelectItem>
+                            <SelectItem value="faq">FAQ</SelectItem>
+                            <SelectItem value="objecion">Objeción</SelectItem>
+                            <SelectItem value="general">General</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </FormField>
 
-                    <FormField
-                        label={t('salesbot-knowledge:form.product_label')}
-                        error={errors.product}
-                        required
-                    >
-                        <Input
-                            value={data.product}
-                            onChange={(e) => setData('product', e.target.value)}
-                            placeholder={t('salesbot-knowledge:form.product_placeholder')}
-                        />
-                    </FormField>
-                </div>
+                {/* Leyenda dinámica según la sección seleccionada */}
+                {SECTION_DESCRIPTIONS[data.section] && (() => {
+                    const { icon: Icon, color, desc } = SECTION_DESCRIPTIONS[data.section];
+                    return (
+                        <div className="flex items-start gap-2 rounded-lg border border-border/60 bg-muted/40 px-3 py-2.5">
+                            <Icon className={`mt-0.5 size-4 shrink-0 ${color}`} strokeWidth={2} />
+                            <p className="text-xs leading-relaxed text-muted-foreground">{desc}</p>
+                        </div>
+                    );
+                })()}
 
                 {/* Slug */}
                 <FormField
@@ -199,7 +199,7 @@ export function KnowledgeFormModal({ open, onOpenChange, entry }: KnowledgeFormM
                     />
                 </FormField>
 
-                {/* Contenido — textarea grande para que sea cómodo escribir */}
+                {/* Contenido */}
                 <FormField
                     label={t('salesbot-knowledge:form.content_label')}
                     error={errors.content}
@@ -214,32 +214,16 @@ export function KnowledgeFormModal({ open, onOpenChange, entry }: KnowledgeFormM
                     />
                 </FormField>
 
-                {/* Orden + Activo en fila */}
-                <div className="flex items-end gap-4">
-                    <FormField
-                        label={t('salesbot-knowledge:form.sort_order_label')}
-                        error={errors.sort_order}
-                        className="w-28"
-                    >
-                        <Input
-                            type="number"
-                            min={0}
-                            max={999}
-                            value={data.sort_order}
-                            onChange={(e) => setData('sort_order', Number(e.target.value))}
-                        />
-                    </FormField>
-
-                    <div className="flex flex-1 items-center gap-3 pb-1">
-                        <Checkbox
-                            id="is_active"
-                            checked={data.is_active}
-                            onCheckedChange={(v) => setData('is_active', Boolean(v))}
-                        />
-                        <Label htmlFor="is_active" className="cursor-pointer text-sm">
-                            {t('salesbot-knowledge:form.is_active_label')}
-                        </Label>
-                    </div>
+                {/* Activo */}
+                <div className="flex items-center gap-3">
+                    <Checkbox
+                        id="is_active"
+                        checked={data.is_active}
+                        onCheckedChange={(v) => setData('is_active', Boolean(v))}
+                    />
+                    <Label htmlFor="is_active" className="cursor-pointer text-sm">
+                        {t('salesbot-knowledge:form.is_active_label')}
+                    </Label>
                 </div>
             </FormSection>
         </FormModal>
