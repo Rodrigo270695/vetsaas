@@ -753,9 +753,9 @@ export default function Create({
                 ) : null}
 
                 {/* ── Layout POS ── */}
-                <div className="flex flex-1 flex-col gap-3 p-3 sm:p-4 lg:grid lg:grid-cols-[minmax(0,1fr)_min(400px,38%)] lg:items-start lg:gap-4">
+                <div className="flex flex-1 flex-col gap-3 p-3 sm:p-4 lg:grid lg:grid-cols-[minmax(0,1fr)_min(360px,36%)] lg:items-start lg:gap-4">
 
-                    {/* Columna izquierda: cliente + catálogo */}
+                    {/* Columna izquierda: cliente + catálogo + carrito */}
                     <div className="flex min-w-0 flex-col gap-3">
 
                         {/* Cliente y comprobante en una sola franja */}
@@ -1032,22 +1032,11 @@ export default function Create({
                                 </TabsContent>
                             </Tabs>
                         </PosPanel>
-                    </div>
-
-                    {/* Columna derecha: carrito + cobro (sticky) */}
-                    <div
-                        className={cn(
-                            'flex shrink-0 flex-col gap-3',
-                            cart.length > 0 && 'max-lg:order-first',
-                            'lg:sticky lg:top-3 lg:max-h-[calc(100dvh-5.5rem)] lg:overflow-y-auto lg:overscroll-y-contain',
-                        )}
-                    >
-
+                        {/* Carrito de ítems — debajo del catálogo */}
                         <PosPanel
                             compact
                             title={t('caja:ventas.create.card_carrito')}
                             icon={ShoppingBag}
-                            className="shrink-0"
                             badge={
                                 cart.length > 0 ? (
                                     <Badge variant="secondary" className="h-5 px-1.5 text-[10px] tabular-nums">
@@ -1057,127 +1046,129 @@ export default function Create({
                             }
                         >
                             {cart.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center gap-2 rounded-md border border-dashed border-border/60 bg-muted/5 px-4 py-8 text-center">
-                                    <ShoppingBag className="size-8 text-muted-foreground/40" strokeWidth={1.5} aria-hidden />
+                                <div className="flex flex-col items-center justify-center gap-2 rounded-md border border-dashed border-border/60 bg-muted/5 px-4 py-6 text-center">
+                                    <ShoppingBag className="size-7 text-muted-foreground/40" strokeWidth={1.5} aria-hidden />
                                     <p className="text-xs font-medium text-foreground">{t('caja:ventas.create.carrito_vacio')}</p>
                                     <p className="text-[11px] text-muted-foreground">{t('caja:ventas.create.carrito_vacio_hint')}</p>
                                 </div>
                             ) : (
-                                <div className="min-h-[7rem] max-h-[min(45dvh,320px)] overflow-y-auto overscroll-y-contain rounded-md border border-border/50">
-                                    <ul className="divide-y divide-border/40">
-                                        {cart.map((line) => {
-                                            const lista = Number(line.precio_venta ?? 0);
-                                            const lineTotal = lineTotalLinea(
-                                                lista,
-                                                line.cantidad,
-                                                igvPct,
-                                                precioIncluyeIgv,
-                                            );
-                                            const excedeStock =
-                                                !line.omitir_stock &&
-                                                line.cantidad > line.stock_disponible + 0.0001;
+                                <ul className="divide-y divide-border/40 rounded-md border border-border/50">
+                                    {cart.map((line) => {
+                                        const lista = Number(line.precio_venta ?? 0);
+                                        const lineTotal = lineTotalLinea(
+                                            lista,
+                                            line.cantidad,
+                                            igvPct,
+                                            precioIncluyeIgv,
+                                        );
+                                        const excedeStock =
+                                            !line.omitir_stock &&
+                                            line.cantidad > line.stock_disponible + 0.0001;
 
-                                            return (
-                                                <li
-                                                    key={line.key}
-                                                    className={cn(
-                                                        'px-2 py-2.5',
-                                                        excedeStock && 'bg-destructive/5',
-                                                    )}
-                                                >
-                                                    <div className="flex items-start justify-between gap-2">
-                                                        <div className="min-w-0 flex-1">
-                                                            <p className="text-xs font-medium leading-snug">{line.nombre}</p>
-                                                            {line.producto_id === null ? (
-                                                                <Input
-                                                                    type="number"
-                                                                    inputMode="decimal"
-                                                                    min={0}
-                                                                    step={0.01}
-                                                                    className="mt-1 h-7 w-20 text-right text-[10px] tabular-nums"
-                                                                    value={lista}
-                                                                    onChange={(e) =>
-                                                                        setPrecioListaLinea(line.key, e.target.value)
-                                                                    }
-                                                                    disabled={!puede_vender}
-                                                                    aria-label={t('caja:ventas.create.col_precio_unit')}
-                                                                />
-                                                            ) : (
-                                                                <p
-                                                                    className={cn(
-                                                                        'mt-0.5 text-[10px] tabular-nums',
-                                                                        excedeStock ? 'text-destructive' : 'text-muted-foreground',
-                                                                    )}
-                                                                >
-                                                                    {formatMoney(lista)} / {line.unidad}
-                                                                </p>
-                                                            )}
-                                                        </div>
+                                        return (
+                                            <li
+                                                key={line.key}
+                                                className={cn(
+                                                    'px-2 py-2.5',
+                                                    excedeStock && 'bg-destructive/5',
+                                                )}
+                                            >
+                                                <div className="flex items-start justify-between gap-2">
+                                                    <div className="min-w-0 flex-1">
+                                                        <p className="text-xs font-medium leading-snug">{line.nombre}</p>
+                                                        {line.producto_id === null ? (
+                                                            <Input
+                                                                type="number"
+                                                                inputMode="decimal"
+                                                                min={0}
+                                                                step={0.01}
+                                                                className="mt-1 h-7 w-20 text-right text-[10px] tabular-nums"
+                                                                value={lista}
+                                                                onChange={(e) =>
+                                                                    setPrecioListaLinea(line.key, e.target.value)
+                                                                }
+                                                                disabled={!puede_vender}
+                                                                aria-label={t('caja:ventas.create.col_precio_unit')}
+                                                            />
+                                                        ) : (
+                                                            <p
+                                                                className={cn(
+                                                                    'mt-0.5 text-[10px] tabular-nums',
+                                                                    excedeStock ? 'text-destructive' : 'text-muted-foreground',
+                                                                )}
+                                                            >
+                                                                {formatMoney(lista)} / {line.unidad}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="size-7 shrink-0 text-muted-foreground hover:text-destructive"
+                                                        onClick={() => removeLine(line.key)}
+                                                        disabled={!puede_vender}
+                                                    >
+                                                        <Trash2 className="size-3.5" aria-hidden />
+                                                    </Button>
+                                                </div>
+                                                <div className="mt-2 flex items-center justify-between gap-2">
+                                                    <div className="flex items-center gap-0.5">
                                                         <Button
                                                             type="button"
-                                                            variant="ghost"
+                                                            variant="outline"
                                                             size="icon"
-                                                            className="size-7 shrink-0 text-muted-foreground hover:text-destructive"
-                                                            onClick={() => removeLine(line.key)}
+                                                            className="size-7 shrink-0"
+                                                            onClick={() => setCantidad(line.key, line.cantidad - 1)}
                                                             disabled={!puede_vender}
                                                         >
-                                                            <Trash2 className="size-3.5" aria-hidden />
+                                                            <Minus className="size-3" aria-hidden />
+                                                        </Button>
+                                                        <Input
+                                                            className="h-7 w-12 border-0 bg-transparent px-0 text-center text-xs tabular-nums shadow-none focus-visible:ring-0"
+                                                            value={String(line.cantidad)}
+                                                            onChange={(e) => {
+                                                                const v = Number(e.target.value.replace(',', '.'));
+                                                                if (!Number.isNaN(v)) {
+                                                                    setCantidad(line.key, v);
+                                                                }
+                                                            }}
+                                                            disabled={!puede_vender}
+                                                        />
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            size="icon"
+                                                            className="size-7 shrink-0"
+                                                            onClick={() => setCantidad(line.key, line.cantidad + 1)}
+                                                            disabled={
+                                                                !puede_vender ||
+                                                                (!line.omitir_stock &&
+                                                                    line.cantidad >= line.stock_disponible - 0.0001)
+                                                            }
+                                                        >
+                                                            <Plus className="size-3" aria-hidden />
                                                         </Button>
                                                     </div>
-                                                    <div className="mt-2 flex items-center justify-between gap-2">
-                                                        <div className="flex items-center gap-0.5">
-                                                            <Button
-                                                                type="button"
-                                                                variant="outline"
-                                                                size="icon"
-                                                                className="size-7 shrink-0"
-                                                                onClick={() => setCantidad(line.key, line.cantidad - 1)}
-                                                                disabled={!puede_vender}
-                                                            >
-                                                                <Minus className="size-3" aria-hidden />
-                                                            </Button>
-                                                            <Input
-                                                                className="h-7 w-12 border-0 bg-transparent px-0 text-center text-xs tabular-nums shadow-none focus-visible:ring-0"
-                                                                value={String(line.cantidad)}
-                                                                onChange={(e) => {
-                                                                    const v = Number(e.target.value.replace(',', '.'));
-                                                                    if (!Number.isNaN(v)) {
-                                                                        setCantidad(line.key, v);
-                                                                    }
-                                                                }}
-                                                                disabled={!puede_vender}
-                                                            />
-                                                            <Button
-                                                                type="button"
-                                                                variant="outline"
-                                                                size="icon"
-                                                                className="size-7 shrink-0"
-                                                                onClick={() => setCantidad(line.key, line.cantidad + 1)}
-                                                                disabled={
-                                                                    !puede_vender ||
-                                                                    (!line.omitir_stock &&
-                                                                        line.cantidad >= line.stock_disponible - 0.0001)
-                                                                }
-                                                            >
-                                                                <Plus className="size-3" aria-hidden />
-                                                            </Button>
-                                                        </div>
-                                                        <span className="text-sm font-semibold tabular-nums">
-                                                            {formatMoney(lineTotal)}
-                                                        </span>
-                                                    </div>
-                                                </li>
-                                            );
-                                        })}
-                                    </ul>
-                                </div>
+                                                    <span className="text-sm font-semibold tabular-nums">
+                                                        {formatMoney(lineTotal)}
+                                                    </span>
+                                                </div>
+                                            </li>
+                                        );
+                                    })}
+                                </ul>
                             )}
                             {form.errors.lineas ? (
                                 <p className="text-[11px] text-destructive">{form.errors.lineas}</p>
                             ) : null}
                         </PosPanel>
+                    </div>
 
-                        <PosPanel compact title={t('caja:ventas.create.card_pago')} icon={CreditCard} className="shrink-0">
+                    {/* Columna derecha: solo COBRO — sticky, siempre visible */}
+                    <div className="lg:sticky lg:top-3">
+
+                        <PosPanel compact title={t('caja:ventas.create.card_pago')} icon={CreditCard}>
                             <div className="space-y-2.5">
                                 <div className="space-y-1">
                                     <Label className="text-[11px] text-muted-foreground">{t('caja:ventas.create.metodo_pago')}</Label>
@@ -1217,22 +1208,7 @@ export default function Create({
                                             disabled={!puede_vender}
                                         />
                                     </div>
-                                    {esEfectivo ? (
-                                        <div className="min-w-0 space-y-1">
-                                            <Label htmlFor="monto_recibido" className="text-[11px] text-muted-foreground">
-                                                {t('caja:ventas.create.monto_recibido')}
-                                            </Label>
-                                            <Input
-                                                id="monto_recibido"
-                                                className="h-8 tabular-nums"
-                                                inputMode="decimal"
-                                                placeholder={formatMoney(totales.total)}
-                                                value={form.data.monto_recibido}
-                                                onChange={(e) => form.setData('monto_recibido', e.target.value)}
-                                                disabled={!puede_vender}
-                                            />
-                                        </div>
-                                    ) : (
+                                    {!esEfectivo ? (
                                         <div className="min-w-0 space-y-1">
                                             <Label htmlFor="notas" className="text-[11px] text-muted-foreground">
                                                 {t('caja:ventas.create.notas')}
@@ -1246,12 +1222,92 @@ export default function Create({
                                                 placeholder="…"
                                             />
                                         </div>
-                                    )}
+                                    ) : null}
                                 </div>
 
-                                {esEfectivo && form.errors.monto_recibido ? (
-                                    <p className="text-[11px] text-destructive">{form.errors.monto_recibido}</p>
-                                ) : null}
+                                {/* ── Monto recibido (efectivo) ── */}
+                                {esEfectivo ? (() => {
+                                    const montoActual = Number(String(form.data.monto_recibido).replace(',', '.')) || 0;
+                                    const faltaMonto = cart.length > 0 && montoActual < totales.total - 0.0001;
+                                    const billetes = [10, 20, 50, 100, 200];
+
+                                    return (
+                                        <div
+                                            className={cn(
+                                                'rounded-lg border p-2.5 transition-all duration-300',
+                                                faltaMonto
+                                                    ? 'border-amber-400 bg-amber-50 shadow-sm shadow-amber-200/60 dark:border-amber-500/60 dark:bg-amber-950/30 dark:shadow-amber-900/30'
+                                                    : 'border-border/50 bg-muted/10',
+                                            )}
+                                        >
+                                            <div className="mb-1.5 flex items-center justify-between gap-2">
+                                                <Label
+                                                    htmlFor="monto_recibido"
+                                                    className={cn(
+                                                        'text-[11px] font-semibold transition-colors',
+                                                        faltaMonto ? 'text-amber-700 dark:text-amber-400' : 'text-muted-foreground',
+                                                    )}
+                                                >
+                                                    {faltaMonto ? '⚠ Ingresa el monto recibido' : t('caja:ventas.create.monto_recibido')}
+                                                </Label>
+                                                {cart.length > 0 ? (
+                                                    <button
+                                                        type="button"
+                                                        disabled={!puede_vender}
+                                                        onClick={() => form.setData('monto_recibido', String(totales.total))}
+                                                        className="rounded-md bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
+                                                    >
+                                                        Exacto
+                                                    </button>
+                                                ) : null}
+                                            </div>
+
+                                            <Input
+                                                id="monto_recibido"
+                                                className={cn(
+                                                    'h-9 text-sm font-semibold tabular-nums transition-all',
+                                                    faltaMonto
+                                                        ? 'border-amber-400 bg-white ring-2 ring-amber-300/60 focus-visible:ring-amber-400 dark:bg-amber-950/40 dark:ring-amber-500/40'
+                                                        : '',
+                                                )}
+                                                inputMode="decimal"
+                                                placeholder={formatMoney(totales.total)}
+                                                value={form.data.monto_recibido}
+                                                onChange={(e) => form.setData('monto_recibido', e.target.value)}
+                                                disabled={!puede_vender}
+                                            />
+
+                                            {/* Billetes rápidos */}
+                                            {cart.length > 0 ? (
+                                                <div className="mt-2 flex flex-wrap gap-1">
+                                                    {billetes.map((b) => {
+                                                        const suficiente = b >= totales.total - 0.0001;
+                                                        return (
+                                                            <button
+                                                                key={b}
+                                                                type="button"
+                                                                disabled={!puede_vender}
+                                                                onClick={() => form.setData('monto_recibido', String(b))}
+                                                                className={cn(
+                                                                    'flex-1 rounded-md border px-1.5 py-1 text-center text-[10px] font-semibold tabular-nums transition-all',
+                                                                    suficiente
+                                                                        ? 'border-emerald-400/60 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-400'
+                                                                        : 'border-border/50 bg-background text-muted-foreground hover:bg-muted/40',
+                                                                )}
+                                                            >
+                                                                S/{b}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            ) : null}
+
+                                            {form.errors.monto_recibido ? (
+                                                <p className="mt-1 text-[11px] text-destructive">{form.errors.monto_recibido}</p>
+                                            ) : null}
+                                        </div>
+                                    );
+                                })() : null}
 
                                 <div
                                     className={cn(
