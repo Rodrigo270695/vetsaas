@@ -44,9 +44,12 @@ return [
     /*
     | URL y credenciales del demo que el bot comparte con los prospectos.
     */
-    'demo_url'      => env('SALESBOT_DEMO_URL', 'demo.orvae.pe'),
+    'demo_url'      => env('SALESBOT_DEMO_URL', 'https://demo.vetsaas.orvae.pe/login'),
     'demo_email'    => env('SALESBOT_DEMO_EMAIL', 'demo@vetsaas.pe'),
     'demo_password' => env('SALESBOT_DEMO_PASSWORD', 'demo1234'),
+
+    // URL donde el prospecto se registra y elige su plan (Free o pago).
+    'register_url'  => env('SALESBOT_REGISTER_URL', 'https://orvae.pe/software/VETSAAS'),
 
     /*
     |--------------------------------------------------------------------------
