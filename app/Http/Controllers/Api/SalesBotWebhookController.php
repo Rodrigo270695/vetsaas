@@ -107,6 +107,9 @@ final class SalesBotWebhookController extends Controller
             'body_preview' => substr($body, 0, 80),
             'is_audio' => $isAudio,
             'data_keys' => array_keys(is_array($data) ? $data : []),
+            'media'    => is_array($data['media'] ?? null)
+                ? array_map(fn($v) => is_string($v) ? substr($v, 0, 120) : $v, $data['media'])
+                : $data['media'] ?? null,
         ]);
 
         // Saltar si: es mensaje propio, no es evento de mensaje,
@@ -120,8 +123,8 @@ final class SalesBotWebhookController extends Controller
             return response()->json(['ok' => true, 'skipped' => 'group']);
         }
 
-        // Extraer número limpio (sin @c.us).
-        $phone = str_replace('@c.us', '', $waChatId);
+        // Extraer número limpio — soporta @c.us y @lid (nueva versión WhatsApp).
+        $phone = preg_replace('/@(c\.us|lid|s\.whatsapp\.net)$/', '', $waChatId);
         if ($phone === '') {
             return response()->json(['ok' => false, 'reason' => 'no phone'], 422);
         }
