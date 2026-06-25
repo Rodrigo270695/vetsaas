@@ -177,49 +177,10 @@ final class OpenWaClient
                 $publicUrl = rtrim((string) config('app.url'), '/') . $publicUrl;
             }
 
-            // send-audio existe (400 = parámetros incorrectos, no 404).
-            // Probar distintas combinaciones de campos hasta dar con la correcta.
-            $audioPath = '/api/sessions/' . $sessionId . '/messages/send-audio';
-
-            $attempts = [
-                // Variante 1: url + ptt
-                ['chatId' => $chatId, 'url' => $publicUrl, 'ptt' => true],
-                // Variante 2: url sin ptt
-                ['chatId' => $chatId, 'url' => $publicUrl],
-                // Variante 3: audioUrl
-                ['chatId' => $chatId, 'audioUrl' => $publicUrl, 'ptt' => true],
-                // Variante 4: path/audio como campo
-                ['chatId' => $chatId, 'audio' => $publicUrl, 'ptt' => true],
-                // Variante 5: file como campo
-                ['chatId' => $chatId, 'file' => $publicUrl, 'ptt' => true],
-                // Variante 6: base64 directo (puede dar 413 para audios largos)
-                ['chatId' => $chatId, 'audio' => 'data:audio/ogg; codecs=opus;base64,' . base64_encode($audioContent), 'ptt' => true],
-            ];
-
-            $response  = null;
-            $lastError = null;
-
-            foreach ($attempts as $i => $body) {
-                try {
-                    $response = $this->request('post', $audioPath, $body);
-                    \Illuminate\Support\Facades\Log::info('OpenWA sendVoice success', [
-                        'variant' => $i + 1,
-                        'fields'  => array_keys($body),
-                    ]);
-                    break;
-                } catch (RuntimeException $e) {
-                    \Illuminate\Support\Facades\Log::debug('OpenWA sendVoice variant failed', [
-                        'variant' => $i + 1,
-                        'fields'  => array_keys($body),
-                        'error'   => substr($e->getMessage(), 0, 150),
-                    ]);
-                    $lastError = $e;
-                }
-            }
-
-            if ($response === null) {
-                throw new RuntimeException('send-audio: ninguna variante de parámetros funcionó. Último: ' . ($lastError?->getMessage() ?? 'desconocido'));
-            }
+            $response = $this->request('post', '/api/sessions/' . $sessionId . '/messages/send-audio', [
+                'chatId' => $chatId,
+                'url'    => $publicUrl,
+            ]);
         } finally {
             // Borrar el archivo temporal siempre, haya éxito o error.
             \Illuminate\Support\Facades\Storage::disk('public')->delete($storagePath);
