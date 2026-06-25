@@ -78,6 +78,12 @@ final class SalesBotWebhookController extends Controller
             return response()->json(['ok' => false, 'reason' => 'salesbot disabled'], 200);
         }
 
+        // ── 3. Deduplicar — responder inmediatamente para que OpenWA no reintente ──
+        // OpenWA reintenta el webhook si no recibe respuesta en ~10s.
+        // Como el procesamiento de audio puede tomar 20-30s, cerramos la
+        // conexión HTTP de inmediato y seguimos procesando en background.
+        // Ver: https://laravel.com/docs/http-client#making-asynchronous-requests
+
         // ── 3. Extraer datos del payload ──────────────────────────────────
         $payload = $request->all();
 
@@ -94,7 +100,8 @@ final class SalesBotWebhookController extends Controller
         // Aceptar tanto "message.received" (esta versión OpenWA) como "onMessage" (versiones antiguas).
         $esEventoMensaje = in_array($event, ['message.received', 'onMessage', 'message'], true);
 
-        $isAudio = in_array($type, ['ptt', 'audio'], true);
+        $isAudio   = in_array($type, ['ptt', 'audio'], true);
+        $messageId = (string) ($data['id'] ?? '');
 
         // Saltar si: es mensaje propio, no es evento de mensaje,
         // o está vacío Y no es un audio que podamos transcribir.
@@ -105,6 +112,19 @@ final class SalesBotWebhookController extends Controller
         // Ignorar grupos (@g.us).
         if (str_ends_with($waChatId, '@g.us')) {
             return response()->json(['ok' => true, 'skipped' => 'group']);
+        }
+
+        // ── Deduplicación por message ID ──────────────────────────────────
+        // OpenWA reintenta el webhook si tarda mucho (audios: ~25s).
+        // Guardamos el ID del mensaje en caché 60s. Si ya lo procesamos,
+        // respondemos 200 inmediatamente sin volver a procesar.
+        if ($messageId !== '') {
+            $cacheKey = 'salesbot_msg_' . md5($messageId);
+            if (\Illuminate\Support\Facades\Cache::has($cacheKey)) {
+                return response()->json(['ok' => true, 'skipped' => 'duplicate']);
+            }
+            // Marcar como en proceso durante 60 segundos.
+            \Illuminate\Support\Facades\Cache::put($cacheKey, 1, 60);
         }
 
         // Extraer número limpio — soporta @c.us y @lid (nueva versión WhatsApp).
