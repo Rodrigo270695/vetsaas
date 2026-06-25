@@ -242,7 +242,7 @@ function SalesBotQuickActions({
                         ? validationErrors.join(' | ')
                         : typeof validationErrors === 'object' && validationErrors !== null
                           ? Object.values(validationErrors as Record<string, string[]>).flat().join(' | ')
-                          : (data?.message as string) ?? 'Error al importar el archivo.';
+                          : (data?.error as string) ?? (data?.message as string) ?? 'Error al importar el archivo.';
                     setImportResult({
                         imported: 0,
                         skipped: 0,

@@ -206,98 +206,147 @@ final class SalesBotConversationController extends Controller
      */
     public function importCsv(Request $request): JsonResponse
     {
-        $request->validate([
-            'file' => ['required', 'file', 'max:2048', 'extensions:csv,txt'],
-            'days' => ['nullable', 'integer', 'min:1', 'max:30'],
-        ]);
-
-        $file   = $request->file('file');
-        $path   = $file->getRealPath();
-        $days   = (int) $request->input('days', 5);
-
-        $handle = fopen($path, 'r');
-        if ($handle === false) {
-            return response()->json(['ok' => false, 'error' => 'No se pudo leer el archivo.'], 422);
-        }
-
-        $headers     = null;
-        $imported    = 0;
-        $duplicates  = [];
-        $errors      = [];
-        $seenInFile  = [];
-
-        while (($row = fgetcsv($handle)) !== false) {
-            if ($headers === null) {
-                $headers = array_map('strtolower', array_map('trim', $row));
-                continue;
-            }
-
-            if (count($row) === 0 || (count($row) === 1 && trim($row[0]) === '')) {
-                continue;
-            }
-
-            $data = [];
-            foreach ($headers as $i => $header) {
-                $data[$header] = trim($row[$i] ?? '');
-            }
-
-            $rawPhone = $data['phone'] ?? '';
-            $phone    = $this->botService->normalizeLeadPhone($rawPhone);
-            $name     = ($data['name'] ?? '') !== '' ? $data['name'] : null;
-            $note     = ($data['note'] ?? '') !== '' ? $data['note'] : null;
-
-            if ($phone === '' || strlen($phone) < 8) {
-                $errors[] = "Teléfono inválido: '{$rawPhone}'";
-                continue;
-            }
-
-            if (isset($seenInFile[$phone])) {
-                $duplicates[] = [
-                    'phone'  => $phone,
-                    'name'   => $name,
-                    'reason' => 'repetido_en_csv',
-                ];
-                continue;
-            }
-            $seenInFile[$phone] = true;
-
-            if (SalesConversation::query()->where('phone', $phone)->exists()) {
-                $duplicates[] = [
-                    'phone'  => $phone,
-                    'name'   => $name,
-                    'reason' => 'ya_registrado',
-                ];
-                continue;
-            }
-
-            $messages = $note !== null ? [['role' => 'user', 'content' => $note]] : [];
-
-            SalesConversation::query()->create([
-                'phone'              => $phone,
-                'wa_chat_id'         => $phone.'@c.us',
-                'prospect_name'      => $name,
-                'messages'           => $messages,
-                'turn_count'         => count($messages),
-                'bot_active'         => false,
-                'activation_trigger' => 'manual:csv-import',
-                'last_message_at'    => now()->subDays($days),
-                'reactivation_count' => 0,
-                'converted'          => false,
+        try {
+            $request->validate([
+                'file' => ['required', 'file', 'max:5120'],
+                'days' => ['nullable', 'integer', 'min:1', 'max:30'],
             ]);
 
-            $imported++;
+            $uploaded = $request->file('file');
+            if ($uploaded === null) {
+                return response()->json(['ok' => false, 'error' => 'No se recibió el archivo.'], 422);
+            }
+
+            $extension = strtolower($uploaded->getClientOriginalExtension());
+            if (! in_array($extension, ['csv', 'txt'], true)) {
+                return response()->json([
+                    'ok'     => false,
+                    'error'  => 'El archivo debe ser .csv o .txt',
+                    'errors' => ['Formato no válido. Usa un archivo CSV.'],
+                ], 422);
+            }
+
+            $path = $uploaded->getRealPath();
+            if ($path === false || ! is_readable($path)) {
+                return response()->json(['ok' => false, 'error' => 'No se pudo leer el archivo.'], 422);
+            }
+
+            $days = (int) $request->input('days', 5);
+
+            $handle = fopen($path, 'r');
+            if ($handle === false) {
+                return response()->json(['ok' => false, 'error' => 'No se pudo abrir el archivo.'], 422);
+            }
+
+            $headers     = null;
+            $imported    = 0;
+            $duplicates  = [];
+            $errors      = [];
+            $seenInFile  = [];
+
+            while (($row = fgetcsv($handle)) !== false) {
+                if ($headers === null) {
+                    $headers = array_map(function (string $header): string {
+                        return strtolower(trim($this->stripBom($header)));
+                    }, $row);
+                    continue;
+                }
+
+                if (count($row) === 0 || (count($row) === 1 && trim($row[0]) === '')) {
+                    continue;
+                }
+
+                $data = [];
+                foreach ($headers as $i => $header) {
+                    if ($header === '') {
+                        continue;
+                    }
+                    $data[$header] = trim($row[$i] ?? '');
+                }
+
+                $rawPhone = $data['phone'] ?? '';
+                $phone    = $this->botService->normalizeLeadPhone($rawPhone);
+                $name     = ($data['name'] ?? '') !== '' ? $data['name'] : null;
+                $note     = ($data['note'] ?? '') !== '' ? $data['note'] : null;
+
+                if ($phone === '' || strlen($phone) < 8) {
+                    $errors[] = "Teléfono inválido: '{$rawPhone}'";
+                    continue;
+                }
+
+                if (isset($seenInFile[$phone])) {
+                    $duplicates[] = [
+                        'phone'  => $phone,
+                        'name'   => $name,
+                        'reason' => 'repetido_en_csv',
+                    ];
+                    continue;
+                }
+                $seenInFile[$phone] = true;
+
+                if (SalesConversation::query()->where('phone', $phone)->exists()) {
+                    $duplicates[] = [
+                        'phone'  => $phone,
+                        'name'   => $name,
+                        'reason' => 'ya_registrado',
+                    ];
+                    continue;
+                }
+
+                $messages = $note !== null ? [['role' => 'user', 'content' => $note]] : [];
+
+                SalesConversation::query()->create([
+                    'phone'              => $phone,
+                    'wa_chat_id'         => $phone.'@c.us',
+                    'prospect_name'      => $name,
+                    'messages'           => $messages,
+                    'turn_count'         => count($messages),
+                    'bot_active'         => false,
+                    'activation_trigger' => 'manual:csv-import',
+                    'last_message_at'    => now()->subDays($days),
+                    'reactivation_count' => 0,
+                    'converted'          => false,
+                ]);
+
+                $imported++;
+            }
+
+            fclose($handle);
+
+            return response()->json([
+                'ok'         => true,
+                'imported'   => $imported,
+                'skipped'    => count($duplicates),
+                'duplicates' => $duplicates,
+                'errors'     => $errors,
+                'message'    => "{$imported} leads importados, ".count($duplicates).' duplicados omitidos.',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('SalesBot importCsv failed', [
+                'message' => $e->getMessage(),
+                'trace'   => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'ok'         => false,
+                'error'      => $e->getMessage(),
+                'imported'   => 0,
+                'skipped'    => 0,
+                'duplicates' => [],
+                'errors'     => ['Error del servidor: '.$e->getMessage()],
+            ], 500);
+        }
+    }
+
+    private function stripBom(string $value): string
+    {
+        if (str_starts_with($value, "\xEF\xBB\xBF")) {
+            return substr($value, 3);
         }
 
-        fclose($handle);
-
-        return response()->json([
-            'ok'         => true,
-            'imported'   => $imported,
-            'skipped'    => count($duplicates),
-            'duplicates' => $duplicates,
-            'errors'     => $errors,
-            'message'    => "{$imported} leads importados, ".count($duplicates).' duplicados omitidos.',
-        ]);
+        return $value;
     }
 
     /**
