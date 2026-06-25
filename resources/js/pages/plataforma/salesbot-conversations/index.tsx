@@ -191,6 +191,7 @@ function SalesBotQuickActions({
     const [importResult, setImportResult] = useState<{
         imported: number;
         skipped: number;
+        duplicates: { phone: string; name: string | null; reason: string }[];
         errors: string[];
     } | null>(null);
 
@@ -238,20 +239,41 @@ function SalesBotQuickActions({
             },
             body: form,
         })
-            .then((r) => r.json())
-            .then((data) => {
+            .then(async (r) => {
+                const data = await r.json();
+                if (!r.ok) {
+                    const validationErrors = data?.errors;
+                    const errMsg = Array.isArray(validationErrors)
+                        ? validationErrors.join(' | ')
+                        : typeof validationErrors === 'object' && validationErrors !== null
+                          ? Object.values(validationErrors as Record<string, string[]>).flat().join(' | ')
+                          : (data?.message as string) ?? 'Error al importar el archivo.';
+                    setImportResult({
+                        imported: 0,
+                        skipped: 0,
+                        duplicates: [],
+                        errors: [errMsg],
+                    });
+                    return;
+                }
                 setImportResult({
-                    imported: data.imported,
-                    skipped: data.skipped,
-                    errors: data.errors ?? [],
+                    imported: Number(data.imported ?? 0),
+                    skipped: Number(data.skipped ?? 0),
+                    duplicates: Array.isArray(data.duplicates) ? data.duplicates : [],
+                    errors: Array.isArray(data.errors) ? data.errors : [],
                 });
-                if ((data.errors ?? []).length === 0) {
+                if (Number(data.imported ?? 0) > 0) {
                     setFile(null);
                     onSuccess();
                 }
             })
             .catch(() =>
-                setImportResult({ imported: 0, skipped: 0, errors: ['Error al subir el archivo.'] }),
+                setImportResult({
+                    imported: 0,
+                    skipped: 0,
+                    duplicates: [],
+                    errors: ['Error al subir el archivo.'],
+                }),
             )
             .finally(() => setUploading(false));
     };
@@ -377,17 +399,40 @@ function SalesBotQuickActions({
                             />
                         </div>
                         {importResult && (
-                            <p
-                                className={`rounded-md px-2 py-1.5 text-xs ${
-                                    importResult.errors.length > 0
-                                        ? 'bg-destructive/10 text-destructive'
-                                        : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400'
-                                }`}
-                            >
-                                {importResult.errors.length > 0
-                                    ? importResult.errors.join(' | ')
-                                    : `✅ ${importResult.imported} importados, ${importResult.skipped} duplicados.`}
-                            </p>
+                            <div className="space-y-2">
+                                <p
+                                    className={`rounded-md px-2 py-1.5 text-xs ${
+                                        importResult.errors.length > 0 && importResult.imported === 0
+                                            ? 'bg-destructive/10 text-destructive'
+                                            : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400'
+                                    }`}
+                                >
+                                    {importResult.errors.length > 0 && importResult.imported === 0
+                                        ? importResult.errors.join(' | ')
+                                        : `✅ ${importResult.imported} importados, ${importResult.skipped} duplicados omitidos.`}
+                                </p>
+                                {importResult.errors.length > 0 && importResult.imported > 0 && (
+                                    <p className="rounded-md bg-amber-50 px-2 py-1.5 text-xs text-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
+                                        Advertencias: {importResult.errors.join(' | ')}
+                                    </p>
+                                )}
+                                {importResult.duplicates.length > 0 && (
+                                    <div className="rounded-md border bg-muted/30 px-2 py-1.5 text-xs">
+                                        <p className="mb-1 font-medium text-foreground">Duplicados (no importados):</p>
+                                        <ul className="max-h-28 space-y-0.5 overflow-y-auto text-muted-foreground">
+                                            {importResult.duplicates.map((dup) => (
+                                                <li key={`${dup.phone}-${dup.reason}`}>
+                                                    {dup.phone}
+                                                    {dup.name ? ` — ${dup.name}` : ''}
+                                                    {dup.reason === 'ya_registrado'
+                                                        ? ' (ya en el panel)'
+                                                        : ' (repetido en el CSV)'}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                            </div>
                         )}
                     </div>
                     <DialogFooter className="flex-col gap-2 sm:flex-row">

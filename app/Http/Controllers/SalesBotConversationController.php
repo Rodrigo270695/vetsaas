@@ -207,7 +207,8 @@ final class SalesBotConversationController extends Controller
     public function importCsv(Request $request): JsonResponse
     {
         $request->validate([
-            'file' => ['required', 'file', 'mimes:csv,txt', 'max:2048'],
+            'file' => ['required', 'file', 'max:2048', 'extensions:csv,txt'],
+            'days' => ['nullable', 'integer', 'min:1', 'max:30'],
         ]);
 
         $file   = $request->file('file');
@@ -219,10 +220,11 @@ final class SalesBotConversationController extends Controller
             return response()->json(['ok' => false, 'error' => 'No se pudo leer el archivo.'], 422);
         }
 
-        $headers  = null;
-        $imported = 0;
-        $skipped  = 0;
-        $errors   = [];
+        $headers     = null;
+        $imported    = 0;
+        $duplicates  = [];
+        $errors      = [];
+        $seenInFile  = [];
 
         while (($row = fgetcsv($handle)) !== false) {
             if ($headers === null) {
@@ -239,26 +241,40 @@ final class SalesBotConversationController extends Controller
                 $data[$header] = trim($row[$i] ?? '');
             }
 
-            $phone = preg_replace('/\D/', '', $data['phone'] ?? '');
+            $rawPhone = $data['phone'] ?? '';
+            $phone    = $this->botService->normalizeLeadPhone($rawPhone);
+            $name     = ($data['name'] ?? '') !== '' ? $data['name'] : null;
+            $note     = ($data['note'] ?? '') !== '' ? $data['note'] : null;
 
             if ($phone === '' || strlen($phone) < 8) {
-                $errors[] = "Teléfono inválido: '{$data['phone']}'";
+                $errors[] = "Teléfono inválido: '{$rawPhone}'";
                 continue;
             }
+
+            if (isset($seenInFile[$phone])) {
+                $duplicates[] = [
+                    'phone'  => $phone,
+                    'name'   => $name,
+                    'reason' => 'repetido_en_csv',
+                ];
+                continue;
+            }
+            $seenInFile[$phone] = true;
 
             if (SalesConversation::query()->where('phone', $phone)->exists()) {
-                $skipped++;
+                $duplicates[] = [
+                    'phone'  => $phone,
+                    'name'   => $name,
+                    'reason' => 'ya_registrado',
+                ];
                 continue;
             }
-
-            $name = ($data['name'] ?? '') !== '' ? $data['name'] : null;
-            $note = ($data['note'] ?? '') !== '' ? $data['note'] : null;
 
             $messages = $note !== null ? [['role' => 'user', 'content' => $note]] : [];
 
             SalesConversation::query()->create([
                 'phone'              => $phone,
-                'wa_chat_id'         => $phone . '@c.us',
+                'wa_chat_id'         => $phone.'@c.us',
                 'prospect_name'      => $name,
                 'messages'           => $messages,
                 'turn_count'         => count($messages),
@@ -275,11 +291,12 @@ final class SalesBotConversationController extends Controller
         fclose($handle);
 
         return response()->json([
-            'ok'       => true,
-            'imported' => $imported,
-            'skipped'  => $skipped,
-            'errors'   => $errors,
-            'message'  => "{$imported} leads importados, {$skipped} duplicados omitidos.",
+            'ok'         => true,
+            'imported'   => $imported,
+            'skipped'    => count($duplicates),
+            'duplicates' => $duplicates,
+            'errors'     => $errors,
+            'message'    => "{$imported} leads importados, ".count($duplicates).' duplicados omitidos.',
         ]);
     }
 
