@@ -245,6 +245,17 @@ final class SalesBotWebhookController extends Controller
             $reply = "Hola 👋 Gracias por escribir sobre VetSaaS. Dame un momento y te respondo enseguida.";
         }
 
+        // ── 5b. Detectar auto-pausa por preguntas fuera de tema ───────────
+        // Si el bot respondió con la frase de despedida (3+ preguntas off-topic),
+        // pausamos el bot automáticamente para no seguir consumiendo tokens.
+        $offTopicSignal = 'Parece que no es el mejor momento';
+        if (str_contains($reply, $offTopicSignal)) {
+            $conversation->pauseBot();
+            $conversation->activation_trigger = 'auto-pausa:off-topic';
+            $conversation->save();
+            Log::info('SalesBot auto-paused: off-topic', ['phone' => $phone]);
+        }
+
         // ── 6. Enviar respuesta por WhatsApp ──────────────────────────────
         // Si el lead mandó audio → responder con nota de voz (TTS).
         // Si mandó texto → responder con texto.
