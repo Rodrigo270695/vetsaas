@@ -1,6 +1,8 @@
 {
     "title": "Auditoría de soporte",
     "description": "Historial de sesiones «Entrar como soporte» en clínicas.",
+    "search_placeholder": "Buscar por clínica o slug...",
+    "filter_label": "Filtrar por estado",
     "columns": {
         "started_at": "Inicio",
         "ended_at": "Fin",
@@ -8,16 +10,34 @@
         "tenant": "Clínica",
         "ip": "IP"
     },
+    "filters": {
+        "all": "Todos",
+        "activas": "En curso",
+        "finalizadas": "Finalizadas"
+    },
     "status": {
         "active": "En curso"
     },
+    "stats": {
+        "total": "Total",
+        "activas": "En curso",
+        "hoy": "Hoy",
+        "clinicas": "Clínicas",
+        "matches": "Coincidencias"
+    },
     "empty": {
         "title": "Sin registros todavía",
-        "description": "Aquí se guardan las sesiones después de que aceptas el enlace «Entrar como soporte» en el subdominio de la clínica. Las entradas anteriores a esta función no se migran.",
+        "description": "Aquí se guardan las sesiones después de que aceptas el enlace «Entrar como soporte» en el subdominio de la clínica.",
         "steps_title": "Para generar el primer registro:",
         "step_1": "Ve a Plataforma › Tenants.",
         "step_2": "Menú de la fila › «Entrar como soporte».",
         "step_3": "Opera en la clínica y luego «Salir del modo soporte».",
         "cta_tenants": "Ir a Tenants"
+    },
+    "aria": {
+        "results_count": "{{count}} sesiones encontradas"
+    },
+    "toast": {
+        "load_error": "Error al cargar la auditoría"
     }
 }

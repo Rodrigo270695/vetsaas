@@ -12,7 +12,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import salesbotKnowledge from '@/routes/plataforma/salesbot-knowledge';
@@ -231,10 +231,10 @@ export function KnowledgeFormModal({ open, onOpenChange, entry }: KnowledgeFormM
                     </FormField>
 
                     <div className="flex flex-1 items-center gap-3 pb-1">
-                        <Switch
+                        <Checkbox
                             id="is_active"
                             checked={data.is_active}
-                            onCheckedChange={(v) => setData('is_active', v)}
+                            onCheckedChange={(v) => setData('is_active', Boolean(v))}
                         />
                         <Label htmlFor="is_active" className="cursor-pointer text-sm">
                             {t('salesbot-knowledge:form.is_active_label')}
