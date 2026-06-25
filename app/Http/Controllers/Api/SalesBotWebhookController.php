@@ -104,11 +104,32 @@ final class SalesBotWebhookController extends Controller
         $isAudio   = in_array($type, ['ptt', 'audio'], true);
         $messageId = (string) ($data['id'] ?? '');
 
-        // Si Rodrigo escribe manualmente desde WhatsApp → pausar bot en ese chat.
+        // Mensaje saliente (fromMe): saludo de Facebook → armar bot; otro mensaje → pausar.
         if ($fromMe && $esEventoMensaje) {
             $openWaSessionId = (string) ($payload['sessionId'] ?? $data['sessionId'] ?? '');
-            $contact         = $this->contactResolver->resolve($data, $openWaSessionId !== '' ? $openWaSessionId : null);
-            $conversation    = $this->botService->findExistingConversation($contact['phone'], $contact['wa_chat_id']);
+            $sessionArg      = $openWaSessionId !== '' ? $openWaSessionId : null;
+            $contact         = $this->contactResolver->resolve($data, $sessionArg, forOutgoing: true);
+
+            if ($contact['phone'] === '' || str_ends_with($contact['wa_chat_id'], '@g.us')) {
+                return response()->json(['ok' => true, 'skipped' => 'fromMe']);
+            }
+
+            if ($this->botService->isFacebookWelcomeMessage($body)) {
+                $this->botService->armConversationFromWelcome(
+                    phone: $contact['phone'],
+                    waChatId: $contact['wa_chat_id'],
+                    prospectName: $contact['prospect_name'],
+                    welcomeBody: $body,
+                );
+                Log::info('SalesBot armed from Facebook welcome', [
+                    'phone' => $contact['phone'],
+                    'name'  => $contact['prospect_name'],
+                ]);
+
+                return response()->json(['ok' => true, 'armed' => 'facebook:welcome']);
+            }
+
+            $conversation = $this->botService->findExistingConversation($contact['phone'], $contact['wa_chat_id']);
 
             if ($conversation !== null && $conversation->bot_active) {
                 $conversation->pauseBot();
@@ -209,33 +230,30 @@ final class SalesBotWebhookController extends Controller
 
         // ── 4. Lógica de activación del bot ───────────────────────────────
         //
-        // REGLA: el bot solo interviene en dos casos:
-        //   A) La conversación YA existe y bot_active = true
-        //      (el prospecto ya está en el funnel, bot sigue respondiendo)
-        //   B) La conversación NO existe y el mensaje contiene palabras
-        //      clave de ventas de VetSaaS (viene del anuncio de Facebook)
+        // REGLA: el bot interviene si:
+        //   A) Conversación activa (bot_active = true) — sigue el funnel
+        //   B) Lead vino del anuncio de Facebook (saludo armó la conversación)
+        //   C) Lead nuevo con palabras clave de VetSaaS en su primer mensaje
         //
-        // Si "Pepito" escribe "hola Rodrigo" sin palabras clave → silencio.
-        // Si el usuario toma el control manualmente (bot_active=false) → silencio.
+        // Si Rodrigo pausó manualmente → silencio hasta que vuelva a preguntar por VetSaaS
+        // o sea un lead de Facebook Ads ya armado.
 
         $conversation = $this->botService->findExistingConversation($phone, $waChatId);
 
         if ($conversation !== null) {
             $this->botService->syncContactMetadata($conversation, $phone, $waChatId, $prospectName);
 
-            // Conversación existente con bot pausado: verificar si el cliente
-            // vuelve a preguntar por VetSaaS. Si es así, reactivar el bot
-            // automáticamente para no perder el lead.
             if (! $conversation->bot_active) {
-                $trigger = $this->botService->detectSalesTrigger($body);
-                if ($trigger !== null) {
+                $trigger        = $this->botService->detectSalesTrigger($body);
+                $isFacebookLead = $this->botService->isFacebookLeadConversation($conversation);
+
+                if ($trigger !== null || $isFacebookLead) {
                     $conversation->resumeBot();
-                    $conversation->activation_trigger = "reactivado:{$trigger}";
+                    if ($trigger !== null) {
+                        $conversation->activation_trigger = "reactivado:{$trigger}";
+                    }
                     $conversation->save();
-                    // El bot continúa respondiendo abajo.
                 } else {
-                    // El cliente escribe algo que no es de ventas (ej: "ok gracias")
-                    // mientras Rodrigo maneja la conversación. No interrumpir.
                     return response()->json(['ok' => true, 'skipped' => 'paused']);
                 }
             }

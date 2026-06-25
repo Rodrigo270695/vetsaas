@@ -23,10 +23,18 @@ final class WhatsAppContactResolver
 
     /**
      * @param  array<string, mixed>  $data  Payload `data` del webhook.
+     * @param  bool  $forOutgoing  true si fromMe — el cliente está en `to`, no en `from`.
      * @return array{wa_chat_id: string, phone: string, prospect_name: ?string}
      */
-    public function resolve(array $data, ?string $openWaSessionId = null): array
+    public function resolve(array $data, ?string $openWaSessionId = null, bool $forOutgoing = false): array
     {
+        if ($forOutgoing) {
+            $customerChat = (string) ($data['to'] ?? $data['chatId'] ?? $data['chat_id'] ?? '');
+            if ($customerChat !== '' && ! str_ends_with($customerChat, '@g.us')) {
+                $data['from'] = $customerChat;
+            }
+        }
+
         $from   = (string) ($data['from'] ?? '');
         $chatId = (string) ($data['chatId'] ?? $data['chat_id'] ?? '');
 

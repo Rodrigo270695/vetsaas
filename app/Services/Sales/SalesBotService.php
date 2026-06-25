@@ -637,6 +637,84 @@ PROMPT;
     }
 
     /**
+     * Saludo automático del anuncio de Facebook (mensaje saliente fromMe).
+     */
+    public function isFacebookWelcomeMessage(string $body): bool
+    {
+        if (trim($body) === '') {
+            return false;
+        }
+
+        $lower = mb_strtolower($body);
+
+        foreach ([
+            'vetsaas',
+            'vet saas',
+            'gracias por escribir',
+            'saludo automático',
+            'saludo automatico',
+        ] as $signal) {
+            if (str_contains($lower, $signal)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function isFacebookLeadConversation(?SalesConversation $conversation): bool
+    {
+        if ($conversation === null) {
+            return false;
+        }
+
+        return str_starts_with((string) ($conversation->activation_trigger ?? ''), 'facebook:');
+    }
+
+    /**
+     * Prepara el bot para responder cuando el lead conteste al saludo del anuncio.
+     */
+    public function armConversationFromWelcome(
+        string $phone,
+        string $waChatId,
+        ?string $prospectName,
+        string $welcomeBody,
+    ): SalesConversation {
+        $conversation = $this->findExistingConversation($phone, $waChatId);
+
+        if ($conversation !== null) {
+            $trigger = (string) ($conversation->activation_trigger ?? '');
+
+            // Si Rodrigo pausó manualmente, no reactivar con el saludo de Meta.
+            if (! $conversation->bot_active && str_starts_with($trigger, 'auto-pausa:')) {
+                return $conversation;
+            }
+
+            $this->syncContactMetadata($conversation, $phone, $waChatId, $prospectName);
+            $conversation->resumeBot();
+            $conversation->activation_trigger = 'facebook:welcome';
+        } else {
+            $conversation = $this->createConversation(
+                phone: $phone,
+                waChatId: $waChatId,
+                prospectName: $prospectName,
+                trigger: 'facebook:welcome',
+            );
+        }
+
+        $messages = $conversation->messages ?? [];
+        $last     = count($messages) > 0 ? end($messages) : null;
+
+        if (! is_array($last) || ($last['content'] ?? '') !== $welcomeBody) {
+            $conversation->pushMessage('assistant', $welcomeBody);
+        }
+
+        $conversation->save();
+
+        return $conversation;
+    }
+
+    /**
      * Detecta si un mensaje contiene palabras clave de ventas de VetSaaS.
      *
      * Devuelve el trigger encontrado o null si no es un prospecto.
