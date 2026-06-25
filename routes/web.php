@@ -38,6 +38,7 @@ use App\Http\Controllers\PropietarioController;
 use App\Http\Controllers\ProveedorInventarioController;
 use App\Http\Controllers\RecetaController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\SalesBotConversationController;
 use App\Http\Controllers\SalesBotKnowledgeController;
 use App\Http\Controllers\SedeController;
 use App\Http\Controllers\StockInventarioController;
@@ -936,6 +937,21 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:plataforma-suscripciones.delete')
             ->delete('suscripciones/{suscripcion}', [SubscriptionController::class, 'destroy'])
             ->name('suscripciones.destroy');
+
+        // ── Bot de ventas: conversaciones (panel de control) ──
+        // Rodrigo pausa/reactiva el bot por lead desde el navegador (celular ok).
+        Route::middleware('permission:salesbot-knowledge.view')
+            ->get('salesbot-conversations', [SalesBotConversationController::class, 'index'])
+            ->name('salesbot-conversations.index');
+        Route::middleware('permission:salesbot-knowledge.update')
+            ->post('salesbot-conversations/{conversation}/pause', [SalesBotConversationController::class, 'pause'])
+            ->name('salesbot-conversations.pause');
+        Route::middleware('permission:salesbot-knowledge.update')
+            ->post('salesbot-conversations/{conversation}/resume', [SalesBotConversationController::class, 'resume'])
+            ->name('salesbot-conversations.resume');
+        Route::middleware('permission:salesbot-knowledge.delete')
+            ->delete('salesbot-conversations/{conversation}', [SalesBotConversationController::class, 'destroy'])
+            ->name('salesbot-conversations.destroy');
 
         // ── Bot de ventas: base de conocimiento (planes, módulos, FAQs) ──
         // Solo superadmin. Cualquier cambio invalida el caché del bot (5 min).

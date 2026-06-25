@@ -478,9 +478,15 @@ function useNavConfig(): { singles: NavItem[]; groups: NavGroup[] } {
                             permission: 'plataforma-cobros.view',
                         },
                         {
+                            // Conversaciones del bot: pausa/reactiva por lead
+                            // desde el navegador (funciona en celular).
+                            title: t('items.salesbot_conversations'),
+                            href: '/plataforma/salesbot-conversations',
+                            icon: MessageCircle,
+                            permission: 'salesbot-knowledge.view',
+                        },
+                        {
                             // Base de conocimiento del bot de ventas IA.
-                            // Planes, módulos, FAQs y objeciones actualizables
-                            // sin tocar código. Solo superadmin.
                             title: t('items.salesbot_knowledge'),
                             href: '/plataforma/salesbot-knowledge',
                             icon: Bot,

@@ -1,0 +1,346 @@
+import { Head } from '@inertiajs/react';
+import {
+    Activity,
+    Bot,
+    CalendarDays,
+    Filter,
+    MessageCircle,
+    PauseCircle,
+    PlayCircle,
+    Trash2,
+    User,
+} from 'lucide-react';
+import { useCallback, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import {
+    DataPagination,
+    DataTable,
+    DataToolbar,
+    EmptyState,
+    FilterChips,
+    PageHeader,
+    StatBadge,
+} from '@/components/data-page';
+import type { DataTableColumn, FilterChip } from '@/components/data-page';
+import { Button } from '@/components/ui/button';
+import { useDataTablePage } from '@/hooks/use-data-table-page';
+import { usePermission } from '@/hooks/use-permission';
+import { toastManager } from '@/lib/toast';
+import AppLayout from '@/layouts/app-layout';
+import salesbotConversations from '@/routes/plataforma/salesbot-conversations';
+import type { Paginated } from '@/types';
+
+type Conversation = {
+    id: string;
+    phone: string;
+    prospect_name: string | null;
+    turn_count: number;
+    bot_active: boolean;
+    activation_trigger: string | null;
+    last_message_at: string | null;
+    last_message_body: string | null;
+    last_message_role: string | null;
+    created_at: string;
+};
+
+type EstadoFilter = 'todos' | 'activo' | 'pausado';
+
+type ConvFilters = {
+    search: string;
+    estado: EstadoFilter;
+    sort: string | null;
+    direction: 'asc' | 'desc' | null;
+    per_page: number;
+};
+
+type ConvStats = {
+    total: number;
+    activos: number;
+    pausados: number;
+    hoy: number;
+    coincidencias: number;
+};
+
+type Props = {
+    conversations: Paginated<Conversation>;
+    filters: ConvFilters;
+    stats: ConvStats;
+};
+
+const DEFAULT_PER_PAGE = 15;
+const DEFAULT_ESTADO: EstadoFilter = 'todos';
+
+const formatWhen = (iso: string | null): string => {
+    if (!iso) return '—';
+    return new Date(iso).toLocaleString('es-PE', { dateStyle: 'short', timeStyle: 'short' });
+};
+
+/** Hace un POST/DELETE simple usando fetch con el token CSRF. */
+function csrfFetch(url: string, method: 'POST' | 'DELETE'): Promise<Response> {
+    const xsrf = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/)?.[1] ?? '';
+    return fetch(url, {
+        method,
+        credentials: 'same-origin',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-XSRF-TOKEN': decodeURIComponent(xsrf),
+        },
+    });
+}
+
+export default function SalesBotConversationsIndex({ conversations, filters, stats }: Props) {
+    const { t } = useTranslation(['salesbot-conversations', 'common']);
+    const { can } = usePermission();
+    const canUpdate = can('salesbot-knowledge.update');
+    const canDelete = can('salesbot-knowledge.delete');
+
+    // Estado local para reflejar cambios de bot_active sin recargar la página entera.
+    const [localBotActive, setLocalBotActive] = useState<Record<string, boolean>>({});
+    const [processingId, setProcessingId] = useState<string | null>(null);
+
+    const getBotActive = (conv: Conversation): boolean =>
+        conv.id in localBotActive ? localBotActive[conv.id] : conv.bot_active;
+
+    const handleToggle = useCallback((conv: Conversation) => {
+        const currentlyActive = getBotActive(conv);
+        const url = currentlyActive
+            ? salesbotConversations.pause(conv.id).url
+            : salesbotConversations.resume(conv.id).url;
+
+        setProcessingId(conv.id);
+        csrfFetch(url, 'POST')
+            .then((res) => {
+                if (!res.ok) throw new Error();
+                setLocalBotActive((prev) => ({ ...prev, [conv.id]: !currentlyActive }));
+                toastManager.success({
+                    title: currentlyActive
+                        ? `Bot pausado para ${conv.prospect_name ?? conv.phone}`
+                        : `Bot reactivado para ${conv.prospect_name ?? conv.phone}`,
+                });
+            })
+            .catch(() => {
+                toastManager.error({ title: 'Error al cambiar el estado del bot' });
+            })
+            .finally(() => setProcessingId(null));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [localBotActive]);
+
+    const handleDelete = useCallback((conv: Conversation) => {
+        if (!confirm(`¿Eliminar la conversación de ${conv.prospect_name ?? conv.phone}? El bot lo tratará como lead nuevo.`)) return;
+        csrfFetch(salesbotConversations.destroy(conv.id).url, 'DELETE')
+            .then((res) => {
+                if (!res.ok) throw new Error();
+                toastManager.success({ title: 'Conversación eliminada' });
+                window.location.reload();
+            })
+            .catch(() => toastManager.error({ title: 'Error al eliminar' }));
+    }, []);
+
+    const estadoOptions: readonly FilterChip<EstadoFilter>[] = useMemo(
+        () => [
+            { value: 'todos',   label: 'Todos' },
+            { value: 'activo',  label: 'Bot activo' },
+            { value: 'pausado', label: 'Pausado' },
+        ],
+        [],
+    );
+
+    const { search, setSearch, isLoading, sort, setSort, setPerPage, applyFilter } =
+        useDataTablePage<{ estado: EstadoFilter }>({
+            routeUrl: salesbotConversations.index().url,
+            initialFilters: filters,
+            only: ['conversations', 'filters', 'stats'],
+            errorMessage: 'Error al cargar las conversaciones',
+            storageKey: 'vetsaas.plataforma.salesbot-conversations.prefs',
+            defaults: { per_page: DEFAULT_PER_PAGE, sort: null, direction: null },
+        });
+
+    const activeFiltersCount = useMemo(() => {
+        let n = 0;
+        if (filters.search) n++;
+        if (filters.estado !== DEFAULT_ESTADO) n++;
+        if (filters.per_page !== DEFAULT_PER_PAGE) n++;
+        return n;
+    }, [filters.search, filters.estado, filters.per_page]);
+
+    const columns = useMemo<DataTableColumn<Conversation>[]>(() => [
+        {
+            key: 'prospect_name',
+            header: 'Lead',
+            cell: (conv) => (
+                <div className="flex items-center gap-2">
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                        <User className="size-4" strokeWidth={2.25} />
+                    </span>
+                    <div className="flex min-w-0 flex-col leading-tight">
+                        <span className="truncate text-sm font-semibold text-foreground">
+                            {conv.prospect_name ?? 'Sin nombre'}
+                        </span>
+                        <span className="truncate font-mono text-xs text-muted-foreground">
+                            +{conv.phone}
+                        </span>
+                    </div>
+                </div>
+            ),
+        },
+        {
+            key: 'bot_active',
+            header: 'Bot',
+            cell: (conv) => {
+                const active = getBotActive(conv);
+                const loading = processingId === conv.id;
+                return active ? (
+                    <StatBadge label="Activo" value="" variant="success" />
+                ) : (
+                    <StatBadge label="Pausado" value="" variant="warning" />
+                );
+            },
+        },
+        {
+            key: 'last_message_body',
+            header: 'Último mensaje',
+            cell: (conv) => (
+                <div className="flex max-w-xs flex-col leading-tight">
+                    <span className="line-clamp-1 text-xs text-foreground/80">
+                        {conv.last_message_body ?? '—'}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                        {formatWhen(conv.last_message_at)}
+                    </span>
+                </div>
+            ),
+        },
+        {
+            key: 'turn_count',
+            header: 'Turnos',
+            cell: (conv) => (
+                <span className="text-xs text-muted-foreground">{conv.turn_count}</span>
+            ),
+        },
+        {
+            key: 'acciones',
+            header: <span className="md:sr-only">Acciones</span>,
+            align: 'right',
+            className: 'w-32',
+            cell: (conv) => {
+                const active = getBotActive(conv);
+                const loading = processingId === conv.id;
+                return (
+                    <div className="flex items-center justify-end gap-1">
+                        {canUpdate && (
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant={active ? 'outline' : 'default'}
+                                disabled={loading}
+                                onClick={() => handleToggle(conv)}
+                                className="cursor-pointer gap-1.5 text-xs"
+                            >
+                                {active ? (
+                                    <>
+                                        <PauseCircle className="size-3.5" strokeWidth={2.5} />
+                                        <span className="hidden sm:inline">Pausar</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <PlayCircle className="size-3.5" strokeWidth={2.5} />
+                                        <span className="hidden sm:inline">Reanudar</span>
+                                    </>
+                                )}
+                            </Button>
+                        )}
+                        {canDelete && (
+                            <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => handleDelete(conv)}
+                                className="size-8 cursor-pointer text-destructive hover:text-destructive"
+                            >
+                                <Trash2 className="size-4" strokeWidth={2.5} />
+                            </Button>
+                        )}
+                    </div>
+                );
+            },
+        },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    ], [canUpdate, canDelete, processingId, localBotActive, handleToggle, handleDelete]);
+
+    return (
+        <>
+            <Head title="Conversaciones del bot" />
+
+            <div className="flex flex-1 flex-col gap-5 p-4 sm:p-6">
+                <PageHeader
+                    title="Conversaciones del bot"
+                    description="Leads que el bot ha atendido. Pausa el bot por lead para tomar el control manual desde WhatsApp."
+                    stats={[
+                        { label: 'Total', value: stats.total, variant: 'info', icon: MessageCircle },
+                        { label: 'Bot activo', value: stats.activos, variant: 'success', icon: Bot },
+                        { label: 'Pausados', value: stats.pausados, variant: 'warning', icon: PauseCircle },
+                        { label: 'Hoy', value: stats.hoy, variant: 'primary', icon: CalendarDays },
+                        { label: 'Filtros', value: activeFiltersCount, variant: 'warning', icon: Filter },
+                        { label: 'Coincidencias', value: stats.coincidencias, variant: 'primary', icon: Activity },
+                    ]}
+                />
+
+                <DataTable
+                    columns={columns}
+                    data={conversations.data}
+                    rowKey={(c) => c.id}
+                    sort={sort}
+                    onSortChange={setSort}
+                    isLoading={isLoading}
+                    ariaLiveMessage={`${stats.coincidencias} conversaciones`}
+                    toolbar={
+                        <DataToolbar
+                            search={search}
+                            onSearchChange={setSearch}
+                            isSearching={isLoading}
+                            placeholder="Buscar por nombre o teléfono..."
+                        >
+                            <FilterChips
+                                ariaLabel="Filtrar por estado del bot"
+                                value={filters.estado}
+                                onChange={(estado) => applyFilter({ estado })}
+                                options={estadoOptions}
+                            />
+                        </DataToolbar>
+                    }
+                    footer={
+                        <DataPagination
+                            meta={conversations}
+                            onPerPageChange={setPerPage}
+                            preservedQuery={{
+                                search: filters.search || undefined,
+                                per_page: filters.per_page,
+                                estado: filters.estado !== DEFAULT_ESTADO ? filters.estado : undefined,
+                            }}
+                        />
+                    }
+                    emptyState={
+                        <EmptyState
+                            icon={MessageCircle}
+                            title="Sin conversaciones todavía"
+                            description="Cuando un prospecto escriba al número de Orvae con palabras clave de VetSaaS, aparecerá aquí."
+                        />
+                    }
+                />
+            </div>
+        </>
+    );
+}
+
+SalesBotConversationsIndex.layout = (page: React.ReactNode) => (
+    <AppLayout
+        breadcrumbs={[
+            { title: 'Plataforma' },
+            { title: 'Conversaciones bot', href: '/plataforma/salesbot-conversations' },
+        ]}
+    >
+        {page}
+    </AppLayout>
+);
