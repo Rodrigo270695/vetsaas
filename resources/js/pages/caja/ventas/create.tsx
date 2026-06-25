@@ -760,9 +760,9 @@ export default function Create({
 
                         {/* Cliente y comprobante en una sola franja */}
                         <section className="rounded-lg border border-border/60 bg-card px-3 py-2.5 shadow-xs ring-1 ring-border/10">
-                            <div className="grid gap-2.5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-                                <div className="min-w-0 space-y-1">
-                                    <div className="flex items-center justify-between gap-2">
+                            <div className="flex flex-col gap-2.5 lg:flex-row lg:items-end lg:gap-3">
+                                <div className="min-w-0 flex-1 space-y-1">
+                                    <div className="flex h-6 items-center justify-between gap-2">
                                         <Label htmlFor="propietario" className="text-xs text-muted-foreground">
                                             {t('caja:ventas.create.propietario')}
                                         </Label>
@@ -801,8 +801,8 @@ export default function Create({
                                     ) : null}
                                 </div>
 
-                                <div className="min-w-0 space-y-1 lg:max-w-sm lg:justify-self-end">
-                                    <Label className="text-xs text-muted-foreground">
+                                <div className="shrink-0 space-y-1">
+                                    <Label className="flex h-6 items-center text-xs text-muted-foreground">
                                         {t('caja:ventas.create.tipo_comprobante')}
                                     </Label>
                                     <ToggleGroup
