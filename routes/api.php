@@ -28,6 +28,23 @@ Route::post('webhooks/sales-bot', [SalesBotWebhookController::class, 'handle'])
     ->name('api.webhooks.sales-bot');
 
 /*
+| TODO — Rutas futuras por producto (Opción A):
+|
+| Cuando Orvae agregue más SaaS al bot, registrar una ruta por producto.
+| Cada ruta tiene su propio webhook en OpenWA (sesión o webhook separado).
+| El controlador recibe el slug del producto y carga el system prompt correcto.
+|
+|   Route::post('webhooks/sales-bot/aula-virtual', ...)
+|       ->name('api.webhooks.sales-bot.aula-virtual');
+|
+|   Route::post('webhooks/sales-bot/inventario', ...)
+|       ->name('api.webhooks.sales-bot.inventario');
+|
+| En OpenWA: registrar un webhook por ruta con el mismo secret.
+| En SalesBotService: agregar buildSystemPromptForProduct(string $product).
+*/
+
+/*
 |--------------------------------------------------------------------------
 | Rutas API internas
 |--------------------------------------------------------------------------

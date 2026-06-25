@@ -15,6 +15,32 @@ use RuntimeException;
  * Recibe el mensaje de un prospecto, mantiene el historial de conversación
  * en `sales_conversations`, llama a OpenAI y devuelve la respuesta lista
  * para enviarla por WhatsApp.
+ *
+ * ─── EXPANSIÓN A MÚLTIPLES PRODUCTOS ────────────────────────────────────────
+ * Orvae tiene varios SaaS (VetSaaS, Aula Virtual, Inventario, etc.).
+ * Cuando se quiera agregar un nuevo producto, hay dos caminos:
+ *
+ * OPCIÓN A — Múltiples rutas webhook (recomendada):
+ *   Cada producto tiene su propia ruta en routes/api.php:
+ *     POST /api/webhooks/sales-bot/vetsaas
+ *     POST /api/webhooks/sales-bot/aula-virtual
+ *     POST /api/webhooks/sales-bot/inventario
+ *   Y en OpenWA se registra un webhook por sesión/producto.
+ *   El controlador recibe el producto como parámetro de ruta y
+ *   este servicio carga el system prompt correcto según el producto.
+ *
+ * OPCIÓN B — Una sola ruta, el anuncio de Facebook prefija el mensaje:
+ *   El mensaje de bienvenida del ad incluye el nombre del producto:
+ *     "Hola, me interesa VetSaaS para mi clínica..."
+ *     "Hola, me interesa el Aula Virtual..."
+ *   El bot detecta el producto en el primer mensaje y adapta el flujo.
+ *   Más simple pero menos robusto.
+ *
+ * Para implementar cualquiera de las dos opciones:
+ *   1. Crear un método buildSystemPromptForProduct(string $product): string
+ *   2. Agregar los casos en un switch/match por producto
+ *   3. Cada producto tiene: nombre, planes, demo URL, módulos, pain points
+ * ─────────────────────────────────────────────────────────────────────────────
  */
 final class SalesBotService
 {

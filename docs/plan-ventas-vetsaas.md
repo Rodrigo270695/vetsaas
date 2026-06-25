@@ -524,5 +524,50 @@ php artisan vetsaas:reset-demo
 
 ---
 
+---
+
+## Estado actual del bot (junio 2026)
+
+| Componente | Estado |
+|---|---|
+| Tenant demo creado | ✅ Pendiente correr seeders en producción |
+| Webhook registrado en OpenWA | ✅ Activo — sesión `vetsaas-platform` |
+| Bot IA respondiendo | ✅ Funcionando — gpt-4o-mini |
+| Verificación HMAC | ⚠️ Deshabilitada temporalmente (secret vacío) |
+| Demo con datos realistas | ⏳ Pendiente correr DemoDataSeeder en producción |
+
+### Pendientes inmediatos
+1. Correr `php artisan db:seed --class=DemoTenantsSeeder` en producción
+2. Correr `php artisan db:seed --class=DemoDataSeeder` en producción
+3. Cambiar mensaje de bienvenida del anuncio en Meta (sin precios, solo pregunta)
+4. Activar verificación HMAC cuando OpenWA confirme el header que usa
+
+---
+
+## Expansión a múltiples productos (futuro)
+
+Orvae tiene varios SaaS. El bot actual solo cubre VetSaaS.
+Para agregar nuevos productos sin múltiples números de celular:
+
+### Opción A — Múltiples rutas webhook (recomendada)
+Cada producto tiene su propia ruta en `routes/api.php` y su propio
+webhook registrado en OpenWA. El anuncio de Facebook de cada producto
+apunta al número de Orvae y el mensaje de bienvenida del ad identifica
+el producto. El controlador recibe el slug del producto como parámetro.
+
+```
+POST /api/webhooks/sales-bot           → VetSaaS (activo)
+POST /api/webhooks/sales-bot/aula-virtual   → futuro
+POST /api/webhooks/sales-bot/inventario     → futuro
+```
+
+### Cómo agregar un nuevo producto
+1. Agregar la ruta en `routes/api.php` (ver comentarios TODO)
+2. Agregar el system prompt en `SalesBotService::buildSystemPrompt()`
+3. Registrar el webhook en OpenWA apuntando a la nueva ruta
+4. Configurar el mensaje de bienvenida del ad de Facebook con el producto
+
+---
+
 *Última actualización: junio 2026*
-*Estado: en ejecución — Fase 1 en progreso*
+*Estado: Bot VetSaaS activo y funcionando en producción*
