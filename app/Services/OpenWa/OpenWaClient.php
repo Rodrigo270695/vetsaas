@@ -146,31 +146,60 @@ final class OpenWaClient
      * @param  string  $audioContent  Contenido binario del audio (ogg/opus).
      * @return array<string, mixed>
      */
+    /**
+     * Envía una nota de voz (audio ogg/opus) a un chat de WhatsApp.
+     *
+     * El audio se guarda temporalmente en storage/app/public/salesbot/ y se
+     * envía a OpenWA como URL pública. OpenWA descarga el archivo y lo envía
+     * como PTT (nota de voz) al destinatario.
+     *
+     * El archivo temporal se borra automáticamente después del envío.
+     *
+     * @param  string  $sessionId     ID de la sesión OpenWA activa.
+     * @param  string  $chatId        Chat destino (ej: "51987654321@c.us").
+     * @param  string  $audioContent  Contenido binario del audio (ogg/opus).
+     * @return array<string, mixed>
+     */
     public function sendVoice(string $sessionId, string $chatId, string $audioContent): array
     {
-        $base64 = base64_encode($audioContent);
-        $dataUri = 'data:audio/ogg; codecs=opus;base64,' . $base64;
+        // Guardar temporalmente en storage público para que OpenWA lo descargue.
+        $filename  = 'voice_' . uniqid() . '.ogg';
+        $storagePath = 'salesbot/' . $filename;
 
-        // Intentar primero el endpoint de voz nativo.
-        // Si falla con 404, usar send-file como fallback.
+        \Illuminate\Support\Facades\Storage::disk('public')->put($storagePath, $audioContent);
+
         try {
-            $response = $this->request('post', '/api/sessions/' . $sessionId . '/messages/send-voice', [
-                'chatId' => $chatId,
-                'audio'  => $dataUri,
-                'ptt'    => true,
-            ]);
-        } catch (RuntimeException $e) {
-            if (str_contains($e->getMessage(), '404') || str_contains($e->getMessage(), 'Not Found')) {
-                // Fallback: send-file con ptt=true (funciona en algunas versiones de OpenWA).
-                $response = $this->request('post', '/api/sessions/' . $sessionId . '/messages/send-file', [
-                    'chatId'   => $chatId,
-                    'file'     => $dataUri,
-                    'filename' => 'voice.ogg',
-                    'ptt'      => true,
-                ]);
-            } else {
-                throw $e;
+            // URL accesible por OpenWA (mismo servidor).
+            $publicUrl = \Illuminate\Support\Facades\Storage::disk('public')->url($storagePath);
+
+            // Si la URL es relativa, convertirla en absoluta con la URL de la app.
+            if (! str_starts_with($publicUrl, 'http')) {
+                $publicUrl = rtrim((string) config('app.url'), '/') . $publicUrl;
             }
+
+            // Intentar endpoint de voz nativo primero.
+            try {
+                $response = $this->request('post', '/api/sessions/' . $sessionId . '/messages/send-voice', [
+                    'chatId' => $chatId,
+                    'url'    => $publicUrl,
+                    'ptt'    => true,
+                ]);
+            } catch (RuntimeException $e) {
+                if (str_contains($e->getMessage(), '404') || str_contains($e->getMessage(), 'Not Found')) {
+                    // Fallback: send-file con flag ptt.
+                    $response = $this->request('post', '/api/sessions/' . $sessionId . '/messages/send-file', [
+                        'chatId'   => $chatId,
+                        'file'     => $publicUrl,
+                        'filename' => 'voice.ogg',
+                        'ptt'      => true,
+                    ]);
+                } else {
+                    throw $e;
+                }
+            }
+        } finally {
+            // Borrar el archivo temporal siempre, haya éxito o error.
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($storagePath);
         }
 
         return is_array($response) ? $response : [];
