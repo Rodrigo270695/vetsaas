@@ -662,11 +662,12 @@ PROMPT;
             'clínica vet'   => 'veterinaria',
             'mascotas'      => 'veterinaria',
             'pacientes vet' => 'veterinaria',
-            // Intención de compra / información (con contexto VetSaaS)
+            // Intención de compra / información
             'me interesa'   => 'interes',
             'quiero info'   => 'interes',
             'más informaci' => 'interes',
             'mas informaci' => 'interes',
+            'informaci'     => 'interes',   // "información de costos", "quiero información"
             'quiero saber'  => 'interes',
             'cómo funciona' => 'interes',
             'como funciona' => 'interes',
@@ -674,10 +675,18 @@ PROMPT;
             'demo'          => 'demo',
             'prueba'        => 'demo',
             'precio'        => 'precio',
+            'precios'       => 'precio',
+            'costos'        => 'precio',
+            'costo'         => 'precio',
+            'tarifa'        => 'precio',
+            'tarifas'       => 'precio',
+            'cotiz'         => 'precio',    // cotización, cotizar
             'cuánto cuesta' => 'precio',
             'cuanto cuesta' => 'precio',
             'cuánto vale'   => 'precio',
             'cuanto vale'   => 'precio',
+            'cuánto es'     => 'precio',
+            'cuanto es'     => 'precio',
         ];
 
         foreach ($triggers as $keyword => $trigger) {
