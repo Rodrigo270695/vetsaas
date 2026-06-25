@@ -75,6 +75,31 @@ const formatWhen = (iso: string | null): string => {
     return new Date(iso).toLocaleString('es-PE', { dateStyle: 'short', timeStyle: 'short' });
 };
 
+/** Muestra el teléfono como número legible. */
+const formatPhone = (raw: string): string => {
+    // raw puede ser "51986709811" o ya "51986709811@c.us" sin procesar
+    const digits = raw.replace('@c.us', '').replace(/\D/g, '');
+    if (digits.startsWith('51') && digits.length === 11) {
+        // Perú: 51 + 9 dígitos → +51 9XX XXX XXX
+        return `+51 ${digits.slice(2, 3)} ${digits.slice(3, 6)} ${digits.slice(6, 9)} ${digits.slice(9)}`;
+    }
+    return `+${digits}`;
+};
+
+/** Tiempo relativo tipo "hace 3 min", "hace 2h", "hace 1d". */
+const timeAgo = (iso: string | null): string => {
+    if (!iso) return '—';
+    const diffMs = Date.now() - new Date(iso).getTime();
+    const secs = Math.floor(diffMs / 1000);
+    if (secs < 60) return 'hace un momento';
+    const mins = Math.floor(secs / 60);
+    if (mins < 60) return `hace ${mins} min`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `hace ${hrs}h`;
+    const days = Math.floor(hrs / 24);
+    return `hace ${days}d`;
+};
+
 /** Hace un POST/DELETE simple usando fetch con el token CSRF. */
 function csrfFetch(url: string, method: 'POST' | 'DELETE'): Promise<Response> {
     const xsrf = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/)?.[1] ?? '';
@@ -169,6 +194,7 @@ export default function SalesBotConversationsIndex({ conversations, filters, sta
         {
             key: 'prospect_name',
             header: 'Lead',
+            sortable: true,
             cell: (conv) => (
                 <div className="flex items-center gap-2">
                     <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -178,10 +204,26 @@ export default function SalesBotConversationsIndex({ conversations, filters, sta
                         <span className="truncate text-sm font-semibold text-foreground">
                             {conv.prospect_name ?? 'Sin nombre'}
                         </span>
+                        {/* número formateado para identificar rápido en WhatsApp */}
                         <span className="truncate font-mono text-xs text-muted-foreground">
-                            +{conv.phone}
+                            {formatPhone(conv.phone)}
                         </span>
                     </div>
+                </div>
+            ),
+        },
+        {
+            key: 'last_message_at',
+            header: 'Última actividad',
+            sortable: true,
+            cell: (conv) => (
+                <div className="flex min-w-[120px] flex-col leading-tight">
+                    <span className="text-xs font-medium text-foreground">
+                        {timeAgo(conv.last_message_at)}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                        {formatWhen(conv.last_message_at)}
+                    </span>
                 </div>
             ),
         },
@@ -190,7 +232,6 @@ export default function SalesBotConversationsIndex({ conversations, filters, sta
             header: 'Bot',
             cell: (conv) => {
                 const active = getBotActive(conv);
-                const loading = processingId === conv.id;
                 return active ? (
                     <StatBadge label="Activo" value="" variant="success" />
                 ) : (
@@ -203,11 +244,8 @@ export default function SalesBotConversationsIndex({ conversations, filters, sta
             header: 'Último mensaje',
             cell: (conv) => (
                 <div className="flex max-w-xs flex-col leading-tight">
-                    <span className="line-clamp-1 text-xs text-foreground/80">
+                    <span className="line-clamp-2 text-xs text-foreground/80">
                         {conv.last_message_body ?? '—'}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                        {formatWhen(conv.last_message_at)}
                     </span>
                 </div>
             ),
