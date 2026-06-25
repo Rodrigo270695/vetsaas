@@ -283,6 +283,7 @@ class TenantSchemaMigrator
             '2026_06_23_100000_t098_add_apisunat_mode_to_fel_documents' => Schema::hasTable('fel_documents')
                 && Schema::hasColumn('fel_documents', 'apisunat_mode'),
             '2026_06_24_100000_t099_backfill_apisunat_mode_on_fel_documents' => false,
+            '2026_06_25_100000_t100_propietarios_unique_documento_per_tenant' => false,
             default => false,
         };
     }

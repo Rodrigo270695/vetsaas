@@ -753,7 +753,7 @@ export default function Create({
                 ) : null}
 
                 {/* ── Layout POS ── */}
-                <div className="flex flex-1 flex-col gap-3 p-3 sm:p-4 xl:grid xl:grid-cols-[minmax(0,1fr)_400px] xl:items-start xl:gap-4">
+                <div className="flex flex-1 flex-col gap-3 p-3 sm:p-4 lg:grid lg:grid-cols-[minmax(0,1fr)_min(400px,38%)] lg:items-start lg:gap-4">
 
                     {/* Columna izquierda: cliente + catálogo */}
                     <div className="flex min-w-0 flex-col gap-3">
@@ -1035,13 +1035,22 @@ export default function Create({
                     </div>
 
                     {/* Columna derecha: carrito + cobro (sticky) */}
-                    <div className="flex flex-col gap-3 xl:sticky xl:top-3 xl:max-h-[calc(100dvh-9rem)] xl:min-h-0">
+                    <div
+                        className={cn(
+                            'flex shrink-0 flex-col gap-3',
+                            cart.length > 0 && 'max-lg:order-first',
+                            'lg:sticky lg:top-3 lg:max-h-[calc(100dvh-9rem)] lg:min-h-0',
+                        )}
+                    >
 
                         <PosPanel
                             compact
                             title={t('caja:ventas.create.card_carrito')}
                             icon={ShoppingBag}
-                            className="min-h-0 flex-1 xl:flex xl:flex-col"
+                            className={cn(
+                                'min-h-0 flex-1 lg:flex lg:flex-col',
+                                cart.length > 0 && 'max-lg:min-h-[min(42dvh,320px)]',
+                            )}
                             contentClassName="min-h-0 flex-1"
                             badge={
                                 cart.length > 0 ? (
@@ -1058,8 +1067,114 @@ export default function Create({
                                     <p className="text-[11px] text-muted-foreground">{t('caja:ventas.create.carrito_vacio_hint')}</p>
                                 </div>
                             ) : (
-                                <div className="min-h-0 flex-1 overflow-y-auto rounded-md border border-border/50">
-                                    <table className="w-full border-collapse text-xs">
+                                <div className="min-h-0 flex-1 overflow-y-auto rounded-md border border-border/50 max-lg:max-h-[min(38dvh,280px)]">
+                                    <ul className="divide-y divide-border/40 md:hidden">
+                                        {cart.map((line) => {
+                                            const lista = Number(line.precio_venta ?? 0);
+                                            const lineTotal = lineTotalLinea(
+                                                lista,
+                                                line.cantidad,
+                                                igvPct,
+                                                precioIncluyeIgv,
+                                            );
+                                            const excedeStock =
+                                                !line.omitir_stock &&
+                                                line.cantidad > line.stock_disponible + 0.0001;
+
+                                            return (
+                                                <li
+                                                    key={line.key}
+                                                    className={cn(
+                                                        'px-2 py-2.5',
+                                                        excedeStock && 'bg-destructive/5',
+                                                    )}
+                                                >
+                                                    <div className="flex items-start justify-between gap-2">
+                                                        <div className="min-w-0 flex-1">
+                                                            <p className="text-xs font-medium leading-snug">{line.nombre}</p>
+                                                            {line.producto_id === null ? (
+                                                                <Input
+                                                                    type="number"
+                                                                    inputMode="decimal"
+                                                                    min={0}
+                                                                    step={0.01}
+                                                                    className="mt-1 h-7 w-20 text-right text-[10px] tabular-nums"
+                                                                    value={lista}
+                                                                    onChange={(e) =>
+                                                                        setPrecioListaLinea(line.key, e.target.value)
+                                                                    }
+                                                                    disabled={!puede_vender}
+                                                                    aria-label={t('caja:ventas.create.col_precio_unit')}
+                                                                />
+                                                            ) : (
+                                                                <p
+                                                                    className={cn(
+                                                                        'mt-0.5 text-[10px] tabular-nums',
+                                                                        excedeStock ? 'text-destructive' : 'text-muted-foreground',
+                                                                    )}
+                                                                >
+                                                                    {formatMoney(lista)} / {line.unidad}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="size-7 shrink-0 text-muted-foreground hover:text-destructive"
+                                                            onClick={() => removeLine(line.key)}
+                                                            disabled={!puede_vender}
+                                                        >
+                                                            <Trash2 className="size-3.5" aria-hidden />
+                                                        </Button>
+                                                    </div>
+                                                    <div className="mt-2 flex items-center justify-between gap-2">
+                                                        <div className="flex items-center gap-0.5">
+                                                            <Button
+                                                                type="button"
+                                                                variant="outline"
+                                                                size="icon"
+                                                                className="size-7 shrink-0"
+                                                                onClick={() => setCantidad(line.key, line.cantidad - 1)}
+                                                                disabled={!puede_vender}
+                                                            >
+                                                                <Minus className="size-3" aria-hidden />
+                                                            </Button>
+                                                            <Input
+                                                                className="h-7 w-12 border-0 bg-transparent px-0 text-center text-xs tabular-nums shadow-none focus-visible:ring-0"
+                                                                value={String(line.cantidad)}
+                                                                onChange={(e) => {
+                                                                    const v = Number(e.target.value.replace(',', '.'));
+                                                                    if (!Number.isNaN(v)) {
+                                                                        setCantidad(line.key, v);
+                                                                    }
+                                                                }}
+                                                                disabled={!puede_vender}
+                                                            />
+                                                            <Button
+                                                                type="button"
+                                                                variant="outline"
+                                                                size="icon"
+                                                                className="size-7 shrink-0"
+                                                                onClick={() => setCantidad(line.key, line.cantidad + 1)}
+                                                                disabled={
+                                                                    !puede_vender ||
+                                                                    (!line.omitir_stock &&
+                                                                        line.cantidad >= line.stock_disponible - 0.0001)
+                                                                }
+                                                            >
+                                                                <Plus className="size-3" aria-hidden />
+                                                            </Button>
+                                                        </div>
+                                                        <span className="text-sm font-semibold tabular-nums">
+                                                            {formatMoney(lineTotal)}
+                                                        </span>
+                                                    </div>
+                                                </li>
+                                            );
+                                        })}
+                                    </ul>
+                                    <table className="hidden w-full min-w-0 border-collapse text-xs md:table">
                                         <thead className="sticky top-0 z-10 bg-muted/80 backdrop-blur-sm">
                                             <tr>
                                                 <th className="border-b border-border/50 px-2 py-1.5 text-left font-medium text-muted-foreground">
@@ -1095,8 +1210,8 @@ export default function Create({
                                                             excedeStock && 'bg-destructive/5',
                                                         )}
                                                     >
-                                                        <td className="px-2 py-1.5 align-middle">
-                                                            <div className="flex flex-col gap-0.5">
+                                                        <td className="min-w-0 px-2 py-1.5 align-middle">
+                                                            <div className="flex min-w-0 flex-col gap-0.5">
                                                                 <span className="line-clamp-2 text-[11px] font-medium leading-snug">
                                                                     {line.nombre}
                                                                 </span>
