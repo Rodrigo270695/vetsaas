@@ -1236,7 +1236,7 @@ export default function Create({
                                             className={cn(
                                                 'rounded-lg border p-2.5 transition-all duration-300',
                                                 faltaMonto
-                                                    ? 'border-amber-400 bg-amber-50 shadow-sm shadow-amber-200/60 dark:border-amber-500/60 dark:bg-amber-950/30 dark:shadow-amber-900/30'
+                                                    ? 'border-emerald-400 bg-emerald-50 shadow-sm shadow-emerald-200/60 dark:border-emerald-500/60 dark:bg-emerald-950/30 dark:shadow-emerald-900/30'
                                                     : 'border-border/50 bg-muted/10',
                                             )}
                                         >
@@ -1245,7 +1245,7 @@ export default function Create({
                                                     htmlFor="monto_recibido"
                                                     className={cn(
                                                         'text-[11px] font-semibold transition-colors',
-                                                        faltaMonto ? 'text-amber-700 dark:text-amber-400' : 'text-muted-foreground',
+                                                        faltaMonto ? 'text-emerald-700 dark:text-emerald-400' : 'text-muted-foreground',
                                                     )}
                                                 >
                                                     {faltaMonto ? '⚠ Ingresa el monto recibido' : t('caja:ventas.create.monto_recibido')}
@@ -1255,7 +1255,7 @@ export default function Create({
                                                         type="button"
                                                         disabled={!puede_vender}
                                                         onClick={() => form.setData('monto_recibido', String(totales.total))}
-                                                        className="rounded-md bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
+                                                        className="cursor-pointer rounded-md bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                                                     >
                                                         Exacto
                                                     </button>
@@ -1267,7 +1267,7 @@ export default function Create({
                                                 className={cn(
                                                     'h-9 text-sm font-semibold tabular-nums transition-all',
                                                     faltaMonto
-                                                        ? 'border-amber-400 bg-white ring-2 ring-amber-300/60 focus-visible:ring-amber-400 dark:bg-amber-950/40 dark:ring-amber-500/40'
+                                                        ? 'border-emerald-400 bg-white ring-2 ring-emerald-300/60 focus-visible:ring-emerald-400 dark:bg-emerald-950/40 dark:ring-emerald-500/40'
                                                         : '',
                                                 )}
                                                 inputMode="decimal"
@@ -1289,7 +1289,7 @@ export default function Create({
                                                                 disabled={!puede_vender}
                                                                 onClick={() => form.setData('monto_recibido', String(b))}
                                                                 className={cn(
-                                                                    'flex-1 rounded-md border px-1.5 py-1 text-center text-[10px] font-semibold tabular-nums transition-all',
+                                                                    'flex-1 cursor-pointer rounded-md border px-1.5 py-1 text-center text-[10px] font-semibold tabular-nums transition-all disabled:cursor-not-allowed disabled:opacity-50',
                                                                     suficiente
                                                                         ? 'border-emerald-400/60 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-400'
                                                                         : 'border-border/50 bg-background text-muted-foreground hover:bg-muted/40',
