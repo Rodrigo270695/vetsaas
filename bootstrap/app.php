@@ -114,6 +114,9 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withSchedule(function (Schedule $schedule): void {
+        // Resetea datos y contraseña del tenant demo cada noche.
+        $schedule->command('vetsaas:reset-demo')->dailyAt('03:00');
+
         $schedule->command('vetsaas:billing-supervisor')->dailyAt('06:00');
         $schedule->command('vetsaas:subscription-renewal-reminders')->dailyAt('09:00');
         $schedule->command('vetsaas:reminders-scan')->everyFifteenMinutes();

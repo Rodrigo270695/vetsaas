@@ -63,6 +63,15 @@ class DemoTenantsSeeder extends Seeder
          * Plan PRO para mostrar todos los módulos al prospecto.
          * Sus datos son recargados periódicamente por DemoDataSeeder.
          */
+        /*
+         * ── Único tenant público de demostración ──────────────────────────
+         * Credenciales que se publican en WhatsApp / Facebook Ads:
+         *   Usuario : demo@vetsaas.pe
+         *   Clave   : demo1234
+         * Plan PRO para mostrar todos los módulos al prospecto.
+         * Sus datos son recargados periódicamente por DemoDataSeeder
+         * (comando: php artisan vetsaas:reset-demo)
+         */
         [
             'slug'              => 'demo',
             'nombre_comercial'  => 'Clínica Veterinaria Demo',
@@ -72,30 +81,6 @@ class DemoTenantsSeeder extends Seeder
             'color_secundario'  => '#94C7A8',
             'email_override'    => 'demo@vetsaas.pe',
             'password_override' => 'demo1234',
-        ],
-        [
-            'slug' => 'mi-clinica',
-            'nombre_comercial' => 'Mi Clínica Veterinaria',
-            'razon_social' => 'Mi Clínica Veterinaria SAC',
-            'ruc' => '20111111111',
-            'color_primario' => '#1F6F43',
-            'color_secundario' => '#94C7A8',
-        ],
-        [
-            'slug' => 'vet-amigos',
-            'nombre_comercial' => 'Vet Amigos',
-            'razon_social' => 'Vet Amigos del Barrio EIRL',
-            'ruc' => '20222222222',
-            'color_primario' => '#0E6FA8',
-            'color_secundario' => '#9CC8E0',
-        ],
-        [
-            'slug' => 'paws-care',
-            'nombre_comercial' => 'Paws Care Clinic',
-            'razon_social' => 'Paws Care Clinic SAC',
-            'ruc' => '20333333333',
-            'color_primario' => '#8A4E2A',
-            'color_secundario' => '#D8B79A',
         ],
     ];
 
