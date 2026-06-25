@@ -96,22 +96,6 @@ final class SalesBotWebhookController extends Controller
 
         $isAudio = in_array($type, ['ptt', 'audio'], true);
 
-        // Log de diagnóstico — detectar tipo real y estructura del payload.
-        // Quitar una vez confirmado el formato de OpenWA.
-        Log::info('SalesBot webhook payload', [
-            'event'    => $event,
-            'type'     => $type,
-            'fromMe'   => $fromMe,
-            'waChatId' => $waChatId,
-            'body_len' => strlen($body),
-            'body_preview' => substr($body, 0, 80),
-            'is_audio' => $isAudio,
-            'data_keys' => array_keys(is_array($data) ? $data : []),
-            'media'    => is_array($data['media'] ?? null)
-                ? array_map(fn($v) => is_string($v) ? substr($v, 0, 120) : $v, $data['media'])
-                : $data['media'] ?? null,
-        ]);
-
         // Saltar si: es mensaje propio, no es evento de mensaje,
         // o está vacío Y no es un audio que podamos transcribir.
         if ($fromMe || ! $esEventoMensaje || ($body === '' && ! $isAudio)) {
@@ -136,20 +120,39 @@ final class SalesBotWebhookController extends Controller
             : null;
 
         // ── Soporte de audios (Whisper) ────────────────────────────────────
-        // Si el mensaje es de tipo ptt (push-to-talk) o audio, intentamos
-        // transcribirlo. Si falla, le avisamos al prospecto amablemente.
+        // OpenWA envía los audios como base64 en data.media.data
+        // (mimetype: audio/ogg; codecs=opus).
         if ($body === '' && $isAudio && config('salesbot.audio_enabled')) {
-            $mediaUrl = (string) ($data['mediaUrl'] ?? $data['body'] ?? '');
-            if ($mediaUrl !== '') {
+            $media     = is_array($data['media'] ?? null) ? $data['media'] : [];
+            $b64data   = (string) ($media['data'] ?? '');
+            $mimetype  = (string) ($media['mimetype'] ?? 'audio/ogg');
+
+            // Determinar extensión a partir del mimetype.
+            $ext = str_contains($mimetype, 'ogg') ? 'ogg'
+                : (str_contains($mimetype, 'mp4') ? 'mp4'
+                : (str_contains($mimetype, 'webm') ? 'webm' : 'ogg'));
+
+            if ($b64data !== '') {
                 try {
-                    $audioContent = $this->messenger->getClient()->downloadMedia($mediaUrl);
-                    $body         = $this->botService->transcribeAudio($audioContent, 'audio.ogg');
-                    Log::info('SalesBot audio transcribed', ['phone' => $phone, 'text' => substr($body, 0, 100)]);
+                    $audioContent = base64_decode($b64data, strict: false);
+                    if ($audioContent === false || strlen($audioContent) < 100) {
+                        throw new \RuntimeException('Base64 decode falló o archivo demasiado pequeño.');
+                    }
+                    $body = $this->botService->transcribeAudio($audioContent, "audio.{$ext}");
+                    Log::info('SalesBot audio transcribed', [
+                        'phone' => $phone,
+                        'text'  => substr($body, 0, 100),
+                    ]);
                 } catch (\Throwable $e) {
-                    Log::warning('SalesBot Whisper failed', ['phone' => $phone, 'error' => $e->getMessage()]);
-                    // No podemos transcribir — le decimos al lead que escriba.
+                    Log::warning('SalesBot Whisper failed', [
+                        'phone' => $phone,
+                        'error' => $e->getMessage(),
+                    ]);
                     if ($this->messenger->isReady()) {
-                        $this->messenger->sendText($waChatId, '¡Hola! 👋 Recibí tu audio pero por el momento solo puedo responder mensajes de texto. ¿Me puedes escribir tu consulta? 😊');
+                        $this->messenger->sendText(
+                            $waChatId,
+                            '¡Hola! 👋 Recibí tu audio pero tuve un problema para procesarlo. ¿Me puedes escribir tu consulta? 😊',
+                        );
                     }
                     return response()->json(['ok' => true, 'skipped' => 'audio_transcription_failed']);
                 }
