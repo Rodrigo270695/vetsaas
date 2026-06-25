@@ -958,6 +958,12 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:salesbot-knowledge.update')
             ->post('salesbot-conversations/{conversation}/reactivate', [SalesBotConversationController::class, 'reactivate'])
             ->name('salesbot-conversations.reactivate');
+        Route::middleware('permission:salesbot-knowledge.view')
+            ->get('salesbot-conversations/csv-template', [SalesBotConversationController::class, 'csvTemplate'])
+            ->name('salesbot-conversations.csv-template');
+        Route::middleware('permission:salesbot-knowledge.update')
+            ->post('salesbot-conversations/import-csv', [SalesBotConversationController::class, 'importCsv'])
+            ->name('salesbot-conversations.import-csv');
 
         // ── Bot de ventas: base de conocimiento (planes, módulos, FAQs) ──
         // Solo superadmin. Cualquier cambio invalida el caché del bot (5 min).

@@ -52,10 +52,33 @@ final class ReactivateColdLeadsCommand extends Command
 
         $this->info("🔍 Buscando leads fríos (inactivos +{$inactiveDays} días, máx {$limit})...");
 
+        // ── Paso 0: cerrar automáticamente leads que agotaron sus 2 intentos ──
+        // Si ya se enviaron 2 mensajes de reactivación y han pasado 3+ días sin
+        // respuesta, se marcan como "perdidos" y no se vuelven a contactar.
+        if (! $dryRun) {
+            $exhausted = SalesConversation::query()
+                ->where('converted', false)
+                ->whereNull('lost_at')
+                ->where('reactivation_count', '>=', 2)
+                ->whereNotNull('last_reactivation_at')
+                ->whereRaw("EXTRACT(EPOCH FROM (NOW() - last_reactivation_at))/86400 >= 3")
+                ->get();
+
+            if ($exhausted->isNotEmpty()) {
+                $this->warn("🔒 Cerrando {$exhausted->count()} leads sin respuesta tras 2 intentos...");
+                foreach ($exhausted as $lead) {
+                    /** @var SalesConversation $lead */
+                    $lead->markLost();
+                    $this->line("  ⛔ [{$lead->phone}] " . ($lead->prospect_name ?? 'Sin nombre') . " — marcado como perdido");
+                }
+            }
+        }
+
         // Consulta base: conversaciones que tuvieron actividad con el bot
-        // pero llevan días sin escribir y aún no convirtieron.
+        // pero llevan días sin escribir y aún no convirtieron ni se perdieron.
         $candidates = SalesConversation::query()
             ->where('converted', false)
+            ->whereNull('lost_at')
             ->where('reactivation_count', '<', 2)
             ->where('turn_count', '>', 0)
             ->where(function ($q) use ($inactiveDays): void {

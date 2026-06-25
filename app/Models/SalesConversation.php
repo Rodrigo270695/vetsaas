@@ -21,6 +21,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property int         $reactivation_count  veces que se ha enviado un mensaje de reactivación
  * @property \Illuminate\Support\Carbon|null $last_reactivation_at último mensaje de reactivación enviado
  * @property bool        $converted           true = lead convirtió (no reactivar más)
+ * @property \Illuminate\Support\Carbon|null $lost_at             fecha en que se cerró como perdido
  * @property \Illuminate\Support\Carbon|null $last_message_at
  * @property \Illuminate\Support\Carbon      $created_at
  * @property \Illuminate\Support\Carbon      $updated_at
@@ -43,6 +44,7 @@ final class SalesConversation extends Model
         'reactivation_count',
         'last_reactivation_at',
         'converted',
+        'lost_at',
     ];
 
     protected function casts(): array
@@ -55,6 +57,7 @@ final class SalesConversation extends Model
             'reactivation_count'   => 'integer',
             'last_reactivation_at' => 'datetime',
             'converted'            => 'boolean',
+            'lost_at'              => 'datetime',
         ];
     }
 
@@ -90,6 +93,25 @@ final class SalesConversation extends Model
     }
 
     /**
+     * Marca el lead como perdido (agotó intentos sin responder).
+     * El sistema lo excluye de reactivaciones futuras.
+     */
+    public function markLost(): void
+    {
+        $this->lost_at    = now();
+        $this->bot_active = false;
+        $this->save();
+    }
+
+    /**
+     * True si el lead está cerrado (convertido o perdido).
+     */
+    public function isClosed(): bool
+    {
+        return $this->converted || $this->lost_at !== null;
+    }
+
+    /**
      * Comprueba si este lead califica para recibir un mensaje
      * de reactivación:
      *  - No está convertido.
@@ -99,7 +121,7 @@ final class SalesConversation extends Model
      */
     public function isEligibleForReactivation(int $inactiveDays = 3, int $maxAttempts = 2): bool
     {
-        if ($this->converted) {
+        if ($this->isClosed()) {
             return false;
         }
 

@@ -8,6 +8,7 @@ use App\Models\SalesConversation;
 use App\Services\Sales\SalesBotService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -57,10 +58,12 @@ final class SalesBotConversationController extends Controller
         } elseif ($estado === 'convertido') {
             $query->where('converted', true);
         } elseif ($estado === 'frio') {
-            // Leads que llevan 3+ días sin actividad, no convertidos y con al menos 1 turno.
             $query->where('converted', false)
+                ->whereNull('lost_at')
                 ->where('turn_count', '>', 0)
                 ->whereRaw("EXTRACT(EPOCH FROM (NOW() - COALESCE(last_message_at, created_at)))/86400 >= 3");
+        } elseif ($estado === 'perdido') {
+            $query->whereNotNull('lost_at');
         }
 
         $query->orderBy($sort, $direction);
@@ -82,6 +85,7 @@ final class SalesBotConversationController extends Controller
                     'activation_trigger'   => $c->activation_trigger,
                     'reactivation_count'   => $c->reactivation_count ?? 0,
                     'last_reactivation_at' => $c->last_reactivation_at?->toIso8601String(),
+                    'lost_at'              => $c->lost_at?->toIso8601String(),
                     'last_message_at'      => $c->last_message_at?->toIso8601String(),
                     'last_message_body'    => $lastMsg ? (string) ($lastMsg['content'] ?? '') : null,
                     'last_message_role'    => $lastMsg ? (string) ($lastMsg['role'] ?? '') : null,
@@ -96,9 +100,11 @@ final class SalesBotConversationController extends Controller
             'convertidos'  => SalesConversation::query()->where('converted', true)->count(),
             'frios'        => SalesConversation::query()
                 ->where('converted', false)
+                ->whereNull('lost_at')
                 ->where('turn_count', '>', 0)
                 ->whereRaw("EXTRACT(EPOCH FROM (NOW() - COALESCE(last_message_at, created_at)))/86400 >= 3")
                 ->count(),
+            'perdidos'     => SalesConversation::query()->whereNotNull('lost_at')->count(),
             'hoy'          => SalesConversation::query()->whereDate('created_at', today())->count(),
             'coincidencias' => $conversations->total(),
         ];
@@ -167,6 +173,107 @@ final class SalesBotConversationController extends Controller
             'ok'        => true,
             'converted' => true,
             'message'   => "Lead marcado como convertido.",
+        ]);
+    }
+
+    /**
+     * Descarga la plantilla CSV para importar leads fríos.
+     */
+    public function csvTemplate(): HttpResponse
+    {
+        $csv = implode("\r\n", [
+            'phone,name,note',
+            '51987654321,José Rosales,Preguntó por precio del plan Starter',
+            '51993897841,Ana Torres,',
+            '51961343351,,Mandó mensaje de voz preguntando por VetSaaS',
+        ]);
+
+        return response($csv, 200, [
+            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="leads_template.csv"',
+        ]);
+    }
+
+    /**
+     * Importa leads fríos desde un CSV subido por el usuario.
+     * Retorna un resumen JSON con importados, duplicados y errores.
+     */
+    public function importCsv(Request $request): JsonResponse
+    {
+        $request->validate([
+            'file' => ['required', 'file', 'mimes:csv,txt', 'max:2048'],
+        ]);
+
+        $file   = $request->file('file');
+        $path   = $file->getRealPath();
+        $days   = (int) $request->input('days', 5);
+
+        $handle = fopen($path, 'r');
+        if ($handle === false) {
+            return response()->json(['ok' => false, 'error' => 'No se pudo leer el archivo.'], 422);
+        }
+
+        $headers  = null;
+        $imported = 0;
+        $skipped  = 0;
+        $errors   = [];
+
+        while (($row = fgetcsv($handle)) !== false) {
+            if ($headers === null) {
+                $headers = array_map('strtolower', array_map('trim', $row));
+                continue;
+            }
+
+            if (count($row) === 0 || (count($row) === 1 && trim($row[0]) === '')) {
+                continue;
+            }
+
+            $data = [];
+            foreach ($headers as $i => $header) {
+                $data[$header] = trim($row[$i] ?? '');
+            }
+
+            $phone = preg_replace('/\D/', '', $data['phone'] ?? '');
+
+            if ($phone === '' || strlen($phone) < 8) {
+                $errors[] = "Teléfono inválido: '{$data['phone']}'";
+                continue;
+            }
+
+            if (SalesConversation::query()->where('phone', $phone)->exists()) {
+                $skipped++;
+                continue;
+            }
+
+            $name = ($data['name'] ?? '') !== '' ? $data['name'] : null;
+            $note = ($data['note'] ?? '') !== '' ? $data['note'] : null;
+
+            $messages = $note !== null ? [['role' => 'user', 'content' => $note]] : [];
+
+            SalesConversation::query()->create([
+                'phone'              => $phone,
+                'wa_chat_id'         => $phone . '@c.us',
+                'prospect_name'      => $name,
+                'messages'           => $messages,
+                'turn_count'         => count($messages),
+                'bot_active'         => false,
+                'activation_trigger' => 'manual:csv-import',
+                'last_message_at'    => now()->subDays($days),
+                'reactivation_count' => 0,
+                'converted'          => false,
+            ]);
+
+            $imported++;
+        }
+
+        fclose($handle);
+
+        return response()->json([
+            'ok'       => true,
+            'imported' => $imported,
+            'skipped'  => $skipped,
+            'errors'   => $errors,
+            'message'  => "{$imported} leads importados, {$skipped} duplicados omitidos.",
         ]);
     }
 

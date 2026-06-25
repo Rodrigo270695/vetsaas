@@ -4,6 +4,7 @@ import {
     Bot,
     CalendarDays,
     CheckCircle2,
+    Download,
     Filter,
     MessageCircle,
     PauseCircle,
@@ -12,7 +13,9 @@ import {
     SendHorizonal,
     Snowflake,
     Trash2,
+    Upload,
     User,
+    XCircle,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -44,13 +47,14 @@ type Conversation = {
     activation_trigger: string | null;
     reactivation_count: number;
     last_reactivation_at: string | null;
+    lost_at: string | null;
     last_message_at: string | null;
     last_message_body: string | null;
     last_message_role: string | null;
     created_at: string;
 };
 
-type EstadoFilter = 'todos' | 'activo' | 'pausado' | 'frio' | 'convertido';
+type EstadoFilter = 'todos' | 'activo' | 'pausado' | 'frio' | 'convertido' | 'perdido';
 
 type ConvFilters = {
     search: string;
@@ -66,6 +70,7 @@ type ConvStats = {
     pausados: number;
     convertidos: number;
     frios: number;
+    perdidos: number;
     hoy: number;
     coincidencias: number;
 };
@@ -121,6 +126,109 @@ function csrfFetch(url: string, method: 'POST' | 'DELETE'): Promise<Response> {
         },
     });
 }
+
+// ─── Panel de importación CSV ───────────────────────────────────────────────
+function ImportCsvPanel({ canUpdate }: { canUpdate: boolean }) {
+    const [file, setFile] = useState<File | null>(null);
+    const [days, setDays] = useState(5);
+    const [uploading, setUploading] = useState(false);
+    const [result, setResult] = useState<{ imported: number; skipped: number; errors: string[] } | null>(null);
+
+    const handleUpload = () => {
+        if (!file) return;
+        const xsrf = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/)?.[1] ?? '';
+        const form = new FormData();
+        form.append('file', file);
+        form.append('days', String(days));
+
+        setUploading(true);
+        setResult(null);
+        fetch('/plataforma/salesbot-conversations/import-csv', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-XSRF-TOKEN': decodeURIComponent(xsrf),
+            },
+            body: form,
+        })
+            .then((r) => r.json())
+            .then((data) => {
+                setResult({ imported: data.imported, skipped: data.skipped, errors: data.errors ?? [] });
+                setFile(null);
+            })
+            .catch(() => setResult({ imported: 0, skipped: 0, errors: ['Error al subir el archivo.'] }))
+            .finally(() => setUploading(false));
+    };
+
+    return (
+        <div className="rounded-xl border bg-card p-4 shadow-sm">
+            <div className="mb-3 flex items-center justify-between">
+                <div>
+                    <p className="text-sm font-semibold text-foreground">Importar leads desde CSV</p>
+                    <p className="text-xs text-muted-foreground">
+                        Sube un CSV con números de WhatsApp para reactivarlos automáticamente.
+                        Duplicados son ignorados.
+                    </p>
+                </div>
+                <a
+                    href="/plataforma/salesbot-conversations/csv-template"
+                    download
+                    className="flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                >
+                    <Download className="size-3.5" />
+                    Descargar plantilla
+                </a>
+            </div>
+
+            <div className="flex flex-wrap items-end gap-3">
+                <div className="flex flex-col gap-1">
+                    <label className="text-xs text-muted-foreground">Archivo CSV</label>
+                    <input
+                        type="file"
+                        accept=".csv,text/csv"
+                        onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                        className="text-xs file:mr-2 file:cursor-pointer file:rounded file:border-0 file:bg-primary file:px-2 file:py-1 file:text-xs file:text-primary-foreground"
+                    />
+                </div>
+                <div className="flex flex-col gap-1">
+                    <label className="text-xs text-muted-foreground">Días de inactividad simulada</label>
+                    <input
+                        type="number"
+                        min={1}
+                        max={30}
+                        value={days}
+                        onChange={(e) => setDays(Number(e.target.value))}
+                        className="w-20 rounded-md border bg-background px-2 py-1.5 text-xs"
+                    />
+                </div>
+                {canUpdate && (
+                    <button
+                        type="button"
+                        disabled={!file || uploading}
+                        onClick={handleUpload}
+                        className="flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-opacity disabled:opacity-50"
+                    >
+                        <Upload className="size-3.5" />
+                        {uploading ? 'Subiendo…' : 'Importar'}
+                    </button>
+                )}
+            </div>
+
+            {result && (
+                <div className={`mt-3 rounded-md px-3 py-2 text-xs ${result.errors.length > 0 ? 'bg-destructive/10 text-destructive' : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400'}`}>
+                    {result.errors.length > 0
+                        ? result.errors.join(' | ')
+                        : `✅ ${result.imported} leads importados, ${result.skipped} duplicados omitidos. El scheduler los reactivará a las 10:00 AM.`
+                    }
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 export default function SalesBotConversationsIndex({ conversations, filters, stats }: Props) {
     const { t } = useTranslation(['salesbot-conversations', 'common']);
@@ -239,6 +347,7 @@ export default function SalesBotConversationsIndex({ conversations, filters, sta
             { value: 'pausado',    label: 'Pausado' },
             { value: 'frio',       label: '❄️ Fríos +3d' },
             { value: 'convertido', label: '✅ Convertidos' },
+            { value: 'perdido',    label: '⛔ Perdidos' },
         ],
         [],
     );
@@ -303,6 +412,9 @@ export default function SalesBotConversationsIndex({ conversations, filters, sta
             cell: (conv) => {
                 if (getConverted(conv)) {
                     return <StatBadge label="Convertido" value="" variant="success" />;
+                }
+                if (conv.lost_at) {
+                    return <StatBadge label="Perdido" value="" variant="error" />;
                 }
                 const active = getBotActive(conv);
                 return active ? (
@@ -457,11 +569,14 @@ export default function SalesBotConversationsIndex({ conversations, filters, sta
                         { label: 'Pausados', value: stats.pausados, variant: 'warning', icon: PauseCircle },
                         { label: 'Fríos', value: stats.frios, variant: 'warning', icon: Snowflake },
                         { label: 'Convertidos', value: stats.convertidos, variant: 'success', icon: CheckCircle2 },
+                        { label: 'Perdidos', value: stats.perdidos, variant: 'error', icon: XCircle },
                         { label: 'Hoy', value: stats.hoy, variant: 'primary', icon: CalendarDays },
                         { label: 'Filtros', value: activeFiltersCount, variant: 'warning', icon: Filter },
                         { label: 'Coincidencias', value: stats.coincidencias, variant: 'primary', icon: Activity },
                     ]}
                 />
+
+                <ImportCsvPanel canUpdate={canUpdate} />
 
                 <DataTable
                     columns={columns}
