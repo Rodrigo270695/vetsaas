@@ -46,12 +46,29 @@ final class SalesBotWebhookController extends Controller
 
     public function handle(Request $request): JsonResponse
     {
-        // ── 1. Verificar secreto del webhook ─────────────────────────────
+        // ── 1. Verificar firma del webhook ────────────────────────────────
+        // OpenWA firma el body con HMAC-SHA256 usando el "secret" del webhook
+        // y lo envía en el header "X-Webhook-Signature".
+        // También soportamos el header "X-Webhook-Secret" por compatibilidad.
         $secret = (string) config('salesbot.webhook_secret', '');
 
         if ($secret !== '') {
-            $provided = (string) $request->header('X-Webhook-Secret', '');
-            if (! hash_equals($secret, $provided)) {
+            $signature = (string) $request->header('X-Webhook-Signature', '');
+            $legacySecret = (string) $request->header('X-Webhook-Secret', '');
+
+            if ($signature !== '') {
+                // Verificar HMAC-SHA256
+                $rawBody  = (string) $request->getContent();
+                $expected = 'sha256='.hash_hmac('sha256', $rawBody, $secret);
+                if (! hash_equals($expected, $signature)) {
+                    return response()->json(['error' => 'Unauthorized'], 401);
+                }
+            } elseif ($legacySecret !== '') {
+                // Fallback: comparación directa del secret como header
+                if (! hash_equals($secret, $legacySecret)) {
+                    return response()->json(['error' => 'Unauthorized'], 401);
+                }
+            } else {
                 return response()->json(['error' => 'Unauthorized'], 401);
             }
         }
@@ -67,14 +84,17 @@ final class SalesBotWebhookController extends Controller
         // Soporta payload directo { body, from, ... } o anidado { data: { ... } }
         $data = is_array($payload['data'] ?? null) ? $payload['data'] : $payload;
 
-        $event   = (string) ($payload['event'] ?? 'onMessage');
-        $fromMe  = (bool) ($data['fromMe'] ?? false);
+        // OpenWA envía el evento como "event" o "type" según la versión.
+        $event   = (string) ($payload['event'] ?? $payload['type'] ?? '');
+        $fromMe  = (bool) ($data['fromMe'] ?? $data['from_me'] ?? false);
         $type    = (string) ($data['type'] ?? 'chat');
-        $waChatId = (string) ($data['from'] ?? $data['chatId'] ?? '');
-        $body    = trim((string) ($data['body'] ?? ''));
+        $waChatId = (string) ($data['from'] ?? $data['chatId'] ?? $data['chat_id'] ?? '');
+        $body    = trim((string) ($data['body'] ?? $data['content'] ?? $data['text'] ?? ''));
 
-        // Solo procesar mensajes de chat de texto que no sean nuestros.
-        if ($fromMe || $event !== 'onMessage' || $type !== 'chat' || $body === '') {
+        // Aceptar tanto "message.received" (esta versión OpenWA) como "onMessage" (versiones antiguas).
+        $esEventoMensaje = in_array($event, ['message.received', 'onMessage', 'message'], true);
+
+        if ($fromMe || ! $esEventoMensaje || $body === '') {
             return response()->json(['ok' => true, 'skipped' => true]);
         }
 
