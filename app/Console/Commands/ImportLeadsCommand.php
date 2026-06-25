@@ -63,7 +63,7 @@ final class ImportLeadsCommand extends Command
 
     private function generateTemplate(): int
     {
-        $csv = implode("\n", [
+        $csv = "\xEF\xBB\xBF".implode("\n", [
             'phone,name,note',
             '51987654321,José Rosales,Preguntó por precio del plan Starter',
             '51993897841,Ana Torres,',
@@ -116,7 +116,7 @@ final class ImportLeadsCommand extends Command
 
             $data = [];
             foreach ($headers as $i => $header) {
-                $data[$header] = trim($row[$i] ?? '');
+                $data[$header] = $this->sanitizeUtf8((string) ($row[$i] ?? ''));
             }
 
             $rows[] = $data;
@@ -185,5 +185,24 @@ final class ImportLeadsCommand extends Command
         }
 
         return self::SUCCESS;
+    }
+
+    private function sanitizeUtf8(string $value): string
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return '';
+        }
+
+        if (! mb_check_encoding($value, 'UTF-8')) {
+            $converted = mb_convert_encoding($value, 'UTF-8', 'Windows-1252, ISO-8859-1');
+            if (is_string($converted)) {
+                $value = $converted;
+            }
+        }
+
+        $clean = iconv('UTF-8', 'UTF-8//IGNORE', $value);
+
+        return $clean !== false ? $clean : '';
     }
 }

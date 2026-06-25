@@ -187,7 +187,7 @@ final class SalesBotConversationController extends Controller
      */
     public function csvTemplate(): HttpResponse
     {
-        $csv = implode("\r\n", [
+        $csv = "\xEF\xBB\xBF".implode("\r\n", [
             'phone,name,note',
             '51987654321,José Rosales,Preguntó por precio del plan Starter',
             '51993897841,Ana Torres,',
@@ -261,7 +261,7 @@ final class SalesBotConversationController extends Controller
                     if ($header === '') {
                         continue;
                     }
-                    $data[$header] = trim($row[$i] ?? '');
+                    $data[$header] = $this->sanitizeUtf8((string) ($row[$i] ?? ''));
                 }
 
                 $rawPhone = $data['phone'] ?? '';
@@ -347,6 +347,29 @@ final class SalesBotConversationController extends Controller
         }
 
         return $value;
+    }
+
+    /**
+     * Limpia texto del CSV para guardarlo en JSON (PostgreSQL / Laravel).
+     * Excel en Windows suele exportar Latin-1 y rompe tildes en UTF-8.
+     */
+    private function sanitizeUtf8(string $value): string
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return '';
+        }
+
+        if (! mb_check_encoding($value, 'UTF-8')) {
+            $converted = mb_convert_encoding($value, 'UTF-8', 'Windows-1252, ISO-8859-1');
+            if (is_string($converted)) {
+                $value = $converted;
+            }
+        }
+
+        $clean = iconv('UTF-8', 'UTF-8//IGNORE', $value);
+
+        return $clean !== false ? $clean : '';
     }
 
     /**
