@@ -1,4 +1,4 @@
-import { Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import {
     Activity,
     Bot,
@@ -7,10 +7,11 @@ import {
     MessageCircle,
     PauseCircle,
     PlayCircle,
+    RefreshCw,
     Trash2,
     User,
 } from 'lucide-react';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     DataPagination,
@@ -124,6 +125,34 @@ export default function SalesBotConversationsIndex({ conversations, filters, sta
     // Estado local para reflejar cambios de bot_active sin recargar la página entera.
     const [localBotActive, setLocalBotActive] = useState<Record<string, boolean>>({});
     const [processingId, setProcessingId] = useState<string | null>(null);
+
+    // ── Auto-refresh cada 15 s ──────────────────────────────────────────────
+    const REFRESH_INTERVAL_MS = 15_000;
+    const [secondsSince, setSecondsSince] = useState(0);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const tickRef    = useRef<ReturnType<typeof setInterval> | null>(null);
+
+    const doRefresh = useCallback(() => {
+        setIsRefreshing(true);
+        router.reload({
+            only: ['conversations', 'stats'],
+            onFinish: () => {
+                setIsRefreshing(false);
+                setSecondsSince(0);
+            },
+        });
+    }, []);
+
+    useEffect(() => {
+        intervalRef.current = setInterval(doRefresh, REFRESH_INTERVAL_MS);
+        tickRef.current = setInterval(() => setSecondsSince((s) => s + 1), 1_000);
+        return () => {
+            if (intervalRef.current) clearInterval(intervalRef.current);
+            if (tickRef.current) clearInterval(tickRef.current);
+        };
+    }, [doRefresh]);
+    // ───────────────────────────────────────────────────────────────────────
 
     const getBotActive = (conv: Conversation): boolean =>
         conv.id in localBotActive ? localBotActive[conv.id] : conv.bot_active;
@@ -314,7 +343,28 @@ export default function SalesBotConversationsIndex({ conversations, filters, sta
             <div className="flex flex-1 flex-col gap-5 p-4 sm:p-6">
                 <PageHeader
                     title="Conversaciones del bot"
-                    description="Leads que el bot ha atendido. Pausa el bot por lead para tomar el control manual desde WhatsApp."
+                    description={
+                        <span className="flex items-center gap-3">
+                            <span>Leads que el bot ha atendido. Pausa el bot por lead para tomar el control manual desde WhatsApp.</span>
+                            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                <span
+                                    className={`inline-block size-2 rounded-full ${isRefreshing ? 'animate-ping bg-amber-400' : 'bg-emerald-400'}`}
+                                />
+                                {isRefreshing
+                                    ? 'Actualizando…'
+                                    : `Actualizado hace ${secondsSince}s`}
+                                <button
+                                    type="button"
+                                    onClick={doRefresh}
+                                    disabled={isRefreshing}
+                                    className="ml-1 cursor-pointer rounded p-0.5 hover:text-foreground disabled:opacity-50"
+                                    title="Actualizar ahora"
+                                >
+                                    <RefreshCw className={`size-3 ${isRefreshing ? 'animate-spin' : ''}`} />
+                                </button>
+                            </span>
+                        </span>
+                    }
                     stats={[
                         { label: 'Total', value: stats.total, variant: 'info', icon: MessageCircle },
                         { label: 'Bot activo', value: stats.activos, variant: 'success', icon: Bot },
