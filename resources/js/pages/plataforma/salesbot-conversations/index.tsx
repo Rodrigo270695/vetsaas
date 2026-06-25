@@ -3,11 +3,14 @@ import {
     Activity,
     Bot,
     CalendarDays,
+    CheckCircle2,
     Filter,
     MessageCircle,
     PauseCircle,
     PlayCircle,
     RefreshCw,
+    SendHorizonal,
+    Snowflake,
     Trash2,
     User,
 } from 'lucide-react';
@@ -37,14 +40,17 @@ type Conversation = {
     prospect_name: string | null;
     turn_count: number;
     bot_active: boolean;
+    converted: boolean;
     activation_trigger: string | null;
+    reactivation_count: number;
+    last_reactivation_at: string | null;
     last_message_at: string | null;
     last_message_body: string | null;
     last_message_role: string | null;
     created_at: string;
 };
 
-type EstadoFilter = 'todos' | 'activo' | 'pausado';
+type EstadoFilter = 'todos' | 'activo' | 'pausado' | 'frio' | 'convertido';
 
 type ConvFilters = {
     search: string;
@@ -58,6 +64,8 @@ type ConvStats = {
     total: number;
     activos: number;
     pausados: number;
+    convertidos: number;
+    frios: number;
     hoy: number;
     coincidencias: number;
 };
@@ -78,10 +86,8 @@ const formatWhen = (iso: string | null): string => {
 
 /** Muestra el teléfono como número legible. */
 const formatPhone = (raw: string): string => {
-    // raw puede ser "51986709811" o ya "51986709811@c.us" sin procesar
     const digits = raw.replace('@c.us', '').replace(/\D/g, '');
     if (digits.startsWith('51') && digits.length === 11) {
-        // Perú: 51 + 9 dígitos → +51 9XX XXX XXX
         return `+51 ${digits.slice(2, 3)} ${digits.slice(3, 6)} ${digits.slice(6, 9)} ${digits.slice(9)}`;
     }
     return `+${digits}`;
@@ -122,8 +128,9 @@ export default function SalesBotConversationsIndex({ conversations, filters, sta
     const canUpdate = can('salesbot-knowledge.update');
     const canDelete = can('salesbot-knowledge.delete');
 
-    // Estado local para reflejar cambios de bot_active sin recargar la página entera.
+    // Estado local para reflejar cambios sin recargar la página entera.
     const [localBotActive, setLocalBotActive] = useState<Record<string, boolean>>({});
+    const [localConverted, setLocalConverted] = useState<Record<string, boolean>>({});
     const [processingId, setProcessingId] = useState<string | null>(null);
 
     // ── Auto-refresh cada 15 s ──────────────────────────────────────────────
@@ -157,6 +164,9 @@ export default function SalesBotConversationsIndex({ conversations, filters, sta
     const getBotActive = (conv: Conversation): boolean =>
         conv.id in localBotActive ? localBotActive[conv.id] : conv.bot_active;
 
+    const getConverted = (conv: Conversation): boolean =>
+        conv.id in localConverted ? localConverted[conv.id] : conv.converted;
+
     const handleToggle = useCallback((conv: Conversation) => {
         const currentlyActive = getBotActive(conv);
         const url = currentlyActive
@@ -178,8 +188,38 @@ export default function SalesBotConversationsIndex({ conversations, filters, sta
                 toastManager.error({ title: 'Error al cambiar el estado del bot' });
             })
             .finally(() => setProcessingId(null));
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [localBotActive]);
+
+    const handleConvert = useCallback((conv: Conversation) => {
+        if (!confirm(`¿Marcar a ${conv.prospect_name ?? conv.phone} como convertido? Ya no recibirá mensajes de reactivación.`)) return;
+        setProcessingId(conv.id);
+        csrfFetch(salesbotConversations.convert(conv.id).url, 'POST')
+            .then((res) => {
+                if (!res.ok) throw new Error();
+                setLocalConverted((prev) => ({ ...prev, [conv.id]: true }));
+                setLocalBotActive((prev) => ({ ...prev, [conv.id]: false }));
+                toastManager.success({ title: `✅ Lead convertido: ${conv.prospect_name ?? conv.phone}` });
+            })
+            .catch(() => toastManager.error({ title: 'Error al marcar como convertido' }))
+            .finally(() => setProcessingId(null));
+    }, []);
+
+    const handleReactivate = useCallback((conv: Conversation) => {
+        if (!confirm(`¿Enviar mensaje de reactivación a ${conv.prospect_name ?? conv.phone} ahora mismo?`)) return;
+        setProcessingId(conv.id);
+        csrfFetch(salesbotConversations.reactivate(conv.id).url, 'POST')
+            .then(async (res) => {
+                const data = await res.json();
+                if (!res.ok) throw new Error(data?.error ?? 'Error');
+                toastManager.success({
+                    title: `Mensaje de reactivación enviado (intento #${data.reactivation_count})`,
+                });
+                doRefresh();
+            })
+            .catch((e: Error) => toastManager.error({ title: e.message || 'Error al reactivar' }))
+            .finally(() => setProcessingId(null));
+    }, [doRefresh]);
 
     const handleDelete = useCallback((conv: Conversation) => {
         if (!confirm(`¿Eliminar la conversación de ${conv.prospect_name ?? conv.phone}? El bot lo tratará como lead nuevo.`)) return;
@@ -194,9 +234,11 @@ export default function SalesBotConversationsIndex({ conversations, filters, sta
 
     const estadoOptions: readonly FilterChip<EstadoFilter>[] = useMemo(
         () => [
-            { value: 'todos',   label: 'Todos' },
-            { value: 'activo',  label: 'Bot activo' },
-            { value: 'pausado', label: 'Pausado' },
+            { value: 'todos',      label: 'Todos' },
+            { value: 'activo',     label: 'Bot activo' },
+            { value: 'pausado',    label: 'Pausado' },
+            { value: 'frio',       label: '❄️ Fríos +3d' },
+            { value: 'convertido', label: '✅ Convertidos' },
         ],
         [],
     );
@@ -233,7 +275,6 @@ export default function SalesBotConversationsIndex({ conversations, filters, sta
                         <span className="truncate text-sm font-semibold text-foreground">
                             {conv.prospect_name ?? 'Sin nombre'}
                         </span>
-                        {/* número formateado para identificar rápido en WhatsApp */}
                         <span className="truncate font-mono text-xs text-muted-foreground">
                             {formatPhone(conv.phone)}
                         </span>
@@ -258,15 +299,32 @@ export default function SalesBotConversationsIndex({ conversations, filters, sta
         },
         {
             key: 'bot_active',
-            header: 'Bot',
+            header: 'Estado',
             cell: (conv) => {
+                if (getConverted(conv)) {
+                    return <StatBadge label="Convertido" value="" variant="success" />;
+                }
                 const active = getBotActive(conv);
                 return active ? (
-                    <StatBadge label="Activo" value="" variant="success" />
+                    <StatBadge label="Bot activo" value="" variant="success" />
                 ) : (
                     <StatBadge label="Pausado" value="" variant="warning" />
                 );
             },
+        },
+        {
+            key: 'reactivation_count',
+            header: 'React.',
+            cell: (conv) => (
+                <div className="flex flex-col items-center leading-tight">
+                    <span className="text-xs font-medium text-foreground">{conv.reactivation_count}/2</span>
+                    {conv.last_reactivation_at && (
+                        <span className="text-[10px] text-muted-foreground">
+                            {timeAgo(conv.last_reactivation_at)}
+                        </span>
+                    )}
+                </div>
+            ),
         },
         {
             key: 'last_message_body',
@@ -290,13 +348,15 @@ export default function SalesBotConversationsIndex({ conversations, filters, sta
             key: 'acciones',
             header: <span className="md:sr-only">Acciones</span>,
             align: 'right',
-            className: 'w-32',
+            className: 'w-40',
             cell: (conv) => {
-                const active = getBotActive(conv);
-                const loading = processingId === conv.id;
+                const active   = getBotActive(conv);
+                const converted = getConverted(conv);
+                const loading  = processingId === conv.id;
+                const canReactivate = !converted && (conv.reactivation_count < 2);
                 return (
                     <div className="flex items-center justify-end gap-1">
-                        {canUpdate && (
+                        {canUpdate && !converted && (
                             <Button
                                 type="button"
                                 size="sm"
@@ -318,6 +378,32 @@ export default function SalesBotConversationsIndex({ conversations, filters, sta
                                 )}
                             </Button>
                         )}
+                        {canUpdate && canReactivate && (
+                            <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                disabled={loading}
+                                onClick={() => handleReactivate(conv)}
+                                title="Enviar mensaje de reactivación ahora"
+                                className="size-8 cursor-pointer text-blue-500 hover:text-blue-600"
+                            >
+                                <SendHorizonal className="size-4" strokeWidth={2.5} />
+                            </Button>
+                        )}
+                        {canUpdate && !converted && (
+                            <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                disabled={loading}
+                                onClick={() => handleConvert(conv)}
+                                title="Marcar como convertido (cerrado)"
+                                className="size-8 cursor-pointer text-emerald-500 hover:text-emerald-600"
+                            >
+                                <CheckCircle2 className="size-4" strokeWidth={2.5} />
+                            </Button>
+                        )}
                         {canDelete && (
                             <Button
                                 type="button"
@@ -334,7 +420,7 @@ export default function SalesBotConversationsIndex({ conversations, filters, sta
             },
         },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    ], [canUpdate, canDelete, processingId, localBotActive, handleToggle, handleDelete]);
+    ], [canUpdate, canDelete, processingId, localBotActive, localConverted, handleToggle, handleReactivate, handleConvert, handleDelete]);
 
     return (
         <>
@@ -369,6 +455,8 @@ export default function SalesBotConversationsIndex({ conversations, filters, sta
                         { label: 'Total', value: stats.total, variant: 'info', icon: MessageCircle },
                         { label: 'Bot activo', value: stats.activos, variant: 'success', icon: Bot },
                         { label: 'Pausados', value: stats.pausados, variant: 'warning', icon: PauseCircle },
+                        { label: 'Fríos', value: stats.frios, variant: 'warning', icon: Snowflake },
+                        { label: 'Convertidos', value: stats.convertidos, variant: 'success', icon: CheckCircle2 },
                         { label: 'Hoy', value: stats.hoy, variant: 'primary', icon: CalendarDays },
                         { label: 'Filtros', value: activeFiltersCount, variant: 'warning', icon: Filter },
                         { label: 'Coincidencias', value: stats.coincidencias, variant: 'primary', icon: Activity },

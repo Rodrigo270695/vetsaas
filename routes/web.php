@@ -952,6 +952,12 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:salesbot-knowledge.delete')
             ->delete('salesbot-conversations/{conversation}', [SalesBotConversationController::class, 'destroy'])
             ->name('salesbot-conversations.destroy');
+        Route::middleware('permission:salesbot-knowledge.update')
+            ->post('salesbot-conversations/{conversation}/convert', [SalesBotConversationController::class, 'convert'])
+            ->name('salesbot-conversations.convert');
+        Route::middleware('permission:salesbot-knowledge.update')
+            ->post('salesbot-conversations/{conversation}/reactivate', [SalesBotConversationController::class, 'reactivate'])
+            ->name('salesbot-conversations.reactivate');
 
         // ── Bot de ventas: base de conocimiento (planes, módulos, FAQs) ──
         // Solo superadmin. Cualquier cambio invalida el caché del bot (5 min).

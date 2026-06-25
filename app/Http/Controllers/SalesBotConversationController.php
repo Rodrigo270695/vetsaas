@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Models\SalesConversation;
+use App\Services\Sales\SalesBotService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -22,6 +23,10 @@ use Inertia\Response;
 final class SalesBotConversationController extends Controller
 {
     private const PER_PAGE_OPTIONS = [10, 15, 25, 50];
+
+    public function __construct(
+        private readonly SalesBotService $botService,
+    ) {}
 
     public function index(Request $request): Response
     {
@@ -46,9 +51,16 @@ final class SalesBotConversationController extends Controller
         }
 
         if ($estado === 'activo') {
-            $query->where('bot_active', true);
+            $query->where('bot_active', true)->where('converted', false);
         } elseif ($estado === 'pausado') {
-            $query->where('bot_active', false);
+            $query->where('bot_active', false)->where('converted', false);
+        } elseif ($estado === 'convertido') {
+            $query->where('converted', true);
+        } elseif ($estado === 'frio') {
+            // Leads que llevan 3+ días sin actividad, no convertidos y con al menos 1 turno.
+            $query->where('converted', false)
+                ->where('turn_count', '>', 0)
+                ->whereRaw("EXTRACT(EPOCH FROM (NOW() - COALESCE(last_message_at, created_at)))/86400 >= 3");
         }
 
         $query->orderBy($sort, $direction);
@@ -61,24 +73,33 @@ final class SalesBotConversationController extends Controller
                 $lastMsg  = count($messages) > 0 ? end($messages) : null;
 
                 return [
-                    'id'                 => $c->id,
-                    'phone'              => $c->phone,
-                    'prospect_name'      => $c->prospect_name,
-                    'turn_count'         => $c->turn_count,
-                    'bot_active'         => $c->bot_active,
-                    'activation_trigger' => $c->activation_trigger,
-                    'last_message_at'    => $c->last_message_at?->toIso8601String(),
-                    'last_message_body'  => $lastMsg ? (string) ($lastMsg['content'] ?? '') : null,
-                    'last_message_role'  => $lastMsg ? (string) ($lastMsg['role'] ?? '') : null,
-                    'created_at'         => $c->created_at->toIso8601String(),
+                    'id'                   => $c->id,
+                    'phone'                => $c->phone,
+                    'prospect_name'        => $c->prospect_name,
+                    'turn_count'           => $c->turn_count,
+                    'bot_active'           => $c->bot_active,
+                    'converted'            => $c->converted,
+                    'activation_trigger'   => $c->activation_trigger,
+                    'reactivation_count'   => $c->reactivation_count ?? 0,
+                    'last_reactivation_at' => $c->last_reactivation_at?->toIso8601String(),
+                    'last_message_at'      => $c->last_message_at?->toIso8601String(),
+                    'last_message_body'    => $lastMsg ? (string) ($lastMsg['content'] ?? '') : null,
+                    'last_message_role'    => $lastMsg ? (string) ($lastMsg['role'] ?? '') : null,
+                    'created_at'           => $c->created_at->toIso8601String(),
                 ];
             });
 
         $stats = [
-            'total'    => SalesConversation::query()->count(),
-            'activos'  => SalesConversation::query()->where('bot_active', true)->count(),
-            'pausados' => SalesConversation::query()->where('bot_active', false)->count(),
-            'hoy'      => SalesConversation::query()->whereDate('created_at', today())->count(),
+            'total'        => SalesConversation::query()->count(),
+            'activos'      => SalesConversation::query()->where('bot_active', true)->where('converted', false)->count(),
+            'pausados'     => SalesConversation::query()->where('bot_active', false)->where('converted', false)->count(),
+            'convertidos'  => SalesConversation::query()->where('converted', true)->count(),
+            'frios'        => SalesConversation::query()
+                ->where('converted', false)
+                ->where('turn_count', '>', 0)
+                ->whereRaw("EXTRACT(EPOCH FROM (NOW() - COALESCE(last_message_at, created_at)))/86400 >= 3")
+                ->count(),
+            'hoy'          => SalesConversation::query()->whereDate('created_at', today())->count(),
             'coincidencias' => $conversations->total(),
         ];
 
@@ -132,5 +153,42 @@ final class SalesBotConversationController extends Controller
         $conversation->delete();
 
         return response()->json(['ok' => true]);
+    }
+
+    /**
+     * Marca el lead como convertido (registró o pagó).
+     * Ya no recibirá mensajes de reactivación automática.
+     */
+    public function convert(SalesConversation $conversation): JsonResponse
+    {
+        $conversation->markConverted();
+
+        return response()->json([
+            'ok'        => true,
+            'converted' => true,
+            'message'   => "Lead marcado como convertido.",
+        ]);
+    }
+
+    /**
+     * Envía un mensaje de reactivación manual inmediato a un lead frío.
+     * Útil para probar o para reactivar manualmente sin esperar el scheduler.
+     */
+    public function reactivate(SalesConversation $conversation): JsonResponse
+    {
+        try {
+            $message = $this->botService->sendReactivationMessage($conversation);
+
+            return response()->json([
+                'ok'                 => true,
+                'reactivation_count' => $conversation->reactivation_count,
+                'message_sent'       => $message,
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'ok'    => false,
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
 }

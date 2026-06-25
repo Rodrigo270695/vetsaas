@@ -18,6 +18,9 @@ use Illuminate\Database\Eloquent\Model;
  * @property int         $turn_count
  * @property bool        $bot_active          true = bot responde | false = Rodrigo escribe manualmente
  * @property string|null $activation_trigger  qué palabra clave activó el bot
+ * @property int         $reactivation_count  veces que se ha enviado un mensaje de reactivación
+ * @property \Illuminate\Support\Carbon|null $last_reactivation_at último mensaje de reactivación enviado
+ * @property bool        $converted           true = lead convirtió (no reactivar más)
  * @property \Illuminate\Support\Carbon|null $last_message_at
  * @property \Illuminate\Support\Carbon      $created_at
  * @property \Illuminate\Support\Carbon      $updated_at
@@ -37,15 +40,21 @@ final class SalesConversation extends Model
         'bot_active',
         'activation_trigger',
         'last_message_at',
+        'reactivation_count',
+        'last_reactivation_at',
+        'converted',
     ];
 
     protected function casts(): array
     {
         return [
-            'messages'        => 'array',
-            'turn_count'      => 'integer',
-            'bot_active'      => 'boolean',
-            'last_message_at' => 'datetime',
+            'messages'             => 'array',
+            'turn_count'           => 'integer',
+            'bot_active'           => 'boolean',
+            'last_message_at'      => 'datetime',
+            'reactivation_count'   => 'integer',
+            'last_reactivation_at' => 'datetime',
+            'converted'            => 'boolean',
         ];
     }
 
@@ -67,6 +76,49 @@ final class SalesConversation extends Model
     {
         $this->bot_active = true;
         $this->save();
+    }
+
+    /**
+     * Marca la conversación como convertida para que no sea
+     * incluida en futuras campañas de reactivación.
+     */
+    public function markConverted(): void
+    {
+        $this->converted  = true;
+        $this->bot_active = false;
+        $this->save();
+    }
+
+    /**
+     * Comprueba si este lead califica para recibir un mensaje
+     * de reactivación:
+     *  - No está convertido.
+     *  - No ha escrito en más de $inactiveDays días.
+     *  - El número de intentos de reactivación está dentro del límite.
+     *  - Han pasado al menos 3 días desde el último intento.
+     */
+    public function isEligibleForReactivation(int $inactiveDays = 3, int $maxAttempts = 2): bool
+    {
+        if ($this->converted) {
+            return false;
+        }
+
+        if (($this->reactivation_count ?? 0) >= $maxAttempts) {
+            return false;
+        }
+
+        $lastActivity = $this->last_message_at ?? $this->created_at;
+
+        if ($lastActivity->diffInDays(now()) < $inactiveDays) {
+            return false;
+        }
+
+        // Evita enviar más de un intento cada 3 días.
+        if ($this->last_reactivation_at && $this->last_reactivation_at->diffInDays(now()) < 3) {
+            return false;
+        }
+
+        return true;
     }
 
     // ─────────────────────────────────────────────────────────────────────────

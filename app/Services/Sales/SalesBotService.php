@@ -7,6 +7,7 @@ namespace App\Services\Sales;
 use App\Models\Plan;
 use App\Models\SalesBotKnowledge;
 use App\Models\SalesConversation;
+use App\Services\OpenWa\PlatformWhatsAppMessenger;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -47,6 +48,10 @@ use RuntimeException;
  */
 final class SalesBotService
 {
+    public function __construct(
+        private readonly PlatformWhatsAppMessenger $messenger,
+    ) {}
+
     /**
      * System prompt del bot de ventas.
      * Define personalidad, flujo y reglas estrictas de conversación.
@@ -294,6 +299,83 @@ PROMPT;
             'bot_active'         => true,
             'activation_trigger' => $trigger,
         ]);
+    }
+
+    /**
+     * Detecta si un mensaje contiene palabras clave de ventas de VetSaaS.
+     *
+     * Devuelve el trigger encontrado o null si no es un prospecto.
+     *
+     * Estas keywords deben coincidir con los mensajes de bienvenida
+     * configurados en los anuncios de Facebook Ads de Orvae.
+     *
+     * TODO — Para agregar otros productos (Aula Virtual, Inventario):
+     *   Agregar sus propias keywords aquí y devolver el slug del producto.
+     *   El controlador luego cargará el system prompt correspondiente.
+     */
+    /**
+     * Envía un mensaje de reactivación proactivo al prospecto frío.
+     *
+     * Genera el mensaje usando OpenAI con un prompt especial de reactivación,
+     * lo envía por WhatsApp y registra el intento en la conversación.
+     *
+     * @throws RuntimeException si OpenAI o el messenger fallan.
+     */
+    public function sendReactivationMessage(SalesConversation $conversation): string
+    {
+        $apiKey = (string) config('salesbot.openai_api_key', '');
+        if ($apiKey === '') {
+            throw new RuntimeException('OPENAI_API_KEY no está configurada.');
+        }
+
+        $attemptNumber = ($conversation->reactivation_count ?? 0) + 1;
+        $name          = $conversation->prospect_name ?? 'amigo';
+
+        // Prompt específico para reactivación — diferente tono según el intento.
+        $reactivationPrompt = $attemptNumber === 1
+            ? "Escribe UN mensaje corto y amigable para recontactar a {$name} que preguntó sobre VetSaaS pero no siguió. Sé natural, curioso, sin presionar. Máximo 3 líneas. Termina con una pregunta simple. No digas que eres IA."
+            : "Escribe UN último mensaje breve para {$name} que preguntó sobre VetSaaS hace días. Ofrece el Plan Free sin costo como alternativa sin riesgo. Máximo 2 líneas. No menciones que es el último intento.";
+
+        $systemPrompt = $this->buildSystemPrompt();
+
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer '.$apiKey,
+            'Content-Type'  => 'application/json',
+        ])->timeout(30)->post('https://api.openai.com/v1/chat/completions', [
+            'model'       => (string) config('salesbot.openai_model', 'gpt-4o-mini'),
+            'messages'    => [
+                ['role' => 'system', 'content' => $systemPrompt],
+                ['role' => 'user', 'content' => $reactivationPrompt],
+            ],
+            'max_tokens'  => 150,
+            'temperature' => 0.8,
+        ]);
+
+        if (! $response->successful()) {
+            throw new RuntimeException('OpenAI respondió con HTTP '.$response->status());
+        }
+
+        $reactivationMsg = trim((string) ($response->json('choices.0.message.content') ?? ''));
+
+        if ($reactivationMsg === '') {
+            throw new RuntimeException('OpenAI devolvió una respuesta vacía.');
+        }
+
+        // Enviar por WhatsApp.
+        if ($this->messenger->isReady()) {
+            $this->messenger->sendText($conversation->wa_chat_id, $reactivationMsg);
+        } else {
+            throw new RuntimeException('El messenger OpenWA no está listo.');
+        }
+
+        // Registrar el intento en la conversación y reactivar el bot para recibir la respuesta.
+        $conversation->pushMessage('assistant', "[reactivación #{$attemptNumber}] {$reactivationMsg}");
+        $conversation->reactivation_count    = $attemptNumber;
+        $conversation->last_reactivation_at  = now();
+        $conversation->bot_active            = true;
+        $conversation->save();
+
+        return $reactivationMsg;
     }
 
     /**
