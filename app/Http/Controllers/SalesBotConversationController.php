@@ -304,4 +304,67 @@ final class SalesBotConversationController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Fuerza al bot a responder a un lead existente (desde el panel web).
+     */
+    public function engage(Request $request, SalesConversation $conversation): JsonResponse
+    {
+        $message = trim((string) $request->input('message', ''));
+
+        try {
+            $result = $this->botService->engageConversation($conversation, $message);
+
+            return response()->json([
+                'ok'           => true,
+                'reply'        => $result['reply'],
+                'sent'         => $result['sent'],
+                'bot_active'   => true,
+                'turn_count'   => $result['conversation']->turn_count,
+                'message_sent' => $result['reply'],
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'ok'    => false,
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Activa el bot para un número que aún no está en la lista (lead de Facebook sin registrar).
+     */
+    public function engagePhone(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'phone'   => ['required', 'string', 'max:30'],
+            'message' => ['nullable', 'string', 'max:2000'],
+            'name'    => ['nullable', 'string', 'max:120'],
+        ]);
+
+        $phone   = (string) $validated['phone'];
+        $message = trim((string) ($validated['message'] ?? ''));
+        $name    = isset($validated['name']) ? trim((string) $validated['name']) : null;
+        $name    = $name !== '' ? $name : null;
+
+        try {
+            $result = $this->botService->engagePhone($phone, $message, $name);
+
+            $conversation = $result['conversation'];
+
+            return response()->json([
+                'ok'             => true,
+                'reply'          => $result['reply'],
+                'sent'           => $result['sent'],
+                'conversation_id' => $conversation->id,
+                'phone'          => $conversation->phone,
+                'message_sent'   => $result['reply'],
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'ok'    => false,
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
 }

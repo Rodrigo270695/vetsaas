@@ -958,6 +958,12 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:salesbot-knowledge.update')
             ->post('salesbot-conversations/{conversation}/reactivate', [SalesBotConversationController::class, 'reactivate'])
             ->name('salesbot-conversations.reactivate');
+        Route::middleware('permission:salesbot-knowledge.update')
+            ->post('salesbot-conversations/{conversation}/engage', [SalesBotConversationController::class, 'engage'])
+            ->name('salesbot-conversations.engage');
+        Route::middleware('permission:salesbot-knowledge.update')
+            ->post('salesbot-conversations/engage-phone', [SalesBotConversationController::class, 'engagePhone'])
+            ->name('salesbot-conversations.engage-phone');
         Route::middleware('permission:salesbot-knowledge.view')
             ->get('salesbot-conversations/csv-template', [SalesBotConversationController::class, 'csvTemplate'])
             ->name('salesbot-conversations.csv-template');

@@ -12,6 +12,7 @@ import {
     RefreshCw,
     SendHorizonal,
     Snowflake,
+    Sparkles,
     Trash2,
     Upload,
     User,
@@ -30,6 +31,17 @@ import {
 } from '@/components/data-page';
 import type { DataTableColumn, FilterChip } from '@/components/data-page';
 import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { useDataTablePage } from '@/hooks/use-data-table-page';
 import { usePermission } from '@/hooks/use-permission';
 import { toastManager } from '@/lib/toast';
@@ -89,6 +101,17 @@ const formatWhen = (iso: string | null): string => {
     return new Date(iso).toLocaleString('es-PE', { dateStyle: 'short', timeStyle: 'short' });
 };
 
+/** Etiqueta legible del origen del lead. */
+const formatTrigger = (trigger: string | null): string | null => {
+    if (!trigger) return null;
+    if (trigger.startsWith('facebook:')) return 'Facebook Ads';
+    if (trigger.startsWith('manual:engage')) return 'Activación manual';
+    if (trigger.startsWith('manual:')) return 'Importado';
+    if (trigger.startsWith('auto-pausa:')) return 'Pausado auto';
+    if (trigger.startsWith('reactivado:')) return 'Reactivado';
+    return trigger;
+};
+
 /** Muestra el teléfono como número legible. */
 const formatPhone = (raw: string): string => {
     if (raw.startsWith('lid:')) {
@@ -130,6 +153,21 @@ function csrfFetch(url: string, method: 'POST' | 'DELETE'): Promise<Response> {
             'X-Requested-With': 'XMLHttpRequest',
             'X-XSRF-TOKEN': decodeURIComponent(xsrf),
         },
+    });
+}
+
+function csrfPostJson(url: string, body: Record<string, unknown>): Promise<Response> {
+    const xsrf = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/)?.[1] ?? '';
+    return fetch(url, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-XSRF-TOKEN': decodeURIComponent(xsrf),
+        },
+        body: JSON.stringify(body),
     });
 }
 
@@ -234,6 +272,117 @@ function ImportCsvPanel({ canUpdate }: { canUpdate: boolean }) {
     );
 }
 
+// ─── Activar IA por teléfono (lead no listado) ───────────────────────────────
+function EngagePhonePanel({ canUpdate, onSuccess }: { canUpdate: boolean; onSuccess: () => void }) {
+    const [phone, setPhone] = useState('');
+    const [name, setName] = useState('');
+    const [message, setMessage] = useState('Hola, quisiera información sobre VetSaaS y los costos.');
+    const [sending, setSending] = useState(false);
+    const [open, setOpen] = useState(false);
+
+    const handleSubmit = () => {
+        if (!phone.trim()) return;
+        setSending(true);
+        csrfPostJson('/plataforma/salesbot-conversations/engage-phone', {
+            phone: phone.trim(),
+            name: name.trim() || undefined,
+            message: message.trim() || undefined,
+        })
+            .then(async (res) => {
+                const data = await res.json();
+                if (!res.ok) throw new Error(data?.error ?? 'Error');
+                toastManager.success({
+                    title: 'IA activada y mensaje enviado',
+                    description: data.reply?.slice(0, 120) ?? undefined,
+                });
+                setPhone('');
+                setName('');
+                setOpen(false);
+                onSuccess();
+            })
+            .catch((e: Error) => toastManager.error({ title: e.message || 'Error al activar la IA' }))
+            .finally(() => setSending(false));
+    };
+
+    if (!canUpdate) return null;
+
+    return (
+        <div className="rounded-xl border border-dashed border-primary/30 bg-primary/5 p-4 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-start gap-3">
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
+                        <Sparkles className="size-4" strokeWidth={2.25} />
+                    </span>
+                    <div>
+                        <p className="text-sm font-semibold text-foreground">Activar IA manualmente</p>
+                        <p className="text-xs text-muted-foreground">
+                            Para leads de Facebook que no aparecieron solos o cuando el bot no respondió.
+                            Funciona desde el celular — sin terminal.
+                        </p>
+                    </div>
+                </div>
+                <Button
+                    type="button"
+                    size="sm"
+                    className="cursor-pointer gap-1.5"
+                    onClick={() => setOpen(true)}
+                >
+                    <Bot className="size-3.5" />
+                    Responder con IA
+                </Button>
+            </div>
+
+            <Dialog open={open} onOpenChange={setOpen}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Activar bot y enviar respuesta</DialogTitle>
+                        <DialogDescription>
+                            El bot generará una respuesta con IA y la enviará por WhatsApp al número indicado.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-3 py-2">
+                        <div className="grid gap-1.5">
+                            <Label htmlFor="engage-phone">Teléfono WhatsApp</Label>
+                            <Input
+                                id="engage-phone"
+                                placeholder="961777549 o 51961777549"
+                                value={phone}
+                                onChange={(e) => setPhone(e.target.value)}
+                            />
+                        </div>
+                        <div className="grid gap-1.5">
+                            <Label htmlFor="engage-name">Nombre (opcional)</Label>
+                            <Input
+                                id="engage-name"
+                                placeholder="Beatriz Moscol"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                            />
+                        </div>
+                        <div className="grid gap-1.5">
+                            <Label htmlFor="engage-message">Lo que escribió el lead (contexto)</Label>
+                            <Textarea
+                                id="engage-message"
+                                rows={3}
+                                value={message}
+                                onChange={(e) => setMessage(e.target.value)}
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                            Cancelar
+                        </Button>
+                        <Button type="button" disabled={sending || !phone.trim()} onClick={handleSubmit}>
+                            {sending ? 'Enviando…' : 'Activar y enviar'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </div>
+    );
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function SalesBotConversationsIndex({ conversations, filters, stats }: Props) {
@@ -246,6 +395,9 @@ export default function SalesBotConversationsIndex({ conversations, filters, sta
     const [localBotActive, setLocalBotActive] = useState<Record<string, boolean>>({});
     const [localConverted, setLocalConverted] = useState<Record<string, boolean>>({});
     const [processingId, setProcessingId] = useState<string | null>(null);
+    const [engageTarget, setEngageTarget] = useState<Conversation | null>(null);
+    const [engageMessage, setEngageMessage] = useState('');
+    const [engageSending, setEngageSending] = useState(false);
 
     // ── Auto-refresh cada 15 s ──────────────────────────────────────────────
     const REFRESH_INTERVAL_MS = 15_000;
@@ -346,6 +498,36 @@ export default function SalesBotConversationsIndex({ conversations, filters, sta
             .catch(() => toastManager.error({ title: 'Error al eliminar' }));
     }, []);
 
+    const openEngageDialog = useCallback((conv: Conversation) => {
+        setEngageTarget(conv);
+        setEngageMessage(
+            conv.last_message_role === 'user' && conv.last_message_body
+                ? conv.last_message_body
+                : 'Hola, quisiera información sobre VetSaaS y los costos.',
+        );
+    }, []);
+
+    const handleEngageSubmit = useCallback(() => {
+        if (!engageTarget) return;
+        setEngageSending(true);
+        csrfPostJson(`/plataforma/salesbot-conversations/${engageTarget.id}/engage`, {
+            message: engageMessage.trim(),
+        })
+            .then(async (res) => {
+                const data = await res.json();
+                if (!res.ok) throw new Error(data?.error ?? 'Error');
+                setLocalBotActive((prev) => ({ ...prev, [engageTarget.id]: true }));
+                toastManager.success({
+                    title: `IA respondió a ${engageTarget.prospect_name ?? engageTarget.phone}`,
+                    description: data.reply?.slice(0, 120) ?? undefined,
+                });
+                setEngageTarget(null);
+                doRefresh();
+            })
+            .catch((e: Error) => toastManager.error({ title: e.message || 'Error al activar la IA' }))
+            .finally(() => setEngageSending(false));
+    }, [engageTarget, engageMessage, doRefresh]);
+
     const estadoOptions: readonly FilterChip<EstadoFilter>[] = useMemo(
         () => [
             { value: 'todos',      label: 'Todos' },
@@ -393,6 +575,11 @@ export default function SalesBotConversationsIndex({ conversations, filters, sta
                         <span className="truncate font-mono text-xs text-muted-foreground">
                             {formatPhone(conv.phone)}
                         </span>
+                        {formatTrigger(conv.activation_trigger) && (
+                            <span className="mt-0.5 text-[10px] font-medium text-primary/80">
+                                {formatTrigger(conv.activation_trigger)}
+                            </span>
+                        )}
                     </div>
                 </div>
             ),
@@ -472,8 +659,26 @@ export default function SalesBotConversationsIndex({ conversations, filters, sta
                 const converted = getConverted(conv);
                 const loading  = processingId === conv.id;
                 const canReactivate = !converted && (conv.reactivation_count < 2);
+                const needsEngage =
+                    !converted &&
+                    !conv.lost_at &&
+                    (conv.turn_count <= 1 ||
+                        (conv.last_message_role === 'user' && getBotActive(conv)));
                 return (
                     <div className="flex items-center justify-end gap-1">
+                        {canUpdate && !converted && !conv.lost_at && (
+                            <Button
+                                type="button"
+                                size="icon"
+                                variant={needsEngage ? 'default' : 'ghost'}
+                                disabled={loading}
+                                onClick={() => openEngageDialog(conv)}
+                                title="Responder con IA ahora"
+                                className={`size-8 cursor-pointer ${needsEngage ? '' : 'text-primary hover:text-primary'}`}
+                            >
+                                <Sparkles className="size-4" strokeWidth={2.5} />
+                            </Button>
+                        )}
                         {canUpdate && !converted && (
                             <Button
                                 type="button"
@@ -538,7 +743,7 @@ export default function SalesBotConversationsIndex({ conversations, filters, sta
             },
         },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    ], [canUpdate, canDelete, processingId, localBotActive, localConverted, handleToggle, handleReactivate, handleConvert, handleDelete]);
+    ], [canUpdate, canDelete, processingId, localBotActive, localConverted, handleToggle, handleReactivate, handleConvert, handleDelete, openEngageDialog]);
 
     return (
         <>
@@ -549,7 +754,7 @@ export default function SalesBotConversationsIndex({ conversations, filters, sta
                     title="Conversaciones del bot"
                     description={
                         <span className="flex items-center gap-3">
-                            <span>Leads que el bot ha atendido. Pausa el bot por lead para tomar el control manual desde WhatsApp.</span>
+                            <span>Leads del bot de VetSaaS. Pausa por lead, activa la IA con ✨, o importa CSV. Se actualiza solo cada 15 s.</span>
                             <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
                                 <span
                                     className={`inline-block size-2 rounded-full ${isRefreshing ? 'animate-ping bg-amber-400' : 'bg-emerald-400'}`}
@@ -581,6 +786,8 @@ export default function SalesBotConversationsIndex({ conversations, filters, sta
                         { label: 'Coincidencias', value: stats.coincidencias, variant: 'primary', icon: Activity },
                     ]}
                 />
+
+                <EngagePhonePanel canUpdate={canUpdate} onSuccess={doRefresh} />
 
                 <ImportCsvPanel canUpdate={canUpdate} />
 
@@ -622,10 +829,40 @@ export default function SalesBotConversationsIndex({ conversations, filters, sta
                         <EmptyState
                             icon={MessageCircle}
                             title="Sin conversaciones todavía"
-                            description="Cuando un prospecto escriba al número de Orvae con palabras clave de VetSaaS, aparecerá aquí."
+                            description="Los leads de Facebook Ads aparecerán aquí al enviar el saludo. Si no entró la IA, usa «Responder con IA» arriba."
                         />
                     }
                 />
+
+                <Dialog open={engageTarget !== null} onOpenChange={(open) => !open && setEngageTarget(null)}>
+                    <DialogContent className="sm:max-w-md">
+                        <DialogHeader>
+                            <DialogTitle>Responder con IA</DialogTitle>
+                            <DialogDescription>
+                                {engageTarget
+                                    ? `${engageTarget.prospect_name ?? 'Sin nombre'} · ${formatPhone(engageTarget.phone)}`
+                                    : ''}
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid gap-1.5 py-2">
+                            <Label htmlFor="row-engage-message">Mensaje del lead (contexto para la IA)</Label>
+                            <Textarea
+                                id="row-engage-message"
+                                rows={4}
+                                value={engageMessage}
+                                onChange={(e) => setEngageMessage(e.target.value)}
+                            />
+                        </div>
+                        <DialogFooter>
+                            <Button type="button" variant="outline" onClick={() => setEngageTarget(null)}>
+                                Cancelar
+                            </Button>
+                            <Button type="button" disabled={engageSending} onClick={handleEngageSubmit}>
+                                {engageSending ? 'Enviando…' : 'Activar y enviar'}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </div>
         </>
     );

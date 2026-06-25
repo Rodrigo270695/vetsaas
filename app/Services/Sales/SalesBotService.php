@@ -422,6 +422,97 @@ PROMPT;
     }
 
     /**
+     * Normaliza teléfono peruano a formato 519XXXXXXXX.
+     */
+    public function normalizeLeadPhone(string $raw): string
+    {
+        $digits = preg_replace('/\D/', '', $raw) ?? '';
+
+        if (strlen($digits) === 9 && str_starts_with($digits, '9')) {
+            return '51'.$digits;
+        }
+
+        return $digits;
+    }
+
+    /**
+     * Activa el bot, genera respuesta IA y la envía por WhatsApp.
+     *
+     * @return array{reply: string, sent: bool, conversation: SalesConversation}
+     */
+    public function engageConversation(
+        SalesConversation $conversation,
+        string $incomingMessage,
+        bool $sendWhatsApp = true,
+    ): array {
+        if (! config('salesbot.enabled')) {
+            throw new RuntimeException('El bot de ventas está desactivado (SALESBOT_ENABLED=false).');
+        }
+
+        $message = trim($incomingMessage);
+        if ($message === '') {
+            $message = 'Hola, quisiera información sobre VetSaaS y los costos.';
+        }
+
+        $conversation->resumeBot();
+        if (! str_starts_with((string) ($conversation->activation_trigger ?? ''), 'facebook:')) {
+            $conversation->activation_trigger = 'manual:engage';
+        }
+        $conversation->save();
+
+        $reply = $this->reply($conversation, $message);
+
+        $sent = false;
+        if ($sendWhatsApp) {
+            if (! $this->messenger->isReady()) {
+                throw new RuntimeException('OpenWA no está conectado. La respuesta quedó guardada pero no se envió.');
+            }
+
+            $this->messenger->sendText($conversation->wa_chat_id, $reply);
+            $sent = true;
+        }
+
+        return [
+            'reply'        => $reply,
+            'sent'         => $sent,
+            'conversation' => $conversation->fresh(),
+        ];
+    }
+
+    /**
+     * @return array{reply: string, sent: bool, conversation: SalesConversation}
+     */
+    public function engagePhone(
+        string $rawPhone,
+        string $incomingMessage,
+        ?string $prospectName = null,
+        bool $sendWhatsApp = true,
+    ): array {
+        $phone = $this->normalizeLeadPhone($rawPhone);
+
+        if ($phone === '' || strlen($phone) < 8) {
+            throw new RuntimeException('Número de teléfono inválido.');
+        }
+
+        $waChatId     = $phone.'@c.us';
+        $conversation = $this->findExistingConversation($phone, $waChatId);
+
+        if ($conversation === null) {
+            $conversation = $this->createConversation(
+                phone: $phone,
+                waChatId: $waChatId,
+                prospectName: $prospectName,
+                trigger: 'manual:engage',
+            );
+        } elseif ($prospectName !== null && ($conversation->prospect_name === null || $conversation->prospect_name === '')) {
+            $conversation->prospect_name = $prospectName;
+            $conversation->save();
+        }
+
+        return $this->engageConversation($conversation, $incomingMessage, $sendWhatsApp);
+    }
+
+    /**
      * Crea una conversación nueva ya activada con el trigger detectado.
      */
     public function createConversation(
