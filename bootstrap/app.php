@@ -117,6 +117,10 @@ return Application::configure(basePath: dirname(__DIR__))
         // Resetea datos y contraseña del tenant demo cada noche.
         $schedule->command('vetsaas:reset-demo')->dailyAt('03:00');
 
+        // Sincroniza la base de conocimiento del bot desde la BD real.
+        // Si se agregan módulos o cambian planes, el bot lo sabe al día siguiente.
+        $schedule->command('vetsaas:sync-bot-knowledge')->dailyAt('03:30');
+
         $schedule->command('vetsaas:billing-supervisor')->dailyAt('06:00');
         $schedule->command('vetsaas:subscription-renewal-reminders')->dailyAt('09:00');
         $schedule->command('vetsaas:reminders-scan')->everyFifteenMinutes();

@@ -62,26 +62,64 @@ final class SalesBotService
      */
     private function buildSystemPrompt(string $product = 'vetsaas'): string
     {
-        // ── Precios desde la tabla real de planes (cacheado 5 min) ───────────
+        // ── Planes completos: precios + features reales desde BD ────────────
+        // Cada vez que Rodrigo edite un plan o sus features, el bot
+        // lo sabe automáticamente en el próximo mensaje (caché 5 min).
         $plansContext = Cache::remember("salesbot_plans_{$product}", now()->addMinutes(5), function (): string {
             $plans = Plan::query()
+                ->with('features')
                 ->where('activo', true)
                 ->where('es_publico', true)
                 ->orderBy('orden')
-                ->get(['nombre', 'codigo', 'precio_mensual', 'precio_anual', 'descripcion']);
+                ->get();
 
             if ($plans->isEmpty()) {
                 return '';
             }
 
-            $lines = ["## PLANES Y PRECIOS (fuente oficial — actualizado automáticamente)\n"];
+            $lines = ["## PLANES Y PRECIOS (fuente oficial — leído directo de la BD)\n"];
+
             foreach ($plans as $plan) {
                 $mensual = number_format((float) $plan->precio_mensual, 2);
-                $anual   = $plan->precio_anual ? 'S/'.number_format((float) $plan->precio_anual, 2).'/año' : 'sin precio anual';
-                $lines[] = "### {$plan->nombre} — S/{$mensual}/mes ({$anual})";
+                $anual   = $plan->precio_anual
+                    ? ' | S/'.number_format((float) $plan->precio_anual, 2).'/año'
+                    : '';
+
+                $lines[] = "### {$plan->nombre} — S/{$mensual}/mes{$anual}";
+
                 if ($plan->descripcion) {
                     $lines[] = $plan->descripcion;
                 }
+
+                // ── Límites cuantitativos ──────────────────────────────────
+                $limites = [];
+                foreach (['max_sedes' => 'sede(s)', 'max_usuarios' => 'usuario(s)', 'max_pacientes' => 'pacientes', 'max_propietarios' => 'propietarios', 'max_productos' => 'productos en inventario'] as $feat => $label) {
+                    $val = $plan->resolveFeature($feat);
+                    if ($val === null) {
+                        continue;
+                    }
+                    $limites[] = $val === -1 ? "{$label} ilimitados" : "hasta {$val} {$label}";
+                }
+                if (! empty($limites)) {
+                    $lines[] = 'Límites: '.implode(', ', $limites);
+                }
+
+                // ── Facturación electrónica ────────────────────────────────
+                $fel = [];
+                if ($plan->resolveFeature('boletas_electronicas'))  { $fel[] = 'boletas electrónicas'; }
+                if ($plan->resolveFeature('facturas_electronicas'))  { $fel[] = 'facturas electrónicas'; }
+                if ($plan->resolveFeature('guias_remision'))         { $fel[] = 'guías de remisión'; }
+                if ($plan->resolveFeature('notas_credito'))          { $fel[] = 'notas de crédito'; }
+                if ($plan->resolveFeature('notas_debito'))           { $fel[] = 'notas de débito'; }
+                $maxCpe = $plan->resolveFeature('max_comprobantes_mes');
+
+                if (! empty($fel)) {
+                    $cpeLabel = ($maxCpe === -1 || $maxCpe === null) ? 'ilimitados' : "hasta {$maxCpe}/mes";
+                    $lines[] = 'Facturación electrónica: '.implode(', ', $fel)." ({$cpeLabel})";
+                } else {
+                    $lines[] = 'Facturación electrónica: NO incluida';
+                }
+
                 $lines[] = '';
             }
 

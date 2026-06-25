@@ -1,22 +1,40 @@
 # Plan de Ventas VetSaaS — De 2 clientes a 20+
 
-> **Situación actual:** S/1,129.24 gastados en Facebook Ads → 159 conversaciones → 2 clientes Pro.
-> Costo por cliente: S/564. Conversión: 1.2%. Esto es un problema de funnel, no de producto.
+> **Situación inicial:** S/1,129.24 gastados en Facebook Ads → 159 conversaciones → 2 clientes Pro.
+> Costo por cliente: S/564. Conversión: 1.2%. Problema de funnel, no de producto.
 >
 > **Objetivo:** Bajar el costo por cliente a menos de S/100 y subir la conversión al 15-20%
 > sin aumentar el presupuesto publicitario.
 
 ---
 
+## Estado actual (junio 2026)
+
+| Componente | Estado |
+|---|---|
+| Bot IA respondiendo en WhatsApp | ✅ Activo — gpt-4o-mini vía OpenWA |
+| Webhook OpenWA registrado | ✅ Sesión `vetsaas-platform` |
+| Base de conocimiento editable | ✅ Plataforma → Bot de ventas |
+| Panel de conversaciones con pausa/resume | ✅ Plataforma → Conversaciones bot |
+| Auto-refresh del panel cada 15s | ✅ Funciona desde celular |
+| Bot se reactiva si lead vuelve a preguntar | ✅ Detección de trigger keywords |
+| Tenant demo con datos reales | ✅ demo.orvae.pe — demo@vetsaas.pe / demo1234 |
+| Reset automático del demo cada noche | ✅ `vetsaas:reset-demo` a las 3:00 a.m. |
+| Campaña Facebook Ads activa | ✅ S/25/día — Interacción → WhatsApp |
+| Verificación HMAC webhook | ⚠️ Deshabilitada temporalmente |
+
+---
+
 ## Tabla de contenidos
 
 1. [Diagnóstico: por qué no estás convirtiendo](#diagnóstico)
-2. [Fase 1 — Demo Tenant (técnico)](#fase-1--demo-tenant)
-3. [Fase 2 — Funnel WhatsApp](#fase-2--funnel-whatsapp)
+2. [Fase 1 — Demo Tenant](#fase-1--demo-tenant)
+3. [Fase 2 — Funnel WhatsApp + Bot IA](#fase-2--funnel-whatsapp--bot-ia)
 4. [Fase 3 — Facebook Ads optimizado](#fase-3--facebook-ads-optimizado)
 5. [Fase 4 — Cierre y seguimiento](#fase-4--cierre-y-seguimiento)
 6. [Fase 5 — Escalado](#fase-5--escalado)
 7. [Métricas y semáforos](#métricas-y-semáforos)
+8. [Expansión a múltiples productos](#expansión-a-múltiples-productos-futuro)
 
 ---
 
@@ -35,11 +53,11 @@ Nunca más responde
 ```
 
 El anuncio **sí funciona**: S/7.10 por conversación es barato para SaaS B2B.
-El problema está en los primeros 30 segundos de conversación.
+El problema estaba en los primeros 30 segundos de conversación.
 
-### Los 3 errores que matan la venta
+### Los 3 errores que mataban la venta
 
-| Error | Por qué mata la venta |
+| Error | Por qué mataba la venta |
 |---|---|
 | Mostrar todos los precios de golpe | El cerebro ve "S/99.90" antes de entender el valor → fuga inmediata |
 | No hacer preguntas primero | Sin saber el dolor del prospecto, no puedes conectar features con problemas reales |
@@ -49,348 +67,229 @@ El problema está en los primeros 30 segundos de conversación.
 
 ## Fase 1 — Demo Tenant
 
-**Tiempo estimado:** 2-3 horas | **Costo:** S/0
+**Estado: ✅ COMPLETO**
 
-### 1.1 Qué necesitas crear
+### Lo que se hizo
 
-Un tenant con slug `demo` que tenga credenciales públicas y datos realistas.
-El prospecto entra y ve una **clínica que ya funciona**, no un sistema vacío.
+- Tenant `demo` creado en producción con slug `demo`
+- URL pública: `demo.orvae.pe`
+- Credenciales públicas: `demo@vetsaas.pe` / `demo1234`
+- Plan Pro (muestra todos los módulos al prospecto)
+- 12 pacientes reales (Max, Luna, Rocky, Toby, Mia, Pelusa, Bruno, Nala, Simba, Kira, Titán, Cleo)
+- 10 propietarios con datos peruanos
+- Historial clínico con consultas cerradas
+- Citas programadas para la semana actual
+- Caja con ventas de los últimos 7 días
+- Stock de productos
 
-**Credenciales públicas a publicar:**
-```
-URL:      demo.orvae.pe (o demo.vetsaas.pe)
-Usuario:  demo@vetsaas.pe
-Clave:    demo1234
-```
-
-**Plan del tenant demo:** Pro (para mostrar todos los módulos al prospecto).
-> Si el tenant demo está en Free, el prospecto ve un sistema limitado y piensa
-> que así funciona siempre. Muéstrale el mejor escenario posible.
-
-### 1.2 Agregar al DemoTenantsSeeder
-
-En `database/seeders/DemoTenantsSeeder.php`, agregar esta entrada al array `TENANTS`:
-
-```php
-[
-    'slug'             => 'demo',
-    'nombre_comercial' => 'Clínica Veterinaria Demo',
-    'razon_social'     => 'VetSaaS Demo SAC',
-    'ruc'              => '20999999999',
-    'color_primario'   => '#1F6F43',
-    'color_secundario' => '#94C7A8',
-    'email_admin'      => 'demo@vetsaas.pe',
-    'password'         => 'demo1234',
-    'must_change_password' => false,
-],
-```
-
-> El seeder ya tiene la lógica de `updateOrCreate`: si corres el seeder
-> de nuevo, no duplica — solo actualiza.
-
-### 1.3 Datos que tiene que tener el tenant demo
-
-Estos datos hacen que el prospecto se imagine su propia clínica:
-
-#### Pacientes (mínimo 20)
-```
-Max        — Golden Retriever, 3 años, propietario: Carlos Ríos
-Luna       — Gato Persa, 2 años,      propietario: María Torres
-Rocky      — Bulldog Francés, 1 año,  propietario: José Ramírez
-Toby       — Beagle, 5 años,          propietario: Ana Flores
-Mia        — Siames, 4 años,          propietario: Luis Mendoza
-Pelusa     — Cocker Spaniel, 2 años,  propietario: Carmen Vega
-Bruno      — Labrador, 6 años,        propietario: Pedro Castillo
-Nala       — Shih Tzu, 1 año,         propietario: Sofía Paredes
-... (completar hasta 20)
-```
-
-#### Historial clínico (por lo menos 3 consultas cerradas)
-```
-Max — Consulta de control + vacuna rabia + receta antiparasitario
-Luna — Castración + seguimiento post-op + alta
-Rocky — Consulta dermatológica + plan tratamiento 2 semanas
-```
-
-#### Citas agendadas (esta semana)
-```
-Lunes 09:00  — Toby / Control anual
-Lunes 11:30  — Mia / Esterilización
-Martes 10:00 — Pelusa / Vacuna múltiple
-Miércoles 15:00 — Bruno / Corte de uñas (Grooming)
-Jueves 09:30 — Nala / Primera consulta
-```
-
-#### Caja (últimos 7 días)
-```
-Consultas: S/480
-Vacunas:   S/180
-Grooming:  S/120
-Medicamentos: S/95
-Total semana: S/875
-```
-
-#### Stock (10-15 productos)
-```
-Vacuna Rabia 1ml         — Stock: 24 unidades
-Antiparasitario Drontal  — Stock: 18 unidades
-Amoxicilina 250mg        — Stock: 30 unidades
-Ivermectina 1%           — Stock: 12 unidades
-Guantes descartables     — Stock: 50 unidades
-...
-```
-
-### 1.4 Comandos para correr los seeders
+### Reset automático
 
 ```bash
-# 1. Crear el tenant demo (estructura + usuario demo@vetsaas.pe)
-php artisan db:seed --class=DemoTenantsSeeder
+# Corre solo cada noche a las 3:00 a.m. (scheduler activo)
+php artisan vetsaas:reset-demo
 
-# 2. Poblar con datos clínicos realistas
-php artisan db:seed --class=DemoDataSeeder
+# También restaura la contraseña a "demo1234" si alguien la cambió
 ```
 
-Para resetear el demo en cualquier momento (útil para limpieza periódica):
+### Seeder (solo si necesitas recrear el tenant desde cero)
 
 ```bash
-# Solo recarga la data clínica (pacientes, citas, caja...) sin tocar estructura
-php artisan db:seed --class=DemoDataSeeder
-```
-
-### 1.5 Checklist antes de publicar las credenciales
-
-- [ ] El tenant demo existe en producción
-- [ ] Puedes entrar con `demo@vetsaas.pe` / `demo1234`
-- [ ] Se ven pacientes, citas, historial y caja con datos
-- [ ] La URL pública funciona: `demo.vetsaas.pe` o como la tengas configurada
-- [ ] Tienes un job/comando que resetea los datos del demo cada 24h
-      (para que nadie borre todo y lo deje vacío para el próximo visitante)
-
----
-
-## Fase 2 — Funnel WhatsApp
-
-**Tiempo estimado:** 1 hora | **Costo:** S/0
-
-### 2.1 El flujo correcto (4 pasos)
-
-```
-LEAD escribe "Hola quiero info"
-        ↓
-PASO 1: Tú preguntas su situación actual (nunca mandas precios)
-        ↓
-PASO 2: Conectas UNA feature con SU dolor específico
-        ↓
-PASO 3: Ofreces el demo (credenciales o videollamada 10 min)
-        ↓
-PASO 4: Cierras con plan específico o con seguimiento al día siguiente
-```
-
-### 2.2 Respuestas rápidas en WhatsApp Business
-
-Ve a **Ajustes → Herramientas de negocio → Respuestas rápidas**.
-Crea estas 6 plantillas (se activan escribiendo `/` + el nombre):
-
----
-
-**`/bienvenida`** — Primer mensaje siempre
-```
-Hola [nombre] 👋 gracias por escribir sobre VetSaaS.
-
-Cuéntame, ¿cómo llevas hoy el control de tu clínica?
-¿En papel, Excel u otro sistema?
+php artisan db:seed --class=DemoTenantsSeeder  # crea estructura
+php artisan db:seed --class=DemoDataSeeder      # carga datos clínicos
 ```
 
 ---
 
-**`/dolor-papel`** — Si dice "en papel" o "manual"
-```
-Entiendo, la mayoría empieza así. El problema es que
-en papel no puedes ver el historial completo de un
-paciente en segundos ni saber cuántos pacientes
-vienen esta semana.
+## Fase 2 — Funnel WhatsApp + Bot IA
 
+**Estado: ✅ COMPLETO**
+
+### El flujo correcto (automatizado con IA)
+
+```
+LEAD escribe desde el anuncio de Facebook
+        ↓
+Mensaje de bienvenida automático de Meta:
+"¿Cómo llevas hoy el control de tu clínica?"
+        ↓
+LEAD responde → OpenWA recibe → Bot IA detecta trigger de VetSaaS
+        ↓
+Bot hace preguntas, conecta dolor con feature, ofrece demo
+        ↓
+Si LEAD pregunta precio → Bot recomienda solo el plan que aplica
+        ↓
+Si LEAD quiere demo → Bot da credenciales de demo.orvae.pe
+        ↓
+Rodrigo ve la conversación en Plataforma → Conversaciones bot
+        ↓
+Si quiere tomar el control → Pausa el bot con un clic
+```
+
+### Componentes técnicos
+
+| Componente | Descripción |
+|---|---|
+| `SalesBotWebhookController` | Recibe mensajes de OpenWA, detecta triggers |
+| `SalesBotService` | Genera respuestas con gpt-4o-mini |
+| `SalesBotKnowledge` | Base de conocimiento editable desde la plataforma |
+| `SalesConversation` | Registro de cada lead con `bot_active` flag |
+| Panel de conversaciones | Vista web con pausa/resume por lead, auto-refresh 15s |
+
+### Lógica de activación del bot
+
+| Situación | Qué hace el bot |
+|---|---|
+| Lead nuevo escribe sobre VetSaaS | Se activa y responde |
+| Lead nuevo escribe algo sin relación | Silencio |
+| Bot activo, lead escribe cualquier cosa | Responde normalmente |
+| Rodrigo pausa el bot, lead escribe "ok gracias" | Silencio |
+| Rodrigo pausa el bot, lead vuelve a preguntar sobre VetSaaS | **Bot se reactiva solo** |
+
+### Cómo pausar/reanudar el bot
+
+1. Entra a **Plataforma → Conversaciones bot** (funciona desde el celular)
+2. Busca el lead por nombre o teléfono
+3. Clic en **Pausar** → tú escribes manualmente en WhatsApp
+4. Clic en **Reanudar** → el bot retoma la conversación
+
+### Base de conocimiento
+
+Editable desde **Plataforma → Bot de ventas**:
+- Módulos y features del sistema
+- FAQs frecuentes
+- Manejo de objeciones
+- Los precios se leen automáticamente desde la tabla de Planes (no hay que duplicarlos)
+
+### Respuestas rápidas en WhatsApp Business (para uso manual)
+
+Úsalas cuando el bot esté pausado y tú escribas directamente:
+
+**`/bienvenida`**
+```
+Hola 👋 gracias por escribir sobre VetSaaS.
+Cuéntame, ¿cómo llevas hoy el control de tu clínica? ¿En papel, Excel u otro sistema?
+```
+
+**`/dolor-papel`**
+```
+Entiendo, la mayoría empieza así. El problema es que en papel no puedes ver el historial completo de un paciente en segundos ni saber cuántos pacientes vienen esta semana.
 ¿Quieres verlo funcionando en vivo? Te muestro 10 min.
 ```
 
----
-
-**`/dolor-excel`** — Si dice "en Excel"
+**`/dolor-excel`**
 ```
-El Excel funciona al principio, pero cuando empiezas
-a crecer se vuelve caótico: archivos perdidos, sin
-acceso desde el celular, sin historial de vacunas.
-
+El Excel funciona al principio, pero cuando empiezas a crecer se vuelve caótico: archivos perdidos, sin acceso desde el celular, sin historial de vacunas.
 ¿Te muestro cómo VetSaaS resuelve eso en 10 minutos?
 ```
 
----
-
-**`/demo`** — Cuando aceptan ver el sistema
+**`/demo`**
 ```
 Perfecto. Puedes entrar ahora mismo con estas credenciales:
-
 🌐 demo.orvae.pe
 👤 demo@vetsaas.pe
 🔑 demo1234
-
 Entra y cuéntame: ¿qué módulo te llama más la atención?
 ```
 
----
-
-**`/precio`** — Solo cuando preguntan precio
+**`/precio`**
 ```
-Depende de tu clínica. La mayoría empieza con el
-plan Starter a S/39.90/mes: historial clínico,
-citas y caja desde el primer día, 1 sede, 150 pacientes.
-
+Depende de tu clínica. La mayoría empieza con el plan Starter a S/39.90/mes: historial clínico, citas y caja desde el primer día.
 ¿Tienes más de 150 pacientes al mes?
 ```
 
----
-
-**`/cierre`** — Para agendar videollamada
+**`/cierre`**
 ```
-¿Quieres que te lo muestre en vivo? Son 10 minutos
-por videollamada de WhatsApp y ves todo funcionando real.
-
+¿Quieres que te lo muestre en vivo? Son 10 minutos por videollamada de WhatsApp y ves todo funcionando real.
 ¿Cuándo tienes un momento hoy o mañana?
 ```
 
 ---
 
-### 2.3 Reglas de oro en cada conversación
-
-1. **Nunca menciones precios antes del mensaje 4** — Sin conocer su dolor, el precio es solo un número que asusta
-2. **Siempre termina con una pregunta** — Sin pregunta, la conversación muere
-3. **Cuando digan "demo" o "ver el sistema"** → manda `/demo` + llámalo por WhatsApp en ese momento
-4. **Cuando digan "Free"** → no lo dejes ir, di: *"El Free es para conocer el sistema. ¿Cuántos pacientes atiendes al mes? Quizás el Starter te funciona mejor y cuesta menos que un almuerzo al mes."*
-5. **Si no responden en 24h** → manda: *"Hola [nombre], ¿pudiste entrar al demo? Cuéntame qué te pareció."*
-
----
-
 ## Fase 3 — Facebook Ads optimizado
 
-**Tiempo estimado:** 30 min | **Costo:** el que ya tienes**
+**Estado: ✅ ACTIVO**
 
-### 3.1 Pausa el ad actual
+### Configuración actual de la campaña
 
-**HOY**, antes de hacer cualquier otra cosa, baja el presupuesto a S/10/día.
-No tiene sentido seguir pagando S/7.10 por conversación con el funnel roto.
-Cuando el funnel esté listo, lo vuelves a subir.
+| Parámetro | Valor |
+|---|---|
+| Nombre | VetSaaS — WhatsApp Leads Perú |
+| Objetivo | Interacción → Mensajes WhatsApp |
+| Presupuesto | S/25/día |
+| País | Perú |
+| Edad | 28+ |
+| Intereses | Veterinary physician, Veterinaria (servicios para mascotas), Mascotas |
+| Público | Amplio con Advantage+ |
+| Imagen | WhatsApp I... 1280×1600 |
 
-### 3.2 Cambiar el mensaje de bienvenida del anuncio
-
-En **Meta Ads Manager → tu campaña → Mensaje instantáneo de bienvenida**, cambia todo el bloque de precios por esto:
-
-```
-Hola 👋 gracias por escribir.
-
-Una pregunta rápida: ¿cómo llevas hoy el control
-de tu clínica veterinaria? ¿En papel, Excel
-u otro sistema?
-```
-
-Eso es todo. Sin planes, sin precios, sin emojis de cohetes.
-
-### 3.3 Agregar botones de respuesta rápida en el ad
-
-En la configuración del mensaje instantáneo, activa las **respuestas sugeridas**:
+### Texto del anuncio
 
 ```
-Botón 1: "En papel o cuaderno"
-Botón 2: "En Excel"
-Botón 3: "Ya uso un sistema"
-Botón 4: "Ver demo gratis"
+¿Sigues llevando el historial de tus pacientes en papel o Excel?
+
+Cuando llega una emergencia y no encuentras el historial del paciente,
+pierdes tiempo, credibilidad y dinero.
+
+VetSaaS centraliza todo: historial clínico, citas, caja y WhatsApp
+automático — desde S/0, sin contrato.
+
+👇 Escríbenos y te mostramos cómo en 10 min.
 ```
 
-Cada botón que tocan te dice exactamente qué decirles. Sin adivinar.
+### Mensaje de bienvenida automático (configurado en Meta)
 
-### 3.4 Segmentación del ad (revisar)
-
-**Audience actual:** revisar que esté apuntando a:
-- Perú (Lima principalmente, luego expandir)
-- Edad: 28-55
-- Intereses: veterinaria, mascotas, clínica veterinaria, negocio, emprendimiento
-- **Excluir:** empleados de veterinaria (quieres dueños, no empleados)
-
-**Objetivo de campaña:** cambiar de "Conversaciones" a **"Leads"** si empiezas a usar formulario.
-Por ahora, mantener conversaciones pero con el mensaje correcto.
-
-### 3.5 Copys de anuncio que convierten mejor
-
-**Versión A (dolor):**
 ```
-¿Sigues llevando el historial de tus pacientes
-en papel o Excel?
-
-Cada vez que un paciente llega de emergencia
-y no encuentras su historial, pierdes tiempo,
-confianza y dinero.
-
-VetSaaS centraliza todo: historial, citas,
-caja y WhatsApp automático desde S/0.
-
-👇 Escríbenos y te mostramos cómo en 10 minutos.
+Hola 👋 gracias por escribir sobre VetSaaS.
 ```
 
-**Versión B (beneficio):**
+### Mensaje predefinido que el lead envía
+
 ```
-Las clínicas veterinarias que usan VetSaaS
-atienden 40% más pacientes con el mismo equipo.
-
-¿Por qué? Porque no pierden tiempo buscando
-historiales, anotando citas a mano ni calculando
-la caja al final del día.
-
-Todo está en una pantalla.
-
-👇 Prueba gratis, sin tarjeta.
+¿Cómo llevas hoy el control de tu clínica veterinaria? ¿En papel, Excel u otro sistema?
 ```
 
-**Versión C (social proof — cuando tengas más clientes):**
-```
-"Antes anotaba todo en un cuaderno. Ahora
-veo el historial de cualquier paciente
-en 5 segundos desde el celular."
-— [Nombre], Clínica Veterinaria [Ciudad]
+### Proyección con funnel correcto
 
-VetSaaS: el sistema que usan las clínicas
-veterinarias que quieren crecer sin caos.
+| | Antes | Con el bot |
+|---|---|---|
+| Gasto mensual | S/600 | S/750 |
+| Conversaciones | ~85 | ~105 |
+| Conversión | 1.2% | ~15% |
+| Clientes/mes | 1 | ~15 |
+| Costo por cliente | S/564 | ~S/50 |
 
-👇 Pruébalo gratis hoy.
-```
+### Cuándo subir el presupuesto
+
+Sube a S/40/día cuando la tasa conversación→cliente supere el 10%.
+Mide a los 14 días de la campaña activa.
 
 ---
 
 ## Fase 4 — Cierre y seguimiento
 
-**Tiempo estimado:** 15 min/día | **Costo:** S/0
+**Estado: ⏳ PENDIENTE**
 
-### 4.1 Los 157 leads que ya tienes (reactivación)
+### Los 157 leads que ya tienes (reactivación)
 
 Tienes 157 conversaciones que no convirtieron. No las pierdas.
-Esta semana, manda este mensaje a todos:
+Esta semana, manda este mensaje manualmente a todos desde WhatsApp:
 
 ```
-Hola [nombre], hace unos días me escribiste
-sobre VetSaaS.
+Hola [nombre], hace unos días me escribiste sobre VetSaaS.
 
-¿Pudiste ver el sistema? Te comparto acceso
-de prueba para que lo explores tú mismo:
+Puedes probar el sistema ahora mismo:
 
 🌐 demo.orvae.pe
 👤 demo@vetsaas.pe
 🔑 demo1234
 
-¿Qué te pareció?
+¿Qué te parece?
 ```
 
 Con 157 leads, si el 10% responde = 15 conversaciones nuevas.
-Si el 20% de esas convierte = 3 clientes más sin gastar un sol en ads.
+Si el 20% de esas convierte = 3 clientes más **sin gastar un sol en ads**.
 
-### 4.2 Secuencia de seguimiento (los 5 días del cierre)
+### Secuencia de seguimiento (los 5 días del cierre)
 
 | Día | Qué haces |
 |---|---|
@@ -400,18 +299,18 @@ Si el 20% de esas convierte = 3 clientes más sin gastar un sol en ads.
 | Día 5 | Videollamada → cierre con propuesta específica |
 | Día 7 | Si no cerró: *"El plan Free sigue disponible para que lo uses sin presión."* |
 
-### 4.3 Cómo cerrar en la videollamada de 10 minutos
+### Cómo cerrar en la videollamada de 10 minutos
 
 **Minuto 0-2:** Escuchar. "Cuéntame cómo funciona tu clínica hoy."
 
-**Minuto 2-5:** Mostrar solo los módulos que resuelven SU dolor específico.
-Si dijo "me cuesta organizar las citas" → muéstrale el módulo de citas.
-Si dijo "no sé cuánto gano al mes" → muéstrale la caja y reportes.
+**Minuto 2-5:** Mostrar solo los módulos que resuelven SU dolor.
+Si dijo "me cuesta organizar las citas" → módulo de citas.
+Si dijo "no sé cuánto gano al mes" → caja y reportes.
 
 **Minuto 5-8:** Hacer la pregunta del cierre:
-*"¿Ves cómo esto resuelve [su dolor específico]? ¿Qué te falta para empezar hoy mismo?"*
+*"¿Ves cómo esto resuelve [su dolor]? ¿Qué te falta para empezar hoy mismo?"*
 
-**Minuto 8-10:** Manejar la objeción que dé:
+**Minuto 8-10:** Manejar la objeción:
 - "Es caro" → *"¿Cuánto pierdes al mes por no tener esto organizado? El Starter son S/39.90."*
 - "Déjame pensarlo" → *"Entiendo. ¿Qué información te falta para decidir?"*
 - "Voy a consultar" → *"¿Con quién? Puedo hablar con esa persona también si quieres."*
@@ -422,9 +321,9 @@ Si dijo "no sé cuánto gano al mes" → muéstrale la caja y reportes.
 
 **Cuando tengas 10+ clientes pagos**, hacer esto:
 
-### 5.1 Testimonios (el activo más valioso)
+### Testimonios (el activo más valioso)
 
-Pídele a cada cliente que te mande un audio o texto corto:
+Pídele a cada cliente:
 *"¿Cómo era tu clínica antes de VetSaaS y cómo es ahora?"*
 
 Eso se convierte en:
@@ -432,31 +331,27 @@ Eso se convierte en:
 - Historia de Instagram
 - Caso de éxito en el landing page
 
-### 5.2 Referidos (el canal más barato)
+### Referidos (el canal más barato)
 
 Ofrece a tus clientes actuales: **1 mes gratis por cada referido que pague.**
-Un cliente satisfecho en una red de veterinarios puede traerte 5 clientes más.
 
-### 5.3 Comunidades veterinarias en Perú
+### Comunidades veterinarias en Perú
 
 Grupos de Facebook, foros de veterinarios, asociaciones gremiales.
-Entra, participa con valor (no solo con publicidad), y cuando alguien mencione
-un problema que VetSaaS resuelve → ahí entras a dar la solución.
+Entra, participa con valor, y cuando alguien mencione un problema que VetSaaS resuelve → ahí entras.
 
-### 5.4 SEO de largo plazo
+### SEO de largo plazo
 
 Crear contenido en el blog/landing sobre:
 - "Cómo organizar una clínica veterinaria en Perú"
 - "Software para veterinarias gratis en Perú"
 - "Historial clínico veterinario digital"
 
-Tráfico orgánico = leads a costo S/0.
-
 ---
 
 ## Métricas y semáforos
 
-Mide esto cada semana para saber si vas bien:
+Mide esto cada semana:
 
 | Métrica | Rojo | Amarillo | Verde |
 |---|---|---|---|
@@ -466,7 +361,7 @@ Mide esto cada semana para saber si vas bien:
 | Tasa de videollamada → pago | < 20% | 20-40% | > 40% |
 | Costo por cliente | > S/300 | S/100-300 | < S/100 |
 
-**Benchmark actual:**
+**Benchmark inicial (antes del bot):**
 - Conversación → cliente: 1.2% (rojo)
 - Costo por cliente: ~S/565 (rojo)
 
@@ -476,71 +371,12 @@ Mide esto cada semana para saber si vas bien:
 
 ---
 
-## Orden de ejecución (priorizado)
+## Pendientes inmediatos
 
-```
-SEMANA 1 — Base
-  ✅ Pausar o bajar el ad a S/10/día
-  ✅ Crear tenant demo con datos realistas
-  ✅ Configurar credenciales demo@vetsaas.pe / demo1234
-  ✅ Crear las 6 respuestas rápidas en WhatsApp Business
-  ✅ Cambiar el mensaje de bienvenida del ad en Meta
-
-SEMANA 1 — Reactivación
-  ✅ Enviar mensaje de reactivación a las 157 conversaciones muertas
-  ✅ Hacer seguimiento a los que respondan (secuencia de 5 días)
-
-SEMANA 2 — Optimizar
-  ✅ Agregar botones de respuesta al mensaje del ad
-  ✅ Probar los 3 copys del anuncio (A/B test)
-  ✅ Agendar y hacer videollamadas de demo con leads calientes
-
-SEMANA 3-4 — Escalar
-  ✅ Subir presupuesto del ad cuando la conversión sea > 10%
-  ✅ Pedir primer testimonio a cliente satisfecho
-  ✅ Lanzar programa de referidos
-```
-
----
-
-## Técnico: DemoDataSeeder (pendiente de crear)
-
-Archivo a crear: `database/seeders/DemoDataSeeder.php`
-
-Responsabilidades:
-- Conectarse al schema `vet_demo`
-- Insertar propietarios y pacientes con datos realistas
-- Insertar consultas cerradas con historial clínico
-- Insertar citas de la semana actual
-- Insertar movimientos de caja de los últimos 7 días
-- Insertar productos en stock
-- Ser **idempotente**: si se corre de nuevo, primero limpia y recarga
-- Ser llamado por un `schedule` diario para mantener el demo fresco
-
-```bash
-# Comando para regenerar el demo cuando quieras
-php artisan vetsaas:reset-demo
-```
-
----
-
----
-
-## Estado actual del bot (junio 2026)
-
-| Componente | Estado |
-|---|---|
-| Tenant demo creado | ✅ Pendiente correr seeders en producción |
-| Webhook registrado en OpenWA | ✅ Activo — sesión `vetsaas-platform` |
-| Bot IA respondiendo | ✅ Funcionando — gpt-4o-mini |
-| Verificación HMAC | ⚠️ Deshabilitada temporalmente (secret vacío) |
-| Demo con datos realistas | ⏳ Pendiente correr DemoDataSeeder en producción |
-
-### Pendientes inmediatos
-1. Correr `php artisan db:seed --class=DemoTenantsSeeder` en producción
-2. Correr `php artisan db:seed --class=DemoDataSeeder` en producción
-3. Cambiar mensaje de bienvenida del anuncio en Meta (sin precios, solo pregunta)
-4. Activar verificación HMAC cuando OpenWA confirme el header que usa
+- [ ] Enviar mensaje de reactivación a los 157 leads muertos (Fase 4)
+- [ ] Medir resultados del ad a los 14 días y ajustar si la conversión < 10%
+- [ ] Reactivar verificación HMAC cuando OpenWA confirme el header que usa
+- [ ] Subir presupuesto del ad a S/40/día cuando conversión > 10%
 
 ---
 
@@ -550,18 +386,15 @@ Orvae tiene varios SaaS. El bot actual solo cubre VetSaaS.
 Para agregar nuevos productos sin múltiples números de celular:
 
 ### Opción A — Múltiples rutas webhook (recomendada)
-Cada producto tiene su propia ruta en `routes/api.php` y su propio
-webhook registrado en OpenWA. El anuncio de Facebook de cada producto
-apunta al número de Orvae y el mensaje de bienvenida del ad identifica
-el producto. El controlador recibe el slug del producto como parámetro.
 
 ```
-POST /api/webhooks/sales-bot           → VetSaaS (activo)
-POST /api/webhooks/sales-bot/aula-virtual   → futuro
-POST /api/webhooks/sales-bot/inventario     → futuro
+POST /api/webhooks/sales-bot               → VetSaaS (activo)
+POST /api/webhooks/sales-bot/aula-virtual  → futuro
+POST /api/webhooks/sales-bot/inventario    → futuro
 ```
 
 ### Cómo agregar un nuevo producto
+
 1. Agregar la ruta en `routes/api.php` (ver comentarios TODO)
 2. Agregar el system prompt en `SalesBotService::buildSystemPrompt()`
 3. Registrar el webhook en OpenWA apuntando a la nueva ruta
@@ -570,4 +403,4 @@ POST /api/webhooks/sales-bot/inventario     → futuro
 ---
 
 *Última actualización: junio 2026*
-*Estado: Bot VetSaaS activo y funcionando en producción*
+*Estado: Sistema completo activo en producción — bot IA + demo + ads corriendo*
