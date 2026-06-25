@@ -129,9 +129,21 @@ final class SalesBotWebhookController extends Controller
         $conversation = $this->botService->findExistingConversation($phone);
 
         if ($conversation !== null) {
-            // Conversación existente: respetar bot_active.
+            // Conversación existente con bot pausado: verificar si el cliente
+            // vuelve a preguntar por VetSaaS. Si es así, reactivar el bot
+            // automáticamente para no perder el lead.
             if (! $conversation->bot_active) {
-                return response()->json(['ok' => true, 'skipped' => 'paused']);
+                $trigger = $this->botService->detectSalesTrigger($body);
+                if ($trigger !== null) {
+                    $conversation->resumeBot();
+                    $conversation->activation_trigger = "reactivado:{$trigger}";
+                    $conversation->save();
+                    // El bot continúa respondiendo abajo.
+                } else {
+                    // El cliente escribe algo que no es de ventas (ej: "ok gracias")
+                    // mientras Rodrigo maneja la conversación. No interrumpir.
+                    return response()->json(['ok' => true, 'skipped' => 'paused']);
+                }
             }
             // Actualizar nombre si llegó uno nuevo.
             if ($prospectName !== null && $conversation->prospect_name === null) {
