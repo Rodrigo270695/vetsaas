@@ -314,6 +314,67 @@ PROMPT;
      *   El controlador luego cargará el system prompt correspondiente.
      */
     /**
+     * Transcribe un archivo de audio a texto usando la API Whisper de OpenAI.
+     *
+     * El audio puede ser cualquier formato soportado por Whisper:
+     * mp3, mp4, mpeg, mpga, m4a, wav, webm, ogg.
+     *
+     * OpenWA envía los audios de WhatsApp en formato ogg/opus.
+     *
+     * @param  string  $audioContent  Contenido binario del archivo de audio.
+     * @param  string  $filename      Nombre de archivo con extensión (para que Whisper detecte el formato).
+     * @return string  Texto transcrito.
+     *
+     * @throws RuntimeException si la transcripción falla.
+     */
+    public function transcribeAudio(string $audioContent, string $filename = 'audio.ogg'): string
+    {
+        $apiKey = (string) config('salesbot.openai_api_key', '');
+        if ($apiKey === '') {
+            throw new RuntimeException('OPENAI_API_KEY no está configurada.');
+        }
+
+        if (! (bool) config('salesbot.audio_enabled', true)) {
+            throw new RuntimeException('El soporte de audio está deshabilitado (SALESBOT_AUDIO_ENABLED).');
+        }
+
+        // Guardar el audio en un temp file para poder enviarlo como multipart.
+        $tmpPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'salesbot_' . uniqid() . '_' . $filename;
+        file_put_contents($tmpPath, $audioContent);
+
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $apiKey,
+            ])->timeout(60)->attach(
+                'file',
+                fopen($tmpPath, 'r'),
+                $filename,
+            )->post('https://api.openai.com/v1/audio/transcriptions', [
+                'model'    => (string) config('salesbot.whisper_model', 'whisper-1'),
+                'language' => (string) config('salesbot.whisper_lang', 'es'),
+            ]);
+        } finally {
+            @unlink($tmpPath);
+        }
+
+        if (! $response->successful()) {
+            Log::error('SalesBot Whisper error', [
+                'status' => $response->status(),
+                'body'   => $response->body(),
+            ]);
+            throw new RuntimeException('Whisper respondió con HTTP ' . $response->status());
+        }
+
+        $text = trim((string) ($response->json('text') ?? ''));
+
+        if ($text === '') {
+            throw new RuntimeException('Whisper devolvió una transcripción vacía.');
+        }
+
+        return $text;
+    }
+
+    /**
      * Envía un mensaje de reactivación proactivo al prospecto frío.
      *
      * Genera el mensaje usando OpenAI con un prompt especial de reactivación,

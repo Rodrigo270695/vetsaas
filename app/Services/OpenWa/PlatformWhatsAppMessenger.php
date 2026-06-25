@@ -16,6 +16,11 @@ final class PlatformWhatsAppMessenger
         private readonly PlatformWhatsAppSessionSync $sync,
     ) {}
 
+    public function getClient(): OpenWaClient
+    {
+        return $this->client;
+    }
+
     public function isReady(): bool
     {
         if (! $this->client->isConfigured()) {

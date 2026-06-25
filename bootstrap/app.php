@@ -121,10 +121,12 @@ return Application::configure(basePath: dirname(__DIR__))
         // Si se agregan módulos o cambian planes, el bot lo sabe al día siguiente.
         $schedule->command('vetsaas:sync-bot-knowledge')->dailyAt('03:30');
 
-        // Reactivación de leads fríos: contacta prospectos que hablaron
-        // con el bot pero no volvieron a escribir en 3+ días.
-        // Se ejecuta a las 10am (hora activa, evita mensajes de madrugada).
-        $schedule->command('vetsaas:reactivate-cold-leads')->dailyAt('10:00');
+        // Reactivación de leads fríos — dividida en 2 corridas diarias
+        // para no superar ~20 mensajes/día y evitar bloqueo de WhatsApp.
+        // Límite: 10 leads por corrida × 2 corridas = máx 20/día.
+        // Delay mínimo de 15s entre mensajes → máx ~3 min por corrida.
+        $schedule->command('vetsaas:reactivate-cold-leads --limit=10 --delay=15')->dailyAt('10:00');
+        $schedule->command('vetsaas:reactivate-cold-leads --limit=10 --delay=15')->dailyAt('15:00');
 
         $schedule->command('vetsaas:billing-supervisor')->dailyAt('06:00');
         $schedule->command('vetsaas:subscription-renewal-reminders')->dailyAt('09:00');

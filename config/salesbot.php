@@ -48,4 +48,21 @@ return [
     'demo_email'    => env('SALESBOT_DEMO_EMAIL', 'demo@vetsaas.pe'),
     'demo_password' => env('SALESBOT_DEMO_PASSWORD', 'demo1234'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Soporte de mensajes de audio (Whisper)
+    |--------------------------------------------------------------------------
+    |
+    | Cuando un prospecto envía un audio, Whisper lo transcribe a texto y
+    | el bot responde normalmente como si hubiera escrito.
+    |
+    | Activar: SALESBOT_AUDIO_ENABLED=true en .env
+    | Modelo Whisper: whisper-1 (único disponible actualmente).
+    | Idiomas: auto-detecta, pero funciona mejor indicando "es" para español.
+    |
+    */
+    'audio_enabled'  => (bool) env('SALESBOT_AUDIO_ENABLED', true),
+    'whisper_model'  => env('SALESBOT_WHISPER_MODEL', 'whisper-1'),
+    'whisper_lang'   => env('SALESBOT_WHISPER_LANG', 'es'),
+
 ];

@@ -21,6 +21,10 @@
 | Tenant demo con datos reales | ✅ demo.orvae.pe — demo@vetsaas.pe / demo1234 |
 | Reset automático del demo cada noche | ✅ `vetsaas:reset-demo` a las 3:00 a.m. |
 | Campaña Facebook Ads activa | ✅ S/25/día — Interacción → WhatsApp |
+| Reactivación automática de leads fríos | ✅ Scheduler 10:00 y 15:00 — máx 20/día |
+| Auto-cierre de leads sin respuesta (2 intentos) | ✅ Marcados como "perdidos" automáticamente |
+| Importación de leads desde CSV | ✅ Panel web + CLI `vetsaas:import-leads` |
+| Marcar lead como convertido desde el panel | ✅ Excluye de reactivaciones futuras |
 | Verificación HMAC webhook | ⚠️ Deshabilitada temporalmente |
 
 ---
@@ -373,10 +377,12 @@ Mide esto cada semana:
 
 ## Pendientes inmediatos
 
-- [ ] Enviar mensaje de reactivación a los 157 leads muertos (Fase 4)
+- [x] ~~Enviar mensaje de reactivación a los 157 leads muertos~~ → Sistema automático activo
+- [ ] Importar los ~157 leads históricos al CSV y subirlos (máx 20/día se reactivarán solos)
 - [ ] Medir resultados del ad a los 14 días y ajustar si la conversión < 10%
 - [ ] Reactivar verificación HMAC cuando OpenWA confirme el header que usa
 - [ ] Subir presupuesto del ad a S/40/día cuando conversión > 10%
+- [ ] Recolectar primer testimonio de cliente cuando llegues a 5 clientes pagos (Fase 5)
 
 ---
 

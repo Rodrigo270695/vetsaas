@@ -34,7 +34,8 @@ final class ReactivateColdLeadsCommand extends Command
     protected $signature = 'vetsaas:reactivate-cold-leads
         {--dry-run : Solo muestra los leads que se reactivarían, sin enviar mensajes}
         {--days=3  : Días de inactividad mínimo para considerar el lead como frío}
-        {--limit=30 : Número máximo de leads a procesar por corrida}';
+        {--limit=15 : Número máximo de leads a procesar por corrida (máx recomendado: 20/día)}
+        {--delay=15 : Segundos de espera entre mensajes (mínimo recomendado: 10s)}';
 
     protected $description = 'Envía mensajes de reactivación a leads fríos que no convirtieron';
 
@@ -48,7 +49,8 @@ final class ReactivateColdLeadsCommand extends Command
     {
         $dryRun      = (bool) $this->option('dry-run');
         $inactiveDays = (int) $this->option('days');
-        $limit        = (int) $this->option('limit');
+        $limit        = min((int) $this->option('limit'), 20); // nunca más de 20 por corrida
+        $delay        = max((int) $this->option('delay'), 10); // nunca menos de 10s entre mensajes
 
         $this->info("🔍 Buscando leads fríos (inactivos +{$inactiveDays} días, máx {$limit})...");
 
@@ -146,8 +148,11 @@ final class ReactivateColdLeadsCommand extends Command
 
                 $sent++;
 
-                // Pausa de 2 segundos entre envíos para no saturar OpenWA.
-                sleep(2);
+                // Pausa aleatoria entre envíos para simular comportamiento humano.
+                // Nunca menos de $delay segundos. WhatsApp detecta ráfagas uniformes.
+                $sleepSecs = $delay + rand(0, 8);
+                $this->line("    ⏳ Esperando {$sleepSecs}s antes del próximo envío...");
+                sleep($sleepSecs);
 
             } catch (\Throwable $e) {
                 $this->error("  ❌ [{$conversation->phone}] {$name} — {$e->getMessage()}");

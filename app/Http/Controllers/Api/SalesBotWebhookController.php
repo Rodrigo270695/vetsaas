@@ -94,11 +94,15 @@ final class SalesBotWebhookController extends Controller
         // Aceptar tanto "message.received" (esta versión OpenWA) como "onMessage" (versiones antiguas).
         $esEventoMensaje = in_array($event, ['message.received', 'onMessage', 'message'], true);
 
-        if ($fromMe || ! $esEventoMensaje || $body === '') {
+        $isAudio = in_array($type, ['ptt', 'audio'], true);
+
+        // Saltar si: es mensaje propio, no es evento de mensaje,
+        // o está vacío Y no es un audio que podamos transcribir.
+        if ($fromMe || ! $esEventoMensaje || ($body === '' && ! $isAudio)) {
             return response()->json(['ok' => true, 'skipped' => true]);
         }
 
-        // Ignorar mensajes de grupos (@g.us).
+        // Ignorar grupos (@g.us).
         if (str_ends_with($waChatId, '@g.us')) {
             return response()->json(['ok' => true, 'skipped' => 'group']);
         }
@@ -114,6 +118,27 @@ final class SalesBotWebhookController extends Controller
         $prospectName = ($senderData['pushname'] ?? null) !== null
             ? (string) $senderData['pushname']
             : null;
+
+        // ── Soporte de audios (Whisper) ────────────────────────────────────
+        // Si el mensaje es de tipo ptt (push-to-talk) o audio, intentamos
+        // transcribirlo. Si falla, le avisamos al prospecto amablemente.
+        if ($body === '' && $isAudio && config('salesbot.audio_enabled')) {
+            $mediaUrl = (string) ($data['mediaUrl'] ?? $data['body'] ?? '');
+            if ($mediaUrl !== '') {
+                try {
+                    $audioContent = $this->messenger->getClient()->downloadMedia($mediaUrl);
+                    $body         = $this->botService->transcribeAudio($audioContent, 'audio.ogg');
+                    Log::info('SalesBot audio transcribed', ['phone' => $phone, 'text' => substr($body, 0, 100)]);
+                } catch (\Throwable $e) {
+                    Log::warning('SalesBot Whisper failed', ['phone' => $phone, 'error' => $e->getMessage()]);
+                    // No podemos transcribir — le decimos al lead que escriba.
+                    if ($this->messenger->isReady()) {
+                        $this->messenger->sendText($waChatId, '¡Hola! 👋 Recibí tu audio pero por el momento solo puedo responder mensajes de texto. ¿Me puedes escribir tu consulta? 😊');
+                    }
+                    return response()->json(['ok' => true, 'skipped' => 'audio_transcription_failed']);
+                }
+            }
+        }
 
         // ── 4. Lógica de activación del bot ───────────────────────────────
         //

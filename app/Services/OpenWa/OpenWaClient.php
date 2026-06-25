@@ -136,6 +136,39 @@ final class OpenWaClient
     }
 
     /**
+     * Descarga el contenido binario de un mensaje de media (audio, imagen, doc).
+     *
+     * OpenWA incluye en el payload del webhook el campo `mediaUrl` o `body`
+     * con la URL del archivo. Este método lo descarga y devuelve el contenido.
+     *
+     * @return string  Contenido binario del archivo.
+     */
+    public function downloadMedia(string $mediaUrl): string
+    {
+        $apiKey = trim((string) config('openwa.api_key', ''));
+
+        // Si la URL es relativa al servidor OpenWA, le anteponemos la base.
+        if (! str_starts_with($mediaUrl, 'http')) {
+            $base     = rtrim((string) config('openwa.api_url'), '/');
+            $mediaUrl = $base . '/' . ltrim($mediaUrl, '/');
+        }
+
+        try {
+            $response = Http::timeout(30)
+                ->withHeaders($apiKey !== '' ? ['X-API-Key' => $apiKey] : [])
+                ->get($mediaUrl);
+        } catch (\Throwable $e) {
+            throw new RuntimeException('Error al descargar media de OpenWA: ' . $e->getMessage(), 0, $e);
+        }
+
+        if (! $response->successful()) {
+            throw new RuntimeException('OpenWA devolvió HTTP ' . $response->status() . ' al descargar el audio.');
+        }
+
+        return (string) $response->body();
+    }
+
+    /**
      * @param  array<string, mixed>|null  $body
      * @return array<string, mixed>|list<array<string, mixed>>|null
      */
