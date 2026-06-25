@@ -65,4 +65,22 @@ return [
     'whisper_model'  => env('SALESBOT_WHISPER_MODEL', 'whisper-1'),
     'whisper_lang'   => env('SALESBOT_WHISPER_LANG', 'es'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Respuesta con voz (TTS — Text to Speech)
+    |--------------------------------------------------------------------------
+    |
+    | Cuando el prospecto manda un audio, el bot también responde con audio.
+    | Usa OpenAI TTS (tts-1) que genera voz natural en español.
+    |
+    | Voces disponibles: alloy, echo, fable, onyx, nova, shimmer
+    | nova = femenina natural, onyx = masculino profundo
+    |
+    | Costo: ~S/0.05 por respuesta de ~200 palabras. Muy bajo.
+    |
+    */
+    'tts_enabled' => (bool) env('SALESBOT_TTS_ENABLED', true),
+    'tts_model'   => env('SALESBOT_TTS_MODEL', 'tts-1'),
+    'tts_voice'   => env('SALESBOT_TTS_VOICE', 'nova'),
+
 ];

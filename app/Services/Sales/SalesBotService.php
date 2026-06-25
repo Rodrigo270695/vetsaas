@@ -375,6 +375,62 @@ PROMPT;
     }
 
     /**
+     * Convierte texto a audio (nota de voz) usando OpenAI TTS.
+     *
+     * Devuelve el contenido binario del archivo de audio en formato opus/ogg,
+     * listo para enviarlo por WhatsApp como nota de voz.
+     *
+     * @return string  Contenido binario del audio (ogg/opus).
+     * @throws RuntimeException si TTS falla o no está habilitado.
+     */
+    public function textToSpeech(string $text): string
+    {
+        $apiKey = (string) config('salesbot.openai_api_key', '');
+        if ($apiKey === '') {
+            throw new RuntimeException('OPENAI_API_KEY no está configurada.');
+        }
+
+        if (! (bool) config('salesbot.tts_enabled', true)) {
+            throw new RuntimeException('TTS deshabilitado (SALESBOT_TTS_ENABLED=false).');
+        }
+
+        // Limpiar el texto: quitar emojis y caracteres que suenan raro en voz.
+        $cleanText = preg_replace('/[\x{1F000}-\x{1FFFF}]/u', '', $text);
+        $cleanText = preg_replace('/\*+([^*]+)\*+/', '$1', (string) $cleanText); // quitar **negrita**
+        $cleanText = trim((string) $cleanText);
+
+        if ($cleanText === '') {
+            throw new RuntimeException('Texto vacío después de limpiar emojis.');
+        }
+
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . $apiKey,
+            'Content-Type'  => 'application/json',
+        ])->timeout(30)->post('https://api.openai.com/v1/audio/speech', [
+            'model'           => (string) config('salesbot.tts_model', 'tts-1'),
+            'voice'           => (string) config('salesbot.tts_voice', 'nova'),
+            'input'           => $cleanText,
+            'response_format' => 'opus', // ogg/opus — formato nativo de WhatsApp voz
+        ]);
+
+        if (! $response->successful()) {
+            Log::error('SalesBot TTS error', [
+                'status' => $response->status(),
+                'body'   => substr($response->body(), 0, 200),
+            ]);
+            throw new RuntimeException('OpenAI TTS respondió con HTTP ' . $response->status());
+        }
+
+        $audioContent = (string) $response->body();
+
+        if (strlen($audioContent) < 100) {
+            throw new RuntimeException('TTS devolvió un audio demasiado pequeño.');
+        }
+
+        return $audioContent;
+    }
+
+    /**
      * Envía un mensaje de reactivación proactivo al prospecto frío.
      *
      * Genera el mensaje usando OpenAI con un prompt especial de reactivación,

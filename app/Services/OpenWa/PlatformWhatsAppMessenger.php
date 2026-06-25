@@ -33,6 +33,19 @@ final class PlatformWhatsAppMessenger
     }
 
     /**
+     * Envía una nota de voz (ogg/opus) como PTT al chat.
+     *
+     * @param  string  $audioContent  Contenido binario del audio.
+     * @return array<string, mixed>
+     */
+    public function sendVoice(string $chatId, string $audioContent): array
+    {
+        $sessionId = $this->resolveReadySessionId();
+
+        return $this->client->sendVoice($sessionId, $chatId, $audioContent);
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function sendText(string $chatId, string $text): array

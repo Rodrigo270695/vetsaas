@@ -226,9 +226,30 @@ final class SalesBotWebhookController extends Controller
         }
 
         // ── 6. Enviar respuesta por WhatsApp ──────────────────────────────
+        // Si el lead mandó audio → responder con nota de voz (TTS).
+        // Si mandó texto → responder con texto.
         try {
             if ($this->messenger->isReady()) {
-                $this->messenger->sendText($waChatId, $reply);
+                $respondedWithVoice = false;
+
+                if ($isAudio && config('salesbot.tts_enabled') && config('salesbot.audio_enabled')) {
+                    try {
+                        $audioReply = $this->botService->textToSpeech($reply);
+                        $this->messenger->sendVoice($waChatId, $audioReply);
+                        $respondedWithVoice = true;
+                        Log::info('SalesBot responded with voice', ['phone' => $phone]);
+                    } catch (\Throwable $ttsError) {
+                        // Si TTS falla, caer de vuelta a texto para no dejar al lead sin respuesta.
+                        Log::warning('SalesBot TTS failed, falling back to text', [
+                            'phone' => $phone,
+                            'error' => $ttsError->getMessage(),
+                        ]);
+                    }
+                }
+
+                if (! $respondedWithVoice) {
+                    $this->messenger->sendText($waChatId, $reply);
+                }
             } else {
                 Log::warning('SalesBot: messenger no está listo, respuesta no enviada.', ['phone' => $phone]);
             }

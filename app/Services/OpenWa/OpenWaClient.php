@@ -136,6 +136,47 @@ final class OpenWaClient
     }
 
     /**
+     * Envía una nota de voz (audio ogg/opus) a un chat de WhatsApp.
+     *
+     * El audio se envía como base64. OpenWA lo procesa como PTT (push-to-talk)
+     * para que se muestre como nota de voz en WhatsApp, no como archivo adjunto.
+     *
+     * @param  string  $sessionId   ID de la sesión OpenWA activa.
+     * @param  string  $chatId      Chat destino (ej: "51987654321@c.us").
+     * @param  string  $audioContent  Contenido binario del audio (ogg/opus).
+     * @return array<string, mixed>
+     */
+    public function sendVoice(string $sessionId, string $chatId, string $audioContent): array
+    {
+        $base64 = base64_encode($audioContent);
+        $dataUri = 'data:audio/ogg; codecs=opus;base64,' . $base64;
+
+        // Intentar primero el endpoint de voz nativo.
+        // Si falla con 404, usar send-file como fallback.
+        try {
+            $response = $this->request('post', '/api/sessions/' . $sessionId . '/messages/send-voice', [
+                'chatId' => $chatId,
+                'audio'  => $dataUri,
+                'ptt'    => true,
+            ]);
+        } catch (RuntimeException $e) {
+            if (str_contains($e->getMessage(), '404') || str_contains($e->getMessage(), 'Not Found')) {
+                // Fallback: send-file con ptt=true (funciona en algunas versiones de OpenWA).
+                $response = $this->request('post', '/api/sessions/' . $sessionId . '/messages/send-file', [
+                    'chatId'   => $chatId,
+                    'file'     => $dataUri,
+                    'filename' => 'voice.ogg',
+                    'ptt'      => true,
+                ]);
+            } else {
+                throw $e;
+            }
+        }
+
+        return is_array($response) ? $response : [];
+    }
+
+    /**
      * Descarga el contenido binario de un mensaje de media (audio, imagen, doc).
      *
      * OpenWA incluye en el payload del webhook el campo `mediaUrl` o `body`
