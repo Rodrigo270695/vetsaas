@@ -1,8 +1,31 @@
 <?php
 
 use App\Http\Controllers\Api\Internal\SaasProvisionController;
+use App\Http\Controllers\Api\SalesBotWebhookController;
 use App\Http\Middleware\VerifyOrvaeProvisionSignature;
 use Illuminate\Support\Facades\Route;
+
+/*
+|--------------------------------------------------------------------------
+| Bot de ventas IA — webhook de OpenWA
+|--------------------------------------------------------------------------
+|
+| POST /api/webhooks/sales-bot
+|
+| OpenWA llama a este endpoint cuando llega un mensaje entrante al número
+| de plataforma. El bot responde automáticamente con IA (OpenAI).
+|
+| Sin autenticación de sesión (es server-to-server), protegido por el
+| header X-Webhook-Secret configurado en SALESBOT_WEBHOOK_SECRET.
+|
+| Configurar en wa-admin.vetsaas.orvae.pe:
+|   Webhook URL → https://app.vetsaas.orvae.pe/api/webhooks/sales-bot
+|   Header      → X-Webhook-Secret: <SALESBOT_WEBHOOK_SECRET>
+|   Event       → onMessage
+|
+*/
+Route::post('webhooks/sales-bot', [SalesBotWebhookController::class, 'handle'])
+    ->name('api.webhooks.sales-bot');
 
 /*
 |--------------------------------------------------------------------------
