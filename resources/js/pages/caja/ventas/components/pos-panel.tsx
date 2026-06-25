@@ -31,8 +31,8 @@ export function PosPanel({
     return (
         <section
             className={cn(
-                'flex flex-col overflow-hidden rounded-lg border border-border/60 bg-card shadow-xs ring-1 ring-border/10',
-                !compact && 'min-h-[220px] h-full',
+                'flex flex-col rounded-lg border border-border/60 bg-card shadow-xs ring-1 ring-border/10',
+                compact ? 'overflow-visible' : 'min-h-[220px] h-full overflow-hidden',
                 className,
             )}
         >
@@ -69,7 +69,7 @@ export function PosPanel({
             </header>
             <div
                 className={cn(
-                    'flex flex-1 flex-col min-h-0',
+                    compact ? 'flex flex-col' : 'flex min-h-0 flex-1 flex-col',
                     compact ? 'gap-2.5 p-3' : 'gap-4 p-4 sm:px-5 sm:py-4',
                     contentClassName,
                 )}

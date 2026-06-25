@@ -1,22 +1,34 @@
 <?php
 
-use Illuminate\Database\Migrations\Migration;
+use App\Database\Migrations\TenantMigration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
+return new class extends TenantMigration
 {
     public function up(): void
     {
-        Schema::table('fel_documents', function (Blueprint $table): void {
-            $table->json('apisunat_payload')->nullable()->after('enlace_consulta');
+        $this->runInTenant(function (): void {
+            if (Schema::hasColumn('fel_documents', 'apisunat_payload')) {
+                return;
+            }
+
+            Schema::table('fel_documents', function (Blueprint $table): void {
+                $table->json('apisunat_payload')->nullable()->after('enlace_consulta');
+            });
         });
     }
 
     public function down(): void
     {
-        Schema::table('fel_documents', function (Blueprint $table): void {
-            $table->dropColumn('apisunat_payload');
+        $this->runInTenant(function (): void {
+            if (! Schema::hasColumn('fel_documents', 'apisunat_payload')) {
+                return;
+            }
+
+            Schema::table('fel_documents', function (Blueprint $table): void {
+                $table->dropColumn('apisunat_payload');
+            });
         });
     }
 };

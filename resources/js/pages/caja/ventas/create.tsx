@@ -1039,7 +1039,7 @@ export default function Create({
                         className={cn(
                             'flex shrink-0 flex-col gap-3',
                             cart.length > 0 && 'max-lg:order-first',
-                            'lg:sticky lg:top-3 lg:max-h-[calc(100dvh-9rem)] lg:min-h-0',
+                            'lg:sticky lg:top-3 lg:max-h-[calc(100dvh-5.5rem)] lg:overflow-y-auto lg:overscroll-y-contain',
                         )}
                     >
 
@@ -1047,11 +1047,7 @@ export default function Create({
                             compact
                             title={t('caja:ventas.create.card_carrito')}
                             icon={ShoppingBag}
-                            className={cn(
-                                'min-h-0 flex-1 lg:flex lg:flex-col',
-                                cart.length > 0 && 'max-lg:min-h-[min(42dvh,320px)]',
-                            )}
-                            contentClassName="min-h-0 flex-1"
+                            className="shrink-0"
                             badge={
                                 cart.length > 0 ? (
                                     <Badge variant="secondary" className="h-5 px-1.5 text-[10px] tabular-nums">
@@ -1067,8 +1063,8 @@ export default function Create({
                                     <p className="text-[11px] text-muted-foreground">{t('caja:ventas.create.carrito_vacio_hint')}</p>
                                 </div>
                             ) : (
-                                <div className="min-h-0 flex-1 overflow-y-auto rounded-md border border-border/50 max-lg:max-h-[min(38dvh,280px)]">
-                                    <ul className="divide-y divide-border/40 md:hidden">
+                                <div className="min-h-[7rem] max-h-[min(45dvh,320px)] overflow-y-auto overscroll-y-contain rounded-md border border-border/50">
+                                    <ul className="divide-y divide-border/40">
                                         {cart.map((line) => {
                                             const lista = Number(line.precio_venta ?? 0);
                                             const lineTotal = lineTotalLinea(
@@ -1174,132 +1170,6 @@ export default function Create({
                                             );
                                         })}
                                     </ul>
-                                    <table className="hidden w-full min-w-0 border-collapse text-xs md:table">
-                                        <thead className="sticky top-0 z-10 bg-muted/80 backdrop-blur-sm">
-                                            <tr>
-                                                <th className="border-b border-border/50 px-2 py-1.5 text-left font-medium text-muted-foreground">
-                                                    {t('caja:ventas.create.col_item')}
-                                                </th>
-                                                <th className="w-24 border-b border-border/50 px-1 py-1.5 text-center font-medium text-muted-foreground">
-                                                    {t('caja:ventas.create.col_cantidad')}
-                                                </th>
-                                                <th className="w-[4.5rem] border-b border-border/50 px-2 py-1.5 text-right font-medium text-muted-foreground">
-                                                    {t('caja:ventas.create.col_total')}
-                                                </th>
-                                                <th className="w-7 border-b border-border/50" />
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {cart.map((line) => {
-                                                const lista = Number(line.precio_venta ?? 0);
-                                                const lineTotal = lineTotalLinea(
-                                                    lista,
-                                                    line.cantidad,
-                                                    igvPct,
-                                                    precioIncluyeIgv,
-                                                );
-                                                const excedeStock =
-                                                    !line.omitir_stock &&
-                                                    line.cantidad > line.stock_disponible + 0.0001;
-
-                                                return (
-                                                    <tr
-                                                        key={line.key}
-                                                        className={cn(
-                                                            'border-b border-border/30 last:border-b-0',
-                                                            excedeStock && 'bg-destructive/5',
-                                                        )}
-                                                    >
-                                                        <td className="min-w-0 px-2 py-1.5 align-middle">
-                                                            <div className="flex min-w-0 flex-col gap-0.5">
-                                                                <span className="line-clamp-2 text-[11px] font-medium leading-snug">
-                                                                    {line.nombre}
-                                                                </span>
-                                                                {line.producto_id === null ? (
-                                                                    <Input
-                                                                        type="number"
-                                                                        inputMode="decimal"
-                                                                        min={0}
-                                                                        step={0.01}
-                                                                        className="h-6 w-16 text-right text-[10px] tabular-nums"
-                                                                        value={lista}
-                                                                        onChange={(e) =>
-                                                                            setPrecioListaLinea(line.key, e.target.value)
-                                                                        }
-                                                                        disabled={!puede_vender}
-                                                                        aria-label={t('caja:ventas.create.col_precio_unit')}
-                                                                    />
-                                                                ) : (
-                                                                    <span
-                                                                        className={cn(
-                                                                            'text-[10px] tabular-nums',
-                                                                            excedeStock ? 'text-destructive' : 'text-muted-foreground',
-                                                                        )}
-                                                                    >
-                                                                        {formatMoney(lista)} / {line.unidad}
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                        </td>
-                                                        <td className="px-0.5 py-1.5 align-middle">
-                                                            <div className="flex items-center justify-center gap-0">
-                                                                <Button
-                                                                    type="button"
-                                                                    variant="ghost"
-                                                                    size="icon"
-                                                                    className="size-5 shrink-0"
-                                                                    onClick={() => setCantidad(line.key, line.cantidad - 1)}
-                                                                    disabled={!puede_vender}
-                                                                >
-                                                                    <Minus className="size-2.5" aria-hidden />
-                                                                </Button>
-                                                                <Input
-                                                                    className="h-6 w-9 border-0 bg-transparent px-0 text-center text-[10px] tabular-nums shadow-none focus-visible:ring-0"
-                                                                    value={String(line.cantidad)}
-                                                                    onChange={(e) => {
-                                                                        const v = Number(e.target.value.replace(',', '.'));
-                                                                        if (!Number.isNaN(v)) {
-                                                                            setCantidad(line.key, v);
-                                                                        }
-                                                                    }}
-                                                                    disabled={!puede_vender}
-                                                                />
-                                                                <Button
-                                                                    type="button"
-                                                                    variant="ghost"
-                                                                    size="icon"
-                                                                    className="size-5 shrink-0"
-                                                                    onClick={() => setCantidad(line.key, line.cantidad + 1)}
-                                                                    disabled={
-                                                                        !puede_vender ||
-                                                                        (!line.omitir_stock &&
-                                                                            line.cantidad >= line.stock_disponible - 0.0001)
-                                                                    }
-                                                                >
-                                                                    <Plus className="size-2.5" aria-hidden />
-                                                                </Button>
-                                                            </div>
-                                                        </td>
-                                                        <td className="px-2 py-1.5 text-right align-middle text-[11px] font-semibold tabular-nums">
-                                                            {formatMoney(lineTotal)}
-                                                        </td>
-                                                        <td className="px-0.5 py-1.5 align-middle">
-                                                            <Button
-                                                                type="button"
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                className="size-5 text-muted-foreground hover:text-destructive"
-                                                                onClick={() => removeLine(line.key)}
-                                                                disabled={!puede_vender}
-                                                            >
-                                                                <Trash2 className="size-3" aria-hidden />
-                                                            </Button>
-                                                        </td>
-                                                    </tr>
-                                                );
-                                            })}
-                                        </tbody>
-                                    </table>
                                 </div>
                             )}
                             {form.errors.lineas ? (
