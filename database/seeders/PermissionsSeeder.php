@@ -114,6 +114,13 @@ class PermissionsSeeder extends Seeder
          * `public.platform_settings` y solo el `superadmin` puede tocarlas.
          */
         'platform-settings' => ['view', 'update'],
+
+        /*
+         * Base de conocimiento del bot de ventas (salesbot_knowledge).
+         * Solo superadmin tiene estos permisos: es la única persona
+         * que gestiona los planes, módulos y FAQs del bot de ventas.
+         */
+        'salesbot-knowledge' => ['view', 'create', 'update', 'delete'],
     ];
 
     public function run(): void

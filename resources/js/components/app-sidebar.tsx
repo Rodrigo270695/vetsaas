@@ -6,6 +6,7 @@ import {
     BarChart3,
     BedDouble,
     BellRing,
+    Bot,
     Boxes,
     Building2,
     CalendarDays,
@@ -475,6 +476,15 @@ function useNavConfig(): { singles: NavItem[]; groups: NavGroup[] } {
                             href: '/plataforma/cobros',
                             icon: Wallet,
                             permission: 'plataforma-cobros.view',
+                        },
+                        {
+                            // Base de conocimiento del bot de ventas IA.
+                            // Planes, módulos, FAQs y objeciones actualizables
+                            // sin tocar código. Solo superadmin.
+                            title: t('items.salesbot_knowledge'),
+                            href: '/plataforma/salesbot-knowledge',
+                            icon: Bot,
+                            permission: 'salesbot-knowledge.view',
                         },
                         {
                             // Configuración global: credenciales de Twilio

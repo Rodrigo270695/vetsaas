@@ -44,6 +44,7 @@ import suscripcionesEn from '@/lang/en/suscripciones.json';
 import tenantsEn from '@/lang/en/tenants.json';
 import usuariosEn from '@/lang/en/usuarios.json';
 import vacunacionesEn from '@/lang/en/vacunaciones.json';
+import salesbotKnowledgeEn from '@/lang/en/salesbot-knowledge.json';
 import alertasStockEs from '@/lang/es/alertas-stock.json';
 import facturacionDocumentosEs from '@/lang/es/facturacion-documentos.json';
 import authEs from '@/lang/es/auth.json';
@@ -86,6 +87,7 @@ import suscripcionesEs from '@/lang/es/suscripciones.json';
 import tenantsEs from '@/lang/es/tenants.json';
 import usuariosEs from '@/lang/es/usuarios.json';
 import vacunacionesEs from '@/lang/es/vacunaciones.json';
+import salesbotKnowledgeEs from '@/lang/es/salesbot-knowledge.json';
 
 /**
  * Idiomas disponibles en la aplicación. Mantén alineado con los archivos
@@ -149,6 +151,7 @@ const resources = {
         'facturacion-documentos': facturacionDocumentosEs,
         'tarifas-servicios': tarifasServiciosEs,
         'descuentos-promociones': descuentosPromocionesEs,
+        'salesbot-knowledge': salesbotKnowledgeEs,
     },
     en: {
         common: commonEn,
@@ -193,6 +196,7 @@ const resources = {
         'facturacion-documentos': facturacionDocumentosEn,
         'tarifas-servicios': tarifasServiciosEn,
         'descuentos-promociones': descuentosPromocionesEn,
+        'salesbot-knowledge': salesbotKnowledgeEn,
     },
 } as const;
 
@@ -245,6 +249,7 @@ void i18n
             'caja',
             'tarifas-servicios',
             'descuentos-promociones',
+            'salesbot-knowledge',
         ],
         interpolation: {
             // React ya escapa por defecto. Evita doble escaping.

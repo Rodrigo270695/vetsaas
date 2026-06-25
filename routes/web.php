@@ -38,6 +38,7 @@ use App\Http\Controllers\PropietarioController;
 use App\Http\Controllers\ProveedorInventarioController;
 use App\Http\Controllers\RecetaController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\SalesBotKnowledgeController;
 use App\Http\Controllers\SedeController;
 use App\Http\Controllers\StockInventarioController;
 use App\Http\Controllers\SubscriptionController;
@@ -935,6 +936,24 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:plataforma-suscripciones.delete')
             ->delete('suscripciones/{suscripcion}', [SubscriptionController::class, 'destroy'])
             ->name('suscripciones.destroy');
+
+        // ── Bot de ventas: base de conocimiento (planes, módulos, FAQs) ──
+        // Solo superadmin. Cualquier cambio invalida el caché del bot (5 min).
+        Route::middleware('permission:salesbot-knowledge.view')
+            ->get('salesbot-knowledge', [SalesBotKnowledgeController::class, 'index'])
+            ->name('salesbot-knowledge.index');
+        Route::middleware('permission:salesbot-knowledge.create')
+            ->post('salesbot-knowledge', [SalesBotKnowledgeController::class, 'store'])
+            ->name('salesbot-knowledge.store');
+        Route::middleware('permission:salesbot-knowledge.update')
+            ->match(['put', 'patch'], 'salesbot-knowledge/{salesbotKnowledge}', [SalesBotKnowledgeController::class, 'update'])
+            ->name('salesbot-knowledge.update');
+        Route::middleware('permission:salesbot-knowledge.delete')
+            ->delete('salesbot-knowledge/{salesbotKnowledge}', [SalesBotKnowledgeController::class, 'destroy'])
+            ->name('salesbot-knowledge.destroy');
+        Route::middleware('permission:salesbot-knowledge.update')
+            ->post('salesbot-knowledge/flush-cache', [SalesBotKnowledgeController::class, 'flushCache'])
+            ->name('salesbot-knowledge.flush-cache');
 
         // ── Configuración global del SaaS (Twilio + Brevo) ──
         // Singleton en `public.platform_settings` con las credenciales

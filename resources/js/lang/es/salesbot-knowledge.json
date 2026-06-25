@@ -1,0 +1,87 @@
+{
+    "title": "Bot de ventas — Base de conocimiento",
+    "description": "Planes, módulos, FAQs y objeciones que el bot de ventas usa para responder. Cualquier cambio se aplica en el siguiente mensaje del bot (caché de 5 minutos).",
+    "search_placeholder": "Buscar por título, slug o contenido...",
+    "filter_label": "Filtrar por sección",
+    "filters": {
+        "all": "Todos",
+        "plan": "Planes",
+        "modulo": "Módulos",
+        "faq": "FAQs",
+        "objecion": "Objeciones",
+        "general": "General"
+    },
+    "columns": {
+        "entry": "Entrada",
+        "section": "Sección",
+        "content": "Contenido",
+        "status": "Estado",
+        "updated_at": "Actualizado",
+        "acciones": "Acciones"
+    },
+    "row": {
+        "active": "Activo",
+        "inactive": "Inactivo"
+    },
+    "sections": {
+        "plan": "Plan",
+        "modulo": "Módulo",
+        "faq": "FAQ",
+        "objecion": "Objeción",
+        "general": "General"
+    },
+    "stats": {
+        "total": "Total",
+        "planes": "Planes",
+        "modulos": "Módulos",
+        "faqs": "FAQs",
+        "objeciones": "Objeciones",
+        "filters": "Filtros activos",
+        "matches": "Coincidencias"
+    },
+    "actions": {
+        "new": "Nueva entrada",
+        "new_short": "Nueva",
+        "edit": "Editar",
+        "delete": "Eliminar",
+        "flush_cache": "Limpiar caché del bot",
+        "create_first": "Crear primera entrada"
+    },
+    "form": {
+        "create_title": "Nueva entrada",
+        "edit_title": "Editar entrada",
+        "product_label": "Producto",
+        "product_placeholder": "vetsaas",
+        "section_label": "Sección",
+        "slug_label": "Slug (identificador único)",
+        "slug_placeholder": "plan-pro",
+        "title_label": "Título",
+        "title_placeholder": "Plan Pro — S/59.90/mes",
+        "content_label": "Contenido (texto que el bot leerá)",
+        "content_placeholder": "Escribe aquí la información detallada...",
+        "sort_order_label": "Orden",
+        "is_active_label": "Entrada activa",
+        "save": "Guardar",
+        "cancel": "Cancelar"
+    },
+    "delete": {
+        "title": "Eliminar entrada",
+        "description": "¿Estás seguro de que quieres eliminar \"{{title}}\"? El bot dejará de usar esta información en el siguiente mensaje.",
+        "confirm": "Sí, eliminar",
+        "cancel": "Cancelar"
+    },
+    "empty": {
+        "no_records_title": "Sin entradas todavía",
+        "no_records_description": "Crea la primera entrada para que el bot sepa qué responder.",
+        "no_results_title": "Sin resultados",
+        "no_results_description": "Prueba con otro término de búsqueda o cambia el filtro de sección."
+    },
+    "aria": {
+        "results_count_other": "{{count}} entradas encontradas"
+    },
+    "toast": {
+        "load_error": "Error al cargar la base de conocimiento",
+        "cache_flushed": "Caché del bot limpiado. El próximo mensaje usará los datos actualizados.",
+        "cache_error": "Error al limpiar el caché"
+    }
+}

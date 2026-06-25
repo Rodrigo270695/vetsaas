@@ -64,7 +64,8 @@
         "suscripciones": "Suscripciones",
         "avisos_renovacion": "Avisos renovación",
         "cobros": "Cobros",
-        "platform_settings": "Configuración"
+        "platform_settings": "Configuración",
+        "salesbot_knowledge": "Bot de ventas"
     },
     "user_menu": {
         "settings": "Configuración",
