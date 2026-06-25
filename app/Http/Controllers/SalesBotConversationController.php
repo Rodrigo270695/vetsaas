@@ -60,7 +60,10 @@ final class SalesBotConversationController extends Controller
         } elseif ($estado === 'frio') {
             $query->where('converted', false)
                 ->whereNull('lost_at')
-                ->where('turn_count', '>', 0)
+                ->where(function ($q): void {
+                    $q->where('turn_count', '>', 0)
+                        ->orWhere('activation_trigger', 'like', 'manual:%');
+                })
                 ->whereRaw("EXTRACT(EPOCH FROM (NOW() - COALESCE(last_message_at, created_at)))/86400 >= 3");
         } elseif ($estado === 'perdido') {
             $query->whereNotNull('lost_at');
@@ -101,7 +104,10 @@ final class SalesBotConversationController extends Controller
             'frios'        => SalesConversation::query()
                 ->where('converted', false)
                 ->whereNull('lost_at')
-                ->where('turn_count', '>', 0)
+                ->where(function ($q): void {
+                    $q->where('turn_count', '>', 0)
+                        ->orWhere('activation_trigger', 'like', 'manual:%');
+                })
                 ->whereRaw("EXTRACT(EPOCH FROM (NOW() - COALESCE(last_message_at, created_at)))/86400 >= 3")
                 ->count(),
             'perdidos'     => SalesConversation::query()->whereNotNull('lost_at')->count(),

@@ -62,6 +62,10 @@ final class ReactivateColdLeadsCommand extends Command
                 ->where('reactivation_count', '>=', 2)
                 ->whereNotNull('last_reactivation_at')
                 ->whereRaw("EXTRACT(EPOCH FROM (NOW() - last_reactivation_at))/86400 >= 3")
+                ->where(function ($q): void {
+                    $q->where('turn_count', '>', 0)
+                        ->orWhere('activation_trigger', 'like', 'manual:%');
+                })
                 ->get();
 
             if ($exhausted->isNotEmpty()) {
@@ -80,7 +84,11 @@ final class ReactivateColdLeadsCommand extends Command
             ->where('converted', false)
             ->whereNull('lost_at')
             ->where('reactivation_count', '<', 2)
-            ->where('turn_count', '>', 0)
+            // Elegible si tuvo al menos 1 turno con el bot O fue importado manualmente.
+            ->where(function ($q): void {
+                $q->where('turn_count', '>', 0)
+                    ->orWhere('activation_trigger', 'like', 'manual:%');
+            })
             ->where(function ($q) use ($inactiveDays): void {
                 $q->whereNull('last_reactivation_at')
                     ->orWhereRaw('EXTRACT(EPOCH FROM (NOW() - last_reactivation_at))/86400 >= 3');
