@@ -796,7 +796,11 @@ PROMPT;
         $conversation->pushMessage('assistant', "[reactivación #{$attemptNumber}] {$reactivationMsg}");
         $conversation->reactivation_count    = $attemptNumber;
         $conversation->last_reactivation_at  = now();
-        $conversation->bot_active            = true;
+
+        if (! $conversation->isManuallyPaused()) {
+            $conversation->bot_active = true;
+        }
+
         $conversation->save();
 
         return $reactivationMsg;
@@ -849,10 +853,8 @@ PROMPT;
         $conversation = $this->findExistingConversation($phone, $waChatId);
 
         if ($conversation !== null) {
-            $trigger = (string) ($conversation->activation_trigger ?? '');
-
-            // Si Rodrigo pausó manualmente, no reactivar con el saludo de Meta.
-            if (! $conversation->bot_active && str_starts_with($trigger, 'auto-pausa:')) {
+            // Pausa manual desde el panel: no rearmar con el saludo de Meta.
+            if ($conversation->isManuallyPaused()) {
                 return $conversation;
             }
 

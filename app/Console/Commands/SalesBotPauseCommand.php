@@ -55,7 +55,7 @@ final class SalesBotPauseCommand extends Command
             $this->info("✓ Bot REACTIVADO para {$phone} ({$conversation->prospect_name}).");
             $this->comment('El bot volverá a responder automáticamente a este número.');
         } else {
-            $conversation->pauseBot();
+            $conversation->pauseBotManually();
             $this->info("✓ Bot PAUSADO para {$phone} ({$conversation->prospect_name}).");
             $this->comment('Ahora puedes escribirle manualmente desde WhatsApp sin que el bot interfiera.');
             $this->comment('Para reactivarlo: php artisan salesbot:resume '.$phone);

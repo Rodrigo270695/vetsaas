@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property array<int, array{role: string, content: string}> $messages
  * @property int         $turn_count
  * @property bool        $bot_active          true = bot responde | false = Rodrigo escribe manualmente
+ * @property bool        $bot_paused_manually true = pausado desde el panel; no reactivar automáticamente
  * @property string|null $activation_trigger  qué palabra clave activó el bot
  * @property int         $reactivation_count  veces que se ha enviado un mensaje de reactivación
  * @property \Illuminate\Support\Carbon|null $last_reactivation_at último mensaje de reactivación enviado
@@ -39,6 +40,7 @@ final class SalesConversation extends Model
         'messages',
         'turn_count',
         'bot_active',
+        'bot_paused_manually',
         'activation_trigger',
         'last_message_at',
         'reactivation_count',
@@ -53,6 +55,7 @@ final class SalesConversation extends Model
             'messages'             => 'array',
             'turn_count'           => 'integer',
             'bot_active'           => 'boolean',
+            'bot_paused_manually'  => 'boolean',
             'last_message_at'      => 'datetime',
             'reactivation_count'   => 'integer',
             'last_reactivation_at' => 'datetime',
@@ -62,22 +65,46 @@ final class SalesConversation extends Model
     }
 
     /**
-     * Pausa el bot para esta conversación.
-     * Rodrigo toma el control manualmente.
-     * Para reactivar: $conversation->resumeBot();
+     * Pausa automática del sistema (Rodrigo escribió, off-topic, handoff…).
+     * El bot puede reactivarse solo si el lead vuelve a preguntar por VetSaaS.
      */
-    public function pauseBot(): void
+    public function pauseBotAuto(): void
     {
         $this->bot_active = false;
         $this->save();
     }
 
     /**
-     * Reactiva el bot para esta conversación.
+     * Pausa manual desde el panel o CLI.
+     * El bot NO se reactiva solo hasta resumeBot().
+     */
+    public function pauseBotManually(): void
+    {
+        $this->bot_active          = false;
+        $this->bot_paused_manually = true;
+        $this->save();
+    }
+
+    /**
+     * @deprecated Usar pauseBotAuto() o pauseBotManually() según el caso.
+     */
+    public function pauseBot(): void
+    {
+        $this->pauseBotAuto();
+    }
+
+    public function isManuallyPaused(): bool
+    {
+        return (bool) $this->bot_paused_manually;
+    }
+
+    /**
+     * Reactiva el bot para esta conversación (acción explícita de Rodrigo).
      */
     public function resumeBot(): void
     {
-        $this->bot_active = true;
+        $this->bot_active          = true;
+        $this->bot_paused_manually = false;
         $this->save();
     }
 
@@ -122,6 +149,10 @@ final class SalesConversation extends Model
     public function isEligibleForReactivation(int $inactiveDays = 3, int $maxAttempts = 2): bool
     {
         if ($this->isClosed()) {
+            return false;
+        }
+
+        if ($this->isManuallyPaused()) {
             return false;
         }
 

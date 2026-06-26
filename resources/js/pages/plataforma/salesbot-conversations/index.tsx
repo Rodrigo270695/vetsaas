@@ -48,6 +48,7 @@ type Conversation = {
     prospect_name: string | null;
     turn_count: number;
     bot_active: boolean;
+    bot_paused_manually: boolean;
     converted: boolean;
     activation_trigger: string | null;
     reactivation_count: number;
@@ -464,6 +465,7 @@ export default function SalesBotConversationsIndex({ conversations, filters, sta
 
     // Estado local para reflejar cambios sin recargar la página entera.
     const [localBotActive, setLocalBotActive] = useState<Record<string, boolean>>({});
+    const [localManualPause, setLocalManualPause] = useState<Record<string, boolean>>({});
     const [localConverted, setLocalConverted] = useState<Record<string, boolean>>({});
     const [processingId, setProcessingId] = useState<string | null>(null);
     const [engageTarget, setEngageTarget] = useState<Conversation | null>(null);
@@ -501,6 +503,9 @@ export default function SalesBotConversationsIndex({ conversations, filters, sta
     const getBotActive = (conv: Conversation): boolean =>
         conv.id in localBotActive ? localBotActive[conv.id] : conv.bot_active;
 
+    const getManualPause = (conv: Conversation): boolean =>
+        conv.id in localManualPause ? localManualPause[conv.id] : conv.bot_paused_manually;
+
     const getConverted = (conv: Conversation): boolean =>
         conv.id in localConverted ? localConverted[conv.id] : conv.converted;
 
@@ -512,12 +517,17 @@ export default function SalesBotConversationsIndex({ conversations, filters, sta
 
         setProcessingId(conv.id);
         csrfFetch(url, 'POST')
-            .then((res) => {
+            .then(async (res) => {
                 if (!res.ok) throw new Error();
-                setLocalBotActive((prev) => ({ ...prev, [conv.id]: !currentlyActive }));
+                const data = await res.json();
+                setLocalBotActive((prev) => ({ ...prev, [conv.id]: Boolean(data.bot_active) }));
+                setLocalManualPause((prev) => ({
+                    ...prev,
+                    [conv.id]: Boolean(data.bot_paused_manually),
+                }));
                 toastManager.success({
                     title: currentlyActive
-                        ? `Bot pausado para ${conv.prospect_name ?? conv.phone}`
+                        ? `Bot pausado manualmente para ${conv.prospect_name ?? conv.phone}`
                         : `Bot reactivado para ${conv.prospect_name ?? conv.phone}`,
                 });
             })
@@ -543,6 +553,12 @@ export default function SalesBotConversationsIndex({ conversations, filters, sta
     }, []);
 
     const handleReactivate = useCallback((conv: Conversation) => {
+        if (getManualPause(conv)) {
+            toastManager.error({
+                title: 'Lead pausado manualmente. Pulsa Reanudar antes de enviar reactivación.',
+            });
+            return;
+        }
         if (!confirm(`¿Enviar mensaje de reactivación a ${conv.prospect_name ?? conv.phone} ahora mismo?`)) return;
         setProcessingId(conv.id);
         csrfFetch(salesbotConversations.reactivate(conv.id).url, 'POST')
@@ -682,10 +698,13 @@ export default function SalesBotConversationsIndex({ conversations, filters, sta
                     return <StatBadge label="Perdido" value="" variant="error" />;
                 }
                 const active = getBotActive(conv);
+                const manualPause = getManualPause(conv);
                 return active ? (
                     <StatBadge label="Bot activo" value="" variant="success" />
+                ) : manualPause ? (
+                    <StatBadge label="Pausado manual" value="" variant="error" />
                 ) : (
-                    <StatBadge label="Pausado" value="" variant="warning" />
+                    <StatBadge label="Pausado auto" value="" variant="warning" />
                 );
             },
         },

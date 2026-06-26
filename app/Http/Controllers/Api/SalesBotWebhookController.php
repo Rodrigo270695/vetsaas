@@ -132,7 +132,7 @@ final class SalesBotWebhookController extends Controller
             $conversation = $this->botService->findExistingConversation($contact['phone'], $contact['wa_chat_id']);
 
             if ($conversation !== null && $conversation->bot_active) {
-                $conversation->pauseBot();
+                $conversation->pauseBotAuto();
                 $conversation->activation_trigger = 'auto-pausa:humano';
                 $conversation->save();
                 Log::info('SalesBot auto-paused: mensaje manual de Rodrigo', [
@@ -170,7 +170,7 @@ final class SalesBotWebhookController extends Controller
             $conversation = $this->botService->findExistingConversation($phone, $waChatId);
 
             if ($conversation !== null && $conversation->bot_active) {
-                $conversation->pauseBot();
+                $conversation->pauseBotAuto();
                 $conversation->activation_trigger = 'auto-pausa:humano-cliente';
                 $conversation->save();
                 Log::info('SalesBot auto-paused: conversación manual detectada', ['phone' => $phone]);
@@ -238,12 +238,19 @@ final class SalesBotWebhookController extends Controller
         // Si Rodrigo pausó manualmente → silencio hasta que vuelva a preguntar por VetSaaS
         // o sea un lead de Facebook Ads ya armado.
 
+        // Si Rodrigo pausó manualmente → silencio total hasta que pulse Reanudar en el panel.
+        // Si fue pausa automática → puede reactivarse con trigger de VetSaaS o lead de Facebook.
+
         $conversation = $this->botService->findExistingConversation($phone, $waChatId);
 
         if ($conversation !== null) {
             $this->botService->syncContactMetadata($conversation, $phone, $waChatId, $prospectName);
 
             if (! $conversation->bot_active) {
+                if ($conversation->isManuallyPaused()) {
+                    return response()->json(['ok' => true, 'skipped' => 'paused_manual']);
+                }
+
                 $trigger        = $this->botService->detectSalesTrigger($body);
                 $isFacebookLead = $this->botService->isFacebookLeadConversation($conversation);
 
@@ -293,7 +300,7 @@ final class SalesBotWebhookController extends Controller
         // pausamos el bot automáticamente para no seguir consumiendo tokens.
         $offTopicSignal = 'Parece que no es el mejor momento';
         if (str_contains($reply, $offTopicSignal)) {
-            $conversation->pauseBot();
+            $conversation->pauseBotAuto();
             $conversation->activation_trigger = 'auto-pausa:off-topic';
             $conversation->save();
             Log::info('SalesBot auto-paused: off-topic', ['phone' => $phone]);

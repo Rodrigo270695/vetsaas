@@ -84,6 +84,7 @@ final class SalesBotConversationController extends Controller
                     'prospect_name'        => $c->prospect_name,
                     'turn_count'           => $c->turn_count,
                     'bot_active'           => $c->bot_active,
+                    'bot_paused_manually'  => (bool) $c->bot_paused_manually,
                     'converted'            => $c->converted,
                     'activation_trigger'   => $c->activation_trigger,
                     'reactivation_count'   => $c->reactivation_count ?? 0,
@@ -134,11 +135,12 @@ final class SalesBotConversationController extends Controller
      */
     public function pause(SalesConversation $conversation): JsonResponse
     {
-        $conversation->pauseBot();
+        $conversation->pauseBotManually();
 
         return response()->json([
-            'ok'         => true,
-            'bot_active' => false,
+            'ok'                  => true,
+            'bot_active'          => false,
+            'bot_paused_manually' => true,
             'message'    => "Bot pausado para {$conversation->phone}. Ahora puedes escribir manualmente.",
         ]);
     }
@@ -151,8 +153,9 @@ final class SalesBotConversationController extends Controller
         $conversation->resumeBot();
 
         return response()->json([
-            'ok'         => true,
-            'bot_active' => true,
+            'ok'                  => true,
+            'bot_active'          => true,
+            'bot_paused_manually' => false,
             'message'    => "Bot reactivado para {$conversation->phone}.",
         ]);
     }
@@ -378,6 +381,13 @@ final class SalesBotConversationController extends Controller
      */
     public function reactivate(SalesConversation $conversation): JsonResponse
     {
+        if ($conversation->isManuallyPaused()) {
+            return response()->json([
+                'ok'    => false,
+                'error' => 'Este lead está pausado manualmente. Pulsa Reanudar antes de enviar reactivación.',
+            ], 422);
+        }
+
         try {
             $message = $this->botService->sendReactivationMessage($conversation);
 
