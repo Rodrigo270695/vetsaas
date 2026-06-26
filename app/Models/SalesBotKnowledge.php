@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Cache;
 /**
  * @property int         $id
  * @property string      $product       "vetsaas" | "aula-virtual" | "inventario"
- * @property string      $section       "plan" | "modulo" | "faq" | "objecion" | "general"
+ * @property string      $section       "plan" | "modulo" | "faq" | "objecion" | "novedad" | "general"
  * @property string      $slug          "plan-pro" | "modulo-grooming"
  * @property string      $title
  * @property string      $content
@@ -109,5 +109,6 @@ final class SalesBotKnowledge extends Model
         Cache::forget("salesbot_knowledge_{$product}");
         Cache::forget("salesbot_knowledge_{$product}_no_plans");
         Cache::forget("salesbot_plans_{$product}");
+        Cache::forget("salesbot_novedades_{$product}");
     }
 }

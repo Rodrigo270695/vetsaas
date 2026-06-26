@@ -22,7 +22,7 @@ final class SalesBotKnowledgeRequest extends FormRequest
 
         return [
             'product'    => ['required', 'string', 'max:50'],
-            'section'    => ['required', 'string', 'in:plan,modulo,faq,objecion,general'],
+            'section'    => ['required', 'string', 'in:plan,modulo,faq,objecion,novedad,general'],
             'slug'       => [
                 'required',
                 'string',

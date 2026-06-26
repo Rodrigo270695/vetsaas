@@ -3,6 +3,7 @@ export type KnowledgeSection =
     | 'modulo'
     | 'faq'
     | 'objecion'
+    | 'novedad'
     | 'general';
 
 export type KnowledgeSectionFilter = KnowledgeSection | 'todos';
@@ -35,5 +36,6 @@ export type KnowledgeStats = {
     modulos: number;
     faqs: number;
     objeciones: number;
+    novedades: number;
     coincidencias: number;
 };

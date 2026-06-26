@@ -1,6 +1,6 @@
 {
     "title": "Sales bot — Knowledge base",
-    "description": "Plans, modules, FAQs and objections the sales bot uses to reply. Changes apply on the next bot message (5-minute cache).",
+    "description": "Plans, modules, FAQs, objections and news the sales bot uses to reply. Changes apply on the next bot message (5-minute cache).",
     "search_placeholder": "Search by title, slug or content...",
     "filter_label": "Filter by section",
     "filters": {
@@ -9,6 +9,7 @@
         "modulo": "Modules",
         "faq": "FAQs",
         "objecion": "Objections",
+        "novedad": "News",
         "general": "General"
     },
     "columns": {
@@ -28,6 +29,7 @@
         "modulo": "Module",
         "faq": "FAQ",
         "objecion": "Objection",
+        "novedad": "News",
         "general": "General"
     },
     "stats": {
@@ -36,6 +38,7 @@
         "modulos": "Modules",
         "faqs": "FAQs",
         "objeciones": "Objections",
+        "novedades": "News",
         "filters": "Active filters",
         "matches": "Matches"
     },

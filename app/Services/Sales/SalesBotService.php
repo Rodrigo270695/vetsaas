@@ -11,6 +11,7 @@ use App\Services\OpenWa\PlatformWhatsAppMessenger;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use RuntimeException;
 
 /**
@@ -138,9 +139,19 @@ final class SalesBotService
                 ->where('product', $product)
                 ->where('is_active', true)
                 ->where('section', '!=', 'plan') // precios = tabla planes, no aquí
-                ->orderBy('section')
                 ->orderBy('sort_order')
-                ->get();
+                ->get()
+                ->sortBy([
+                    fn ($item) => match ($item->section) {
+                        'novedad'  => 0,
+                        'modulo'   => 1,
+                        'faq'      => 2,
+                        'objecion' => 3,
+                        'general'  => 4,
+                        default    => 5,
+                    },
+                    fn ($item) => $item->sort_order,
+                ]);
 
             if ($entries->isEmpty()) {
                 return '';
@@ -149,10 +160,11 @@ final class SalesBotService
             $sections = [];
             foreach ($entries->groupBy('section') as $section => $items) {
                 $sectionTitle = match ($section) {
+                    'novedad'  => 'NOVEDADES RECIENTES (priorizar en reactivaciones y leads que no sabían)',
                     'modulo'   => 'MÓDULOS Y FUNCIONALIDADES',
                     'faq'      => 'PREGUNTAS FRECUENTES',
                     'objecion' => 'CÓMO MANEJAR OBJECIONES',
-                    default    => strtoupper($section),
+                    default    => strtoupper((string) $section),
                 };
                 $block = "## {$sectionTitle}\n\n";
                 foreach ($items as $item) {
@@ -254,6 +266,12 @@ Señales de intención de compra (activar PASO 5 de inmediato):
 9. Si ya tienen sistema → pregunta qué les falta o qué les frustra.
 10. Si dicen "no me interesa" → agradece y ofrece el demo gratuito.
 11. Si ya mostró interés en un plan → NO sigas explicando módulos; cierra con el link {$registerUrl}.
+12. Si hay NOVEDADES RECIENTES arriba y el prospecto es lead frío o dice "no sabía" → menciona UNA novedad relevante como gancho antes de vender.
+
+## NOVEDADES — CUÁNDO USARLAS
+- Leads fríos / reactivaciones: la novedad es el gancho principal ("desde que hablamos, ahora...").
+- Conversación normal: solo si encaja con lo que preguntó o complementa el plan recomendado.
+- Nunca listes todas las novedades juntas — máximo UNA por mensaje.
 
 ## TONO
 - Cercano, cálido y humano — como si fuera un amigo que sabe del tema.
@@ -683,6 +701,32 @@ PROMPT;
     }
 
     /**
+     * Elige una novedad activa para incluir en mensajes de reactivación.
+     * Rota por conversación para no repetir siempre la misma entre leads distintos.
+     */
+    private function pickReactivationNovelty(SalesConversation $conversation): ?SalesBotKnowledge
+    {
+        $novelties = Cache::remember('salesbot_novedades_vetsaas', now()->addMinutes(5), function (): \Illuminate\Support\Collection {
+            return SalesBotKnowledge::query()
+                ->where('product', 'vetsaas')
+                ->where('section', 'novedad')
+                ->where('is_active', true)
+                ->orderByDesc('sort_order')
+                ->orderByDesc('updated_at')
+                ->get();
+        });
+
+        if ($novelties->isEmpty()) {
+            return null;
+        }
+
+        $index = $conversation->id % $novelties->count();
+
+        /** @var SalesBotKnowledge|null */
+        return $novelties->get($index);
+    }
+
+    /**
      * Envía un mensaje de reactivación proactivo al prospecto frío.
      *
      * Genera el mensaje usando OpenAI con un prompt especial de reactivación,
@@ -699,11 +743,22 @@ PROMPT;
 
         $attemptNumber = ($conversation->reactivation_count ?? 0) + 1;
         $name          = $conversation->prospect_name ?? 'amigo';
+        $novelty       = $this->pickReactivationNovelty($conversation);
+        $noveltyHint   = $novelty !== null
+            ? "\n\nOBLIGATORIO — incluye esta novedad como gancho (el prospecto NO la sabía cuando escribió antes):\n"
+              ."{$novelty->title}\n"
+              .Str::limit(trim(strtok($novelty->content, "\n") ?: $novelty->content), 220)
+            : '';
 
         // Prompt específico para reactivación — diferente tono según el intento.
         $reactivationPrompt = $attemptNumber === 1
-            ? "Escribe UN mensaje corto y amigable para recontactar a {$name} que preguntó sobre VetSaaS pero no siguió. Sé natural, curioso, sin presionar. Máximo 3 líneas. Termina con una pregunta simple. No digas que eres IA."
-            : "Escribe UN último mensaje breve para {$name} que preguntó sobre VetSaaS hace días. Ofrece el Plan Free sin costo como alternativa sin riesgo. Máximo 2 líneas. No menciones que es el último intento.";
+            ? "Escribe UN mensaje corto y amigable para recontactar a {$name} que preguntó sobre VetSaaS pero no siguió. "
+              ."Si hay novedad abajo, úsala como gancho principal en la primera frase. "
+              ."Sé natural, curioso, sin presionar. Máximo 3 líneas. Termina con una pregunta simple. No digas que eres IA."
+              .$noveltyHint
+            : "Escribe UN último mensaje breve para {$name} que preguntó sobre VetSaaS hace días. "
+              ."Ofrece el Plan Free sin costo como alternativa sin riesgo. Máximo 2 líneas. No menciones que es el último intento."
+              .($novelty !== null ? "\n\nOpcional: si cabe en 1 frase extra, menciona: {$novelty->title}" : '');
 
         $systemPrompt = $this->buildSystemPrompt();
 

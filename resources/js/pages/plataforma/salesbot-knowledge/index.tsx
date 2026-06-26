@@ -73,6 +73,8 @@ function SectionIcon({ section }: { section: string }) {
             return <HelpCircle className="size-3.5 shrink-0 text-violet-500" strokeWidth={2.5} />;
         case 'objecion':
             return <MessageSquareQuote className="size-3.5 shrink-0 text-orange-500" strokeWidth={2.5} />;
+        case 'novedad':
+            return <Sparkles className="size-3.5 shrink-0 text-emerald-500" strokeWidth={2.5} />;
         default:
             return <ShieldAlert className="size-3.5 shrink-0 text-muted-foreground" strokeWidth={2.5} />;
     }
@@ -155,6 +157,7 @@ export default function Index({
             { value: 'modulo',    label: t('salesbot-knowledge:filters.modulo') },
             { value: 'faq',       label: t('salesbot-knowledge:filters.faq') },
             { value: 'objecion',  label: t('salesbot-knowledge:filters.objecion') },
+            { value: 'novedad',   label: t('salesbot-knowledge:filters.novedad') },
             { value: 'general',   label: t('salesbot-knowledge:filters.general') },
         ],
         [t],
@@ -318,6 +321,12 @@ export default function Index({
                             value: stats.objeciones,
                             variant: 'warning',
                             icon: MessageSquareQuote,
+                        },
+                        {
+                            label: t('salesbot-knowledge:stats.novedades'),
+                            value: stats.novedades,
+                            variant: 'success',
+                            icon: Sparkles,
                         },
                         {
                             label: t('salesbot-knowledge:stats.filters'),

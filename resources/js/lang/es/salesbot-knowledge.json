@@ -1,6 +1,6 @@
 {
     "title": "Bot de ventas — Base de conocimiento",
-    "description": "Planes, módulos, FAQs y objeciones que el bot de ventas usa para responder. Cualquier cambio se aplica en el siguiente mensaje del bot (caché de 5 minutos).",
+    "description": "Planes, módulos, FAQs, objeciones y novedades que el bot de ventas usa para responder. Cualquier cambio se aplica en el siguiente mensaje del bot (caché de 5 minutos).",
     "search_placeholder": "Buscar por título, slug o contenido...",
     "filter_label": "Filtrar por sección",
     "filters": {
@@ -9,6 +9,7 @@
         "modulo": "Módulos",
         "faq": "FAQs",
         "objecion": "Objeciones",
+        "novedad": "Novedades",
         "general": "General"
     },
     "columns": {
@@ -28,6 +29,7 @@
         "modulo": "Módulo",
         "faq": "FAQ",
         "objecion": "Objeción",
+        "novedad": "Novedad",
         "general": "General"
     },
     "stats": {
@@ -36,6 +38,7 @@
         "modulos": "Módulos",
         "faqs": "FAQs",
         "objeciones": "Objeciones",
+        "novedades": "Novedades",
         "filters": "Filtros activos",
         "matches": "Coincidencias"
     },

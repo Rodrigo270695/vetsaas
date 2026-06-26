@@ -67,6 +67,7 @@ final class SalesBotKnowledgeController extends Controller
             'modulos'  => SalesBotKnowledge::query()->where('section', 'modulo')->count(),
             'faqs'     => SalesBotKnowledge::query()->where('section', 'faq')->count(),
             'objeciones' => SalesBotKnowledge::query()->where('section', 'objecion')->count(),
+            'novedades'  => SalesBotKnowledge::query()->where('section', 'novedad')->count(),
             'coincidencias' => $paginated->total(),
         ];
 

@@ -1,5 +1,5 @@
 import { useForm } from '@inertiajs/react';
-import { BookOpen, HelpCircle, Loader2, MessageSquareQuote, ShieldAlert } from 'lucide-react';
+import { BookOpen, HelpCircle, Loader2, MessageSquareQuote, ShieldAlert, Sparkles } from 'lucide-react';
 import { useEffect, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FormField, FormModal, FormSection } from '@/components/forms';
@@ -19,6 +19,7 @@ import salesbotKnowledge from '@/routes/plataforma/salesbot-knowledge';
 import type { KnowledgeEntry } from '../types';
 
 const SECTION_DESCRIPTIONS: Record<string, { icon: React.ElementType; color: string; desc: string }> = {
+    novedad:  { icon: Sparkles,           color: 'text-emerald-600', desc: 'Novedades recientes del producto (nuevas features, cambios de planes). El bot las usa como gancho especialmente en leads fríos y reactivaciones. Desactiva la entrada cuando ya no sea "nuevo".' },
     modulo:   { icon: BookOpen,           color: 'text-blue-600',   desc: 'Describe qué hace cada módulo (historial, citas, grooming…) y cómo funciona. El bot lo usa para conectar el dolor del prospecto con la feature correcta.' },
     faq:      { icon: HelpCircle,         color: 'text-violet-600', desc: 'Preguntas frecuentes con respuesta lista. Ej: "¿Puedo emitir facturas?", "¿Hay contrato?". El bot responde con esta info exacta.' },
     objecion: { icon: MessageSquareQuote, color: 'text-orange-600', desc: 'Objeciones típicas de venta y cómo rebatirlas. Ej: "Está muy caro", "Ya tengo sistema". El bot usa estos guiones cuando detecta resistencia.' },
@@ -153,6 +154,7 @@ export function KnowledgeFormModal({ open, onOpenChange, entry }: KnowledgeFormM
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
+                            <SelectItem value="novedad">Novedad</SelectItem>
                             <SelectItem value="modulo">Módulo</SelectItem>
                             <SelectItem value="faq">FAQ</SelectItem>
                             <SelectItem value="objecion">Objeción</SelectItem>
