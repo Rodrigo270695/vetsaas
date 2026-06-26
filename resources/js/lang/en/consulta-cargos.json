@@ -30,7 +30,7 @@
     "hint_precio_incluye_igv": "Unit prices include VAT ({{pct}}%). On save, base and VAT are split.",
     "hint_precio_sin_igv": "Unit prices exclude VAT. {{pct}}% VAT is applied to the taxable base.",
     "imprimir_ticket": "View ticket",
-    "imprimir_ticket_ayuda": "Opens here; use Print in the dialog for your thermal printer ({{mm}} mm).",
+    "imprimir_ticket_ayuda": "Opens here; pick 56, 58 or 80 mm in the dialog, then Print.",
     "ticket_modal_title": "Pre-invoice ticket",
     "ticket_modal_description": "Preview of what the printer would output. Close or send to print / PDF.",
     "ticket_modal_print": "Print",

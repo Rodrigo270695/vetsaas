@@ -11,6 +11,7 @@ use App\Models\ConsultaCargoLinea;
 use App\Models\Producto;
 use App\Models\User;
 use App\Models\Venta;
+use App\Support\Caja\TicketAnchoMm;
 use App\Support\ConsultaCargo\ConsultaCargoTotales;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -86,9 +87,7 @@ class ConsultaCargoController extends Controller
                 'moneda' => $cfg->moneda,
                 'igv_porcentaje' => (float) $cfg->igv_porcentaje,
                 'precio_incluye_igv' => (bool) $cfg->precio_incluye_igv,
-                'ticket_ancho_mm' => in_array((string) $cfg->ticket_ancho_mm, ['58', '80'], true)
-                    ? (string) $cfg->ticket_ancho_mm
-                    : '80',
+                'ticket_ancho_mm' => TicketAnchoMm::normalize((string) $cfg->ticket_ancho_mm),
             ],
         ]);
     }
@@ -115,9 +114,7 @@ class ConsultaCargoController extends Controller
         $cargo = $consulta->cargo;
         abort_if($cargo === null, 404);
 
-        $ancho = in_array((string) $cfg->ticket_ancho_mm, ['58', '80'], true)
-            ? (string) $cfg->ticket_ancho_mm
-            : '80';
+        $ancho = TicketAnchoMm::fromRequest($request, (string) $cfg->ticket_ancho_mm);
 
         $lineas = $cargo->lineas->map(function (ConsultaCargoLinea $l): array {
             $tipo = match ($l->tipo_linea) {

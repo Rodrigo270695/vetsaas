@@ -4,9 +4,14 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ __('consulta-cargos.ticket.document_title') }}</title>
+    @php($tf = \App\Support\Caja\TicketAnchoMm::typography($ancho_mm))
     <style>
         :root {
             --paper: {{ $ancho_mm }}mm;
+            --fs: {{ $tf['fs'] }}px;
+            --fs-sm: {{ $tf['fs_sm'] }}px;
+            --fs-title: {{ $tf['fs_title'] }}px;
+            --fs-total: {{ $tf['fs_total'] }}px;
         }
         @page {
             size: {{ $ancho_mm }}mm auto;
@@ -23,13 +28,13 @@
             width: var(--paper);
             max-width: var(--paper);
             font-family: ui-monospace, 'Cascadia Code', 'Consolas', monospace;
-            font-size: 11px;
+            font-size: var(--fs);
             line-height: 1.35;
             color: #111;
             background: #fff;
         }
         .pad {
-            padding: 2mm 3mm 3mm;
+            padding: 2mm {{ $tf['pad_x'] }} 3mm;
         }
         .center { text-align: center; }
         .logo-wrap {
@@ -39,13 +44,13 @@
             display: block;
             margin: 0 auto;
             max-width: 88%;
-            max-height: 16mm;
+            max-height: {{ $tf['logo_max'] }}mm;
             width: auto;
             height: auto;
             object-fit: contain;
         }
-        .muted { color: #444; font-size: 10px; }
-        .title { font-weight: 700; font-size: 13px; margin: 0 0 2px; }
+        .muted { color: #444; font-size: var(--fs-sm); }
+        .title { font-weight: 700; font-size: var(--fs-title); margin: 0 0 2px; }
         .rule {
             border: 0;
             border-top: 1px dashed #999;
@@ -56,7 +61,7 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 10px;
+            font-size: var(--fs-sm);
         }
         th, td {
             text-align: left;
@@ -92,7 +97,7 @@
             display: inline-block;
             padding: 1px 6px;
             border: 1px solid #333;
-            font-size: 10px;
+            font-size: var(--fs-sm);
             font-weight: 600;
         }
         .footer {

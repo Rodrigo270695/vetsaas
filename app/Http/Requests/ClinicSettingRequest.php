@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\Tenant;
+use App\Support\Caja\TicketAnchoMm;
 use App\Support\PlanCapabilities;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -71,7 +72,7 @@ class ClinicSettingRequest extends FormRequest
             'moneda' => ['required', Rule::in(['PEN', 'USD'])],
             'igv_porcentaje' => ['required', 'numeric', 'min:0', 'max:100'],
             'precio_incluye_igv' => ['required', 'boolean'],
-            'ticket_ancho_mm' => ['required', Rule::in(['58', '80'])],
+            'ticket_ancho_mm' => ['required', Rule::in(TicketAnchoMm::ALLOWED)],
             'emite_comprobantes_sunat' => ['required', 'boolean'],
 
             // APISUNAT (integración por tenant). Token en claro; el controller lo cifra.

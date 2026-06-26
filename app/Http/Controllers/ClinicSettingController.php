@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\ClinicSettingRequest;
 use App\Models\ClinicSetting;
 use App\Models\Departamento;
+use App\Support\Caja\TicketAnchoMm;
 use App\Support\PlanCapabilities;
 use App\Tenancy\TenantManager;
 use Illuminate\Http\RedirectResponse;
@@ -276,9 +277,7 @@ class ClinicSettingController extends Controller
             'moneda' => $setting->moneda,
             'igv_porcentaje' => (string) $setting->igv_porcentaje,
             'precio_incluye_igv' => $setting->precio_incluye_igv,
-            'ticket_ancho_mm' => in_array((string) ($setting->ticket_ancho_mm ?? ''), ['58', '80'], true)
-                ? (string) $setting->ticket_ancho_mm
-                : '80',
+            'ticket_ancho_mm' => TicketAnchoMm::normalize((string) ($setting->ticket_ancho_mm ?? '')),
             'emite_comprobantes_sunat' => $planPermiteFacturaElectronica && (bool) $setting->emite_comprobantes_sunat,
             // APISUNAT: solo expuesto con plan que permite facturación (jamás token en claro).
             'apisunat_mode' => $planPermiteFacturaElectronica ? ($setting->apisunat_mode ?? 'sandbox') : 'sandbox',

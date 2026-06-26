@@ -162,7 +162,7 @@
             "doc_cliente": "Documento cliente",
             "paciente": "Paciente",
             "imprimir_ticket": "Ver ticket",
-            "imprimir_ticket_ayuda": "Se abre aquí; usa «Imprimir» en el cuadro para la ticketera ({{mm}} mm).",
+            "imprimir_ticket_ayuda": "Se abre aquí; elige 56, 58 u 80 mm en el cuadro y usa «Imprimir».",
             "ticket_modal_title": "Ticket de venta",
             "ticket_modal_description": "Vista previa del comprobante de cobro. Puedes cerrar o enviar a imprimir.",
             "ticket_modal_print": "Imprimir",

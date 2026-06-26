@@ -31,6 +31,7 @@ use App\Support\Fel\FelReceptorResolver;
 use App\Support\Fel\FelSerieResolver;
 use App\Support\PlanCapabilities;
 use App\Support\Venta\VentaDesdeCargoPrefill;
+use App\Support\Caja\TicketAnchoMm;
 use App\Tenancy\TenantManager;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -663,9 +664,7 @@ class VentaController extends Controller
             ],
             'clinica' => [
                 'igv_porcentaje' => (string) $clinic->igv_porcentaje,
-                'ticket_ancho_mm' => in_array((string) $clinic->ticket_ancho_mm, ['58', '80'], true)
-                    ? (string) $clinic->ticket_ancho_mm
-                    : '80',
+                'ticket_ancho_mm' => TicketAnchoMm::normalize((string) $clinic->ticket_ancho_mm),
                 'emite_comprobantes_sunat' => (bool) $clinic->emite_comprobantes_sunat,
                 'apisunat_configurado' => ApisunatCredentialResolver::estaConfigurado($clinic),
                 'plan_permite_boletas' => PlanCapabilities::boletasElectronicas($tenantModel),
@@ -755,9 +754,7 @@ class VentaController extends Controller
             'creadoPor:id,name',
         ]);
 
-        $ancho = in_array((string) $cfg->ticket_ancho_mm, ['58', '80'], true)
-            ? (string) $cfg->ticket_ancho_mm
-            : '80';
+        $ancho = TicketAnchoMm::fromRequest($request, (string) $cfg->ticket_ancho_mm);
 
         $propietario = $venta->propietario;
         $clienteNombre = $propietario === null

@@ -173,7 +173,7 @@ export type VentaShowProps = {
     venta: VentaDetalle & { consulta_id?: string | null };
     clinica: {
         igv_porcentaje: string;
-        ticket_ancho_mm: '58' | '80';
+        ticket_ancho_mm: '56' | '58' | '80';
         emite_comprobantes_sunat: boolean;
         apisunat_configurado: boolean;
         plan_permite_boletas: boolean;

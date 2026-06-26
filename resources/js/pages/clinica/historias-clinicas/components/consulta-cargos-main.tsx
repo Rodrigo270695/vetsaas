@@ -77,7 +77,7 @@ export type ConsultaCargosMainProps = {
     clinic_billing: {
         igv_porcentaje: number;
         precio_incluye_igv: boolean;
-        ticket_ancho_mm: '58' | '80';
+        ticket_ancho_mm: '56' | '58' | '80';
     };
     cobro: {
         venta_id: string | null;
@@ -390,7 +390,7 @@ export function ConsultaCargosMain({
                             size="sm"
                             className="h-7 shrink-0 gap-1.5 px-2.5 text-xs text-muted-foreground hover:text-foreground"
                             onClick={abrirTicketEnModal}
-                            title={t('imprimir_ticket_ayuda', { mm: clinic_billing.ticket_ancho_mm })}
+                            title={t('imprimir_ticket_ayuda')}
                         >
                             <Printer className="size-3.5" aria-hidden />
                             {t('imprimir_ticket')}

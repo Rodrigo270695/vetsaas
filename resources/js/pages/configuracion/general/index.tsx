@@ -105,7 +105,7 @@ type FormState = {
     moneda: 'PEN' | 'USD';
     igv_porcentaje: string;
     precio_incluye_igv: boolean;
-    ticket_ancho_mm: '58' | '80';
+    ticket_ancho_mm: '56' | '58' | '80';
     emite_comprobantes_sunat: boolean;
     // APISUNAT
     apisunat_token: string;
@@ -139,7 +139,12 @@ const buildInitialState = (setting: ClinicSetting): FormState => ({
     moneda: setting.moneda,
     igv_porcentaje: setting.igv_porcentaje,
     precio_incluye_igv: setting.precio_incluye_igv,
-    ticket_ancho_mm: setting.ticket_ancho_mm === '58' ? '58' : '80',
+    ticket_ancho_mm:
+        setting.ticket_ancho_mm === '56' ||
+        setting.ticket_ancho_mm === '58' ||
+        setting.ticket_ancho_mm === '80'
+            ? setting.ticket_ancho_mm
+            : '58',
     emite_comprobantes_sunat: setting.emite_comprobantes_sunat,
     apisunat_token: '',
     apisunat_mode: setting.apisunat_mode ?? 'sandbox',
@@ -944,7 +949,10 @@ export default function Index({
                             <Select
                                 value={data.ticket_ancho_mm}
                                 onValueChange={(v) =>
-                                    setData('ticket_ancho_mm', v as '58' | '80')
+                                    setData(
+                                        'ticket_ancho_mm',
+                                        v as '56' | '58' | '80',
+                                    )
                                 }
                                 disabled={!canUpdate}
                             >
@@ -952,6 +960,9 @@ export default function Index({
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
+                                    <SelectItem value="56">
+                                        {t('fields.ticket_ancho_mm_56')}
+                                    </SelectItem>
                                     <SelectItem value="58">
                                         {t('fields.ticket_ancho_mm_58')}
                                     </SelectItem>

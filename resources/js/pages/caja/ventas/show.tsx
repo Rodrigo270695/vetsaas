@@ -27,7 +27,9 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { TicketPrintDialog } from '@/components/tickets/ticket-print-dialog';
 import AppLayout from '@/layouts/app-layout';
+import { normalizeTicketAncho } from '@/lib/ticket-ancho';
 import { cn } from '@/lib/utils';
 import caja from '@/routes/caja';
 import clinicaRoutes from '@/routes/clinica';
@@ -81,45 +83,26 @@ export default function Show({
     const [motivoAnulacion, setMotivoAnulacion] = useState('');
     const [anulando, setAnulando] = useState(false);
     const [ticketModalOpen, setTicketModalOpen] = useState(false);
-    const [ticketIframeBust, setTicketIframeBust] = useState(() => Date.now());
     const [cpeModalOpen, setCpeModalOpen] = useState(false);
     const [cpePdfFormat, setCpePdfFormat] = useState<'ticket' | 'a4'>('ticket');
     const [cpeIframeBust, setCpeIframeBust] = useState(() => Date.now());
     const [ticketConAutoPrint, setTicketConAutoPrint] = useState(false);
     const [cpeConAutoPrint, setCpeConAutoPrint] = useState(false);
     const autoImprimirProcesado = useRef(false);
-    const ticketIframeRef = useRef<HTMLIFrameElement>(null);
     const cpeIframeRef = useRef<HTMLIFrameElement>(null);
 
     const fecha = venta.fecha_pago ?? venta.created_at;
 
-    const ticketIframeSrc = useMemo(() => {
-        const base = caja.ventas.ticket.url(venta.id);
-        const params = new URLSearchParams({ _pv: String(ticketIframeBust) });
-
-        if (ticketConAutoPrint) {
-            params.set('print', '1');
-        }
-
-        return `${base}?${params.toString()}`;
-    }, [venta.id, ticketIframeBust, ticketConAutoPrint]);
+    const ticketBaseUrl = caja.ventas.ticket.url(venta.id);
+    const configTicketAncho = normalizeTicketAncho(clinica.ticket_ancho_mm);
 
     const abrirTicketEnModal = () => {
-        setTicketIframeBust(Date.now());
         setTicketModalOpen(true);
     };
 
     const abrirCpeEnModal = () => {
         setCpeIframeBust(Date.now());
         setCpeModalOpen(true);
-    };
-
-    const imprimirTicketDesdeIframe = () => {
-        const win = ticketIframeRef.current?.contentWindow;
-        if (win) {
-            win.focus();
-            win.print();
-        }
     };
 
     const imprimirCpeDesdeIframe = () => {
@@ -287,43 +270,18 @@ export default function Show({
                 </DialogContent>
             </Dialog>
 
-            <Dialog
+            <TicketPrintDialog
                 open={ticketModalOpen}
-                onOpenChange={(open) => {
-                    setTicketModalOpen(open);
-                    if (!open) {
-                        setTicketConAutoPrint(false);
-                    }
-                }}
-            >
-                <DialogContent className="flex max-h-[90vh] max-w-[calc(100%-1rem)] flex-col gap-3 p-4 sm:max-w-2xl sm:p-6">
-                    <DialogHeader className="shrink-0 space-y-1 pr-8 text-left">
-                        <DialogTitle>{t('caja:ventas.show.ticket_modal_title')}</DialogTitle>
-                        <DialogDescription>{t('caja:ventas.show.ticket_modal_description')}</DialogDescription>
-                    </DialogHeader>
-                    {ticketModalOpen ? (
-                        <iframe
-                            ref={ticketIframeRef}
-                            title={t('caja:ventas.show.ticket_iframe_title')}
-                            src={ticketIframeSrc}
-                            className="min-h-[50vh] w-full flex-1 rounded-md border border-border bg-white"
-                        />
-                    ) : null}
-                    <DialogFooter className="shrink-0 gap-2 sm:justify-between">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => setTicketModalOpen(false)}
-                        >
-                            {tCommon('actions.close')}
-                        </Button>
-                        <Button type="button" className="gap-1.5" onClick={imprimirTicketDesdeIframe}>
-                            <Printer className="size-4 shrink-0" aria-hidden />
-                            {t('caja:ventas.show.ticket_modal_print')}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+                onOpenChange={setTicketModalOpen}
+                ticketBaseUrl={ticketBaseUrl}
+                configAncho={configTicketAncho}
+                title={t('caja:ventas.show.ticket_modal_title')}
+                description={t('caja:ventas.show.ticket_modal_description')}
+                iframeTitle={t('caja:ventas.show.ticket_iframe_title')}
+                printLabel={t('caja:ventas.show.ticket_modal_print')}
+                autoPrint={ticketConAutoPrint}
+                onAutoPrintConsumed={() => setTicketConAutoPrint(false)}
+            />
 
             <Dialog
                 open={cpeModalOpen}
@@ -466,9 +424,7 @@ export default function Show({
                                 {t('caja:ventas.show.imprimir_ticket')}
                             </Button>
                             <p className="text-xs leading-snug text-muted-foreground">
-                                {t('caja:ventas.show.imprimir_ticket_ayuda', {
-                                    mm: clinica.ticket_ancho_mm,
-                                })}
+                                {t('caja:ventas.show.imprimir_ticket_ayuda')}
                             </p>
                         </div>
                         ) : null}

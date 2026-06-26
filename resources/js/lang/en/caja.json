@@ -162,7 +162,7 @@
             "doc_cliente": "Customer ID",
             "paciente": "Patient",
             "imprimir_ticket": "View receipt",
-            "imprimir_ticket_ayuda": "Opens here; use Print in the dialog for your thermal printer ({{mm}} mm).",
+            "imprimir_ticket_ayuda": "Opens here; pick 56, 58 or 80 mm in the dialog, then Print.",
             "ticket_modal_title": "Sale receipt",
             "ticket_modal_description": "Preview of the payment receipt. You can close or send to print.",
             "ticket_modal_print": "Print",

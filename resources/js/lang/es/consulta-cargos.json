@@ -30,7 +30,7 @@
     "hint_precio_incluye_igv": "Los precios unitarios incluyen IGV ({{pct}}%). Al guardar se separan base e IGV.",
     "hint_precio_sin_igv": "Los precios unitarios no incluyen IGV. Se aplica {{pct}}% sobre la base.",
     "imprimir_ticket": "Ver ticket",
-    "imprimir_ticket_ayuda": "Se abre aquí; usa «Imprimir» en el cuadro para la ticketera ({{mm}} mm).",
+    "imprimir_ticket_ayuda": "Se abre aquí; elige 56, 58 u 80 mm en el cuadro y usa «Imprimir».",
     "ticket_modal_title": "Ticket de pre-cuenta",
     "ticket_modal_description": "Vista previa del mismo documento que vería la impresora. Puedes cerrar o enviar a imprimir / PDF.",
     "ticket_modal_print": "Imprimir",

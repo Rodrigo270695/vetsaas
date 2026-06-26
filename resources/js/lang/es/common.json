@@ -21,6 +21,13 @@
         "loading": "Cargando...",
         "retry": "Reintentar"
     },
+    "ticket_ancho": {
+        "label": "Ancho del rollo térmico",
+        "56": "56 mm",
+        "58": "58 mm",
+        "80": "80 mm",
+        "hint": "Elige el ancho de tu impresora. La elección se guarda para la próxima impresión."
+    },
     "feedback": {
         "no_results": "Sin resultados",
         "no_records": "Sin registros",

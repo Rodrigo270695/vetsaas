@@ -21,6 +21,13 @@
         "loading": "Loading...",
         "retry": "Retry"
     },
+    "ticket_ancho": {
+        "label": "Thermal roll width",
+        "56": "56 mm",
+        "58": "58 mm",
+        "80": "80 mm",
+        "hint": "Pick your printer roll width. Your choice is remembered for the next print."
+    },
     "feedback": {
         "no_results": "No results",
         "no_records": "No records",

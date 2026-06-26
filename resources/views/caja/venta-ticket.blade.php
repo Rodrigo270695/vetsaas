@@ -4,13 +4,14 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ __('caja.ventas.ticket.document_title') }}</title>
+    @php($tf = \App\Support\Caja\TicketAnchoMm::typography($ancho_mm))
     <style>
         :root {
             --paper: {{ $ancho_mm }}mm;
-            --fs: {{ $ancho_mm === '58' ? '9' : '10' }}px;
-            --fs-sm: {{ $ancho_mm === '58' ? '8' : '9' }}px;
-            --fs-title: {{ $ancho_mm === '58' ? '11' : '12' }}px;
-            --fs-total: {{ $ancho_mm === '58' ? '11' : '12' }}px;
+            --fs: {{ $tf['fs'] }}px;
+            --fs-sm: {{ $tf['fs_sm'] }}px;
+            --fs-title: {{ $tf['fs_title'] }}px;
+            --fs-total: {{ $tf['fs_total'] }}px;
         }
         @page {
             size: {{ $ancho_mm }}mm auto;
@@ -33,7 +34,7 @@
             background: #fff;
         }
         .pad {
-            padding: 2mm 2.5mm 3mm;
+            padding: 2mm {{ $tf['pad_x'] }} 3mm;
         }
         .center { text-align: center; }
         .head p {
@@ -46,7 +47,7 @@
             display: block;
             margin: 0 auto;
             max-width: 85%;
-            max-height: {{ $ancho_mm === '58' ? '12' : '14' }}mm;
+            max-height: {{ $tf['logo_max'] }}mm;
             width: auto;
             height: auto;
             object-fit: contain;
@@ -176,7 +177,7 @@
         }
         .footer {
             margin-top: 5px;
-            font-size: {{ $ancho_mm === '58' ? '7' : '8' }}px;
+            font-size: {{ $tf['footer'] }}px;
             line-height: 1.25;
             color: #444;
             text-align: center;

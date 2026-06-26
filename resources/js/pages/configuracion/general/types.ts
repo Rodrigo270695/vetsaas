@@ -78,7 +78,7 @@ export type ClinicSetting = {
     moneda: 'PEN' | 'USD';
     igv_porcentaje: string;
     precio_incluye_igv: boolean;
-    ticket_ancho_mm: '58' | '80';
+    ticket_ancho_mm: '56' | '58' | '80';
     emite_comprobantes_sunat: boolean;
     // APISUNAT (integración por tenant)
     apisunat_mode: 'sandbox' | 'produccion';

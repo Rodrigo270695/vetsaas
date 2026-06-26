@@ -1,17 +1,10 @@
 import { Head, resetLayoutProps, router, setLayoutProps, useForm, usePage } from '@inertiajs/react';
-import { Loader2, Printer } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { Loader2 } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button } from '@/components/ui/button';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
+import { TicketPrintDialog } from '@/components/tickets/ticket-print-dialog';
 import { usePermission } from '@/hooks/use-permission';
+import { normalizeTicketAncho } from '@/lib/ticket-ancho';
 import { dashboard } from '@/routes';
 import { ConsultaCargosMain } from '../historias-clinicas/components/consulta-cargos-main';
 import { formatAtendidoInAppTimezone } from '../historias-clinicas/format-atendido';
@@ -179,7 +172,7 @@ type Props = {
         moneda: string;
         igv_porcentaje: number;
         precio_incluye_igv: boolean;
-        ticket_ancho_mm: '58' | '80';
+        ticket_ancho_mm: '56' | '58' | '80';
     };
 };
 
@@ -191,10 +184,7 @@ export default function InternamientoCargos({
     clinic_billing,
 }: Props) {
     const { t, i18n } = useTranslation(['consulta-cargos', 'hospitalizacion', 'nav', 'caja']);
-    const { t: tCommon } = useTranslation('common');
     const [ticketModalOpen, setTicketModalOpen] = useState(false);
-    const [ticketIframeBust, setTicketIframeBust] = useState(() => Date.now());
-    const ticketIframeRef = useRef<HTMLIFrameElement>(null);
     const { locale: appLocale, timezone: appTz } = usePage().props;
     const { can } = usePermission();
     const puedeEditarCargos = can('consulta-cargos.manage') || can('hospitalizacion.update');
@@ -225,24 +215,11 @@ export default function InternamientoCargos({
 
     const historiasUrl = showUrl;
 
-    const ticketIframeSrc = useMemo(() => {
-        const base = `${cargosBaseUrl}/ticket`;
-        const sep = base.includes('?') ? '&' : '?';
-
-        return `${base}${sep}_pv=${ticketIframeBust}`;
-    }, [cargosBaseUrl, ticketIframeBust]);
+    const ticketBaseUrl = `${cargosBaseUrl}/ticket`;
+    const configTicketAncho = normalizeTicketAncho(clinic_billing.ticket_ancho_mm);
 
     const abrirTicketEnModal = () => {
-        setTicketIframeBust(Date.now());
         setTicketModalOpen(true);
-    };
-
-    const imprimirTicketDesdeIframe = () => {
-        const win = ticketIframeRef.current?.contentWindow;
-        if (win) {
-            win.focus();
-            win.print();
-        }
     };
 
     useEffect(() => {
@@ -367,35 +344,16 @@ export default function InternamientoCargos({
     return (
         <>
             <Head title={title} />
-            <Dialog open={ticketModalOpen} onOpenChange={setTicketModalOpen}>
-                <DialogContent className="flex max-h-[90vh] max-w-[calc(100%-1rem)] flex-col gap-3 p-4 sm:max-w-2xl sm:p-6">
-                    <DialogHeader className="shrink-0 space-y-1 pr-8 text-left">
-                        <DialogTitle>{t('ticket_modal_title')}</DialogTitle>
-                        <DialogDescription>{t('ticket_modal_description')}</DialogDescription>
-                    </DialogHeader>
-                    {ticketModalOpen ? (
-                        <iframe
-                            ref={ticketIframeRef}
-                            title={t('ticket_iframe_title')}
-                            src={ticketIframeSrc}
-                            className="min-h-[50vh] w-full flex-1 rounded-md border border-border bg-white"
-                        />
-                    ) : null}
-                    <DialogFooter className="shrink-0 gap-2 sm:justify-between">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => setTicketModalOpen(false)}
-                        >
-                            {tCommon('actions.close')}
-                        </Button>
-                        <Button type="button" className="gap-1.5" onClick={imprimirTicketDesdeIframe}>
-                            <Printer className="size-4 shrink-0" aria-hidden />
-                            {t('ticket_modal_print')}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+            <TicketPrintDialog
+                open={ticketModalOpen}
+                onOpenChange={setTicketModalOpen}
+                ticketBaseUrl={ticketBaseUrl}
+                configAncho={configTicketAncho}
+                title={t('ticket_modal_title')}
+                description={t('ticket_modal_description')}
+                iframeTitle={t('ticket_iframe_title')}
+                printLabel={t('ticket_modal_print')}
+            />
             <ConsultaCargosMain
                 title={title}
                 historiasUrl={historiasUrl}
