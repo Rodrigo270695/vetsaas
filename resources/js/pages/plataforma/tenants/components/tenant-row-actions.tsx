@@ -1,6 +1,7 @@
 import {
     Copy,
     ExternalLink,
+    Globe,
     Lock,
     MoreHorizontal,
     PauseCircle,
@@ -28,6 +29,7 @@ export type TenantRowActionsProps = {
     onDelete: (tenant: Tenant) => void;
     onSuspend: (tenant: Tenant) => void;
     onResume: (tenant: Tenant) => void;
+    onChangeSlug?: (tenant: Tenant) => void;
     onEnterSupport?: (tenant: Tenant) => void;
     canUpdate?: boolean;
     canDelete?: boolean;
@@ -54,6 +56,7 @@ export function TenantRowActions({
     onDelete,
     onSuspend,
     onResume,
+    onChangeSlug,
     onEnterSupport,
     canUpdate = true,
     canDelete = true,
@@ -77,6 +80,11 @@ export function TenantRowActions({
         canImpersonate &&
         typeof onEnterSupport === 'function' &&
         ['trial', 'active'].includes(tenant.estado);
+
+    const showChangeSlug =
+        canUpdate &&
+        typeof onChangeSlug === 'function' &&
+        !isCancelled;
 
     const handleCopy = async () => {
         try {
@@ -146,8 +154,18 @@ export function TenantRowActions({
                     </>
                 ) : null}
 
-                {(showEdit || showSuspend || showResume || showDelete) && (
+                {(showEdit || showChangeSlug || showSuspend || showResume || showDelete) && (
                     <DropdownMenuSeparator />
+                )}
+
+                {showChangeSlug && (
+                    <DropdownMenuItem
+                        onSelect={() => onChangeSlug?.(tenant)}
+                        className="cursor-pointer gap-2"
+                    >
+                        <Globe className="size-4" strokeWidth={2.25} />
+                        {t('tenants:row.change_slug')}
+                    </DropdownMenuItem>
                 )}
 
                 {showEdit && (

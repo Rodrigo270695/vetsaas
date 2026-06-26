@@ -90,12 +90,17 @@ export type TenantStats = {
     coincidencias: number;
 };
 
+/** Valor especial: tenants sin suscripción viva (trial/active/grace). */
+export type TenantPlanFilterNone = 'sin_plan';
+
 export type TenantFilters = {
     search: string;
     per_page: number;
     sort: string | null;
     direction: 'asc' | 'desc' | null;
     estado: TenantEstadoFilter;
+    /** UUID del plan, `sin_plan`, o null (todos). */
+    plan_id: string | TenantPlanFilterNone | null;
 };
 
 /**
@@ -108,6 +113,7 @@ export type TenantPlanOption = {
     nombre: string;
     trial_days: number;
     precio_mensual: string;
+    color_hex: string | null;
 };
 
 /** Catálogo geográfico (compatibilidad con Sedes). */

@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Exports\TenantsXlsxExport;
+use App\Http\Requests\ChangeTenantSlugRequest;
 use App\Http\Requests\TenantRequest;
 use App\Models\Departamento;
 use App\Models\Plan;
 use App\Models\Tenant;
+use App\Services\Tenancy\TenantSlugChangeService;
 use App\Tenancy\TenantManager;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -58,6 +60,9 @@ class TenantController extends Controller
      */
     private const ESTADO_OPTIONS = ['todos', 'trial', 'active', 'suspended', 'cancelled'];
 
+    /** Valor especial para filtrar tenants sin suscripción viva (trial/active/grace). */
+    private const PLAN_FILTER_NONE = 'sin_plan';
+
     public function index(Request $request): Response
     {
         $search = trim((string) $request->string('search', ''));
@@ -76,7 +81,9 @@ class TenantController extends Controller
             $estado = 'todos';
         }
 
-        $query = $this->buildBaseQuery($search, $estado);
+        $planId = $this->resolvePlanFilter($request);
+
+        $query = $this->buildBaseQuery($search, $estado, $planId);
 
         if ($sortValid) {
             $query->orderBy($sort, $directionValid ? $direction : 'asc');
@@ -104,7 +111,7 @@ class TenantController extends Controller
         $plansCatalog = Plan::query()
             ->where('activo', true)
             ->orderBy('orden')
-            ->get(['id', 'codigo', 'nombre', 'trial_days', 'precio_mensual']);
+            ->get(['id', 'codigo', 'nombre', 'trial_days', 'precio_mensual', 'color_hex']);
 
         // Catálogo de departamentos para el cascada geo. ~25 filas; el
         // resto (provincias/distritos) se cargan on-demand vía /geo/*.
@@ -128,6 +135,7 @@ class TenantController extends Controller
                 'sort' => $sortValid ? $sort : null,
                 'direction' => $sortValid && $directionValid ? $direction : null,
                 'estado' => $estado,
+                'plan_id' => $planId,
             ],
             'stats' => [
                 'total' => Tenant::query()->count(),
@@ -288,6 +296,45 @@ class TenantController extends Controller
         return back()->with('success', 'Tenant reanudado correctamente.');
     }
 
+    /**
+     * Cambia el subdominio (slug) de un tenant en producción y notifica
+     * al administrador por correo y WhatsApp.
+     */
+    public function changeSlug(
+        ChangeTenantSlugRequest $request,
+        Tenant $tenant,
+        TenantSlugChangeService $slugChangeService,
+    ): RedirectResponse {
+        $result = $slugChangeService->change($tenant, $request->validated('slug'));
+
+        $message = sprintf(
+            'Subdominio actualizado: %s → %s.',
+            $result['previous_slug'],
+            $result['new_slug'],
+        );
+
+        $channels = [];
+        if ($result['email_sent']) {
+            $channels[] = 'correo';
+        }
+        if ($result['whatsapp_sent']) {
+            $channels[] = 'WhatsApp';
+        }
+
+        if ($channels !== []) {
+            $message .= ' Aviso enviado por '.implode(' y ', $channels).'.';
+        }
+
+        if ($result['warnings'] !== []) {
+            return back()->with(
+                $channels === [] ? 'warning' : 'success',
+                $message.' '.implode(' ', $result['warnings']),
+            );
+        }
+
+        return back()->with('success', $message);
+    }
+
     public function destroy(Tenant $tenant, TenantManager $manager): RedirectResponse
     {
         if ($tenant->estado === 'active') {
@@ -370,12 +417,14 @@ class TenantController extends Controller
             $estado = 'todos';
         }
 
+        $planId = $this->resolvePlanFilter($request);
+
         $sort = (string) $request->string('sort', '');
         $direction = strtolower((string) $request->string('direction', 'desc'));
         $sortValid = in_array($sort, self::SORTABLE_COLUMNS, true);
         $directionValid = in_array($direction, ['asc', 'desc'], true);
 
-        $query = $this->buildBaseQuery($search, $estado)
+        $query = $this->buildBaseQuery($search, $estado, $planId)
             ->with([
                 'subscriptions' => fn ($q) => $q
                     ->whereIn('estado', ['trial', 'active', 'grace'])
@@ -410,7 +459,7 @@ class TenantController extends Controller
     /**
      * @return Builder<Tenant>
      */
-    private function buildBaseQuery(string $search, string $estado): Builder
+    private function buildBaseQuery(string $search, string $estado, ?string $planId): Builder
     {
         $query = Tenant::query();
 
@@ -428,7 +477,46 @@ class TenantController extends Controller
             $query->where('estado', $estado);
         }
 
+        if ($planId === self::PLAN_FILTER_NONE) {
+            $query->whereDoesntHave(
+                'subscriptions',
+                fn ($q) => $q->whereIn('estado', ['trial', 'active', 'grace']),
+            );
+        } elseif ($planId !== null) {
+            $query->whereHas(
+                'subscriptions',
+                fn ($q) => $q
+                    ->whereIn('estado', ['trial', 'active', 'grace'])
+                    ->where('plan_id', $planId),
+            );
+        }
+
         return $query;
+    }
+
+    /**
+     * Normaliza el filtro de plan desde la query string.
+     *   - vacío / 'todos' → sin filtro (null).
+     *   - 'sin_plan'      → tenants sin suscripción viva.
+     *   - UUID válido     → tenants con suscripción viva en ese plan.
+     */
+    private function resolvePlanFilter(Request $request): ?string
+    {
+        $planId = trim((string) $request->string('plan_id', ''));
+
+        if ($planId === '' || $planId === 'todos') {
+            return null;
+        }
+
+        if ($planId === self::PLAN_FILTER_NONE) {
+            return self::PLAN_FILTER_NONE;
+        }
+
+        if (! Plan::query()->whereKey($planId)->exists()) {
+            return null;
+        }
+
+        return $planId;
     }
 
     /**

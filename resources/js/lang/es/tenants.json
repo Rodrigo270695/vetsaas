@@ -3,12 +3,15 @@
     "description": "Administra las clínicas suscritas a VetSaaS: alta manual, suspensión, reanudación y cancelación. En producción los tenants nacen vía provisioner automático; este panel sirve para soporte y migraciones internas.",
     "search_placeholder": "Buscar por slug, razón social, RUC o email…",
     "filter_label": "Filtrar por estado",
+    "filter_plan_label": "Filtrar por plan",
     "filters": {
         "all": "Todos",
         "trial": "En prueba",
         "active": "Activos",
         "suspended": "Suspendidos",
-        "cancelled": "Cancelados"
+        "cancelled": "Cancelados",
+        "plan_all": "Todos los planes",
+        "plan_none": "Sin plan"
     },
     "stats": {
         "total": "Total",
@@ -37,6 +40,7 @@
     "row": {
         "actions_for": "Acciones para {{name}}",
         "copy_slug": "Copiar slug",
+        "change_slug": "Cambiar subdominio",
         "open_subdomain": "Abrir subdominio",
         "enter_support": "Entrar como soporte",
         "suspend": "Suspender",
@@ -111,6 +115,16 @@
         "title": "Reanudar tenant",
         "description": "Vas a reanudar a <strong>{{name}}</strong>. Sus usuarios podrán volver a acceder al subdominio inmediatamente.",
         "confirm": "Reanudar"
+    },
+    "change_slug": {
+        "title": "Cambiar subdominio",
+        "description": "Vas a cambiar el subdominio de <strong>{{name}}</strong>. El actual es <code>{{current}}</code>. El administrador recibirá un aviso por correo y WhatsApp con el nuevo enlace.",
+        "slug_label": "Nuevo subdominio",
+        "slug_placeholder": "clinica-vetpets",
+        "preview": "Vista previa: {{host}}",
+        "notify_hint": "El subdominio anterior dejará de funcionar de inmediato.",
+        "confirm": "Cambiar subdominio",
+        "loading": "Guardando…"
     },
     "bulk": {
         "selected_singular": "tenant seleccionado",

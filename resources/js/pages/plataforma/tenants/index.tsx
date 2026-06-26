@@ -39,6 +39,7 @@ import AppLayout from '@/layouts/app-layout';
 import tenants from '@/routes/plataforma/tenants';
 import type { Paginated } from '@/types';
 import { TenantBulkDeleteDialog } from './components/tenant-bulk-delete-dialog';
+import { TenantChangeSlugDialog } from './components/tenant-change-slug-dialog';
 import { TenantDeleteDialog } from './components/tenant-delete-dialog';
 import { TenantFormModal } from './components/tenant-form-modal';
 import { TenantRowActions } from './components/tenant-row-actions';
@@ -48,6 +49,7 @@ import type {
     Tenant,
     TenantEstadoFilter,
     TenantFilters,
+    TenantPlanFilterNone,
     TenantPlanOption,
     TenantStats,
 } from './types';
@@ -72,10 +74,13 @@ type ModalState =
     | { type: 'delete'; tenant: Tenant }
     | { type: 'suspend'; tenant: Tenant }
     | { type: 'resume'; tenant: Tenant }
+    | { type: 'change-slug'; tenant: Tenant }
     | { type: 'bulk-delete' };
 
 const DEFAULT_PER_PAGE = 10;
 const DEFAULT_ESTADO: TenantEstadoFilter = 'todos';
+const PLAN_FILTER_ALL = 'todos';
+const PLAN_FILTER_NONE: TenantPlanFilterNone = 'sin_plan';
 
 /**
  * Página principal del módulo Plataforma → Tenants (superadmin).
@@ -97,6 +102,7 @@ export default function Index({
     tenants: paginated,
     filters,
     stats,
+    plans_catalog,
     departamentos,
 }: TenantsIndexProps) {
     const { t } = useTranslation(['tenants', 'common']);
@@ -124,7 +130,10 @@ export default function Index({
         setSort,
         setPerPage,
         applyFilter,
-    } = useDataTablePage<{ estado: TenantEstadoFilter }>({
+    } = useDataTablePage<{
+        estado: TenantEstadoFilter;
+        plan_id: string | TenantPlanFilterNone | null;
+    }>({
         routeUrl: tenants.index().url,
         initialFilters: filters,
         only: ['tenants', 'filters', 'stats'],
@@ -148,6 +157,43 @@ export default function Index({
         [t],
     );
 
+    const planFilterValue = filters.plan_id ?? PLAN_FILTER_ALL;
+
+    const planOptions = useMemo<
+        readonly FilterChip<string>[]
+    >(() => {
+        const base: FilterChip<string>[] = [
+            {
+                value: PLAN_FILTER_ALL,
+                label: t('tenants:filters.plan_all'),
+            },
+            {
+                value: PLAN_FILTER_NONE,
+                label: t('tenants:filters.plan_none'),
+            },
+        ];
+
+        for (const plan of plans_catalog) {
+            const hex =
+                plan.color_hex && /^#[0-9a-fA-F]{3,6}$/.test(plan.color_hex)
+                    ? plan.color_hex
+                    : '#1F6E4A';
+
+            base.push({
+                value: plan.id,
+                label: plan.nombre,
+                icon: (
+                    <span
+                        className="size-2 shrink-0 rounded-full"
+                        style={{ backgroundColor: hex }}
+                    />
+                ),
+            });
+        }
+
+        return base;
+    }, [plans_catalog, t]);
+
     const [modal, setModal] = useState<ModalState>({ type: 'idle' });
 
     const closeModal = useCallback(() => setModal({ type: 'idle' }), []);
@@ -168,6 +214,10 @@ export default function Index({
         (tenant: Tenant) => setModal({ type: 'resume', tenant }),
         [],
     );
+    const openChangeSlug = useCallback(
+        (tenant: Tenant) => setModal({ type: 'change-slug', tenant }),
+        [],
+    );
     const openBulkDelete = useCallback(
         () => setModal({ type: 'bulk-delete' }),
         [],
@@ -184,9 +234,16 @@ export default function Index({
         if (filters.search) count += 1;
         if (filters.sort) count += 1;
         if (filters.estado !== DEFAULT_ESTADO) count += 1;
+        if (filters.plan_id) count += 1;
         if (filters.per_page !== DEFAULT_PER_PAGE) count += 1;
         return count;
-    }, [filters.search, filters.sort, filters.estado, filters.per_page]);
+    }, [
+        filters.search,
+        filters.sort,
+        filters.estado,
+        filters.plan_id,
+        filters.per_page,
+    ]);
 
     const exportUrl = useMemo(() => {
         const params = new URLSearchParams();
@@ -195,12 +252,19 @@ export default function Index({
         if (filters.direction) params.set('direction', filters.direction);
         if (filters.estado !== DEFAULT_ESTADO)
             params.set('estado', filters.estado);
+        if (filters.plan_id) params.set('plan_id', filters.plan_id);
 
         const qs = params.toString();
         return qs.length > 0
             ? `${tenants.export().url}?${qs}`
             : tenants.export().url;
-    }, [filters.search, filters.sort, filters.direction, filters.estado]);
+    }, [
+        filters.search,
+        filters.sort,
+        filters.direction,
+        filters.estado,
+        filters.plan_id,
+    ]);
 
     const formatDate = (iso: string | null): string => {
         if (!iso) return '—';
@@ -362,6 +426,7 @@ export default function Index({
                             onDelete={openDelete}
                             onSuspend={openSuspend}
                             onResume={openResume}
+                            onChangeSlug={openChangeSlug}
                             onEnterSupport={enterSupport}
                             canUpdate={canUpdate}
                             canDelete={canDelete}
@@ -390,6 +455,7 @@ export default function Index({
         openDelete,
         openSuspend,
         openResume,
+        openChangeSlug,
     ]);
 
     return (
@@ -502,12 +568,26 @@ export default function Index({
                             onSearchChange={setSearch}
                             isSearching={isLoading}
                             placeholder={t('tenants:search_placeholder')}
+                            filtersClassName="gap-3 sm:items-end"
                         >
                             <FilterChips
                                 ariaLabel={t('tenants:filter_label')}
                                 value={filters.estado}
                                 onChange={(estado) => applyFilter({ estado })}
                                 options={estadoOptions}
+                            />
+                            <FilterChips
+                                ariaLabel={t('tenants:filter_plan_label')}
+                                value={planFilterValue}
+                                onChange={(planId) =>
+                                    applyFilter({
+                                        plan_id:
+                                            planId === PLAN_FILTER_ALL
+                                                ? null
+                                                : planId,
+                                    })
+                                }
+                                options={planOptions}
                             />
                         </DataToolbar>
                     }
@@ -524,6 +604,7 @@ export default function Index({
                                     filters.estado !== DEFAULT_ESTADO
                                         ? filters.estado
                                         : undefined,
+                                plan_id: filters.plan_id ?? undefined,
                             }}
                         />
                     }
@@ -590,6 +671,14 @@ export default function Index({
                         : null
                 }
                 mode={modal.type === 'resume' ? 'resume' : 'suspend'}
+            />
+
+            <TenantChangeSlugDialog
+                open={modal.type === 'change-slug'}
+                onOpenChange={(open) => {
+                    if (!open) closeModal();
+                }}
+                tenant={modal.type === 'change-slug' ? modal.tenant : null}
             />
 
             <TenantBulkDeleteDialog

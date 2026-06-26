@@ -3,12 +3,15 @@
     "description": "Manage clinics subscribed to VetSaaS: manual provisioning, suspension, resumption and cancellation. In production tenants are created via the automatic provisioner; this panel is for internal support and migrations.",
     "search_placeholder": "Search by slug, business name, tax ID or email…",
     "filter_label": "Filter by status",
+    "filter_plan_label": "Filter by plan",
     "filters": {
         "all": "All",
         "trial": "Trial",
         "active": "Active",
         "suspended": "Suspended",
-        "cancelled": "Cancelled"
+        "cancelled": "Cancelled",
+        "plan_all": "All plans",
+        "plan_none": "No plan"
     },
     "stats": {
         "total": "Total",
@@ -37,6 +40,7 @@
     "row": {
         "actions_for": "Actions for {{name}}",
         "copy_slug": "Copy slug",
+        "change_slug": "Change subdomain",
         "open_subdomain": "Open subdomain",
         "enter_support": "Enter as support",
         "suspend": "Suspend",
@@ -111,6 +115,16 @@
         "title": "Resume tenant",
         "description": "You're about to resume <strong>{{name}}</strong>. Its users will be able to access the subdomain again immediately.",
         "confirm": "Resume"
+    },
+    "change_slug": {
+        "title": "Change subdomain",
+        "description": "You're about to change the subdomain for <strong>{{name}}</strong>. The current one is <code>{{current}}</code>. The administrator will receive an email and WhatsApp message with the new link.",
+        "slug_label": "New subdomain",
+        "slug_placeholder": "vet-pets-clinic",
+        "preview": "Preview: {{host}}",
+        "notify_hint": "The previous subdomain will stop working immediately.",
+        "confirm": "Change subdomain",
+        "loading": "Saving…"
     },
     "bulk": {
         "selected_singular": "tenant selected",
