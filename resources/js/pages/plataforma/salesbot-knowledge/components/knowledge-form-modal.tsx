@@ -1,6 +1,6 @@
 import { useForm } from '@inertiajs/react';
 import { BookOpen, HelpCircle, Loader2, MessageSquareQuote, ShieldAlert, Sparkles } from 'lucide-react';
-import { useEffect, type FormEvent } from 'react';
+import { useEffect, useRef, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FormField, FormModal, FormSection } from '@/components/forms';
 import { Button } from '@/components/ui/button';
@@ -50,9 +50,30 @@ const emptyForm: FormData = {
     is_active: true,
 };
 
+/** Genera un slug URL-safe a partir del título (sin acentos, minúsculas, guiones). */
+function slugify(value: string): string {
+    return value
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .slice(0, 80);
+}
+
+function buildKnowledgeSlug(section: string, title: string): string {
+    const base = slugify(title);
+    if (base === '') {
+        return section;
+    }
+
+    return `${section}-${base}`.slice(0, 100);
+}
+
 export function KnowledgeFormModal({ open, onOpenChange, entry }: KnowledgeFormModalProps) {
     const { t } = useTranslation(['salesbot-knowledge', 'common']);
     const isEdit = entry !== null;
+    const slugManuallyEdited = useRef(false);
 
     const { data, setData, post, put, processing, errors, reset, clearErrors } =
         useForm<FormData>(
@@ -74,6 +95,7 @@ export function KnowledgeFormModal({ open, onOpenChange, entry }: KnowledgeFormM
         if (open) {
             if (entry) {
                 reset();
+                slugManuallyEdited.current = true;
                 setData({
                     product:   entry.product,
                     section:   entry.section,
@@ -85,10 +107,19 @@ export function KnowledgeFormModal({ open, onOpenChange, entry }: KnowledgeFormM
             } else {
                 reset();
                 clearErrors();
+                slugManuallyEdited.current = false;
             }
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, entry?.id]);
+
+    const updateAutoSlug = (section: string, title: string) => {
+        if (isEdit || slugManuallyEdited.current) {
+            return;
+        }
+
+        setData('slug', buildKnowledgeSlug(section, title));
+    };
 
     const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -148,7 +179,10 @@ export function KnowledgeFormModal({ open, onOpenChange, entry }: KnowledgeFormM
                 >
                     <Select
                         value={data.section}
-                        onValueChange={(v) => setData('section', v)}
+                        onValueChange={(v) => {
+                            setData('section', v);
+                            updateAutoSlug(v, data.title);
+                        }}
                     >
                         <SelectTrigger className="w-full">
                             <SelectValue />
@@ -174,20 +208,6 @@ export function KnowledgeFormModal({ open, onOpenChange, entry }: KnowledgeFormM
                     );
                 })()}
 
-                {/* Slug */}
-                <FormField
-                    label={t('salesbot-knowledge:form.slug_label')}
-                    error={errors.slug}
-                    required
-                >
-                    <Input
-                        value={data.slug}
-                        onChange={(e) => setData('slug', e.target.value)}
-                        placeholder={t('salesbot-knowledge:form.slug_placeholder')}
-                        className="font-mono text-sm"
-                    />
-                </FormField>
-
                 {/* Título */}
                 <FormField
                     label={t('salesbot-knowledge:form.title_label')}
@@ -196,8 +216,30 @@ export function KnowledgeFormModal({ open, onOpenChange, entry }: KnowledgeFormM
                 >
                     <Input
                         value={data.title}
-                        onChange={(e) => setData('title', e.target.value)}
+                        onChange={(e) => {
+                            const title = e.target.value;
+                            setData('title', title);
+                            updateAutoSlug(data.section, title);
+                        }}
                         placeholder={t('salesbot-knowledge:form.title_placeholder')}
+                    />
+                </FormField>
+
+                {/* Slug — auto desde título + sección; editable manualmente */}
+                <FormField
+                    label={t('salesbot-knowledge:form.slug_label')}
+                    hint={!isEdit ? t('salesbot-knowledge:form.slug_hint') : undefined}
+                    error={errors.slug}
+                    required
+                >
+                    <Input
+                        value={data.slug}
+                        onChange={(e) => {
+                            slugManuallyEdited.current = true;
+                            setData('slug', e.target.value);
+                        }}
+                        placeholder={t('salesbot-knowledge:form.slug_placeholder')}
+                        className="font-mono text-sm"
                     />
                 </FormField>
 
