@@ -26,7 +26,7 @@ export type DataToolbarProps = {
  * - Cuando `isSearching` es `true`, el ícono se convierte en spinner para
  *   indicar al usuario que la consulta está en curso (útil con miles de filas).
  *
- * Responsive: en móvil el search ocupa el 100%, los filtros bajan a una segunda fila.
+ * Responsive: en móvil el search ocupa el 100%; los filtros van debajo en la misma fila con scroll horizontal si hace falta.
  */
 export function DataToolbar({
     search,
@@ -81,7 +81,8 @@ export function DataToolbar({
             {children && (
                 <div
                     className={cn(
-                        'flex min-w-0 w-full flex-col items-stretch gap-2',
+                        'flex min-w-0 w-full flex-row flex-nowrap items-center gap-2 overflow-x-auto sm:flex-1 sm:justify-end sm:gap-3',
+                        'scrollbar-none [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden',
                         filtersClassName,
                     )}
                 >

@@ -568,7 +568,6 @@ export default function Index({
                             onSearchChange={setSearch}
                             isSearching={isLoading}
                             placeholder={t('tenants:search_placeholder')}
-                            filtersClassName="gap-3 sm:items-end"
                         >
                             <FilterChips
                                 ariaLabel={t('tenants:filter_label')}

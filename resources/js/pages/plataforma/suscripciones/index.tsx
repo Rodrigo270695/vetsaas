@@ -696,7 +696,6 @@ export default function Index({
                             placeholder={t(
                                 'suscripciones:search_placeholder',
                             )}
-                            filtersClassName="gap-3 sm:items-end"
                         >
                             <FilterChips
                                 ariaLabel={t(
