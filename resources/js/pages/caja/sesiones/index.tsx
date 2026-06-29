@@ -166,17 +166,28 @@ export default function Index({
         return count;
     }, [filters.search, filters.sort, filters.estado, filters.sede_id, filters.per_page]);
 
+    const sedeCodigoById = useMemo(
+        () => Object.fromEntries(sedesOpciones.map((s) => [s.id, s.codigo])),
+        [sedesOpciones],
+    );
+
     const columns = useMemo<DataTableColumn<CajaSesionRow>[]>(() => {
         const base: DataTableColumn<CajaSesionRow>[] = [
             {
                 key: 'sede',
                 header: t('caja:sesiones.columns.sede'),
-                cell: (row) => (
-                    <div className="flex flex-col">
-                        <span className="font-medium text-foreground">{row.sede_nombre ?? '—'}</span>
-                        <span className="font-mono text-[0.65rem] text-muted-foreground">{row.sede_id}</span>
-                    </div>
-                ),
+                cell: (row) => {
+                    const codigo = sedeCodigoById[row.sede_id];
+
+                    return (
+                        <div className="flex flex-col">
+                            <span className="font-medium text-foreground">{row.sede_nombre ?? '—'}</span>
+                            {codigo ? (
+                                <span className="font-mono text-[0.65rem] text-muted-foreground">{codigo}</span>
+                            ) : null}
+                        </div>
+                    );
+                },
             },
             {
                 key: 'estado',
@@ -308,7 +319,7 @@ export default function Index({
         }
 
         return base;
-    }, [t, i18n.language, canClose, authUserId]);
+    }, [t, i18n.language, canClose, authUserId, sedeCodigoById]);
 
     return (
         <>

@@ -705,10 +705,20 @@ export default function Create({
                             </p>
                         ) : null}
                     </div>
-                    {puede_vender ? (
-                        <span className="flex shrink-0 items-center gap-1 rounded-full border border-emerald-500/25 bg-emerald-500/8 px-2 py-0.5 text-[10px] font-medium text-emerald-700 dark:text-emerald-400">
-                            <span className="size-1.5 rounded-full bg-emerald-500" />
-                            {t('caja:ventas.create.sesion_activa_title')}
+                    {puede_vender && mi_sesion ? (
+                        <span
+                            className="flex max-w-[45%] shrink-0 items-center gap-1 rounded-full border border-emerald-500/25 bg-emerald-500/8 px-2 py-0.5 text-[10px] font-medium text-emerald-700 dark:text-emerald-400 sm:max-w-none"
+                            title={t('caja:ventas.create.sesion_activa_body', {
+                                sede: mi_sesion.sede_nombre ?? '—',
+                                moneda: mi_sesion.moneda ?? clinica.moneda,
+                            })}
+                        >
+                            <span className="size-1.5 shrink-0 rounded-full bg-emerald-500" />
+                            <span className="truncate">
+                                {t('caja:ventas.create.sesion_activa_badge', {
+                                    sede: mi_sesion.sede_nombre ?? '—',
+                                })}
+                            </span>
                         </span>
                     ) : (
                         <Badge variant="destructive" className="shrink-0 text-[10px]">
@@ -886,6 +896,11 @@ export default function Create({
                                             />
                                         ) : null}
                                     </div>
+                                    {mi_sesion?.sede_nombre ? (
+                                        <p className="text-[10px] leading-snug text-muted-foreground">
+                                            {t('caja:ventas.create.stock_sede_hint', { sede: mi_sesion.sede_nombre })}
+                                        </p>
+                                    ) : null}
                                     {hits.length > 0 ? (
                                         <ul className="max-h-44 overflow-auto rounded-md border border-border/50 bg-muted/10 text-sm">
                                             {hits.map((p) => {
