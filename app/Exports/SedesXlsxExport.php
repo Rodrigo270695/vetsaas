@@ -72,14 +72,6 @@ class SedesXlsxExport
                 'value' => fn (Sede $s) => (string) ($s->email ?? ''),
             ],
             [
-                'label' => 'Serie factura',
-                'value' => fn (Sede $s) => (string) ($s->serie_factura ?? ''),
-            ],
-            [
-                'label' => 'Serie boleta',
-                'value' => fn (Sede $s) => (string) ($s->serie_boleta ?? ''),
-            ],
-            [
                 'label' => 'Estado',
                 'value' => fn (Sede $s) => $s->activa ? 'Activa' : 'Inactiva',
             ],

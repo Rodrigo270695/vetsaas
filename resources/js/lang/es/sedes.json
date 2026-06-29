@@ -25,7 +25,8 @@
         "nombre": "Sede",
         "ubicacion": "Ubicación",
         "telefono": "Teléfono",
-        "series": "Series",
+        "series": "Series FEL",
+        "series_link": "Configurar",
         "estado": "Estado",
         "creada_por": "Creada por",
         "acciones": "Acciones"
@@ -61,6 +62,7 @@
         "section_billing": "Facturación electrónica",
         "section_billing_hint": "Series de comprobantes asociadas a esta sede (SUNAT / Nubefact).",
         "section_status": "Estado",
+        "series_hint": "Las series de factura y boleta se configuran en Facturación › Series, asociadas a cada sede.",
         "fields": {
             "nombre": "Nombre",
             "nombre_placeholder": "Ej. Sede Lima Centro",

@@ -25,7 +25,8 @@
         "nombre": "Branch",
         "ubicacion": "Location",
         "telefono": "Phone",
-        "series": "Series",
+        "series": "FEL series",
+        "series_link": "Configure",
         "estado": "Status",
         "creada_por": "Created by",
         "acciones": "Actions"
@@ -61,6 +62,7 @@
         "section_billing": "Electronic billing",
         "section_billing_hint": "Receipt series associated with this branch (SUNAT / Nubefact).",
         "section_status": "Status",
+        "series_hint": "Invoice and receipt series are managed under Billing › Series, linked to each branch.",
         "fields": {
             "nombre": "Name",
             "nombre_placeholder": "E.g. Lima Centro Branch",

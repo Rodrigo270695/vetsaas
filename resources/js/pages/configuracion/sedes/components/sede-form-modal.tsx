@@ -31,8 +31,6 @@ type SedeFormData = {
     email: string;
     /** Único campo geográfico que se envía: la FK al distrito. */
     distrito_id: number | null;
-    serie_factura: string;
-    serie_boleta: string;
     activa: boolean;
 };
 
@@ -42,8 +40,6 @@ const emptyForm: SedeFormData = {
     telefono: '',
     email: '',
     distrito_id: null,
-    serie_factura: '',
-    serie_boleta: '',
     activa: true,
 };
 
@@ -53,8 +49,6 @@ const buildInitialData = (sede: Sede | null): SedeFormData => ({
     telefono: sede?.telefono ?? '',
     email: sede?.email ?? '',
     distrito_id: sede?.distrito_id ?? null,
-    serie_factura: sede?.serie_factura ?? '',
-    serie_boleta: sede?.serie_boleta ?? '',
     activa: sede?.activa ?? true,
 });
 
@@ -88,13 +82,6 @@ const isFormValid = (data: SedeFormData): boolean => {
 
 /**
  * Modal de crear/editar sede.
- *
- * - Si `sede === null` → modo "Nueva sede" (POST a `sedes.store`).
- * - Si `sede` viene → modo "Editar sede" (PUT a `sedes.update`).
- * - Usa `useForm` de Inertia para manejar state, errores y processing.
- * - La ubicación es una cascada Departamento → Provincia → Distrito.
- *   Solo `distrito_id` se envía al backend; los strings denormalizados
- *   los hidrata `SedeController` desde el catálogo.
  */
 export function SedeFormModal({
     open,
@@ -109,12 +96,6 @@ export function SedeFormModal({
     const { data, setData, post, put, processing, errors, reset, clearErrors } =
         useForm<SedeFormData>(emptyForm);
 
-    /*
-     * Estado de la cascada geográfica. Los campos `departamento_id` y
-     * `provincia_id` NO se envían al backend; sirven solo para filtrar
-     * las opciones del siguiente nivel. El único valor persistido es
-     * `geo.distrito_id`, que se sincroniza con `data.distrito_id`.
-     */
     const [geo, setGeo] = useState<GeoCascadeValue>(() =>
         buildInitialGeoValue(null),
     );
@@ -136,10 +117,6 @@ export function SedeFormModal({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, sede?.id]);
 
-    /**
-     * Cualquier cambio en la cascada se propaga al `useForm` para que
-     * `distrito_id` viaje al backend al hacer submit.
-     */
     const handleGeoChange = (next: GeoCascadeValue) => {
         setGeo(next);
         setData('distrito_id', next.distrito_id);
@@ -204,8 +181,6 @@ export function SedeFormModal({
             telefono: data.telefono.trim() === '' ? null : data.telefono.trim(),
             email: data.email.trim() === '' ? null : data.email.trim(),
             distrito_id: data.distrito_id,
-            serie_factura: data.serie_factura.trim() === '' ? null : data.serie_factura.trim(),
-            serie_boleta: data.serie_boleta.trim() === '' ? null : data.serie_boleta.trim(),
             activa: data.activa,
         };
 
@@ -373,56 +348,7 @@ export function SedeFormModal({
                     />
                 </FormSection>
 
-                <FormSection
-                    index={2}
-                    title={t('form.section_billing')}
-                    description={t('form.section_billing_hint')}
-                    columns={2}
-                >
-                    <FormField
-                        id="sede-serie-factura"
-                        label={t('form.fields.serie_factura')}
-                        error={errors.serie_factura}
-                        hint={t('form.fields.serie_factura_hint')}
-                    >
-                        <Input
-                            id="sede-serie-factura"
-                            value={data.serie_factura}
-                            onChange={(e) =>
-                                setData(
-                                    'serie_factura',
-                                    e.target.value.toUpperCase(),
-                                )
-                            }
-                            placeholder="F001"
-                            maxLength={4}
-                            className="font-mono uppercase"
-                        />
-                    </FormField>
-
-                    <FormField
-                        id="sede-serie-boleta"
-                        label={t('form.fields.serie_boleta')}
-                        error={errors.serie_boleta}
-                        hint={t('form.fields.serie_boleta_hint')}
-                    >
-                        <Input
-                            id="sede-serie-boleta"
-                            value={data.serie_boleta}
-                            onChange={(e) =>
-                                setData(
-                                    'serie_boleta',
-                                    e.target.value.toUpperCase(),
-                                )
-                            }
-                            placeholder="B001"
-                            maxLength={4}
-                            className="font-mono uppercase"
-                        />
-                    </FormField>
-                </FormSection>
-
-                <FormSection index={3} title={t('form.section_status')}>
+                <FormSection index={2} title={t('form.section_status')}>
                     <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border/60 bg-card/40 p-3 transition-colors hover:bg-muted/30">
                         <Checkbox
                             id="sede-activa"
@@ -447,6 +373,10 @@ export function SedeFormModal({
                         </p>
                     )}
                 </FormSection>
+
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                    {t('form.series_hint')}
+                </p>
             </div>
         </FormModal>
     );

@@ -3,7 +3,6 @@
 namespace App\Http\Requests;
 
 use App\Http\Requests\Concerns\ValidatesPlanIntLimits;
-use App\Support\Fel\SunatSerieCodigo;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -35,8 +34,6 @@ class SedeRequest extends FormRequest
             // hidratan en el controller desde la BD para mantener el
             // cache denormalizado consistente.
             'distrito_id' => ['nullable', 'integer', 'exists:distritos,id'],
-            'serie_factura' => ['nullable', 'string', 'max:10', 'regex:/^[A-Za-z0-9\-]{0,10}$/'],
-            'serie_boleta' => ['nullable', 'string', 'max:10', 'regex:/^[A-Za-z0-9\-]{0,10}$/'],
             'activa' => ['required', 'boolean'],
         ];
     }
@@ -49,8 +46,6 @@ class SedeRequest extends FormRequest
             'telefono' => 'teléfono',
             'email' => 'correo',
             'distrito_id' => 'distrito',
-            'serie_factura' => 'serie factura',
-            'serie_boleta' => 'serie boleta',
             'activa' => 'estado',
         ];
     }
@@ -59,12 +54,6 @@ class SedeRequest extends FormRequest
     {
         $this->merge([
             'activa' => $this->boolean('activa'),
-            'serie_factura' => SunatSerieCodigo::normalizar(
-                $this->input('serie_factura') !== null ? (string) $this->input('serie_factura') : null,
-            ),
-            'serie_boleta' => SunatSerieCodigo::normalizar(
-                $this->input('serie_boleta') !== null ? (string) $this->input('serie_boleta') : null,
-            ),
         ]);
     }
 

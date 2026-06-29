@@ -3,53 +3,25 @@
 namespace App\Support\Fel;
 
 use App\Models\FelSerie;
-use App\Models\Sede;
 use App\Models\Venta;
 use RuntimeException;
 
 /**
- * Resuelve la serie SUNAT a usar al emitir: primero la sede de la venta,
- * luego el catálogo legacy {@see FelSerie} (B001/F001 sembrados).
+ * Resuelve la serie SUNAT activa de {@see FelSerie} para la sede de la venta.
  */
 final class FelSerieResolver
 {
     /**
-     * Código de serie que se usaría al emitir, sin crear filas en fel_series.
+     * Código de serie que se usaría al emitir (sin bloquear filas).
      */
     public function codigoSerieParaVenta(Venta $venta, int $tipoComprobante): ?string
     {
-        $venta->loadMissing('sede');
-
-        $codigoSede = $this->codigoSerieDesdeSede($venta->sede, $tipoComprobante);
-        if ($codigoSede !== null) {
-            return $codigoSede;
-        }
-
-        return FelSerie::query()
-            ->where('tipo_comprobante', $tipoComprobante)
-            ->where('activo', true)
-            ->orderBy('serie')
-            ->value('serie');
+        return $this->queryParaVenta($venta, $tipoComprobante, false)->value('serie');
     }
 
     public function resolverParaVenta(Venta $venta, int $tipoComprobante, bool $forUpdate = false): FelSerie
     {
-        $venta->loadMissing('sede');
-
-        $codigoSede = $this->codigoSerieDesdeSede($venta->sede, $tipoComprobante);
-
-        if ($codigoSede !== null) {
-            return $this->obtenerOCrearSerie($tipoComprobante, $codigoSede, $forUpdate);
-        }
-
-        $query = FelSerie::query()
-            ->where('tipo_comprobante', $tipoComprobante)
-            ->where('activo', true)
-            ->orderBy('serie');
-
-        if ($forUpdate) {
-            $query->lockForUpdate();
-        }
+        $query = $this->queryParaVenta($venta, $tipoComprobante, $forUpdate);
 
         $serie = $query->first();
 
@@ -62,46 +34,20 @@ final class FelSerieResolver
         return $serie;
     }
 
-    private function codigoSerieDesdeSede(?Sede $sede, int $tipoComprobante): ?string
+    private function queryParaVenta(Venta $venta, int $tipoComprobante, bool $forUpdate)
     {
-        if ($sede === null || ! $sede->activa) {
-            return null;
-        }
+        $venta->loadMissing('sede');
 
-        $raw = $tipoComprobante === FelSerie::TIPO_FACTURA
-            ? $sede->serie_factura
-            : $sede->serie_boleta;
-
-        $codigo = SunatSerieCodigo::normalizar((string) $raw);
-
-        return $codigo;
-    }
-
-    private function obtenerOCrearSerie(int $tipoComprobante, string $codigoSerie, bool $forUpdate): FelSerie
-    {
         $query = FelSerie::query()
             ->where('tipo_comprobante', $tipoComprobante)
-            ->where('serie', $codigoSerie);
+            ->where('activo', true)
+            ->where('sede_id', $venta->sede_id)
+            ->orderBy('serie');
 
         if ($forUpdate) {
             $query->lockForUpdate();
         }
 
-        $existente = $query->first();
-
-        if ($existente !== null) {
-            if (! $existente->activo) {
-                $existente->update(['activo' => true]);
-            }
-
-            return $existente;
-        }
-
-        return FelSerie::query()->create([
-            'tipo_comprobante' => $tipoComprobante,
-            'serie' => $codigoSerie,
-            'ultimo_correlativo' => 0,
-            'activo' => true,
-        ]);
+        return $query;
     }
 }

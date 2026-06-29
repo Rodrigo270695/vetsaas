@@ -100,7 +100,7 @@ export function FormModal({
         <div className="relative">
             <div
                 ref={scrollRef}
-                className="scrollbar-hidden max-h-[calc(100dvh-18rem)] overflow-y-auto px-1 py-1 sm:max-h-[55vh]"
+                className="scrollbar-hidden max-h-[min(50vh,calc(100dvh-14rem))] overflow-y-auto px-1 py-3 sm:max-h-[min(55vh,calc(100dvh-13rem))]"
             >
                 {children}
             </div>
@@ -131,7 +131,7 @@ export function FormModal({
             className={cn(
                 'pointer-events-none absolute inset-x-0 z-30 flex justify-center transition-opacity duration-300',
                 // Posicionado justo encima del footer del modal (footer ≈ 64-72px).
-                footer ? 'bottom-20' : 'bottom-6',
+                footer ? 'bottom-[4.5rem]' : 'bottom-6',
                 showHint ? 'opacity-100' : 'opacity-0',
             )}
         >
@@ -185,25 +185,29 @@ export function FormModal({
                 {onSubmit ? (
                     <form
                         onSubmit={onSubmit}
-                        className="relative flex flex-col gap-4 px-6 pb-6 sm:gap-5"
+                        className="relative flex min-h-0 flex-1 flex-col overflow-hidden"
                         noValidate
                     >
-                        {ScrollArea}
-                        {footer && (
-                            <DialogFooter className="border-t border-border/60 pt-4">
+                        <div className="min-h-0 flex-1 overflow-hidden px-6 pt-1">
+                            {ScrollArea}
+                        </div>
+                        {footer ? (
+                            <DialogFooter className="mt-0 shrink-0 gap-2 border-t border-border/60 bg-card px-6 py-4 sm:justify-end">
                                 {footer}
                             </DialogFooter>
-                        )}
+                        ) : null}
                         {ScrollHintChip}
                     </form>
                 ) : (
-                    <div className="relative flex flex-col gap-4 px-6 pb-6 sm:gap-5">
-                        {ScrollArea}
-                        {footer && (
-                            <DialogFooter className="border-t border-border/60 pt-4">
+                    <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+                        <div className="min-h-0 flex-1 overflow-hidden px-6 pt-1">
+                            {ScrollArea}
+                        </div>
+                        {footer ? (
+                            <DialogFooter className="mt-0 shrink-0 gap-2 border-t border-border/60 bg-card px-6 py-4 sm:justify-end">
                                 {footer}
                             </DialogFooter>
-                        )}
+                        ) : null}
                         {ScrollHintChip}
                     </div>
                 )}

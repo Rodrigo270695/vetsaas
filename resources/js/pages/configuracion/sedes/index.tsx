@@ -1,4 +1,4 @@
-import { Head } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import {
     Building2,
     CheckCircle2,
@@ -297,23 +297,12 @@ export default function Index({
                 key: 'series',
                 header: t('columns.series'),
                 cell: (sede) => (
-                    <div className="flex flex-wrap gap-1 font-mono text-[0.7rem]">
-                        {sede.serie_factura && (
-                            <span className="rounded bg-primary/10 px-1.5 py-0.5 text-primary">
-                                {sede.serie_factura}
-                            </span>
-                        )}
-                        {sede.serie_boleta && (
-                            <span className="rounded bg-sky-500/10 px-1.5 py-0.5 text-sky-700 dark:text-sky-300">
-                                {sede.serie_boleta}
-                            </span>
-                        )}
-                        {!sede.serie_factura && !sede.serie_boleta && (
-                            <span className="text-xs text-muted-foreground">
-                                —
-                            </span>
-                        )}
-                    </div>
+                    <Link
+                        href={`/facturacion/series?sede_id=${sede.id}`}
+                        className="text-xs font-medium text-primary hover:underline"
+                    >
+                        {t('columns.series_link')}
+                    </Link>
                 ),
             },
             {

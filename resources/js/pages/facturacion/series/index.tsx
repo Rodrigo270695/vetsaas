@@ -1,6 +1,7 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import {
     AlertTriangle,
+    Building2,
     CheckCircle2,
     FileText,
     Hash,
@@ -12,7 +13,7 @@ import {
     X,
     XCircle,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { PageHeader, StatBadge } from '@/components/data-page';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,8 +33,16 @@ type TipoOption = {
     hint: string;
 };
 
+type SedeOpcion = {
+    id: string;
+    nombre: string;
+    codigo: string;
+};
+
 type FelSerie = {
     id: string;
+    sede_id: string;
+    sede_nombre: string;
     tipo_comprobante: number;
     tipo_label: string;
     serie: string;
@@ -45,14 +54,18 @@ type FelSerie = {
 type Props = {
     series: FelSerie[];
     tipos?: TipoOption[];
+    sedes_opciones?: SedeOpcion[];
+    filters?: {
+        sede_id: string;
+    };
 };
 
 const TIPOS_DEFAULT: TipoOption[] = [
-    { value: 1, label: 'Factura',           hint: 'F### (ej. F001)' },
-    { value: 2, label: 'Boleta de Venta',   hint: 'B### (ej. B001)' },
-    { value: 3, label: 'Nota de Crédito',   hint: 'FC## o BC## (ej. FC01)' },
-    { value: 4, label: 'Nota de Débito',    hint: 'FD## o BD## (ej. FD01)' },
-    { value: 5, label: 'Guía de Remisión',  hint: 'T### (ej. T001)' },
+    { value: 1, label: 'Factura', hint: 'F### (ej. F001)' },
+    { value: 2, label: 'Boleta de Venta', hint: 'B### (ej. B001)' },
+    { value: 3, label: 'Nota de Crédito', hint: 'FC## o BC## (ej. FC01)' },
+    { value: 4, label: 'Nota de Débito', hint: 'FD## o BD## (ej. FD01)' },
+    { value: 5, label: 'Guía de Remisión', hint: 'T### (ej. T001)' },
 ];
 
 const TIPO_COLORS: Record<number, string> = {
@@ -63,8 +76,15 @@ const TIPO_COLORS: Record<number, string> = {
     5: 'bg-amber-50 text-amber-700 ring-amber-200',
 };
 
-export default function Index({ series = [], tipos }: Props) {
-    const tiposResolved = (tipos && tipos.length > 0) ? tipos : TIPOS_DEFAULT;
+const ALL_SEDES = '__all__';
+
+export default function Index({
+    series = [],
+    tipos,
+    sedes_opciones: sedesOpciones = [],
+    filters,
+}: Props) {
+    const tiposResolved = tipos && tipos.length > 0 ? tipos : TIPOS_DEFAULT;
     const { can } = usePermission();
     const canCreate = can('series.create');
     const canUpdate = can('series.update');
@@ -73,8 +93,12 @@ export default function Index({ series = [], tipos }: Props) {
     const { props } = usePage<{ flash?: { success?: string } }>();
     const flash = props.flash;
 
+    const sedeFiltro = filters?.sede_id ?? '';
+    const showSedeColumn = sedeFiltro === '';
+
     const [showForm, setShowForm] = useState(false);
-    const [formTipo, setFormTipo] = useState<string>('');
+    const [formSede, setFormSede] = useState('');
+    const [formTipo, setFormTipo] = useState('');
     const [formSerie, setFormSerie] = useState('');
     const [formCorrelativo, setFormCorrelativo] = useState('0');
     const [formErrors, setFormErrors] = useState<Record<string, string>>({});
@@ -82,14 +106,50 @@ export default function Index({ series = [], tipos }: Props) {
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [togglingId, setTogglingId] = useState<string | null>(null);
 
+    useEffect(() => {
+        if (sedeFiltro) {
+            setFormSede(sedeFiltro);
+        }
+    }, [sedeFiltro]);
+
     const selectedTipo = tiposResolved.find((t) => String(t.value) === formTipo);
+    const selectedSedeNombre = useMemo(
+        () => sedesOpciones.find((s) => s.id === formSede)?.nombre ?? '',
+        [formSede, sedesOpciones],
+    );
+
+    const applySedeFilter = (sedeId: string) => {
+        const query = sedeId ? { sede_id: sedeId } : {};
+        router.get('/facturacion/series', query, {
+            preserveState: true,
+            preserveScroll: true,
+            only: ['series', 'filters', 'sedes_opciones'],
+        });
+    };
+
+    const openCreateForm = () => {
+        if (sedeFiltro) {
+            setFormSede(sedeFiltro);
+        } else if (sedesOpciones.length === 1) {
+            setFormSede(sedesOpciones[0].id);
+        }
+        setShowForm(true);
+    };
 
     const handleStore = () => {
-        if (!formTipo || !formSerie.trim()) {
-            setFormErrors({
-                tipo_comprobante: !formTipo ? 'Selecciona el tipo de comprobante.' : '',
-                serie: !formSerie.trim() ? 'Ingresa la serie.' : '',
-            });
+        const errors: Record<string, string> = {};
+        if (!formSede) {
+            errors.sede_id = 'Selecciona la sede.';
+        }
+        if (!formTipo) {
+            errors.tipo_comprobante = 'Selecciona el tipo de comprobante.';
+        }
+        if (!formSerie.trim()) {
+            errors.serie = 'Ingresa la serie.';
+        }
+
+        if (Object.keys(errors).length > 0) {
+            setFormErrors(errors);
             return;
         }
 
@@ -97,6 +157,7 @@ export default function Index({ series = [], tipos }: Props) {
         router.post(
             '/facturacion/series',
             {
+                sede_id: formSede,
                 tipo_comprobante: Number(formTipo),
                 serie: formSerie.trim().toUpperCase(),
                 ultimo_correlativo: Number(formCorrelativo) || 0,
@@ -109,6 +170,9 @@ export default function Index({ series = [], tipos }: Props) {
                     setFormSerie('');
                     setFormCorrelativo('0');
                     setFormErrors({});
+                    if (!sedeFiltro) {
+                        setFormSede('');
+                    }
                 },
                 onError: (errs) => setFormErrors(errs as Record<string, string>),
                 onFinish: () => setSubmitting(false),
@@ -150,7 +214,7 @@ export default function Index({ series = [], tipos }: Props) {
             <div className="flex flex-1 flex-col gap-5 p-4 sm:p-6">
                 <PageHeader
                     title="Series de comprobantes"
-                    description="Administra las series autorizadas para cada tipo de documento electrónico SUNAT."
+                    description="Administra las series SUNAT autorizadas por sede. Cada venta usa las series de la sede de tu sesión de caja."
                     stats={[
                         {
                             label: 'Total',
@@ -168,7 +232,7 @@ export default function Index({ series = [], tipos }: Props) {
                     action={
                         canCreate && !showForm ? (
                             <Button
-                                onClick={() => setShowForm(true)}
+                                onClick={openCreateForm}
                                 className="cursor-pointer gap-2"
                                 size="sm"
                             >
@@ -179,18 +243,52 @@ export default function Index({ series = [], tipos }: Props) {
                     }
                 />
 
-                {/* Flash success */}
-                {flash?.success && (
+                {sedesOpciones.length > 0 ? (
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex min-w-0 items-center gap-2">
+                            <Building2 className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                            <Select
+                                value={sedeFiltro || ALL_SEDES}
+                                onValueChange={(value) =>
+                                    applySedeFilter(value === ALL_SEDES ? '' : value)
+                                }
+                            >
+                                <SelectTrigger className="h-9 w-full min-w-[12rem] cursor-pointer sm:w-72">
+                                    <SelectValue placeholder="Todas las sedes" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value={ALL_SEDES}>Todas las sedes</SelectItem>
+                                    {sedesOpciones.map((sede) => (
+                                        <SelectItem key={sede.id} value={sede.id}>
+                                            {sede.nombre}
+                                            {sede.codigo ? ` · ${sede.codigo}` : ''}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        {sedeFiltro ? (
+                            <StatBadge
+                                label="Sede filtrada"
+                                value={
+                                    sedesOpciones.find((s) => s.id === sedeFiltro)?.nombre ?? '—'
+                                }
+                                variant="info"
+                            />
+                        ) : null}
+                    </div>
+                ) : null}
+
+                {flash?.success ? (
                     <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
                         <CheckCircle2 className="size-4 shrink-0" />
                         {flash.success}
                     </div>
-                )}
+                ) : null}
 
-                {/* Formulario nueva serie */}
-                {showForm && (
+                {showForm ? (
                     <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
-                        <div className="mb-3 flex items-center justify-between">
+                        <div className="mb-3 flex items-center justify-between gap-3">
                             <p className="text-sm font-semibold">Nueva serie de comprobante</p>
                             <button
                                 type="button"
@@ -205,9 +303,33 @@ export default function Index({ series = [], tipos }: Props) {
                         </div>
 
                         <div className="flex flex-col gap-3">
-                            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_9rem_7rem_auto] sm:items-end">
-                                {/* Tipo */}
-                                <div className="flex min-w-0 flex-col gap-1.5">
+                            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_7rem_7rem_auto] xl:items-end">
+                                <div className="flex flex-col gap-1.5">
+                                    <label
+                                        htmlFor="serie-sede"
+                                        className="text-xs font-medium text-muted-foreground"
+                                    >
+                                        Sede
+                                    </label>
+                                    <Select
+                                        value={formSede || undefined}
+                                        onValueChange={setFormSede}
+                                        disabled={Boolean(sedeFiltro)}
+                                    >
+                                        <SelectTrigger id="serie-sede" className="h-9 w-full cursor-pointer">
+                                            <SelectValue placeholder="Seleccionar sede…" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {sedesOpciones.map((sede) => (
+                                                <SelectItem key={sede.id} value={sede.id}>
+                                                    {sede.nombre}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div className="flex flex-col gap-1.5">
                                     <label
                                         htmlFor="serie-tipo"
                                         className="text-xs font-medium text-muted-foreground"
@@ -226,18 +348,14 @@ export default function Index({ series = [], tipos }: Props) {
                                             ))}
                                         </SelectContent>
                                     </Select>
-                                    <p className="min-h-4 text-xs text-destructive">
-                                        {formErrors.tipo_comprobante ?? ''}
-                                    </p>
                                 </div>
 
-                                {/* Serie */}
                                 <div className="flex flex-col gap-1.5">
                                     <label
                                         htmlFor="serie-codigo"
                                         className="text-xs font-medium text-muted-foreground"
                                     >
-                                        Serie (4 chars)
+                                        Serie
                                     </label>
                                     <Input
                                         id="serie-codigo"
@@ -254,12 +372,8 @@ export default function Index({ series = [], tipos }: Props) {
                                         maxLength={4}
                                         className="h-9 font-mono tracking-widest"
                                     />
-                                    <p className="min-h-4 text-xs text-destructive">
-                                        {formErrors.serie ?? ''}
-                                    </p>
                                 </div>
 
-                                {/* Correlativo inicial */}
                                 <div className="flex flex-col gap-1.5">
                                     <label
                                         htmlFor="serie-correlativo"
@@ -277,9 +391,6 @@ export default function Index({ series = [], tipos }: Props) {
                                         placeholder="0"
                                         className="h-9 font-mono tabular-nums"
                                     />
-                                    <p className="min-h-4 text-xs text-transparent select-none" aria-hidden>
-                                        .
-                                    </p>
                                 </div>
 
                                 <Button
@@ -287,24 +398,44 @@ export default function Index({ series = [], tipos }: Props) {
                                     onClick={handleStore}
                                     disabled={submitting}
                                     size="sm"
-                                    className="h-9 w-full cursor-pointer gap-2 sm:w-auto sm:shrink-0"
+                                    className="h-9 w-full cursor-pointer gap-2 xl:w-auto xl:shrink-0"
                                 >
                                     <Plus className="size-4" />
                                     Guardar
                                 </Button>
                             </div>
 
-                            {(selectedTipo || formSerie) && (
+                            {(formErrors.sede_id ||
+                                formErrors.tipo_comprobante ||
+                                formErrors.serie) && (
+                                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-destructive">
+                                    {formErrors.sede_id ? <span>{formErrors.sede_id}</span> : null}
+                                    {formErrors.tipo_comprobante ? (
+                                        <span>{formErrors.tipo_comprobante}</span>
+                                    ) : null}
+                                    {formErrors.serie ? <span>{formErrors.serie}</span> : null}
+                                </div>
+                            )}
+
+                            {(selectedTipo || formSerie || selectedSedeNombre) && (
                                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-primary/10 pt-3 text-xs text-muted-foreground">
-                                    {selectedTipo && (
+                                    {selectedSedeNombre ? (
+                                        <span>
+                                            Sede:{' '}
+                                            <span className="font-medium text-foreground">
+                                                {selectedSedeNombre}
+                                            </span>
+                                        </span>
+                                    ) : null}
+                                    {selectedTipo ? (
                                         <span>
                                             Formato:{' '}
                                             <span className="font-medium text-foreground">
                                                 {selectedTipo.hint}
                                             </span>
                                         </span>
-                                    )}
-                                    {formSerie && (
+                                    ) : null}
+                                    {formSerie ? (
                                         <span>
                                             Próximo número:{' '}
                                             <span className="font-mono font-medium text-foreground">
@@ -312,14 +443,13 @@ export default function Index({ series = [], tipos }: Props) {
                                                 {String((Number(formCorrelativo) || 0) + 1).padStart(8, '0')}
                                             </span>
                                         </span>
-                                    )}
+                                    ) : null}
                                 </div>
                             )}
                         </div>
                     </div>
-                )}
+                ) : null}
 
-                {/* Resumen por tipo */}
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
                     {byTipo.map((t) => (
                         <div
@@ -335,32 +465,38 @@ export default function Index({ series = [], tipos }: Props) {
                     ))}
                 </div>
 
-                {/* Tabla de series */}
                 {series.length === 0 ? (
                     <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border/60 py-16 text-center">
                         <FileText className="size-10 text-muted-foreground/40" strokeWidth={1.5} />
                         <div>
                             <p className="text-sm font-medium">Sin series configuradas</p>
                             <p className="text-xs text-muted-foreground">
-                                Crea una serie para cada tipo de comprobante que vayas a emitir.
+                                {sedeFiltro
+                                    ? 'Crea al menos una serie para esta sede antes de emitir comprobantes.'
+                                    : 'Crea una serie para cada sede y tipo de comprobante que vayas a emitir.'}
                             </p>
                         </div>
-                        {canCreate && (
+                        {canCreate ? (
                             <Button
                                 size="sm"
-                                onClick={() => setShowForm(true)}
+                                onClick={openCreateForm}
                                 className="cursor-pointer gap-2"
                             >
                                 <Plus className="size-4" />
                                 Nueva serie
                             </Button>
-                        )}
+                        ) : null}
                     </div>
                 ) : (
                     <div className="overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm">
                         <table className="w-full text-sm">
                             <thead>
                                 <tr className="border-b border-border/60 bg-muted/30">
+                                    {showSedeColumn ? (
+                                        <th className="px-4 py-3 text-left font-medium text-muted-foreground">
+                                            Sede
+                                        </th>
+                                    ) : null}
                                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">
                                         Tipo
                                     </th>
@@ -387,6 +523,13 @@ export default function Index({ series = [], tipos }: Props) {
                                         key={s.id}
                                         className={`transition-colors hover:bg-muted/20 ${!s.activo ? 'opacity-60' : ''}`}
                                     >
+                                        {showSedeColumn ? (
+                                            <td className="px-4 py-3">
+                                                <span className="font-medium text-foreground">
+                                                    {s.sede_nombre}
+                                                </span>
+                                            </td>
+                                        ) : null}
                                         <td className="px-4 py-3">
                                             <span
                                                 className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ${TIPO_COLORS[s.tipo_comprobante] ?? 'bg-muted text-muted-foreground ring-border'}`}
@@ -422,13 +565,16 @@ export default function Index({ series = [], tipos }: Props) {
                                         </td>
                                         <td className="px-4 py-3">
                                             <div className="flex items-center justify-end gap-2">
-                                                {/* Toggle activo */}
-                                                {canUpdate && (
+                                                {canUpdate ? (
                                                     <button
                                                         type="button"
                                                         onClick={() => handleToggle(s)}
                                                         disabled={togglingId === s.id}
-                                                        title={s.activo ? 'Desactivar serie' : 'Activar serie'}
+                                                        title={
+                                                            s.activo
+                                                                ? 'Desactivar serie'
+                                                                : 'Activar serie'
+                                                        }
                                                         className={`cursor-pointer rounded-md p-1.5 transition-colors ${
                                                             s.activo
                                                                 ? 'text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700'
@@ -437,10 +583,9 @@ export default function Index({ series = [], tipos }: Props) {
                                                     >
                                                         <Power className="size-4" />
                                                     </button>
-                                                )}
+                                                ) : null}
 
-                                                {/* Eliminar */}
-                                                {canDelete && !s.tiene_documentos && (
+                                                {canDelete && !s.tiene_documentos ? (
                                                     <button
                                                         type="button"
                                                         onClick={() => handleDelete(s.id)}
@@ -450,17 +595,16 @@ export default function Index({ series = [], tipos }: Props) {
                                                     >
                                                         <Trash2 className="size-4" />
                                                     </button>
-                                                )}
+                                                ) : null}
 
-                                                {/* Sin documentos: solo info */}
-                                                {s.tiene_documentos && (
+                                                {s.tiene_documentos ? (
                                                     <span
                                                         title="Tiene comprobantes emitidos — no se puede eliminar"
                                                         className="rounded-md p-1.5 text-amber-500"
                                                     >
                                                         <AlertTriangle className="size-4" />
                                                     </span>
-                                                )}
+                                                ) : null}
                                             </div>
                                         </td>
                                     </tr>
@@ -470,7 +614,6 @@ export default function Index({ series = [], tipos }: Props) {
                     </div>
                 )}
 
-                {/* Nota informativa */}
                 <div className="flex items-start gap-3 rounded-lg border border-border/60 bg-muted/20 p-4 text-xs text-muted-foreground">
                     <FileText className="mt-0.5 size-4 shrink-0" strokeWidth={1.5} />
                     <div className="flex flex-col gap-1">
@@ -478,8 +621,9 @@ export default function Index({ series = [], tipos }: Props) {
                         <span>
                             Factura: <code className="font-mono">F###</code> · Boleta:{' '}
                             <code className="font-mono">B###</code> · Nota de crédito:{' '}
-                            <code className="font-mono">FC##</code> / <code className="font-mono">BC##</code> · Nota de débito:{' '}
-                            <code className="font-mono">FD##</code> / <code className="font-mono">BD##</code> · Guía de remisión:{' '}
+                            <code className="font-mono">FC##</code> / <code className="font-mono">BC##</code> · Nota
+                            de débito: <code className="font-mono">FD##</code> /{' '}
+                            <code className="font-mono">BD##</code> · Guía de remisión:{' '}
                             <code className="font-mono">T###</code>
                         </span>
                     </div>
@@ -492,8 +636,8 @@ export default function Index({ series = [], tipos }: Props) {
 Index.layout = (page: React.ReactNode) => (
     <AppLayout
         breadcrumbs={[
-        { title: 'Facturación', href: '#' },
-        { title: 'Series', href: '/facturacion/series' },
+            { title: 'Facturación', href: '#' },
+            { title: 'Series', href: '/facturacion/series' },
         ]}
     >
         {page}

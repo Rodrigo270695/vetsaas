@@ -4,10 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * @property string $id
+ * @property string $sede_id
  * @property int $tipo_comprobante
  * @property string $serie
  * @property int $ultimo_correlativo
@@ -84,6 +86,7 @@ class FelSerie extends Model
     protected $table = 'fel_series';
 
     protected $fillable = [
+        'sede_id',
         'tipo_comprobante',
         'serie',
         'ultimo_correlativo',
@@ -97,6 +100,11 @@ class FelSerie extends Model
             'ultimo_correlativo' => 'integer',
             'activo' => 'boolean',
         ];
+    }
+
+    public function sede(): BelongsTo
+    {
+        return $this->belongsTo(Sede::class, 'sede_id');
     }
 
     public function documentos(): HasMany

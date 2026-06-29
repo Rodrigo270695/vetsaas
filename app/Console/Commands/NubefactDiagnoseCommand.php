@@ -7,7 +7,6 @@ use App\Models\FelSerie;
 use App\Models\Sede;
 use App\Models\Tenant;
 use App\Support\Fel\FelSerieResolver;
-use App\Support\Fel\SunatSerieCodigo;
 use App\Tenancy\TenantManager;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
@@ -60,21 +59,37 @@ class NubefactDiagnoseCommand extends Command
             $this->line('  token: '.($clinic->nubefact_configurado ? 'guardado (cifrado)' : 'no'));
 
             $this->newLine();
-            $this->info('Sedes (Configuración › Sedes) — series que usa la emisión');
+            $this->info('Series por sede (Facturación › Series)');
             $sedes = Sede::query()
                 ->where('tenant_id', $tenant->getKey())
                 ->orderBy('nombre')
-                ->get(['id', 'nombre', 'codigo', 'activa', 'serie_boleta', 'serie_factura']);
+                ->get(['id', 'nombre', 'codigo', 'activa']);
 
             if ($sedes->isEmpty()) {
                 $this->warn('  No hay sedes.');
             }
 
+            $seriesPorSede = FelSerie::query()
+                ->orderBy('sede_id')
+                ->orderBy('tipo_comprobante')
+                ->orderBy('serie')
+                ->get()
+                ->groupBy('sede_id');
+
             foreach ($sedes as $sede) {
-                $b = SunatSerieCodigo::normalizar($sede->serie_boleta) ?? '—';
-                $f = SunatSerieCodigo::normalizar($sede->serie_factura) ?? '—';
                 $estado = $sede->activa ? 'activa' : 'inactiva';
-                $this->line("  · {$sede->nombre} ({$sede->codigo}) [{$estado}] → boleta: {$b}, factura: {$f}");
+                $this->line("  · {$sede->nombre} ({$sede->codigo}) [{$estado}]");
+                $filas = $seriesPorSede->get($sede->id, collect());
+                if ($filas->isEmpty()) {
+                    $this->line('      (sin series — configúralas en Facturación › Series)');
+
+                    continue;
+                }
+                foreach ($filas as $fs) {
+                    $tipo = FelSerie::labelTipo((int) $fs->tipo_comprobante);
+                    $activa = $fs->activo ? 'activa' : 'inactiva';
+                    $this->line("      {$tipo} {$fs->serie} [{$activa}] → correlativo {$fs->ultimo_correlativo}");
+                }
             }
 
             $this->newLine();

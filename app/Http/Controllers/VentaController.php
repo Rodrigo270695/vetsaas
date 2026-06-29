@@ -591,7 +591,7 @@ class VentaController extends Controller
             'consulta:id,atendido_at',
             'consulta.historiaClinica.paciente:id,nombre',
             'felDocument',
-            'sede:id,serie_boleta,serie_factura,activa',
+            'sede:id,activa',
         ]);
 
         $clinic = ClinicSetting::current();
