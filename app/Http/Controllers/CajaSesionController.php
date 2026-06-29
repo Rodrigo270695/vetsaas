@@ -107,8 +107,17 @@ class CajaSesionController extends Controller
             return $s;
         });
 
-        $abiertasCount = CajaSesion::query()->where('estado', CajaSesion::ESTADO_ABIERTA)->count();
-        $cerradasCount = CajaSesion::query()->where('estado', CajaSesion::ESTADO_CERRADA)->count();
+        $abiertasCount = CajaSesion::query()
+            ->where('estado', CajaSesion::ESTADO_ABIERTA)
+            ->when($sedeFiltro !== '', fn ($q) => $q->where('sede_id', $sedeFiltro))
+            ->count();
+        $cerradasCount = CajaSesion::query()
+            ->where('estado', CajaSesion::ESTADO_CERRADA)
+            ->when($sedeFiltro !== '', fn ($q) => $q->where('sede_id', $sedeFiltro))
+            ->count();
+        $totalCount = CajaSesion::query()
+            ->when($sedeFiltro !== '', fn ($q) => $q->where('sede_id', $sedeFiltro))
+            ->count();
 
         $miSesionAbierta = CajaSesion::query()
             ->where('estado', CajaSesion::ESTADO_ABIERTA)
@@ -136,7 +145,7 @@ class CajaSesionController extends Controller
                 'sede_id' => $sedeFiltro,
             ],
             'stats' => [
-                'total' => CajaSesion::query()->count(),
+                'total' => $totalCount,
                 'abiertas' => $abiertasCount,
                 'cerradas' => $cerradasCount,
                 'coincidencias' => $sesiones->total(),

@@ -467,7 +467,13 @@ export default function Index({
                 />
             </div>
 
-            <SesionAbrirModal open={abrirOpen} onOpenChange={setAbrirOpen} sedes={sedesOpciones} listQuery={listQuery} />
+            <SesionAbrirModal
+                open={abrirOpen}
+                onOpenChange={setAbrirOpen}
+                sedes={sedesOpciones}
+                listQuery={listQuery}
+                preferredSedeId={filters.sede_id || undefined}
+            />
 
             <SesionCerrarModal
                 open={cerrarSesion !== null}

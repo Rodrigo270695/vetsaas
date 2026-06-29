@@ -60,8 +60,19 @@ export function SedeFormField({
     useLayoutEffect(() => {
         if (sedes.length === 1 && lockedSedeId && value !== lockedSedeId) {
             onChange(lockedSedeId);
+
+            return;
         }
-    }, [sedes, lockedSedeId, value, onChange]);
+
+        if (
+            !allowNone &&
+            sedes.length > 0 &&
+            lockedSedeId &&
+            (value === null || value === '')
+        ) {
+            onChange(lockedSedeId);
+        }
+    }, [sedes, lockedSedeId, value, onChange, allowNone]);
 
     if (!showSelector) {
         return null;

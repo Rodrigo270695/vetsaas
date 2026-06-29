@@ -24,6 +24,8 @@ type SesionAbrirModalProps = {
     onOpenChange: (open: boolean) => void;
     sedes: readonly SedeOpcion[];
     listQuery: QueryParams;
+    /** Sede del filtro del listado o la primera activa al abrir el modal. */
+    preferredSedeId?: string;
 };
 
 type FormData = {
@@ -33,16 +35,40 @@ type FormData = {
     notas: string;
 };
 
-const empty = (sedes: readonly SedeOpcion[]): FormData => ({
-    sede_id: resolveDefaultSedeIdOrEmpty(sedes),
+function resolveInitialSedeId(
+    sedes: readonly SedeOpcion[],
+    preferred?: string,
+): string {
+    const trimmed = preferred?.trim() ?? '';
+
+    if (trimmed !== '' && sedes.some((s) => s.id === trimmed)) {
+        return trimmed;
+    }
+
+    return resolveDefaultSedeIdOrEmpty(sedes);
+}
+
+const buildEmpty = (
+    sedes: readonly SedeOpcion[],
+    preferredSedeId?: string,
+): FormData => ({
+    sede_id: resolveInitialSedeId(sedes, preferredSedeId),
     moneda: 'PEN',
     saldo_apertura: '0',
     notas: '',
 });
 
-export function SesionAbrirModal({ open, onOpenChange, sedes, listQuery }: SesionAbrirModalProps) {
+export function SesionAbrirModal({
+    open,
+    onOpenChange,
+    sedes,
+    listQuery,
+    preferredSedeId,
+}: SesionAbrirModalProps) {
     const { t } = useTranslation('caja');
-    const { data, setData, post, processing, errors, reset, clearErrors } = useForm<FormData>(empty(sedes));
+    const { data, setData, post, processing, errors, reset, clearErrors } = useForm<FormData>(() =>
+        buildEmpty(sedes, preferredSedeId),
+    );
 
     useEffect(() => {
         if (!open) {
@@ -51,11 +77,18 @@ export function SesionAbrirModal({ open, onOpenChange, sedes, listQuery }: Sesio
 
         reset();
         clearErrors();
-        setData(empty(sedes));
-    }, [open, sedes]);
+        setData(buildEmpty(sedes, preferredSedeId));
+    }, [open, sedes, preferredSedeId]);
+
+    const sedeValida = data.sede_id.trim() !== '';
 
     const onSubmit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+
+        if (!sedeValida) {
+            return;
+        }
+
         const actionUrl = caja.sesiones.store.url({ query: listQuery });
         post(actionUrl, {
             preserveScroll: true,
@@ -79,7 +112,11 @@ export function SesionAbrirModal({ open, onOpenChange, sedes, listQuery }: Sesio
                     <Button type="button" variant="outline" className="cursor-pointer" onClick={() => onOpenChange(false)}>
                         {t('sesiones.dialog_abrir.cancel')}
                     </Button>
-                    <Button type="submit" disabled={processing || sedes.length === 0} className="cursor-pointer gap-2">
+                    <Button
+                        type="submit"
+                        disabled={processing || sedes.length === 0 || !sedeValida}
+                        className="cursor-pointer gap-2"
+                    >
                         {processing ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
                         {t('sesiones.dialog_abrir.submit')}
                     </Button>
@@ -96,6 +133,7 @@ export function SesionAbrirModal({ open, onOpenChange, sedes, listQuery }: Sesio
                     error={errors.sede_id}
                     disabled={sedes.length === 0}
                     allowNone={false}
+                    required
                     noneLabel={t('sesiones.filter_sede_label')}
                     controlClassName="h-9 w-full min-w-0 cursor-pointer justify-between"
                     formatLabel={(s) =>
