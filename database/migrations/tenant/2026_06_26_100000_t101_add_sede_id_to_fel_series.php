@@ -16,17 +16,17 @@ return new class extends TenantMigration
                 return;
             }
 
-            Schema::table('fel_series', function (Blueprint $table): void {
-                $table->uuid('sede_id')->nullable()->after('id');
-            });
+            if (! Schema::hasColumn('fel_series', 'sede_id')) {
+                Schema::table('fel_series', function (Blueprint $table): void {
+                    $table->uuid('sede_id')->nullable()->after('id');
+                });
+            }
+
+            $this->dropLegacyUniqueIfExists();
 
             $this->backfillSedeIdFromSedes();
 
-            Schema::table('fel_series', function (Blueprint $table): void {
-                $table->dropUnique(['tipo_comprobante', 'serie']);
-                $table->unique(['sede_id', 'tipo_comprobante', 'serie']);
-                $table->index(['sede_id', 'tipo_comprobante', 'activo']);
-            });
+            $this->ensureSedeScopedUniqueAndIndex();
         });
     }
 
@@ -37,13 +37,121 @@ return new class extends TenantMigration
                 return;
             }
 
+            $this->dropSedeScopedUniqueIfExists();
+
             Schema::table('fel_series', function (Blueprint $table): void {
-                $table->dropUnique(['sede_id', 'tipo_comprobante', 'serie']);
-                $table->dropIndex(['sede_id', 'tipo_comprobante', 'activo']);
                 $table->dropColumn('sede_id');
-                $table->unique(['tipo_comprobante', 'serie']);
             });
+
+            if (! $this->legacyUniqueExists()) {
+                Schema::table('fel_series', function (Blueprint $table): void {
+                    $table->unique(['tipo_comprobante', 'serie']);
+                });
+            }
         });
+    }
+
+    private function dropLegacyUniqueIfExists(): void
+    {
+        if (! $this->legacyUniqueExists()) {
+            return;
+        }
+
+        Schema::table('fel_series', function (Blueprint $table): void {
+            $table->dropUnique(['tipo_comprobante', 'serie']);
+        });
+    }
+
+    private function legacyUniqueExists(): bool
+    {
+        if (DB::getDriverName() !== 'pgsql') {
+            return false;
+        }
+
+        $schema = config('tenant.migration_schema');
+        if (! is_string($schema)) {
+            return false;
+        }
+
+        return (bool) DB::selectOne(
+            'SELECT 1 FROM pg_constraint c
+             JOIN pg_class t ON t.oid = c.conrelid
+             JOIN pg_namespace n ON n.oid = t.relnamespace
+             WHERE n.nspname = ? AND t.relname = ? AND c.conname = ?',
+            [$schema, 'fel_series', 'fel_series_tipo_comprobante_serie_unique'],
+        );
+    }
+
+    private function ensureSedeScopedUniqueAndIndex(): void
+    {
+        if (! $this->sedeScopedUniqueExists()) {
+            Schema::table('fel_series', function (Blueprint $table): void {
+                $table->unique(['sede_id', 'tipo_comprobante', 'serie']);
+            });
+        }
+
+        if (DB::getDriverName() === 'pgsql') {
+            $schema = config('tenant.migration_schema');
+            if (is_string($schema)) {
+                $indexExists = (bool) DB::selectOne(
+                    'SELECT 1 FROM pg_indexes WHERE schemaname = ? AND indexname = ?',
+                    [$schema, 'fel_series_sede_id_tipo_comprobante_activo_index'],
+                );
+
+                if (! $indexExists) {
+                    Schema::table('fel_series', function (Blueprint $table): void {
+                        $table->index(['sede_id', 'tipo_comprobante', 'activo']);
+                    });
+                }
+            }
+        }
+    }
+
+    private function dropSedeScopedUniqueIfExists(): void
+    {
+        if (! $this->sedeScopedUniqueExists()) {
+            return;
+        }
+
+        Schema::table('fel_series', function (Blueprint $table): void {
+            $table->dropUnique(['sede_id', 'tipo_comprobante', 'serie']);
+        });
+
+        if (DB::getDriverName() === 'pgsql') {
+            $schema = config('tenant.migration_schema');
+            if (is_string($schema)) {
+                $indexExists = (bool) DB::selectOne(
+                    'SELECT 1 FROM pg_indexes WHERE schemaname = ? AND indexname = ?',
+                    [$schema, 'fel_series_sede_id_tipo_comprobante_activo_index'],
+                );
+
+                if ($indexExists) {
+                    Schema::table('fel_series', function (Blueprint $table): void {
+                        $table->dropIndex(['sede_id', 'tipo_comprobante', 'activo']);
+                    });
+                }
+            }
+        }
+    }
+
+    private function sedeScopedUniqueExists(): bool
+    {
+        if (DB::getDriverName() !== 'pgsql') {
+            return false;
+        }
+
+        $schema = config('tenant.migration_schema');
+        if (! is_string($schema)) {
+            return false;
+        }
+
+        return (bool) DB::selectOne(
+            'SELECT 1 FROM pg_constraint c
+             JOIN pg_class t ON t.oid = c.conrelid
+             JOIN pg_namespace n ON n.oid = t.relnamespace
+             WHERE n.nspname = ? AND t.relname = ? AND c.conname = ?',
+            [$schema, 'fel_series', 'fel_series_sede_id_tipo_comprobante_serie_unique'],
+        );
     }
 
     private function backfillSedeIdFromSedes(): void
@@ -86,14 +194,7 @@ return new class extends TenantMigration
                 $fallbackSedeId,
             );
 
-            $collision = DB::table('fel_series')
-                ->where('sede_id', $targetSedeId)
-                ->where('tipo_comprobante', $row->tipo_comprobante)
-                ->where('serie', $row->serie)
-                ->where('id', '!=', $row->id)
-                ->exists();
-
-            if ($collision) {
+            if ($this->sedeAlreadyHasSerie($targetSedeId, (int) $row->tipo_comprobante, (string) $row->serie, (string) $row->id)) {
                 continue;
             }
 
@@ -105,14 +206,7 @@ return new class extends TenantMigration
 
         $stillOrphans = DB::table('fel_series')->whereNull('sede_id')->get(['id', 'tipo_comprobante', 'serie']);
         foreach ($stillOrphans as $row) {
-            $collision = DB::table('fel_series')
-                ->where('sede_id', $fallbackSedeId)
-                ->where('tipo_comprobante', $row->tipo_comprobante)
-                ->where('serie', $row->serie)
-                ->where('id', '!=', $row->id)
-                ->exists();
-
-            if ($collision) {
+            if ($this->sedeAlreadyHasSerie($fallbackSedeId, (int) $row->tipo_comprobante, (string) $row->serie, (string) $row->id)) {
                 continue;
             }
 
@@ -155,17 +249,25 @@ return new class extends TenantMigration
             return;
         }
 
-        $existing = DB::table('fel_series')
+        $owned = DB::table('fel_series')
+            ->where('sede_id', $sedeId)
             ->where('tipo_comprobante', $tipoComprobante)
             ->where('serie', $codigo)
-            ->where(function ($q) use ($sedeId): void {
-                $q->whereNull('sede_id')->orWhere('sede_id', $sedeId);
-            })
-            ->orderByRaw('CASE WHEN sede_id IS NULL THEN 0 ELSE 1 END')
-            ->first(['id', 'sede_id']);
+            ->exists();
 
-        if ($existing !== null) {
-            DB::table('fel_series')->where('id', $existing->id)->update([
+        if ($owned) {
+            return;
+        }
+
+        $legacy = DB::table('fel_series')
+            ->where('tipo_comprobante', $tipoComprobante)
+            ->where('serie', $codigo)
+            ->whereNull('sede_id')
+            ->orderBy('created_at')
+            ->first(['id']);
+
+        if ($legacy !== null) {
+            DB::table('fel_series')->where('id', $legacy->id)->update([
                 'sede_id' => $sedeId,
                 'activo' => true,
                 'updated_at' => $now,
@@ -174,15 +276,36 @@ return new class extends TenantMigration
             return;
         }
 
+        $template = DB::table('fel_series')
+            ->where('tipo_comprobante', $tipoComprobante)
+            ->where('serie', $codigo)
+            ->whereNotNull('sede_id')
+            ->orderBy('created_at')
+            ->first(['ultimo_correlativo']);
+
         DB::table('fel_series')->insert([
             'id' => (string) Str::uuid(),
             'sede_id' => $sedeId,
             'tipo_comprobante' => $tipoComprobante,
             'serie' => $codigo,
-            'ultimo_correlativo' => 0,
+            'ultimo_correlativo' => $template->ultimo_correlativo ?? 0,
             'activo' => true,
             'created_at' => $now,
             'updated_at' => $now,
         ]);
+    }
+
+    private function sedeAlreadyHasSerie(
+        string $sedeId,
+        int $tipoComprobante,
+        string $serie,
+        string $excludeId,
+    ): bool {
+        return DB::table('fel_series')
+            ->where('sede_id', $sedeId)
+            ->where('tipo_comprobante', $tipoComprobante)
+            ->where('serie', $serie)
+            ->where('id', '!=', $excludeId)
+            ->exists();
     }
 };
