@@ -18,7 +18,8 @@
         "pendiente": "Pending",
         "procesado": "Processed",
         "fallido": "Failed",
-        "reembolsado": "Refunded"
+        "reembolsado": "Refunded",
+        "sin_cobro": "No payment recorded"
     },
     "stats": {
         "total": "Total",

@@ -51,7 +51,10 @@ class SubscriptionPaymentsXlsxExport
             ],
             [
                 'label' => 'Estado',
-                'value' => fn (SubscriptionPayment $p) => ucfirst((string) $p->estado),
+                'value' => fn (SubscriptionPayment $p) => match ($p->estado) {
+                    'sin_cobro' => 'Sin cobro registrado',
+                    default => ucfirst((string) $p->estado),
+                },
             ],
             [
                 'label' => 'Monto',
@@ -106,6 +109,120 @@ class SubscriptionPaymentsXlsxExport
                 'value' => fn (SubscriptionPayment $p) => (string) ($p->refund_reason ?? '—'),
             ],
         ];
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $rows
+     */
+    public function streamFromRows(array $rows, string $output = 'php://output'): void
+    {
+        $spreadsheet = new Spreadsheet();
+        $spreadsheet->getProperties()
+            ->setCreator('VetSaaS')
+            ->setTitle('Cobros')
+            ->setSubject('Listado de cobros de suscripciones');
+
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Cobros');
+
+        $columnCount = count($this->columns);
+        $lastColumnLetter = Coordinate::stringFromColumnIndex($columnCount);
+
+        $sheet->setCellValue('A1', 'Cobros');
+        $sheet->mergeCells("A1:{$lastColumnLetter}1");
+        $sheet->getStyle('A1')->applyFromArray([
+            'font' => ['bold' => true, 'size' => 16, 'color' => ['rgb' => '0E5236']],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_LEFT,
+                'vertical' => Alignment::VERTICAL_CENTER,
+            ],
+        ]);
+        $sheet->getRowDimension(1)->setRowHeight(26);
+
+        $sheet->setCellValue(
+            'A2',
+            sprintf(
+                'Exportado el %s · %d registros',
+                now()->format('d/m/Y H:i'),
+                count($rows),
+            ),
+        );
+        $sheet->mergeCells("A2:{$lastColumnLetter}2");
+        $sheet->getStyle('A2')->applyFromArray([
+            'font' => ['italic' => true, 'size' => 10, 'color' => ['rgb' => '6B7280']],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_LEFT,
+                'vertical' => Alignment::VERTICAL_CENTER,
+            ],
+        ]);
+
+        $headerRow = 4;
+        $dataStartRow = $headerRow + 1;
+        $row = $dataStartRow;
+
+        foreach ($this->columns as $index => $col) {
+            $colLetter = Coordinate::stringFromColumnIndex($index + 1);
+            $sheet->setCellValue("{$colLetter}{$headerRow}", $col['label']);
+        }
+
+        foreach ($rows as $rowData) {
+            $payment = $this->hydratePayment($rowData);
+
+            foreach ($this->columns as $index => $col) {
+                $colLetter = Coordinate::stringFromColumnIndex($index + 1);
+                $value = ($col['value'])($payment);
+                $sheet->setCellValueExplicit(
+                    "{$colLetter}{$row}",
+                    $value,
+                    \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING,
+                );
+            }
+
+            $row++;
+        }
+
+        $lastDataRow = max($dataStartRow, $row - 1);
+
+        $this->styleTable($sheet, $lastColumnLetter, $headerRow, $lastDataRow);
+
+        $sheet->freezePane('A'.($headerRow + 1));
+
+        foreach (range('A', $lastColumnLetter) as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        $writer = new Xlsx($spreadsheet);
+        $writer->save($output);
+
+        $spreadsheet->disconnectWorksheets();
+        unset($spreadsheet);
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     */
+    private function hydratePayment(array $row): SubscriptionPayment
+    {
+        $payment = new SubscriptionPayment();
+        $payment->forceFill(collect($row)->except([
+            'tenant',
+            'plan',
+            'subscription',
+            'refundedBy',
+            'has_payment_record',
+        ])->all());
+
+        if (isset($row['tenant']) && is_array($row['tenant'])) {
+            $tenant = new \App\Models\Tenant($row['tenant']);
+            $payment->setRelation('tenant', $tenant);
+        }
+
+        if (isset($row['plan']) && is_array($row['plan'])) {
+            $plan = new \App\Models\Plan($row['plan']);
+            $payment->setRelation('plan', $plan);
+        }
+
+        return $payment;
     }
 
     /**

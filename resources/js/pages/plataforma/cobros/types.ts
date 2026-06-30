@@ -13,7 +13,8 @@ export type PaymentEstado =
     | 'pendiente'
     | 'procesado'
     | 'fallido'
-    | 'reembolsado';
+    | 'reembolsado'
+    | 'sin_cobro';
 
 export type PaymentEstadoFilter = 'todos' | PaymentEstado;
 
@@ -92,6 +93,8 @@ export type SubscriptionPayment = {
     plan: PaymentPlanRef | null;
     subscription: PaymentSubscriptionRef | null;
     refundedBy: PaymentRefundedByRef | null;
+    /** false cuando la fila viene de la suscripción sin webhook de pago. */
+    has_payment_record?: boolean;
 };
 
 export type PaymentStats = {

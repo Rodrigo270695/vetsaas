@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Exports\SubscriptionPaymentsXlsxExport;
 use App\Models\Plan;
+use App\Models\Subscription;
 use App\Models\SubscriptionPayment;
 use App\Models\Tenant;
+use App\Support\Subscriptions\CobrosListPresenter;
 use App\Support\Subscriptions\SubscriptionExpiry;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -44,6 +46,8 @@ class SubscriptionPaymentController extends Controller
         'total',
         'pagado_at',
         'created_at',
+        'precio_pactado',
+        'proximo_cobro_at',
     ];
 
     private const ESTADO_OPTIONS = ['todos', 'procesado', 'pendiente', 'fallido', 'reembolsado'];
@@ -74,30 +78,35 @@ class SubscriptionPaymentController extends Controller
             $vencimiento = 'todos';
         }
 
-        $query = $this->buildBaseQuery($search, $estado, $subscriptionId, $tenantId, $planId, $vencimiento);
+        $query = $this->buildSubscriptionQuery(
+            $search,
+            $estado,
+            $subscriptionId,
+            $tenantId,
+            $planId,
+            $vencimiento,
+        );
 
         if ($sortValid) {
-            $query->orderBy($sort, $directionValid ? $direction : 'asc');
+            $this->applySubscriptionSort($query, $sort, $directionValid ? $direction : 'asc');
             $query->orderByDesc('created_at');
         } else {
             $query->orderByDesc('created_at');
         }
 
-        $payments = $query
+        $subscriptions = $query
             ->with([
                 'tenant:id,slug,razon_social,nombre_comercial,email_admin',
-                'tenant.subscriptions' => fn ($q) => $q
-                    ->whereIn('estado', ['trial', 'active', 'grace', 'suspended'])
-                    ->latest()
-                    ->limit(1),
-                'tenant.subscriptions.plan:id,codigo,nombre,badge,color_hex',
                 'plan:id,codigo,nombre,badge,color_hex',
-                'subscription:id,tenant_id,plan_id,estado,trial_ends_at,current_period_end,grace_ends_at,proximo_cobro_at',
-                'subscription.plan:id,codigo,nombre,badge,color_hex',
-                'refundedBy:id,name,email',
             ])
             ->paginate($perPage)
             ->withQueryString();
+
+        $subscriptions->setCollection(
+            $subscriptions->getCollection()->map(
+                fn (Subscription $subscription) => CobrosListPresenter::fromSubscription($subscription),
+            ),
+        );
 
         $plansCatalog = Plan::query()
             ->excludingFree()
@@ -106,27 +115,27 @@ class SubscriptionPaymentController extends Controller
 
         $tenantsCatalog = Tenant::query()
             ->whereHas('subscriptions', function (Builder $subscriptionQuery): void {
-                $subscriptionQuery
-                    ->whereIn('estado', ['trial', 'active', 'grace', 'suspended'])
-                    ->whereHas('plan', fn (Builder $planQuery) => $planQuery->excludingFree());
+                $subscriptionQuery->billable();
             })
             ->orderBy('razon_social')
             ->get(['id', 'slug', 'razon_social']);
 
+        $billableSubscriptions = Subscription::query()->billable();
+
         $statsByEstado = SubscriptionPayment::query()
             ->forBillablePlans()
-            ->forTenantsWithBillablePlan()
             ->selectRaw('estado, COUNT(*) as total, COALESCE(SUM(total), 0) as suma')
             ->groupBy('estado')
             ->get()
             ->keyBy('estado');
 
-        // Cobrado total: suma de `total` solo de procesados (excluye
-        // pendientes, fallidos y reembolsados).
         $cobradoTotal = (float) ($statsByEstado['procesado']->suma ?? 0);
+        $sinCobro = (clone $billableSubscriptions)
+            ->whereDoesntHave('payments', fn (Builder $paymentQuery) => $paymentQuery->forBillablePlans())
+            ->count();
 
         return Inertia::render('plataforma/cobros/index', [
-            'payments' => $payments,
+            'payments' => $subscriptions,
             'filters' => [
                 'search' => $search,
                 'per_page' => $perPage,
@@ -139,16 +148,13 @@ class SubscriptionPaymentController extends Controller
                 'vencimiento' => $vencimiento,
             ],
             'stats' => [
-                'total' => SubscriptionPayment::query()
-                    ->forBillablePlans()
-                    ->forTenantsWithBillablePlan()
-                    ->count(),
+                'total' => (clone $billableSubscriptions)->count(),
                 'procesado' => (int) ($statsByEstado['procesado']->total ?? 0),
-                'pendiente' => (int) ($statsByEstado['pendiente']->total ?? 0),
+                'pendiente' => (int) ($statsByEstado['pendiente']->total ?? 0) + $sinCobro,
                 'fallido' => (int) ($statsByEstado['fallido']->total ?? 0),
                 'reembolsado' => (int) ($statsByEstado['reembolsado']->total ?? 0),
                 'cobrado_total' => $cobradoTotal,
-                'coincidencias' => $payments->total(),
+                'coincidencias' => $subscriptions->total(),
             ],
             'plans_catalog' => $plansCatalog,
             'tenants_catalog' => $tenantsCatalog,
@@ -255,30 +261,36 @@ class SubscriptionPaymentController extends Controller
         $sortValid = in_array($sort, self::SORTABLE_COLUMNS, true);
         $directionValid = in_array($direction, ['asc', 'desc'], true);
 
-        $query = $this->buildBaseQuery($search, $estado, $subscriptionId, $tenantId, $planId, $vencimiento)
-            ->with([
-                'tenant:id,slug,razon_social',
-                'tenant.subscriptions' => fn ($q) => $q
-                    ->whereIn('estado', ['trial', 'active', 'grace', 'suspended'])
-                    ->latest()
-                    ->limit(1),
-                'tenant.subscriptions.plan:id,codigo,nombre',
-                'plan:id,codigo,nombre',
-            ]);
+        $query = $this->buildSubscriptionQuery(
+            $search,
+            $estado,
+            $subscriptionId,
+            $tenantId,
+            $planId,
+            $vencimiento,
+        );
 
         if ($sortValid) {
-            $query->orderBy($sort, $directionValid ? $direction : 'asc');
+            $this->applySubscriptionSort($query, $sort, $directionValid ? $direction : 'asc');
             $query->orderByDesc('created_at');
         } else {
             $query->orderByDesc('created_at');
         }
 
+        $subscriptions = $query
+            ->with([
+                'tenant:id,slug,razon_social',
+                'plan:id,codigo,nombre',
+            ])
+            ->get()
+            ->map(fn (Subscription $subscription) => CobrosListPresenter::fromSubscription($subscription));
+
         $filename = 'cobros-'.now()->format('Ymd-His').'.xlsx';
         $exporter = new SubscriptionPaymentsXlsxExport();
 
         return response()->streamDownload(
-            function () use ($exporter, $query) {
-                $exporter->streamTo($query);
+            function () use ($exporter, $subscriptions) {
+                $exporter->streamFromRows($subscriptions->all());
             },
             $filename,
             [
@@ -290,9 +302,9 @@ class SubscriptionPaymentController extends Controller
     }
 
     /**
-     * @return Builder<SubscriptionPayment>
+     * @return Builder<Subscription>
      */
-    private function buildBaseQuery(
+    private function buildSubscriptionQuery(
         string $search,
         string $estado,
         string $subscriptionId,
@@ -300,34 +312,48 @@ class SubscriptionPaymentController extends Controller
         string $planId = '',
         string $vencimiento = 'todos',
     ): Builder {
-        $query = SubscriptionPayment::query()
-            ->forBillablePlans()
-            ->forTenantsWithBillablePlan();
+        $query = Subscription::query()->billable();
 
         if ($search !== '') {
-            // Buscamos por:
-            //  - el ID de transacción de la pasarela (caso típico: el cliente
-            //    nos pasa "el código del pago" de Niubiz)
-            //  - el número FEL (cuando el cliente busca su factura)
-            //  - razón social / slug / email del tenant (búsqueda transitiva)
             $query->where(function ($q) use ($search) {
-                $q->where('pasarela_transaction_id', 'ILIKE', "%{$search}%")
-                    ->orWhere('fel_numero', 'ILIKE', "%{$search}%")
-                    ->orWhereHas('tenant', function ($qq) use ($search) {
-                        $qq->where('razon_social', 'ILIKE', "%{$search}%")
-                            ->orWhere('slug', 'ILIKE', "%{$search}%")
-                            ->orWhere('email_admin', 'ILIKE', "%{$search}%")
-                            ->orWhere('ruc', 'ILIKE', "%{$search}%");
-                    });
+                $q->whereHas('tenant', function ($qq) use ($search) {
+                    $qq->where('razon_social', 'ILIKE', "%{$search}%")
+                        ->orWhere('slug', 'ILIKE', "%{$search}%")
+                        ->orWhere('email_admin', 'ILIKE', "%{$search}%")
+                        ->orWhere('ruc', 'ILIKE', "%{$search}%");
+                })->orWhereHas('plan', function ($qq) use ($search) {
+                    $qq->where('codigo', 'ILIKE', "%{$search}%")
+                        ->orWhere('nombre', 'ILIKE', "%{$search}%");
+                })->orWhereHas('payments', function ($qq) use ($search) {
+                    $qq->forBillablePlans()
+                        ->where(function ($paymentQuery) use ($search) {
+                            $paymentQuery->where('pasarela_transaction_id', 'ILIKE', "%{$search}%")
+                                ->orWhere('fel_numero', 'ILIKE', "%{$search}%");
+                        });
+                });
             });
         }
 
-        if ($estado !== 'todos') {
-            $query->where('estado', $estado);
+        if ($estado === 'procesado') {
+            $query->whereHas('payments', fn (Builder $paymentQuery) => $paymentQuery
+                ->forBillablePlans()
+                ->where('estado', 'procesado'));
+        } elseif ($estado === 'pendiente') {
+            $query->where(function (Builder $pendingQuery): void {
+                $pendingQuery
+                    ->whereDoesntHave('payments', fn (Builder $paymentQuery) => $paymentQuery->forBillablePlans())
+                    ->orWhereHas('payments', fn (Builder $paymentQuery) => $paymentQuery
+                        ->forBillablePlans()
+                        ->where('estado', 'pendiente'));
+            });
+        } elseif ($estado !== 'todos') {
+            $query->whereHas('payments', fn (Builder $paymentQuery) => $paymentQuery
+                ->forBillablePlans()
+                ->where('estado', $estado));
         }
 
         if ($subscriptionId !== '') {
-            $query->where('subscription_id', $subscriptionId);
+            $query->whereKey($subscriptionId);
         }
 
         if ($tenantId !== '') {
@@ -335,13 +361,28 @@ class SubscriptionPaymentController extends Controller
         }
 
         if ($planId !== '') {
-            SubscriptionExpiry::applyPaymentPlanFilter($query, $planId);
+            $query->where('plan_id', $planId);
         }
 
         if ($vencimiento !== 'todos') {
-            SubscriptionExpiry::applyPaymentFilter($query, $vencimiento);
+            SubscriptionExpiry::applyFilter($query, $vencimiento);
         }
 
         return $query;
+    }
+
+    /**
+     * @param  Builder<Subscription>  $query
+     */
+    private function applySubscriptionSort(Builder $query, string $sort, string $direction): void
+    {
+        $dir = $direction === 'asc' ? 'asc' : 'desc';
+
+        match ($sort) {
+            'precio_pactado', 'total' => $query->orderBy('precio_pactado', $dir),
+            'proximo_cobro_at', 'pagado_at' => $query->orderBy('proximo_cobro_at', $dir),
+            'created_at' => $query->orderBy('created_at', $dir),
+            default => $query->orderBy('created_at', 'desc'),
+        };
     }
 }

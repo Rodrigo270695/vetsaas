@@ -1,6 +1,6 @@
 {
     "title": "Cobros",
-    "description": "Historial de pagos de suscripciones de pago (Starter, Pro, etc.). Excluye el plan Free. Los cobros los procesa Orvae (con Niubiz/Culqi/MercadoPago) y los registra acá vía webhook. Esta vista es de SOPORTE: lectura + acciones humanas (reembolso manual, nota interna, reenviar factura).",
+    "description": "Suscripciones de pago (Starter, Pro, Clínica, etc.) con su último cobro webhook si existe. Excluye el plan Free.",
     "search_placeholder": "Buscar por transaction ID, FEL, tenant, RUC…",
     "filter_label": "Filtrar por estado",
     "filter_plan_label": "Filtrar por plan",
@@ -18,7 +18,8 @@
         "pendiente": "Pendiente",
         "procesado": "Procesado",
         "fallido": "Fallido",
-        "reembolsado": "Reembolsado"
+        "reembolsado": "Reembolsado",
+        "sin_cobro": "Sin cobro registrado"
     },
     "stats": {
         "total": "Total",
@@ -50,7 +51,8 @@
         "resend_invoice": "Reenviar factura",
         "mark_refunded": "Marcar reembolso manual",
         "refunded_locked": "Cobro ya reembolsado",
-        "no_invoice": "Sin factura"
+        "no_invoice": "Sin factura",
+        "no_payment_record": "Aún no hay cobro vía pasarela"
     },
     "detail": {
         "title": "Detalle del cobro",

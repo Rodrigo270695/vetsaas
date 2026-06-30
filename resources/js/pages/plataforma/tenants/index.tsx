@@ -33,6 +33,7 @@ import type {
 } from '@/components/data-page';
 import { Button } from '@/components/ui/button';
 import { SubscriptionExpiryBadge } from '@/components/plataforma/subscription-expiry-badge';
+import { useDataTablePage } from '@/hooks/use-data-table-page';
 import { livingSubscription } from '@/lib/living-subscription';
 import { usePermission } from '@/hooks/use-permission';
 import { useRowSelection } from '@/hooks/use-row-selection';

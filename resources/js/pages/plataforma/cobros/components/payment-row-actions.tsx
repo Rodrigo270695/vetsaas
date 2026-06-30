@@ -59,6 +59,8 @@ export function PaymentRowActions({
 }: PaymentRowActionsProps) {
     const { t } = useTranslation(['cobros', 'common']);
 
+    const hasPaymentRecord = payment.has_payment_record !== false;
+    const isSinCobro = payment.estado === 'sin_cobro' || !hasPaymentRecord;
     const isRefunded = payment.estado === 'reembolsado';
     const isFailed = payment.estado === 'fallido';
     const isPending = payment.estado === 'pendiente';
@@ -66,9 +68,9 @@ export function PaymentRowActions({
     const hasTxId = !!payment.pasarela_transaction_id;
 
     const showCopy = hasTxId;
-    const showNote = canAddNote;
-    const showResend = canResend && hasFel;
-    const showRefund = canRefund && !isRefunded && !isFailed && !isPending;
+    const showNote = canAddNote && hasPaymentRecord;
+    const showResend = canResend && hasFel && hasPaymentRecord;
+    const showRefund = canRefund && !isRefunded && !isFailed && !isPending && hasPaymentRecord;
 
     const handleCopyTxId = async () => {
         if (!payment.pasarela_transaction_id) return;
@@ -159,6 +161,19 @@ export function PaymentRowActions({
                         <Undo2 className="size-4" strokeWidth={2.25} />
                         {t('cobros:row.mark_refunded')}
                     </DropdownMenuItem>
+                )}
+
+                {isSinCobro && (
+                    <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                            disabled
+                            className="gap-2 text-xs text-muted-foreground"
+                        >
+                            <Lock className="size-3.5" strokeWidth={2.25} />
+                            {t('cobros:row.no_payment_record')}
+                        </DropdownMenuItem>
+                    </>
                 )}
 
                 {isRefunded && (

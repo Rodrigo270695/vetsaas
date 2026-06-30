@@ -126,11 +126,13 @@ function renderEstadoBadge(
     const variant: Parameters<typeof StatBadge>[0]['variant'] =
         estado === 'procesado'
             ? 'success'
-            : estado === 'pendiente'
-              ? 'info'
-              : estado === 'fallido'
-                ? 'danger'
-                : 'muted';
+            : estado === 'sin_cobro'
+              ? 'muted'
+              : estado === 'pendiente'
+                ? 'info'
+                : estado === 'fallido'
+                  ? 'danger'
+                  : 'muted';
     return <StatBadge label={label} value="" variant={variant} />;
 }
 

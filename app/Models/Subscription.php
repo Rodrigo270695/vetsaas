@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Concerns\UsesPublicSchema;
 use App\Services\Subscriptions\SubscriptionTenantSync;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -66,6 +67,19 @@ class Subscription extends Model
     public function payments(): HasMany
     {
         return $this->hasMany(SubscriptionPayment::class);
+    }
+
+    /**
+     * Suscripciones vivas en planes de pago (excluye Free).
+     *
+     * @param  Builder<Subscription>  $query
+     * @return Builder<Subscription>
+     */
+    public function scopeBillable(Builder $query): Builder
+    {
+        return $query
+            ->whereIn('estado', ['trial', 'active', 'grace', 'suspended'])
+            ->whereHas('plan', fn (Builder $planQuery) => $planQuery->excludingFree());
     }
 
     public function renewalReminders(): HasMany
