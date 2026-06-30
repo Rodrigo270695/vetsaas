@@ -703,27 +703,47 @@ PROMPT;
     /**
      * Elige una novedad activa para incluir en mensajes de reactivación.
      * Rota por conversación para no repetir siempre la misma entre leads distintos.
+     *
+     * @return array{title: string, content: string}|null
      */
-    private function pickReactivationNovelty(SalesConversation $conversation): ?SalesBotKnowledge
+    private function pickReactivationNovelty(SalesConversation $conversation): ?array
     {
-        $novelties = Cache::remember('salesbot_novedades_vetsaas', now()->addMinutes(5), function (): \Illuminate\Support\Collection {
+        /** @var list<array{title: string, content: string}> $novelties */
+        $novelties = Cache::remember('salesbot_novedades_vetsaas_v2', now()->addMinutes(5), function (): array {
             return SalesBotKnowledge::query()
                 ->where('product', 'vetsaas')
                 ->where('section', 'novedad')
                 ->where('is_active', true)
                 ->orderByDesc('sort_order')
                 ->orderByDesc('updated_at')
-                ->get();
+                ->get(['title', 'content'])
+                ->map(fn (SalesBotKnowledge $row): array => [
+                    'title' => (string) $row->title,
+                    'content' => (string) $row->content,
+                ])
+                ->values()
+                ->all();
         });
 
-        if ($novelties->isEmpty()) {
+        if ($novelties === []) {
             return null;
         }
 
-        $index = $conversation->id % $novelties->count();
+        $index = self::noveltyIndexForConversation((string) $conversation->id, count($novelties));
 
-        /** @var SalesBotKnowledge|null */
-        return $novelties->get($index);
+        return $novelties[$index] ?? null;
+    }
+
+    /**
+     * Índice estable para rotar novedades (el id de conversación es UUID, no entero).
+     */
+    public static function noveltyIndexForConversation(string $conversationId, int $count): int
+    {
+        if ($count <= 0) {
+            return 0;
+        }
+
+        return abs(crc32($conversationId)) % $count;
     }
 
     /**
@@ -746,8 +766,8 @@ PROMPT;
         $novelty       = $this->pickReactivationNovelty($conversation);
         $noveltyHint   = $novelty !== null
             ? "\n\nOBLIGATORIO — incluye esta novedad como gancho (el prospecto NO la sabía cuando escribió antes):\n"
-              ."{$novelty->title}\n"
-              .Str::limit(trim(strtok($novelty->content, "\n") ?: $novelty->content), 220)
+              ."{$novelty['title']}\n"
+              .Str::limit(trim(strtok($novelty['content'], "\n") ?: $novelty['content']), 220)
             : '';
 
         // Prompt específico para reactivación — diferente tono según el intento.
@@ -758,7 +778,7 @@ PROMPT;
               .$noveltyHint
             : "Escribe UN último mensaje breve para {$name} que preguntó sobre VetSaaS hace días. "
               ."Ofrece el Plan Free sin costo como alternativa sin riesgo. Máximo 2 líneas. No menciones que es el último intento."
-              .($novelty !== null ? "\n\nOpcional: si cabe en 1 frase extra, menciona: {$novelty->title}" : '');
+              .($novelty !== null ? "\n\nOpcional: si cabe en 1 frase extra, menciona: {$novelty['title']}" : '');
 
         $systemPrompt = $this->buildSystemPrompt();
 

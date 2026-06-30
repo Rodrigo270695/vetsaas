@@ -186,6 +186,10 @@ final class SalesConversation extends Model
     {
         $history = $this->messages ?? [];
 
+        if (! is_array($history)) {
+            $history = [];
+        }
+
         $history[] = ['role' => $role, 'content' => $content];
 
         // Limitar a los últimos 40 turnos para no exceder el context window.
@@ -205,6 +209,8 @@ final class SalesConversation extends Model
      */
     public function getOpenAiMessages(): array
     {
-        return $this->messages ?? [];
+        $messages = $this->messages ?? [];
+
+        return is_array($messages) ? $messages : [];
     }
 }
