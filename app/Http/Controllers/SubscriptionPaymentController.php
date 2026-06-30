@@ -8,7 +8,6 @@ use App\Models\Subscription;
 use App\Models\SubscriptionPayment;
 use App\Models\Tenant;
 use App\Support\Subscriptions\CobrosListPresenter;
-use App\Support\Subscriptions\SubscriptionExpiry;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -73,10 +72,6 @@ class SubscriptionPaymentController extends Controller
         $subscriptionId = trim((string) $request->string('subscription_id', ''));
         $tenantId = trim((string) $request->string('tenant_id', ''));
         $planId = trim((string) $request->string('plan_id', ''));
-        $vencimiento = (string) $request->string('vencimiento', 'todos');
-        if (! in_array($vencimiento, SubscriptionExpiry::FILTER_OPTIONS, true)) {
-            $vencimiento = 'todos';
-        }
 
         $query = $this->buildSubscriptionQuery(
             $search,
@@ -84,7 +79,6 @@ class SubscriptionPaymentController extends Controller
             $subscriptionId,
             $tenantId,
             $planId,
-            $vencimiento,
         );
 
         if ($sortValid) {
@@ -145,7 +139,6 @@ class SubscriptionPaymentController extends Controller
                 'subscription_id' => $subscriptionId !== '' ? $subscriptionId : null,
                 'tenant_id' => $tenantId !== '' ? $tenantId : null,
                 'plan_id' => $planId !== '' ? $planId : null,
-                'vencimiento' => $vencimiento,
             ],
             'stats' => [
                 'total' => (clone $billableSubscriptions)->count(),
@@ -251,10 +244,6 @@ class SubscriptionPaymentController extends Controller
         $subscriptionId = trim((string) $request->string('subscription_id', ''));
         $tenantId = trim((string) $request->string('tenant_id', ''));
         $planId = trim((string) $request->string('plan_id', ''));
-        $vencimiento = (string) $request->string('vencimiento', 'todos');
-        if (! in_array($vencimiento, SubscriptionExpiry::FILTER_OPTIONS, true)) {
-            $vencimiento = 'todos';
-        }
 
         $sort = (string) $request->string('sort', '');
         $direction = strtolower((string) $request->string('direction', 'desc'));
@@ -267,7 +256,6 @@ class SubscriptionPaymentController extends Controller
             $subscriptionId,
             $tenantId,
             $planId,
-            $vencimiento,
         );
 
         if ($sortValid) {
@@ -310,7 +298,6 @@ class SubscriptionPaymentController extends Controller
         string $subscriptionId,
         string $tenantId,
         string $planId = '',
-        string $vencimiento = 'todos',
     ): Builder {
         $query = Subscription::query()->billable();
 
@@ -362,10 +349,6 @@ class SubscriptionPaymentController extends Controller
 
         if ($planId !== '') {
             $query->where('plan_id', $planId);
-        }
-
-        if ($vencimiento !== 'todos') {
-            SubscriptionExpiry::applyFilter($query, $vencimiento);
         }
 
         return $query;

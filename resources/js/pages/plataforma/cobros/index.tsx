@@ -40,7 +40,6 @@ import { SubscriptionExpiryBadge } from '@/components/plataforma/subscription-ex
 import { useDataTablePage } from '@/hooks/use-data-table-page';
 import { usePermission } from '@/hooks/use-permission';
 import { livingSubscription } from '@/lib/living-subscription';
-import type { VencimientoFilter } from '@/lib/subscription-expiry';
 import AppLayout from '@/layouts/app-layout';
 import cobros from '@/routes/plataforma/cobros';
 import type { Paginated } from '@/types';
@@ -83,8 +82,6 @@ const DEFAULT_PER_PAGE = 10;
 const DEFAULT_ESTADO: PaymentEstadoFilter = 'todos';
 const PLAN_FILTER_ALL = '__all__';
 const TENANT_FILTER_ALL = '__all__';
-const DEFAULT_VENCIMIENTO: VencimientoFilter = 'todos';
-
 const formatPrice = (value: string | number): string => {
     const num = typeof value === 'string' ? Number(value) : value;
     if (Number.isNaN(num)) return '—';
@@ -155,7 +152,7 @@ export default function Index({
     plans_catalog,
     tenants_catalog,
 }: CobrosIndexProps) {
-    const { t } = useTranslation(['cobros', 'subscription-expiry', 'common']);
+    const { t } = useTranslation(['cobros', 'common']);
     const { can } = usePermission();
     const canExport = can('plataforma-cobros.export');
     const canRefund = can('plataforma-cobros.refund');
@@ -175,7 +172,6 @@ export default function Index({
         estado: PaymentEstadoFilter;
         plan_id: string | null;
         tenant_id: string | null;
-        vencimiento: VencimientoFilter;
     }>({
         routeUrl: cobros.index().url,
         initialFilters: filters,
@@ -233,34 +229,6 @@ export default function Index({
         return base;
     }, [plans_catalog, t]);
 
-    const vencimientoOptions = useMemo<
-        readonly FilterChip<VencimientoFilter>[]
-    >(
-        () => [
-            {
-                value: 'todos',
-                label: t('subscription-expiry:filters.all'),
-            },
-            {
-                value: 'por_vencer_7',
-                label: t('subscription-expiry:filters.within_7'),
-            },
-            {
-                value: 'por_vencer_3',
-                label: t('subscription-expiry:filters.within_3'),
-            },
-            {
-                value: 'por_vencer_1',
-                label: t('subscription-expiry:filters.within_1'),
-            },
-            {
-                value: 'vencido',
-                label: t('subscription-expiry:filters.expired'),
-            },
-        ],
-        [t],
-    );
-
     const tenantFilterValue = filters.tenant_id ?? TENANT_FILTER_ALL;
 
     const [modal, setModal] = useState<ModalState>({ type: 'idle' });
@@ -295,7 +263,6 @@ export default function Index({
         if (filters.subscription_id) count += 1;
         if (filters.tenant_id) count += 1;
         if (filters.plan_id) count += 1;
-        if (filters.vencimiento !== DEFAULT_VENCIMIENTO) count += 1;
         if (filters.per_page !== DEFAULT_PER_PAGE) count += 1;
         return count;
     }, [
@@ -305,7 +272,6 @@ export default function Index({
         filters.subscription_id,
         filters.tenant_id,
         filters.plan_id,
-        filters.vencimiento,
         filters.per_page,
     ]);
 
@@ -321,8 +287,6 @@ export default function Index({
         if (filters.tenant_id)
             params.set('tenant_id', filters.tenant_id);
         if (filters.plan_id) params.set('plan_id', filters.plan_id);
-        if (filters.vencimiento !== DEFAULT_VENCIMIENTO)
-            params.set('vencimiento', filters.vencimiento);
 
         const qs = params.toString();
         return qs.length > 0
@@ -336,7 +300,6 @@ export default function Index({
         filters.subscription_id,
         filters.tenant_id,
         filters.plan_id,
-        filters.vencimiento,
     ]);
 
     const columns = useMemo<DataTableColumn<SubscriptionPayment>[]>(() => {
@@ -623,16 +586,6 @@ export default function Index({
                                 }
                                 options={planOptions}
                             />
-                            <FilterChips
-                                ariaLabel={t(
-                                    'subscription-expiry:filter_label',
-                                )}
-                                value={filters.vencimiento}
-                                onChange={(vencimiento) =>
-                                    applyFilter({ vencimiento })
-                                }
-                                options={vencimientoOptions}
-                            />
                             {tenants_catalog.length > 0 ? (
                                 <div className="flex shrink-0 items-center gap-1.5">
                                     <Building2
@@ -694,10 +647,6 @@ export default function Index({
                                     filters.subscription_id ?? undefined,
                                 tenant_id: filters.tenant_id ?? undefined,
                                 plan_id: filters.plan_id ?? undefined,
-                                vencimiento:
-                                    filters.vencimiento !== DEFAULT_VENCIMIENTO
-                                        ? filters.vencimiento
-                                        : undefined,
                             }}
                         />
                     }

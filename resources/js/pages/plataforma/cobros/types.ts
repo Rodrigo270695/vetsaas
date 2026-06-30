@@ -6,8 +6,6 @@
  * de soporte (reembolso manual, nota interna, reenvío de factura).
  */
 
-import type { VencimientoFilter } from '@/lib/subscription-expiry';
-
 /** Estados de un cobro (CHECK constraint en BD). */
 export type PaymentEstado =
     | 'pendiente'
@@ -118,7 +116,6 @@ export type PaymentFilters = {
     subscription_id: string | null;
     tenant_id: string | null;
     plan_id: string | null;
-    vencimiento: VencimientoFilter;
 };
 
 export type PaymentPlanOption = {
