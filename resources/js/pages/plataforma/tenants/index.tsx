@@ -32,7 +32,8 @@ import type {
     FilterChip,
 } from '@/components/data-page';
 import { Button } from '@/components/ui/button';
-import { useDataTablePage } from '@/hooks/use-data-table-page';
+import { SubscriptionExpiryBadge } from '@/components/plataforma/subscription-expiry-badge';
+import { livingSubscription } from '@/lib/living-subscription';
 import { usePermission } from '@/hooks/use-permission';
 import { useRowSelection } from '@/hooks/use-row-selection';
 import AppLayout from '@/layouts/app-layout';
@@ -105,7 +106,7 @@ export default function Index({
     plans_catalog,
     departamentos,
 }: TenantsIndexProps) {
-    const { t } = useTranslation(['tenants', 'common']);
+    const { t } = useTranslation(['tenants', 'subscription-expiry', 'common']);
     const { can } = usePermission();
     const canCreate = can('plataforma-tenants.create');
     const canUpdate = can('plataforma-tenants.update');
@@ -388,13 +389,14 @@ export default function Index({
                 cell: renderEstadoBadge,
             },
             {
-                key: 'trial_ends_at',
-                header: t('tenants:columns.trial_ends_at'),
-                sortable: true,
+                key: 'vencimiento',
+                header: t('subscription-expiry:columns.vencimiento'),
                 cell: (tenant) => (
-                    <span className="text-xs text-muted-foreground">
-                        {formatDate(tenant.trial_ends_at)}
-                    </span>
+                    <SubscriptionExpiryBadge
+                        subscription={livingSubscription(
+                            tenant.subscriptions,
+                        )}
+                    />
                 ),
             },
             {

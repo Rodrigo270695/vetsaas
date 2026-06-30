@@ -3,6 +3,10 @@
     "description": "Subscription payment history. Charges are processed by Orvae (via Niubiz/Culqi/MercadoPago) and registered here through webhooks. This is a SUPPORT view: read-only + human actions (manual refund, internal note, resend invoice).",
     "search_placeholder": "Search by transaction ID, FEL, tenant, RUC…",
     "filter_label": "Filter by status",
+    "filter_plan_label": "Filter by plan",
+    "filter_plan_all": "All plans",
+    "filter_tenant_label": "Filter by tenant",
+    "filter_tenant_all": "All tenants",
     "filters": {
         "all": "All",
         "procesado": "Processed",
@@ -29,7 +33,8 @@
     "columns": {
         "fecha": "Date",
         "tenant": "Tenant",
-        "plan": "Plan",
+        "plan": "Plan (live subscription)",
+        "vencimiento": "Expiry",
         "total": "Total",
         "estado": "Status",
         "pasarela": "Gateway",

@@ -41,6 +41,7 @@ import tarifasServiciosEn from '@/lang/en/tarifas-servicios.json';
 import stockInventarioEn from '@/lang/en/stock-inventario.json';
 import avisosRenovacionEn from '@/lang/en/avisos-renovacion.json';
 import suscripcionesEn from '@/lang/en/suscripciones.json';
+import subscriptionExpiryEn from '@/lang/en/subscription-expiry.json';
 import tenantsEn from '@/lang/en/tenants.json';
 import usuariosEn from '@/lang/en/usuarios.json';
 import vacunacionesEn from '@/lang/en/vacunaciones.json';
@@ -84,6 +85,7 @@ import tarifasServiciosEs from '@/lang/es/tarifas-servicios.json';
 import stockInventarioEs from '@/lang/es/stock-inventario.json';
 import avisosRenovacionEs from '@/lang/es/avisos-renovacion.json';
 import suscripcionesEs from '@/lang/es/suscripciones.json';
+import subscriptionExpiryEs from '@/lang/es/subscription-expiry.json';
 import tenantsEs from '@/lang/es/tenants.json';
 import usuariosEs from '@/lang/es/usuarios.json';
 import vacunacionesEs from '@/lang/es/vacunaciones.json';
@@ -125,6 +127,7 @@ const resources = {
         suscripciones: suscripcionesEs,
         'avisos-renovacion': avisosRenovacionEs,
         cobros: cobrosEs,
+        'subscription-expiry': subscriptionExpiryEs,
         'config-suscripcion': configSuscripcionEs,
         comunicaciones: comunicacionesEs,
         'plataforma-auditoria-soporte': plataformaAuditoriaSoporteEs,
@@ -170,6 +173,7 @@ const resources = {
         suscripciones: suscripcionesEn,
         'avisos-renovacion': avisosRenovacionEn,
         cobros: cobrosEn,
+        'subscription-expiry': subscriptionExpiryEn,
         'config-suscripcion': configSuscripcionEn,
         comunicaciones: comunicacionesEn,
         'plataforma-auditoria-soporte': plataformaAuditoriaSoporteEn,
@@ -225,6 +229,7 @@ void i18n
             'suscripciones',
             'avisos-renovacion',
             'cobros',
+            'subscription-expiry',
             'config-suscripcion',
             'comunicaciones',
             'dashboard',

@@ -3,6 +3,10 @@
     "description": "Historial de pagos de las suscripciones SaaS. Los cobros los procesa Orvae (con Niubiz/Culqi/MercadoPago) y los registra acá vía webhook. Esta vista es de SOPORTE: lectura + acciones humanas (reembolso manual, nota interna, reenviar factura).",
     "search_placeholder": "Buscar por transaction ID, FEL, tenant, RUC…",
     "filter_label": "Filtrar por estado",
+    "filter_plan_label": "Filtrar por plan",
+    "filter_plan_all": "Todos los planes",
+    "filter_tenant_label": "Filtrar por tenant",
+    "filter_tenant_all": "Todos los tenants",
     "filters": {
         "all": "Todos",
         "procesado": "Procesados",
@@ -29,7 +33,8 @@
     "columns": {
         "fecha": "Fecha",
         "tenant": "Tenant",
-        "plan": "Plan",
+        "plan": "Plan (suscripción viva)",
+        "vencimiento": "Vencimiento",
         "total": "Total",
         "estado": "Estado",
         "pasarela": "Pasarela",

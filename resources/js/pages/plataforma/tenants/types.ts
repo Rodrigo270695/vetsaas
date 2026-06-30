@@ -22,12 +22,15 @@ export type TenantPlanRef = {
     color_hex: string | null;
 };
 
-/** Suscripción viva del tenant (trial, active o grace; la más reciente). */
+/** Suscripción viva del tenant (trial, active, grace o suspended; la más reciente). */
 export type TenantSubscriptionRef = {
     id: string;
     estado: string;
     ciclo: string;
+    trial_ends_at: string | null;
     current_period_end: string | null;
+    grace_ends_at: string | null;
+    proximo_cobro_at: string | null;
     plan: TenantPlanRef | null;
 };
 

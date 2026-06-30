@@ -1,0 +1,23 @@
+{
+    "no_subscription": "Sin suscripción viva",
+    "filter_label": "Filtrar por vencimiento",
+    "filters": {
+        "all": "Todos",
+        "within_7": "≤ 7 días",
+        "within_3": "≤ 3 días",
+        "within_1": "≤ 1 día",
+        "expired": "Vencidos"
+    },
+    "labels": {
+        "ok": "Al día ({{count}} días)",
+        "within_7": "Vence en {{count}} días",
+        "within_3": "Vence en {{count}} días",
+        "one_day": "Vence mañana",
+        "today": "Vence hoy",
+        "expired": "Vencido hace {{count}} día(s)",
+        "muted": "Sin fecha"
+    },
+    "columns": {
+        "vencimiento": "Vencimiento"
+    }
+}

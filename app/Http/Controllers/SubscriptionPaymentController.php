@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Exports\SubscriptionPaymentsXlsxExport;
 use App\Models\Plan;
 use App\Models\SubscriptionPayment;
+use App\Models\Tenant;
+use App\Support\Subscriptions\SubscriptionExpiry;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -66,8 +68,13 @@ class SubscriptionPaymentController extends Controller
 
         $subscriptionId = trim((string) $request->string('subscription_id', ''));
         $tenantId = trim((string) $request->string('tenant_id', ''));
+        $planId = trim((string) $request->string('plan_id', ''));
+        $vencimiento = (string) $request->string('vencimiento', 'todos');
+        if (! in_array($vencimiento, SubscriptionExpiry::FILTER_OPTIONS, true)) {
+            $vencimiento = 'todos';
+        }
 
-        $query = $this->buildBaseQuery($search, $estado, $subscriptionId, $tenantId);
+        $query = $this->buildBaseQuery($search, $estado, $subscriptionId, $tenantId, $planId, $vencimiento);
 
         if ($sortValid) {
             $query->orderBy($sort, $directionValid ? $direction : 'asc');
@@ -79,8 +86,14 @@ class SubscriptionPaymentController extends Controller
         $payments = $query
             ->with([
                 'tenant:id,slug,razon_social,nombre_comercial,email_admin',
+                'tenant.subscriptions' => fn ($q) => $q
+                    ->whereIn('estado', ['trial', 'active', 'grace', 'suspended'])
+                    ->latest()
+                    ->limit(1),
+                'tenant.subscriptions.plan:id,codigo,nombre,badge,color_hex',
                 'plan:id,codigo,nombre,badge,color_hex',
-                'subscription:id,tenant_id,plan_id,estado',
+                'subscription:id,tenant_id,plan_id,estado,trial_ends_at,current_period_end,grace_ends_at,proximo_cobro_at',
+                'subscription.plan:id,codigo,nombre,badge,color_hex',
                 'refundedBy:id,name,email',
             ])
             ->paginate($perPage)
@@ -89,6 +102,11 @@ class SubscriptionPaymentController extends Controller
         $plansCatalog = Plan::query()
             ->orderBy('orden')
             ->get(['id', 'codigo', 'nombre', 'badge', 'color_hex']);
+
+        $tenantsCatalog = Tenant::query()
+            ->whereNotIn('estado', ['cancelled'])
+            ->orderBy('razon_social')
+            ->get(['id', 'slug', 'razon_social']);
 
         $statsByEstado = SubscriptionPayment::query()
             ->selectRaw('estado, COUNT(*) as total, COALESCE(SUM(total), 0) as suma')
@@ -110,6 +128,8 @@ class SubscriptionPaymentController extends Controller
                 'estado' => $estado,
                 'subscription_id' => $subscriptionId !== '' ? $subscriptionId : null,
                 'tenant_id' => $tenantId !== '' ? $tenantId : null,
+                'plan_id' => $planId !== '' ? $planId : null,
+                'vencimiento' => $vencimiento,
             ],
             'stats' => [
                 'total' => SubscriptionPayment::query()->count(),
@@ -121,6 +141,7 @@ class SubscriptionPaymentController extends Controller
                 'coincidencias' => $payments->total(),
             ],
             'plans_catalog' => $plansCatalog,
+            'tenants_catalog' => $tenantsCatalog,
         ]);
     }
 
@@ -213,15 +234,25 @@ class SubscriptionPaymentController extends Controller
 
         $subscriptionId = trim((string) $request->string('subscription_id', ''));
         $tenantId = trim((string) $request->string('tenant_id', ''));
+        $planId = trim((string) $request->string('plan_id', ''));
+        $vencimiento = (string) $request->string('vencimiento', 'todos');
+        if (! in_array($vencimiento, SubscriptionExpiry::FILTER_OPTIONS, true)) {
+            $vencimiento = 'todos';
+        }
 
         $sort = (string) $request->string('sort', '');
         $direction = strtolower((string) $request->string('direction', 'desc'));
         $sortValid = in_array($sort, self::SORTABLE_COLUMNS, true);
         $directionValid = in_array($direction, ['asc', 'desc'], true);
 
-        $query = $this->buildBaseQuery($search, $estado, $subscriptionId, $tenantId)
+        $query = $this->buildBaseQuery($search, $estado, $subscriptionId, $tenantId, $planId, $vencimiento)
             ->with([
                 'tenant:id,slug,razon_social',
+                'tenant.subscriptions' => fn ($q) => $q
+                    ->whereIn('estado', ['trial', 'active', 'grace', 'suspended'])
+                    ->latest()
+                    ->limit(1),
+                'tenant.subscriptions.plan:id,codigo,nombre',
                 'plan:id,codigo,nombre',
             ]);
 
@@ -256,6 +287,8 @@ class SubscriptionPaymentController extends Controller
         string $estado,
         string $subscriptionId,
         string $tenantId,
+        string $planId = '',
+        string $vencimiento = 'todos',
     ): Builder {
         $query = SubscriptionPayment::query();
 
@@ -287,6 +320,14 @@ class SubscriptionPaymentController extends Controller
 
         if ($tenantId !== '') {
             $query->where('tenant_id', $tenantId);
+        }
+
+        if ($planId !== '') {
+            SubscriptionExpiry::applyPaymentPlanFilter($query, $planId);
+        }
+
+        if ($vencimiento !== 'todos') {
+            SubscriptionExpiry::applyPaymentFilter($query, $vencimiento);
         }
 
         return $query;

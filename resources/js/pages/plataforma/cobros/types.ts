@@ -6,6 +6,8 @@
  * de soporte (reembolso manual, nota interna, reenvío de factura).
  */
 
+import type { VencimientoFilter } from '@/lib/subscription-expiry';
+
 /** Estados de un cobro (CHECK constraint en BD). */
 export type PaymentEstado =
     | 'pendiente'
@@ -25,6 +27,7 @@ export type PaymentTenantRef = {
     razon_social: string;
     nombre_comercial: string | null;
     email_admin: string;
+    subscriptions?: PaymentSubscriptionRef[];
 };
 
 /** Mini-plan referenciado en la fila de pago. */
@@ -36,12 +39,17 @@ export type PaymentPlanRef = {
     color_hex: string | null;
 };
 
-/** Mini-suscripción referenciada en la fila de pago. */
+/** Mini-suscripción referenciada en la fila de pago o viva del tenant. */
 export type PaymentSubscriptionRef = {
     id: string;
     tenant_id: string;
     plan_id: string;
     estado: string;
+    trial_ends_at?: string | null;
+    current_period_end?: string | null;
+    grace_ends_at?: string | null;
+    proximo_cobro_at?: string | null;
+    plan?: PaymentPlanRef | null;
 };
 
 /** Mini-usuario que marcó el reembolso (cuando aplica). */
@@ -106,6 +114,8 @@ export type PaymentFilters = {
     estado: PaymentEstadoFilter;
     subscription_id: string | null;
     tenant_id: string | null;
+    plan_id: string | null;
+    vencimiento: VencimientoFilter;
 };
 
 export type PaymentPlanOption = {
@@ -114,4 +124,10 @@ export type PaymentPlanOption = {
     nombre: string;
     badge: string | null;
     color_hex: string | null;
+};
+
+export type PaymentTenantOption = {
+    id: string;
+    slug: string;
+    razon_social: string;
 };

@@ -95,7 +95,7 @@ class TenantController extends Controller
         $tenants = $query
             ->with([
                 'subscriptions' => fn ($q) => $q
-                    ->whereIn('estado', ['trial', 'active', 'grace'])
+                    ->whereIn('estado', ['trial', 'active', 'grace', 'suspended'])
                     ->latest()
                     ->limit(1),
                 'subscriptions.plan:id,codigo,nombre,badge,color_hex',

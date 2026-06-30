@@ -33,8 +33,8 @@ final class TenantSubscriptionSummary
             return self::withoutSubscription($tenant);
         }
 
-        $anchor = self::billingAnchor($subscription, $tenant);
-        $daysUntil = self::daysUntil($anchor);
+        $anchor = SubscriptionExpiry::anchor($subscription, $tenant);
+        $daysUntil = SubscriptionExpiry::daysUntil($anchor);
         $renewalUrl = app(SubscriptionRenewalUrl::class)->for($tenant, $subscription);
 
         $plan = $subscription->plan;
@@ -57,9 +57,9 @@ final class TenantSubscriptionSummary
             'current_period_end' => self::iso($subscription->current_period_end),
             'proximo_cobro_at' => self::iso($subscription->proximo_cobro_at),
             'renewal_anchor_at' => self::iso($anchor),
-            'renewal_anchor_source' => self::anchorSource($subscription, $tenant),
+            'renewal_anchor_source' => SubscriptionExpiry::anchorWithSource($subscription, $tenant)[1] ?? 'trial_ends_at',
             'days_until_renewal' => $daysUntil,
-            'urgency' => self::urgency($subscription->estado, $daysUntil),
+            'urgency' => SubscriptionExpiry::urgency($subscription->estado, $daysUntil),
             'renewal_url' => $renewalUrl,
         ];
     }
@@ -99,7 +99,7 @@ final class TenantSubscriptionSummary
     private static function withoutSubscription(Tenant $tenant): array
     {
         $trialEnd = self::toCarbon($tenant->trial_ends_at);
-        $daysUntil = self::daysUntil($trialEnd);
+        $daysUntil = SubscriptionExpiry::daysUntil($trialEnd);
 
         return [
             'has_subscription' => false,
@@ -114,43 +114,9 @@ final class TenantSubscriptionSummary
             'renewal_anchor_at' => self::iso($trialEnd),
             'renewal_anchor_source' => 'trial_ends_at',
             'days_until_renewal' => $daysUntil,
-            'urgency' => self::urgency('trial', $daysUntil),
+            'urgency' => SubscriptionExpiry::urgency('trial', $daysUntil),
             'renewal_url' => null,
         ];
-    }
-
-    private static function billingAnchor(Subscription $subscription, Tenant $tenant): ?Carbon
-    {
-        if ($subscription->estado === 'trial') {
-            return self::toCarbon($subscription->trial_ends_at ?? $tenant->trial_ends_at);
-        }
-
-        if ($subscription->proximo_cobro_at !== null) {
-            return self::toCarbon($subscription->proximo_cobro_at);
-        }
-
-        if ($subscription->current_period_end !== null) {
-            return self::toCarbon($subscription->current_period_end);
-        }
-
-        return self::toCarbon($subscription->trial_ends_at ?? $tenant->trial_ends_at);
-    }
-
-    private static function anchorSource(Subscription $subscription, Tenant $tenant): string
-    {
-        if ($subscription->estado === 'trial') {
-            return 'trial_ends_at';
-        }
-
-        if ($subscription->proximo_cobro_at !== null) {
-            return 'proximo_cobro_at';
-        }
-
-        if ($subscription->current_period_end !== null) {
-            return 'current_period_end';
-        }
-
-        return 'trial_ends_at';
     }
 
     private static function toCarbon(mixed $value): ?Carbon
@@ -164,53 +130,6 @@ final class TenantSubscriptionSummary
         }
 
         return Carbon::parse($value);
-    }
-
-    private static function daysUntil(?CarbonInterface $anchor): ?int
-    {
-        if ($anchor === null) {
-            return null;
-        }
-
-        return (int) now()->startOfDay()->diffInDays(
-            Carbon::instance($anchor)->startOfDay(),
-            false,
-        );
-    }
-
-    /**
-     * ok = verde (>7 días), yellow = 4–7, amber = 2–3, red = 0–1 o vencido,
-     * danger = suspendida/cancelada/gracia, muted = sin fecha.
-     *
-     * @return 'ok'|'yellow'|'amber'|'red'|'danger'|'muted'
-     */
-    private static function urgency(string $estado, ?int $daysUntil): string
-    {
-        if (in_array($estado, ['suspended', 'cancelled', 'grace'], true)) {
-            return 'danger';
-        }
-
-        if ($daysUntil === null) {
-            return 'muted';
-        }
-
-        if ($daysUntil < 0) {
-            return 'red';
-        }
-
-        if ($daysUntil <= 1) {
-            return 'red';
-        }
-
-        if ($daysUntil <= 3) {
-            return 'amber';
-        }
-
-        if ($daysUntil <= 7) {
-            return 'yellow';
-        }
-
-        return 'ok';
     }
 
     private static function iso(mixed $value): ?string
