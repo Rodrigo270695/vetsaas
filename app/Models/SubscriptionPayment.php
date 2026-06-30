@@ -121,6 +121,33 @@ class SubscriptionPayment extends Model
     }
 
     /**
+     * Cobros de plan de pago o con pasarela real (Culqi/Niubiz/MP), aunque el
+     * snapshot `plan_id` haya quedado desactualizado tras un cambio de plan.
+     *
+     * @param  Builder<SubscriptionPayment>  $query
+     * @return Builder<SubscriptionPayment>
+     */
+    public function scopeForBillableOrGateway(Builder $query): Builder
+    {
+        return $query->where(function (Builder $paymentQuery): void {
+            $paymentQuery
+                ->whereHas('plan', fn (Builder $planQuery) => $planQuery->excludingFree())
+                ->orWhere(function (Builder $gatewayQuery): void {
+                    $gatewayQuery
+                        ->whereNotNull('pasarela_transaction_id')
+                        ->where('pasarela_transaction_id', '!=', '')
+                        ->where(function (Builder $pasarelaQuery): void {
+                            $pasarelaQuery
+                                ->where('pasarela', 'ILIKE', '%culqi%')
+                                ->orWhere('pasarela', 'ILIKE', '%niubiz%')
+                                ->orWhere('pasarela', 'ILIKE', '%mercadopago%')
+                                ->orWhere('pasarela', 'ILIKE', '%orvae%');
+                        });
+                });
+        });
+    }
+
+    /**
      * Solo tenants con suscripción viva en plan de pago (Starter, Pro, etc.).
      *
      * @param  Builder<SubscriptionPayment>  $query

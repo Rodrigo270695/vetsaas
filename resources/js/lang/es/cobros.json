@@ -19,7 +19,8 @@
         "procesado": "Procesado",
         "fallido": "Fallido",
         "reembolsado": "Reembolsado",
-        "sin_cobro": "Sin cobro registrado"
+        "sin_cobro": "Sin cobro registrado",
+        "sin_cobro_hint": "La suscripción está activa, pero VetSaaS no tiene el webhook de Orvae/Culqi. Si el cliente pagó, reenvía el renew desde Orvae o revisa subscription_payments."
     },
     "stats": {
         "total": "Total",

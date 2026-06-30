@@ -23,18 +23,34 @@ final class CobrosListPresenter
             'plan:id,codigo,nombre,badge,color_hex',
         ]);
 
-        $payment = $subscription->payments()
-            ->forBillablePlans()
-            ->with('refundedBy:id,name,email')
-            ->orderByDesc('pagado_at')
-            ->orderByDesc('created_at')
-            ->first();
+        $payment = self::resolvePayment($subscription);
 
         if ($payment instanceof SubscriptionPayment) {
             return self::fromPayment($payment, $subscription);
         }
 
         return self::syntheticFromSubscription($subscription);
+    }
+
+    private static function resolvePayment(Subscription $subscription): ?SubscriptionPayment
+    {
+        $baseQuery = SubscriptionPayment::query()
+            ->forBillableOrGateway()
+            ->with('refundedBy:id,name,email')
+            ->orderByDesc('pagado_at')
+            ->orderByDesc('created_at');
+
+        $onSubscription = (clone $baseQuery)
+            ->where('subscription_id', $subscription->id)
+            ->first();
+
+        if ($onSubscription instanceof SubscriptionPayment) {
+            return $onSubscription;
+        }
+
+        return (clone $baseQuery)
+            ->where('tenant_id', $subscription->tenant_id)
+            ->first();
     }
 
     /**

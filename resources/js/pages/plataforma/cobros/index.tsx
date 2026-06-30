@@ -432,7 +432,16 @@ export default function Index({
                 key: 'estado',
                 header: t('cobros:columns.estado'),
                 sortable: true,
-                cell: (p) => renderEstadoBadge(p.estado, t),
+                cell: (p) => (
+                    <div className="flex flex-col gap-0.5">
+                        {renderEstadoBadge(p.estado, t)}
+                        {p.estado === 'sin_cobro' && (
+                            <span className="max-w-[11rem] text-[10px] leading-tight text-muted-foreground">
+                                {t('cobros:estados.sin_cobro_hint')}
+                            </span>
+                        )}
+                    </div>
+                ),
             },
             {
                 key: 'pasarela',
