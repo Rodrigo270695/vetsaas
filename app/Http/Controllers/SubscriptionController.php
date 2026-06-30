@@ -7,7 +7,6 @@ use App\Http\Requests\SubscriptionRequest;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\Tenant;
-use App\Support\Subscriptions\SubscriptionExpiry;
 use App\Services\Subscriptions\SubscriptionRenewalReminderScanner;
 use App\Services\Subscriptions\SubscriptionRenewalWhatsAppSender;
 use Illuminate\Database\Eloquent\Builder;
@@ -68,12 +67,8 @@ class SubscriptionController extends Controller
         }
 
         $planId = trim((string) $request->string('plan_id', ''));
-        $vencimiento = (string) $request->string('vencimiento', 'todos');
-        if (! in_array($vencimiento, SubscriptionExpiry::FILTER_OPTIONS, true)) {
-            $vencimiento = 'todos';
-        }
 
-        $query = $this->buildBaseQuery($search, $estado, $planId, $vencimiento);
+        $query = $this->buildBaseQuery($search, $estado, $planId);
 
         if ($sortValid) {
             $query->orderBy($sort, $directionValid ? $direction : 'asc');
@@ -147,7 +142,6 @@ class SubscriptionController extends Controller
                 'direction' => $sortValid && $directionValid ? $direction : null,
                 'estado' => $estado,
                 'plan_id' => $planId !== '' ? $planId : null,
-                'vencimiento' => $vencimiento,
             ],
             'stats' => [
                 'total' => Subscription::query()->count(),
@@ -363,17 +357,13 @@ class SubscriptionController extends Controller
         }
 
         $planId = trim((string) $request->string('plan_id', ''));
-        $vencimiento = (string) $request->string('vencimiento', 'todos');
-        if (! in_array($vencimiento, SubscriptionExpiry::FILTER_OPTIONS, true)) {
-            $vencimiento = 'todos';
-        }
 
         $sort = (string) $request->string('sort', '');
         $direction = strtolower((string) $request->string('direction', 'desc'));
         $sortValid = in_array($sort, self::SORTABLE_COLUMNS, true);
         $directionValid = in_array($direction, ['asc', 'desc'], true);
 
-        $query = $this->buildBaseQuery($search, $estado, $planId, $vencimiento)
+        $query = $this->buildBaseQuery($search, $estado, $planId)
             ->with([
                 'tenant:id,slug,razon_social',
                 'plan:id,codigo,nombre',
@@ -405,12 +395,8 @@ class SubscriptionController extends Controller
     /**
      * @return Builder<Subscription>
      */
-    private function buildBaseQuery(
-        string $search,
-        string $estado,
-        string $planId,
-        string $vencimiento = 'todos',
-    ): Builder {
+    private function buildBaseQuery(string $search, string $estado, string $planId): Builder
+    {
         $query = Subscription::query();
 
         if ($search !== '') {
@@ -436,10 +422,6 @@ class SubscriptionController extends Controller
 
         if ($planId !== '') {
             $query->where('plan_id', $planId);
-        }
-
-        if ($vencimiento !== 'todos') {
-            SubscriptionExpiry::applyFilter($query, $vencimiento);
         }
 
         return $query;

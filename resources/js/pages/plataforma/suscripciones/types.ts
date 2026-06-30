@@ -8,8 +8,6 @@
  *   - Catálogos auxiliares (plans, tenants) que viajan inline.
  */
 
-import type { VencimientoFilter } from '@/lib/subscription-expiry';
-
 /** Estados de ciclo de vida (debe coincidir con el CHECK del Postgres). */
 export type SubscriptionEstado =
     | 'trial'
@@ -93,7 +91,6 @@ export type SubscriptionFilters = {
     direction: 'asc' | 'desc' | null;
     estado: SubscriptionEstadoFilter;
     plan_id: string | null;
-    vencimiento: VencimientoFilter;
 };
 
 /** Catálogo de planes para el select del filtro y del modal. */

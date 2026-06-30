@@ -38,7 +38,6 @@ import { SubscriptionExpiryBadge } from '@/components/plataforma/subscription-ex
 import { useDataTablePage } from '@/hooks/use-data-table-page';
 import { usePermission } from '@/hooks/use-permission';
 import { useRowSelection } from '@/hooks/use-row-selection';
-import type { VencimientoFilter } from '@/lib/subscription-expiry';
 import AppLayout from '@/layouts/app-layout';
 import suscripciones from '@/routes/plataforma/suscripciones';
 import type { Paginated } from '@/types';
@@ -92,7 +91,6 @@ type ModalState =
 const DEFAULT_PER_PAGE = 10;
 const DEFAULT_ESTADO: SubscriptionEstadoFilter = 'todos';
 const PLAN_FILTER_ALL = 'todos';
-const DEFAULT_VENCIMIENTO: VencimientoFilter = 'todos';
 
 const formatPrice = (value: string | null): string => {
     if (value === null) return '—';
@@ -185,7 +183,6 @@ export default function Index({
     } = useDataTablePage<{
         estado: SubscriptionEstadoFilter;
         plan_id: string | null;
-        vencimiento: VencimientoFilter;
     }>({
         routeUrl: suscripciones.index().url,
         initialFilters: filters,
@@ -253,34 +250,6 @@ export default function Index({
             }),
         ];
     }, [plans_catalog, stats.mrr_by_plan, t]);
-
-    const vencimientoOptions = useMemo<
-        readonly FilterChip<VencimientoFilter>[]
-    >(
-        () => [
-            {
-                value: 'todos',
-                label: t('subscription-expiry:filters.all'),
-            },
-            {
-                value: 'por_vencer_7',
-                label: t('subscription-expiry:filters.within_7'),
-            },
-            {
-                value: 'por_vencer_3',
-                label: t('subscription-expiry:filters.within_3'),
-            },
-            {
-                value: 'por_vencer_1',
-                label: t('subscription-expiry:filters.within_1'),
-            },
-            {
-                value: 'vencido',
-                label: t('subscription-expiry:filters.expired'),
-            },
-        ],
-        [t],
-    );
 
     const selectedPlanName = useMemo(() => {
         if (!filters.plan_id) {
@@ -351,7 +320,6 @@ export default function Index({
         if (filters.sort) count += 1;
         if (filters.estado !== DEFAULT_ESTADO) count += 1;
         if (filters.plan_id) count += 1;
-        if (filters.vencimiento !== DEFAULT_VENCIMIENTO) count += 1;
         if (filters.per_page !== DEFAULT_PER_PAGE) count += 1;
         return count;
     }, [
@@ -359,7 +327,6 @@ export default function Index({
         filters.sort,
         filters.estado,
         filters.plan_id,
-        filters.vencimiento,
         filters.per_page,
     ]);
 
@@ -371,8 +338,6 @@ export default function Index({
         if (filters.estado !== DEFAULT_ESTADO)
             params.set('estado', filters.estado);
         if (filters.plan_id) params.set('plan_id', filters.plan_id);
-        if (filters.vencimiento !== DEFAULT_VENCIMIENTO)
-            params.set('vencimiento', filters.vencimiento);
 
         const qs = params.toString();
         return qs.length > 0
@@ -384,7 +349,6 @@ export default function Index({
         filters.direction,
         filters.estado,
         filters.plan_id,
-        filters.vencimiento,
     ]);
 
     /**
@@ -764,16 +728,6 @@ export default function Index({
                                 }
                                 options={planOptions}
                             />
-                            <FilterChips
-                                ariaLabel={t(
-                                    'subscription-expiry:filter_label',
-                                )}
-                                value={filters.vencimiento}
-                                onChange={(vencimiento) =>
-                                    applyFilter({ vencimiento })
-                                }
-                                options={vencimientoOptions}
-                            />
                         </DataToolbar>
                     }
                     footer={
@@ -790,10 +744,6 @@ export default function Index({
                                         ? filters.estado
                                         : undefined,
                                 plan_id: filters.plan_id ?? undefined,
-                                vencimiento:
-                                    filters.vencimiento !== DEFAULT_VENCIMIENTO
-                                        ? filters.vencimiento
-                                        : undefined,
                             }}
                         />
                     }

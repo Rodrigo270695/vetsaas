@@ -119,4 +119,21 @@ class SubscriptionPayment extends Model
     {
         return $query->whereHas('plan', fn (Builder $planQuery) => $planQuery->excludingFree());
     }
+
+    /**
+     * Solo tenants con suscripción viva en plan de pago (Starter, Pro, etc.).
+     *
+     * @param  Builder<SubscriptionPayment>  $query
+     * @return Builder<SubscriptionPayment>
+     */
+    public function scopeForTenantsWithBillablePlan(Builder $query): Builder
+    {
+        return $query->whereHas('tenant', function (Builder $tenantQuery): void {
+            $tenantQuery->whereHas('subscriptions', function (Builder $subscriptionQuery): void {
+                $subscriptionQuery
+                    ->whereIn('estado', ['trial', 'active', 'grace', 'suspended'])
+                    ->whereHas('plan', fn (Builder $planQuery) => $planQuery->excludingFree());
+            });
+        });
+    }
 }

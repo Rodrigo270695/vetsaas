@@ -105,12 +105,17 @@ class SubscriptionPaymentController extends Controller
             ->get(['id', 'codigo', 'nombre', 'badge', 'color_hex']);
 
         $tenantsCatalog = Tenant::query()
-            ->whereNotIn('estado', ['cancelled'])
+            ->whereHas('subscriptions', function (Builder $subscriptionQuery): void {
+                $subscriptionQuery
+                    ->whereIn('estado', ['trial', 'active', 'grace', 'suspended'])
+                    ->whereHas('plan', fn (Builder $planQuery) => $planQuery->excludingFree());
+            })
             ->orderBy('razon_social')
             ->get(['id', 'slug', 'razon_social']);
 
         $statsByEstado = SubscriptionPayment::query()
             ->forBillablePlans()
+            ->forTenantsWithBillablePlan()
             ->selectRaw('estado, COUNT(*) as total, COALESCE(SUM(total), 0) as suma')
             ->groupBy('estado')
             ->get()
@@ -134,7 +139,10 @@ class SubscriptionPaymentController extends Controller
                 'vencimiento' => $vencimiento,
             ],
             'stats' => [
-                'total' => SubscriptionPayment::query()->forBillablePlans()->count(),
+                'total' => SubscriptionPayment::query()
+                    ->forBillablePlans()
+                    ->forTenantsWithBillablePlan()
+                    ->count(),
                 'procesado' => (int) ($statsByEstado['procesado']->total ?? 0),
                 'pendiente' => (int) ($statsByEstado['pendiente']->total ?? 0),
                 'fallido' => (int) ($statsByEstado['fallido']->total ?? 0),
@@ -292,7 +300,9 @@ class SubscriptionPaymentController extends Controller
         string $planId = '',
         string $vencimiento = 'todos',
     ): Builder {
-        $query = SubscriptionPayment::query()->forBillablePlans();
+        $query = SubscriptionPayment::query()
+            ->forBillablePlans()
+            ->forTenantsWithBillablePlan();
 
         if ($search !== '') {
             // Buscamos por:
