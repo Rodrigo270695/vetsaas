@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\UsesPublicSchema;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -106,5 +107,16 @@ class SubscriptionPayment extends Model
     public function refundedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'refunded_by');
+    }
+
+    /**
+     * Cobros asociados a planes de pago (excluye el plan gratuito `free`).
+     *
+     * @param  Builder<SubscriptionPayment>  $query
+     * @return Builder<SubscriptionPayment>
+     */
+    public function scopeForBillablePlans(Builder $query): Builder
+    {
+        return $query->whereHas('plan', fn (Builder $planQuery) => $planQuery->excludingFree());
     }
 }

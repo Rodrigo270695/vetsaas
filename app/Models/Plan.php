@@ -5,11 +5,15 @@ namespace App\Models;
 use App\Models\Concerns\UsesPublicSchema;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Plan extends Model
 {
     use HasUuids, UsesPublicSchema;
+
+    /** Código del plan gratuito (no genera cobros en Plataforma → Cobros). */
+    public const CODIGO_FREE = 'free';
 
     /**
      * Catálogo central de **features conocidos** que se pueden vincular
@@ -71,6 +75,20 @@ class Plan extends Model
     public function subscriptions(): HasMany
     {
         return $this->hasMany(Subscription::class);
+    }
+
+    public function isFree(): bool
+    {
+        return $this->codigo === self::CODIGO_FREE;
+    }
+
+    /**
+     * @param  Builder<Plan>  $query
+     * @return Builder<Plan>
+     */
+    public function scopeExcludingFree(Builder $query): Builder
+    {
+        return $query->where('codigo', '!=', self::CODIGO_FREE);
     }
 
     /**

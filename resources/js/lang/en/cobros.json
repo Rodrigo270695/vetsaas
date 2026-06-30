@@ -4,7 +4,7 @@
     "search_placeholder": "Search by transaction ID, FEL, tenant, RUC…",
     "filter_label": "Filter by status",
     "filter_plan_label": "Filter by plan",
-    "filter_plan_all": "All plans",
+    "filter_plan_all": "Paid plans",
     "filter_tenant_label": "Filter by tenant",
     "filter_tenant_all": "All tenants",
     "filters": {
