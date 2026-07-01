@@ -86,6 +86,42 @@ final class ClinicBotTools
             [
                 'type' => 'function',
                 'function' => [
+                    'name' => 'registrar_propietario',
+                    'description' => 'Registra al propietario/tutor con su número de WhatsApp si aún no existe en la clínica.',
+                    'parameters' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'nombres' => ['type' => 'string', 'description' => 'Nombres del propietario'],
+                            'apellidos' => ['type' => 'string', 'description' => 'Apellidos (opcional)'],
+                        ],
+                        'required' => ['nombres'],
+                        'additionalProperties' => false,
+                    ],
+                ],
+            ],
+            [
+                'type' => 'function',
+                'function' => [
+                    'name' => 'registrar_mascota',
+                    'description' => 'Registra una mascota nueva vinculada al número de WhatsApp. Crea al propietario si no existe.',
+                    'parameters' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'nombre' => ['type' => 'string', 'description' => 'Nombre de la mascota'],
+                            'especie' => ['type' => 'string', 'description' => 'Ej: perro, gato'],
+                            'raza' => ['type' => 'string', 'description' => 'Raza (opcional)'],
+                            'edad_anios' => ['type' => 'integer', 'description' => 'Edad aproximada en años'],
+                            'propietario_nombres' => ['type' => 'string', 'description' => 'Nombres del tutor si no está registrado'],
+                            'propietario_apellidos' => ['type' => 'string', 'description' => 'Apellidos del tutor (opcional)'],
+                        ],
+                        'required' => ['nombre'],
+                        'additionalProperties' => false,
+                    ],
+                ],
+            ],
+            [
+                'type' => 'function',
+                'function' => [
                     'name' => 'registrar_cita',
                     'description' => 'Registra una cita veterinaria para una mascota del cliente. Confirma mascota, fecha y hora antes de llamar.',
                     'parameters' => [

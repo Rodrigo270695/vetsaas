@@ -112,16 +112,43 @@ final class ClinicBotRelativeDateParser
     private function parseTime(string $hora): array
     {
         $hora = trim($hora);
+        $normalized = $this->normalize($hora);
 
-        if (preg_match('/^(\d{1,2}):(\d{2})$/', $hora, $matches) !== 1) {
-            throw new InvalidArgumentException('Hora inválida. Usa formato 24 h, por ejemplo 15:30.');
+        if (preg_match('/^(\d{1,2}):(\d{2})\s*(am|pm)$/', $normalized, $matches) === 1) {
+            return $this->hourFromParts((int) $matches[1], (int) $matches[2], $matches[3]);
         }
 
-        $hour = (int) $matches[1];
-        $minute = (int) $matches[2];
+        if (preg_match('/^(\d{1,2})\s*(am|pm)$/', $normalized, $matches) === 1) {
+            return $this->hourFromParts((int) $matches[1], 0, $matches[2]);
+        }
 
-        if ($hour > 23 || $minute > 59) {
-            throw new InvalidArgumentException('Hora inválida. Usa formato 24 h, por ejemplo 15:30.');
+        if (preg_match('/^(\d{1,2}):(\d{2})$/', $hora, $matches) === 1) {
+            $hour = (int) $matches[1];
+            $minute = (int) $matches[2];
+
+            if ($hour > 23 || $minute > 59) {
+                throw new InvalidArgumentException('Hora inválida. Usa formato 24 h, por ejemplo 15:30.');
+            }
+
+            return ['hour' => $hour, 'minute' => $minute];
+        }
+
+        throw new InvalidArgumentException('Hora inválida. Usa formato 24 h (15:30) o 12 h (10 am).');
+    }
+
+    /**
+     * @return array{hour: int, minute: int}
+     */
+    private function hourFromParts(int $hour, int $minute, string $meridiem): array
+    {
+        if ($hour < 1 || $hour > 12 || $minute > 59) {
+            throw new InvalidArgumentException('Hora inválida.');
+        }
+
+        if ($meridiem === 'am') {
+            $hour = $hour === 12 ? 0 : $hour;
+        } else {
+            $hour = $hour === 12 ? 12 : $hour + 12;
         }
 
         return ['hour' => $hour, 'minute' => $minute];

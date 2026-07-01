@@ -111,7 +111,12 @@ final class ClinicBotService
             $conversation->getOpenAiMessages(),
         );
 
-        $botReply = $this->chatWithTools($apiKey, $messages, $conversation->phone);
+        $botReply = $this->chatWithTools(
+            $apiKey,
+            $messages,
+            $conversation->phone,
+            $conversation->client_name,
+        );
 
         $conversation->pushMessage('assistant', $botReply);
         $conversation->save();
@@ -122,8 +127,12 @@ final class ClinicBotService
     /**
      * @param  array<int, array<string, mixed>>  $messages
      */
-    private function chatWithTools(string $apiKey, array $messages, string $clientPhone): string
-    {
+    private function chatWithTools(
+        string $apiKey,
+        array $messages,
+        string $clientPhone,
+        ?string $clientName = null,
+    ): string {
         $tools = ClinicBotTools::definitions();
 
         for ($round = 0; $round < self::MAX_TOOL_ROUNDS; $round++) {
@@ -184,7 +193,7 @@ final class ClinicBotService
                 }
 
                 try {
-                    $toolResult = $this->toolExecutor->execute($name, $args, $clientPhone);
+                    $toolResult = $this->toolExecutor->execute($name, $args, $clientPhone, $clientName);
                 } catch (\Throwable $e) {
                     Log::warning('ClinicBot tool error', [
                         'tool' => $name,
@@ -233,11 +242,16 @@ Responde en español, tono amable y profesional. Mensajes cortos (máximo 4-5 l�
 
 FECHA Y HORA ACTUAL EN PERÚ: {$fechaActual}
 Siempre interpreta "hoy", "mañana", "pasado mañana" y días de la semana respecto a esa referencia (zona horaria America/Lima).
-Antes de agendar, confirma mascota, fecha, hora y tipo de servicio. Usa las herramientas para consultar catálogo, mascotas y registrar citas.
+Antes de agendar, confirma mascota, fecha, hora y tipo de servicio. Usa las herramientas para consultar catálogo, mascotas, registrar clientes y agendar citas.
+
+REGISTRO DE CLIENTES NUEVOS:
+- Si listar_mascotas_cliente viene vacío, puedes registrar al tutor con registrar_propietario y la mascota con registrar_mascota.
+- registrar_mascota crea al propietario automáticamente si falta (usa el nombre de WhatsApp o pide nombres básicos).
+- Tras registrar la mascota, usa registrar_cita con el paciente_id devuelto.
+- Solo pide datos básicos: nombre del tutor, nombre de la mascota, especie, raza y edad aproximada.
 
 Para precios y servicios usa SOLO el catálogo del sistema o las herramientas listar_productos / listar_servicios_grooming.
 No inventes precios, horarios ni políticas. No des diagnósticos veterinarios: solo orientación general y logística.
-Si el cliente no está registrado (sin mascotas en su número), indícale que la clínica debe registrarlo primero.
 
 {$knowledgeBlock}
 

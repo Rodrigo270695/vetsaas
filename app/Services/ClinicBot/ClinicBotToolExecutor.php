@@ -12,13 +12,18 @@ final class ClinicBotToolExecutor
         private readonly ClinicBotCatalogService $catalog,
         private readonly ClinicBotClientResolver $clientResolver,
         private readonly ClinicBotAppointmentService $appointments,
+        private readonly ClinicBotRegistrationService $registration,
     ) {}
 
     /**
      * @param  array<string, mixed>  $arguments
      */
-    public function execute(string $toolName, array $arguments, string $clientPhone): string
-    {
+    public function execute(
+        string $toolName,
+        array $arguments,
+        string $clientPhone,
+        ?string $clientName = null,
+    ): string {
         $result = match ($toolName) {
             'obtener_fecha_actual' => [
                 'referencia' => ClinicBotPeruClock::promptReference(),
@@ -38,6 +43,21 @@ final class ClinicBotToolExecutor
             'listar_mascotas_cliente' => [
                 'mascotas' => $this->clientResolver->listPacientesForPhone($clientPhone),
             ],
+            'registrar_propietario' => $this->registration->registerPropietario(
+                $clientPhone,
+                (string) ($arguments['nombres'] ?? ''),
+                isset($arguments['apellidos']) ? (string) $arguments['apellidos'] : null,
+            ),
+            'registrar_mascota' => $this->registration->registerPaciente(
+                $clientPhone,
+                (string) ($arguments['nombre'] ?? ''),
+                isset($arguments['especie']) ? (string) $arguments['especie'] : null,
+                isset($arguments['raza']) ? (string) $arguments['raza'] : null,
+                isset($arguments['edad_anios']) ? (int) $arguments['edad_anios'] : null,
+                isset($arguments['propietario_nombres']) ? (string) $arguments['propietario_nombres'] : null,
+                isset($arguments['propietario_apellidos']) ? (string) $arguments['propietario_apellidos'] : null,
+                $clientName,
+            ),
             'registrar_cita' => $this->appointments->registerCita(
                 $clientPhone,
                 (string) ($arguments['paciente_id'] ?? ''),

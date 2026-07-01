@@ -35,3 +35,13 @@ it('acepta cita futura el mismo dia en peru', function (): void {
     expect($result['ok'])->toBeTrue()
         ->and($result['datetime']->format('Y-m-d H:i'))->toBe('2026-06-25 16:30');
 });
+
+it('interpreta hora en formato am pm', function (): void {
+    Carbon::setTestNow(Carbon::parse('2026-06-25 08:00:00', ClinicBotPeruClock::TIMEZONE));
+
+    $parser = new ClinicBotRelativeDateParser;
+    $result = $parser->parseDateTime('mañana', '10 am');
+
+    expect($result['ok'])->toBeTrue()
+        ->and($result['datetime']->format('Y-m-d H:i'))->toBe('2026-06-26 10:00');
+});
