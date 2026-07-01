@@ -8,6 +8,7 @@ use App\Models\Subscription;
 use App\Models\SubscriptionRenewalReminder;
 use App\Models\Tenant;
 use App\Services\OpenWa\PlatformWhatsAppMessenger;
+use App\Support\Subscriptions\SubscriptionRenewalBilling;
 use App\Support\WhatsApp\WhatsAppChatId;
 use Carbon\CarbonInterface;
 
@@ -37,8 +38,8 @@ final class SubscriptionRenewalWhatsAppSender
             return $this->fail('Solo se puede enviar a suscripciones activas, en prueba o en gracia.');
         }
 
-        if ($this->isFreeSubscription($subscription)) {
-            return $this->fail('Los planes gratuitos no tienen link de renovación de pago.');
+        if (! SubscriptionRenewalBilling::isBillable($subscription)) {
+            return $this->fail('Esta suscripción no tiene monto de renovación configurado.');
         }
 
         if (! $this->messenger->isReady()) {
@@ -101,28 +102,6 @@ final class SubscriptionRenewalWhatsAppSender
             'message' => null,
             'destinatario' => null,
         ];
-    }
-
-    private function isFreeSubscription(Subscription $subscription): bool
-    {
-        if ((float) $subscription->precio_pactado <= 0) {
-            return true;
-        }
-
-        $plan = $subscription->plan;
-        if ($plan === null) {
-            return false;
-        }
-
-        if ($plan->codigo === 'free') {
-            return true;
-        }
-
-        $price = $subscription->ciclo === 'anual'
-            ? (float) ($plan->precio_anual ?? 0)
-            : (float) ($plan->precio_mensual ?? 0);
-
-        return $price <= 0;
     }
 
     private function expiryAnchor(Subscription $subscription): ?CarbonInterface

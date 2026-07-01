@@ -98,5 +98,11 @@
         "description_active": "Tu clínica puede usar el asistente IA en Comunicaciones para responder consultas frecuentes por WhatsApp.",
         "description_inactive": "Add-on opcional de S/15 al mes. Solicítalo a soporte para activarlo en tu suscripción.",
         "manage_cta": "Ir a Asistente IA"
+    },
+    "renewal_billing": {
+        "total": "Total a renovar",
+        "total_hint": "Incluye precio pactado del plan y add-ons activos (ej. asistente IA).",
+        "breakdown_plan": "Plan",
+        "breakdown_bot_ia": "Asistente IA"
     }
 }

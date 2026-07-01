@@ -55,6 +55,14 @@ type SubscriptionSummary = {
         precio_mensual: string;
         activado_at: string | null;
     };
+    renewal_billing: {
+        applies: boolean;
+        currency: string;
+        plan_amount: number;
+        bot_ia_amount: number;
+        total_amount: number;
+        addons: Array<{ key: string; label: string; amount: number }>;
+    };
 };
 
 type SuscripcionIndexProps = {
@@ -508,6 +516,38 @@ export default function Index({ subscription, comprobantes }: SuscripcionIndexPr
                             ) : undefined
                         }
                     >
+                        {summary.renewal_billing?.applies &&
+                            summary.renewal_billing.total_amount > 0 && (
+                                <div className="mb-4 rounded-lg border border-border/60 bg-muted/20 px-4 py-3">
+                                    <p className="text-sm font-medium text-foreground">
+                                        {t('renewal_billing.total')}:{' '}
+                                        {formatPrice(
+                                            String(summary.renewal_billing.total_amount),
+                                        )}
+                                    </p>
+                                    <p className="mt-1 text-xs text-muted-foreground">
+                                        {t('renewal_billing.total_hint')}
+                                    </p>
+                                    <div className="mt-2 flex flex-wrap gap-3 text-xs text-muted-foreground">
+                                        <span>
+                                            {t('renewal_billing.breakdown_plan')}:{' '}
+                                            {formatPrice(
+                                                String(summary.renewal_billing.plan_amount),
+                                            )}
+                                        </span>
+                                        {summary.renewal_billing.bot_ia_amount > 0 && (
+                                            <span>
+                                                {t('renewal_billing.breakdown_bot_ia')}:{' '}
+                                                {formatPrice(
+                                                    String(
+                                                        summary.renewal_billing.bot_ia_amount,
+                                                    ),
+                                                )}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
                         <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
                             <div className="max-w-2xl space-y-2">
                                 <p className="text-sm text-muted-foreground">

@@ -6,6 +6,7 @@ namespace App\Services\Subscriptions;
 
 use App\Models\Subscription;
 use App\Models\Tenant;
+use App\Support\Subscriptions\SubscriptionRenewalBilling;
 use App\Support\Subscriptions\SubscriptionRenewalUrl;
 use Carbon\CarbonInterface;
 
@@ -25,6 +26,21 @@ final class SubscriptionRenewalMessageBuilder
         $ciclo = $subscription->ciclo === 'anual' ? 'anual' : 'mensual';
         $fecha = $anchor->timezone(config('app.timezone', 'America/Lima'))->format('d/m/Y');
         $renewUrl = $this->renewalUrl->for($tenant, $subscription);
+        $total = SubscriptionRenewalBilling::totalAmount($subscription);
+        $planAmount = SubscriptionRenewalBilling::planAmount($subscription);
+        $botIaAmount = SubscriptionRenewalBilling::botIaAmount($subscription);
+
+        $amountLines = [];
+        if ($total > 0) {
+            $amountLines[] = sprintf('Total a renovar: S/ %.2f', $total);
+            if ($botIaAmount > 0) {
+                $amountLines[] = sprintf(
+                    '(plan S/ %.2f + asistente IA S/ %.2f)',
+                    $planAmount,
+                    $botIaAmount,
+                );
+            }
+        }
 
         $statusLine = $expired
             ? "Tu plan VetSaaS ({$ciclo}) venció el {$fecha}."
@@ -34,17 +50,18 @@ final class SubscriptionRenewalMessageBuilder
             ? 'Renueva para reactivar el acceso a la plataforma.'
             : 'Renueva para seguir usando la plataforma sin interrupciones.';
 
-        return implode("\n", [
+        return implode("\n", array_filter([
             "Hola, {$name} 👋",
             '',
             $statusLine,
             $ctaLine,
+            ...($amountLines !== [] ? ['', ...$amountLines] : []),
             '',
             "Paga aquí: {$renewUrl}",
             '',
             'Si ya pagaste, tu próximo vencimiento se actualizará automáticamente.',
             '',
             'Soporte Orvae',
-        ]);
+        ]));
     }
 }

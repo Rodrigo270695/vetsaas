@@ -8,6 +8,7 @@ use App\Models\Subscription;
 use App\Models\SubscriptionRenewalReminder;
 use App\Models\Tenant;
 use App\Services\OpenWa\PlatformWhatsAppMessenger;
+use App\Support\Subscriptions\SubscriptionRenewalBilling;
 use App\Support\WhatsApp\WhatsAppChatId;
 use Carbon\CarbonInterface;
 
@@ -180,8 +181,10 @@ final class SubscriptionRenewalReminderScanner
             ->with(['tenant', 'plan'])
             ->whereIn('estado', ['active', 'trial'])
             ->whereNull('cancelled_at')
-            ->where('precio_pactado', '>', 0)
-            ->whereHas('plan', fn ($query) => $query->where('codigo', '!=', 'free'));
+            ->where(function ($query): void {
+                $query->where('precio_pactado', '>', 0)
+                    ->orWhere('bot_ia_activo', true);
+            });
     }
 
     private function processSubscription(Subscription $subscription, CarbonInterface $now, array $reminderDays): string
@@ -261,7 +264,7 @@ final class SubscriptionRenewalReminderScanner
             return [
                 ...$empty,
                 'skip_code' => 'free_plan',
-                'skip_reason' => 'Plan gratuito o precio pactado en cero: no se envían avisos de renovación.',
+                'skip_reason' => 'Sin monto de renovación (precio pactado y add-ons en cero).',
             ];
         }
 
@@ -358,24 +361,7 @@ final class SubscriptionRenewalReminderScanner
 
     private function isFreeSubscription(Subscription $subscription): bool
     {
-        if ((float) $subscription->precio_pactado <= 0) {
-            return true;
-        }
-
-        $plan = $subscription->plan;
-        if ($plan === null) {
-            return false;
-        }
-
-        if ($plan->codigo === 'free') {
-            return true;
-        }
-
-        $price = $subscription->ciclo === 'anual'
-            ? (float) ($plan->precio_anual ?? 0)
-            : (float) ($plan->precio_mensual ?? 0);
-
-        return $price <= 0;
+        return ! SubscriptionRenewalBilling::isBillable($subscription);
     }
 
     private function expiryAnchor(Subscription $subscription): ?CarbonInterface

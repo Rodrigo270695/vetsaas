@@ -66,6 +66,9 @@ Route::prefix('internal/saas')
         Route::get('tenants/{slug}/comprobantes-overage', [SaasProvisionController::class, 'comprobantesOverage'])
             ->name('api.internal.saas.comprobantes-overage');
 
+        Route::get('tenants/{slug}/renewal-billing', [SaasProvisionController::class, 'renewalBilling'])
+            ->name('api.internal.saas.renewal-billing');
+
         Route::get('tenants/{slug}', [SaasProvisionController::class, 'status'])
             ->name('api.internal.saas.status');
 

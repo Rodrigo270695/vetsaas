@@ -9,6 +9,7 @@ use App\Models\Tenant;
 use App\Services\Subscriptions\SubscriptionRenewalService;
 use App\Services\Tenancy\TenantProvisioner;
 use App\Support\Plan\ComprobantesQuota;
+use App\Support\Subscriptions\SubscriptionRenewalBilling;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -164,6 +165,39 @@ class SaasProvisionController extends Controller
             'status' => 'ok',
             'tenant_slug' => $tenant->slug,
             ...$overage,
+        ]);
+    }
+
+    public function renewalBilling(string $slug): JsonResponse
+    {
+        $tenant = Tenant::query()->where('slug', $slug)->first();
+
+        if ($tenant === null) {
+            return response()->json([
+                'error' => 'not_found',
+                'message' => 'Tenant no encontrado.',
+            ], 404);
+        }
+
+        $billing = SubscriptionRenewalBilling::forTenant($tenant);
+
+        if ($billing === null) {
+            return response()->json([
+                'status' => 'ok',
+                'tenant_slug' => $slug,
+                'applies' => false,
+                'currency' => 'PEN',
+                'plan_amount' => 0,
+                'bot_ia_amount' => 0,
+                'total_amount' => 0,
+                'addons' => [],
+            ]);
+        }
+
+        return response()->json([
+            'status' => 'ok',
+            'tenant_slug' => $tenant->slug,
+            ...$billing,
         ]);
     }
 

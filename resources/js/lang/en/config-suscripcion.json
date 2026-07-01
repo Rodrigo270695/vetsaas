@@ -98,5 +98,11 @@
         "description_active": "Your clinic can use the AI assistant under Communications to answer common questions on WhatsApp.",
         "description_inactive": "Optional add-on at S/15/month. Contact support to enable it on your subscription.",
         "manage_cta": "Go to AI assistant"
+    },
+    "renewal_billing": {
+        "total": "Renewal total",
+        "total_hint": "Includes agreed plan price and active add-ons (e.g. AI assistant).",
+        "breakdown_plan": "Plan",
+        "breakdown_bot_ia": "AI assistant"
     }
 }
