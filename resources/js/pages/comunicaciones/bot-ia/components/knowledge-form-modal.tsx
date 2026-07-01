@@ -8,9 +8,9 @@ import {
     Scissors,
     ShieldAlert,
 } from 'lucide-react';
-import { useEffect, useRef, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FormField, FormModal, FormSection } from '@/components/forms';
+import { FormField, FormModal } from '@/components/forms';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -37,13 +37,16 @@ const SECTIONS: KnowledgeSection[] = [
     'general',
 ];
 
-const SECTION_ICONS: Record<KnowledgeSection, React.ElementType> = {
-    faq: HelpCircle,
-    horario: Clock,
-    politica: ShieldAlert,
-    servicio: Scissors,
-    contacto: MapPin,
-    general: BookOpen,
+const SECTION_DESCRIPTIONS: Record<
+    KnowledgeSection,
+    { icon: React.ElementType; color: string }
+> = {
+    faq: { icon: HelpCircle, color: 'text-violet-600' },
+    horario: { icon: Clock, color: 'text-blue-600' },
+    politica: { icon: ShieldAlert, color: 'text-orange-600' },
+    servicio: { icon: Scissors, color: 'text-emerald-600' },
+    contacto: { icon: MapPin, color: 'text-rose-600' },
+    general: { icon: BookOpen, color: 'text-muted-foreground' },
 };
 
 export type KnowledgeFormModalProps = {
@@ -75,31 +78,44 @@ function slugify(value: string): string {
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-+|-+$/g, '')
-        .slice(0, 100);
+        .slice(0, 80);
 }
 
-function buildSlug(section: string, title: string): string {
+function buildKnowledgeSlug(section: string, title: string): string {
     const base = slugify(title);
-    return base ? `${section}-${base}` : '';
+    if (base === '') {
+        return section;
+    }
+
+    return `${section}-${base}`.slice(0, 100);
+}
+
+function isFormComplete(data: FormData): boolean {
+    return (
+        data.section.trim() !== '' &&
+        data.title.trim() !== '' &&
+        data.slug.trim() !== '' &&
+        data.content.trim() !== ''
+    );
 }
 
 export function KnowledgeFormModal({ open, onOpenChange, entry }: KnowledgeFormModalProps) {
     const { t } = useTranslation(['bot-ia', 'common']);
     const isEdit = entry !== null;
-    const slugTouched = useRef(false);
+    const slugManuallyEdited = useRef(false);
 
-    const { data, setData, post, put, processing, errors, reset, clearErrors } = useForm<FormData>(
-        emptyForm,
-    );
+    const { data, setData, post, put, processing, errors, reset, clearErrors } =
+        useForm<FormData>(emptyForm);
 
     useEffect(() => {
-        if (!open) return;
-
-        slugTouched.current = false;
-        clearErrors();
+        if (!open) {
+            return;
+        }
 
         if (entry) {
-            reset({
+            slugManuallyEdited.current = true;
+            reset();
+            setData({
                 section: entry.section,
                 slug: entry.slug,
                 title: entry.title,
@@ -107,12 +123,29 @@ export function KnowledgeFormModal({ open, onOpenChange, entry }: KnowledgeFormM
                 is_active: entry.is_active,
             });
         } else {
-            reset(emptyForm);
+            reset();
+            clearErrors();
+            slugManuallyEdited.current = false;
         }
-    }, [open, entry, reset, clearErrors]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [open, entry?.id]);
 
-    const onSubmit = (event: FormEvent) => {
+    const canSubmit = useMemo(() => isFormComplete(data), [data]);
+
+    const updateAutoSlug = (section: string, title: string) => {
+        if (isEdit || slugManuallyEdited.current) {
+            return;
+        }
+
+        setData('slug', buildKnowledgeSlug(section, title));
+    };
+
+    const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
+
+        if (!canSubmit || processing) {
+            return;
+        }
 
         if (isEdit && entry) {
             put(UPDATE_URL(entry.id), {
@@ -122,140 +155,154 @@ export function KnowledgeFormModal({ open, onOpenChange, entry }: KnowledgeFormM
         } else {
             post(STORE_URL, {
                 preserveScroll: true,
-                onSuccess: () => onOpenChange(false),
+                onSuccess: () => {
+                    onOpenChange(false);
+                    reset();
+                },
             });
         }
     };
 
-    const SectionIcon = SECTION_ICONS[data.section];
+    const sectionMeta = SECTION_DESCRIPTIONS[data.section];
+    const SectionIcon = sectionMeta.icon;
 
     return (
         <FormModal
             open={open}
             onOpenChange={onOpenChange}
             title={isEdit ? t('knowledge.form.edit_title') : t('knowledge.form.create_title')}
+            size="lg"
+            onSubmit={handleSubmit}
             footer={
-                <>
+                <div className="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                     <Button
                         type="button"
                         variant="outline"
                         onClick={() => onOpenChange(false)}
                         disabled={processing}
+                        className="cursor-pointer"
                     >
                         {t('knowledge.form.cancel')}
                     </Button>
-                    <Button type="submit" form="bot-ia-knowledge-form" disabled={processing} className="gap-2">
+                    <Button
+                        type="submit"
+                        disabled={processing || !canSubmit}
+                        className="cursor-pointer gap-2"
+                    >
                         {processing && <Loader2 className="size-4 animate-spin" />}
                         {t('knowledge.form.save')}
                     </Button>
-                </>
+                </div>
             }
         >
-            <form id="bot-ia-knowledge-form" onSubmit={onSubmit} className="space-y-4">
-                <FormSection>
-                    <FormField
-                        label={t('knowledge.form.section_label')}
-                        error={errors.section}
-                        htmlFor="knowledge-section"
+            <div className="flex flex-col gap-4">
+                <FormField
+                    id="knowledge-section"
+                    label={t('knowledge.form.section_label')}
+                    error={errors.section}
+                    required
+                >
+                    <Select
+                        value={data.section}
+                        onValueChange={(value) => {
+                            const section = value as KnowledgeSection;
+                            setData('section', section);
+                            updateAutoSlug(section, data.title);
+                        }}
                     >
-                        <Select
-                            value={data.section}
-                            onValueChange={(value) => {
-                                const section = value as KnowledgeSection;
-                                setData('section', section);
-                                if (!slugTouched.current) {
-                                    setData('slug', buildSlug(section, data.title));
-                                }
-                            }}
-                        >
-                            <SelectTrigger id="knowledge-section">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {SECTIONS.map((section) => {
-                                    const Icon = SECTION_ICONS[section];
-                                    return (
-                                        <SelectItem key={section} value={section}>
-                                            <span className="flex items-center gap-2">
-                                                <Icon className="size-3.5" />
-                                                {t(`knowledge.sections.${section}`)}
-                                            </span>
-                                        </SelectItem>
-                                    );
-                                })}
-                            </SelectContent>
-                        </Select>
-                    </FormField>
+                        <SelectTrigger id="knowledge-section" className="w-full">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {SECTIONS.map((section) => {
+                                const Icon = SECTION_DESCRIPTIONS[section].icon;
+                                return (
+                                    <SelectItem key={section} value={section}>
+                                        <span className="flex items-center gap-2">
+                                            <Icon className="size-3.5" />
+                                            {t(`knowledge.sections.${section}`)}
+                                        </span>
+                                    </SelectItem>
+                                );
+                            })}
+                        </SelectContent>
+                    </Select>
+                </FormField>
 
-                    <FormField
-                        label={t('knowledge.form.title_label')}
-                        error={errors.title}
-                        htmlFor="knowledge-title"
-                    >
-                        <Input
-                            id="knowledge-title"
-                            value={data.title}
-                            onChange={(e) => {
-                                const title = e.target.value;
-                                setData((prev) => ({
-                                    ...prev,
-                                    title,
-                                    slug: slugTouched.current ? prev.slug : buildSlug(prev.section, title),
-                                }));
-                            }}
-                            placeholder={t('knowledge.form.title_placeholder')}
-                        />
-                    </FormField>
-
-                    <FormField
-                        label={t('knowledge.form.slug_label')}
-                        hint={!isEdit ? t('knowledge.form.slug_hint') : undefined}
-                        error={errors.slug}
-                        htmlFor="knowledge-slug"
-                    >
-                        <Input
-                            id="knowledge-slug"
-                            value={data.slug}
-                            onChange={(e) => {
-                                slugTouched.current = true;
-                                setData('slug', e.target.value);
-                            }}
-                            placeholder={t('knowledge.form.slug_placeholder')}
-                        />
-                    </FormField>
-
-                    <FormField
-                        label={t('knowledge.form.content_label')}
-                        error={errors.content}
-                        htmlFor="knowledge-content"
-                    >
-                        <Textarea
-                            id="knowledge-content"
-                            value={data.content}
-                            onChange={(e) => setData('content', e.target.value)}
-                            placeholder={t('knowledge.form.content_placeholder')}
-                            rows={8}
-                            className="min-h-32 resize-y"
-                        />
-                    </FormField>
-
-                    <div className="flex items-center gap-2">
-                        <Checkbox
-                            id="knowledge-active"
-                            checked={data.is_active}
-                            onCheckedChange={(checked) => setData('is_active', checked === true)}
-                        />
-                        <Label htmlFor="knowledge-active" className="text-sm font-normal">
-                            {t('knowledge.form.is_active_label')}
-                        </Label>
-                    </div>
-
-                    <p className="flex items-start gap-2 rounded-md border bg-muted/40 p-3 text-xs text-muted-foreground">
-                        <SectionIcon className="mt-0.5 size-3.5 shrink-0" />
+                <div className="flex items-start gap-2 rounded-lg border border-border/60 bg-muted/40 px-3 py-2.5">
+                    <SectionIcon
+                        className={`mt-0.5 size-4 shrink-0 ${sectionMeta.color}`}
+                        strokeWidth={2}
+                    />
+                    <p className="text-xs leading-relaxed text-muted-foreground">
                         {t(`knowledge.section_hints.${data.section}`)}
                     </p>
-                </FormSection>
-            </form>
+                </div>
+
+                <FormField
+                    id="knowledge-title"
+                    label={t('knowledge.form.title_label')}
+                    error={errors.title}
+                    required
+                >
+                    <Input
+                        id="knowledge-title"
+                        value={data.title}
+                        onChange={(e) => {
+                            const title = e.target.value;
+                            setData('title', title);
+                            updateAutoSlug(data.section, title);
+                        }}
+                        placeholder={t('knowledge.form.title_placeholder')}
+                    />
+                </FormField>
+
+                <FormField
+                    id="knowledge-slug"
+                    label={t('knowledge.form.slug_label')}
+                    hint={!isEdit ? t('knowledge.form.slug_hint') : undefined}
+                    error={errors.slug}
+                    required
+                >
+                    <Input
+                        id="knowledge-slug"
+                        value={data.slug}
+                        onChange={(e) => {
+                            slugManuallyEdited.current = true;
+                            setData('slug', e.target.value);
+                        }}
+                        placeholder={t('knowledge.form.slug_placeholder')}
+                        className="font-mono text-sm"
+                    />
+                </FormField>
+
+                <FormField
+                    id="knowledge-content"
+                    label={t('knowledge.form.content_label')}
+                    error={errors.content}
+                    required
+                >
+                    <Textarea
+                        id="knowledge-content"
+                        value={data.content}
+                        onChange={(e) => setData('content', e.target.value)}
+                        placeholder={t('knowledge.form.content_placeholder')}
+                        rows={10}
+                        className="resize-y font-mono text-sm leading-relaxed"
+                    />
+                </FormField>
+
+                <div className="flex items-center gap-3">
+                    <Checkbox
+                        id="knowledge-active"
+                        checked={data.is_active}
+                        onCheckedChange={(checked) => setData('is_active', checked === true)}
+                    />
+                    <Label htmlFor="knowledge-active" className="cursor-pointer text-sm">
+                        {t('knowledge.form.is_active_label')}
+                    </Label>
+                </div>
+            </div>
         </FormModal>
     );
 }
