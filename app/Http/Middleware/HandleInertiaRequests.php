@@ -285,6 +285,8 @@ class HandleInertiaRequests extends Middleware
             return [
                 'logo_url' => ClinicBrandingUrls::default(),
                 'updated_at' => null,
+                'color_primario' => null,
+                'color_secundario' => null,
             ];
         }
     }

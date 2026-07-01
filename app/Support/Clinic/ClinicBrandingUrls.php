@@ -48,7 +48,12 @@ final class ClinicBrandingUrls
     }
 
     /**
-     * @return array{logo_url: string, updated_at: string|null}
+     * @return array{
+     *     logo_url: string,
+     *     updated_at: string|null,
+     *     color_primario: string|null,
+     *     color_secundario: string|null
+     * }
      */
     public static function sharedPayload(?ClinicSetting $setting): array
     {
@@ -57,7 +62,24 @@ final class ClinicBrandingUrls
         return [
             'logo_url' => $logoUrl,
             'updated_at' => $setting?->updated_at?->toIso8601String(),
+            'color_primario' => self::sanitizeHexColor($setting?->color_primario),
+            'color_secundario' => self::sanitizeHexColor($setting?->color_secundario),
         ];
+    }
+
+    private static function sanitizeHexColor(?string $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        $normalized = trim($value);
+
+        if (preg_match('/^#[0-9A-Fa-f]{6}$/', $normalized) !== 1) {
+            return null;
+        }
+
+        return strtoupper($normalized);
     }
 
     private static function withCacheBuster(string $logoUrl, ?int $version): string

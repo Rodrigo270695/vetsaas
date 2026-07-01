@@ -282,6 +282,10 @@ export default function Index({
         }
 
         const logoChanged = Boolean(logoFile) || clearLogo;
+        const colorsChanged =
+            (data.color_primario ?? '') !== (setting.color_primario ?? '') ||
+            (data.color_secundario ?? '') !== (setting.color_secundario ?? '');
+        const brandingChanged = logoChanged || colorsChanged;
 
         setProcessing(true);
         router.post(general.update().url, payload, {
@@ -294,16 +298,22 @@ export default function Index({
                 setErrors({});
                 setRecentlySuccessful(true);
 
-                if (logoChanged) {
-                    setLogoFile(null);
-                    setClearLogo(false);
+                if (brandingChanged) {
+                    if (logoChanged) {
+                        setLogoFile(null);
+                        setClearLogo(false);
+                    }
+
                     router.reload({
                         only: ['clinic_branding', 'setting'],
                         preserveScroll: true,
                     });
-                    toastManager.success({
-                        title: t('fields.logo_sidebar_updated'),
-                    });
+
+                    if (logoChanged) {
+                        toastManager.success({
+                            title: t('fields.logo_sidebar_updated'),
+                        });
+                    }
                 }
 
                 if (recentSuccessTimerRef.current) {
