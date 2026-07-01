@@ -35,7 +35,6 @@ import { SubscriptionExpiryBadge } from '@/components/plataforma/subscription-ex
 import { useDataTablePage } from '@/hooks/use-data-table-page';
 import { usePermission } from '@/hooks/use-permission';
 import { livingSubscription } from '@/lib/living-subscription';
-import { VETSAAS_DEFAULT_LOGO } from '@/lib/brand';
 import { useRowSelection } from '@/hooks/use-row-selection';
 import AppLayout from '@/layouts/app-layout';
 import tenants from '@/routes/plataforma/tenants';
@@ -44,6 +43,7 @@ import { TenantBulkDeleteDialog } from './components/tenant-bulk-delete-dialog';
 import { TenantChangeSlugDialog } from './components/tenant-change-slug-dialog';
 import { TenantDeleteDialog } from './components/tenant-delete-dialog';
 import { TenantFormModal } from './components/tenant-form-modal';
+import { TenantLogoPreview } from './components/tenant-logo-preview';
 import { TenantRowActions } from './components/tenant-row-actions';
 import { TenantSuspendDialog } from './components/tenant-suspend-dialog';
 import type {
@@ -367,10 +367,10 @@ export default function Index({
                 sortable: true,
                 cell: (tenant) => (
                     <div className="flex items-center gap-2">
-                        <img
-                            src={tenant.logo_url || VETSAAS_DEFAULT_LOGO}
-                            alt=""
-                            className="size-8 shrink-0 rounded-full border border-border/60 bg-background object-contain p-0.5"
+                        <TenantLogoPreview
+                            logoUrl={tenant.logo_url}
+                            tenantName={tenant.razon_social}
+                            hasCustomLogo={tenant.has_custom_logo}
                         />
                         <div className="flex min-w-0 flex-col leading-tight">
                             <span className="truncate text-sm font-semibold text-foreground">

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\ClinicBotWebhookController;
 use App\Http\Controllers\Api\Internal\SaasProvisionController;
+use App\Http\Controllers\Api\Public\TenantShowcaseController;
 use App\Http\Controllers\Api\SalesBotWebhookController;
 use App\Http\Middleware\VerifyOrvaeProvisionSignature;
 use Illuminate\Support\Facades\Route;
@@ -41,6 +42,21 @@ Route::post('webhooks/sales-bot', [SalesBotWebhookController::class, 'handle'])
 */
 Route::post('webhooks/clinic-bot', [ClinicBotWebhookController::class, 'handle'])
     ->name('api.webhooks.clinic-bot');
+
+/*
+|--------------------------------------------------------------------------
+| Showcase público — carrusel de clientes VetSaaS (Orvae marketing)
+|--------------------------------------------------------------------------
+|
+| GET /api/public/vetsaas/showcase
+|
+| Solo clínicas con plan de pago (no free) y logo propio subido.
+| Cache 15 min. Rate limit 60 req/min por IP.
+|
+*/
+Route::get('public/vetsaas/showcase', [TenantShowcaseController::class, 'index'])
+    ->middleware('throttle:60,1')
+    ->name('api.public.vetsaas.showcase');
 
 /*
 | TODO — Rutas futuras por producto (Opción A):
@@ -89,4 +105,7 @@ Route::prefix('internal/saas')
 
         Route::get('lookup', [SaasProvisionController::class, 'lookupByEmail'])
             ->name('api.internal.saas.lookup');
+
+        Route::get('showcase', [SaasProvisionController::class, 'showcase'])
+            ->name('api.internal.saas.showcase');
     });

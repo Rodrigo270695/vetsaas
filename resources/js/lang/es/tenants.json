@@ -56,6 +56,7 @@
         "suspended": "Suspendido",
         "cancelled": "Cancelado",
         "no_phone": "Sin teléfono",
+        "logo_preview": "Ver logo de {{name}}",
         "no_plan": "Sin plan",
         "cancelled_locked": "Tenant cancelado"
     },

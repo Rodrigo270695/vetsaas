@@ -32,18 +32,36 @@ final class ClinicBrandingUrls
 
     public static function forTenant(TenantManager $manager, Tenant $tenant): string
     {
+        return self::resolveForTenant($manager, $tenant)['logo_url'];
+    }
+
+    /**
+     * @return array{logo_url: string, has_custom_logo: bool}
+     */
+    public static function resolveForTenant(TenantManager $manager, Tenant $tenant): array
+    {
         if (! is_string($tenant->slug) || $tenant->slug === '') {
-            return self::default();
+            return [
+                'logo_url' => self::default(),
+                'has_custom_logo' => false,
+            ];
         }
 
         try {
-            return $manager->runForSlug($tenant->slug, function (): string {
+            return $manager->runForSlug($tenant->slug, function (): array {
                 $setting = ClinicSetting::query()->first();
+                $hasCustom = is_string($setting?->logo_path) && $setting->logo_path !== '';
 
-                return self::fromClinicSetting($setting);
+                return [
+                    'logo_url' => self::fromClinicSetting($setting),
+                    'has_custom_logo' => $hasCustom,
+                ];
             });
         } catch (Throwable) {
-            return self::default();
+            return [
+                'logo_url' => self::default(),
+                'has_custom_logo' => false,
+            ];
         }
     }
 

@@ -109,10 +109,9 @@ class TenantController extends Controller
             ->paginate($perPage)
             ->withQueryString()
             ->through(function (Tenant $tenant) use ($manager): Tenant {
-                $tenant->setAttribute(
-                    'logo_url',
-                    ClinicBrandingUrls::forTenant($manager, $tenant),
-                );
+                $branding = ClinicBrandingUrls::resolveForTenant($manager, $tenant);
+                $tenant->setAttribute('logo_url', $branding['logo_url']);
+                $tenant->setAttribute('has_custom_logo', $branding['has_custom_logo']);
 
                 return $tenant;
             });

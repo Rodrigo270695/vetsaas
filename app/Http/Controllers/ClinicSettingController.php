@@ -7,6 +7,7 @@ use App\Models\ClinicSetting;
 use App\Models\Departamento;
 use App\Support\Caja\TicketAnchoMm;
 use App\Support\PlanCapabilities;
+use App\Services\Tenancy\TenantShowcaseService;
 use App\Tenancy\TenantManager;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
@@ -128,6 +129,8 @@ class ClinicSettingController extends Controller
         }
 
         $setting->save();
+
+        app(TenantShowcaseService::class)->forgetCache();
 
         return back()->with(['success' => 'Configuración actualizada correctamente.']);
     }

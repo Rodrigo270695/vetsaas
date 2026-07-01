@@ -8,6 +8,7 @@ use App\Http\Requests\Api\Internal\RenewTenantRequest;
 use App\Models\Tenant;
 use App\Services\Subscriptions\SubscriptionRenewalService;
 use App\Services\Tenancy\TenantProvisioner;
+use App\Services\Tenancy\TenantShowcaseService;
 use App\Support\Plan\ComprobantesQuota;
 use App\Support\Subscriptions\SubscriptionRenewalBilling;
 use Illuminate\Http\JsonResponse;
@@ -21,6 +22,7 @@ class SaasProvisionController extends Controller
     public function __construct(
         private readonly TenantProvisioner $provisioner,
         private readonly SubscriptionRenewalService $renewalService,
+        private readonly TenantShowcaseService $showcase,
     ) {}
 
     public function provision(ProvisionTenantRequest $request): JsonResponse
@@ -278,6 +280,16 @@ class SaasProvisionController extends Controller
             'status' => (int) $row->status_code,
             'body' => json_decode((string) $row->response_body, true) ?: [],
         ];
+    }
+
+    /**
+     * Carrusel de clientes VetSaaS (misma respuesta que el endpoint público).
+     */
+    public function showcase(): JsonResponse
+    {
+        return response()->json([
+            'data' => $this->showcase->clientsForCarousel(),
+        ]);
     }
 
     /**

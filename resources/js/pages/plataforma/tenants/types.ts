@@ -71,6 +71,7 @@ export type Tenant = {
     distrito_id: number | null;
     direccion: string | null;
     logo_url: string;
+    has_custom_logo: boolean;
     sunat_configurado: boolean;
     estado: TenantEstado;
     trial_ends_at: string | null;
