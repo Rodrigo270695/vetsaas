@@ -189,6 +189,7 @@ class SaasProvisionController extends Controller
                 'currency' => 'PEN',
                 'plan_amount' => 0,
                 'bot_ia_amount' => 0,
+                'comprobantes_overage_amount' => 0,
                 'total_amount' => 0,
                 'addons' => [],
             ]);

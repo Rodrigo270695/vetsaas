@@ -26,19 +26,23 @@ final class SubscriptionRenewalMessageBuilder
         $ciclo = $subscription->ciclo === 'anual' ? 'anual' : 'mensual';
         $fecha = $anchor->timezone(config('app.timezone', 'America/Lima'))->format('d/m/Y');
         $renewUrl = $this->renewalUrl->for($tenant, $subscription);
-        $total = SubscriptionRenewalBilling::totalAmount($subscription);
+        $total = SubscriptionRenewalBilling::totalAmount($subscription, $tenant);
         $planAmount = SubscriptionRenewalBilling::planAmount($subscription);
         $botIaAmount = SubscriptionRenewalBilling::botIaAmount($subscription);
+        $comprobantesAmount = SubscriptionRenewalBilling::comprobantesOverageAmount($tenant);
 
         $amountLines = [];
         if ($total > 0) {
             $amountLines[] = sprintf('Total a renovar: S/ %.2f', $total);
+            $parts = [sprintf('plan S/ %.2f', $planAmount)];
             if ($botIaAmount > 0) {
-                $amountLines[] = sprintf(
-                    '(plan S/ %.2f + asistente IA S/ %.2f)',
-                    $planAmount,
-                    $botIaAmount,
-                );
+                $parts[] = sprintf('asistente IA S/ %.2f', $botIaAmount);
+            }
+            if ($comprobantesAmount > 0) {
+                $parts[] = sprintf('comprobantes extra S/ %.2f', $comprobantesAmount);
+            }
+            if (count($parts) > 1) {
+                $amountLines[] = '('.implode(' + ', $parts).')';
             }
         }
 

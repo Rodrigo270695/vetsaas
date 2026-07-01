@@ -58,12 +58,14 @@
     "hero": {
         "badge": "Suscripción VetSaaS",
         "days_label": "días para el próximo cobro",
-        "due_today": "El cobro vence hoy"
+        "due_today": "El cobro vence hoy",
+        "total_breakdown": "Plan {{plan}} + complementos {{addons}}"
     },
     "stats": {
         "plan": "Plan activo",
         "estado": "Estado",
         "precio": "Precio pactado",
+        "total": "Pago total",
         "renewal": "Próximo cobro"
     },
     "comprobantes": {
@@ -101,8 +103,9 @@
     },
     "renewal_billing": {
         "total": "Total a renovar",
-        "total_hint": "Incluye precio pactado del plan y add-ons activos (ej. asistente IA).",
+        "total_hint": "Incluye precio pactado del plan, add-ons activos y comprobantes adicionales del período.",
         "breakdown_plan": "Plan",
-        "breakdown_bot_ia": "Asistente IA"
+        "breakdown_bot_ia": "Asistente IA",
+        "breakdown_comprobantes": "Comprobantes extra"
     }
 }

@@ -58,12 +58,14 @@
     "hero": {
         "badge": "VetSaaS subscription",
         "days_label": "days until next charge",
-        "due_today": "Charge due today"
+        "due_today": "Charge due today",
+        "total_breakdown": "Plan {{plan}} + add-ons {{addons}}"
     },
     "stats": {
         "plan": "Active plan",
         "estado": "Status",
         "precio": "Agreed price",
+        "total": "Total payment",
         "renewal": "Next charge"
     },
     "comprobantes": {
@@ -101,8 +103,9 @@
     },
     "renewal_billing": {
         "total": "Renewal total",
-        "total_hint": "Includes agreed plan price and active add-ons (e.g. AI assistant).",
+        "total_hint": "Includes agreed plan price, active add-ons, and extra invoices for the current period.",
         "breakdown_plan": "Plan",
-        "breakdown_bot_ia": "AI assistant"
+        "breakdown_bot_ia": "AI assistant",
+        "breakdown_comprobantes": "Extra invoices"
     }
 }

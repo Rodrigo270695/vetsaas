@@ -62,7 +62,7 @@ final class TenantSubscriptionSummary
             'urgency' => SubscriptionExpiry::urgency($subscription->estado, $daysUntil),
             'renewal_url' => $renewalUrl,
             'bot_ia' => SubscriptionBotIaAddon::payload($subscription),
-            'renewal_billing' => SubscriptionRenewalBilling::payload($subscription),
+            'renewal_billing' => SubscriptionRenewalBilling::payload($subscription, $tenant),
         ];
     }
 
@@ -124,6 +124,7 @@ final class TenantSubscriptionSummary
                 'currency' => 'PEN',
                 'plan_amount' => 0,
                 'bot_ia_amount' => 0,
+                'comprobantes_overage_amount' => 0,
                 'total_amount' => 0,
                 'addons' => [],
             ],

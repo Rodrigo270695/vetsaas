@@ -60,6 +60,7 @@ type SubscriptionSummary = {
         currency: string;
         plan_amount: number;
         bot_ia_amount: number;
+        comprobantes_overage_amount: number;
         total_amount: number;
         addons: Array<{ key: string; label: string; amount: number }>;
     };
@@ -242,6 +243,50 @@ export default function Index({ subscription, comprobantes }: SuscripcionIndexPr
     const proximoCobro = formatDate(summary?.proximo_cobro_at ?? null, locale);
     const daysCount = summary?.days_until_renewal;
 
+    const billing = summary?.renewal_billing;
+    const paymentTotal = useMemo(() => {
+        if (billing?.applies && (billing.total_amount ?? 0) > 0) {
+            return billing.total_amount;
+        }
+
+        const pactado = summary?.precio_pactado;
+        if (pactado === null || pactado === undefined) {
+            return null;
+        }
+
+        const num = Number(pactado);
+
+        return Number.isNaN(num) ? null : num;
+    }, [billing, summary?.precio_pactado]);
+
+    const paymentTotalLabel = useMemo(() => {
+        const hasAddons =
+            (billing?.bot_ia_amount ?? 0) > 0 ||
+            (billing?.comprobantes_overage_amount ?? 0) > 0 ||
+            (billing?.applies &&
+                billing.total_amount > (billing.plan_amount ?? 0));
+
+        return hasAddons ? t('stats.total') : t('stats.precio');
+    }, [billing, t]);
+
+    const heroBreakdown = useMemo(() => {
+        if (!billing?.applies || paymentTotal === null) {
+            return null;
+        }
+
+        const planAmount = billing.plan_amount ?? 0;
+        const addonsAmount = Math.max(0, (billing.total_amount ?? 0) - planAmount);
+
+        if (addonsAmount <= 0) {
+            return null;
+        }
+
+        return t('hero.total_breakdown', {
+            plan: formatPrice(String(planAmount)),
+            addons: formatPrice(String(addonsAmount)),
+        });
+    }, [billing, paymentTotal, t]);
+
     return (
         <>
             <Head title={t('title')} />
@@ -266,8 +311,11 @@ export default function Index({ subscription, comprobantes }: SuscripcionIndexPr
                                       icon: CheckCircle2,
                                   },
                                   {
-                                      label: t('stats.precio'),
-                                      value: formatPrice(summary.precio_pactado),
+                                      label: paymentTotalLabel,
+                                      value:
+                                          paymentTotal !== null
+                                              ? formatPrice(String(paymentTotal))
+                                              : formatPrice(summary.precio_pactado),
                                       variant: 'muted' as const,
                                       icon: CreditCard,
                                   },
@@ -318,8 +366,15 @@ export default function Index({ subscription, comprobantes }: SuscripcionIndexPr
                                         {cicloLabel} · {estadoLabel}
                                     </p>
                                     <p className="mt-1 text-sm text-white/75">
-                                        {formatPrice(summary.precio_pactado)}
+                                        {paymentTotal !== null
+                                            ? formatPrice(String(paymentTotal))
+                                            : formatPrice(summary.precio_pactado)}
                                     </p>
+                                    {heroBreakdown ? (
+                                        <p className="mt-1 text-xs text-white/60">
+                                            {heroBreakdown}
+                                        </p>
+                                    ) : null}
                                 </div>
                             </div>
 
@@ -394,6 +449,17 @@ export default function Index({ subscription, comprobantes }: SuscripcionIndexPr
                                 label={t('fields.precio')}
                                 value={formatPrice(summary?.precio_pactado ?? null)}
                             />
+                            {billing?.applies &&
+                                (billing.total_amount ?? 0) >
+                                    (billing.plan_amount ?? 0) && (
+                                    <MetricTile
+                                        label={t('stats.total')}
+                                        value={formatPrice(
+                                            String(billing.total_amount),
+                                        )}
+                                        subvalue={heroBreakdown ?? undefined}
+                                    />
+                                )}
                         </div>
                     </SectionCard>
 
@@ -541,6 +607,21 @@ export default function Index({ subscription, comprobantes }: SuscripcionIndexPr
                                                 {formatPrice(
                                                     String(
                                                         summary.renewal_billing.bot_ia_amount,
+                                                    ),
+                                                )}
+                                            </span>
+                                        )}
+                                        {(summary.renewal_billing
+                                            .comprobantes_overage_amount ?? 0) > 0 && (
+                                            <span>
+                                                {t(
+                                                    'renewal_billing.breakdown_comprobantes',
+                                                )}
+                                                :{' '}
+                                                {formatPrice(
+                                                    String(
+                                                        summary.renewal_billing
+                                                            .comprobantes_overage_amount,
                                                     ),
                                                 )}
                                             </span>
