@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/react';
-import { Eye, MessageSquare, Pause, Play } from 'lucide-react';
+import { Eye, MessageSquare, Pause, Play, RefreshCw } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -12,6 +12,7 @@ import {
 } from '@/components/data-page';
 import type { DataTableColumn, FilterChip } from '@/components/data-page';
 import { Button } from '@/components/ui/button';
+import { useAutoRefresh } from '@/hooks/use-auto-refresh';
 import type { Paginated } from '@/types';
 import type {
     ConversationEntry,
@@ -45,6 +46,10 @@ export function ConversationsPanel({
     const [isLoading, setIsLoading] = useState(false);
     const [viewConversation, setViewConversation] = useState<ConversationEntry | null>(null);
     const isFirstRender = useRef(true);
+
+    const { secondsSince, isRefreshing, refresh } = useAutoRefresh({
+        only: ['conversations', 'conversation_filters', 'conversation_stats'],
+    });
 
     const fetchChats = useCallback(
         (overrides: Partial<ConversationFilters & { chat_page?: number }>) => {
@@ -87,6 +92,17 @@ export function ConversationsPanel({
 
         return () => window.clearTimeout(timer);
     }, [chatSearch, filters.chat_search, fetchChats]);
+
+    useEffect(() => {
+        if (!viewConversation) {
+            return;
+        }
+
+        const updated = conversations.data.find((row) => row.id === viewConversation.id);
+        if (updated) {
+            setViewConversation(updated);
+        }
+    }, [conversations.data, viewConversation?.id]);
 
     const estadoOptions: readonly FilterChip<ConversationEstadoFilter>[] = useMemo(
         () => [
@@ -235,13 +251,40 @@ export function ConversationsPanel({
     return (
         <>
             <section className="flex flex-col gap-3">
-                <p className="text-sm text-muted-foreground">{t('conversations.description')}</p>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-sm text-muted-foreground">
+                        {t('conversations.description')}
+                        <span className="hidden sm:inline">
+                            {' '}
+                            · {t('sync.interval_hint')}
+                        </span>
+                    </p>
+                    <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <span
+                            className={`inline-block size-2 rounded-full ${
+                                isRefreshing ? 'animate-ping bg-amber-400' : 'bg-emerald-400'
+                            }`}
+                        />
+                        {isRefreshing
+                            ? t('sync.updating')
+                            : t('sync.updated_ago', { seconds: secondsSince })}
+                        <button
+                            type="button"
+                            onClick={refresh}
+                            disabled={isRefreshing}
+                            className="ml-1 cursor-pointer rounded p-0.5 hover:text-foreground disabled:opacity-50"
+                            title={t('sync.refresh_now')}
+                        >
+                            <RefreshCw className={`size-3 ${isRefreshing ? 'animate-spin' : ''}`} />
+                        </button>
+                    </span>
+                </div>
 
                 <DataTable
                     columns={columns}
                     data={conversations.data}
                     rowKey={(row) => row.id}
-                    isLoading={isLoading}
+                    isLoading={isLoading || isRefreshing}
                     toolbar={
                         <DataToolbar
                             search={chatSearch}

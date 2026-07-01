@@ -144,5 +144,11 @@
             "title": "Sin conversaciones todavía",
             "description": "Cuando un cliente escriba por WhatsApp, aparecerá aquí."
         }
+    },
+    "sync": {
+        "interval_hint": "actualización cada 15 s",
+        "updating": "Actualizando…",
+        "updated_ago": "Actualizado hace {{seconds}}s",
+        "refresh_now": "Actualizar ahora"
     }
 }
