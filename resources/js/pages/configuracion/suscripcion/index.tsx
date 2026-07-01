@@ -1,6 +1,7 @@
 import { Head } from '@inertiajs/react';
 import {
     AlertCircle,
+    Bot,
     CalendarClock,
     CheckCircle2,
     CreditCard,
@@ -8,6 +9,7 @@ import {
     Package,
     Sparkles,
 } from 'lucide-react';
+import { Link } from '@inertiajs/react';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PageHeader, StatBadge } from '@/components/data-page';
@@ -48,6 +50,11 @@ type SubscriptionSummary = {
     days_until_renewal: number | null;
     urgency: 'ok' | 'yellow' | 'amber' | 'red' | 'danger' | 'muted';
     renewal_url: string | null;
+    bot_ia: {
+        activo: boolean;
+        precio_mensual: string;
+        activado_at: string | null;
+    };
 };
 
 type SuscripcionIndexProps = {
@@ -431,6 +438,64 @@ export default function Index({ subscription, comprobantes }: SuscripcionIndexPr
                         locale={locale}
                         className="xl:col-span-6"
                     />
+
+                    {summary && (
+                        <SectionCard
+                            title={t('sections.bot_ia')}
+                            icon={Bot}
+                            className="xl:col-span-6"
+                            badge={
+                                <StatBadge
+                                    label={
+                                        summary.bot_ia?.activo
+                                            ? t('bot_ia.active')
+                                            : t('bot_ia.inactive')
+                                    }
+                                    value=""
+                                    variant={
+                                        summary.bot_ia?.activo ? 'success' : 'muted'
+                                    }
+                                />
+                            }
+                        >
+                            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                                <div className="space-y-2">
+                                    <p className="text-sm font-medium text-foreground">
+                                        {summary.bot_ia?.activo
+                                            ? t('bot_ia.price', {
+                                                  price: formatPrice(
+                                                      summary.bot_ia.precio_mensual,
+                                                  ).replace('S/. ', ''),
+                                              })
+                                            : t('bot_ia.price', { price: '15.00' })}
+                                    </p>
+                                    <p className="text-sm text-muted-foreground">
+                                        {summary.bot_ia?.activo
+                                            ? t('bot_ia.description_active')
+                                            : t('bot_ia.description_inactive')}
+                                    </p>
+                                    {summary.bot_ia?.activo &&
+                                        summary.bot_ia.activado_at && (
+                                            <p className="text-xs text-muted-foreground">
+                                                {t('bot_ia.activated_at', {
+                                                    date: formatDate(
+                                                        summary.bot_ia.activado_at,
+                                                        locale,
+                                                    ),
+                                                })}
+                                            </p>
+                                        )}
+                                </div>
+                                {summary.bot_ia?.activo && (
+                                    <Button asChild variant="outline">
+                                        <Link href="/comunicaciones/bot-ia">
+                                            {t('bot_ia.manage_cta')}
+                                        </Link>
+                                    </Button>
+                                )}
+                            </div>
+                        </SectionCard>
+                    )}
 
                     <SectionCard
                         title={t('sections.renew')}

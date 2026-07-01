@@ -9,6 +9,7 @@ use App\Models\Subscription;
 use App\Models\Tenant;
 use App\Services\Subscriptions\SubscriptionRenewalReminderScanner;
 use App\Services\Subscriptions\SubscriptionRenewalWhatsAppSender;
+use App\Support\Subscriptions\SubscriptionBotIaAddon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -267,6 +268,50 @@ class SubscriptionController extends Controller
         $suscripcion->update($payload);
 
         return back()->with('success', "Plan cambiado a {$newPlan->nombre}.");
+    }
+
+    /**
+     * Activa o desactiva el add-on Asistente IA WhatsApp (S/15/mes por defecto).
+     */
+    public function toggleBotIa(Request $request, Subscription $suscripcion): RedirectResponse
+    {
+        $data = $request->validate([
+            'activo' => ['required', 'boolean'],
+            'precio_mensual' => ['nullable', 'numeric', 'min:0', 'max:9999.99'],
+        ]);
+
+        if ($suscripcion->estado === 'cancelled') {
+            throw ValidationException::withMessages([
+                'activo' => 'No se puede modificar el add-on en una suscripción cancelada.',
+            ]);
+        }
+
+        $activo = (bool) $data['activo'];
+        $precio = $data['precio_mensual'] ?? null;
+
+        $payload = [
+            'bot_ia_activo' => $activo,
+            'bot_ia_activado_at' => $activo ? ($suscripcion->bot_ia_activado_at ?? now()) : null,
+        ];
+
+        if ($precio !== null) {
+            $payload['bot_ia_precio_mensual'] = $precio;
+        } elseif ($activo && $suscripcion->bot_ia_precio_mensual === null) {
+            $payload['bot_ia_precio_mensual'] = SubscriptionBotIaAddon::defaultPrecioMensual();
+        }
+
+        $suscripcion->update($payload);
+
+        $tenantName = $suscripcion->tenant?->nombre_comercial
+            ?: $suscripcion->tenant?->razon_social
+            ?: 'el tenant';
+
+        return back()->with(
+            'success',
+            $activo
+                ? "Asistente IA activado para {$tenantName}."
+                : "Asistente IA desactivado para {$tenantName}.",
+        );
     }
 
     /**

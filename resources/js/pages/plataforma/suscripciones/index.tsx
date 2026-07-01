@@ -161,6 +161,7 @@ export default function Index({
     const canExtendTrial = can('plataforma-suscripciones.extend-trial');
     const canChangePlan = can('plataforma-suscripciones.change-plan');
     const canCancel = can('plataforma-suscripciones.cancel');
+    const canToggleBotIa = can('plataforma-suscripciones.toggle-bot-ia');
     const canViewRenewalPreview = can('plataforma-suscripciones.view');
     const canSendRenewalWhatsApp = canUpdate;
     const showRowActions =
@@ -169,6 +170,7 @@ export default function Index({
         canExtendTrial ||
         canChangePlan ||
         canCancel ||
+        canToggleBotIa ||
         canViewRenewalPreview ||
         canSendRenewalWhatsApp;
 
@@ -430,6 +432,11 @@ export default function Index({
                                         {s.plan.badge}
                                     </span>
                                 )}
+                                {s.bot_ia_activo && (
+                                    <span className="rounded-full bg-violet-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-violet-700 ring-1 ring-inset ring-violet-500/30 dark:text-violet-300">
+                                        {t('suscripciones:row.bot_ia_badge')}
+                                    </span>
+                                )}
                             </div>
                             <span className="font-mono text-xs text-muted-foreground">
                                 {s.plan.codigo}
@@ -543,6 +550,7 @@ export default function Index({
                             canExtendTrial={canExtendTrial}
                             canChangePlan={canChangePlan}
                             canCancel={canCancel}
+                            canToggleBotIa={canToggleBotIa}
                         />
                     </div>
                 ),
@@ -560,6 +568,7 @@ export default function Index({
         canExtendTrial,
         canChangePlan,
         canCancel,
+        canToggleBotIa,
         openEdit,
         openExtendTrial,
         openChangePlan,

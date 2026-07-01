@@ -59,6 +59,9 @@ export type Subscription = {
     updated_at: string;
     tenant: SubscriptionTenantRef | null;
     plan: SubscriptionPlanRef | null;
+    bot_ia_activo: boolean;
+    bot_ia_precio_mensual: string | null;
+    bot_ia_activado_at: string | null;
 };
 
 export type SubscriptionMrrByPlan = {

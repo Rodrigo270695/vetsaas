@@ -5,7 +5,8 @@
     "sections": {
         "plan": "Your plan",
         "dates": "Important dates",
-        "renew": "Renew service"
+        "renew": "Renew service",
+        "bot_ia": "WhatsApp AI assistant"
     },
     "fields": {
         "plan": "Plan",
@@ -88,5 +89,14 @@
             "warning": "Near limit",
             "over": "Over quota"
         }
+    },
+    "bot_ia": {
+        "active": "Active",
+        "inactive": "Not subscribed",
+        "price": "S/ {{price}} / month",
+        "activated_at": "Activated on {{date}}",
+        "description_active": "Your clinic can use the AI assistant under Communications to answer common questions on WhatsApp.",
+        "description_inactive": "Optional add-on at S/15/month. Contact support to enable it on your subscription.",
+        "manage_cta": "Go to AI assistant"
     }
 }

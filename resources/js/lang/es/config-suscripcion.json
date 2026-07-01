@@ -5,7 +5,8 @@
     "sections": {
         "plan": "Tu plan",
         "dates": "Fechas importantes",
-        "renew": "Renovar servicio"
+        "renew": "Renovar servicio",
+        "bot_ia": "Asistente IA WhatsApp"
     },
     "fields": {
         "plan": "Plan",
@@ -88,5 +89,14 @@
             "warning": "Cerca del límite",
             "over": "Sobre el cupo"
         }
+    },
+    "bot_ia": {
+        "active": "Activo",
+        "inactive": "No contratado",
+        "price": "S/ {{price}} / mes",
+        "activated_at": "Activado el {{date}}",
+        "description_active": "Tu clínica puede usar el asistente IA en Comunicaciones para responder consultas frecuentes por WhatsApp.",
+        "description_inactive": "Add-on opcional de S/15 al mes. Solicítalo a soporte para activarlo en tu suscripción.",
+        "manage_cta": "Ir a Asistente IA"
     }
 }

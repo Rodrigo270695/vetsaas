@@ -40,6 +40,7 @@ import sedesEn from '@/lang/en/sedes.json';
 import tarifasServiciosEn from '@/lang/en/tarifas-servicios.json';
 import stockInventarioEn from '@/lang/en/stock-inventario.json';
 import avisosRenovacionEn from '@/lang/en/avisos-renovacion.json';
+import botIaEn from '@/lang/en/bot-ia.json';
 import suscripcionesEn from '@/lang/en/suscripciones.json';
 import subscriptionExpiryEn from '@/lang/en/subscription-expiry.json';
 import tenantsEn from '@/lang/en/tenants.json';
@@ -84,6 +85,7 @@ import sedesEs from '@/lang/es/sedes.json';
 import tarifasServiciosEs from '@/lang/es/tarifas-servicios.json';
 import stockInventarioEs from '@/lang/es/stock-inventario.json';
 import avisosRenovacionEs from '@/lang/es/avisos-renovacion.json';
+import botIaEs from '@/lang/es/bot-ia.json';
 import suscripcionesEs from '@/lang/es/suscripciones.json';
 import subscriptionExpiryEs from '@/lang/es/subscription-expiry.json';
 import tenantsEs from '@/lang/es/tenants.json';
@@ -130,6 +132,7 @@ const resources = {
         'subscription-expiry': subscriptionExpiryEs,
         'config-suscripcion': configSuscripcionEs,
         comunicaciones: comunicacionesEs,
+        'bot-ia': botIaEs,
         'plataforma-auditoria-soporte': plataformaAuditoriaSoporteEs,
         dashboard: dashboardEs,
         auth: authEs,
@@ -176,6 +179,7 @@ const resources = {
         'subscription-expiry': subscriptionExpiryEn,
         'config-suscripcion': configSuscripcionEn,
         comunicaciones: comunicacionesEn,
+        'bot-ia': botIaEn,
         'plataforma-auditoria-soporte': plataformaAuditoriaSoporteEn,
         dashboard: dashboardEn,
         auth: authEn,
@@ -232,6 +236,7 @@ void i18n
             'subscription-expiry',
             'config-suscripcion',
             'comunicaciones',
+            'bot-ia',
             'dashboard',
             'auth',
             'general',

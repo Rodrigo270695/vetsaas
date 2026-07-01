@@ -1,6 +1,7 @@
-import { Link } from '@inertiajs/react';
+import { Link, router } from '@inertiajs/react';
 import {
     Ban,
+    Bot,
     CalendarPlus,
     Lock,
     MessageCircle,
@@ -21,6 +22,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { usePermission } from '@/hooks/use-permission';
+import { cn } from '@/lib/utils';
 import cobros from '@/routes/plataforma/cobros';
 import type { Subscription } from '../types';
 
@@ -40,6 +42,7 @@ export type SubscriptionRowActionsProps = {
     canExtendTrial?: boolean;
     canChangePlan?: boolean;
     canCancel?: boolean;
+    canToggleBotIa?: boolean;
 };
 
 /**
@@ -70,6 +73,7 @@ export function SubscriptionRowActions({
     canExtendTrial = true,
     canChangePlan = true,
     canCancel = true,
+    canToggleBotIa = true,
 }: SubscriptionRowActionsProps) {
     const { t } = useTranslation(['suscripciones', 'common']);
     const { can } = usePermission();
@@ -85,6 +89,35 @@ export function SubscriptionRowActions({
         canViewRenewalPreview && !isCancelled && onRenewalPreview !== undefined;
     const showRenewalSend =
         canSendRenewalWhatsApp && !isCancelled && onRenewalSend !== undefined;
+    const showToggleBotIa = canToggleBotIa && !isCancelled;
+    const botIaActive = subscription.bot_ia_activo === true;
+
+    const handleToggleBotIa = () => {
+        const next = !botIaActive;
+        const message = next
+            ? t('suscripciones:row.bot_ia_activate_confirm', {
+                  name:
+                      subscription.tenant?.razon_social ??
+                      subscription.tenant?.slug ??
+                      '',
+              })
+            : t('suscripciones:row.bot_ia_deactivate_confirm', {
+                  name:
+                      subscription.tenant?.razon_social ??
+                      subscription.tenant?.slug ??
+                      '',
+              });
+
+        if (!window.confirm(message)) {
+            return;
+        }
+
+        router.post(
+            `/plataforma/suscripciones/${subscription.id}/toggle-bot-ia`,
+            { activo: next },
+            { preserveScroll: true },
+        );
+    };
 
     // Link al historial de cobros filtrado por esta suscripción.
     // El filtro `subscription_id` lo lee el SubscriptionPaymentController.
@@ -171,6 +204,23 @@ export function SubscriptionRowActions({
                     >
                         <Repeat className="size-4" strokeWidth={2.25} />
                         {t('suscripciones:row.change_plan')}
+                    </DropdownMenuItem>
+                )}
+
+                {showToggleBotIa && (
+                    <DropdownMenuItem
+                        onSelect={handleToggleBotIa}
+                        className={cn(
+                            'cursor-pointer gap-2',
+                            botIaActive
+                                ? 'text-amber-700 focus:text-amber-700 dark:text-amber-400'
+                                : 'text-violet-700 focus:text-violet-700 dark:text-violet-400',
+                        )}
+                    >
+                        <Bot className="size-4" strokeWidth={2.25} />
+                        {botIaActive
+                            ? t('suscripciones:row.bot_ia_deactivate')
+                            : t('suscripciones:row.bot_ia_activate')}
                     </DropdownMenuItem>
                 )}
 

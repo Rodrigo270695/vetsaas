@@ -31,6 +31,9 @@ class Subscription extends Model
         'promo_code_id',
         'proximo_cobro_at',
         'metodo_pago_token',
+        'bot_ia_activo',
+        'bot_ia_precio_mensual',
+        'bot_ia_activado_at',
     ];
 
     protected static function booted(): void
@@ -49,8 +52,11 @@ class Subscription extends Model
             'grace_ends_at' => 'datetime',
             'cancelled_at' => 'datetime',
             'proximo_cobro_at' => 'datetime',
+            'bot_ia_activado_at' => 'datetime',
             'precio_pactado' => 'decimal:2',
             'descuento_pct' => 'decimal:2',
+            'bot_ia_precio_mensual' => 'decimal:2',
+            'bot_ia_activo' => 'boolean',
         ];
     }
 

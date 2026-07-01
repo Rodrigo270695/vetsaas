@@ -61,7 +61,12 @@
         "cancel": "Cancelar suscripción",
         "cancelled_locked": "Suscripción cancelada",
         "renewal_preview": "Vista previa aviso WhatsApp",
-        "renewal_send": "Enviar link renovación WhatsApp"
+        "renewal_send": "Enviar link renovación WhatsApp",
+        "bot_ia_badge": "Bot IA",
+        "bot_ia_activate": "Activar asistente IA",
+        "bot_ia_deactivate": "Desactivar asistente IA",
+        "bot_ia_activate_confirm": "¿Activar el asistente IA WhatsApp (S/15/mes) para {{name}}?",
+        "bot_ia_deactivate_confirm": "¿Desactivar el asistente IA para {{name}}?"
     },
     "renewal_send": {
         "title": "Enviar link de renovación",

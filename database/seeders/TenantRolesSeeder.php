@@ -100,6 +100,7 @@ class TenantRolesSeeder extends Seeder
                 // Comunicaciones
                 'comunicaciones-cola.view', 'comunicaciones-cola.manage',
                 'comunicaciones-historico.view',
+                'comunicaciones-bot-ia.view', 'comunicaciones-bot-ia.manage',
                 'plantillas.view', 'plantillas.create', 'plantillas.update', 'plantillas.delete',
 
                 // Reportes

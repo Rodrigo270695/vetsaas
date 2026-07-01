@@ -1,0 +1,18 @@
+{
+    "title": "Asistente IA",
+    "description": "Responde consultas frecuentes de tus clientes por WhatsApp usando la base de conocimiento de tu clínica.",
+    "locked": {
+        "title": "Add-on no contratado",
+        "description": "El asistente IA WhatsApp es un servicio adicional de S/15 al mes. Contacta a soporte o revisa tu suscripción para activarlo.",
+        "cta": "Ver mi suscripción"
+    },
+    "active": {
+        "title": "Servicio activo",
+        "price_hint": "Add-on contratado: S/ {{price}} / mes",
+        "activated_at": "Activado el {{date}}",
+        "knowledge_title": "Base de conocimiento",
+        "knowledge_description": "Próximamente podrás cargar preguntas frecuentes, horarios y políticas para que el bot responda automáticamente.",
+        "knowledge_coming": "En desarrollo"
+    },
+    "whatsapp_hint": "Usa el mismo WhatsApp de la clínica. Debe estar conectado para que el asistente pueda responder."
+}

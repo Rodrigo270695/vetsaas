@@ -312,6 +312,12 @@ function useNavConfig(): { singles: NavItem[]; groups: NavGroup[] } {
                             permission: 'comunicaciones-historico.view',
                         },
                         {
+                            title: t('items.bot_ia'),
+                            href: '/comunicaciones/bot-ia',
+                            icon: Bot,
+                            permission: 'comunicaciones-bot-ia.view',
+                        },
+                        {
                             title: t('items.plantillas'),
                             href: '/comunicaciones/plantillas',
                             icon: MessageSquareText,

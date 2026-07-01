@@ -61,7 +61,12 @@
         "cancel": "Cancel subscription",
         "cancelled_locked": "Subscription cancelled",
         "renewal_preview": "Preview renewal WhatsApp",
-        "renewal_send": "Send renewal link via WhatsApp"
+        "renewal_send": "Send renewal link via WhatsApp",
+        "bot_ia_badge": "AI Bot",
+        "bot_ia_activate": "Enable AI assistant",
+        "bot_ia_deactivate": "Disable AI assistant",
+        "bot_ia_activate_confirm": "Enable WhatsApp AI assistant (S/15/mo) for {{name}}?",
+        "bot_ia_deactivate_confirm": "Disable AI assistant for {{name}}?"
     },
     "renewal_send": {
         "title": "Send renewal link",

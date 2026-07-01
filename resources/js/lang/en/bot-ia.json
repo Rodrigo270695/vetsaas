@@ -1,0 +1,18 @@
+{
+    "title": "AI Assistant",
+    "description": "Answer common client questions on WhatsApp using your clinic knowledge base.",
+    "locked": {
+        "title": "Add-on not subscribed",
+        "description": "The WhatsApp AI assistant is an additional S/15/month service. Contact support or check your subscription to enable it.",
+        "cta": "View my subscription"
+    },
+    "active": {
+        "title": "Active service",
+        "price_hint": "Subscribed add-on: S/ {{price}} / month",
+        "activated_at": "Activated on {{date}}",
+        "knowledge_title": "Knowledge base",
+        "knowledge_description": "Soon you will be able to upload FAQs, hours and policies so the bot can reply automatically.",
+        "knowledge_coming": "Coming soon"
+    },
+    "whatsapp_hint": "Uses the same clinic WhatsApp number. It must be connected for the assistant to reply."
+}

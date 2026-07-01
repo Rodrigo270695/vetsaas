@@ -61,6 +61,7 @@ final class TenantSubscriptionSummary
             'days_until_renewal' => $daysUntil,
             'urgency' => SubscriptionExpiry::urgency($subscription->estado, $daysUntil),
             'renewal_url' => $renewalUrl,
+            'bot_ia' => SubscriptionBotIaAddon::payload($subscription),
         ];
     }
 
@@ -116,6 +117,7 @@ final class TenantSubscriptionSummary
             'days_until_renewal' => $daysUntil,
             'urgency' => SubscriptionExpiry::urgency('trial', $daysUntil),
             'renewal_url' => null,
+            'bot_ia' => SubscriptionBotIaAddon::payload(null),
         ];
     }
 

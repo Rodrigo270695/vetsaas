@@ -73,6 +73,7 @@ class PermissionsSeeder extends Seeder
         // ───── Comunicaciones ─────
         'comunicaciones-cola' => ['view', 'manage'],
         'comunicaciones-historico' => ['view'],
+        'comunicaciones-bot-ia' => ['view', 'manage'],
         'plantillas' => ['view', 'create', 'update', 'delete'],
 
         // ───── Reportes ─────
@@ -105,7 +106,7 @@ class PermissionsSeeder extends Seeder
         // ───── Plataforma (solo superadmin SaaS) ─────
         'plataforma-tenants' => ['view', 'create', 'update', 'suspend', 'resume', 'delete', 'export', 'bulk-delete', 'impersonate', 'whatsapp-restart', 'whatsapp-stop'],
         'plataforma-planes' => ['view', 'create', 'update', 'delete', 'export', 'bulk-delete'],
-        'plataforma-suscripciones' => ['view', 'create', 'update', 'delete', 'export', 'bulk-delete', 'extend-trial', 'change-plan', 'cancel'],
+        'plataforma-suscripciones' => ['view', 'create', 'update', 'delete', 'export', 'bulk-delete', 'extend-trial', 'change-plan', 'cancel', 'toggle-bot-ia'],
         'plataforma-cobros' => ['view', 'export', 'refund', 'resend-invoice', 'add-note'],
 
         /*

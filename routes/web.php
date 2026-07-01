@@ -6,6 +6,7 @@ use App\Http\Controllers\CajaSesionController;
 use App\Http\Controllers\CategoriaInventarioController;
 use App\Http\Controllers\CirugiaController;
 use App\Http\Controllers\CitaController;
+use App\Http\Controllers\ClinicBotIaController;
 use App\Http\Controllers\ClinicSettingController;
 use App\Http\Controllers\ClinicSubscriptionController;
 use App\Http\Controllers\CompraInventarioController;
@@ -672,6 +673,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:comunicaciones-historico.view')
             ->get('historico', [NotificationQueueController::class, 'historico'])
             ->name('historico');
+        Route::middleware('permission:comunicaciones-bot-ia.view')
+            ->get('bot-ia', [ClinicBotIaController::class, 'show'])
+            ->name('bot-ia');
         Route::inertia('plantillas', 'comunicaciones/plantillas/index')->name('plantillas');
 
         Route::middleware('permission:comunicaciones-cola.manage')->group(function (): void {
@@ -941,6 +945,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:plataforma-suscripciones.cancel')
             ->post('suscripciones/{suscripcion}/cancel', [SubscriptionController::class, 'cancel'])
             ->name('suscripciones.cancel');
+        Route::middleware('permission:plataforma-suscripciones.toggle-bot-ia')
+            ->post('suscripciones/{suscripcion}/toggle-bot-ia', [SubscriptionController::class, 'toggleBotIa'])
+            ->name('suscripciones.toggle-bot-ia');
         Route::middleware('permission:plataforma-suscripciones.update')
             ->match(['put', 'patch'], 'suscripciones/{suscripcion}', [SubscriptionController::class, 'update'])
             ->name('suscripciones.update');
