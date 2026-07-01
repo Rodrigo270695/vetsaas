@@ -32,6 +32,8 @@ use App\Support\Fel\FelSerieResolver;
 use App\Support\PlanCapabilities;
 use App\Support\Venta\VentaDesdeCargoPrefill;
 use App\Support\Caja\TicketAnchoMm;
+use App\Models\Tenant;
+use App\Support\Tenancy\TenantModuleAccess;
 use App\Tenancy\TenantManager;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -539,6 +541,9 @@ class VentaController extends Controller
         $user = $request->user();
         abort_if($user === null, 403);
         abort_unless($user->can('ventas.create') && $user->can('hotel.view'), 403);
+
+        $tenantModel = $tenants->current()?->tenant;
+        abort_unless(TenantModuleAccess::isEnabled($tenantModel, 'hotel'), 404);
 
         try {
             $desdeCargo = $prefill->buildFromHotelEstancia($hotelEstancia);

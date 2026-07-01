@@ -18,6 +18,7 @@ import type { DataTableColumn } from '@/components/data-page';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useTenantModuleEnabled } from '@/hooks/use-tenant-modules';
 import { usePermission } from '@/hooks/use-permission';
 import AppLayout from '@/layouts/app-layout';
 import { CatalogoClinicaPanel } from './components/catalogo-clinica-panel';
@@ -62,6 +63,8 @@ export default function Index({
 }: TarifaIndexProps) {
     const { t } = useTranslation(['tarifas-servicios', 'grooming', 'hotel', 'common']);
     const { can } = usePermission();
+    const hotelModuleEnabled = useTenantModuleEnabled('hotel');
+    const groomingModuleEnabled = useTenantModuleEnabled('grooming');
     const canCreate = can('tarifas.create');
     const canUpdate = can('tarifas.update');
     const canDelete = can('tarifas.delete');
@@ -358,14 +361,18 @@ export default function Index({
                     <Card className="gap-0 overflow-hidden py-0 shadow-sm">
                         <CardHeader className="gap-4 border-b border-border/60 bg-muted/20 px-4 py-4 sm:px-6">
                             <TabsList className="h-auto w-full justify-start gap-1 bg-background/80 p-1 sm:w-auto">
-                                <TabsTrigger value="grooming" className="cursor-pointer gap-2 px-4">
-                                    <Scissors className="size-4" />
-                                    {t('tabs.grooming')}
-                                </TabsTrigger>
-                                <TabsTrigger value="hotel" className="cursor-pointer gap-2 px-4">
-                                    <BedDouble className="size-4" />
-                                    {t('tabs.hotel')}
-                                </TabsTrigger>
+                                {groomingModuleEnabled ? (
+                                    <TabsTrigger value="grooming" className="cursor-pointer gap-2 px-4">
+                                        <Scissors className="size-4" />
+                                        {t('tabs.grooming')}
+                                    </TabsTrigger>
+                                ) : null}
+                                {hotelModuleEnabled ? (
+                                    <TabsTrigger value="hotel" className="cursor-pointer gap-2 px-4">
+                                        <BedDouble className="size-4" />
+                                        {t('tabs.hotel')}
+                                    </TabsTrigger>
+                                ) : null}
                             </TabsList>
                         </CardHeader>
 

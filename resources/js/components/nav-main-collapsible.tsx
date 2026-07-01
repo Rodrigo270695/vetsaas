@@ -19,6 +19,7 @@ import {
 import { isNavRouteImplemented } from '@/config/nav-implemented';
 import { useCurrentUrl } from '@/hooks/use-current-url';
 import { usePermission } from '@/hooks/use-permission';
+import { moduleKeyForHref } from '@/config/nav-module-keys';
 import { cn } from '@/lib/utils';
 import { OfflineAwareLink } from '@/components/offline-aware-link';
 import { isOfflinePath } from '@/lib/offline/offline-routes';
@@ -100,10 +101,28 @@ export function NavMainCollapsible({
     const page = usePage();
     const tenant = page.props.tenant;
     const botIaActive = page.props.bot_ia_addon?.activo === true;
+    const tenantModulesEnabled = (page.props.tenant_modules as { enabled?: Record<string, boolean> } | null)
+        ?.enabled;
     const hasTenant = tenant !== null && tenant !== undefined;
+
+    const isModuleEnabled = (moduleKey: string | undefined): boolean => {
+        if (!moduleKey || !hasTenant || !tenantModulesEnabled) {
+            return true;
+        }
+
+        return tenantModulesEnabled[moduleKey] !== false;
+    };
 
     const itemVisible = (item: NavItem): boolean => {
         if (item.requiresBotIa && !botIaActive) {
+            return false;
+        }
+
+        const moduleKey = item.moduleKey ?? moduleKeyForHref(
+            typeof item.href === 'string' ? item.href : '',
+        );
+
+        if (!isModuleEnabled(moduleKey)) {
             return false;
         }
 

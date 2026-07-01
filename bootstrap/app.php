@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\EnsureNoTenant;
+use App\Http\Middleware\EnsureTenantModuleEnabled;
 use App\Http\Middleware\EnsurePasswordIsChanged;
 use App\Http\Middleware\EnsureTenant;
 use App\Http\Middleware\EnsureTenantSubscriptionAccess;
@@ -74,6 +75,7 @@ return Application::configure(basePath: dirname(__DIR__))
             // request a una ruta operativa se redirige al cambio de
             // contraseña hasta que el usuario lo complete.
             'force-password-change' => EnsurePasswordIsChanged::class,
+            'tenant.module' => EnsureTenantModuleEnabled::class,
         ]);
 
         // `ResolveTenant` se aplica a TODO el grupo web. Es inocuo en

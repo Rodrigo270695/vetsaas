@@ -51,6 +51,10 @@ export type NavItem = {
      */
     requiresBotIa?: boolean;
 
+    /** Clave de módulo tenant; si se omite se infiere desde `href`. */
+    moduleKey?: string;
+};
+
 /**
  * Grupo de navegación con items hijos desplegables.
  * Usado en el sidebar principal para agrupar módulos del negocio.

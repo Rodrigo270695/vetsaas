@@ -47,6 +47,7 @@ use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\SubscriptionPaymentController;
 use App\Http\Controllers\TarifaServiciosController;
 use App\Http\Controllers\TenantController;
+use App\Http\Controllers\TenantModuleController;
 use App\Http\Controllers\TenantImpersonationController;
 use App\Http\Controllers\TenantWhatsAppController;
 use App\Http\Controllers\TenantWhatsAppPlatformController;
@@ -429,36 +430,36 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
                 ->delete('grooming/servicios/{groomingServicio}', [GroomingServicioController::class, 'destroy'])
                 ->whereUuid('groomingServicio')
                 ->name('grooming.servicios.destroy');
-            Route::middleware('permission:hotel.view')
+            Route::middleware(['permission:hotel.view', 'tenant.module:hotel'])
                 ->get('hotel', [HotelEstanciaController::class, 'index'])
                 ->name('hotel');
-            Route::middleware('permission:hotel.create')
+            Route::middleware(['permission:hotel.create', 'tenant.module:hotel'])
                 ->post('hotel', [HotelEstanciaController::class, 'store'])
                 ->name('hotel.store');
-            Route::middleware('permission:hotel.update')
+            Route::middleware(['permission:hotel.update', 'tenant.module:hotel'])
                 ->match(['put', 'patch'], 'hotel/{hotel_estancia}', [HotelEstanciaController::class, 'update'])
                 ->name('hotel.update');
-            Route::middleware('permission:hotel.delete')
+            Route::middleware(['permission:hotel.delete', 'tenant.module:hotel'])
                 ->delete('hotel/{hotel_estancia}', [HotelEstanciaController::class, 'destroy'])
                 ->name('hotel.destroy');
-            Route::middleware('permission:hotel.create')
+            Route::middleware(['permission:hotel.create', 'tenant.module:hotel'])
                 ->post('hotel/tipos', [HotelTipoEstanciaController::class, 'store'])
                 ->name('hotel.tipos.store');
-            Route::middleware('permission:hotel.update')
+            Route::middleware(['permission:hotel.update', 'tenant.module:hotel'])
                 ->put('hotel/tipos/{hotelTipoEstancia}', [HotelTipoEstanciaController::class, 'update'])
                 ->whereUuid('hotelTipoEstancia')
                 ->name('hotel.tipos.update');
-            Route::middleware('permission:hotel.delete')
+            Route::middleware(['permission:hotel.delete', 'tenant.module:hotel'])
                 ->delete('hotel/tipos/{hotelTipoEstancia}', [HotelTipoEstanciaController::class, 'destroy'])
                 ->whereUuid('hotelTipoEstancia')
                 ->name('hotel.tipos.destroy');
-            Route::middleware('permission:hotel.view')
+            Route::middleware(['permission:hotel.view', 'tenant.module:hotel'])
                 ->get('hotel/{hotel_estancia}/diarios', [HotelEstanciaController::class, 'diariosIndex'])
                 ->name('hotel.diarios.index');
-            Route::middleware('permission:hotel.update')
+            Route::middleware(['permission:hotel.update', 'tenant.module:hotel'])
                 ->post('hotel/{hotel_estancia}/diarios', [HotelEstanciaController::class, 'diariosStore'])
                 ->name('hotel.diarios.store');
-            Route::middleware('permission:hotel.update')
+            Route::middleware(['permission:hotel.update', 'tenant.module:hotel'])
                 ->delete('hotel/{hotel_estancia}/diarios/{hotel_estancia_diario}', [HotelEstanciaController::class, 'diariosDestroy'])
                 ->name('hotel.diarios.destroy');
         });
@@ -578,7 +579,7 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware(['permission:ventas.create', 'permission:consulta-cargos.cobrar'])
             ->get('ventas/desde-grooming/{grooming_turno}', [VentaController::class, 'createDesdeGrooming'])
             ->name('ventas.create-desde-grooming');
-        Route::middleware(['permission:ventas.create', 'permission:hotel.view'])
+        Route::middleware(['permission:ventas.create', 'permission:hotel.view', 'tenant.module:hotel'])
             ->get('ventas/desde-hotel/{hotel_estancia}', [VentaController::class, 'createDesdeHotel'])
             ->name('ventas.create-desde-hotel');
         Route::middleware('permission:ventas.create')
@@ -796,14 +797,14 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             ->delete('tarifas/grooming/{grooming_tarifa}', [TarifaServiciosController::class, 'destroyGrooming'])
             ->whereUuid('grooming_tarifa')
             ->name('tarifas.grooming.destroy');
-        Route::middleware('permission:tarifas.create')
+        Route::middleware(['permission:tarifas.create', 'tenant.module:hotel'])
             ->post('tarifas/hotel', [TarifaServiciosController::class, 'storeHotel'])
             ->name('tarifas.hotel.store');
-        Route::middleware('permission:tarifas.update')
+        Route::middleware(['permission:tarifas.update', 'tenant.module:hotel'])
             ->put('tarifas/hotel/{hotel_tarifa}', [TarifaServiciosController::class, 'updateHotel'])
             ->whereUuid('hotel_tarifa')
             ->name('tarifas.hotel.update');
-        Route::middleware('permission:tarifas.delete')
+        Route::middleware(['permission:tarifas.delete', 'tenant.module:hotel'])
             ->delete('tarifas/hotel/{hotel_tarifa}', [TarifaServiciosController::class, 'destroyHotel'])
             ->whereUuid('hotel_tarifa')
             ->name('tarifas.hotel.destroy');
@@ -819,14 +820,14 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             ->delete('tarifas/grooming/servicios/{groomingServicio}', [GroomingServicioController::class, 'destroy'])
             ->whereUuid('groomingServicio')
             ->name('tarifas.grooming.servicios.destroy');
-        Route::middleware('permission:tarifas.create')
+        Route::middleware(['permission:tarifas.create', 'tenant.module:hotel'])
             ->post('tarifas/hotel/tipos', [HotelTipoEstanciaController::class, 'store'])
             ->name('tarifas.hotel.tipos.store');
-        Route::middleware('permission:tarifas.update')
+        Route::middleware(['permission:tarifas.update', 'tenant.module:hotel'])
             ->put('tarifas/hotel/tipos/{hotelTipoEstancia}', [HotelTipoEstanciaController::class, 'update'])
             ->whereUuid('hotelTipoEstancia')
             ->name('tarifas.hotel.tipos.update');
-        Route::middleware('permission:tarifas.delete')
+        Route::middleware(['permission:tarifas.delete', 'tenant.module:hotel'])
             ->delete('tarifas/hotel/tipos/{hotelTipoEstancia}', [HotelTipoEstanciaController::class, 'destroy'])
             ->whereUuid('hotelTipoEstancia')
             ->name('tarifas.hotel.tipos.destroy');
@@ -905,6 +906,12 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:plataforma-tenants.view')
             ->get('auditoria-soporte', [PlataformaImpersonationAuditController::class, 'index'])
             ->name('auditoria-soporte.index');
+        Route::middleware('permission:plataforma-tenants.update')
+            ->get('tenants/{tenant}/modulos', [TenantModuleController::class, 'edit'])
+            ->name('tenants.modules.edit');
+        Route::middleware('permission:plataforma-tenants.update')
+            ->put('tenants/{tenant}/modulos', [TenantModuleController::class, 'update'])
+            ->name('tenants.modules.update');
         Route::middleware('permission:plataforma-tenants.update')
             ->match(['put', 'patch'], 'tenants/{tenant}', [TenantController::class, 'update'])
             ->name('tenants.update');

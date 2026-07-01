@@ -41,6 +41,7 @@
         "actions_for": "Acciones para {{name}}",
         "copy_slug": "Copiar slug",
         "change_slug": "Cambiar subdominio",
+        "modules": "Módulos visibles",
         "open_subdomain": "Abrir subdominio",
         "enter_support": "Entrar como soporte",
         "whatsapp_restart": "Reiniciar WhatsApp",
@@ -156,5 +157,13 @@
     "toast": {
         "load_error": "No pudimos cargar los tenants. Reintenta en unos segundos.",
         "slug_copied": "Slug copiado al portapapeles"
+    },
+    "modules": {
+        "page_title": "Módulos — {{name}}",
+        "page_description": "Activa u oculta vistas del sidebar, tarifas, dashboard y caja para esta clínica.",
+        "back": "Volver a tenants",
+        "hint": "Desmarca un módulo para ocultarlo en el subdominio del tenant. Los datos existentes no se borran; solo deja de mostrarse en menú, KPIs y cobros relacionados.",
+        "toggle_group": "Todo el grupo",
+        "saved": "Módulos actualizados para este tenant."
     }
 }

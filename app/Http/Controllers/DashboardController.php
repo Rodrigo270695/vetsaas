@@ -6,6 +6,8 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Services\Dashboard\DashboardStatsService;
+use App\Models\Tenant;
+use App\Support\Tenancy\TenantModuleAccess;
 use App\Tenancy\TenantManager;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -42,6 +44,9 @@ class DashboardController extends Controller
             'alertas_stock' => $this->userCan($user, 'alertas-stock.view'),
             'caja_sesiones' => $this->userCan($user, 'caja-sesiones.view'),
         ];
+
+        $tenantModel = $this->tenantManager->current()?->tenant;
+        $capabilities = TenantModuleAccess::filterCapabilities($tenantModel, $capabilities);
 
         $context = $this->tenantManager->current();
         $clinicLabel = $context !== null

@@ -41,6 +41,7 @@
         "actions_for": "Actions for {{name}}",
         "copy_slug": "Copy slug",
         "change_slug": "Change subdomain",
+        "modules": "Visible modules",
         "open_subdomain": "Open subdomain",
         "enter_support": "Enter as support",
         "whatsapp_restart": "Restart WhatsApp",
@@ -156,5 +157,13 @@
     "toast": {
         "load_error": "We couldn't load the tenants. Retry in a few seconds.",
         "slug_copied": "Slug copied to clipboard"
+    },
+    "modules": {
+        "page_title": "Modules — {{name}}",
+        "page_description": "Enable or hide sidebar views, rates, dashboard KPIs and checkout flows for this clinic.",
+        "back": "Back to tenants",
+        "hint": "Uncheck a module to hide it on the tenant subdomain. Existing data is kept; only menu items, KPIs and related checkout flows are hidden.",
+        "toggle_group": "Whole group",
+        "saved": "Modules updated for this tenant."
     }
 }

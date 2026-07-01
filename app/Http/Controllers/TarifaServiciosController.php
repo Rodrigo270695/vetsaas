@@ -14,6 +14,8 @@ use App\Models\GroomingServicio;
 use App\Models\GroomingServicioTarifa;
 use App\Models\HotelEstanciaTarifa;
 use App\Models\HotelTipoEstancia;
+use App\Models\Tenant;
+use App\Support\Tenancy\TenantModuleAccess;
 use App\Support\Catalog\CatalogoClinicaValidator;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Http\FormRequest;
@@ -34,6 +36,11 @@ class TarifaServiciosController extends Controller
         $tab = (string) $request->string('tab', 'grooming');
         if (! in_array($tab, self::TABS, true)) {
             $tab = 'grooming';
+        }
+
+        $tenant = tenant_id() !== null ? Tenant::query()->find(tenant_id()) : null;
+        if (! TenantModuleAccess::isTarifasTabEnabled($tenant, $tab)) {
+            $tab = TenantModuleAccess::isTarifasTabEnabled($tenant, 'grooming') ? 'grooming' : 'hotel';
         }
 
         $groomingPersonalizado = GroomingCatalogoMode::usaCatalogoPersonalizado();

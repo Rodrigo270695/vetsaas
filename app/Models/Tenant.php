@@ -39,6 +39,7 @@ class Tenant extends Model
         'locale',
         'canal_adquisicion',
         'referido_por_tenant_id',
+        'modulos_deshabilitados',
     ];
 
     protected function casts(): array
@@ -49,6 +50,7 @@ class Tenant extends Model
             'trial_ends_at' => 'datetime',
             'suspended_at' => 'datetime',
             'cancelled_at' => 'datetime',
+            'modulos_deshabilitados' => 'array',
         ];
     }
 

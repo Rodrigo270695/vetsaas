@@ -9,4 +9,7 @@ return [
         'invalid_state' => 'No se puede entrar como soporte a una clínica en este estado.',
         'invalid_slug' => 'El tenant no tiene un slug válido para el subdominio.',
     ],
+    'modules' => [
+        'saved' => 'Módulos actualizados para este tenant.',
+    ],
 ];

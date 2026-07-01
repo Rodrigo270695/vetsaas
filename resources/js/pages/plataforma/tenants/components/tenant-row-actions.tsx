@@ -3,6 +3,7 @@ import {
     Copy,
     ExternalLink,
     Globe,
+    LayoutGrid,
     Lock,
     MessageCircle,
     MoreHorizontal,
@@ -208,6 +209,16 @@ export function TenantRowActions({
                     >
                         <Globe className="size-4" strokeWidth={2.25} />
                         {t('tenants:row.change_slug')}
+                    </DropdownMenuItem>
+                )}
+
+                {canUpdate && !isCancelled && (
+                    <DropdownMenuItem
+                        onSelect={() => router.visit(`/plataforma/tenants/${tenant.id}/modulos`)}
+                        className="cursor-pointer gap-2"
+                    >
+                        <LayoutGrid className="size-4" strokeWidth={2.25} />
+                        {t('tenants:row.modules')}
                     </DropdownMenuItem>
                 )}
 
