@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Models\User;
 use App\Support\Plan\PlanLimits;
+use App\Support\Subscriptions\BotIaAccess;
 use App\Support\Subscriptions\TenantSubscriptionSummary;
 use App\Support\Tenancy\TenantSubdomainUrl;
 use App\Tenancy\TenantManager;
@@ -145,6 +146,9 @@ class HandleInertiaRequests extends Middleware
                         return null;
                     }
                 },
+            'bot_ia_addon' => $skipHeavySharedProps || $tenantContext === null
+                ? null
+                : static fn () => BotIaAccess::navPayload($tenantContext->tenant),
             'auth' => [
                 'user' => $user,
                 'permissions' => $skipHeavySharedProps

@@ -124,6 +124,26 @@ it('muestra vista bloqueada de asistente ia cuando no está contratado', functio
             ->where('bot_ia.activo', false));
 });
 
+it('permite acceder a asistente ia sin permiso explícito si administra la clínica', function (): void {
+    $this->subscription->update([
+        'bot_ia_activo' => true,
+        'bot_ia_precio_mensual' => '15.00',
+        'bot_ia_activado_at' => now(),
+    ]);
+
+    $this->testTenantAdmin->revokePermissionTo([
+        'comunicaciones-bot-ia.view',
+        'comunicaciones-bot-ia.manage',
+    ]);
+
+    $this->actingAs($this->testTenantAdmin)
+        ->get('http://'.$this->testTenantHost.'/comunicaciones/bot-ia')
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('comunicaciones/bot-ia/index')
+            ->where('bot_ia.activo', true));
+});
+
 it('rechaza toggle bot ia en suscripción cancelada', function (): void {
     $this->subscription->update(['estado' => 'cancelled', 'cancelled_at' => now()]);
 

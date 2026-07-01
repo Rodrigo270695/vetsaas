@@ -46,8 +46,10 @@ export type NavItem = {
      * Si es `false`, el item no se muestra en el sidebar (módulo aún no implementado).
      * También puedes centralizar la ruta en `config/nav-implemented.ts`.
      */
-    implemented?: boolean;
-};
+    /**
+     * Solo visible si el add-on IA está activo en la suscripción del tenant.
+     */
+    requiresBotIa?: boolean;
 
 /**
  * Grupo de navegación con items hijos desplegables.

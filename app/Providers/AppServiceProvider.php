@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\User;
+use App\Support\Subscriptions\BotIaAccess;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
@@ -28,6 +29,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->configureDefaults();
         $this->configureHistoriasClinicasPlanesPermissionAliases();
+        $this->configureBotIaPermissionAliases();
     }
 
     /**
@@ -48,6 +50,42 @@ class AppServiceProvider extends ServiceProvider
 
             if ($ability === 'historias-clinicas-planes.manage'
                 && ($user->can('historias-clinicas.update') || $user->can('historias-clinicas.create'))) {
+                return true;
+            }
+
+            return null;
+        });
+    }
+
+    /**
+     * Compatibilidad: `comunicaciones-bot-ia.*` se añadió después del deploy inicial.
+     * Si el add-on está activo en la suscripción del tenant, quien administra la
+     * clínica o las comunicaciones conserva acceso sin re-sincronizar roles.
+     */
+    protected function configureBotIaPermissionAliases(): void
+    {
+        Gate::before(function ($user, string $ability): ?bool {
+            if (! $user instanceof User) {
+                return null;
+            }
+
+            if (! in_array($ability, ['comunicaciones-bot-ia.view', 'comunicaciones-bot-ia.manage'], true)) {
+                return null;
+            }
+
+            if ($user->hasPermissionTo($ability)) {
+                return null;
+            }
+
+            if ($ability === 'comunicaciones-bot-ia.view' && BotIaAccess::userHasViewFallback($user)) {
+                return true;
+            }
+
+            if (
+                $ability === 'comunicaciones-bot-ia.manage'
+                && BotIaAccess::isActiveForCurrentTenant()
+                && BotIaAccess::userHasManageFallback($user)
+            ) {
                 return true;
             }
 

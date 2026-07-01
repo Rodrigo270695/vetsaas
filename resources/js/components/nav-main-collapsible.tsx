@@ -97,8 +97,22 @@ export function NavMainCollapsible({
     const { isCurrentUrl, isCurrentOrParentUrl, currentUrl } = useCurrentUrl();
     const { isMobile, setOpenMobile } = useSidebar();
     const { can, isSuperadmin } = usePermission();
-    const tenant = usePage().props.tenant;
+    const page = usePage();
+    const tenant = page.props.tenant;
+    const botIaActive = page.props.bot_ia_addon?.activo === true;
     const hasTenant = tenant !== null && tenant !== undefined;
+
+    const itemVisible = (item: NavItem): boolean => {
+        if (item.requiresBotIa && !botIaActive) {
+            return false;
+        }
+
+        return (
+            isItemImplemented(item) &&
+            (!item.permission || can(item.permission)) &&
+            matchesContext(item.context, hasTenant, isSuperadmin)
+        );
+    };
 
     const closeMobileSidebar = () => {
         if (isMobile) {
@@ -107,30 +121,20 @@ export function NavMainCollapsible({
     };
 
     const visibleSingles = useMemo(
-        () =>
-            singles.filter(
-                (item) =>
-                    isItemImplemented(item) &&
-                    (!item.permission || can(item.permission)) &&
-                    matchesContext(item.context, hasTenant, isSuperadmin),
-            ),
+        () => singles.filter(itemVisible),
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [singles, hasTenant, isSuperadmin],
+        [singles, hasTenant, isSuperadmin, botIaActive],
     );
 
     const visibleGroups = useMemo(() => {
         return groups
             .map((group) => ({
                 ...group,
-                items: group.items.filter(
-                    (item) =>
-                        isItemImplemented(item) &&
-                        (!item.permission || can(item.permission)) &&
-                        matchesContext(
-                            item.context ?? group.context,
-                            hasTenant,
-                            isSuperadmin,
-                        ),
+                items: group.items.filter((item) =>
+                    itemVisible({
+                        ...item,
+                        context: item.context ?? group.context,
+                    }),
                 ),
             }))
             .filter((group) => {
@@ -141,7 +145,7 @@ export function NavMainCollapsible({
                 return group.items.length > 0;
             });
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [groups, hasTenant, isSuperadmin]);
+    }, [groups, hasTenant, isSuperadmin, botIaActive]);
 
     const initialOpenMap = useMemo(() => {
         const map: Record<string, boolean> = {};

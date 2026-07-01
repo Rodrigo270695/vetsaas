@@ -673,7 +673,7 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:comunicaciones-historico.view')
             ->get('historico', [NotificationQueueController::class, 'historico'])
             ->name('historico');
-        Route::middleware('permission:comunicaciones-bot-ia.view')
+        Route::middleware('permission:comunicaciones-bot-ia.view|config-general.view|comunicaciones-cola.manage')
             ->get('bot-ia', [ClinicBotIaController::class, 'show'])
             ->name('bot-ia');
         Route::inertia('plantillas', 'comunicaciones/plantillas/index')->name('plantillas');

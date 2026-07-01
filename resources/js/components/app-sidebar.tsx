@@ -316,6 +316,7 @@ function useNavConfig(): { singles: NavItem[]; groups: NavGroup[] } {
                             href: '/comunicaciones/bot-ia',
                             icon: Bot,
                             permission: 'comunicaciones-bot-ia.view',
+                            requiresBotIa: true,
                         },
                         {
                             title: t('items.plantillas'),

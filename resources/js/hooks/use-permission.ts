@@ -42,8 +42,9 @@ export type UsePermissionReturn = {
  *   if (can('sedes.create')) { ... }
  */
 export function usePermission(): UsePermissionReturn {
-    const page = usePage<{ auth?: Auth }>();
+    const page = usePage<{ auth?: Auth; bot_ia_addon?: { activo: boolean } | null }>();
     const auth = page.props.auth;
+    const botIaActive = page.props.bot_ia_addon?.activo === true;
 
     const permissions = useMemo(
         () => auth?.permissions ?? [],
@@ -70,6 +71,23 @@ export function usePermission(): UsePermissionReturn {
                 p === 'historias-clinicas-planes.manage' &&
                 (permissionSet.has('historias-clinicas.update') ||
                     permissionSet.has('historias-clinicas.create'))
+            ) {
+                return true;
+            }
+            if (
+                botIaActive &&
+                p === 'comunicaciones-bot-ia.view' &&
+                (permissionSet.has('config-general.view') ||
+                    permissionSet.has('config-general.update') ||
+                    permissionSet.has('comunicaciones-cola.manage'))
+            ) {
+                return true;
+            }
+            if (
+                botIaActive &&
+                p === 'comunicaciones-bot-ia.manage' &&
+                (permissionSet.has('config-general.update') ||
+                    permissionSet.has('comunicaciones-cola.manage'))
             ) {
                 return true;
             }

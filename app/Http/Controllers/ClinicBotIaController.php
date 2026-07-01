@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Support\OpenWa\TenantWhatsAppPresenter;
+use App\Support\Subscriptions\BotIaAccess;
 use App\Support\Subscriptions\SubscriptionBotIaAddon;
 use App\Tenancy\TenantManager;
 use Illuminate\Http\Request;
@@ -18,7 +19,7 @@ class ClinicBotIaController extends Controller
 {
     public function show(Request $request, TenantManager $tenants, TenantWhatsAppPresenter $whatsapp): Response
     {
-        abort_unless($request->user()?->can('comunicaciones-bot-ia.view') ?? false, 403);
+        abort_unless(BotIaAccess::userCanView($request->user()), 403);
 
         $tenant = $tenants->current()?->tenant;
         abort_if($tenant === null, 404);
@@ -28,7 +29,7 @@ class ClinicBotIaController extends Controller
             ->first();
 
         $botIa = SubscriptionBotIaAddon::payload($subscription);
-        $canManage = $request->user()?->can('comunicaciones-bot-ia.manage') ?? false;
+        $canManage = BotIaAccess::userCanManage($request->user(), $tenant);
 
         return Inertia::render('comunicaciones/bot-ia/index', [
             'bot_ia' => $botIa,
