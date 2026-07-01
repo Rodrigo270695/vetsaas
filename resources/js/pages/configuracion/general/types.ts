@@ -99,10 +99,10 @@ export type GeoOption = {
 };
 
 /**
- * Snapshot del tenant activo que el backend manda en cada render
- * para que la página muestre el nombre comercial en el subtítulo.
+ * Snapshot del tenant activo para el encabezado de la página (no pisa
+ * `page.props.tenant` compartido por Inertia).
  */
-export type TenantSnapshot = {
+export type ClinicHeaderSnapshot = {
     id: string;
     slug: string;
     razon_social: string | null;

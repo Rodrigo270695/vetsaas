@@ -1,3 +1,4 @@
+import type { ClinicBranding } from '@/types/clinic-branding';
 import type { Auth } from '@/types/auth';
 import type { PlanLimitsSnapshot } from '@/types/plan-limits';
 import type { TenancyShared } from '@/types/tenancy';
@@ -17,6 +18,7 @@ declare module '@inertiajs/core' {
             locale: string;
             timezone: string;
             tenant: TenantShared | null;
+            clinic_branding: ClinicBranding | null;
             tenancy: TenancyShared;
             plan_limits: PlanLimitsSnapshot | null;
             subscription_renewal_alert: import('@/components/subscription-renewal-reminder-modal').SubscriptionRenewalAlert | null;

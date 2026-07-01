@@ -7,6 +7,7 @@ import { home } from '@/routes';
 type AuthHeaderProps = {
     brandName: string;
     logoUrl?: string | null;
+    logoKey?: string;
     /** Email de contacto comercial. Si se omite, se oculta el CTA. */
     contactEmail?: string;
     contactLabel?: string;
@@ -18,6 +19,7 @@ type AuthHeaderProps = {
 export default function AuthHeader({
     brandName,
     logoUrl,
+    logoKey,
     contactEmail = 'contacto@vetsaas.pe',
     contactLabel = '¿Sin cuenta? Hablemos',
 }: AuthHeaderProps) {
@@ -28,6 +30,7 @@ export default function AuthHeader({
                 className="inline-flex items-center gap-2.5 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
                 <ClinicLogoMark
+                    key={logoKey ?? 'default'}
                     logoUrl={logoUrl}
                     className="size-9 rounded-xl"
                     iconClassName="size-5"

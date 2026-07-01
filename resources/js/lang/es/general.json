@@ -68,6 +68,7 @@
         "logo_undo_remove": "Mantener logo",
         "logo_pending": "Nuevo archivo: {{name}}",
         "logo_preview_alt": "Vista previa del logo",
+        "logo_sidebar_updated": "Logo actualizado. El sidebar ya muestra el nuevo logo.",
         "color_primario": "Color primario",
         "color_secundario": "Color secundario",
         "email_institucional": "Correo institucional",

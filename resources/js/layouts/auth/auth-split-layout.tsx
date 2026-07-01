@@ -5,6 +5,7 @@ import AuthFooter from '@/components/auth/auth-footer';
 import AuthFormCard from '@/components/auth/auth-form-card';
 import AuthGreeting from '@/components/auth/auth-greeting';
 import AuthHeader from '@/components/auth/auth-header';
+import { useClinicBranding } from '@/hooks/use-clinic-branding';
 import type { AuthLayoutProps } from '@/types';
 import type { TenantShared } from '@/types/tenant';
 
@@ -40,6 +41,7 @@ export default function AuthSplitLayout({
     const page = usePage();
     const brandName = page.props.name as string;
     const tenant = page.props.tenant as TenantShared | null;
+    const branding = useClinicBranding();
     const skipFormCard = PAGES_WITH_OWN_CARD.has(page.component);
 
     // Branding contextual: si estamos en un subdominio de tenant
@@ -59,7 +61,11 @@ export default function AuthSplitLayout({
     return (
         <div className="relative isolate flex min-h-svh flex-col overflow-hidden bg-background text-foreground">
             <AuthAuroraBackground />
-            <AuthHeader brandName={headerBrand} logoUrl={tenant?.logo_url} />
+            <AuthHeader
+                brandName={headerBrand}
+                logoUrl={branding?.logo_url}
+                logoKey={branding?.updated_at ?? undefined}
+            />
 
             <main className="relative z-10 flex flex-1 items-center justify-center px-4 py-8 sm:py-12 lg:py-16">
                 <AuthBentoOrbit />

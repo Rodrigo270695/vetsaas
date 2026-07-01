@@ -66,7 +66,7 @@ class ClinicSettingController extends Controller
 
         return Inertia::render('configuracion/general/index', [
             'setting' => $this->presentSetting($setting, $planPermiteFacturaElectronica),
-            'tenant' => $tenant === null ? null : [
+            'clinic_header' => $tenant === null ? null : [
                 'id' => $tenant->id(),
                 'slug' => $tenant->slug,
                 'razon_social' => $tenant->tenant->razon_social ?? null,

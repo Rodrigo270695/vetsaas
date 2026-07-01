@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Models\ClinicSetting;
 use App\Models\User;
+use App\Support\Clinic\ClinicBrandingUrls;
 use App\Support\Plan\PlanLimits;
 use App\Support\Subscriptions\BotIaAccess;
 use App\Support\Subscriptions\TenantSubscriptionSummary;
@@ -57,6 +58,7 @@ class HandleInertiaRequests extends Middleware
                 'locale' => $request->getLocale(),
                 'timezone' => config('app.timezone'),
                 'tenant' => null,
+                'clinic_branding' => null,
                 'tenancy' => [
                     'root_domain' => TenantSubdomainUrl::rootDomain(),
                     'scheme' => TenantSubdomainUrl::scheme(),
@@ -93,7 +95,6 @@ class HandleInertiaRequests extends Middleware
             'razon_social' => $tenantContext->razonSocial(),
             'nombre_comercial' => $tenantContext->nombreComercial(),
             'estado' => $tenantContext->estado(),
-            'logo_url' => $this->resolveClinicLogoUrl(),
         ];
 
         // Un solo guard `web` para todos los usuarios (single-login).
@@ -111,6 +112,9 @@ class HandleInertiaRequests extends Middleware
             'locale' => $request->getLocale(),
             'timezone' => config('app.timezone'),
             'tenant' => $tenantPayload,
+            'clinic_branding' => $tenantContext === null
+                ? null
+                : fn (): ?array => $this->resolveClinicBranding(),
             'tenancy' => [
                 'root_domain' => TenantSubdomainUrl::rootDomain(),
                 'scheme' => TenantSubdomainUrl::scheme(),
@@ -271,14 +275,17 @@ class HandleInertiaRequests extends Middleware
         @file_put_contents(storage_path('logs/laravel.log'), $line, FILE_APPEND | LOCK_EX);
     }
 
-    private function resolveClinicLogoUrl(): ?string
+    private function resolveClinicBranding(): ?array
     {
         try {
-            return ClinicSetting::current()->logo_url;
+            return ClinicBrandingUrls::sharedPayload(ClinicSetting::current());
         } catch (Throwable $e) {
             report($e);
 
-            return null;
+            return [
+                'logo_url' => ClinicBrandingUrls::default(),
+                'updated_at' => null,
+            ];
         }
     }
 }

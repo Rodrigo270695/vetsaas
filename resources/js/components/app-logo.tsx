@@ -1,9 +1,11 @@
 import { usePage } from '@inertiajs/react';
 import { ClinicLogoMark } from '@/components/clinic-logo-mark';
+import { useClinicBranding } from '@/hooks/use-clinic-branding';
 import type { TenantShared } from '@/types/tenant';
 
 export default function AppLogo() {
     const tenant = usePage().props.tenant as TenantShared | null;
+    const branding = useClinicBranding();
     const brandTitle = tenant
         ? (tenant.nombre_comercial || tenant.razon_social).trim()
         : 'VetSaaS';
@@ -11,7 +13,8 @@ export default function AppLogo() {
     return (
         <>
             <ClinicLogoMark
-                logoUrl={tenant?.logo_url}
+                key={branding?.updated_at ?? 'default'}
+                logoUrl={branding?.logo_url}
                 className="size-8 rounded-md"
                 fallbackClassName="size-8"
             />

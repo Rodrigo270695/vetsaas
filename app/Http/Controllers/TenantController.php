@@ -8,6 +8,7 @@ use App\Http\Requests\TenantRequest;
 use App\Models\Departamento;
 use App\Models\Plan;
 use App\Models\Tenant;
+use App\Support\Clinic\ClinicBrandingUrls;
 use App\Services\OpenWa\OpenWaClient;
 use App\Services\Tenancy\TenantSlugChangeService;
 use App\Tenancy\TenantManager;
@@ -64,7 +65,7 @@ class TenantController extends Controller
     /** Valor especial para filtrar tenants sin suscripción viva (trial/active/grace). */
     private const PLAN_FILTER_NONE = 'sin_plan';
 
-    public function index(Request $request): Response
+    public function index(Request $request, TenantManager $manager): Response
     {
         $search = trim((string) $request->string('search', ''));
         $perPageRequested = (int) $request->integer('per_page', 10);
@@ -106,7 +107,15 @@ class TenantController extends Controller
                 'distritoModel.provincia.departamento:id,name',
             ])
             ->paginate($perPage)
-            ->withQueryString();
+            ->withQueryString()
+            ->through(function (Tenant $tenant) use ($manager): Tenant {
+                $tenant->setAttribute(
+                    'logo_url',
+                    ClinicBrandingUrls::forTenant($manager, $tenant),
+                );
+
+                return $tenant;
+            });
 
         // Catálogo de planes para el form de creación (mostramos solo
         // los públicos y activos; superadmin puede ver todos).

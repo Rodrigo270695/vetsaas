@@ -9,7 +9,6 @@ import {
     PauseCircle,
     ScreenShare,
     Sparkles,
-    Store,
     Trash2,
     XCircle,
 } from 'lucide-react';
@@ -367,9 +366,11 @@ export default function Index({
                 sortable: true,
                 cell: (tenant) => (
                     <div className="flex items-center gap-2">
-                        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                            <Store className="size-4" strokeWidth={2.25} />
-                        </span>
+                        <img
+                            src={tenant.logo_url ?? '/logo.png'}
+                            alt=""
+                            className="size-8 shrink-0 rounded-full border border-border/60 bg-background object-contain p-0.5"
+                        />
                         <div className="flex min-w-0 flex-col leading-tight">
                             <span className="truncate text-sm font-semibold text-foreground">
                                 {tenant.razon_social}

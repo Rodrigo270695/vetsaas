@@ -47,16 +47,17 @@ import { usePermission } from '@/hooks/use-permission';
 import AppLayout from '@/layouts/app-layout';
 import general from '@/routes/configuracion/general';
 import { LogoUploader } from './components/logo-uploader';
+import { toastManager } from '@/lib/toast';
 import { SectionCard } from './components/section-card';
 import type {
+    ClinicHeaderSnapshot,
     ClinicSetting,
     GeoOption,
-    TenantSnapshot,
 } from './types';
 
 type ConfiguracionGeneralProps = {
     setting: ClinicSetting;
-    tenant: TenantSnapshot;
+    clinic_header: ClinicHeaderSnapshot;
     departamentos: readonly GeoOption[];
     plan_permite_factura_electronica: boolean;
 };
@@ -187,7 +188,7 @@ const buildInitialGeo = (setting: ClinicSetting): GeoCascadeValue => {
  */
 export default function Index({
     setting,
-    tenant,
+    clinic_header,
     departamentos,
     plan_permite_factura_electronica,
 }: ConfiguracionGeneralProps) {
@@ -280,6 +281,8 @@ export default function Index({
             payload.logo = logoFile;
         }
 
+        const logoChanged = Boolean(logoFile) || clearLogo;
+
         setProcessing(true);
         router.post(general.update().url, payload, {
             preserveScroll: true,
@@ -290,6 +293,18 @@ export default function Index({
             onSuccess: () => {
                 setErrors({});
                 setRecentlySuccessful(true);
+
+                if (logoChanged) {
+                    setLogoFile(null);
+                    setClearLogo(false);
+                    router.reload({
+                        only: ['clinic_branding', 'setting'],
+                        preserveScroll: true,
+                    });
+                    toastManager.success({
+                        title: t('fields.logo_sidebar_updated'),
+                    });
+                }
 
                 if (recentSuccessTimerRef.current) {
                     clearTimeout(recentSuccessTimerRef.current);
@@ -330,7 +345,7 @@ export default function Index({
         };
     }, [setting]);
 
-    const headerTitle = tenant?.nombre_comercial ?? tenant?.razon_social ?? '';
+    const headerTitle = clinic_header?.nombre_comercial ?? clinic_header?.razon_social ?? '';
     const headerDescription = headerTitle
         ? t('description_for', { name: headerTitle })
         : t('description');

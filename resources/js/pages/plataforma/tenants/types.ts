@@ -70,7 +70,7 @@ export type Tenant = {
     telefono: string | null;
     distrito_id: number | null;
     direccion: string | null;
-    logo_url: string | null;
+    logo_url: string;
     sunat_configurado: boolean;
     estado: TenantEstado;
     trial_ends_at: string | null;
