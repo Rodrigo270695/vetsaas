@@ -36,7 +36,7 @@ final class SubscriptionRenewalMessageBuilder
             $amountLines[] = sprintf('Total a renovar: S/ %.2f', $total);
             $parts = [sprintf('plan S/ %.2f', $planAmount)];
             if ($botIaAmount > 0) {
-                $parts[] = sprintf('asistente IA S/ %.2f', $botIaAmount);
+                $parts[] = sprintf('asistente IA S/ %.2f (renovación del plan)', $botIaAmount);
             }
             if ($comprobantesAmount > 0) {
                 $parts[] = sprintf('comprobantes extra S/ %.2f', $comprobantesAmount);

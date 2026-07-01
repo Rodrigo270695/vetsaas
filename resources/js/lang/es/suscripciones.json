@@ -68,8 +68,8 @@
     },
     "bot_ia_toggle": {
         "activate_title": "Activar asistente IA WhatsApp",
-        "activate_description": "Se habilitará el add-on para <strong>{{name}}</strong> con un cargo adicional de S/ {{price}} al mes.",
-        "activate_hint": "La clínica verá el servicio en Comunicaciones → Asistente IA y en su vista de Mi suscripción.",
+        "activate_description": "Se habilitará el asistente IA para <strong>{{name}}</strong>. El cargo de S/ {{price}} se sumará en la próxima renovación del plan (misma fecha de cobro), aunque se active a mitad de período.",
+        "activate_hint": "No abre un plan aparte: el cliente lo usa de inmediato y paga el add-on junto con la renovación en Orvae.",
         "activate_confirm": "Activar add-on",
         "deactivate_title": "Desactivar asistente IA",
         "deactivate_description": "Se desactivará el asistente IA para <strong>{{name}}</strong>. La clínica dejará de ver el panel de gestión.",

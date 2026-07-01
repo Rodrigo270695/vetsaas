@@ -68,8 +68,8 @@
     },
     "bot_ia_toggle": {
         "activate_title": "Enable WhatsApp AI assistant",
-        "activate_description": "The add-on will be enabled for <strong>{{name}}</strong> at an additional S/ {{price}} per month.",
-        "activate_hint": "The clinic will see the service under Communications → AI Assistant and on My subscription.",
+        "activate_description": "The AI assistant will be enabled for <strong>{{name}}</strong>. The S/ {{price}} charge is added on the next plan renewal (same billing date), even if enabled mid-cycle.",
+        "activate_hint": "This does not open a separate plan: the clinic can use it immediately and pays the add-on with plan renewal in Orvae.",
         "activate_confirm": "Enable add-on",
         "deactivate_title": "Disable AI assistant",
         "deactivate_description": "The AI assistant will be disabled for <strong>{{name}}</strong>. The clinic will no longer see the management panel.",

@@ -1,7 +1,6 @@
 import { Head } from '@inertiajs/react';
 import {
     AlertCircle,
-    Bot,
     CalendarClock,
     CheckCircle2,
     CreditCard,
@@ -54,6 +53,8 @@ type SubscriptionSummary = {
         activo: boolean;
         precio_mensual: string;
         activado_at: string | null;
+        acoplado_al_plan: boolean;
+        proximo_cobro_at: string | null;
     };
     renewal_billing: {
         applies: boolean;
@@ -275,10 +276,31 @@ export default function Index({ subscription, comprobantes }: SuscripcionIndexPr
         }
 
         const planAmount = billing.plan_amount ?? 0;
+        const parts: string[] = [];
+
+        if ((billing.bot_ia_amount ?? 0) > 0) {
+            parts.push(
+                `${t('renewal_billing.breakdown_bot_ia')} ${formatPrice(String(billing.bot_ia_amount))}`,
+            );
+        }
+        if ((billing.comprobantes_overage_amount ?? 0) > 0) {
+            parts.push(
+                `${t('renewal_billing.breakdown_comprobantes')} ${formatPrice(String(billing.comprobantes_overage_amount))}`,
+            );
+        }
+
+        const namedAddons = parts.join(' · ');
         const addonsAmount = Math.max(0, (billing.total_amount ?? 0) - planAmount);
 
         if (addonsAmount <= 0) {
             return null;
+        }
+
+        if (namedAddons) {
+            return t('hero.total_breakdown_named', {
+                plan: formatPrice(String(planAmount)),
+                addons: namedAddons,
+            });
         }
 
         return t('hero.total_breakdown', {
@@ -449,6 +471,28 @@ export default function Index({ subscription, comprobantes }: SuscripcionIndexPr
                                 label={t('fields.precio')}
                                 value={formatPrice(summary?.precio_pactado ?? null)}
                             />
+                            {summary?.bot_ia?.activo ? (
+                                <MetricTile
+                                    label={t('fields.bot_ia_addon')}
+                                    value={formatPrice(summary.bot_ia.precio_mensual)}
+                                    subvalue={t('bot_ia.coupled_billing', {
+                                        date: formatDate(
+                                            summary.bot_ia.proximo_cobro_at ??
+                                                summary.proximo_cobro_at ??
+                                                null,
+                                            locale,
+                                        ),
+                                    })}
+                                    className="sm:col-span-2"
+                                />
+                            ) : (
+                                <MetricTile
+                                    label={t('fields.bot_ia_addon')}
+                                    value={t('bot_ia.inactive')}
+                                    subvalue={t('bot_ia.description_inactive')}
+                                    className="sm:col-span-2"
+                                />
+                            )}
                             {billing?.applies &&
                                 (billing.total_amount ?? 0) >
                                     (billing.plan_amount ?? 0) && (
@@ -461,6 +505,41 @@ export default function Index({ subscription, comprobantes }: SuscripcionIndexPr
                                     />
                                 )}
                         </div>
+                        {summary?.bot_ia?.activo && (
+                            <div className="mt-4 flex flex-col gap-3 border-t border-border/60 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                                <p className="text-xs text-muted-foreground">
+                                    {summary.bot_ia.activado_at
+                                        ? t('bot_ia.activated_mid_cycle', {
+                                              activated: formatDate(
+                                                  summary.bot_ia.activado_at,
+                                                  locale,
+                                              ),
+                                              renewal: formatDate(
+                                                  summary.bot_ia.proximo_cobro_at ??
+                                                      summary.proximo_cobro_at ??
+                                                      null,
+                                                  locale,
+                                              ),
+                                              price: formatPrice(
+                                                  summary.bot_ia.precio_mensual,
+                                              ),
+                                          })
+                                        : t('bot_ia.coupled_billing', {
+                                              date: formatDate(
+                                                  summary.bot_ia.proximo_cobro_at ??
+                                                      summary.proximo_cobro_at ??
+                                                      null,
+                                                  locale,
+                                              ),
+                                          })}
+                                </p>
+                                <Button asChild variant="outline" size="sm">
+                                    <Link href="/comunicaciones/bot-ia">
+                                        {t('bot_ia.manage_cta')}
+                                    </Link>
+                                </Button>
+                            </div>
+                        )}
                     </SectionCard>
 
                     <SectionCard
@@ -512,64 +591,6 @@ export default function Index({ subscription, comprobantes }: SuscripcionIndexPr
                         locale={locale}
                         className="xl:col-span-6"
                     />
-
-                    {summary && (
-                        <SectionCard
-                            title={t('sections.bot_ia')}
-                            icon={Bot}
-                            className="xl:col-span-6"
-                            badge={
-                                <StatBadge
-                                    label={
-                                        summary.bot_ia?.activo
-                                            ? t('bot_ia.active')
-                                            : t('bot_ia.inactive')
-                                    }
-                                    value=""
-                                    variant={
-                                        summary.bot_ia?.activo ? 'success' : 'muted'
-                                    }
-                                />
-                            }
-                        >
-                            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                                <div className="space-y-2">
-                                    <p className="text-sm font-medium text-foreground">
-                                        {summary.bot_ia?.activo
-                                            ? t('bot_ia.price', {
-                                                  price: formatPrice(
-                                                      summary.bot_ia.precio_mensual,
-                                                  ).replace('S/. ', ''),
-                                              })
-                                            : t('bot_ia.price', { price: '15.00' })}
-                                    </p>
-                                    <p className="text-sm text-muted-foreground">
-                                        {summary.bot_ia?.activo
-                                            ? t('bot_ia.description_active')
-                                            : t('bot_ia.description_inactive')}
-                                    </p>
-                                    {summary.bot_ia?.activo &&
-                                        summary.bot_ia.activado_at && (
-                                            <p className="text-xs text-muted-foreground">
-                                                {t('bot_ia.activated_at', {
-                                                    date: formatDate(
-                                                        summary.bot_ia.activado_at,
-                                                        locale,
-                                                    ),
-                                                })}
-                                            </p>
-                                        )}
-                                </div>
-                                {summary.bot_ia?.activo && (
-                                    <Button asChild variant="outline">
-                                        <Link href="/comunicaciones/bot-ia">
-                                            {t('bot_ia.manage_cta')}
-                                        </Link>
-                                    </Button>
-                                )}
-                            </div>
-                        </SectionCard>
-                    )}
 
                     <SectionCard
                         title={t('sections.renew')}

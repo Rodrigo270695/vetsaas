@@ -98,7 +98,7 @@ final class SubscriptionRenewalBilling
         if ($botIaAmount > 0) {
             $addons[] = [
                 'key' => 'bot_ia',
-                'label' => 'Asistente IA WhatsApp',
+                'label' => 'Asistente IA WhatsApp (renovación del plan)',
                 'amount' => $botIaAmount,
             ];
         }

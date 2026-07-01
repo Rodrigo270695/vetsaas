@@ -13,6 +13,7 @@
         "estado": "Status",
         "ciclo": "Billing cycle",
         "precio": "Agreed price",
+        "bot_ia_addon": "AI assistant",
         "period_start": "Period start",
         "period_end": "Period end",
         "proximo_cobro": "Next charge",
@@ -59,7 +60,8 @@
         "badge": "VetSaaS subscription",
         "days_label": "days until next charge",
         "due_today": "Charge due today",
-        "total_breakdown": "Plan {{plan}} + add-ons {{addons}}"
+        "total_breakdown": "Plan {{plan}} + add-ons {{addons}}",
+        "total_breakdown_named": "Plan {{plan}} + {{addons}}"
     },
     "stats": {
         "plan": "Active plan",
@@ -95,15 +97,17 @@
     "bot_ia": {
         "active": "Active",
         "inactive": "Not subscribed",
-        "price": "S/ {{price}} / month",
+        "price": "S/ {{price}} per renewal",
         "activated_at": "Activated on {{date}}",
-        "description_active": "Your clinic can use the AI assistant under Communications to answer common questions on WhatsApp.",
-        "description_inactive": "Optional add-on at S/15/month. Contact support to enable it on your subscription.",
+        "coupled_billing": "Charged with your plan on {{date}}",
+        "activated_mid_cycle": "Activated on {{activated}}. The {{price}} charge is added on renewal on {{renewal}}, together with your plan (no separate billing cycle).",
+        "description_active": "Included in your VetSaaS subscription. Manage it under Communications → AI assistant.",
+        "description_inactive": "Optional add-on. If enabled, it is billed on the same date as your plan.",
         "manage_cta": "Go to AI assistant"
     },
     "renewal_billing": {
         "total": "Renewal total",
-        "total_hint": "Includes agreed plan price, active add-ons, and extra invoices for the current period.",
+        "total_hint": "Includes agreed plan price, subscription add-ons, and extra invoices for the current period.",
         "breakdown_plan": "Plan",
         "breakdown_bot_ia": "AI assistant",
         "breakdown_comprobantes": "Extra invoices"

@@ -13,6 +13,7 @@
         "estado": "Estado",
         "ciclo": "Ciclo de facturación",
         "precio": "Precio pactado",
+        "bot_ia_addon": "Asistente IA",
         "period_start": "Inicio del período",
         "period_end": "Fin del período",
         "proximo_cobro": "Próximo cobro",
@@ -59,7 +60,8 @@
         "badge": "Suscripción VetSaaS",
         "days_label": "días para el próximo cobro",
         "due_today": "El cobro vence hoy",
-        "total_breakdown": "Plan {{plan}} + complementos {{addons}}"
+        "total_breakdown": "Plan {{plan}} + complementos {{addons}}",
+        "total_breakdown_named": "Plan {{plan}} + {{addons}}"
     },
     "stats": {
         "plan": "Plan activo",
@@ -95,15 +97,17 @@
     "bot_ia": {
         "active": "Activo",
         "inactive": "No contratado",
-        "price": "S/ {{price}} / mes",
+        "price": "S/ {{price}} por renovación",
         "activated_at": "Activado el {{date}}",
-        "description_active": "Tu clínica puede usar el asistente IA en Comunicaciones para responder consultas frecuentes por WhatsApp.",
-        "description_inactive": "Add-on opcional de S/15 al mes. Solicítalo a soporte para activarlo en tu suscripción.",
+        "coupled_billing": "Cobro junto con tu plan el {{date}}",
+        "activated_mid_cycle": "Activado el {{activated}}. El cargo de {{price}} se suma en la renovación del {{renewal}}, junto con tu plan (sin ciclo aparte).",
+        "description_active": "Incluido en tu suscripción VetSaaS. Puedes usarlo en Comunicaciones → Asistente IA.",
+        "description_inactive": "Add-on opcional. Si lo activan, el cobro va en la misma fecha que tu plan.",
         "manage_cta": "Ir a Asistente IA"
     },
     "renewal_billing": {
         "total": "Total a renovar",
-        "total_hint": "Incluye precio pactado del plan, add-ons activos y comprobantes adicionales del período.",
+        "total_hint": "Incluye precio pactado del plan, add-ons de la suscripción y comprobantes adicionales del período.",
         "breakdown_plan": "Plan",
         "breakdown_bot_ia": "Asistente IA",
         "breakdown_comprobantes": "Comprobantes extra"
