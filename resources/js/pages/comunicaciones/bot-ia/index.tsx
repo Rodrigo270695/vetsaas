@@ -1,4 +1,4 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import {
     BookOpen,
     Clock,
@@ -6,6 +6,7 @@ import {
     Lock,
     MapPin,
     MessageCircle,
+    MessageSquare,
     Plus,
     Scissors,
     ShieldAlert,
@@ -24,15 +25,19 @@ import {
 import type { DataTableColumn, FilterChip } from '@/components/data-page';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useDataTablePage } from '@/hooks/use-data-table-page';
 import AppLayout from '@/layouts/app-layout';
 import type { Paginated } from '@/types';
 import { type WhatsAppProps } from '../components/whatsapp-connect-card';
+import { AssistantGlobalToggle } from './components/assistant-global-toggle';
 import { KnowledgeDeleteDialog } from './components/knowledge-delete-dialog';
 import { KnowledgeFormModal } from './components/knowledge-form-modal';
 import { KnowledgeRowActions } from './components/knowledge-row-actions';
 import { ConversationsPanel } from './components/conversations-panel';
 import type {
+    AssistantSettings,
+    BotIaTab,
     ConversationEntry,
     ConversationFilters,
     ConversationStats,
@@ -62,6 +67,8 @@ type BotIaPageProps = {
     bot_ia: BotIaPayload;
     whatsapp: WhatsAppProps;
     can_manage: boolean;
+    assistant: AssistantSettings | null;
+    tab: BotIaTab;
     knowledge: Paginated<KnowledgeEntry> | null;
     knowledge_stats: KnowledgeStats | null;
     knowledge_filters: KnowledgeFilters | null;
@@ -111,6 +118,8 @@ const EMPTY_CONVERSATION_STATS: ConversationStats = {
 };
 
 const DEFAULT_CHAT_ESTADO = 'todos' as const;
+const DEFAULT_ASSISTANT: AssistantSettings = { respuestas_activas: true };
+const DEFAULT_TAB: BotIaTab = 'chats';
 
 function SectionIcon({ section }: { section: string }) {
     switch (section) {
@@ -150,6 +159,8 @@ export default function Index({
     bot_ia,
     whatsapp,
     can_manage,
+    assistant = DEFAULT_ASSISTANT,
+    tab = DEFAULT_TAB,
     knowledge: paginated = EMPTY_KNOWLEDGE,
     knowledge_stats: _stats = EMPTY_STATS,
     knowledge_filters: filters = {
@@ -309,6 +320,7 @@ export default function Index({
 
     const chatPreservedQuery = useMemo(
         () => ({
+            tab,
             chat_search: chatFilters?.chat_search || undefined,
             chat_per_page: chatFilters?.chat_per_page,
             chat_estado:
@@ -316,7 +328,26 @@ export default function Index({
                     ? chatFilters?.chat_estado
                     : undefined,
         }),
-        [chatFilters],
+        [chatFilters, tab],
+    );
+
+    const setTab = useCallback(
+        (nextTab: BotIaTab) => {
+            router.get(
+                ROUTE_URL,
+                {
+                    ...knowledgePreservedQuery,
+                    ...chatPreservedQuery,
+                    tab: nextTab,
+                },
+                {
+                    preserveScroll: true,
+                    preserveState: true,
+                    replace: true,
+                },
+            );
+        },
+        [knowledgePreservedQuery, chatPreservedQuery],
     );
 
     return (
@@ -369,109 +400,140 @@ export default function Index({
                                     variant={isWhatsappReady ? 'success' : 'warning'}
                                 />
                             </div>
+                            <span className="hidden h-4 w-px bg-border sm:inline" aria-hidden />
+                            {assistant ? (
+                                <AssistantGlobalToggle
+                                    assistant={assistant}
+                                    canManage={can_manage}
+                                />
+                            ) : null}
                             <Button asChild variant="outline" size="sm" className="ml-auto h-8">
                                 <Link href="/comunicaciones/cola">{t('whatsapp_manage')}</Link>
                             </Button>
                         </div>
 
-                        <ConversationsPanel
-                            conversations={paginatedConversations}
-                            filters={chatFilters}
-                            stats={chatStats}
-                            canManage={can_manage}
-                            knowledgePreservedQuery={knowledgePreservedQuery}
-                        />
+                        {assistant && !assistant.respuestas_activas ? (
+                            <Alert className="border-amber-500/30 bg-amber-500/5">
+                                <AlertDescription className="text-sm text-muted-foreground">
+                                    {t('assistant.off_banner')}
+                                </AlertDescription>
+                            </Alert>
+                        ) : null}
 
-                        <p className="text-xs text-muted-foreground">
-                            {t('conversations.hint_manual')}
-                        </p>
+                        <Tabs value={tab} onValueChange={(value) => setTab(value as BotIaTab)}>
+                            <TabsList className="grid h-9 w-full max-w-md grid-cols-2">
+                                <TabsTrigger value="chats" className="cursor-pointer gap-1.5 text-xs sm:text-sm">
+                                    <MessageSquare className="size-3.5" />
+                                    {t('tabs.chats')}
+                                </TabsTrigger>
+                                <TabsTrigger
+                                    value="conocimiento"
+                                    className="cursor-pointer gap-1.5 text-xs sm:text-sm"
+                                >
+                                    <BookOpen className="size-3.5" />
+                                    {t('tabs.knowledge')}
+                                </TabsTrigger>
+                            </TabsList>
 
-                        <section className="flex flex-col gap-3">
-                            <div className="flex flex-wrap items-end justify-between gap-3">
-                                <div>
-                                    <h2 className="text-base font-semibold text-foreground">
-                                        {t('knowledge.title')}
-                                    </h2>
+                            <TabsContent value="chats" className="mt-4 flex flex-col gap-3">
+                                <ConversationsPanel
+                                    conversations={paginatedConversations}
+                                    filters={chatFilters}
+                                    stats={chatStats}
+                                    canManage={can_manage}
+                                    knowledgePreservedQuery={{
+                                        ...knowledgePreservedQuery,
+                                        tab: 'chats',
+                                    }}
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                    {t('conversations.hint_manual')}
+                                </p>
+                            </TabsContent>
+
+                            <TabsContent value="conocimiento" className="mt-4 flex flex-col gap-3">
+                                <div className="flex flex-wrap items-end justify-between gap-3">
                                     <p className="text-sm text-muted-foreground">
                                         {t('knowledge.description')}
                                     </p>
+                                    {can_manage ? (
+                                        <Button size="sm" onClick={openCreate} className="gap-1.5">
+                                            <Plus className="size-4" />
+                                            <span className="hidden sm:inline">
+                                                {t('knowledge.actions.new')}
+                                            </span>
+                                            <span className="sm:hidden">
+                                                {t('knowledge.actions.new_short')}
+                                            </span>
+                                        </Button>
+                                    ) : null}
                                 </div>
-                                {can_manage ? (
-                                    <Button size="sm" onClick={openCreate} className="gap-1.5">
-                                        <Plus className="size-4" />
-                                        <span className="hidden sm:inline">
-                                            {t('knowledge.actions.new')}
-                                        </span>
-                                        <span className="sm:hidden">
-                                            {t('knowledge.actions.new_short')}
-                                        </span>
-                                    </Button>
-                                ) : null}
-                            </div>
 
-                            <DataTable
-                                columns={columns}
-                                data={paginated?.data ?? []}
-                                rowKey={(entry) => entry.id}
-                                sort={sort}
-                                onSortChange={setSort}
-                                isLoading={isLoading}
-                                toolbar={
-                                    <DataToolbar
-                                        search={search}
-                                        onSearchChange={setSearch}
-                                        isSearching={isLoading}
-                                        placeholder={t('knowledge.search_placeholder')}
-                                    >
-                                        <FilterChips
-                                            ariaLabel={t('knowledge.title')}
-                                            value={filters?.section ?? DEFAULT_SECTION}
-                                            onChange={(section) => applyFilter({ section })}
-                                            options={sectionOptions}
+                                <DataTable
+                                    columns={columns}
+                                    data={paginated?.data ?? []}
+                                    rowKey={(entry) => entry.id}
+                                    sort={sort}
+                                    onSortChange={setSort}
+                                    isLoading={isLoading}
+                                    toolbar={
+                                        <DataToolbar
+                                            search={search}
+                                            onSearchChange={setSearch}
+                                            isSearching={isLoading}
+                                            placeholder={t('knowledge.search_placeholder')}
+                                        >
+                                            <FilterChips
+                                                ariaLabel={t('knowledge.title')}
+                                                value={filters?.section ?? DEFAULT_SECTION}
+                                                onChange={(section) => applyFilter({ section })}
+                                                options={sectionOptions}
+                                            />
+                                        </DataToolbar>
+                                    }
+                                    footer={
+                                        <DataPagination
+                                            meta={paginated ?? EMPTY_KNOWLEDGE}
+                                            onPerPageChange={setPerPage}
+                                            preservedQuery={{
+                                                ...chatPreservedQuery,
+                                                tab: 'conocimiento',
+                                                search: filters?.search || undefined,
+                                                per_page: filters?.per_page,
+                                                section:
+                                                    filters?.section !== DEFAULT_SECTION
+                                                        ? filters?.section
+                                                        : undefined,
+                                                sort: filters?.sort ?? undefined,
+                                                direction: filters?.direction ?? undefined,
+                                            }}
                                         />
-                                    </DataToolbar>
-                                }
-                                footer={
-                                    <DataPagination
-                                        meta={paginated ?? EMPTY_KNOWLEDGE}
-                                        onPerPageChange={setPerPage}
-                                        preservedQuery={{
-                                            ...chatPreservedQuery,
-                                            search: filters?.search || undefined,
-                                            per_page: filters?.per_page,
-                                            section:
-                                                filters?.section !== DEFAULT_SECTION
-                                                    ? filters?.section
-                                                    : undefined,
-                                            sort: filters?.sort ?? undefined,
-                                            direction: filters?.direction ?? undefined,
-                                        }}
-                                    />
-                                }
-                                emptyState={
-                                    <EmptyState
-                                        icon={BookOpen}
-                                        title={
-                                            hasSearchOrFilter
-                                                ? t('knowledge.empty.no_results_title')
-                                                : t('knowledge.empty.no_records_title')
-                                        }
-                                        description={
-                                            hasSearchOrFilter
-                                                ? t('knowledge.empty.no_results_description')
-                                                : t('knowledge.empty.no_records_description')
-                                        }
-                                        action={
-                                            can_manage && !hasSearchOrFilter ? (
-                                                <Button size="sm" onClick={openCreate}>
-                                                    {t('knowledge.actions.create_first')}
-                                                </Button>
-                                            ) : undefined
-                                        }
-                                    />
-                                }
-                            />
-                        </section>
+                                    }
+                                    emptyState={
+                                        <EmptyState
+                                            icon={BookOpen}
+                                            title={
+                                                hasSearchOrFilter
+                                                    ? t('knowledge.empty.no_results_title')
+                                                    : t('knowledge.empty.no_records_title')
+                                            }
+                                            description={
+                                                hasSearchOrFilter
+                                                    ? t('knowledge.empty.no_results_description')
+                                                    : t('knowledge.empty.no_records_description')
+                                            }
+                                            action={
+                                                can_manage && !hasSearchOrFilter ? (
+                                                    <Button size="sm" onClick={openCreate}>
+                                                        {t('knowledge.actions.create_first')}
+                                                    </Button>
+                                                ) : undefined
+                                            }
+                                        />
+                                    }
+                                />
+                            </TabsContent>
+                        </Tabs>
                     </>
                 )}
             </div>

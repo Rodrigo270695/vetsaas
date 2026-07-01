@@ -53,6 +53,7 @@ export function ConversationsPanel({
                 ROUTE_URL,
                 {
                     ...knowledgePreservedQuery,
+                    tab: knowledgePreservedQuery.tab ?? 'chats',
                     chat_search: overrides.chat_search ?? filters.chat_search,
                     chat_estado: overrides.chat_estado ?? filters.chat_estado,
                     chat_per_page: overrides.chat_per_page ?? filters.chat_per_page,
@@ -234,12 +235,7 @@ export function ConversationsPanel({
     return (
         <>
             <section className="flex flex-col gap-3">
-                <div>
-                    <h2 className="text-base font-semibold text-foreground">
-                        {t('conversations.title')}
-                    </h2>
-                    <p className="text-sm text-muted-foreground">{t('conversations.description')}</p>
-                </div>
+                <p className="text-sm text-muted-foreground">{t('conversations.description')}</p>
 
                 <DataTable
                     columns={columns}

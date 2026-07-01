@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\ClinicBotConversation;
+use App\Models\ClinicSetting;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\TenantWhatsAppSession;
@@ -110,4 +111,30 @@ it('rechaza webhook sin secreto cuando está configurado', function (): void {
         'sessionId' => 'session-clinic-bot-001',
         'data' => ['body' => 'hola', 'from' => '51999999999@c.us', 'fromMe' => false],
     ])->assertUnauthorized();
+});
+
+it('no responde cuando el asistente global está apagado', function (): void {
+    app(\App\Tenancy\TenantManager::class)->runForSlug($this->testTenant->slug, function (): void {
+        ClinicSetting::current()->update(['bot_ia_respuestas_activo' => false]);
+    });
+
+    Http::fake();
+    $this->mock(OpenWaClient::class, function ($mock): void {
+        $mock->shouldReceive('isConfigured')->andReturn(true);
+        $mock->shouldNotReceive('sendText');
+    });
+
+    $this->postJson('http://127.0.0.1/api/webhooks/clinic-bot', [
+        'event' => 'message.received',
+        'sessionId' => 'session-clinic-bot-001',
+        'data' => [
+            'id' => 'wamid.test002',
+            'body' => '¿Qué horarios atienden?',
+            'from' => '51999999999@c.us',
+            'fromMe' => false,
+            'type' => 'chat',
+        ],
+    ], [
+        'X-Webhook-Secret' => 'test-clinic-bot-secret',
+    ])->assertOk()->assertJson(['ok' => true, 'skipped' => 'assistant_globally_off']);
 });

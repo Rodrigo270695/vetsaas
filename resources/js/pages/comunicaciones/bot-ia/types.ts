@@ -69,3 +69,9 @@ export type ConversationStats = {
     activos: number;
     pausados: number;
 };
+
+export type AssistantSettings = {
+    respuestas_activas: boolean;
+};
+
+export type BotIaTab = 'chats' | 'conocimiento';

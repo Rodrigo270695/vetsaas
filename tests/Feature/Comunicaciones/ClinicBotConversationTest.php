@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\ClinicBotConversation;
+use App\Models\ClinicSetting;
 use App\Models\Plan;
 use App\Models\Subscription;
 use Illuminate\Support\Facades\DB;
@@ -105,4 +106,29 @@ it('pausa y reanuda el asistente para un chat', function (): void {
     expect($conversation->fresh())
         ->bot_active->toBeTrue()
         ->bot_paused_manually->toBeFalse();
+});
+
+it('apaga y enciende el asistente globalmente', function (): void {
+    $this->actingAs($this->testTenantAdmin)
+        ->get('http://'.$this->testTenantHost.'/comunicaciones/bot-ia')
+        ->assertInertia(fn ($page) => $page
+            ->where('assistant.respuestas_activas', true));
+
+    $this->actingAs($this->testTenantAdmin)
+        ->post('http://'.$this->testTenantHost.'/comunicaciones/bot-ia/asistente/toggle', [
+            'respuestas_activas' => false,
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('success');
+
+    expect(ClinicSetting::current()->fresh()->bot_ia_respuestas_activo)->toBeFalse();
+
+    $this->actingAs($this->testTenantAdmin)
+        ->post('http://'.$this->testTenantHost.'/comunicaciones/bot-ia/asistente/toggle', [
+            'respuestas_activas' => true,
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('success');
+
+    expect(ClinicSetting::current()->fresh()->bot_ia_respuestas_activo)->toBeTrue();
 });

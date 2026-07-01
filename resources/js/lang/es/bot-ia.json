@@ -17,6 +17,17 @@
     },
     "whatsapp_hint": "Mismo número que en Cola saliente.",
     "whatsapp_manage": "Sinc. WhatsApp",
+    "tabs": {
+        "chats": "Chats",
+        "knowledge": "Base de conocimiento"
+    },
+    "assistant": {
+        "label": "Asistente",
+        "status_on": "Respondiendo",
+        "status_off": "Apagado",
+        "toggle_hint": "Respuestas automáticas",
+        "off_banner": "El asistente está apagado para toda la clínica. No responderá por WhatsApp hasta que lo actives."
+    },
     "knowledge": {
         "title": "Base de conocimiento",
         "description": "FAQs, horarios, políticas y servicios que el asistente usará para responder.",

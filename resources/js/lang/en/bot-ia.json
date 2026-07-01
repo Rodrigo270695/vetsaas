@@ -17,6 +17,17 @@
     },
     "whatsapp_hint": "Same number as in Outgoing queue.",
     "whatsapp_manage": "WhatsApp sync",
+    "tabs": {
+        "chats": "Chats",
+        "knowledge": "Knowledge base"
+    },
+    "assistant": {
+        "label": "Assistant",
+        "status_on": "Responding",
+        "status_off": "Off",
+        "toggle_hint": "Automatic replies",
+        "off_banner": "The assistant is off for the whole clinic. It will not reply on WhatsApp until you turn it back on."
+    },
     "knowledge": {
         "title": "Knowledge base",
         "description": "FAQs, hours, policies, and services the assistant will use to reply.",

@@ -691,6 +691,8 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
                     ->name('conversations.pause');
                 Route::post('conversaciones/{clinicBotConversation}/resume', [ClinicBotIaController::class, 'resumeConversation'])
                     ->name('conversations.resume');
+                Route::post('asistente/toggle', [ClinicBotIaController::class, 'toggleAssistant'])
+                    ->name('assistant.toggle');
             });
         Route::inertia('plantillas', 'comunicaciones/plantillas/index')->name('plantillas');
 

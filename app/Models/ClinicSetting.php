@@ -53,6 +53,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property bool $recordatorio_vacuna_activo
  * @property int $recordatorio_vacuna_dias_antes
  * @property bool $recordatorio_cumple_activo
+ * @property bool $bot_ia_respuestas_activo El tenant puede apagar respuestas automáticas del asistente IA.
  * @property ?string $nubefact_token_enc
  * @property ?string $nubefact_ruc
  * @property ?string $nubefact_api_ruta
@@ -96,6 +97,7 @@ class ClinicSetting extends Model
         'recordatorio_vacuna_activo',
         'recordatorio_vacuna_dias_antes',
         'recordatorio_cumple_activo',
+        'bot_ia_respuestas_activo',
         'apisunat_token_enc',
         'apisunat_mode',
         'apisunat_configurado',
@@ -143,6 +145,7 @@ class ClinicSetting extends Model
             'recordatorio_vacuna_activo' => 'boolean',
             'recordatorio_vacuna_dias_antes' => 'integer',
             'recordatorio_cumple_activo' => 'boolean',
+            'bot_ia_respuestas_activo' => 'boolean',
             'nubefact_configurado' => 'boolean',
             'precio_incluye_igv' => 'boolean',
             'emite_comprobantes_sunat' => 'boolean',
@@ -200,5 +203,10 @@ class ClinicSetting extends Model
     public static function current(): self
     {
         return static::query()->firstOrCreate([]);
+    }
+
+    public function isBotIaResponding(): bool
+    {
+        return (bool) ($this->bot_ia_respuestas_activo ?? true);
     }
 }

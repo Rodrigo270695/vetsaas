@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\ClinicBotKnowledgeRequest;
 use App\Models\ClinicBotConversation;
 use App\Models\ClinicBotKnowledge;
+use App\Models\ClinicSetting;
 use App\Support\OpenWa\TenantWhatsAppPresenter;
 use App\Support\Subscriptions\BotIaAccess;
 use App\Support\Subscriptions\SubscriptionBotIaAddon;
@@ -32,6 +33,8 @@ final class ClinicBotIaController extends Controller
     ];
 
     private const CONVERSATION_ESTADO_OPTIONS = ['todos', 'activo', 'pausado'];
+
+    private const TAB_OPTIONS = ['chats', 'conocimiento'];
 
     public function show(Request $request, TenantManager $tenants, TenantWhatsAppPresenter $whatsapp): Response
     {
@@ -64,6 +67,8 @@ final class ClinicBotIaController extends Controller
             'bot_ia' => $botIa,
             'whatsapp' => $whatsapp->forTenant($tenant),
             'can_manage' => $canManage,
+            'assistant' => $isActive ? $this->assistantPayload() : null,
+            'tab' => $this->resolveTab($request),
             'knowledge' => $knowledge,
             'knowledge_stats' => $knowledgeStats,
             'knowledge_filters' => $isActive ? $this->knowledgeFilters($request) : null,
@@ -138,6 +143,43 @@ final class ClinicBotIaController extends Controller
         $clinicBotConversation->resumeBot();
 
         return back()->with('success', 'Asistente reactivado para este chat.');
+    }
+
+    public function toggleAssistant(Request $request, TenantManager $tenants): RedirectResponse
+    {
+        $this->assertAddonActive($request, $tenants);
+
+        $validated = $request->validate([
+            'respuestas_activas' => ['required', 'boolean'],
+        ]);
+
+        $settings = ClinicSetting::current();
+        $settings->bot_ia_respuestas_activo = (bool) $validated['respuestas_activas'];
+        $settings->updated_by_id = $request->user()?->id;
+        $settings->save();
+
+        $message = $settings->bot_ia_respuestas_activo
+            ? 'Asistente IA activado: responderá automáticamente por WhatsApp.'
+            : 'Asistente IA pausado: no responderá hasta que lo reactives.';
+
+        return back()->with('success', $message);
+    }
+
+    /**
+     * @return array{respuestas_activas: bool}
+     */
+    private function assistantPayload(): array
+    {
+        return [
+            'respuestas_activas' => ClinicSetting::current()->isBotIaResponding(),
+        ];
+    }
+
+    private function resolveTab(Request $request): string
+    {
+        $tab = (string) $request->input('tab', 'chats');
+
+        return in_array($tab, self::TAB_OPTIONS, true) ? $tab : 'chats';
     }
 
     private function assertAddonActive(Request $request, TenantManager $tenants): void

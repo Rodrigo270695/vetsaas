@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\ClinicSetting;
 use App\Models\TenantWhatsAppSession;
 use App\Services\ClinicBot\ClinicBotService;
 use App\Services\OpenWa\TenantWhatsAppMessenger;
@@ -121,6 +122,10 @@ final class ClinicBotWebhookController extends Controller
             }
 
             if ($body === '' && in_array($type, ['ptt', 'audio'], true)) {
+                if (! ClinicSetting::current()->isBotIaResponding()) {
+                    return response()->json(['ok' => true, 'skipped' => 'assistant_globally_off']);
+                }
+
                 $this->messenger->sendText(
                     $waSession,
                     $waChatId,
@@ -141,6 +146,10 @@ final class ClinicBotWebhookController extends Controller
 
             $conversation = $this->botService->findOrCreateConversation($phone, $waChatId, $clientName);
             $this->botService->syncContactMetadata($conversation, $phone, $waChatId, $clientName);
+
+            if (! ClinicSetting::current()->isBotIaResponding()) {
+                return response()->json(['ok' => true, 'skipped' => 'assistant_globally_off']);
+            }
 
             if (! $conversation->bot_active) {
                 if ($conversation->isManuallyPaused()) {
