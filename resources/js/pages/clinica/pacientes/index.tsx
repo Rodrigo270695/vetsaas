@@ -35,6 +35,7 @@ import { useDataTablePage } from '@/hooks/use-data-table-page';
 import { usePlanLimitReached } from '@/hooks/use-plan-limits';
 import { usePermission } from '@/hooks/use-permission';
 import { useRowSelection } from '@/hooks/use-row-selection';
+import { dashboard } from '@/routes';
 import clinica from '@/routes/clinica';
 import pacientes from '@/routes/clinica/pacientes';
 import type { Paginated } from '@/types';
@@ -504,3 +505,10 @@ export default function Index({
         </>
     );
 }
+
+Index.layout = {
+    breadcrumbs: [
+        { title: 'Clínica', href: dashboard().url },
+        { title: 'Pacientes', href: pacientes.index().url },
+    ],
+};

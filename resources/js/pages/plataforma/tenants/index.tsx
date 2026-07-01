@@ -33,6 +33,7 @@ import type {
 import { Button } from '@/components/ui/button';
 import { SubscriptionExpiryBadge } from '@/components/plataforma/subscription-expiry-badge';
 import { useDataTablePage } from '@/hooks/use-data-table-page';
+import { usePermission } from '@/hooks/use-permission';
 import { livingSubscription } from '@/lib/living-subscription';
 import { VETSAAS_DEFAULT_LOGO } from '@/lib/brand';
 import { useRowSelection } from '@/hooks/use-row-selection';
