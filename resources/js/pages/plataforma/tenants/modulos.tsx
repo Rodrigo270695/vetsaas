@@ -84,19 +84,42 @@ export default function TenantModulos({ tenant, module_groups }: TenantModulosPr
         <>
             <Head title={t('tenants:modules.page_title', { name: tenantLabel })} />
 
-            <div className="flex flex-col gap-4 p-4 pb-28 md:p-6 md:pb-28">
+            <div className="flex flex-col gap-4 p-4 md:p-6">
                 <PageHeader
                     title={t('tenants:modules.page_title', { name: tenantLabel })}
                     description={t('tenants:modules.page_description')}
                     action={
-                        <Button variant="outline" size="sm" className="cursor-pointer gap-2" asChild>
-                            <Link href={tenants.index().url}>
-                                <ArrowLeft className="size-4" />
-                                <span className="hidden sm:inline">{t('tenants:modules.back')}</span>
-                            </Link>
-                        </Button>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <Button variant="outline" size="sm" className="cursor-pointer gap-2" asChild>
+                                <Link href={tenants.index().url}>
+                                    <ArrowLeft className="size-4" />
+                                    {t('tenants:modules.back')}
+                                </Link>
+                            </Button>
+                            <Button
+                                type="button"
+                                size="sm"
+                                className="cursor-pointer gap-2"
+                                disabled={processing || !hasChanges}
+                                onClick={handleSave}
+                            >
+                                <Save className="size-4" />
+                                {t('common:actions.save')}
+                            </Button>
+                        </div>
                     }
                 />
+
+                <p className="-mt-2 text-xs text-muted-foreground">
+                    {disabledCount === 0
+                        ? t('tenants:modules.all_visible')
+                        : t('tenants:modules.disabled_summary', { count: disabledCount })}
+                    {hasChanges ? (
+                        <span className="ml-1 font-medium text-amber-700 dark:text-amber-400">
+                            · {t('tenants:modules.unsaved')}
+                        </span>
+                    ) : null}
+                </p>
 
                 <div className="flex items-start gap-2 rounded-lg border border-border/60 bg-muted/30 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
                     <LayoutGrid className="mt-0.5 size-3.5 shrink-0 text-primary" />
@@ -179,44 +202,6 @@ export default function TenantModulos({ tenant, module_groups }: TenantModulosPr
                             </section>
                         );
                     })}
-                </div>
-            </div>
-
-            <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border/70 bg-background/95 px-4 py-3 shadow-[0_-4px_24px_rgba(0,0,0,0.06)] backdrop-blur supports-backdrop-filter:bg-background/80 md:px-6">
-                <div className="mx-auto flex max-w-6xl items-center justify-between gap-3">
-                    <p className="hidden text-sm text-muted-foreground sm:block">
-                        {disabledCount === 0
-                            ? t('tenants:modules.all_visible')
-                            : t('tenants:modules.disabled_summary', { count: disabledCount })}
-                        {hasChanges ? (
-                            <span className="ml-2 font-medium text-amber-700 dark:text-amber-400">
-                                · {t('tenants:modules.unsaved')}
-                            </span>
-                        ) : null}
-                    </p>
-                    <div className="ml-auto flex w-full items-center justify-end gap-2 sm:w-auto">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            className="cursor-pointer gap-2 sm:hidden"
-                            asChild
-                        >
-                            <Link href={tenants.index().url}>
-                                <ArrowLeft className="size-4" />
-                                {t('tenants:modules.back')}
-                            </Link>
-                        </Button>
-                        <Button
-                            type="button"
-                            size="sm"
-                            className="cursor-pointer gap-2"
-                            disabled={processing || !hasChanges}
-                            onClick={handleSave}
-                        >
-                            <Save className="size-4" />
-                            {t('common:actions.save')}
-                        </Button>
-                    </div>
                 </div>
             </div>
         </>
