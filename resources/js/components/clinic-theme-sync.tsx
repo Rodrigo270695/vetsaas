@@ -1,31 +1,47 @@
+import { router } from '@inertiajs/react';
 import { useEffect } from 'react';
-import { useClinicBranding } from '@/hooks/use-clinic-branding';
 import { applyClinicBrandTheme, clearClinicBrandTheme } from '@/lib/clinic-theme';
+import type { ClinicBranding } from '@/types/clinic-branding';
+
+type InertiaPage = { props?: Record<string, unknown> };
+type InertiaEvent = CustomEvent<{ page?: InertiaPage }>;
+
+function syncBranding(props: Record<string, unknown> | undefined): void {
+    const branding = props?.clinic_branding as ClinicBranding | null | undefined;
+
+    if (!branding) {
+        clearClinicBrandTheme();
+
+        return;
+    }
+
+    applyClinicBrandTheme(branding.color_primario, branding.color_secundario);
+}
 
 /**
  * Aplica el color primario/secundario de la clínica a las variables CSS de marca.
- * Sidebar, dashboard, suscripción y botones «Nuevo» usan la escala `brand-*`.
+ *
+ * Vive fuera del árbol de Inertia (`withApp`), así que no puede usar `usePage()`;
+ * lee `clinic_branding` desde `router.page` y en cada navegación `success`.
  */
 export function ClinicThemeSync() {
-    const branding = useClinicBranding();
-
     useEffect(() => {
-        if (!branding) {
-            clearClinicBrandTheme();
+        const handle = (props: Record<string, unknown> | undefined): void => {
+            syncBranding(props);
+        };
 
-            return;
-        }
+        const initialPage = (router as unknown as { page?: InertiaPage }).page;
+        handle(initialPage?.props);
 
-        applyClinicBrandTheme(branding.color_primario, branding.color_secundario);
+        const removeSuccess = router.on('success', (event) => {
+            const detail = (event as InertiaEvent).detail;
+            handle(detail?.page?.props);
+        });
 
         return () => {
-            clearClinicBrandTheme();
+            removeSuccess();
         };
-    }, [
-        branding?.color_primario,
-        branding?.color_secundario,
-        branding?.updated_at,
-    ]);
+    }, []);
 
     return null;
 }
