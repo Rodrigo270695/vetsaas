@@ -38,3 +38,34 @@ export type KnowledgeStats = {
     contacto: number;
     general: number;
 };
+
+export type ConversationMessage = {
+    role: 'user' | 'assistant';
+    content: string;
+};
+
+export type ConversationEntry = {
+    id: string;
+    phone: string;
+    client_name: string | null;
+    bot_active: boolean;
+    bot_paused_manually: boolean;
+    last_message_at: string | null;
+    last_message_preview: string | null;
+    turn_count: number;
+    messages: ConversationMessage[];
+};
+
+export type ConversationEstadoFilter = 'todos' | 'activo' | 'pausado';
+
+export type ConversationFilters = {
+    chat_search: string;
+    chat_estado: ConversationEstadoFilter;
+    chat_per_page: number;
+};
+
+export type ConversationStats = {
+    total: number;
+    activos: number;
+    pausados: number;
+};

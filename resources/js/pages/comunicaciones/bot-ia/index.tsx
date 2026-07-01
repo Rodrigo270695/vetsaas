@@ -31,7 +31,11 @@ import { type WhatsAppProps } from '../components/whatsapp-connect-card';
 import { KnowledgeDeleteDialog } from './components/knowledge-delete-dialog';
 import { KnowledgeFormModal } from './components/knowledge-form-modal';
 import { KnowledgeRowActions } from './components/knowledge-row-actions';
+import { ConversationsPanel } from './components/conversations-panel';
 import type {
+    ConversationEntry,
+    ConversationFilters,
+    ConversationStats,
     KnowledgeEntry,
     KnowledgeFilters,
     KnowledgeSectionFilter,
@@ -61,6 +65,9 @@ type BotIaPageProps = {
     knowledge: Paginated<KnowledgeEntry> | null;
     knowledge_stats: KnowledgeStats | null;
     knowledge_filters: KnowledgeFilters | null;
+    conversations: Paginated<ConversationEntry> | null;
+    conversation_filters: ConversationFilters | null;
+    conversation_stats: ConversationStats | null;
 };
 
 const EMPTY_KNOWLEDGE: Paginated<KnowledgeEntry> = {
@@ -84,6 +91,26 @@ const EMPTY_STATS: KnowledgeStats = {
     contacto: 0,
     general: 0,
 };
+
+const EMPTY_CONVERSATIONS: Paginated<ConversationEntry> = {
+    data: [],
+    current_page: 1,
+    last_page: 1,
+    per_page: DEFAULT_PER_PAGE,
+    total: 0,
+    from: null,
+    to: null,
+    path: ROUTE_URL,
+    links: [],
+};
+
+const EMPTY_CONVERSATION_STATS: ConversationStats = {
+    total: 0,
+    activos: 0,
+    pausados: 0,
+};
+
+const DEFAULT_CHAT_ESTADO = 'todos' as const;
 
 function SectionIcon({ section }: { section: string }) {
     switch (section) {
@@ -132,6 +159,13 @@ export default function Index({
         direction: null,
         per_page: DEFAULT_PER_PAGE,
     },
+    conversations: paginatedConversations = EMPTY_CONVERSATIONS,
+    conversation_filters: chatFilters = {
+        chat_search: '',
+        chat_estado: DEFAULT_CHAT_ESTADO,
+        chat_per_page: DEFAULT_PER_PAGE,
+    },
+    conversation_stats: chatStats = EMPTY_CONVERSATION_STATS,
 }: BotIaPageProps) {
     const { t, i18n } = useTranslation(['bot-ia', 'comunicaciones']);
     const locale = i18n.language;
@@ -261,6 +295,30 @@ export default function Index({
     const hasSearchOrFilter =
         (filters?.search ?? '') !== '' || (filters?.section ?? DEFAULT_SECTION) !== DEFAULT_SECTION;
 
+    const knowledgePreservedQuery = useMemo(
+        () => ({
+            search: filters?.search || undefined,
+            per_page: filters?.per_page,
+            section:
+                filters?.section !== DEFAULT_SECTION ? filters?.section : undefined,
+            sort: filters?.sort ?? undefined,
+            direction: filters?.direction ?? undefined,
+        }),
+        [filters],
+    );
+
+    const chatPreservedQuery = useMemo(
+        () => ({
+            chat_search: chatFilters?.chat_search || undefined,
+            chat_per_page: chatFilters?.chat_per_page,
+            chat_estado:
+                chatFilters?.chat_estado !== DEFAULT_CHAT_ESTADO
+                    ? chatFilters?.chat_estado
+                    : undefined,
+        }),
+        [chatFilters],
+    );
+
     return (
         <>
             <Head title={t('title')} />
@@ -316,6 +374,18 @@ export default function Index({
                             </Button>
                         </div>
 
+                        <ConversationsPanel
+                            conversations={paginatedConversations}
+                            filters={chatFilters}
+                            stats={chatStats}
+                            canManage={can_manage}
+                            knowledgePreservedQuery={knowledgePreservedQuery}
+                        />
+
+                        <p className="text-xs text-muted-foreground">
+                            {t('conversations.hint_manual')}
+                        </p>
+
                         <section className="flex flex-col gap-3">
                             <div className="flex flex-wrap items-end justify-between gap-3">
                                 <div>
@@ -366,6 +436,7 @@ export default function Index({
                                         meta={paginated ?? EMPTY_KNOWLEDGE}
                                         onPerPageChange={setPerPage}
                                         preservedQuery={{
+                                            ...chatPreservedQuery,
                                             search: filters?.search || undefined,
                                             per_page: filters?.per_page,
                                             section:

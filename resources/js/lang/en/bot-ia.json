@@ -93,5 +93,45 @@
         "toast": {
             "load_error": "Error loading knowledge base"
         }
+    },
+    "conversations": {
+        "title": "WhatsApp chats",
+        "description": "Review conversations and pause the assistant per number when staff replies manually.",
+        "hint_manual": "If you reply from the clinic WhatsApp, the AI pauses automatically for that chat.",
+        "search_placeholder": "Search by name or phone...",
+        "chat_title": "Conversation",
+        "chat_empty": "No messages in this chat yet.",
+        "role_client": "Client",
+        "role_assistant": "Assistant",
+        "filters": {
+            "all": "All",
+            "active": "AI active",
+            "paused": "Paused"
+        },
+        "columns": {
+            "contact": "Contact",
+            "last_message": "Last message",
+            "status": "Status",
+            "activity": "Activity"
+        },
+        "status_active": "AI active",
+        "status_paused": "Paused",
+        "status_paused_manual": "Manually paused",
+        "actions": {
+            "view": "View chat",
+            "pause": "Pause AI",
+            "resume": "Resume AI"
+        },
+        "time_now": "now",
+        "time_minutes_one": "{{count}} min ago",
+        "time_minutes_other": "{{count}} min ago",
+        "time_hours_one": "{{count}} h ago",
+        "time_hours_other": "{{count}} h ago",
+        "time_days_one": "{{count}} d ago",
+        "time_days_other": "{{count}} d ago",
+        "empty": {
+            "title": "No conversations yet",
+            "description": "When a client writes on WhatsApp, they will appear here."
+        }
     }
 }

@@ -678,12 +678,19 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             ->name('bot-ia');
 
         Route::middleware('permission:comunicaciones-bot-ia.manage|config-general.update|comunicaciones-cola.manage')
-            ->prefix('bot-ia/conocimiento')
-            ->name('bot-ia.knowledge.')
+            ->prefix('bot-ia')
+            ->name('bot-ia.')
             ->group(function (): void {
-                Route::post('/', [ClinicBotIaController::class, 'storeKnowledge'])->name('store');
-                Route::put('{clinicBotKnowledge}', [ClinicBotIaController::class, 'updateKnowledge'])->name('update');
-                Route::delete('{clinicBotKnowledge}', [ClinicBotIaController::class, 'destroyKnowledge'])->name('destroy');
+                Route::prefix('conocimiento')->name('knowledge.')->group(function (): void {
+                    Route::post('/', [ClinicBotIaController::class, 'storeKnowledge'])->name('store');
+                    Route::put('{clinicBotKnowledge}', [ClinicBotIaController::class, 'updateKnowledge'])->name('update');
+                    Route::delete('{clinicBotKnowledge}', [ClinicBotIaController::class, 'destroyKnowledge'])->name('destroy');
+                });
+
+                Route::post('conversaciones/{clinicBotConversation}/pause', [ClinicBotIaController::class, 'pauseConversation'])
+                    ->name('conversations.pause');
+                Route::post('conversaciones/{clinicBotConversation}/resume', [ClinicBotIaController::class, 'resumeConversation'])
+                    ->name('conversations.resume');
             });
         Route::inertia('plantillas', 'comunicaciones/plantillas/index')->name('plantillas');
 

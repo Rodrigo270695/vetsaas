@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ClinicBotKnowledgeRequest;
+use App\Models\ClinicBotConversation;
 use App\Models\ClinicBotKnowledge;
 use App\Support\OpenWa\TenantWhatsAppPresenter;
 use App\Support\Subscriptions\BotIaAccess;
@@ -30,6 +31,8 @@ final class ClinicBotIaController extends Controller
         'updated_at',
     ];
 
+    private const CONVERSATION_ESTADO_OPTIONS = ['todos', 'activo', 'pausado'];
+
     public function show(Request $request, TenantManager $tenants, TenantWhatsAppPresenter $whatsapp): Response
     {
         abort_unless(BotIaAccess::userCanView($request->user()), 403);
@@ -53,6 +56,10 @@ final class ClinicBotIaController extends Controller
             ? $this->knowledgeStats()
             : null;
 
+        $conversations = $isActive
+            ? $this->paginateConversations($request)
+            : null;
+
         return Inertia::render('comunicaciones/bot-ia/index', [
             'bot_ia' => $botIa,
             'whatsapp' => $whatsapp->forTenant($tenant),
@@ -60,6 +67,9 @@ final class ClinicBotIaController extends Controller
             'knowledge' => $knowledge,
             'knowledge_stats' => $knowledgeStats,
             'knowledge_filters' => $isActive ? $this->knowledgeFilters($request) : null,
+            'conversations' => $conversations,
+            'conversation_filters' => $isActive ? $this->conversationFilters($request) : null,
+            'conversation_stats' => $isActive ? $this->conversationStats() : null,
         ]);
     }
 
@@ -106,6 +116,28 @@ final class ClinicBotIaController extends Controller
         ClinicBotKnowledge::flushCache();
 
         return back()->with('success', 'Entrada eliminada correctamente.');
+    }
+
+    public function pauseConversation(
+        Request $request,
+        TenantManager $tenants,
+        ClinicBotConversation $clinicBotConversation,
+    ): RedirectResponse {
+        $this->assertAddonActive($request, $tenants);
+        $clinicBotConversation->pauseBotManually();
+
+        return back()->with('success', 'Asistente pausado para este chat.');
+    }
+
+    public function resumeConversation(
+        Request $request,
+        TenantManager $tenants,
+        ClinicBotConversation $clinicBotConversation,
+    ): RedirectResponse {
+        $this->assertAddonActive($request, $tenants);
+        $clinicBotConversation->resumeBot();
+
+        return back()->with('success', 'Asistente reactivado para este chat.');
     }
 
     private function assertAddonActive(Request $request, TenantManager $tenants): void
@@ -190,6 +222,100 @@ final class ClinicBotIaController extends Controller
             'servicios' => (clone $base)->where('section', 'servicio')->count(),
             'contacto' => (clone $base)->where('section', 'contacto')->count(),
             'general' => (clone $base)->where('section', 'general')->count(),
+        ];
+    }
+
+    /**
+     * @return array{chat_search: string, chat_estado: string, chat_per_page: int}
+     */
+    private function conversationFilters(Request $request): array
+    {
+        $search = (string) $request->input('chat_search', '');
+        $estado = (string) $request->input('chat_estado', 'todos');
+        $perPage = (int) $request->input('chat_per_page', 10);
+
+        if (! in_array($estado, self::CONVERSATION_ESTADO_OPTIONS, true)) {
+            $estado = 'todos';
+        }
+
+        return [
+            'chat_search' => $search,
+            'chat_estado' => $estado,
+            'chat_per_page' => in_array($perPage, self::PER_PAGE_OPTIONS, true) ? $perPage : 10,
+        ];
+    }
+
+    private function paginateConversations(Request $request): LengthAwarePaginator
+    {
+        $filters = $this->conversationFilters($request);
+
+        $query = ClinicBotConversation::query();
+
+        if ($filters['chat_search'] !== '') {
+            $search = $filters['chat_search'];
+            $query->where(function ($q) use ($search): void {
+                $q->where('phone', 'ilike', "%{$search}%")
+                    ->orWhere('client_name', 'ilike', "%{$search}%");
+            });
+        }
+
+        if ($filters['chat_estado'] === 'activo') {
+            $query->where('bot_active', true);
+        } elseif ($filters['chat_estado'] === 'pausado') {
+            $query->where('bot_active', false);
+        }
+
+        return $query
+            ->orderByDesc('last_message_at')
+            ->orderByDesc('updated_at')
+            ->paginate($filters['chat_per_page'], ['*'], 'chat_page')
+            ->withQueryString()
+            ->through(fn (ClinicBotConversation $conversation): array => $this->conversationPayload($conversation));
+    }
+
+    /**
+     * @return array<string, int>
+     */
+    private function conversationStats(): array
+    {
+        $base = ClinicBotConversation::query();
+
+        return [
+            'total' => (clone $base)->count(),
+            'activos' => (clone $base)->where('bot_active', true)->count(),
+            'pausados' => (clone $base)->where('bot_active', false)->count(),
+        ];
+    }
+
+    /**
+     * @return array{
+     *     id: string,
+     *     phone: string,
+     *     client_name: string|null,
+     *     bot_active: bool,
+     *     bot_paused_manually: bool,
+     *     last_message_at: string|null,
+     *     last_message_preview: string|null,
+     *     turn_count: int,
+     *     messages: array<int, array{role: string, content: string}>
+     * }
+     */
+    private function conversationPayload(ClinicBotConversation $conversation): array
+    {
+        $messages = $conversation->getOpenAiMessages();
+        $last = $messages !== [] ? $messages[array_key_last($messages)] : null;
+        $preview = is_array($last) ? trim((string) ($last['content'] ?? '')) : null;
+
+        return [
+            'id' => $conversation->id,
+            'phone' => $conversation->phone,
+            'client_name' => $conversation->client_name,
+            'bot_active' => $conversation->bot_active,
+            'bot_paused_manually' => $conversation->bot_paused_manually,
+            'last_message_at' => $conversation->last_message_at?->toIso8601String(),
+            'last_message_preview' => $preview !== '' ? $preview : null,
+            'turn_count' => (int) $conversation->turn_count,
+            'messages' => $messages,
         ];
     }
 }
