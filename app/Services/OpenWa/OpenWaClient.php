@@ -6,6 +6,7 @@ namespace App\Services\OpenWa;
 
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 
 /**
@@ -82,7 +83,7 @@ final class OpenWaClient
         // OpenWA acepta número, 51999@c.us o 141...@lid (URL-encoded).
         $encoded = rawurlencode($contactId);
 
-        $response = $this->request('get', '/api/sessions/' . $sessionId . '/contacts/' . $encoded);
+        $response = $this->request('get', '/api/sessions/'.$sessionId.'/contacts/'.$encoded);
 
         if (! is_array($response)) {
             throw new RuntimeException('OpenWA no devolvió datos del contacto.');
@@ -158,13 +159,40 @@ final class OpenWaClient
     }
 
     /**
+     * Registra (o actualiza) el webhook de mensajes entrantes para una sesión.
+     *
+     * @param  array<string, string>  $headers  Headers extra (ej. X-Webhook-Secret).
+     * @return array<string, mixed>
+     */
+    public function registerWebhook(string $sessionId, string $url, array $headers = []): array
+    {
+        $payload = [
+            'url' => $url,
+            'events' => ['message.received', 'onMessage', 'message'],
+            'enabled' => true,
+        ];
+
+        if ($headers !== []) {
+            $payload['headers'] = $headers;
+        }
+
+        $response = $this->request('post', '/api/sessions/'.$sessionId.'/webhooks', $payload);
+
+        if (! is_array($response)) {
+            throw new RuntimeException('OpenWA no confirmó el registro del webhook.');
+        }
+
+        return $response;
+    }
+
+    /**
      * Envía una nota de voz (audio ogg/opus) a un chat de WhatsApp.
      *
      * El audio se envía como base64. OpenWA lo procesa como PTT (push-to-talk)
      * para que se muestre como nota de voz en WhatsApp, no como archivo adjunto.
      *
-     * @param  string  $sessionId   ID de la sesión OpenWA activa.
-     * @param  string  $chatId      Chat destino (ej: "51987654321@c.us").
+     * @param  string  $sessionId  ID de la sesión OpenWA activa.
+     * @param  string  $chatId  Chat destino (ej: "51987654321@c.us").
      * @param  string  $audioContent  Contenido binario del audio (ogg/opus).
      * @return array<string, mixed>
      */
@@ -177,35 +205,35 @@ final class OpenWaClient
      *
      * El archivo temporal se borra automáticamente después del envío.
      *
-     * @param  string  $sessionId     ID de la sesión OpenWA activa.
-     * @param  string  $chatId        Chat destino (ej: "51987654321@c.us").
+     * @param  string  $sessionId  ID de la sesión OpenWA activa.
+     * @param  string  $chatId  Chat destino (ej: "51987654321@c.us").
      * @param  string  $audioContent  Contenido binario del audio (ogg/opus).
      * @return array<string, mixed>
      */
     public function sendVoice(string $sessionId, string $chatId, string $audioContent): array
     {
         // Guardar temporalmente en storage público para que OpenWA lo descargue.
-        $filename  = 'voice_' . uniqid() . '.ogg';
-        $storagePath = 'salesbot/' . $filename;
+        $filename = 'voice_'.uniqid().'.ogg';
+        $storagePath = 'salesbot/'.$filename;
 
-        \Illuminate\Support\Facades\Storage::disk('public')->put($storagePath, $audioContent);
+        Storage::disk('public')->put($storagePath, $audioContent);
 
         try {
             // URL accesible por OpenWA (mismo servidor).
-            $publicUrl = \Illuminate\Support\Facades\Storage::disk('public')->url($storagePath);
+            $publicUrl = Storage::disk('public')->url($storagePath);
 
             // Si la URL es relativa, convertirla en absoluta con la URL de la app.
             if (! str_starts_with($publicUrl, 'http')) {
-                $publicUrl = rtrim((string) config('app.url'), '/') . $publicUrl;
+                $publicUrl = rtrim((string) config('app.url'), '/').$publicUrl;
             }
 
-            $response = $this->request('post', '/api/sessions/' . $sessionId . '/messages/send-audio', [
+            $response = $this->request('post', '/api/sessions/'.$sessionId.'/messages/send-audio', [
                 'chatId' => $chatId,
-                'url'    => $publicUrl,
+                'url' => $publicUrl,
             ]);
         } finally {
             // Borrar el archivo temporal siempre, haya éxito o error.
-            \Illuminate\Support\Facades\Storage::disk('public')->delete($storagePath);
+            Storage::disk('public')->delete($storagePath);
         }
 
         return is_array($response) ? $response : [];
@@ -217,7 +245,7 @@ final class OpenWaClient
      * OpenWA incluye en el payload del webhook el campo `mediaUrl` o `body`
      * con la URL del archivo. Este método lo descarga y devuelve el contenido.
      *
-     * @return string  Contenido binario del archivo.
+     * @return string Contenido binario del archivo.
      */
     public function downloadMedia(string $mediaUrl): string
     {
@@ -225,8 +253,8 @@ final class OpenWaClient
 
         // Si la URL es relativa al servidor OpenWA, le anteponemos la base.
         if (! str_starts_with($mediaUrl, 'http')) {
-            $base     = rtrim((string) config('openwa.api_url'), '/');
-            $mediaUrl = $base . '/' . ltrim($mediaUrl, '/');
+            $base = rtrim((string) config('openwa.api_url'), '/');
+            $mediaUrl = $base.'/'.ltrim($mediaUrl, '/');
         }
 
         try {
@@ -234,11 +262,11 @@ final class OpenWaClient
                 ->withHeaders($apiKey !== '' ? ['X-API-Key' => $apiKey] : [])
                 ->get($mediaUrl);
         } catch (\Throwable $e) {
-            throw new RuntimeException('Error al descargar media de OpenWA: ' . $e->getMessage(), 0, $e);
+            throw new RuntimeException('Error al descargar media de OpenWA: '.$e->getMessage(), 0, $e);
         }
 
         if (! $response->successful()) {
-            throw new RuntimeException('OpenWA devolvió HTTP ' . $response->status() . ' al descargar el audio.');
+            throw new RuntimeException('OpenWA devolvió HTTP '.$response->status().' al descargar el audio.');
         }
 
         return (string) $response->body();

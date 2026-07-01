@@ -12,6 +12,7 @@ final class TenantWhatsAppSessionSync
 {
     public function __construct(
         private readonly OpenWaClient $client,
+        private readonly TenantWhatsAppWebhookRegistrar $webhookRegistrar,
     ) {}
 
     public function ensureForTenant(Tenant $tenant): ?TenantWhatsAppSession
@@ -81,7 +82,13 @@ final class TenantWhatsAppSessionSync
             'last_error' => null,
         ])->save();
 
-        return $session->fresh();
+        $session = $session->fresh();
+
+        if ($session->isReady()) {
+            $this->webhookRegistrar->ensureForSession($session);
+        }
+
+        return $session;
     }
 
     public function disconnect(TenantWhatsAppSession $session): TenantWhatsAppSession

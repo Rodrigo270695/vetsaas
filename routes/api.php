@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\ClinicBotWebhookController;
 use App\Http\Controllers\Api\Internal\SaasProvisionController;
 use App\Http\Controllers\Api\SalesBotWebhookController;
 use App\Http\Middleware\VerifyOrvaeProvisionSignature;
@@ -26,6 +27,20 @@ use Illuminate\Support\Facades\Route;
 */
 Route::post('webhooks/sales-bot', [SalesBotWebhookController::class, 'handle'])
     ->name('api.webhooks.sales-bot');
+
+/*
+|--------------------------------------------------------------------------
+| Asistente IA de clínica — webhook OpenWA (sesiones tenant)
+|--------------------------------------------------------------------------
+|
+| POST /api/webhooks/clinic-bot
+|
+| Misma URL para todas las clínicas; el tenant se resuelve por sessionId.
+| Header: X-Webhook-Secret = BOT_IA_WEBHOOK_SECRET
+|
+*/
+Route::post('webhooks/clinic-bot', [ClinicBotWebhookController::class, 'handle'])
+    ->name('api.webhooks.clinic-bot');
 
 /*
 | TODO — Rutas futuras por producto (Opción A):
