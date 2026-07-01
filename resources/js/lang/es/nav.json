@@ -55,7 +55,7 @@
         "bloqueos": "Bloqueos",
         "tarifas": "Tarifas",
         "usuarios": "Usuarios",
-        "logs": "Logs",
+        "logs": "Registro de actividad",
         "login_attempts": "Intentos de acceso",
         "api_logs": "Logs API",
         "tokens": "Tokens",

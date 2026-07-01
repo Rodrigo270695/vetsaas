@@ -20,14 +20,12 @@ import {
     FileBarChart,
     FileText,
     FileX,
-    Fingerprint,
     FlaskConical,
     Folder,
     Hash,
     Headset,
     History,
     Home,
-    Key,
     LayoutGrid,
     LineChart,
     MessageCircle,
@@ -56,7 +54,6 @@ import {
     UserCog,
     Users,
     Wallet,
-    Webhook,
 } from 'lucide-react';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -416,24 +413,6 @@ function useNavConfig(): { singles: NavItem[]; groups: NavGroup[] } {
                             href: '/auditoria/logs',
                             icon: ScrollText,
                             permission: 'auditoria-logs.view',
-                        },
-                        {
-                            title: t('items.login_attempts'),
-                            href: '/auditoria/login-attempts',
-                            icon: Fingerprint,
-                            permission: 'auditoria-login-attempts.view',
-                        },
-                        {
-                            title: t('items.api_logs'),
-                            href: '/auditoria/api-logs',
-                            icon: Webhook,
-                            permission: 'auditoria-api-logs.view',
-                        },
-                        {
-                            title: t('items.tokens'),
-                            href: '/auditoria/tokens',
-                            icon: Key,
-                            permission: 'auditoria-tokens.view',
                         },
                     ],
                 },

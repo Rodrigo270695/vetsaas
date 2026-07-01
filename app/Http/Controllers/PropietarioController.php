@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Exports\PropietariosXlsxExport;
+use App\Http\Controllers\Concerns\LogsAuditExports;
 use App\Http\Requests\PropietarioRequest;
 use App\Models\Departamento;
 use App\Models\Distrito;
@@ -23,6 +24,8 @@ use Throwable;
 
 class PropietarioController extends Controller
 {
+    use LogsAuditExports;
+
     private const PER_PAGE_OPTIONS = [10, 15, 20, 25, 50, 100];
 
     private const SORTABLE_COLUMNS = [
@@ -319,6 +322,8 @@ class PropietarioController extends Controller
 
         $filename = 'propietarios-'.now()->format('Ymd-His').'.xlsx';
         $exporter = new PropietariosXlsxExport;
+
+        $this->auditExport('propietarios', $filename);
 
         return response()->streamDownload(
             function () use ($exporter, $query) {

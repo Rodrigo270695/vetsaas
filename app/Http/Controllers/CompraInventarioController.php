@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Exports\ComprasInventarioXlsxExport;
+use App\Http\Controllers\Concerns\LogsAuditExports;
 use App\Http\Requests\CompraInventarioStoreRequest;
 use App\Models\Compra;
 use App\Models\CompraLinea;
@@ -26,6 +27,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class CompraInventarioController extends Controller
 {
+    use LogsAuditExports;
+
     private const PER_PAGE_OPTIONS = [10, 15, 20, 25, 50, 100];
 
     private const SORTABLE_COLUMNS = ['fecha_documento', 'created_at', 'numero_documento'];
@@ -141,6 +144,8 @@ class CompraInventarioController extends Controller
 
         $filename = 'compras-inventario-'.now()->format('Ymd-His').'.xlsx';
         $exporter = new ComprasInventarioXlsxExport;
+
+        $this->auditExport('compras', $filename);
 
         return response()->streamDownload(
             function () use ($exporter, $query): void {

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Exports\PacientesXlsxExport;
+use App\Http\Controllers\Concerns\LogsAuditExports;
 use App\Http\Controllers\Concerns\ResolvesClinicPdfBranding;
 use App\Http\Requests\PacienteRequest;
 use App\Models\Cirugia;
@@ -31,6 +32,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PacienteController extends Controller
 {
+    use LogsAuditExports;
     use ResolvesClinicPdfBranding;
     private const PER_PAGE_OPTIONS = [10, 15, 20, 25, 50, 100];
 
@@ -300,6 +302,8 @@ class PacienteController extends Controller
         $slug = Str::slug($paciente->nombre) ?: 'paciente';
         $filename = 'historial-clinico-'.$slug.'.pdf';
 
+        $this->auditDownload('pacientes', (string) $paciente->getKey(), $paciente->nombre, $filename);
+
         return $this->respondClinicPdf($request, $pdf, $filename);
     }
 
@@ -421,6 +425,8 @@ class PacienteController extends Controller
 
         $filename = 'pacientes-'.now()->format('Ymd-His').'.xlsx';
         $exporter = new PacientesXlsxExport;
+
+        $this->auditExport('pacientes', $filename);
 
         return response()->streamDownload(
             function () use ($exporter, $query) {

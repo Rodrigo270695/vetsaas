@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AlertaStockInventarioController;
+use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\Auth\ChangePasswordController;
 use App\Http\Controllers\CajaSesionController;
 use App\Http\Controllers\CategoriaInventarioController;
@@ -855,7 +856,12 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
 
     // ===== Auditoría =====
     Route::prefix('auditoria')->name('auditoria.')->group(function () {
-        Route::inertia('logs', 'auditoria/logs/index')->name('logs');
+        Route::middleware(['permission:auditoria-logs.view', 'tenant.module:auditoria_logs'])
+            ->get('logs', [AuditLogController::class, 'index'])
+            ->name('logs');
+        Route::middleware(['permission:auditoria-logs.export', 'tenant.module:auditoria_logs'])
+            ->get('logs/export', [AuditLogController::class, 'export'])
+            ->name('logs.export');
         Route::inertia('login-attempts', 'auditoria/login-attempts/index')->name('login-attempts');
         Route::inertia('api-logs', 'auditoria/api-logs/index')->name('api-logs');
         Route::inertia('tokens', 'auditoria/tokens/index')->name('tokens');

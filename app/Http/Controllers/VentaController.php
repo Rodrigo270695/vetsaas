@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Exports\VentasXlsxExport;
+use App\Http\Controllers\Concerns\LogsAuditExports;
 use App\Grooming\GroomingCatalogoMode;
 use App\Http\Requests\AnularVentaRequest;
 use App\Http\Requests\PropietarioRequest;
@@ -50,6 +51,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class VentaController extends Controller
 {
+    use LogsAuditExports;
+
     private const PER_PAGE_OPTIONS = [10, 15, 20, 25, 50, 100];
 
     private const SORTABLE_COLUMNS = [
@@ -149,6 +152,8 @@ class VentaController extends Controller
 
         $filename = 'ventas-caja-'.now()->format('Ymd-His').'.xlsx';
         $exporter = new VentasXlsxExport;
+
+        $this->auditExport('ventas', $filename);
 
         return response()->streamDownload(
             function () use ($exporter, $query): void {

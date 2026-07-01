@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Exports\MovimientosInventarioXlsxExport;
+use App\Http\Controllers\Concerns\LogsAuditExports;
 use App\Http\Requests\MovimientoInventarioStoreRequest;
 use App\Models\MovimientoInventario;
 use App\Models\Producto;
@@ -19,6 +20,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class MovimientoInventarioController extends Controller
 {
+    use LogsAuditExports;
+
     private const PER_PAGE_OPTIONS = [10, 15, 20, 25, 50, 100];
 
     private const SORTABLE_COLUMNS = [
@@ -130,6 +133,8 @@ class MovimientoInventarioController extends Controller
 
         $filename = 'movimientos-inventario-'.now()->format('Ymd-His').'.xlsx';
         $exporter = new MovimientosInventarioXlsxExport();
+
+        $this->auditExport('movimientos_stock', $filename);
 
         return response()->streamDownload(
             function () use ($exporter, $query): void {

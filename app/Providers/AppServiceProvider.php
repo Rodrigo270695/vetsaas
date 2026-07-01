@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\User;
+use App\Observers\AuditModelObserver;
 use App\Support\Subscriptions\BotIaAccess;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
@@ -30,6 +31,21 @@ class AppServiceProvider extends ServiceProvider
         $this->configureDefaults();
         $this->configureHistoriasClinicasPlanesPermissionAliases();
         $this->configureBotIaPermissionAliases();
+        $this->registerAuditModelObservers();
+    }
+
+  /**
+   * Registra observadores de auditoría para modelos tenant configurados.
+   */
+    protected function registerAuditModelObservers(): void
+    {
+        $observer = AuditModelObserver::class;
+
+        foreach (array_keys(config('audit.observed_models', [])) as $modelClass) {
+            if (is_string($modelClass) && class_exists($modelClass)) {
+                $modelClass::observe($observer);
+            }
+        }
     }
 
     /**

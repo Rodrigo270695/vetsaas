@@ -1,0 +1,68 @@
+{
+    "title": "Activity log",
+    "description": "Who created, updated, deleted or exported clinic data.",
+    "search_placeholder": "Search by user, record or IP...",
+    "filter_accion": "Action",
+    "filter_modulo": "Module",
+    "filter_desde": "From",
+    "filter_hasta": "To",
+    "columns": {
+        "created_at": "Date",
+        "usuario": "User",
+        "accion": "Action",
+        "modulo": "Module",
+        "registro": "Record",
+        "ip": "IP",
+        "cambios": "Changes"
+    },
+    "acciones": {
+        "todos": "All",
+        "created": "Created",
+        "updated": "Updated",
+        "deleted": "Deleted",
+        "exported": "Exported",
+        "downloaded": "Downloaded"
+    },
+    "modulos": {
+        "todos": "All",
+        "pacientes": "Patients",
+        "propietarios": "Owners",
+        "citas": "Appointments",
+        "historias_clinicas": "Medical records",
+        "vacunaciones": "Vaccinations",
+        "recetas": "Prescriptions",
+        "laboratorio": "Laboratory",
+        "cirugias": "Surgeries",
+        "hospitalizacion": "Hospitalization",
+        "grooming": "Grooming",
+        "hotel": "Boarding",
+        "productos": "Products",
+        "categorias_inventario": "Inventory categories",
+        "movimientos_stock": "Stock movements",
+        "compras": "Purchases",
+        "proveedores": "Suppliers",
+        "ventas": "Sales",
+        "sedes": "Branches",
+        "auditoria_logs": "Activity log"
+    },
+    "stats": {
+        "total": "Total",
+        "hoy": "Today",
+        "creaciones": "Created",
+        "ediciones": "Updated",
+        "eliminaciones": "Deleted",
+        "exportaciones": "Exports / downloads",
+        "matches": "Matches"
+    },
+    "cambios_count": "{{count}} field(s)",
+    "empty": {
+        "title": "No activity yet",
+        "description": "When someone creates, updates, deletes or exports data in the clinic, it will appear here."
+    },
+    "aria": {
+        "results_count": "{{count}} records found"
+    },
+    "toast": {
+        "load_error": "Failed to load activity log"
+    }
+}

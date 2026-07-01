@@ -1,0 +1,68 @@
+{
+    "title": "Registro de actividad",
+    "description": "Quién creó, editó, eliminó o exportó datos en la clínica.",
+    "search_placeholder": "Buscar por usuario, registro o IP...",
+    "filter_accion": "Acción",
+    "filter_modulo": "Módulo",
+    "filter_desde": "Desde",
+    "filter_hasta": "Hasta",
+    "columns": {
+        "created_at": "Fecha",
+        "usuario": "Usuario",
+        "accion": "Acción",
+        "modulo": "Módulo",
+        "registro": "Registro",
+        "ip": "IP",
+        "cambios": "Cambios"
+    },
+    "acciones": {
+        "todos": "Todas",
+        "created": "Creación",
+        "updated": "Edición",
+        "deleted": "Eliminación",
+        "exported": "Exportación",
+        "downloaded": "Descarga"
+    },
+    "modulos": {
+        "todos": "Todos",
+        "pacientes": "Pacientes",
+        "propietarios": "Propietarios",
+        "citas": "Citas",
+        "historias_clinicas": "Historias clínicas",
+        "vacunaciones": "Vacunaciones",
+        "recetas": "Recetas",
+        "laboratorio": "Laboratorio",
+        "cirugias": "Cirugías",
+        "hospitalizacion": "Hospitalización",
+        "grooming": "Grooming",
+        "hotel": "Hotel",
+        "productos": "Productos",
+        "categorias_inventario": "Categorías inventario",
+        "movimientos_stock": "Movimientos stock",
+        "compras": "Compras",
+        "proveedores": "Proveedores",
+        "ventas": "Ventas",
+        "sedes": "Sedes",
+        "auditoria_logs": "Registro de actividad"
+    },
+    "stats": {
+        "total": "Total",
+        "hoy": "Hoy",
+        "creaciones": "Creaciones",
+        "ediciones": "Ediciones",
+        "eliminaciones": "Eliminaciones",
+        "exportaciones": "Exportaciones / descargas",
+        "matches": "Coincidencias"
+    },
+    "cambios_count": "{{count}} campo(s)",
+    "empty": {
+        "title": "Sin actividad registrada",
+        "description": "Cuando alguien cree, edite, elimine o exporte datos en la clínica, aparecerá aquí."
+    },
+    "aria": {
+        "results_count": "{{count}} registros encontrados"
+    },
+    "toast": {
+        "load_error": "Error al cargar el registro de actividad"
+    }
+}

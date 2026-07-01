@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Exports\CitasXlsxExport;
+use App\Http\Controllers\Concerns\LogsAuditExports;
 use App\Http\Requests\StoreCitaRequest;
 use App\Http\Requests\UpdateCitaRequest;
 use App\Models\Cita;
@@ -22,6 +23,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class CitaController extends Controller
 {
+    use LogsAuditExports;
+
     private const PER_PAGE_OPTIONS = [10, 15, 20, 25, 50, 100];
 
     private const SORTABLE_COLUMNS = [
@@ -261,6 +264,8 @@ class CitaController extends Controller
 
         $filename = 'citas-'.now()->format('Ymd-His').'.xlsx';
         $exporter = new CitasXlsxExport;
+
+        $this->auditExport('citas', $filename);
 
         return response()->streamDownload(
             function () use ($exporter, $query): void {
