@@ -14,5 +14,6 @@
         "knowledge_description": "Soon you will be able to add FAQs, hours, and policies so the bot can reply automatically.",
         "knowledge_coming": "Coming soon"
     },
-    "whatsapp_hint": "Use the clinic WhatsApp number. It must be connected for the assistant to reply."
+    "whatsapp_hint": "The assistant uses the same WhatsApp you link in Outgoing queue.",
+    "whatsapp_manage": "Manage in Outgoing queue"
 }

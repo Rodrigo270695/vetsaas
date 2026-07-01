@@ -47,8 +47,8 @@
         "retry_confirm": "Retry sending?"
     },
     "whatsapp": {
-        "title": "Clinic WhatsApp",
-        "description": "Link the phone number used for automatic reminders.",
+        "title": "WhatsApp sync",
+        "description": "One number for reminders, outgoing queue, and AI assistant.",
         "disabled": "WhatsApp gateway is not enabled on the server. Contact support.",
         "status_ready": "Connected",
         "status_pending": "Awaiting link",
@@ -59,7 +59,7 @@
         "sync": "Sync status",
         "disconnect": "Disconnect",
         "disconnect_title": "Unlink WhatsApp",
-        "disconnect_description": "Automatic reminders will stop until you connect a number again.",
+        "disconnect_description": "Reminders, the outgoing queue, and the AI assistant will stop using WhatsApp until you connect a number again.",
         "test_send": "Send test",
         "test_title": "Test message",
         "test_description": "Send a test WhatsApp to verify your clinic can deliver reminders.",

@@ -14,5 +14,6 @@
         "knowledge_description": "Próximamente podrás cargar preguntas frecuentes, horarios y políticas para que el bot responda automáticamente.",
         "knowledge_coming": "En desarrollo"
     },
-    "whatsapp_hint": "Usa el mismo WhatsApp de la clínica. Debe estar conectado para que el asistente pueda responder."
+    "whatsapp_hint": "El asistente usa el mismo WhatsApp que vinculas en Cola saliente.",
+    "whatsapp_manage": "Gestionar en Cola saliente"
 }

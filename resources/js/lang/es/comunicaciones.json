@@ -47,8 +47,8 @@
         "retry_confirm": "¿Reintentar el envío?"
     },
     "whatsapp": {
-        "title": "WhatsApp de la clínica",
-        "description": "Vincula el número desde el que salen los recordatorios automáticos.",
+        "title": "Sinc. WhatsApp",
+        "description": "Un solo número para recordatorios, cola saliente y asistente IA.",
         "disabled": "El gateway WhatsApp no está activo en el servidor. Contacta a soporte.",
         "status_ready": "Conectado",
         "status_pending": "Pendiente de vincular",
@@ -59,7 +59,7 @@
         "sync": "Sincronizar estado",
         "disconnect": "Cerrar sesión",
         "disconnect_title": "Desvincular WhatsApp",
-        "disconnect_description": "Los recordatorios automáticos dejarán de enviarse hasta que vuelvas a conectar un número.",
+        "disconnect_description": "Los recordatorios, la cola saliente y el asistente IA dejarán de usar WhatsApp hasta que vuelvas a conectar un número.",
         "test_send": "Enviar prueba",
         "test_title": "Mensaje de prueba",
         "test_description": "Envía un WhatsApp de prueba para verificar que la clínica puede mandar recordatorios.",

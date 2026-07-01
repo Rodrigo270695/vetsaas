@@ -1,12 +1,12 @@
 import { Head, Link } from '@inertiajs/react';
-import { BookOpen, Bot, Lock } from 'lucide-react';
+import { BookOpen, Bot, Lock, MessageCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { PageHeader, StatBadge } from '@/components/data-page';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import AppLayout from '@/layouts/app-layout';
-import { WhatsAppConnectCard, type WhatsAppProps } from '../components/whatsapp-connect-card';
+import { type WhatsAppProps } from '../components/whatsapp-connect-card';
 
 type BotIaPayload = {
     activo: boolean;
@@ -37,11 +37,11 @@ const formatPrice = (value: string): string => {
     return num.toFixed(2);
 };
 
-export default function Index({ bot_ia, whatsapp, can_manage }: BotIaPageProps) {
-    const { t, i18n } = useTranslation(['bot-ia', 'nav']);
+export default function Index({ bot_ia, whatsapp }: BotIaPageProps) {
+    const { t, i18n } = useTranslation(['bot-ia', 'nav', 'comunicaciones']);
     const locale = i18n.language;
     const isActive = bot_ia.activo === true;
-    const canManageWhatsapp = can_manage;
+    const isWhatsappReady = whatsapp.session?.is_ready === true;
 
     return (
         <>
@@ -116,12 +116,53 @@ export default function Index({ bot_ia, whatsapp, can_manage }: BotIaPageProps) 
                             )}
                         </Card>
 
-                        <p className="text-sm text-muted-foreground">{t('whatsapp_hint')}</p>
-
-                        <WhatsAppConnectCard
-                            whatsapp={whatsapp}
-                            canManage={canManageWhatsapp}
-                        />
+                        <Card>
+                            <CardHeader className="pb-3">
+                                <div className="flex flex-wrap items-start justify-between gap-3">
+                                    <div>
+                                        <CardTitle className="flex items-center gap-2 text-base">
+                                            <MessageCircle className="size-5 text-emerald-600" />
+                                            {t('comunicaciones:whatsapp.title')}
+                                        </CardTitle>
+                                        <CardDescription className="mt-1">
+                                            {t('whatsapp_hint')}
+                                        </CardDescription>
+                                    </div>
+                                    <StatBadge
+                                        label={
+                                            isWhatsappReady
+                                                ? t('comunicaciones:whatsapp.status_ready')
+                                                : whatsapp.session?.last_error
+                                                  ? t('comunicaciones:whatsapp.status_error')
+                                                  : t('comunicaciones:whatsapp.status_pending')
+                                        }
+                                        value=""
+                                        variant={
+                                            isWhatsappReady
+                                                ? 'success'
+                                                : whatsapp.session?.last_error
+                                                  ? 'danger'
+                                                  : 'warning'
+                                        }
+                                    />
+                                </div>
+                            </CardHeader>
+                            <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-0">
+                                {isWhatsappReady && whatsapp.session?.phone ? (
+                                    <p className="text-sm text-muted-foreground">
+                                        {t('comunicaciones:whatsapp.phone')}:{' '}
+                                        <span className="font-medium text-foreground">
+                                            {whatsapp.session.phone}
+                                        </span>
+                                    </p>
+                                ) : (
+                                    <span />
+                                )}
+                                <Button asChild variant="outline" size="sm" className="shrink-0">
+                                    <Link href="/comunicaciones/cola">{t('whatsapp_manage')}</Link>
+                                </Button>
+                            </CardContent>
+                        </Card>
 
                         <Card className="border-dashed">
                             <CardHeader>
