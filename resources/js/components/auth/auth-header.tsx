@@ -1,11 +1,12 @@
 import { Link } from '@inertiajs/react';
 import { ArrowUpRight } from 'lucide-react';
-import AppLogoIcon from '@/components/app-logo-icon';
+import { ClinicLogoMark } from '@/components/clinic-logo-mark';
 import ThemeToggle from '@/components/theme-toggle';
 import { home } from '@/routes';
 
 type AuthHeaderProps = {
     brandName: string;
+    logoUrl?: string | null;
     /** Email de contacto comercial. Si se omite, se oculta el CTA. */
     contactEmail?: string;
     contactLabel?: string;
@@ -16,6 +17,7 @@ type AuthHeaderProps = {
  */
 export default function AuthHeader({
     brandName,
+    logoUrl,
     contactEmail = 'contacto@vetsaas.pe',
     contactLabel = '¿Sin cuenta? Hablemos',
 }: AuthHeaderProps) {
@@ -25,9 +27,12 @@ export default function AuthHeader({
                 href={home()}
                 className="inline-flex items-center gap-2.5 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
-                <span className="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm shadow-brand-700/20">
-                    <AppLogoIcon className="size-5" />
-                </span>
+                <ClinicLogoMark
+                    logoUrl={logoUrl}
+                    className="size-9 rounded-xl"
+                    iconClassName="size-5"
+                    fallbackClassName="size-9 rounded-xl bg-primary text-primary-foreground shadow-sm shadow-brand-700/20"
+                />
                 <span className="text-base font-semibold tracking-tight text-foreground">
                     {brandName}
                 </span>

@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\ClinicSetting;
 use App\Models\User;
 use App\Support\Plan\PlanLimits;
 use App\Support\Subscriptions\BotIaAccess;
@@ -92,6 +93,7 @@ class HandleInertiaRequests extends Middleware
             'razon_social' => $tenantContext->razonSocial(),
             'nombre_comercial' => $tenantContext->nombreComercial(),
             'estado' => $tenantContext->estado(),
+            'logo_url' => $this->resolveClinicLogoUrl(),
         ];
 
         // Un solo guard `web` para todos los usuarios (single-login).
@@ -267,5 +269,16 @@ class HandleInertiaRequests extends Middleware
         );
 
         @file_put_contents(storage_path('logs/laravel.log'), $line, FILE_APPEND | LOCK_EX);
+    }
+
+    private function resolveClinicLogoUrl(): ?string
+    {
+        try {
+            return ClinicSetting::current()->logo_url;
+        } catch (Throwable $e) {
+            report($e);
+
+            return null;
+        }
     }
 }
