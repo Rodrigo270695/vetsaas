@@ -532,10 +532,25 @@ export default function AuditoriaLogsIndex({
                     }
                     footer={
                         <DataPagination
-                            paginated={logs}
-                            perPage={filters.per_page}
+                            meta={logs}
                             onPerPageChange={setPerPage}
                             perPageOptions={perPageOptions}
+                            preservedQuery={{
+                                search: filters.search || undefined,
+                                per_page: filters.per_page,
+                                sort: filters.sort ?? undefined,
+                                direction: filters.direction ?? undefined,
+                                accion:
+                                    filters.accion !== 'todos'
+                                        ? filters.accion
+                                        : undefined,
+                                modulo:
+                                    filters.modulo !== 'todos'
+                                        ? filters.modulo
+                                        : undefined,
+                                desde: filters.desde || undefined,
+                                hasta: filters.hasta || undefined,
+                            }}
                         />
                     }
                 />
