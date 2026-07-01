@@ -164,6 +164,10 @@
         "back": "Back to tenants",
         "hint": "Uncheck a module to hide it on the tenant subdomain. Existing data is kept; only menu items, KPIs and related checkout flows are hidden.",
         "toggle_group": "Whole group",
+        "hidden_count": "{{count}} hidden",
+        "all_visible": "All modules visible for this clinic.",
+        "disabled_summary": "{{count}} module(s) hidden on the subdomain.",
+        "unsaved": "Unsaved changes",
         "saved": "Modules updated for this tenant."
     }
 }

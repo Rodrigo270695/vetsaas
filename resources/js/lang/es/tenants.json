@@ -164,6 +164,10 @@
         "back": "Volver a tenants",
         "hint": "Desmarca un módulo para ocultarlo en el subdominio del tenant. Los datos existentes no se borran; solo deja de mostrarse en menú, KPIs y cobros relacionados.",
         "toggle_group": "Todo el grupo",
+        "hidden_count": "{{count}} oculto(s)",
+        "all_visible": "Todos los módulos visibles para esta clínica.",
+        "disabled_summary": "{{count}} módulo(s) oculto(s) en el subdominio.",
+        "unsaved": "Cambios sin guardar",
         "saved": "Módulos actualizados para este tenant."
     }
 }

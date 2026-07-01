@@ -6,8 +6,9 @@ import { PageHeader } from '@/components/data-page';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import AppLayout from '@/layouts/app-layout';
 import { navLabelKeyForModule } from '@/config/tenant-module-labels';
+import AppLayout from '@/layouts/app-layout';
+import { cn } from '@/lib/utils';
 import tenants from '@/routes/plataforma/tenants';
 import type { TenantModuleGroup } from '@/types/tenant-modules';
 
@@ -44,6 +45,15 @@ export default function TenantModulos({ tenant, module_groups }: TenantModulosPr
 
     const tenantLabel = tenant.nombre_comercial?.trim() || tenant.razon_social;
 
+    const disabledCount = useMemo(
+        () => Object.values(enabled).filter((isOn) => !isOn).length,
+        [enabled],
+    );
+
+    const hasChanges = useMemo(() => {
+        return Object.entries(initialEnabled).some(([key, value]) => enabled[key] !== value);
+    }, [enabled, initialEnabled]);
+
     const toggleModule = (key: string, checked: boolean) => {
         setEnabled((prev) => ({ ...prev, [key]: checked }));
     };
@@ -74,98 +84,138 @@ export default function TenantModulos({ tenant, module_groups }: TenantModulosPr
         <>
             <Head title={t('tenants:modules.page_title', { name: tenantLabel })} />
 
-            <div className="flex flex-col gap-6 p-4 md:p-6">
+            <div className="flex flex-col gap-4 p-4 pb-28 md:p-6 md:pb-28">
                 <PageHeader
                     title={t('tenants:modules.page_title', { name: tenantLabel })}
                     description={t('tenants:modules.page_description')}
-                    actions={
-                        <div className="flex flex-wrap items-center gap-2">
-                            <Button variant="outline" className="cursor-pointer gap-2" asChild>
-                                <Link href={tenants.index().url}>
-                                    <ArrowLeft className="size-4" />
-                                    {t('tenants:modules.back')}
-                                </Link>
-                            </Button>
-                            <Button
-                                type="button"
-                                className="cursor-pointer gap-2"
-                                disabled={processing}
-                                onClick={handleSave}
-                            >
-                                <Save className="size-4" />
-                                {t('common:actions.save')}
-                            </Button>
-                        </div>
+                    action={
+                        <Button variant="outline" size="sm" className="cursor-pointer gap-2" asChild>
+                            <Link href={tenants.index().url}>
+                                <ArrowLeft className="size-4" />
+                                <span className="hidden sm:inline">{t('tenants:modules.back')}</span>
+                            </Link>
+                        </Button>
                     }
                 />
 
-                <div className="rounded-xl border border-border/70 bg-card p-4 shadow-sm md:p-6">
-                    <div className="mb-6 flex items-start gap-3 text-sm text-muted-foreground">
-                        <LayoutGrid className="mt-0.5 size-4 shrink-0 text-primary" />
-                        <p>{t('tenants:modules.hint')}</p>
-                    </div>
+                <div className="flex items-start gap-2 rounded-lg border border-border/60 bg-muted/30 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
+                    <LayoutGrid className="mt-0.5 size-3.5 shrink-0 text-primary" />
+                    <p>{t('tenants:modules.hint')}</p>
+                </div>
 
-                    <div className="grid gap-6 lg:grid-cols-2">
-                        {module_groups.map((group) => {
-                            const groupKeys = group.modules.map((m) => m.key);
-                            const allOn = groupKeys.every((key) => enabled[key] !== false);
-                            const someOn = groupKeys.some((key) => enabled[key] !== false);
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                    {module_groups.map((group) => {
+                        const groupKeys = group.modules.map((m) => m.key);
+                        const allOn = groupKeys.every((key) => enabled[key] !== false);
+                        const someOn = groupKeys.some((key) => enabled[key] !== false);
+                        const groupOff = groupKeys.filter((key) => enabled[key] === false).length;
 
-                            return (
-                                <section
-                                    key={group.group}
-                                    className="rounded-lg border border-border/60 bg-muted/20 p-4"
-                                >
-                                    <div className="mb-4 flex items-center justify-between gap-3 border-b border-border/50 pb-3">
-                                        <h2 className="text-sm font-semibold tracking-tight">
+                        return (
+                            <section
+                                key={group.group}
+                                className="rounded-lg border border-border/60 bg-card shadow-sm"
+                            >
+                                <div className="flex items-center justify-between gap-2 border-b border-border/50 px-3 py-2">
+                                    <div className="min-w-0">
+                                        <h2 className="truncate text-sm font-semibold">
                                             {t(`nav:groups.${group.group}`)}
                                         </h2>
-                                        <div className="flex items-center gap-2">
-                                            <Checkbox
-                                                id={`group-${group.group}`}
-                                                checked={allOn ? true : someOn ? 'indeterminate' : false}
-                                                onCheckedChange={(value) =>
-                                                    toggleGroup(group, value === true)
-                                                }
-                                                className="cursor-pointer"
-                                            />
-                                            <Label
-                                                htmlFor={`group-${group.group}`}
-                                                className="cursor-pointer text-xs text-muted-foreground"
-                                            >
-                                                {t('tenants:modules.toggle_group')}
-                                            </Label>
-                                        </div>
+                                        {groupOff > 0 ? (
+                                            <p className="text-[11px] text-muted-foreground">
+                                                {t('tenants:modules.hidden_count', { count: groupOff })}
+                                            </p>
+                                        ) : null}
                                     </div>
+                                    <div className="flex shrink-0 items-center gap-1.5">
+                                        <Checkbox
+                                            id={`group-${group.group}`}
+                                            checked={allOn ? true : someOn ? 'indeterminate' : false}
+                                            onCheckedChange={(value) =>
+                                                toggleGroup(group, value === true)
+                                            }
+                                            className="cursor-pointer"
+                                        />
+                                        <Label
+                                            htmlFor={`group-${group.group}`}
+                                            className="cursor-pointer text-[11px] text-muted-foreground"
+                                        >
+                                            {t('tenants:modules.toggle_group')}
+                                        </Label>
+                                    </div>
+                                </div>
 
-                                    <ul className="space-y-2">
-                                        {group.modules.map((mod) => (
-                                            <li
-                                                key={mod.key}
-                                                className="flex items-center gap-3 rounded-md px-2 py-1.5 hover:bg-background/80"
-                                            >
-                                                <Checkbox
-                                                    id={`mod-${mod.key}`}
-                                                    checked={enabled[mod.key] !== false}
-                                                    onCheckedChange={(value) =>
-                                                        toggleModule(mod.key, value === true)
-                                                    }
-                                                    className="cursor-pointer"
-                                                />
-                                                <Label
+                                <ul className="grid grid-cols-1 gap-0.5 p-2 sm:grid-cols-2">
+                                    {group.modules.map((mod) => {
+                                        const isOn = enabled[mod.key] !== false;
+
+                                        return (
+                                            <li key={mod.key}>
+                                                <label
                                                     htmlFor={`mod-${mod.key}`}
-                                                    className="flex-1 cursor-pointer text-sm font-normal"
+                                                    className={cn(
+                                                        'flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-muted/60',
+                                                        !isOn && 'text-muted-foreground',
+                                                    )}
                                                 >
-                                                    {t(`nav:items.${navLabelKeyForModule(mod.key)}`, {
-                                                        defaultValue: mod.key,
-                                                    })}
-                                                </Label>
+                                                    <Checkbox
+                                                        id={`mod-${mod.key}`}
+                                                        checked={isOn}
+                                                        onCheckedChange={(value) =>
+                                                            toggleModule(mod.key, value === true)
+                                                        }
+                                                        className="cursor-pointer"
+                                                    />
+                                                    <span className="truncate leading-tight">
+                                                        {t(
+                                                            `nav:items.${navLabelKeyForModule(mod.key)}`,
+                                                            { defaultValue: mod.key },
+                                                        )}
+                                                    </span>
+                                                </label>
                                             </li>
-                                        ))}
-                                    </ul>
-                                </section>
-                            );
-                        })}
+                                        );
+                                    })}
+                                </ul>
+                            </section>
+                        );
+                    })}
+                </div>
+            </div>
+
+            <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border/70 bg-background/95 px-4 py-3 shadow-[0_-4px_24px_rgba(0,0,0,0.06)] backdrop-blur supports-backdrop-filter:bg-background/80 md:px-6">
+                <div className="mx-auto flex max-w-6xl items-center justify-between gap-3">
+                    <p className="hidden text-sm text-muted-foreground sm:block">
+                        {disabledCount === 0
+                            ? t('tenants:modules.all_visible')
+                            : t('tenants:modules.disabled_summary', { count: disabledCount })}
+                        {hasChanges ? (
+                            <span className="ml-2 font-medium text-amber-700 dark:text-amber-400">
+                                · {t('tenants:modules.unsaved')}
+                            </span>
+                        ) : null}
+                    </p>
+                    <div className="ml-auto flex w-full items-center justify-end gap-2 sm:w-auto">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="cursor-pointer gap-2 sm:hidden"
+                            asChild
+                        >
+                            <Link href={tenants.index().url}>
+                                <ArrowLeft className="size-4" />
+                                {t('tenants:modules.back')}
+                            </Link>
+                        </Button>
+                        <Button
+                            type="button"
+                            size="sm"
+                            className="cursor-pointer gap-2"
+                            disabled={processing || !hasChanges}
+                            onClick={handleSave}
+                        >
+                            <Save className="size-4" />
+                            {t('common:actions.save')}
+                        </Button>
                     </div>
                 </div>
             </div>
