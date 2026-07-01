@@ -945,7 +945,7 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:plataforma-suscripciones.cancel')
             ->post('suscripciones/{suscripcion}/cancel', [SubscriptionController::class, 'cancel'])
             ->name('suscripciones.cancel');
-        Route::middleware('permission:plataforma-suscripciones.toggle-bot-ia')
+        Route::middleware('permission:plataforma-suscripciones.update|plataforma-suscripciones.toggle-bot-ia')
             ->post('suscripciones/{suscripcion}/toggle-bot-ia', [SubscriptionController::class, 'toggleBotIa'])
             ->name('suscripciones.toggle-bot-ia');
         Route::middleware('permission:plataforma-suscripciones.update')

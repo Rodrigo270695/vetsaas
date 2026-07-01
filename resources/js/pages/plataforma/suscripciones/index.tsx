@@ -161,7 +161,8 @@ export default function Index({
     const canExtendTrial = can('plataforma-suscripciones.extend-trial');
     const canChangePlan = can('plataforma-suscripciones.change-plan');
     const canCancel = can('plataforma-suscripciones.cancel');
-    const canToggleBotIa = can('plataforma-suscripciones.toggle-bot-ia');
+    const canToggleBotIa =
+        can('plataforma-suscripciones.toggle-bot-ia') || canUpdate;
     const canViewRenewalPreview = can('plataforma-suscripciones.view');
     const canSendRenewalWhatsApp = canUpdate;
     const showRowActions =
