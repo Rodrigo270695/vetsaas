@@ -34,7 +34,7 @@ import { Button } from '@/components/ui/button';
 import { SubscriptionExpiryBadge } from '@/components/plataforma/subscription-expiry-badge';
 import { useDataTablePage } from '@/hooks/use-data-table-page';
 import { livingSubscription } from '@/lib/living-subscription';
-import { usePermission } from '@/hooks/use-permission';
+import { VETSAAS_DEFAULT_LOGO } from '@/lib/brand';
 import { useRowSelection } from '@/hooks/use-row-selection';
 import AppLayout from '@/layouts/app-layout';
 import tenants from '@/routes/plataforma/tenants';
@@ -367,7 +367,7 @@ export default function Index({
                 cell: (tenant) => (
                     <div className="flex items-center gap-2">
                         <img
-                            src={tenant.logo_url ?? '/logo.png'}
+                            src={tenant.logo_url || VETSAAS_DEFAULT_LOGO}
                             alt=""
                             className="size-8 shrink-0 rounded-full border border-border/60 bg-background object-contain p-0.5"
                         />

@@ -16,7 +16,6 @@ export default function AppLogo() {
                 key={branding?.updated_at ?? 'default'}
                 logoUrl={branding?.logo_url}
                 className="size-8 rounded-md"
-                fallbackClassName="size-8"
             />
             <div className="ml-1 grid flex-1 text-left text-sm">
                 <span className="mb-0.5 truncate leading-tight font-semibold tracking-tight">

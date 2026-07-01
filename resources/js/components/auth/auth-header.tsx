@@ -33,8 +33,6 @@ export default function AuthHeader({
                     key={logoKey ?? 'default'}
                     logoUrl={logoUrl}
                     className="size-9 rounded-xl"
-                    iconClassName="size-5"
-                    fallbackClassName="size-9 rounded-xl bg-primary text-primary-foreground shadow-sm shadow-brand-700/20"
                 />
                 <span className="text-base font-semibold tracking-tight text-foreground">
                     {brandName}

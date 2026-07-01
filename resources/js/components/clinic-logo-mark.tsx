@@ -1,44 +1,22 @@
-import AppLogoIcon from '@/components/app-logo-icon';
+import { VETSAAS_DEFAULT_LOGO } from '@/lib/brand';
 import { cn } from '@/lib/utils';
 
 type Props = {
     logoUrl?: string | null;
     className?: string;
-    iconClassName?: string;
-    fallbackClassName?: string;
 };
 
 /**
- * Logo de clínica si existe; si no, el icono VetSaaS por defecto.
+ * Logo de clínica o, si no hay, la imagen VetSaaS original (no máscara CSS).
  */
-export function ClinicLogoMark({
-    logoUrl,
-    className,
-    iconClassName = 'size-5',
-    fallbackClassName,
-}: Props) {
-    if (logoUrl) {
-        return (
-            <img
-                src={logoUrl}
-                alt=""
-                className={cn('shrink-0 object-contain', className)}
-            />
-        );
-    }
+export function ClinicLogoMark({ logoUrl, className }: Props) {
+    const src = logoUrl?.trim() || VETSAAS_DEFAULT_LOGO;
 
     return (
-        <div
-            className={cn(
-                'flex aspect-square shrink-0 items-center justify-center',
-                fallbackClassName ??
-                    cn(
-                        'rounded-md bg-sidebar-primary text-sidebar-primary-foreground',
-                        className ?? 'size-8',
-                    ),
-            )}
-        >
-            <AppLogoIcon className={iconClassName} />
-        </div>
+        <img
+            src={src}
+            alt=""
+            className={cn('shrink-0 object-contain', className)}
+        />
     );
 }
