@@ -15,7 +15,7 @@ return [
 
     'openai_api_key' => env('OPENAI_API_KEY', ''),
     'openai_model' => env('BOT_IA_OPENAI_MODEL', env('SALESBOT_OPENAI_MODEL', 'gpt-4o-mini')),
-    'max_tokens' => (int) env('BOT_IA_MAX_TOKENS', 350),
+    'max_tokens' => (int) env('BOT_IA_MAX_TOKENS', 500),
     'temperature' => (float) env('BOT_IA_TEMPERATURE', 0.5),
 
     /*

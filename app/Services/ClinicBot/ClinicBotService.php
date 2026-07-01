@@ -7,6 +7,7 @@ namespace App\Services\ClinicBot;
 use App\Models\ClinicBotConversation;
 use App\Models\ClinicBotKnowledge;
 use App\Models\ClinicSetting;
+use App\Support\ClinicBot\ClinicBotPeruClock;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
@@ -16,6 +17,13 @@ use RuntimeException;
  */
 final class ClinicBotService
 {
+    private const MAX_TOOL_ROUNDS = 5;
+
+    public function __construct(
+        private readonly ClinicBotCatalogService $catalog,
+        private readonly ClinicBotToolExecutor $toolExecutor,
+    ) {}
+
     public function findConversation(string $phone, ?string $waChatId = null): ?ClinicBotConversation
     {
         /** @var ClinicBotConversation|null */
@@ -103,36 +111,100 @@ final class ClinicBotService
             $conversation->getOpenAiMessages(),
         );
 
-        $response = Http::withHeaders([
-            'Authorization' => 'Bearer '.$apiKey,
-            'Content-Type' => 'application/json',
-        ])->timeout(30)->post('https://api.openai.com/v1/chat/completions', [
-            'model' => (string) config('bot-ia.openai_model', 'gpt-4o-mini'),
-            'messages' => $messages,
-            'max_tokens' => (int) config('bot-ia.max_tokens', 350),
-            'temperature' => (float) config('bot-ia.temperature', 0.5),
-        ]);
-
-        if (! $response->successful()) {
-            Log::error('ClinicBot OpenAI error', [
-                'status' => $response->status(),
-                'body' => $response->body(),
-                'phone' => $conversation->phone,
-            ]);
-
-            throw new RuntimeException('OpenAI respondió con HTTP '.$response->status());
-        }
-
-        $botReply = trim((string) ($response->json('choices.0.message.content') ?? ''));
-
-        if ($botReply === '') {
-            throw new RuntimeException('OpenAI devolvió una respuesta vacía.');
-        }
+        $botReply = $this->chatWithTools($apiKey, $messages, $conversation->phone);
 
         $conversation->pushMessage('assistant', $botReply);
         $conversation->save();
 
         return $botReply;
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $messages
+     */
+    private function chatWithTools(string $apiKey, array $messages, string $clientPhone): string
+    {
+        $tools = ClinicBotTools::definitions();
+
+        for ($round = 0; $round < self::MAX_TOOL_ROUNDS; $round++) {
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer '.$apiKey,
+                'Content-Type' => 'application/json',
+            ])->timeout(45)->post('https://api.openai.com/v1/chat/completions', [
+                'model' => (string) config('bot-ia.openai_model', 'gpt-4o-mini'),
+                'messages' => $messages,
+                'tools' => $tools,
+                'tool_choice' => 'auto',
+                'max_tokens' => (int) config('bot-ia.max_tokens', 500),
+                'temperature' => (float) config('bot-ia.temperature', 0.5),
+            ]);
+
+            if (! $response->successful()) {
+                Log::error('ClinicBot OpenAI error', [
+                    'status' => $response->status(),
+                    'body' => $response->body(),
+                    'phone' => $clientPhone,
+                ]);
+
+                throw new RuntimeException('OpenAI respondió con HTTP '.$response->status());
+            }
+
+            $choice = $response->json('choices.0.message');
+            if (! is_array($choice)) {
+                throw new RuntimeException('OpenAI devolvió una respuesta inválida.');
+            }
+
+            $toolCalls = $choice['tool_calls'] ?? null;
+            if (! is_array($toolCalls) || $toolCalls === []) {
+                $content = trim((string) ($choice['content'] ?? ''));
+                if ($content === '') {
+                    throw new RuntimeException('OpenAI devolvió una respuesta vacía.');
+                }
+
+                return $content;
+            }
+
+            $messages[] = [
+                'role' => 'assistant',
+                'content' => $choice['content'] ?? null,
+                'tool_calls' => $toolCalls,
+            ];
+
+            foreach ($toolCalls as $toolCall) {
+                if (! is_array($toolCall)) {
+                    continue;
+                }
+
+                $function = is_array($toolCall['function'] ?? null) ? $toolCall['function'] : [];
+                $name = (string) ($function['name'] ?? '');
+                $argsJson = (string) ($function['arguments'] ?? '{}');
+                $args = json_decode($argsJson, true);
+                if (! is_array($args)) {
+                    $args = [];
+                }
+
+                try {
+                    $toolResult = $this->toolExecutor->execute($name, $args, $clientPhone);
+                } catch (\Throwable $e) {
+                    Log::warning('ClinicBot tool error', [
+                        'tool' => $name,
+                        'error' => $e->getMessage(),
+                    ]);
+                    $toolResult = json_encode([
+                        'ok' => false,
+                        'error' => 'No se pudo ejecutar la acción solicitada.',
+                    ], JSON_UNESCAPED_UNICODE);
+                }
+
+                $messages[] = [
+                    'role' => 'tool',
+                    'tool_call_id' => (string) ($toolCall['id'] ?? ''),
+                    'content' => $toolResult,
+                ];
+            }
+        }
+
+        throw new RuntimeException('El asistente superó el límite de pasos internos.');
     }
 
     private function buildSystemPrompt(): string
@@ -144,18 +216,32 @@ final class ClinicBotService
         }
 
         $knowledge = ClinicBotKnowledge::buildContext();
+        $catalog = $this->catalog->buildPromptCatalogSummary();
+        $fechaActual = ClinicBotPeruClock::promptReference();
 
         $knowledgeBlock = $knowledge !== ''
             ? "BASE DE CONOCIMIENTO DE LA CLÍNICA:\n\n{$knowledge}"
             : 'BASE DE CONOCIMIENTO: aún vacía. Indica amablemente que un asistente humano puede ayudar en horario de atención.';
 
+        $catalogBlock = $catalog !== ''
+            ? "CATÁLOGO OPERATIVO DE ESTA CLÍNICA (solo datos reales del sistema):\n\n{$catalog}"
+            : 'CATÁLOGO: no hay productos ni servicios de grooming activos cargados en el sistema.';
+
         return <<<PROMPT
 Eres el asistente virtual de WhatsApp de {$clinicName}.
 Responde en español, tono amable y profesional. Mensajes cortos (máximo 4-5 líneas), aptos para WhatsApp.
-Usa SOLO la información de la base de conocimiento. Si no tienes el dato, dilo con honestidad y sugiere contactar a la clínica o visitar en horario de atención.
+
+FECHA Y HORA ACTUAL EN PERÚ: {$fechaActual}
+Siempre interpreta "hoy", "mañana", "pasado mañana" y días de la semana respecto a esa referencia (zona horaria America/Lima).
+Antes de agendar, confirma mascota, fecha, hora y tipo de servicio. Usa las herramientas para consultar catálogo, mascotas y registrar citas.
+
+Para precios y servicios usa SOLO el catálogo del sistema o las herramientas listar_productos / listar_servicios_grooming.
 No inventes precios, horarios ni políticas. No des diagnósticos veterinarios: solo orientación general y logística.
+Si el cliente no está registrado (sin mascotas en su número), indícale que la clínica debe registrarlo primero.
 
 {$knowledgeBlock}
+
+{$catalogBlock}
 PROMPT;
     }
 }
