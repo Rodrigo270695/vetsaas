@@ -12,7 +12,6 @@ export const NAV_PLACEHOLDER_PATHS: ReadonlySet<string> = new Set([
     '/reportes/top-pacientes',
     '/configuracion/horarios',
     '/configuracion/bloqueos',
-    '/auditoria/logs',
     '/auditoria/login-attempts',
     '/auditoria/api-logs',
     '/auditoria/tokens',

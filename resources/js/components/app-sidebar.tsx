@@ -40,7 +40,6 @@ import {
     ScrollText,
     Send,
     Server,
-    ShieldAlert,
     ShieldCheck,
     ShoppingCart,
     Slice,
@@ -401,13 +400,6 @@ function useNavConfig(): { singles: NavItem[]; groups: NavGroup[] } {
                             icon: UserCog,
                             permission: 'usuarios.view',
                         },
-                    ],
-                },
-                {
-                    title: t('groups.auditoria'),
-                    icon: ShieldAlert,
-                    context: 'tenant',
-                    items: [
                         {
                             title: t('items.logs'),
                             href: '/auditoria/logs',
