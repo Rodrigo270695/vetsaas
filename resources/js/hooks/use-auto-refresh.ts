@@ -12,8 +12,7 @@ type Options = {
 };
 
 /**
- * Recarga parcial vía Inertia cada N segundos (desde que termina la anterior)
- * y expone contador "hace Xs".
+ * Recarga parcial vía Inertia cada N segundos y expone contador "hace Xs".
  */
 export function useAutoRefresh({
     only,
@@ -23,7 +22,13 @@ export function useAutoRefresh({
 }: Options) {
     const [secondsSince, setSecondsSince] = useState(0);
     const [isRefreshing, setIsRefreshing] = useState(false);
+
+    const onlyRef = useRef(only);
+    const preserveScrollRef = useRef(preserveScroll);
     const isRefreshingRef = useRef(false);
+
+    onlyRef.current = only;
+    preserveScrollRef.current = preserveScroll;
 
     const refresh = useCallback(() => {
         if (!enabled || isRefreshingRef.current) {
@@ -35,15 +40,15 @@ export function useAutoRefresh({
         setSecondsSince(0);
 
         router.reload({
-            only,
-            preserveScroll,
+            only: onlyRef.current,
+            preserveScroll: preserveScrollRef.current,
             onFinish: () => {
                 isRefreshingRef.current = false;
                 setIsRefreshing(false);
                 setSecondsSince(0);
             },
         });
-    }, [only, preserveScroll, enabled]);
+    }, [enabled]);
 
     useEffect(() => {
         if (!enabled) {
@@ -53,52 +58,18 @@ export function useAutoRefresh({
             return;
         }
 
-        let cancelled = false;
-        let refreshTimeout: ReturnType<typeof setTimeout> | null = null;
-        let tickInterval: ReturnType<typeof setInterval> | null = null;
-
-        const runRefreshCycle = () => {
-            if (cancelled || isRefreshingRef.current) {
-                return;
-            }
-
-            isRefreshingRef.current = true;
-            setIsRefreshing(true);
-            setSecondsSince(0);
-
-            router.reload({
-                only,
-                preserveScroll,
-                onFinish: () => {
-                    if (cancelled) {
-                        return;
-                    }
-                    isRefreshingRef.current = false;
-                    setIsRefreshing(false);
-                    setSecondsSince(0);
-                    refreshTimeout = setTimeout(runRefreshCycle, intervalMs);
-                },
-            });
-        };
-
-        tickInterval = setInterval(() => {
+        const refreshInterval = window.setInterval(refresh, intervalMs);
+        const tickInterval = window.setInterval(() => {
             if (!isRefreshingRef.current) {
                 setSecondsSince((s) => s + 1);
             }
         }, 1_000);
 
-        refreshTimeout = setTimeout(runRefreshCycle, intervalMs);
-
         return () => {
-            cancelled = true;
-            if (refreshTimeout) {
-                clearTimeout(refreshTimeout);
-            }
-            if (tickInterval) {
-                clearInterval(tickInterval);
-            }
+            window.clearInterval(refreshInterval);
+            window.clearInterval(tickInterval);
         };
-    }, [enabled, intervalMs, only, preserveScroll]);
+    }, [enabled, intervalMs, refresh]);
 
     return { secondsSince, isRefreshing, refresh };
 }
