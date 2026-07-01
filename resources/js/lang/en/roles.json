@@ -179,6 +179,8 @@
         "revoke": "Revoke",
         "suspend": "Suspend",
         "resume": "Resume",
-        "impersonate": "Impersonate"
+        "impersonate": "Impersonate",
+        "whatsapp-restart": "Restart WhatsApp",
+        "whatsapp-stop": "Stop WhatsApp"
     }
 }

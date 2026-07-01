@@ -8,6 +8,7 @@ use App\Http\Requests\TenantRequest;
 use App\Models\Departamento;
 use App\Models\Plan;
 use App\Models\Tenant;
+use App\Services\OpenWa\OpenWaClient;
 use App\Services\Tenancy\TenantSlugChangeService;
 use App\Tenancy\TenantManager;
 use Illuminate\Database\Eloquent\Builder;
@@ -94,6 +95,7 @@ class TenantController extends Controller
 
         $tenants = $query
             ->with([
+                'whatsappSession:id,tenant_id,openwa_session_name,status,phone,last_error,last_synced_at',
                 'subscriptions' => fn ($q) => $q
                     ->whereIn('estado', ['trial', 'active', 'grace', 'suspended'])
                     ->latest()
@@ -147,6 +149,7 @@ class TenantController extends Controller
             ],
             'plans_catalog' => $plansCatalog,
             'departamentos' => $departamentos,
+            'openwa_configured' => app(OpenWaClient::class)->isConfigured(),
         ]);
     }
 

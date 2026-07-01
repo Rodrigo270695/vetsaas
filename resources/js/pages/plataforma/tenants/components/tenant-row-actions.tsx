@@ -1,13 +1,17 @@
+import { router } from '@inertiajs/react';
 import {
     Copy,
     ExternalLink,
     Globe,
     Lock,
+    MessageCircle,
     MoreHorizontal,
     PauseCircle,
     Pencil,
     PlayCircle,
+    RefreshCw,
     ScreenShare,
+    Square,
     Trash2,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -31,24 +35,20 @@ export type TenantRowActionsProps = {
     onResume: (tenant: Tenant) => void;
     onChangeSlug?: (tenant: Tenant) => void;
     onEnterSupport?: (tenant: Tenant) => void;
+    onRestartWhatsApp?: (tenant: Tenant) => void;
+    onStopWhatsApp?: (tenant: Tenant) => void;
     canUpdate?: boolean;
     canDelete?: boolean;
     canSuspend?: boolean;
     canResume?: boolean;
     canImpersonate?: boolean;
+    canRestartWhatsApp?: boolean;
+    canStopWhatsApp?: boolean;
+    openwaConfigured?: boolean;
 };
 
 /**
  * Dropdown de acciones por fila para tenants.
- *
- * Lógica de visibilidad:
- *  - "Copiar slug" → siempre disponible.
- *  - "Abrir subdominio" → siempre disponible (link externo).
- *  - "Editar" → solo si hay permiso y el tenant no está cancelado.
- *  - "Suspender" → solo si está trial/active y hay permiso `suspend`.
- *  - "Reanudar" → solo si está suspended y hay permiso `resume`.
- *  - "Eliminar" → solo si NO está active y hay permiso `delete`.
- *  - Si el tenant está cancelado, mostramos un item informativo "Bloqueado".
  */
 export function TenantRowActions({
     tenant,
@@ -58,11 +58,16 @@ export function TenantRowActions({
     onResume,
     onChangeSlug,
     onEnterSupport,
+    onRestartWhatsApp,
+    onStopWhatsApp,
     canUpdate = true,
     canDelete = true,
     canSuspend = true,
     canResume = true,
     canImpersonate = false,
+    canRestartWhatsApp = false,
+    canStopWhatsApp = false,
+    openwaConfigured = false,
 }: TenantRowActionsProps) {
     const { t } = useTranslation(['tenants', 'common']);
     const tenancy = useTenancy();
@@ -85,6 +90,13 @@ export function TenantRowActions({
         canUpdate &&
         typeof onChangeSlug === 'function' &&
         !isCancelled;
+
+    const showWhatsAppActions =
+        openwaConfigured &&
+        !isCancelled &&
+        (canRestartWhatsApp || canStopWhatsApp);
+
+    const whatsappStatus = tenant.whatsapp_session?.status ?? 'sin_sesion';
 
     const handleCopy = async () => {
         try {
@@ -118,7 +130,7 @@ export function TenantRowActions({
                     <MoreHorizontal className="size-4" strokeWidth={2.5} />
                 </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuContent align="end" className="w-60">
                 <DropdownMenuItem
                     onSelect={handleCopy}
                     className="cursor-pointer gap-2"
@@ -151,6 +163,37 @@ export function TenantRowActions({
                             <ScreenShare className="size-4 shrink-0" strokeWidth={2.25} />
                             {t('tenants:row.enter_support')}
                         </DropdownMenuItem>
+                    </>
+                ) : null}
+
+                {showWhatsAppActions ? (
+                    <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                            disabled
+                            className="gap-2 text-xs text-muted-foreground"
+                        >
+                            <MessageCircle className="size-3.5" strokeWidth={2.25} />
+                            {t('tenants:row.whatsapp_status', { status: whatsappStatus })}
+                        </DropdownMenuItem>
+                        {canRestartWhatsApp ? (
+                            <DropdownMenuItem
+                                onSelect={() => onRestartWhatsApp?.(tenant)}
+                                className="cursor-pointer gap-2 text-emerald-700 focus:text-emerald-700 dark:text-emerald-400"
+                            >
+                                <RefreshCw className="size-4" strokeWidth={2.25} />
+                                {t('tenants:row.whatsapp_restart')}
+                            </DropdownMenuItem>
+                        ) : null}
+                        {canStopWhatsApp ? (
+                            <DropdownMenuItem
+                                onSelect={() => onStopWhatsApp?.(tenant)}
+                                className="cursor-pointer gap-2 text-amber-700 focus:text-amber-700 dark:text-amber-400"
+                            >
+                                <Square className="size-4" strokeWidth={2.25} />
+                                {t('tenants:row.whatsapp_stop')}
+                            </DropdownMenuItem>
+                        ) : null}
                     </>
                 ) : null}
 

@@ -103,7 +103,7 @@ class PermissionsSeeder extends Seeder
         'audit-trail' => ['view'],
 
         // ───── Plataforma (solo superadmin SaaS) ─────
-        'plataforma-tenants' => ['view', 'create', 'update', 'suspend', 'resume', 'delete', 'export', 'bulk-delete', 'impersonate'],
+        'plataforma-tenants' => ['view', 'create', 'update', 'suspend', 'resume', 'delete', 'export', 'bulk-delete', 'impersonate', 'whatsapp-restart', 'whatsapp-stop'],
         'plataforma-planes' => ['view', 'create', 'update', 'delete', 'export', 'bulk-delete'],
         'plataforma-suscripciones' => ['view', 'create', 'update', 'delete', 'export', 'bulk-delete', 'extend-trial', 'change-plan', 'cancel'],
         'plataforma-cobros' => ['view', 'export', 'refund', 'resend-invoice', 'add-note'],

@@ -62,6 +62,7 @@ type TenantsIndexProps = {
     stats: TenantStats;
     plans_catalog: readonly TenantPlanOption[];
     departamentos: readonly GeoOption[];
+    openwa_configured: boolean;
 };
 
 /**
@@ -106,6 +107,7 @@ export default function Index({
     stats,
     plans_catalog,
     departamentos,
+    openwa_configured,
 }: TenantsIndexProps) {
     const { t } = useTranslation(['tenants', 'subscription-expiry', 'common']);
     const { can } = usePermission();
@@ -117,12 +119,54 @@ export default function Index({
     const canExport = can('plataforma-tenants.export');
     const canBulkDelete = can('plataforma-tenants.bulk-delete');
     const canImpersonate = can('plataforma-tenants.impersonate');
+    const canRestartWhatsApp = can('plataforma-tenants.whatsapp-restart');
+    const canStopWhatsApp = can('plataforma-tenants.whatsapp-stop');
     const showRowActions =
-        canUpdate || canDelete || canSuspend || canResume || canImpersonate;
+        canUpdate ||
+        canDelete ||
+        canSuspend ||
+        canResume ||
+        canImpersonate ||
+        canRestartWhatsApp ||
+        canStopWhatsApp;
 
     const enterSupport = useCallback((tenant: Tenant) => {
         router.post(tenants.impersonate.url(tenant.id));
     }, []);
+
+    const restartWhatsApp = useCallback(
+        (tenant: Tenant) => {
+            if (
+                !window.confirm(
+                    t('tenants:row.whatsapp_restart_confirm', {
+                        name: tenant.razon_social,
+                    }),
+                )
+            ) {
+                return;
+            }
+
+            router.post(tenants.whatsapp.restart.url(tenant.id), {}, { preserveScroll: true });
+        },
+        [t],
+    );
+
+    const stopWhatsApp = useCallback(
+        (tenant: Tenant) => {
+            if (
+                !window.confirm(
+                    t('tenants:row.whatsapp_stop_confirm', {
+                        name: tenant.razon_social,
+                    }),
+                )
+            ) {
+                return;
+            }
+
+            router.post(tenants.whatsapp.stop.url(tenant.id), {}, { preserveScroll: true });
+        },
+        [t],
+    );
 
     const {
         search,
@@ -431,11 +475,16 @@ export default function Index({
                             onResume={openResume}
                             onChangeSlug={openChangeSlug}
                             onEnterSupport={enterSupport}
+                            onRestartWhatsApp={restartWhatsApp}
+                            onStopWhatsApp={stopWhatsApp}
                             canUpdate={canUpdate}
                             canDelete={canDelete}
                             canSuspend={canSuspend}
                             canResume={canResume}
                             canImpersonate={canImpersonate}
+                            canRestartWhatsApp={canRestartWhatsApp}
+                            canStopWhatsApp={canStopWhatsApp}
+                            openwaConfigured={openwa_configured}
                         />
                     </div>
                 ),
@@ -453,7 +502,12 @@ export default function Index({
         canSuspend,
         canResume,
         canImpersonate,
+        canRestartWhatsApp,
+        canStopWhatsApp,
+        openwa_configured,
         enterSupport,
+        restartWhatsApp,
+        stopWhatsApp,
         openEdit,
         openDelete,
         openSuspend,

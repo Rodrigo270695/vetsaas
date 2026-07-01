@@ -50,6 +50,14 @@ export type TenantDistritoModelRef = {
     };
 };
 
+export type TenantWhatsAppSessionRef = {
+    status: string;
+    openwa_session_name: string;
+    phone: string | null;
+    last_error: string | null;
+    last_synced_at: string | null;
+};
+
 export type Tenant = {
     /** UUID. La tabla `tenants` usa UUID v4. */
     id: string;
@@ -81,6 +89,8 @@ export type Tenant = {
     subscriptions: readonly TenantSubscriptionRef[];
     /** Distrito eager-loaded con su jerarquía completa. */
     distrito_model: TenantDistritoModelRef | null;
+    /** Sesión OpenWA de la clínica (recordatorios WhatsApp). */
+    whatsapp_session: TenantWhatsAppSessionRef | null;
 };
 
 export type TenantStats = {

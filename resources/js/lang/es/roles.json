@@ -179,6 +179,8 @@
         "revoke": "Revocar",
         "suspend": "Suspender",
         "resume": "Reactivar",
-        "impersonate": "Suplantar"
+        "impersonate": "Suplantar",
+        "whatsapp-restart": "Reiniciar WhatsApp",
+        "whatsapp-stop": "Detener WhatsApp"
     }
 }

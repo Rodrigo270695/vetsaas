@@ -46,6 +46,7 @@ use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\SubscriptionPaymentController;
 use App\Http\Controllers\TarifaServiciosController;
 use App\Http\Controllers\TenantController;
+use App\Http\Controllers\TenantWhatsAppPlatformController;
 use App\Http\Controllers\TenantImpersonationController;
 use App\Http\Controllers\TenantWhatsAppController;
 use App\Http\Controllers\UnidadMedidaInventarioController;
@@ -873,6 +874,12 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:plataforma-tenants.impersonate')
             ->post('tenants/{tenant}/impersonate', [TenantImpersonationController::class, 'start'])
             ->name('tenants.impersonate');
+        Route::middleware('permission:plataforma-tenants.whatsapp-restart')
+            ->post('tenants/{tenant}/whatsapp/restart', [TenantWhatsAppPlatformController::class, 'restart'])
+            ->name('tenants.whatsapp.restart');
+        Route::middleware('permission:plataforma-tenants.whatsapp-stop')
+            ->post('tenants/{tenant}/whatsapp/stop', [TenantWhatsAppPlatformController::class, 'stop'])
+            ->name('tenants.whatsapp.stop');
         Route::middleware('permission:plataforma-tenants.view')
             ->get('auditoria-soporte', [PlataformaImpersonationAuditController::class, 'index'])
             ->name('auditoria-soporte.index');
