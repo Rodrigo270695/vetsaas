@@ -12,6 +12,7 @@ import {
 } from '@/components/data-page';
 import type { DataTableColumn, FilterChip } from '@/components/data-page';
 import { Button } from '@/components/ui/button';
+import { formatWhatsAppPhone } from '@/lib/format-whatsapp-phone';
 import { useAutoRefresh } from '@/hooks/use-auto-refresh';
 import type { Paginated } from '@/types';
 import type {
@@ -29,6 +30,7 @@ type Props = {
     filters: ConversationFilters;
     stats: ConversationStats;
     canManage: boolean;
+    autoRefreshEnabled?: boolean;
     knowledgePreservedQuery?: Record<string, string | number | undefined | null>;
 };
 
@@ -39,6 +41,7 @@ export function ConversationsPanel({
     filters,
     stats,
     canManage,
+    autoRefreshEnabled = true,
     knowledgePreservedQuery = {},
 }: Props) {
     const { t } = useTranslation(['bot-ia', 'common']);
@@ -48,7 +51,8 @@ export function ConversationsPanel({
     const isFirstRender = useRef(true);
 
     const { secondsSince, isRefreshing, refresh } = useAutoRefresh({
-        only: ['conversations', 'conversation_filters', 'conversation_stats'],
+        only: ['conversations', 'conversation_filters', 'conversation_stats', 'assistant'],
+        enabled: autoRefreshEnabled,
     });
 
     const fetchChats = useCallback(
@@ -148,16 +152,23 @@ export function ConversationsPanel({
             {
                 key: 'contact',
                 header: t('conversations.columns.contact'),
-                cell: (row) => (
-                    <div className="min-w-0">
-                        <p className="truncate text-sm font-medium">
-                            {row.client_name?.trim() || row.phone}
-                        </p>
-                        {row.client_name ? (
-                            <p className="truncate text-xs text-muted-foreground">{row.phone}</p>
-                        ) : null}
-                    </div>
-                ),
+                cell: (row) => {
+                    const phoneLabel = formatWhatsAppPhone(row.phone);
+                    const name = row.client_name?.trim();
+
+                    return (
+                        <div className="min-w-0">
+                            <p className="truncate text-sm font-medium">
+                                {name || phoneLabel}
+                            </p>
+                            {name ? (
+                                <p className="truncate font-mono text-xs text-muted-foreground">
+                                    {phoneLabel}
+                                </p>
+                            ) : null}
+                        </div>
+                    );
+                },
             },
             {
                 key: 'preview',
@@ -260,23 +271,31 @@ export function ConversationsPanel({
                         </span>
                     </p>
                     <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <span
-                            className={`inline-block size-2 rounded-full ${
-                                isRefreshing ? 'animate-ping bg-amber-400' : 'bg-emerald-400'
-                            }`}
-                        />
-                        {isRefreshing
-                            ? t('sync.updating')
-                            : t('sync.updated_ago', { seconds: secondsSince })}
-                        <button
-                            type="button"
-                            onClick={refresh}
-                            disabled={isRefreshing}
-                            className="ml-1 cursor-pointer rounded p-0.5 hover:text-foreground disabled:opacity-50"
-                            title={t('sync.refresh_now')}
-                        >
-                            <RefreshCw className={`size-3 ${isRefreshing ? 'animate-spin' : ''}`} />
-                        </button>
+                        {autoRefreshEnabled ? (
+                            <>
+                                <span
+                                    className={`inline-block size-2 rounded-full ${
+                                        isRefreshing ? 'animate-ping bg-amber-400' : 'bg-emerald-400'
+                                    }`}
+                                />
+                                {isRefreshing
+                                    ? t('sync.updating')
+                                    : t('sync.updated_ago', { seconds: secondsSince })}
+                                <button
+                                    type="button"
+                                    onClick={refresh}
+                                    disabled={isRefreshing}
+                                    className="ml-1 cursor-pointer rounded p-0.5 hover:text-foreground disabled:opacity-50"
+                                    title={t('sync.refresh_now')}
+                                >
+                                    <RefreshCw
+                                        className={`size-3 ${isRefreshing ? 'animate-spin' : ''}`}
+                                    />
+                                </button>
+                            </>
+                        ) : (
+                            t('sync.paused')
+                        )}
                     </span>
                 </div>
 

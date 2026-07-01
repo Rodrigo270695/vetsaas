@@ -4,6 +4,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { formatWhatsAppPhone } from '@/lib/format-whatsapp-phone';
 import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
 import type { ConversationEntry } from '../types';
@@ -17,18 +18,17 @@ type Props = {
 export function ConversationChatDialog({ open, onOpenChange, conversation }: Props) {
     const { t } = useTranslation('bot-ia');
 
-    const title =
-        conversation?.client_name?.trim() ||
-        conversation?.phone ||
-        t('conversations.chat_title');
+    const phoneLabel = conversation ? formatWhatsAppPhone(conversation.phone) : '';
+    const name = conversation?.client_name?.trim();
+    const title = name || phoneLabel || t('conversations.chat_title');
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="flex max-h-[min(85dvh,640px)] flex-col gap-0 p-0 sm:max-w-md">
                 <DialogHeader className="border-b px-4 py-3">
                     <DialogTitle className="text-base">{title}</DialogTitle>
-                    {conversation?.client_name ? (
-                        <p className="text-xs text-muted-foreground">{conversation.phone}</p>
+                    {name ? (
+                        <p className="font-mono text-xs text-muted-foreground">{phoneLabel}</p>
                     ) : null}
                 </DialogHeader>
 

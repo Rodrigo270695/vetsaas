@@ -149,6 +149,7 @@
         "interval_hint": "refreshes every 15 s",
         "updating": "Updating…",
         "updated_ago": "Updated {{seconds}}s ago",
-        "refresh_now": "Refresh now"
+        "refresh_now": "Refresh now",
+        "paused": "Auto-refresh paused (assistant off)"
     }
 }

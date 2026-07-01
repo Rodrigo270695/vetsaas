@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Historial de chat del asistente IA con un cliente (schema tenant).
@@ -35,6 +37,21 @@ final class ClinicBotConversation extends Model
         'bot_paused_manually',
         'last_message_at',
     ];
+
+    public function scopeWithAiResponses(Builder $query): Builder
+    {
+        if (DB::getDriverName() === 'pgsql') {
+            return $query->whereRaw(
+                "EXISTS (
+                    SELECT 1
+                    FROM json_array_elements(COALESCE(messages, '[]'::json)) AS msg
+                    WHERE msg->>'role' = 'assistant'
+                )"
+            );
+        }
+
+        return $query->where('turn_count', '>', 0);
+    }
 
     protected function casts(): array
     {

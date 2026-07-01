@@ -441,6 +441,9 @@ export default function Index({
                                     filters={chatFilters}
                                     stats={chatStats}
                                     canManage={can_manage}
+                                    autoRefreshEnabled={
+                                        assistant.respuestas_activas && tab === 'chats'
+                                    }
                                     knowledgePreservedQuery={{
                                         ...knowledgePreservedQuery,
                                         tab: 'chats',

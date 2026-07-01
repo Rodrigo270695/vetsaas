@@ -291,7 +291,7 @@ final class ClinicBotIaController extends Controller
     {
         $filters = $this->conversationFilters($request);
 
-        $query = ClinicBotConversation::query();
+        $query = ClinicBotConversation::query()->withAiResponses();
 
         if ($filters['chat_search'] !== '') {
             $search = $filters['chat_search'];
@@ -320,7 +320,7 @@ final class ClinicBotIaController extends Controller
      */
     private function conversationStats(): array
     {
-        $base = ClinicBotConversation::query();
+        $base = ClinicBotConversation::query()->withAiResponses();
 
         return [
             'total' => (clone $base)->count(),

@@ -144,12 +144,12 @@ final class ClinicBotWebhookController extends Controller
                 Cache::put($cacheKey, 1, 60);
             }
 
-            $conversation = $this->botService->findOrCreateConversation($phone, $waChatId, $clientName);
-            $this->botService->syncContactMetadata($conversation, $phone, $waChatId, $clientName);
-
             if (! ClinicSetting::current()->isBotIaResponding()) {
                 return response()->json(['ok' => true, 'skipped' => 'assistant_globally_off']);
             }
+
+            $conversation = $this->botService->findOrCreateConversation($phone, $waChatId, $clientName);
+            $this->botService->syncContactMetadata($conversation, $phone, $waChatId, $clientName);
 
             if (! $conversation->bot_active) {
                 if ($conversation->isManuallyPaused()) {
