@@ -187,13 +187,16 @@ final class ClinicBotWebhookController extends Controller
         }
 
         $signature = (string) $request->header('X-Webhook-Signature', '');
+        $openWaSignature = (string) $request->header('X-OpenWA-Signature', '');
         $legacySecret = (string) $request->header('X-Webhook-Secret', '');
 
-        if ($signature !== '') {
+        $signatureToVerify = $signature !== '' ? $signature : $openWaSignature;
+
+        if ($signatureToVerify !== '') {
             $rawBody = (string) $request->getContent();
             $expected = 'sha256='.hash_hmac('sha256', $rawBody, $secret);
 
-            return hash_equals($expected, $signature);
+            return hash_equals($expected, $signatureToVerify);
         }
 
         if ($legacySecret !== '') {

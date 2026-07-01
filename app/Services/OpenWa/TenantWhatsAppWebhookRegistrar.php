@@ -40,8 +40,13 @@ final class TenantWhatsAppWebhookRegistrar
             $this->client->registerWebhook(
                 $session->openwa_session_id,
                 $url,
-                $secret !== '' ? ['X-Webhook-Secret' => $secret] : [],
+                $secret !== '' ? $secret : null,
             );
+            Log::info('ClinicBot: webhook OpenWA registrado', [
+                'session_id' => $session->openwa_session_id,
+                'tenant_id' => $session->tenant_id,
+                'url' => $url,
+            ]);
         } catch (\Throwable $e) {
             Log::warning('ClinicBot: no se pudo registrar webhook OpenWA', [
                 'session_id' => $session->openwa_session_id,

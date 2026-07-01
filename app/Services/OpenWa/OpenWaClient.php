@@ -159,27 +159,48 @@ final class OpenWaClient
     }
 
     /**
-     * Registra (o actualiza) el webhook de mensajes entrantes para una sesión.
+     * Registra el webhook de mensajes entrantes para una sesión.
      *
-     * @param  array<string, string>  $headers  Headers extra (ej. X-Webhook-Secret).
+     * @see https://github.com/rmyndharis/OpenWA/blob/main/docs/06-api-specification.md
+     *
      * @return array<string, mixed>
      */
-    public function registerWebhook(string $sessionId, string $url, array $headers = []): array
+    public function registerWebhook(string $sessionId, string $url, ?string $secret = null): array
     {
         $payload = [
             'url' => $url,
-            'events' => ['message.received', 'onMessage', 'message'],
-            'enabled' => true,
+            'events' => ['message.received'],
         ];
 
-        if ($headers !== []) {
-            $payload['headers'] = $headers;
+        if ($secret !== null && $secret !== '') {
+            $payload['secret'] = $secret;
+            $payload['headers'] = [
+                'X-Webhook-Secret' => $secret,
+            ];
         }
 
         $response = $this->request('post', '/api/sessions/'.$sessionId.'/webhooks', $payload);
 
         if (! is_array($response)) {
             throw new RuntimeException('OpenWA no confirmó el registro del webhook.');
+        }
+
+        return $response;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function listWebhooks(string $sessionId): array
+    {
+        $response = $this->request('get', '/api/sessions/'.$sessionId.'/webhooks');
+
+        if (! is_array($response)) {
+            return [];
+        }
+
+        if (isset($response['data']) && is_array($response['data'])) {
+            return $response['data'];
         }
 
         return $response;
