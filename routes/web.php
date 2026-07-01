@@ -47,9 +47,9 @@ use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\SubscriptionPaymentController;
 use App\Http\Controllers\TarifaServiciosController;
 use App\Http\Controllers\TenantController;
-use App\Http\Controllers\TenantWhatsAppPlatformController;
 use App\Http\Controllers\TenantImpersonationController;
 use App\Http\Controllers\TenantWhatsAppController;
+use App\Http\Controllers\TenantWhatsAppPlatformController;
 use App\Http\Controllers\UnidadMedidaInventarioController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VacunacionController;
@@ -676,6 +676,15 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:comunicaciones-bot-ia.view|config-general.view|comunicaciones-cola.manage')
             ->get('bot-ia', [ClinicBotIaController::class, 'show'])
             ->name('bot-ia');
+
+        Route::middleware('permission:comunicaciones-bot-ia.manage|config-general.update|comunicaciones-cola.manage')
+            ->prefix('bot-ia/conocimiento')
+            ->name('bot-ia.knowledge.')
+            ->group(function (): void {
+                Route::post('/', [ClinicBotIaController::class, 'storeKnowledge'])->name('store');
+                Route::put('{clinicBotKnowledge}', [ClinicBotIaController::class, 'updateKnowledge'])->name('update');
+                Route::delete('{clinicBotKnowledge}', [ClinicBotIaController::class, 'destroyKnowledge'])->name('destroy');
+            });
         Route::inertia('plantillas', 'comunicaciones/plantillas/index')->name('plantillas');
 
         Route::middleware('permission:comunicaciones-cola.manage')->group(function (): void {

@@ -8,12 +8,90 @@
     },
     "active": {
         "title": "Service active",
-        "price_hint": "Included in your subscription: S/ {{price}} on each plan renewal (same charge date).",
-        "activated_at": "Activated on {{date}}",
-        "knowledge_title": "Knowledge base",
-        "knowledge_description": "Soon you will be able to add FAQs, hours, and policies so the bot can reply automatically.",
-        "knowledge_coming": "Coming soon"
+        "price_hint": "S/ {{price}} on each plan renewal",
+        "activated_at": "Since {{date}}"
     },
-    "whatsapp_hint": "The assistant uses the same WhatsApp you link in Outgoing queue.",
-    "whatsapp_manage": "Manage in Outgoing queue"
+    "status": {
+        "service": "Add-on",
+        "whatsapp": "WhatsApp"
+    },
+    "whatsapp_hint": "Same number as in Outgoing queue.",
+    "whatsapp_manage": "WhatsApp sync",
+    "knowledge": {
+        "title": "Knowledge base",
+        "description": "FAQs, hours, policies, and services the assistant will use to reply.",
+        "search_placeholder": "Search by title or content...",
+        "filters": {
+            "all": "All",
+            "faq": "FAQs",
+            "horario": "Hours",
+            "politica": "Policies",
+            "servicio": "Services",
+            "contacto": "Contact",
+            "general": "General"
+        },
+        "sections": {
+            "faq": "FAQ",
+            "horario": "Hours",
+            "politica": "Policy",
+            "servicio": "Service",
+            "contacto": "Contact",
+            "general": "General"
+        },
+        "section_hints": {
+            "faq": "Frequently asked questions with ready answers. E.g. Do you handle emergencies?",
+            "horario": "Opening hours per branch or special days.",
+            "politica": "Cancellation, payment, boarding policies, etc.",
+            "servicio": "Grooming, boarding, consultations and other services.",
+            "contacto": "Address, phones, social media and directions.",
+            "general": "General information that does not fit another category."
+        },
+        "columns": {
+            "entry": "Entry",
+            "section": "Section",
+            "content": "Content",
+            "status": "Status",
+            "updated_at": "Updated"
+        },
+        "row": {
+            "active": "Active",
+            "inactive": "Inactive"
+        },
+        "actions": {
+            "new": "New entry",
+            "new_short": "New",
+            "delete": "Delete",
+            "create_first": "Create first entry"
+        },
+        "form": {
+            "create_title": "New entry",
+            "edit_title": "Edit entry",
+            "section_label": "Section",
+            "slug_label": "Identifier",
+            "slug_placeholder": "faq-saturday-hours",
+            "slug_hint": "Generated from the title. You can edit it if needed.",
+            "title_label": "Title",
+            "title_placeholder": "Are you open on Saturdays?",
+            "content_label": "Content",
+            "content_placeholder": "Write the answer the assistant should give...",
+            "is_active_label": "Active entry",
+            "save": "Save",
+            "cancel": "Cancel"
+        },
+        "delete": {
+            "title": "Delete entry",
+            "description": "Delete \"{{title}}\"? The assistant will stop using this information.",
+            "confirm": "Yes, delete",
+            "cancel": "Cancel"
+        },
+        "empty": {
+            "no_records_title": "No entries yet",
+            "no_records_description": "Add FAQs, hours, and policies so the assistant can reply.",
+            "no_results_title": "No results",
+            "no_results_description": "Try another term or change the section filter."
+        },
+        "toast": {
+            "load_error": "Error loading knowledge base"
+        }
+    }
 }

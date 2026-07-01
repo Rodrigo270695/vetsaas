@@ -8,12 +8,90 @@
     },
     "active": {
         "title": "Servicio activo",
-        "price_hint": "Incluido en tu suscripción: S/ {{price}} en cada renovación del plan (misma fecha de cobro).",
-        "activated_at": "Activado el {{date}}",
-        "knowledge_title": "Base de conocimiento",
-        "knowledge_description": "Próximamente podrás cargar preguntas frecuentes, horarios y políticas para que el bot responda automáticamente.",
-        "knowledge_coming": "En desarrollo"
+        "price_hint": "S/ {{price}} en cada renovación del plan",
+        "activated_at": "Desde {{date}}"
     },
-    "whatsapp_hint": "El asistente usa el mismo WhatsApp que vinculas en Cola saliente.",
-    "whatsapp_manage": "Gestionar en Cola saliente"
+    "status": {
+        "service": "Add-on",
+        "whatsapp": "WhatsApp"
+    },
+    "whatsapp_hint": "Mismo número que en Cola saliente.",
+    "whatsapp_manage": "Sinc. WhatsApp",
+    "knowledge": {
+        "title": "Base de conocimiento",
+        "description": "FAQs, horarios, políticas y servicios que el asistente usará para responder.",
+        "search_placeholder": "Buscar por título o contenido...",
+        "filters": {
+            "all": "Todos",
+            "faq": "FAQs",
+            "horario": "Horarios",
+            "politica": "Políticas",
+            "servicio": "Servicios",
+            "contacto": "Contacto",
+            "general": "General"
+        },
+        "sections": {
+            "faq": "FAQ",
+            "horario": "Horario",
+            "politica": "Política",
+            "servicio": "Servicio",
+            "contacto": "Contacto",
+            "general": "General"
+        },
+        "section_hints": {
+            "faq": "Preguntas frecuentes con respuesta lista. Ej: ¿Atienden emergencias?, ¿Aceptan tarjeta?",
+            "horario": "Horarios de atención por sede o días especiales.",
+            "politica": "Políticas de cancelación, pagos, internación, etc.",
+            "servicio": "Descripción de grooming, hotel, consultas y otros servicios.",
+            "contacto": "Dirección, teléfonos, redes y cómo llegar.",
+            "general": "Información general que no encaja en otra categoría."
+        },
+        "columns": {
+            "entry": "Entrada",
+            "section": "Sección",
+            "content": "Contenido",
+            "status": "Estado",
+            "updated_at": "Actualizado"
+        },
+        "row": {
+            "active": "Activo",
+            "inactive": "Inactivo"
+        },
+        "actions": {
+            "new": "Nueva entrada",
+            "new_short": "Nueva",
+            "delete": "Eliminar",
+            "create_first": "Crear primera entrada"
+        },
+        "form": {
+            "create_title": "Nueva entrada",
+            "edit_title": "Editar entrada",
+            "section_label": "Sección",
+            "slug_label": "Identificador",
+            "slug_placeholder": "faq-horario-sabados",
+            "slug_hint": "Se genera del título. Puedes editarlo si necesitas otro identificador.",
+            "title_label": "Título",
+            "title_placeholder": "¿Atienden los sábados?",
+            "content_label": "Contenido",
+            "content_placeholder": "Escribe la respuesta que el asistente debe dar...",
+            "is_active_label": "Entrada activa",
+            "save": "Guardar",
+            "cancel": "Cancelar"
+        },
+        "delete": {
+            "title": "Eliminar entrada",
+            "description": "¿Eliminar \"{{title}}\"? El asistente dejará de usar esta información.",
+            "confirm": "Sí, eliminar",
+            "cancel": "Cancelar"
+        },
+        "empty": {
+            "no_records_title": "Sin entradas todavía",
+            "no_records_description": "Agrega preguntas frecuentes, horarios y políticas para que el asistente pueda responder.",
+            "no_results_title": "Sin resultados",
+            "no_results_description": "Prueba con otro término o cambia el filtro de sección."
+        },
+        "toast": {
+            "load_error": "Error al cargar la base de conocimiento"
+        }
+    }
 }
