@@ -274,7 +274,7 @@ export default function Index({ subscription, comprobantes }: SuscripcionIndexPr
         <>
             <Head title={t('title')} />
 
-            <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-4 p-4 sm:p-5">
+            <div className="flex flex-1 flex-col gap-5 p-4 sm:p-6">
                 <PageHeader title={t('title')} description={t('description')} />
 
                 {summary && summary.urgency !== 'ok' && (
@@ -292,7 +292,7 @@ export default function Index({ subscription, comprobantes }: SuscripcionIndexPr
                 {summary && (
                     <div
                         className={cn(
-                            'overflow-hidden rounded-xl border border-white/10 bg-gradient-to-r text-white shadow-md',
+                            'overflow-hidden rounded-xl border border-white/10 bg-linear-to-r text-white shadow-md',
                             urgencyHeroClass(summary.urgency),
                         )}
                     >
@@ -374,8 +374,14 @@ export default function Index({ subscription, comprobantes }: SuscripcionIndexPr
                     </div>
                 )}
 
-                <div className="overflow-hidden rounded-xl border border-border/60 bg-card/80 shadow-sm ring-1 ring-border/20">
-                    <div className="grid divide-y lg:grid-cols-3 lg:divide-x lg:divide-y-0">
+                <div className="grid gap-5 xl:grid-cols-12">
+                    <div
+                        className={cn(
+                            'overflow-hidden rounded-xl border border-border/60 bg-card/80 shadow-sm ring-1 ring-border/20',
+                            comprobantes?.enabled ? 'xl:col-span-8' : 'xl:col-span-12',
+                        )}
+                    >
+                        <div className="grid divide-y lg:grid-cols-3 lg:divide-x lg:divide-y-0">
                         <div className="p-4">
                             <PanelSection title={t('sections.plan')} icon={Package}>
                                 <InfoRow label={t('fields.plan')} value={planNombre} />
@@ -519,15 +525,17 @@ export default function Index({ subscription, comprobantes }: SuscripcionIndexPr
                             </PanelSection>
                         </div>
                     </div>
-                </div>
+                    </div>
 
-                {comprobantes?.enabled ? (
-                    <ComprobantesQuotaCard
-                        quota={comprobantes}
-                        locale={locale}
-                        compact
-                    />
-                ) : null}
+                    {comprobantes?.enabled ? (
+                        <ComprobantesQuotaCard
+                            quota={comprobantes}
+                            locale={locale}
+                            compact
+                            className="xl:col-span-4"
+                        />
+                    ) : null}
+                </div>
             </div>
         </>
     );
