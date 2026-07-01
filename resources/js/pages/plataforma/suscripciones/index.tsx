@@ -42,6 +42,7 @@ import AppLayout from '@/layouts/app-layout';
 import suscripciones from '@/routes/plataforma/suscripciones';
 import type { Paginated } from '@/types';
 import { SubscriptionActionsDialog, type SubscriptionActionMode } from './components/subscription-actions-dialog';
+import { SubscriptionBotIaToggleDialog } from './components/subscription-bot-ia-toggle-dialog';
 import { SubscriptionBulkDeleteDialog } from './components/subscription-bulk-delete-dialog';
 import { SubscriptionDeleteDialog } from './components/subscription-delete-dialog';
 import { SubscriptionFormModal } from './components/subscription-form-modal';
@@ -86,7 +87,8 @@ type ModalState =
     | { type: 'delete'; subscription: Subscription }
     | { type: 'bulk-delete' }
     | { type: 'renewal-preview'; subscription: Subscription }
-    | { type: 'renewal-send'; subscription: Subscription };
+    | { type: 'renewal-send'; subscription: Subscription }
+    | { type: 'bot-ia-toggle'; subscription: Subscription };
 
 const DEFAULT_PER_PAGE = 10;
 const DEFAULT_ESTADO: SubscriptionEstadoFilter = 'todos';
@@ -308,6 +310,11 @@ export default function Index({
     const openRenewalSend = useCallback(
         (subscription: Subscription) =>
             setModal({ type: 'renewal-send', subscription }),
+        [],
+    );
+    const openToggleBotIa = useCallback(
+        (subscription: Subscription) =>
+            setModal({ type: 'bot-ia-toggle', subscription }),
         [],
     );
 
@@ -544,6 +551,7 @@ export default function Index({
                             onDelete={openDelete}
                             onRenewalPreview={openRenewalPreview}
                             onRenewalSend={openRenewalSend}
+                            onToggleBotIa={openToggleBotIa}
                             canUpdate={canUpdate}
                             canViewRenewalPreview={canViewRenewalPreview}
                             canSendRenewalWhatsApp={canSendRenewalWhatsApp}
@@ -577,6 +585,7 @@ export default function Index({
         openDelete,
         openRenewalPreview,
         openRenewalSend,
+        openToggleBotIa,
         canViewRenewalPreview,
         canSendRenewalWhatsApp,
     ]);
@@ -860,6 +869,16 @@ export default function Index({
                 }}
                 subscription={
                     modal.type === 'renewal-send' ? modal.subscription : null
+                }
+            />
+
+            <SubscriptionBotIaToggleDialog
+                open={modal.type === 'bot-ia-toggle'}
+                onOpenChange={(open) => {
+                    if (!open) closeModal();
+                }}
+                subscription={
+                    modal.type === 'bot-ia-toggle' ? modal.subscription : null
                 }
             />
 

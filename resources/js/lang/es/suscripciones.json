@@ -64,9 +64,17 @@
         "renewal_send": "Enviar link renovación WhatsApp",
         "bot_ia_badge": "Bot IA",
         "bot_ia_activate": "Activar asistente IA",
-        "bot_ia_deactivate": "Desactivar asistente IA",
-        "bot_ia_activate_confirm": "¿Activar el asistente IA WhatsApp (S/15/mes) para {{name}}?",
-        "bot_ia_deactivate_confirm": "¿Desactivar el asistente IA para {{name}}?"
+        "bot_ia_deactivate": "Desactivar asistente IA"
+    },
+    "bot_ia_toggle": {
+        "activate_title": "Activar asistente IA WhatsApp",
+        "activate_description": "Se habilitará el add-on para <strong>{{name}}</strong> con un cargo adicional de S/ {{price}} al mes.",
+        "activate_hint": "La clínica verá el servicio en Comunicaciones → Asistente IA y en su vista de Mi suscripción.",
+        "activate_confirm": "Activar add-on",
+        "deactivate_title": "Desactivar asistente IA",
+        "deactivate_description": "Se desactivará el asistente IA para <strong>{{name}}</strong>. La clínica dejará de ver el panel de gestión.",
+        "deactivate_hint": "Los mensajes automáticos del bot dejarán de responderse. Puedes volver a activarlo cuando quieras.",
+        "deactivate_confirm": "Desactivar add-on"
     },
     "renewal_send": {
         "title": "Enviar link de renovación",

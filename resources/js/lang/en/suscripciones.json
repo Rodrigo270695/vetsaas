@@ -64,9 +64,17 @@
         "renewal_send": "Send renewal link via WhatsApp",
         "bot_ia_badge": "AI Bot",
         "bot_ia_activate": "Enable AI assistant",
-        "bot_ia_deactivate": "Disable AI assistant",
-        "bot_ia_activate_confirm": "Enable WhatsApp AI assistant (S/15/mo) for {{name}}?",
-        "bot_ia_deactivate_confirm": "Disable AI assistant for {{name}}?"
+        "bot_ia_deactivate": "Disable AI assistant"
+    },
+    "bot_ia_toggle": {
+        "activate_title": "Enable WhatsApp AI assistant",
+        "activate_description": "The add-on will be enabled for <strong>{{name}}</strong> at an additional S/ {{price}} per month.",
+        "activate_hint": "The clinic will see the service under Communications → AI Assistant and on My subscription.",
+        "activate_confirm": "Enable add-on",
+        "deactivate_title": "Disable AI assistant",
+        "deactivate_description": "The AI assistant will be disabled for <strong>{{name}}</strong>. The clinic will no longer see the management panel.",
+        "deactivate_hint": "Automatic bot replies will stop. You can re-enable it at any time.",
+        "deactivate_confirm": "Disable add-on"
     },
     "renewal_send": {
         "title": "Send renewal link",

@@ -1,4 +1,4 @@
-import { Link, router } from '@inertiajs/react';
+import { Link } from '@inertiajs/react';
 import {
     Ban,
     Bot,
@@ -35,6 +35,7 @@ export type SubscriptionRowActionsProps = {
     onDelete: (s: Subscription) => void;
     onRenewalPreview?: (s: Subscription) => void;
     onRenewalSend?: (s: Subscription) => void;
+    onToggleBotIa?: (s: Subscription) => void;
     canUpdate?: boolean;
     canViewRenewalPreview?: boolean;
     canSendRenewalWhatsApp?: boolean;
@@ -66,6 +67,7 @@ export function SubscriptionRowActions({
     onDelete,
     onRenewalPreview,
     onRenewalSend,
+    onToggleBotIa,
     canUpdate = true,
     canViewRenewalPreview = true,
     canSendRenewalWhatsApp = true,
@@ -89,35 +91,9 @@ export function SubscriptionRowActions({
         canViewRenewalPreview && !isCancelled && onRenewalPreview !== undefined;
     const showRenewalSend =
         canSendRenewalWhatsApp && !isCancelled && onRenewalSend !== undefined;
-    const showToggleBotIa = canToggleBotIa && !isCancelled;
+    const showToggleBotIa =
+        canToggleBotIa && !isCancelled && onToggleBotIa !== undefined;
     const botIaActive = subscription.bot_ia_activo === true;
-
-    const handleToggleBotIa = () => {
-        const next = !botIaActive;
-        const message = next
-            ? t('suscripciones:row.bot_ia_activate_confirm', {
-                  name:
-                      subscription.tenant?.razon_social ??
-                      subscription.tenant?.slug ??
-                      '',
-              })
-            : t('suscripciones:row.bot_ia_deactivate_confirm', {
-                  name:
-                      subscription.tenant?.razon_social ??
-                      subscription.tenant?.slug ??
-                      '',
-              });
-
-        if (!window.confirm(message)) {
-            return;
-        }
-
-        router.post(
-            `/plataforma/suscripciones/${subscription.id}/toggle-bot-ia`,
-            { activo: next },
-            { preserveScroll: true },
-        );
-    };
 
     // Link al historial de cobros filtrado por esta suscripción.
     // El filtro `subscription_id` lo lee el SubscriptionPaymentController.
@@ -209,7 +185,7 @@ export function SubscriptionRowActions({
 
                 {showToggleBotIa && (
                     <DropdownMenuItem
-                        onSelect={handleToggleBotIa}
+                        onSelect={() => onToggleBotIa(subscription)}
                         className={cn(
                             'cursor-pointer gap-2',
                             botIaActive
