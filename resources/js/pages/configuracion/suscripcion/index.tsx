@@ -1,22 +1,21 @@
-import { Head } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import {
     AlertCircle,
+    Bot,
     CalendarClock,
-    CheckCircle2,
+    ChevronRight,
     CreditCard,
     ExternalLink,
     Package,
     Sparkles,
 } from 'lucide-react';
-import { Link } from '@inertiajs/react';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { PageHeader, StatBadge } from '@/components/data-page';
+import { PageHeader } from '@/components/data-page';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
-import { SectionCard } from '../general/components/section-card';
 import { ComprobantesQuotaCard, type ComprobantesQuota } from './components/comprobantes-quota-card';
 
 type SubscriptionPlan = {
@@ -72,33 +71,23 @@ type SuscripcionIndexProps = {
     comprobantes: ComprobantesQuota | null;
 };
 
-const formatDate = (value: string | null, locale: string): string => {
+const formatDate = (value: string | null, locale: string, short = false): string => {
     if (!value) return '—';
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return '—';
     return date.toLocaleDateString(locale === 'en' ? 'en-US' : 'es-PE', {
         day: '2-digit',
-        month: 'long',
+        month: short ? 'short' : 'long',
         year: 'numeric',
     });
 };
 
-const formatPrice = (value: string | null): string => {
+const formatPrice = (value: string | number | null): string => {
     if (value === null) return '—';
-    const num = Number(value);
+    const num = typeof value === 'number' ? value : Number(value);
     if (Number.isNaN(num)) return '—';
     return `S/. ${num.toFixed(2)}`;
 };
-
-function estadoVariant(
-    estado: SubscriptionEstado,
-): Parameters<typeof StatBadge>[0]['variant'] {
-    if (estado === 'active') return 'success';
-    if (estado === 'trial') return 'info';
-    if (estado === 'grace' || estado === 'suspended') return 'warning';
-    if (estado === 'cancelled') return 'muted';
-    return 'muted';
-}
 
 function urgencyAlertClass(urgency: SubscriptionSummary['urgency']): string {
     switch (urgency) {
@@ -120,15 +109,15 @@ function urgencyAlertClass(urgency: SubscriptionSummary['urgency']): string {
 function urgencyHeroClass(urgency: SubscriptionSummary['urgency']): string {
     switch (urgency) {
         case 'red':
-            return 'border-red-500/25 bg-gradient-to-br from-red-700 via-red-600 to-red-800 shadow-red-900/20';
+            return 'from-red-700 via-red-600 to-red-800';
         case 'amber':
-            return 'border-amber-500/25 bg-gradient-to-br from-amber-700 via-amber-600 to-orange-700 shadow-amber-900/20';
+            return 'from-amber-700 via-amber-600 to-orange-700';
         case 'yellow':
-            return 'border-yellow-500/25 bg-gradient-to-br from-yellow-700 via-yellow-600 to-amber-700 shadow-yellow-900/20';
+            return 'from-yellow-700 via-yellow-600 to-amber-700';
         case 'danger':
-            return 'border-destructive/30 bg-gradient-to-br from-red-800 via-red-700 to-red-900 shadow-red-950/25';
+            return 'from-red-800 via-red-700 to-red-900';
         default:
-            return 'border-brand-600/20 bg-gradient-to-br from-brand-700 via-brand-600 to-brand-800 shadow-brand-900/15';
+            return 'from-brand-700 via-brand-600 to-brand-800';
     }
 }
 
@@ -147,65 +136,55 @@ function dateValueClass(urgency: SubscriptionSummary['urgency']): string | undef
     }
 }
 
-function DetailRow({
+function InfoRow({
     label,
     value,
     valueClassName,
-    highlight,
+    mono,
 }: {
     label: string;
     value: string;
     valueClassName?: string;
-    highlight?: boolean;
+    mono?: boolean;
 }) {
     return (
-        <div
-            className={cn(
-                'flex flex-col gap-1 rounded-lg border border-transparent px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between',
-                highlight && 'border-border/50 bg-muted/30',
-            )}
-        >
-            <dt className="text-sm text-muted-foreground">{label}</dt>
-            <dd
+        <div className="flex items-baseline justify-between gap-3 py-1.5">
+            <span className="shrink-0 text-xs text-muted-foreground">{label}</span>
+            <span
                 className={cn(
-                    'text-sm font-medium text-foreground sm:text-right',
+                    'text-right text-sm font-medium text-foreground',
+                    mono && 'tabular-nums',
                     valueClassName,
                 )}
             >
                 {value}
-            </dd>
+            </span>
         </div>
     );
 }
 
-function MetricTile({
-    label,
-    value,
-    subvalue,
-    className,
+function PanelSection({
+    title,
+    icon: Icon,
+    children,
+    action,
 }: {
-    label: string;
-    value: string;
-    subvalue?: string;
-    className?: string;
+    title: string;
+    icon?: React.ComponentType<{ className?: string }>;
+    children: React.ReactNode;
+    action?: React.ReactNode;
 }) {
     return (
-        <div
-            className={cn(
-                'rounded-xl border border-border/60 bg-card/70 p-4 ring-1 ring-border/20 backdrop-blur-sm',
-                className,
-            )}
-        >
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                {label}
-            </p>
-            <p className="mt-2 text-lg font-semibold tracking-tight text-foreground">
-                {value}
-            </p>
-            {subvalue && (
-                <p className="mt-1 text-xs text-muted-foreground">{subvalue}</p>
-            )}
-        </div>
+        <section className="min-w-0">
+            <div className="mb-2 flex items-center justify-between gap-2">
+                <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    {Icon ? <Icon className="size-3.5" /> : null}
+                    {title}
+                </h3>
+                {action}
+            </div>
+            {children}
+        </section>
     );
 }
 
@@ -240,8 +219,8 @@ export default function Index({ subscription, comprobantes }: SuscripcionIndexPr
 
     const urgency = summary?.urgency ?? 'muted';
     const highlightDates = dateValueClass(urgency);
-    const renewalDate = formatDate(summary?.renewal_anchor_at ?? null, locale);
-    const proximoCobro = formatDate(summary?.proximo_cobro_at ?? null, locale);
+    const renewalDate = formatDate(summary?.renewal_anchor_at ?? null, locale, true);
+    const proximoCobro = formatDate(summary?.proximo_cobro_at ?? null, locale, true);
     const daysCount = summary?.days_until_renewal;
 
     const billing = summary?.renewal_billing;
@@ -260,427 +239,295 @@ export default function Index({ subscription, comprobantes }: SuscripcionIndexPr
         return Number.isNaN(num) ? null : num;
     }, [billing, summary?.precio_pactado]);
 
-    const paymentTotalLabel = useMemo(() => {
-        const hasAddons =
-            (billing?.bot_ia_amount ?? 0) > 0 ||
-            (billing?.comprobantes_overage_amount ?? 0) > 0 ||
-            (billing?.applies &&
-                billing.total_amount > (billing.plan_amount ?? 0));
-
-        return hasAddons ? t('stats.total') : t('stats.precio');
-    }, [billing, t]);
-
-    const heroBreakdown = useMemo(() => {
-        if (!billing?.applies || paymentTotal === null) {
-            return null;
+    const billingLines = useMemo(() => {
+        if (!billing?.applies) {
+            return [];
         }
 
-        const planAmount = billing.plan_amount ?? 0;
-        const parts: string[] = [];
+        const lines: { label: string; amount: number }[] = [];
 
+        if ((billing.plan_amount ?? 0) > 0) {
+            lines.push({
+                label: t('renewal_billing.breakdown_plan'),
+                amount: billing.plan_amount,
+            });
+        }
         if ((billing.bot_ia_amount ?? 0) > 0) {
-            parts.push(
-                `${t('renewal_billing.breakdown_bot_ia')} ${formatPrice(String(billing.bot_ia_amount))}`,
-            );
+            lines.push({
+                label: t('renewal_billing.breakdown_bot_ia'),
+                amount: billing.bot_ia_amount,
+            });
         }
         if ((billing.comprobantes_overage_amount ?? 0) > 0) {
-            parts.push(
-                `${t('renewal_billing.breakdown_comprobantes')} ${formatPrice(String(billing.comprobantes_overage_amount))}`,
-            );
-        }
-
-        const namedAddons = parts.join(' · ');
-        const addonsAmount = Math.max(0, (billing.total_amount ?? 0) - planAmount);
-
-        if (addonsAmount <= 0) {
-            return null;
-        }
-
-        if (namedAddons) {
-            return t('hero.total_breakdown_named', {
-                plan: formatPrice(String(planAmount)),
-                addons: namedAddons,
+            lines.push({
+                label: t('renewal_billing.breakdown_comprobantes'),
+                amount: billing.comprobantes_overage_amount,
             });
         }
 
-        return t('hero.total_breakdown', {
-            plan: formatPrice(String(planAmount)),
-            addons: formatPrice(String(addonsAmount)),
-        });
-    }, [billing, paymentTotal, t]);
+        return lines;
+    }, [billing, t]);
+
+    const hasBillingExtras = billingLines.length > 1;
 
     return (
         <>
             <Head title={t('title')} />
 
-            <div className="flex flex-1 flex-col gap-5 p-4 sm:p-6">
-                <PageHeader
-                    title={t('title')}
-                    description={t('description')}
-                    stats={
-                        summary
-                            ? [
-                                  {
-                                      label: t('stats.plan'),
-                                      value: planNombre,
-                                      variant: 'default' as const,
-                                      icon: Package,
-                                  },
-                                  {
-                                      label: t('stats.estado'),
-                                      value: estadoLabel,
-                                      variant: estadoVariant(summary.estado),
-                                      icon: CheckCircle2,
-                                  },
-                                  {
-                                      label: paymentTotalLabel,
-                                      value:
-                                          paymentTotal !== null
-                                              ? formatPrice(String(paymentTotal))
-                                              : formatPrice(summary.precio_pactado),
-                                      variant: 'muted' as const,
-                                      icon: CreditCard,
-                                  },
-                                  {
-                                      label: t('stats.renewal'),
-                                      value: proximoCobro,
-                                      variant:
-                                          urgency === 'ok'
-                                              ? ('success' as const)
-                                              : urgency === 'red' ||
-                                                  urgency === 'danger'
-                                                ? ('warning' as const)
-                                                : ('info' as const),
-                                      icon: CalendarClock,
-                                  },
-                              ]
-                            : []
-                    }
-                />
-
-                {summary && (
-                    <section
-                        className={cn(
-                            'relative overflow-hidden rounded-2xl border px-6 py-7 text-white shadow-lg md:px-8 md:py-8',
-                            urgencyHeroClass(summary.urgency),
-                        )}
-                    >
-                        <div
-                            className="pointer-events-none absolute -right-16 -top-20 size-56 rounded-full bg-white/10 blur-2xl"
-                            aria-hidden
-                        />
-                        <div
-                            className="pointer-events-none absolute -bottom-24 left-1/3 size-72 rounded-full bg-white/10 blur-3xl"
-                            aria-hidden
-                        />
-
-                        <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-                            <div className="space-y-4">
-                                <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-medium backdrop-blur-sm ring-1 ring-white/20">
-                                    <Sparkles className="size-3.5" aria-hidden />
-                                    {t('hero.badge')}
-                                </div>
-                                <div>
-                                    <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">
-                                        {planNombre}
-                                    </h2>
-                                    <p className="mt-2 text-sm text-white/85">
-                                        {cicloLabel} · {estadoLabel}
-                                    </p>
-                                    <p className="mt-1 text-sm text-white/75">
-                                        {paymentTotal !== null
-                                            ? formatPrice(String(paymentTotal))
-                                            : formatPrice(summary.precio_pactado)}
-                                    </p>
-                                    {heroBreakdown ? (
-                                        <p className="mt-1 text-xs text-white/60">
-                                            {heroBreakdown}
-                                        </p>
-                                    ) : null}
-                                </div>
-                            </div>
-
-                            <div className="flex flex-col items-start gap-2 rounded-2xl bg-white/10 px-5 py-4 ring-1 ring-white/15 backdrop-blur-sm lg:min-w-52 lg:items-end lg:text-right">
-                                {daysCount !== null && daysCount >= 0 ? (
-                                    <>
-                                        <span className="text-4xl font-bold tabular-nums leading-none">
-                                            {daysCount}
-                                        </span>
-                                        <span className="text-sm text-white/85">
-                                            {daysCount === 0
-                                                ? t('hero.due_today')
-                                                : t('hero.days_label')}
-                                        </span>
-                                    </>
-                                ) : (
-                                    <span className="text-lg font-semibold">
-                                        {daysLabel ?? renewalDate}
-                                    </span>
-                                )}
-                                <span className="text-xs text-white/70">
-                                    {renewalDate}
-                                </span>
-                            </div>
-                        </div>
-                    </section>
-                )}
+            <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-4 p-4 sm:p-5">
+                <PageHeader title={t('title')} description={t('description')} />
 
                 {summary && summary.urgency !== 'ok' && (
-                    <Alert className={urgencyAlertClass(summary.urgency)}>
+                    <Alert className={cn('py-2.5', urgencyAlertClass(summary.urgency))}>
                         <AlertCircle className="size-4" />
-                        <AlertDescription className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                        <AlertDescription className="flex flex-wrap items-center justify-between gap-2 text-sm">
                             <span>{alertMessage}</span>
-                            {daysLabel && (
-                                <span className="text-sm font-semibold">
-                                    {daysLabel}
-                                </span>
-                            )}
+                            {daysLabel ? (
+                                <span className="font-semibold">{daysLabel}</span>
+                            ) : null}
                         </AlertDescription>
                     </Alert>
                 )}
 
-                <div className="grid gap-5 xl:grid-cols-12">
-                    <SectionCard
-                        title={t('sections.plan')}
-                        icon={Package}
-                        className="xl:col-span-5"
-                        badge={
-                            summary ? (
-                                <StatBadge
-                                    label={estadoLabel}
-                                    value=""
-                                    variant={estadoVariant(summary.estado)}
-                                />
-                            ) : undefined
-                        }
-                    >
-                        <div className="grid gap-3 sm:grid-cols-2">
-                            <MetricTile
-                                label={t('fields.plan')}
-                                value={planNombre}
-                            />
-                            <MetricTile
-                                label={t('fields.estado')}
-                                value={estadoLabel}
-                            />
-                            <MetricTile
-                                label={t('fields.ciclo')}
-                                value={cicloLabel}
-                            />
-                            <MetricTile
-                                label={t('fields.precio')}
-                                value={formatPrice(summary?.precio_pactado ?? null)}
-                            />
-                            {summary?.bot_ia?.activo ? (
-                                <MetricTile
-                                    label={t('fields.bot_ia_addon')}
-                                    value={formatPrice(summary.bot_ia.precio_mensual)}
-                                    subvalue={t('bot_ia.coupled_billing', {
-                                        date: formatDate(
-                                            summary.bot_ia.proximo_cobro_at ??
-                                                summary.proximo_cobro_at ??
-                                                null,
-                                            locale,
-                                        ),
-                                    })}
-                                    className="sm:col-span-2"
-                                />
-                            ) : (
-                                <MetricTile
-                                    label={t('fields.bot_ia_addon')}
-                                    value={t('bot_ia.inactive')}
-                                    subvalue={t('bot_ia.description_inactive')}
-                                    className="sm:col-span-2"
-                                />
-                            )}
-                            {billing?.applies &&
-                                (billing.total_amount ?? 0) >
-                                    (billing.plan_amount ?? 0) && (
-                                    <MetricTile
-                                        label={t('stats.total')}
-                                        value={formatPrice(
-                                            String(billing.total_amount),
-                                        )}
-                                        subvalue={heroBreakdown ?? undefined}
-                                    />
-                                )}
-                        </div>
-                        {summary?.bot_ia?.activo && (
-                            <div className="mt-4 flex flex-col gap-3 border-t border-border/60 pt-4 sm:flex-row sm:items-center sm:justify-between">
-                                <p className="text-xs text-muted-foreground">
-                                    {summary.bot_ia.activado_at
-                                        ? t('bot_ia.activated_mid_cycle', {
-                                              activated: formatDate(
-                                                  summary.bot_ia.activado_at,
-                                                  locale,
-                                              ),
-                                              renewal: formatDate(
-                                                  summary.bot_ia.proximo_cobro_at ??
-                                                      summary.proximo_cobro_at ??
-                                                      null,
-                                                  locale,
-                                              ),
-                                              price: formatPrice(
-                                                  summary.bot_ia.precio_mensual,
-                                              ),
-                                          })
-                                        : t('bot_ia.coupled_billing', {
-                                              date: formatDate(
-                                                  summary.bot_ia.proximo_cobro_at ??
-                                                      summary.proximo_cobro_at ??
-                                                      null,
-                                                  locale,
-                                              ),
-                                          })}
-                                </p>
-                                <Button asChild variant="outline" size="sm">
-                                    <Link href="/comunicaciones/bot-ia">
-                                        {t('bot_ia.manage_cta')}
-                                    </Link>
-                                </Button>
-                            </div>
+                {summary && (
+                    <div
+                        className={cn(
+                            'overflow-hidden rounded-xl border border-white/10 bg-gradient-to-r text-white shadow-md',
+                            urgencyHeroClass(summary.urgency),
                         )}
-                    </SectionCard>
-
-                    <SectionCard
-                        title={t('sections.dates')}
-                        icon={CalendarClock}
-                        className="xl:col-span-7"
                     >
-                        <dl className="grid gap-2 sm:grid-cols-2">
-                            {summary?.estado === 'trial' && (
-                                <DetailRow
-                                    label={t('fields.trial_end')}
-                                    value={formatDate(
-                                        summary.trial_ends_at,
-                                        locale,
-                                    )}
-                                />
-                            )}
-                            <DetailRow
-                                label={t('fields.period_start')}
-                                value={formatDate(
-                                    summary?.current_period_start ?? null,
-                                    locale,
-                                )}
-                            />
-                            <DetailRow
-                                label={t('fields.period_end')}
-                                value={formatDate(
-                                    summary?.current_period_end ?? null,
-                                    locale,
-                                )}
-                            />
-                            <DetailRow
-                                label={t('fields.proximo_cobro')}
-                                value={proximoCobro}
-                                valueClassName={highlightDates}
-                                highlight
-                            />
-                            <DetailRow
-                                label={t('fields.renewal_anchor')}
-                                value={renewalDate}
-                                valueClassName={highlightDates}
-                                highlight
-                            />
-                        </dl>
-                    </SectionCard>
-
-                    <ComprobantesQuotaCard
-                        quota={comprobantes}
-                        locale={locale}
-                        className="xl:col-span-6"
-                    />
-
-                    <SectionCard
-                        title={t('sections.renew')}
-                        description={t('renew_hint')}
-                        icon={CreditCard}
-                        className="xl:col-span-6 flex h-full flex-col"
-                        badge={
-                            summary?.renewal_url ? (
-                                <CheckCircle2 className="size-5 text-primary" />
-                            ) : undefined
-                        }
-                    >
-                        {summary.renewal_billing?.applies &&
-                            summary.renewal_billing.total_amount > 0 && (
-                                <div className="mb-4 rounded-lg border border-border/60 bg-muted/20 px-4 py-3">
-                                    <p className="text-sm font-medium text-foreground">
-                                        {t('renewal_billing.total')}:{' '}
-                                        {formatPrice(
-                                            String(summary.renewal_billing.total_amount),
-                                        )}
-                                    </p>
-                                    <p className="mt-1 text-xs text-muted-foreground">
-                                        {t('renewal_billing.total_hint')}
-                                    </p>
-                                    <div className="mt-2 flex flex-wrap gap-3 text-xs text-muted-foreground">
-                                        <span>
-                                            {t('renewal_billing.breakdown_plan')}:{' '}
-                                            {formatPrice(
-                                                String(summary.renewal_billing.plan_amount),
-                                            )}
-                                        </span>
-                                        {summary.renewal_billing.bot_ia_amount > 0 && (
-                                            <span>
-                                                {t('renewal_billing.breakdown_bot_ia')}:{' '}
-                                                {formatPrice(
-                                                    String(
-                                                        summary.renewal_billing.bot_ia_amount,
-                                                    ),
-                                                )}
-                                            </span>
-                                        )}
-                                        {(summary.renewal_billing
-                                            .comprobantes_overage_amount ?? 0) > 0 && (
-                                            <span>
-                                                {t(
-                                                    'renewal_billing.breakdown_comprobantes',
-                                                )}
-                                                :{' '}
-                                                {formatPrice(
-                                                    String(
-                                                        summary.renewal_billing
-                                                            .comprobantes_overage_amount,
-                                                    ),
-                                                )}
-                                            </span>
-                                        )}
-                                    </div>
+                        <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                            <div className="min-w-0 space-y-1">
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ring-1 ring-white/20">
+                                        <Sparkles className="size-3" />
+                                        {t('hero.badge')}
+                                    </span>
+                                    <span className="rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-medium ring-1 ring-white/20">
+                                        {estadoLabel}
+                                    </span>
                                 </div>
-                            )}
-                        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-                            <div className="max-w-2xl space-y-2">
-                                <p className="text-sm text-muted-foreground">
-                                    {t('renew_hint')}
+                                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                                    <h2 className="text-xl font-semibold tracking-tight">
+                                        {planNombre}
+                                    </h2>
+                                    <span className="text-sm text-white/75">
+                                        {cicloLabel}
+                                    </span>
+                                </div>
+                                <p className="text-2xl font-bold tabular-nums leading-tight">
+                                    {paymentTotal !== null
+                                        ? formatPrice(paymentTotal)
+                                        : formatPrice(summary.precio_pactado)}
                                 </p>
-                                <p className="text-xs text-muted-foreground">
-                                    {t('support')}
-                                </p>
+                                {hasBillingExtras ? (
+                                    <p className="text-xs text-white/65">
+                                        {billingLines
+                                            .map(
+                                                (line) =>
+                                                    `${line.label} ${formatPrice(line.amount)}`,
+                                            )
+                                            .join(' · ')}
+                                    </p>
+                                ) : null}
                             </div>
 
-                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                                {summary?.renewal_url ? (
-                                    <Button asChild size="lg" className="min-w-48">
+                            <div className="flex shrink-0 flex-wrap items-center gap-3 sm:justify-end">
+                                <div className="rounded-lg bg-black/15 px-3 py-2 text-center ring-1 ring-white/15 sm:text-right">
+                                    {daysCount !== null && daysCount >= 0 ? (
+                                        <>
+                                            <p className="text-2xl font-bold tabular-nums leading-none">
+                                                {daysCount}
+                                            </p>
+                                            <p className="mt-0.5 text-[11px] text-white/80">
+                                                {daysCount === 0
+                                                    ? t('hero.due_today')
+                                                    : t('hero.days_label')}
+                                            </p>
+                                        </>
+                                    ) : (
+                                        <p className="text-sm font-semibold">
+                                            {daysLabel ?? renewalDate}
+                                        </p>
+                                    )}
+                                    <p className="text-[11px] text-white/65">{proximoCobro}</p>
+                                </div>
+
+                                {summary.renewal_url ? (
+                                    <Button
+                                        asChild
+                                        size="sm"
+                                        className="bg-white text-brand-800 hover:bg-white/90"
+                                    >
                                         <a
                                             href={summary.renewal_url}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                         >
                                             {t('renew_cta')}
-                                            <ExternalLink className="size-4" />
+                                            <ExternalLink className="size-3.5" />
                                         </a>
                                     </Button>
-                                ) : (
-                                    <p className="text-sm text-muted-foreground">
-                                        {t('no_renewal_url')}
-                                    </p>
-                                )}
+                                ) : null}
                             </div>
                         </div>
-                    </SectionCard>
+                    </div>
+                )}
+
+                <div className="overflow-hidden rounded-xl border border-border/60 bg-card/80 shadow-sm ring-1 ring-border/20">
+                    <div className="grid divide-y lg:grid-cols-3 lg:divide-x lg:divide-y-0">
+                        <div className="p-4">
+                            <PanelSection title={t('sections.plan')} icon={Package}>
+                                <InfoRow label={t('fields.plan')} value={planNombre} />
+                                <InfoRow label={t('fields.ciclo')} value={cicloLabel} />
+                                <InfoRow
+                                    label={t('fields.precio')}
+                                    value={formatPrice(summary?.precio_pactado ?? null)}
+                                    mono
+                                />
+                                {summary?.bot_ia?.activo ? (
+                                    <InfoRow
+                                        label={t('fields.bot_ia_addon')}
+                                        value={formatPrice(summary.bot_ia.precio_mensual)}
+                                        mono
+                                    />
+                                ) : null}
+                                {hasBillingExtras && paymentTotal !== null ? (
+                                    <div className="mt-2 border-t border-border/50 pt-2">
+                                        {billingLines.map((line) => (
+                                            <InfoRow
+                                                key={line.label}
+                                                label={line.label}
+                                                value={formatPrice(line.amount)}
+                                                mono
+                                            />
+                                        ))}
+                                        <InfoRow
+                                            label={t('stats.total')}
+                                            value={formatPrice(paymentTotal)}
+                                            valueClassName="text-primary"
+                                            mono
+                                        />
+                                    </div>
+                                ) : null}
+                                {summary?.bot_ia?.activo ? (
+                                    <Link
+                                        href="/comunicaciones/bot-ia"
+                                        className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                                    >
+                                        <Bot className="size-3.5" />
+                                        {t('bot_ia.manage_cta')}
+                                        <ChevronRight className="size-3.5" />
+                                    </Link>
+                                ) : null}
+                            </PanelSection>
+                        </div>
+
+                        <div className="p-4">
+                            <PanelSection
+                                title={t('sections.dates')}
+                                icon={CalendarClock}
+                            >
+                                {summary?.estado === 'trial' ? (
+                                    <InfoRow
+                                        label={t('fields.trial_end')}
+                                        value={formatDate(
+                                            summary.trial_ends_at,
+                                            locale,
+                                            true,
+                                        )}
+                                    />
+                                ) : null}
+                                <InfoRow
+                                    label={t('fields.period_start')}
+                                    value={formatDate(
+                                        summary?.current_period_start ?? null,
+                                        locale,
+                                        true,
+                                    )}
+                                />
+                                <InfoRow
+                                    label={t('fields.period_end')}
+                                    value={formatDate(
+                                        summary?.current_period_end ?? null,
+                                        locale,
+                                        true,
+                                    )}
+                                />
+                                <InfoRow
+                                    label={t('fields.proximo_cobro')}
+                                    value={proximoCobro}
+                                    valueClassName={highlightDates}
+                                />
+                                <InfoRow
+                                    label={t('fields.renewal_anchor')}
+                                    value={renewalDate}
+                                    valueClassName={highlightDates}
+                                />
+                            </PanelSection>
+                        </div>
+
+                        <div className="p-4">
+                            <PanelSection title={t('sections.renew')} icon={CreditCard}>
+                                {paymentTotal !== null && hasBillingExtras ? (
+                                    <p className="mb-2 text-lg font-semibold tabular-nums text-foreground">
+                                        {formatPrice(paymentTotal)}
+                                    </p>
+                                ) : null}
+                                <p className="text-xs leading-relaxed text-muted-foreground">
+                                    {t('renew_hint')}
+                                </p>
+                                {summary?.bot_ia?.activo && summary.bot_ia.activado_at ? (
+                                    <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+                                        {t('bot_ia.activated_mid_cycle', {
+                                            activated: formatDate(
+                                                summary.bot_ia.activado_at,
+                                                locale,
+                                                true,
+                                            ),
+                                            renewal: formatDate(
+                                                summary.bot_ia.proximo_cobro_at ??
+                                                    summary.proximo_cobro_at ??
+                                                    null,
+                                                locale,
+                                                true,
+                                            ),
+                                            price: formatPrice(
+                                                summary.bot_ia.precio_mensual,
+                                            ),
+                                        })}
+                                    </p>
+                                ) : null}
+                                <div className="mt-3">
+                                    {summary?.renewal_url ? (
+                                        <Button asChild size="sm" className="w-full sm:w-auto">
+                                            <a
+                                                href={summary.renewal_url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                            >
+                                                {t('renew_cta')}
+                                                <ExternalLink className="size-3.5" />
+                                            </a>
+                                        </Button>
+                                    ) : (
+                                        <p className="text-xs text-muted-foreground">
+                                            {t('no_renewal_url')}
+                                        </p>
+                                    )}
+                                </div>
+                            </PanelSection>
+                        </div>
+                    </div>
                 </div>
+
+                {comprobantes?.enabled ? (
+                    <ComprobantesQuotaCard
+                        quota={comprobantes}
+                        locale={locale}
+                        compact
+                    />
+                ) : null}
             </div>
         </>
     );
