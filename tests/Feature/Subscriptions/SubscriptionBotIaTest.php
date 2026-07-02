@@ -101,7 +101,7 @@ it('muestra bot ia activo en mi suscripción del tenant', function (): void {
 });
 
 it('muestra la vista de asistente ia en comunicaciones cuando está activo', function (): void {
-    $announcement = \App\Models\BotIaAnnouncement::query()->create([
+    \App\Models\BotIaAnnouncement::query()->create([
         'title' => 'Nueva mejora del Asistente IA',
         'badge' => \App\Models\BotIaAnnouncement::BADGE_NUEVO,
         'bullet_1' => 'Registra clientes por WhatsApp.',
@@ -123,8 +123,27 @@ it('muestra la vista de asistente ia en comunicaciones cuando está activo', fun
         ->assertInertia(fn ($page) => $page
             ->component('comunicaciones/bot-ia/index')
             ->where('bot_ia.activo', true)
-            ->where('announcement.id', $announcement->id)
-            ->where('announcement.title', 'Nueva mejora del Asistente IA'));
+            ->where('announcement', null));
+});
+
+it('muestra la novedad solo cuando el add-on bot ia no está contratado', function (): void {
+    $announcement = \App\Models\BotIaAnnouncement::query()->create([
+        'title' => 'Activa el Asistente IA en tu clínica',
+        'badge' => \App\Models\BotIaAnnouncement::BADGE_NUEVO,
+        'bullet_1' => 'Responde consultas 24/7 por WhatsApp.',
+        'bullet_2' => 'Registra clientes y agenda citas desde el chat.',
+        'bullet_3' => 'Precio desde S/. 15 en tu renovación de plan.',
+        'is_active' => true,
+        'published_at' => now(),
+    ]);
+
+    $this->actingAs($this->testTenantAdmin)
+        ->get('http://'.$this->testTenantHost.'/comunicaciones/bot-ia')
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('comunicaciones/bot-ia/index')
+            ->where('bot_ia.activo', false)
+            ->where('announcement.id', $announcement->id));
 });
 
 it('muestra vista bloqueada de asistente ia cuando no está contratado', function (): void {

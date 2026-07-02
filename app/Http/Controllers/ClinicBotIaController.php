@@ -68,7 +68,7 @@ final class ClinicBotIaController extends Controller
             'bot_ia' => $botIa,
             'whatsapp' => $whatsapp->forTenant($tenant),
             'can_manage' => $canManage,
-            'announcement' => $this->announcementPayload($isActive),
+            'announcement' => $this->announcementPayload(! $isActive),
             'assistant' => $isActive ? $this->assistantPayload() : null,
             'tab' => $this->resolveTab($request),
             'knowledge' => $knowledge,
@@ -168,8 +168,11 @@ final class ClinicBotIaController extends Controller
     }
 
     /**
+     * Novedad promocional: solo para tenants sin el add-on Bot IA contratado.
+     *
      * @return array{
      *     id: string,
+     *     badge: string,
      *     title: string,
      *     bullets: list<string>,
      *     guide_title: string|null,
@@ -177,13 +180,19 @@ final class ClinicBotIaController extends Controller
      *     guide_tips: list<string>
      * }|null
      */
-    private function announcementPayload(bool $addonActive): ?array
+    private function announcementPayload(bool $shouldShow): ?array
     {
-        if (! $addonActive) {
+        if (! $shouldShow) {
             return null;
         }
 
-        return BotIaAnnouncement::currentForTenants()?->toTenantPayload();
+        try {
+            return BotIaAnnouncement::currentForTenants()?->toTenantPayload();
+        } catch (\Throwable $e) {
+            report($e);
+
+            return null;
+        }
     }
 
     /**

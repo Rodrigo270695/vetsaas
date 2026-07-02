@@ -18,17 +18,17 @@ final class BotIaAnnouncementSeeder extends Seeder
     public function run(): void
     {
         BotIaAnnouncement::query()->updateOrCreate(
-            ['title' => 'Tu Asistente IA ahora trabaja por ti en WhatsApp'],
+            ['title' => 'Activa el Asistente IA en tu clínica'],
             [
                 'badge' => BotIaAnnouncement::BADGE_NUEVO,
-                'bullet_1' => 'Registra clientes y mascotas nuevos sin abrir VetSaaS: el bot lo hace desde el chat de WhatsApp.',
-                'bullet_2' => 'Agenda citas y turnos de grooming confirmando fecha, hora y mascota en segundos.',
-                'bullet_3' => 'Cada conversación queda en Chats para auditar, pausar la IA o intervenir cuando tu equipo lo necesite.',
-                'guide_title' => 'Ponlo a trabajar en 3 pasos',
-                'guide_body' => 'Tu clínica ya tiene el add-on activo. Solo asegúrate de que el asistente tenga información real y permisos para actuar.',
-                'guide_tip_1' => 'Completa horarios, servicios y FAQs en la pestaña Base de conocimiento.',
-                'guide_tip_2' => 'Mantén WhatsApp sincronizado y las respuestas automáticas encendidas.',
-                'guide_tip_3' => 'Si respondes manualmente desde el celular de la clínica, la IA se pausa sola en ese chat.',
+                'bullet_1' => 'Responde consultas frecuentes 24/7 por WhatsApp con la base de conocimiento de tu clínica.',
+                'bullet_2' => 'Registra clientes, mascotas y agenda citas directamente desde el chat — sin que tu equipo abra VetSaaS.',
+                'bullet_3' => 'Add-on desde S/. 15/mes en tu renovación: actívalo en Mi suscripción o pide a soporte que lo habilite.',
+                'guide_title' => '¿Cómo lo activo?',
+                'guide_body' => 'El Asistente IA es un complemento de tu plan VetSaaS. Una vez activo, conectas el mismo WhatsApp de tu clínica y el bot empieza a atender.',
+                'guide_tip_1' => 'Entra a Configuración → Mi suscripción y revisa el add-on Asistente IA.',
+                'guide_tip_2' => 'O contacta a soporte VetSaaS para activarlo en tu cuenta.',
+                'guide_tip_3' => 'Cuando esté activo, completa horarios, servicios y FAQs para mejores respuestas.',
                 'is_active' => true,
                 'published_at' => now(),
                 'expires_at' => null,
@@ -37,7 +37,7 @@ final class BotIaAnnouncementSeeder extends Seeder
 
         // Solo una novedad publicada: desactiva el resto salvo esta.
         $active = BotIaAnnouncement::query()
-            ->where('title', 'Tu Asistente IA ahora trabaja por ti en WhatsApp')
+            ->where('title', 'Activa el Asistente IA en tu clínica')
             ->first();
 
         if ($active !== null) {

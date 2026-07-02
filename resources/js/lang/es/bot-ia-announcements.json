@@ -1,7 +1,7 @@
 {
     "title": "Novedades Asistente IA",
-    "description": "Crea avisos que verán los admins de cada clínica al entrar a Comunicaciones → Asistente IA.",
-    "hint": "Solo puede haber una novedad publicada a la vez. Al activar una nueva, las demás se desactivan automáticamente.",
+    "description": "Crea avisos promocionales para clínicas que aún no tienen el add-on Bot IA. Solo la verán al entrar a Comunicaciones → Asistente IA.",
+    "hint": "La novedad solo aparece en tenants sin Bot IA contratado. Si ya lo tienen activo (ej. en Suscripciones), no la verán. Solo puede haber una publicada a la vez.",
     "search_placeholder": "Buscar por título o contenido...",
     "filters": {
         "all": "Todas",
@@ -57,7 +57,7 @@
         "guide_tip_3_label": "Tip 3 (opcional)",
         "guide_tip_placeholder": "Consejo práctico para la clínica",
         "is_active_label": "Publicar para tenants",
-        "is_active_hint": "Los admins lo verán una vez hasta pulsar Entendido.",
+        "is_active_hint": "Solo la verán clínicas sin Bot IA contratado, una vez hasta pulsar Entendido.",
         "published_at_label": "Fecha de publicación (opcional)",
         "expires_at_label": "Fecha de expiración (opcional)",
         "save": "Guardar",

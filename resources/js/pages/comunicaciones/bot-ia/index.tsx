@@ -364,7 +364,10 @@ export default function Index({
                 <PageHeader title={t('title')} description={t('description')} />
 
                 {!isActive ? (
-                    <Alert className="border-amber-500/30 bg-amber-500/5">
+                    <>
+                        {announcement ? <BotIaUpdateBanner announcement={announcement} /> : null}
+
+                        <Alert className="border-amber-500/30 bg-amber-500/5">
                         <Lock className="size-4 text-amber-600" />
                         <AlertDescription className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                             <div>
@@ -378,10 +381,9 @@ export default function Index({
                             </Button>
                         </AlertDescription>
                     </Alert>
+                    </>
                 ) : (
                     <>
-                        {announcement ? <BotIaUpdateBanner announcement={announcement} /> : null}
-
                         <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/30 px-3 py-2.5 text-sm">
                             <StatBadge
                                 label={t('status.service')}
