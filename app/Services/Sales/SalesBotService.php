@@ -49,6 +49,10 @@ use RuntimeException;
  */
 final class SalesBotService
 {
+    public const PRODUCT_VETSAAS = 'vetsaas';
+
+    public const PRODUCT_PAGINAS_WEB = 'paginas-web';
+
     public function __construct(
         private readonly PlatformWhatsAppMessenger $messenger,
     ) {}
@@ -66,8 +70,18 @@ final class SalesBotService
      *  - Precio cambia → edita en Plataforma → Planes → bot lo sabe solo.
      *  - Módulo/FAQ/Objeción → edita en Plataforma → Bot de ventas.
      */
-    private function buildSystemPrompt(string $product = 'vetsaas'): string
+    private function buildSystemPrompt(string $product = self::PRODUCT_VETSAAS): string
     {
+        return match ($product) {
+            self::PRODUCT_PAGINAS_WEB => $this->buildPaginasWebSystemPrompt(),
+            default => $this->buildVetsaasSystemPrompt(),
+        };
+    }
+
+    private function buildVetsaasSystemPrompt(): string
+    {
+        $product = self::PRODUCT_VETSAAS;
+
         // ── Planes completos: precios + features reales desde BD ────────────
         // Cada vez que Rodrigo edite un plan o sus features, el bot
         // lo sabe automáticamente en el próximo mensaje (caché 5 min).
@@ -309,6 +323,146 @@ Después de ese mensaje NO respondas nada más en esta conversación.
 PROMPT;
     }
 
+    private function buildPaginasWebSystemPrompt(): string
+    {
+        return <<<'PROMPT'
+⚠️ REGLA #1 — WhatsApp NO renderiza Markdown.
+PROHIBIDO: [texto](url) • **negrita** • *cursiva*
+Los enlaces van como URL plana si hace falta: https://orvae.pe
+
+---
+
+Eres el asesor digital de Orvae Software Development (orvae.pe).
+Actúas como consultor de negocio, analista de sistemas y desarrollador senior.
+Tu objetivo es entender el proyecto del cliente, recomendar el plan correcto y dejar todo listo para cerrar la venta.
+
+Tono: cercano, profesional, español peruano natural. Máximo 2 emojis por mensaje.
+
+## PLANES OFICIALES (usa estos precios y beneficios exactos)
+
+PLAN 1 — Landing Page — S/ 519 pago único
+- Página web informativa profesional
+- Dominio .com propio (1 año)
+- Hosting rápido y seguro (1 año)
+- Correos corporativos ilimitados (1 año), ej. contacto@tunegocio.com
+- Certificado SSL HTTPS (1 año)
+- Diseño moderno adaptado a móvil
+- Soporte post-entrega incluido
+Ideal para: negocios que quieren presencia online profesional rápido.
+
+PLAN 2 — Web Administrable — S/ 719 pago único
+- Todo lo del Plan 1, más:
+- Panel de administración propio
+- Cambia imágenes desde el celular
+- Edita textos y contenidos tú mismo
+- Sin depender de nosotros para updates
+- Acceso desde cualquier dispositivo
+Ideal para: negocios que quieren actualizar su web sin contratar desarrollador.
+
+PLAN 3 — Software a Medida — cotización personalizada
+- Sistema desarrollado 100% para el cliente
+- Gestión de inventario, ventas, clientes (según necesidad)
+- Automatización de procesos internos
+- Integraciones con otros sistemas
+- Base de datos propia y segura
+- Panel de reportes y estadísticas
+- Soporte y mantenimiento continuo
+Ideal para: empresas que necesitan digitalizar procesos y control total.
+
+Pagos Plan 1 y 2: Yape o transferencia (el administrador confirma datos al cerrar).
+Plan 3: cotización tras levantar requerimientos.
+
+## FLUJO DE CONVERSACIÓN
+
+PASO 1 — Si es el primer mensaje o piden info/planes: presenta los 3 planes de forma clara (puede ser hasta 12 líneas en ese mensaje). Cierra preguntando con cuál se identifican más.
+
+PASO 2 — Según el plan elegido, haz preguntas de descubrimiento UNA a la vez:
+
+Plan 1 o 2 (web):
+- Nombre del negocio y rubro
+- Si ya tienen dominio o hay que registrar uno
+- Qué secciones necesitan (inicio, servicios, contacto, etc.)
+- Si tienen logo, fotos y textos listos
+- Plazo deseado
+
+Plan 3 (software a medida):
+- Nombre de la empresa y rubro
+- Problema principal que quieren resolver
+- Procesos a digitalizar (ventas, inventario, clientes, reportes…)
+- Cuántos usuarios usarían el sistema
+- Si necesitan integraciones (Excel, facturación, WhatsApp, etc.)
+- Si ya usan algún sistema o todo es manual
+
+PASO 3 — Resume en 4-6 líneas: plan, alcance acordado, entregables y precio. Pregunta si está de acuerdo para avanzar.
+
+PASO 4 — CIERRE Y HANDOFF (solo cuando ya tengas plan + alcance + confirmación del cliente):
+Responde con UNA sola vez esta frase (puedes variar ligeramente el inicio pero DEBE incluir "Te paso con Rodrigo, nuestro administrador"):
+"Perfecto 🙌 Ya tengo claro tu proyecto. Te paso con Rodrigo, nuestro administrador, para cerrar los detalles finales y coordinar el pago."
+Después de ese mensaje NO hagas más preguntas ni sigas la conversación.
+
+## REGLAS
+1. No inventes precios ni features fuera de los 3 planes.
+2. Si no saben qué plan elegir, orienta con 1 pregunta sobre su negocio y recomienda UN solo plan.
+3. Para Plan 3, profundiza como analista: entiende el proceso actual antes de proponer módulos.
+4. Si preguntan por VetSaaS o clínicas veterinarias, di que este chat es para desarrollo web/software Orvae y ofrece ayuda con esos planes.
+5. Si preguntan algo totalmente ajeno (chistes, tareas escolares, etc.), redirige al proyecto en 1 frase.
+6. Cada respuesta (excepto el mensaje de planes inicial) máximo 6 líneas y termina con UNA pregunta, salvo en el mensaje final de handoff.
+
+## NUNCA
+- Prometer fechas exactas sin consultar al administrador (di "coordinamos el plazo al cerrar").
+- Dar descuentos no autorizados.
+- Seguir escribiendo después del mensaje de handoff a Rodrigo.
+PROMPT;
+    }
+
+    public function resolveProductFromTrigger(string $trigger): string
+    {
+        $trigger = mb_strtolower(trim($trigger));
+
+        if (
+            $trigger === self::PRODUCT_PAGINAS_WEB
+            || str_starts_with($trigger, self::PRODUCT_PAGINAS_WEB.':')
+            || str_starts_with($trigger, 'facebook:'.self::PRODUCT_PAGINAS_WEB)
+            || str_contains($trigger, self::PRODUCT_PAGINAS_WEB)
+        ) {
+            return self::PRODUCT_PAGINAS_WEB;
+        }
+
+        return self::PRODUCT_VETSAAS;
+    }
+
+    public function resolveConversationProduct(SalesConversation $conversation): string
+    {
+        $stored = trim((string) ($conversation->product ?? ''));
+
+        if ($stored !== '') {
+            return $stored;
+        }
+
+        return $this->resolveProductFromTrigger((string) ($conversation->activation_trigger ?? ''));
+    }
+
+    public function shouldPauseForAdminHandoff(string $reply, string $product): bool
+    {
+        if ($product !== self::PRODUCT_PAGINAS_WEB) {
+            return false;
+        }
+
+        $lower = mb_strtolower($reply);
+
+        foreach ([
+            'te paso con rodrigo',
+            'te conecto con rodrigo',
+            'paso con rodrigo',
+        ] as $marker) {
+            if (str_contains($lower, $marker)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /**
      * Procesa un mensaje entrante y devuelve la respuesta del bot.
      *
@@ -324,11 +478,17 @@ PROMPT;
         // 1. Agregar mensaje del usuario al historial.
         $conversation->pushMessage('user', $incomingMessage);
 
+        $product = $this->resolveConversationProduct($conversation);
+
         // 2. Construir el payload para OpenAI.
         $messages = array_merge(
-            [['role' => 'system', 'content' => $this->buildSystemPrompt()]],
+            [['role' => 'system', 'content' => $this->buildSystemPrompt($product)]],
             $conversation->getOpenAiMessages(),
         );
+
+        $maxTokens = $product === self::PRODUCT_PAGINAS_WEB
+            ? (int) config('salesbot.max_tokens_paginas_web', 550)
+            : (int) config('salesbot.max_tokens', 300);
 
         // 3. Llamar a la API de OpenAI.
         $response = Http::withHeaders([
@@ -337,7 +497,7 @@ PROMPT;
         ])->timeout(30)->post('https://api.openai.com/v1/chat/completions', [
             'model'       => (string) config('salesbot.openai_model', 'gpt-4o-mini'),
             'messages'    => $messages,
-            'max_tokens'  => (int) config('salesbot.max_tokens', 300),
+            'max_tokens'  => $maxTokens,
             'temperature' => (float) config('salesbot.temperature', 0.7),
         ]);
 
@@ -558,6 +718,7 @@ PROMPT;
         string $waChatId,
         ?string $prospectName,
         string $trigger,
+        string $product = self::PRODUCT_VETSAAS,
     ): SalesConversation {
         /** @var SalesConversation */
         return SalesConversation::query()->create([
@@ -568,21 +729,10 @@ PROMPT;
             'turn_count'         => 0,
             'bot_active'         => true,
             'activation_trigger' => $trigger,
+            'product'            => $product,
         ]);
     }
 
-    /**
-     * Detecta si un mensaje contiene palabras clave de ventas de VetSaaS.
-     *
-     * Devuelve el trigger encontrado o null si no es un prospecto.
-     *
-     * Estas keywords deben coincidir con los mensajes de bienvenida
-     * configurados en los anuncios de Facebook Ads de Orvae.
-     *
-     * TODO — Para agregar otros productos (Aula Virtual, Inventario):
-     *   Agregar sus propias keywords aquí y devolver el slug del producto.
-     *   El controlador luego cargará el system prompt correspondiente.
-     */
     /**
      * Transcribe un archivo de audio a texto usando la API Whisper de OpenAI.
      *
@@ -831,11 +981,33 @@ PROMPT;
      */
     public function isFacebookWelcomeMessage(string $body): bool
     {
+        return $this->detectFacebookWelcomeProduct($body) !== null;
+    }
+
+    public function detectFacebookWelcomeProduct(string $body): ?string
+    {
         if (trim($body) === '') {
-            return false;
+            return null;
         }
 
         $lower = mb_strtolower($body);
+
+        foreach ([
+            'página web',
+            'pagina web',
+            'páginas web',
+            'paginas web',
+            'planes de página',
+            'planes de pagina',
+            'diseño web',
+            'diseno web',
+            'sitio web',
+            'desarrollo web',
+        ] as $signal) {
+            if (str_contains($lower, $signal)) {
+                return self::PRODUCT_PAGINAS_WEB;
+            }
+        }
 
         foreach ([
             'vetsaas',
@@ -843,13 +1015,15 @@ PROMPT;
             'gracias por escribir',
             'saludo automático',
             'saludo automatico',
+            'clínica vet',
+            'clinica vet',
         ] as $signal) {
             if (str_contains($lower, $signal)) {
-                return true;
+                return self::PRODUCT_VETSAAS;
             }
         }
 
-        return false;
+        return null;
     }
 
     public function isFacebookLeadConversation(?SalesConversation $conversation): bool
@@ -870,6 +1044,10 @@ PROMPT;
         ?string $prospectName,
         string $welcomeBody,
     ): SalesConversation {
+        $product      = $this->detectFacebookWelcomeProduct($welcomeBody) ?? self::PRODUCT_VETSAAS;
+        $trigger      = $product === self::PRODUCT_PAGINAS_WEB
+            ? 'facebook:'.self::PRODUCT_PAGINAS_WEB
+            : 'facebook:welcome';
         $conversation = $this->findExistingConversation($phone, $waChatId);
 
         if ($conversation !== null) {
@@ -880,13 +1058,15 @@ PROMPT;
 
             $this->syncContactMetadata($conversation, $phone, $waChatId, $prospectName);
             $conversation->resumeBot();
-            $conversation->activation_trigger = 'facebook:welcome';
+            $conversation->activation_trigger = $trigger;
+            $conversation->product            = $product;
         } else {
             $conversation = $this->createConversation(
                 phone: $phone,
                 waChatId: $waChatId,
                 prospectName: $prospectName,
-                trigger: 'facebook:welcome',
+                trigger: $trigger,
+                product: $product,
             );
         }
 
@@ -919,40 +1099,60 @@ PROMPT;
         $lower = mb_strtolower($message);
 
         $triggers = [
-            // Menciones directas al producto
-            'vetsaas'       => 'vetsaas',
-            'vet saas'      => 'vetsaas',
+            // Orvae — páginas web y software (ANTES que keywords genéricas)
+            'planes de página web'   => self::PRODUCT_PAGINAS_WEB,
+            'planes de pagina web'   => self::PRODUCT_PAGINAS_WEB,
+            'info sobre sus planes'  => self::PRODUCT_PAGINAS_WEB,
+            'página administrable'   => self::PRODUCT_PAGINAS_WEB,
+            'pagina administrable'   => self::PRODUCT_PAGINAS_WEB,
+            'web administrable'      => self::PRODUCT_PAGINAS_WEB,
+            'landing page'           => self::PRODUCT_PAGINAS_WEB,
+            'landingpage'            => self::PRODUCT_PAGINAS_WEB,
+            'páginas web'            => self::PRODUCT_PAGINAS_WEB,
+            'paginas web'            => self::PRODUCT_PAGINAS_WEB,
+            'página web'             => self::PRODUCT_PAGINAS_WEB,
+            'pagina web'             => self::PRODUCT_PAGINAS_WEB,
+            'sitio web'              => self::PRODUCT_PAGINAS_WEB,
+            'diseño web'             => self::PRODUCT_PAGINAS_WEB,
+            'diseno web'             => self::PRODUCT_PAGINAS_WEB,
+            'desarrollo web'         => self::PRODUCT_PAGINAS_WEB,
+            'software a medida'      => self::PRODUCT_PAGINAS_WEB,
+            'sistema a medida'       => self::PRODUCT_PAGINAS_WEB,
+            'hosting y dominio'      => self::PRODUCT_PAGINAS_WEB,
+            // VetSaaS — menciones directas al producto
+            'vetsaas'                => self::PRODUCT_VETSAAS,
+            'vet saas'               => self::PRODUCT_VETSAAS,
             // Contexto veterinario
-            'veterinari'    => 'veterinaria',
-            'clinica vet'   => 'veterinaria',
-            'clínica vet'   => 'veterinaria',
-            'mascotas'      => 'veterinaria',
-            'pacientes vet' => 'veterinaria',
+            'veterinari'             => 'veterinaria',
+            'clinica vet'            => 'veterinaria',
+            'clínica vet'            => 'veterinaria',
+            'mascotas'               => 'veterinaria',
+            'pacientes vet'          => 'veterinaria',
             // Intención de compra / información
-            'me interesa'   => 'interes',
-            'quiero info'   => 'interes',
-            'más informaci' => 'interes',
-            'mas informaci' => 'interes',
-            'informaci'     => 'interes',   // "información de costos", "quiero información"
-            'quiero saber'  => 'interes',
-            'cómo funciona' => 'interes',
-            'como funciona' => 'interes',
+            'me interesa'            => 'interes',
+            'quiero info'            => 'interes',
+            'más informaci'          => 'interes',
+            'mas informaci'          => 'interes',
+            'informaci'              => 'interes',
+            'quiero saber'           => 'interes',
+            'cómo funciona'          => 'interes',
+            'como funciona'          => 'interes',
             // Demo / precio
-            'demo'          => 'demo',
-            'prueba'        => 'demo',
-            'precio'        => 'precio',
-            'precios'       => 'precio',
-            'costos'        => 'precio',
-            'costo'         => 'precio',
-            'tarifa'        => 'precio',
-            'tarifas'       => 'precio',
-            'cotiz'         => 'precio',    // cotización, cotizar
-            'cuánto cuesta' => 'precio',
-            'cuanto cuesta' => 'precio',
-            'cuánto vale'   => 'precio',
-            'cuanto vale'   => 'precio',
-            'cuánto es'     => 'precio',
-            'cuanto es'     => 'precio',
+            'demo'                   => 'demo',
+            'prueba'                 => 'demo',
+            'precio'                 => 'precio',
+            'precios'                => 'precio',
+            'costos'                 => 'precio',
+            'costo'                  => 'precio',
+            'tarifa'                 => 'precio',
+            'tarifas'                => 'precio',
+            'cotiz'                  => 'precio',
+            'cuánto cuesta'          => 'precio',
+            'cuanto cuesta'          => 'precio',
+            'cuánto vale'            => 'precio',
+            'cuanto vale'            => 'precio',
+            'cuánto es'              => 'precio',
+            'cuanto es'              => 'precio',
         ];
 
         foreach ($triggers as $keyword => $trigger) {
@@ -968,7 +1168,7 @@ PROMPT;
      * Detecta mensajes que indican conversación manual (no ventas VetSaaS).
      * Ej: cliente envía datos de registro, habla con Rodrigo, proyecto a medida.
      */
-    public function isHumanHandoffMessage(string $message): bool
+    public function isHumanHandoffMessage(string $message, ?string $product = null): bool
     {
         $lower = mb_strtolower($message);
 
@@ -983,14 +1183,17 @@ PROMPT;
             'razón social',
             'razon social',
             'dominio a registrar',
-            'software a medida',
-            'a medida',
             'corporacion',
             'corporación',
             'eirl',
             's.a.c.',
             'sac ',
         ];
+
+        if ($product !== self::PRODUCT_PAGINAS_WEB) {
+            $signals[] = 'software a medida';
+            $signals[] = 'a medida';
+        }
 
         $matchCount = 0;
         foreach ($signals as $signal) {

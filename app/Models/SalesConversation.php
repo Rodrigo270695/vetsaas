@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property bool        $bot_active          true = bot responde | false = Rodrigo escribe manualmente
  * @property bool        $bot_paused_manually true = pausado desde el panel; no reactivar automáticamente
  * @property string|null $activation_trigger  qué palabra clave activó el bot
+ * @property string      $product             vetsaas | paginas-web
  * @property int         $reactivation_count  veces que se ha enviado un mensaje de reactivación
  * @property \Illuminate\Support\Carbon|null $last_reactivation_at último mensaje de reactivación enviado
  * @property bool        $converted           true = lead convirtió (no reactivar más)
@@ -42,6 +43,7 @@ final class SalesConversation extends Model
         'bot_active',
         'bot_paused_manually',
         'activation_trigger',
+        'product',
         'last_message_at',
         'reactivation_count',
         'last_reactivation_at',

@@ -166,7 +166,14 @@ final class SalesBotWebhookController extends Controller
         }
 
         // Cliente habla con Rodrigo o envía datos de proyecto → no intervenir.
-        if ($this->botService->isHumanHandoffMessage($body)) {
+        $conversationForHandoff = $this->botService->findExistingConversation($phone, $waChatId);
+        $handoffProduct         = $conversationForHandoff !== null
+            ? $this->botService->resolveConversationProduct($conversationForHandoff)
+            : $this->botService->resolveProductFromTrigger(
+                (string) ($this->botService->detectSalesTrigger($body) ?? ''),
+            );
+
+        if ($this->botService->isHumanHandoffMessage($body, $handoffProduct)) {
             $conversation = $this->botService->findExistingConversation($phone, $waChatId);
 
             if ($conversation !== null && $conversation->bot_active) {
@@ -258,6 +265,7 @@ final class SalesBotWebhookController extends Controller
                     $conversation->resumeBot();
                     if ($trigger !== null) {
                         $conversation->activation_trigger = "reactivado:{$trigger}";
+                        $conversation->product            = $this->botService->resolveProductFromTrigger($trigger);
                     }
                     $conversation->save();
                 } else {
@@ -279,6 +287,7 @@ final class SalesBotWebhookController extends Controller
                 waChatId: $waChatId,
                 prospectName: $prospectName,
                 trigger: $trigger,
+                product: $this->botService->resolveProductFromTrigger($trigger),
             );
         }
 
@@ -292,18 +301,28 @@ final class SalesBotWebhookController extends Controller
             ]);
 
             // Fallback amigable si OpenAI falla: no dejar al prospecto sin respuesta.
-            $reply = "Hola 👋 Gracias por escribir sobre VetSaaS. Dame un momento y te respondo enseguida.";
+            $reply = "Hola 👋 Gracias por escribir. Dame un momento y te respondo enseguida.";
         }
+
+        $product = $this->botService->resolveConversationProduct($conversation);
 
         // ── 5b. Detectar auto-pausa por preguntas fuera de tema ───────────
         // Si el bot respondió con la frase de despedida (3+ preguntas off-topic),
         // pausamos el bot automáticamente para no seguir consumiendo tokens.
         $offTopicSignal = 'Parece que no es el mejor momento';
-        if (str_contains($reply, $offTopicSignal)) {
+        if ($product === SalesBotService::PRODUCT_VETSAAS && str_contains($reply, $offTopicSignal)) {
             $conversation->pauseBotAuto();
             $conversation->activation_trigger = 'auto-pausa:off-topic';
             $conversation->save();
             Log::info('SalesBot auto-paused: off-topic', ['phone' => $phone]);
+        }
+
+        // ── 5c. Handoff a administrador (páginas web) ─────────────────────
+        if ($this->botService->shouldPauseForAdminHandoff($reply, $product)) {
+            $conversation->pauseBotManually();
+            $conversation->activation_trigger = 'handoff:admin';
+            $conversation->save();
+            Log::info('SalesBot paused for admin handoff', ['phone' => $phone, 'product' => $product]);
         }
 
         // ── 6. Enviar respuesta por WhatsApp ──────────────────────────────
