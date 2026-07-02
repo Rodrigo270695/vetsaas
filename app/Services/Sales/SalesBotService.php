@@ -442,6 +442,29 @@ PROMPT;
         return $this->resolveProductFromTrigger((string) ($conversation->activation_trigger ?? ''));
     }
 
+    /**
+     * Si el lead cambia de tema (ej. VetSaaS → páginas web), actualiza el producto.
+     */
+    public function syncProductFromMessage(SalesConversation $conversation, string $message): void
+    {
+        $trigger = $this->detectSalesTrigger($message);
+
+        if ($trigger === null) {
+            return;
+        }
+
+        $detected = $this->resolveProductFromTrigger($trigger);
+        $current  = $this->resolveConversationProduct($conversation);
+
+        if ($detected === $current) {
+            return;
+        }
+
+        $conversation->product            = $detected;
+        $conversation->activation_trigger = 'switch:'.$trigger;
+        $conversation->save();
+    }
+
     public function shouldPauseForAdminHandoff(string $reply, string $product): bool
     {
         if ($product !== self::PRODUCT_PAGINAS_WEB) {

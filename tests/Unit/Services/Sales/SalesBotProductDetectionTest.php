@@ -38,6 +38,12 @@ it('detecta bienvenida facebook de paginas web', function (): void {
     expect($this->bot->detectFacebookWelcomeProduct($welcome))->toBe(SalesBotService::PRODUCT_PAGINAS_WEB);
 });
 
+it('detecta informacion sobre paginas web con acentos', function (): void {
+    $msg = 'Hola, información sobre páginas web ?';
+
+    expect($this->bot->detectSalesTrigger($msg))->toBe(SalesBotService::PRODUCT_PAGINAS_WEB);
+});
+
 it('pausa al detectar handoff a administrador', function (): void {
     $reply = 'Perfecto 🙌 Ya tengo claro tu proyecto. Te paso con Rodrigo, nuestro administrador, para cerrar.';
 

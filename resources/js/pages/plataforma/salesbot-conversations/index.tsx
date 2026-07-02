@@ -46,6 +46,7 @@ type Conversation = {
     id: string;
     phone: string;
     prospect_name: string | null;
+    product: 'vetsaas' | 'paginas-web' | string;
     turn_count: number;
     bot_active: boolean;
     bot_paused_manually: boolean;
@@ -103,7 +104,16 @@ const formatTrigger = (trigger: string | null): string | null => {
     if (trigger.startsWith('manual:')) return 'Importado';
     if (trigger.startsWith('auto-pausa:')) return 'Pausado auto';
     if (trigger.startsWith('reactivado:')) return 'Reactivado';
+    if (trigger.startsWith('switch:')) return 'Cambio de producto';
     return trigger;
+};
+
+const formatProduct = (product: string): { label: string; variant: 'primary' | 'warning' } => {
+    if (product === 'paginas-web') {
+        return { label: 'Páginas web', variant: 'warning' };
+    }
+
+    return { label: 'VetSaaS', variant: 'primary' };
 };
 
 /** Muestra el teléfono como número legible. */
@@ -686,6 +696,15 @@ export default function SalesBotConversationsIndex({ conversations, filters, sta
                     </span>
                 </div>
             ),
+        },
+        {
+            key: 'product',
+            header: 'Producto',
+            cell: (conv) => {
+                const { label, variant } = formatProduct(conv.product);
+
+                return <StatBadge label={label} value="" variant={variant} />;
+            },
         },
         {
             key: 'bot_active',

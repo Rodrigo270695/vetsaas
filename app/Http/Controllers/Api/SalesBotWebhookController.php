@@ -252,6 +252,7 @@ final class SalesBotWebhookController extends Controller
 
         if ($conversation !== null) {
             $this->botService->syncContactMetadata($conversation, $phone, $waChatId, $prospectName);
+            $this->botService->syncProductFromMessage($conversation, $body);
 
             if (! $conversation->bot_active) {
                 if ($conversation->isManuallyPaused()) {

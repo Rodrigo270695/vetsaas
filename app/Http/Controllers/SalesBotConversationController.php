@@ -74,28 +74,7 @@ final class SalesBotConversationController extends Controller
         $conversations = $query
             ->paginate($perPage)
             ->withQueryString()
-            ->through(static function (SalesConversation $c): array {
-                $messages = $c->messages ?? [];
-                $lastMsg  = count($messages) > 0 ? end($messages) : null;
-
-                return [
-                    'id'                   => $c->id,
-                    'phone'                => $c->phone,
-                    'prospect_name'        => $c->prospect_name,
-                    'turn_count'           => $c->turn_count,
-                    'bot_active'           => $c->bot_active,
-                    'bot_paused_manually'  => (bool) $c->bot_paused_manually,
-                    'converted'            => $c->converted,
-                    'activation_trigger'   => $c->activation_trigger,
-                    'reactivation_count'   => $c->reactivation_count ?? 0,
-                    'last_reactivation_at' => $c->last_reactivation_at?->toIso8601String(),
-                    'lost_at'              => $c->lost_at?->toIso8601String(),
-                    'last_message_at'      => $c->last_message_at?->toIso8601String(),
-                    'last_message_body'    => $lastMsg ? (string) ($lastMsg['content'] ?? '') : null,
-                    'last_message_role'    => $lastMsg ? (string) ($lastMsg['role'] ?? '') : null,
-                    'created_at'           => $c->created_at->toIso8601String(),
-                ];
-            });
+            ->through(fn (SalesConversation $c): array => $this->mapConversationRow($c));
 
         $stats = [
             'total'        => SalesConversation::query()->count(),
@@ -465,5 +444,33 @@ final class SalesBotConversationController extends Controller
                 'error' => $e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function mapConversationRow(SalesConversation $c): array
+    {
+        $messages = $c->messages ?? [];
+        $lastMsg  = count($messages) > 0 ? end($messages) : null;
+
+        return [
+            'id'                   => $c->id,
+            'phone'                => $c->phone,
+            'prospect_name'        => $c->prospect_name,
+            'product'              => $this->botService->resolveConversationProduct($c),
+            'turn_count'           => $c->turn_count,
+            'bot_active'           => $c->bot_active,
+            'bot_paused_manually'  => (bool) $c->bot_paused_manually,
+            'converted'            => $c->converted,
+            'activation_trigger'   => $c->activation_trigger,
+            'reactivation_count'   => $c->reactivation_count ?? 0,
+            'last_reactivation_at' => $c->last_reactivation_at?->toIso8601String(),
+            'lost_at'              => $c->lost_at?->toIso8601String(),
+            'last_message_at'      => $c->last_message_at?->toIso8601String(),
+            'last_message_body'    => $lastMsg ? (string) ($lastMsg['content'] ?? '') : null,
+            'last_message_role'    => $lastMsg ? (string) ($lastMsg['role'] ?? '') : null,
+            'created_at'           => $c->created_at->toIso8601String(),
+        ];
     }
 }
