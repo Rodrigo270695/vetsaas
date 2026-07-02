@@ -676,7 +676,7 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:comunicaciones-historico.view')
             ->get('historico', [NotificationQueueController::class, 'historico'])
             ->name('historico');
-        Route::middleware('permission:comunicaciones-bot-ia.view|config-general.view|comunicaciones-cola.manage')
+        Route::middleware('permission:comunicaciones-bot-ia.view|config-general.view|comunicaciones-cola.manage|comunicaciones-cola.view|comunicaciones-historico.view')
             ->get('bot-ia', [ClinicBotIaController::class, 'show'])
             ->name('bot-ia');
 

@@ -314,6 +314,7 @@ function useNavConfig(): { singles: NavItem[]; groups: NavGroup[] } {
                             icon: Bot,
                             permission: 'comunicaciones-bot-ia.view',
                             requiresBotIa: true,
+                            novedadWhenBotIaInactive: true,
                         },
                         {
                             title: t('items.plantillas'),

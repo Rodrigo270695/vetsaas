@@ -98,6 +98,14 @@ class AppServiceProvider extends ServiceProvider
             }
 
             if (
+                $ability === 'comunicaciones-bot-ia.view'
+                && ! BotIaAccess::isActiveForCurrentTenant()
+                && BotIaAccess::userHasComunicacionesAccess($user)
+            ) {
+                return true;
+            }
+
+            if (
                 $ability === 'comunicaciones-bot-ia.manage'
                 && BotIaAccess::isActiveForCurrentTenant()
                 && BotIaAccess::userHasManageFallback($user)

@@ -51,6 +51,12 @@ export type NavItem = {
      */
     requiresBotIa?: boolean;
 
+    /**
+     * Si el add-on no está activo, mostrar igual como novedad promocional
+     * (para usuarios con acceso a Comunicaciones).
+     */
+    novedadWhenBotIaInactive?: boolean;
+
     /** Clave de módulo tenant; si se omite se infiere desde `href`. */
     moduleKey?: string;
 };

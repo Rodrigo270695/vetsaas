@@ -1,6 +1,7 @@
 import { Link, usePage } from '@inertiajs/react';
 import { ChevronRight } from 'lucide-react';
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     Collapsible,
     CollapsibleContent,
@@ -22,6 +23,7 @@ import { usePermission } from '@/hooks/use-permission';
 import { moduleKeyForHref } from '@/config/nav-module-keys';
 import { cn } from '@/lib/utils';
 import { OfflineAwareLink } from '@/components/offline-aware-link';
+import { Badge } from '@/components/ui/badge';
 import { isOfflinePath } from '@/lib/offline/offline-routes';
 import type { NavContext, NavGroup, NavItem } from '@/types';
 
@@ -98,6 +100,7 @@ export function NavMainCollapsible({
     const { isCurrentUrl, isCurrentOrParentUrl, currentUrl } = useCurrentUrl();
     const { isMobile, setOpenMobile } = useSidebar();
     const { can, isSuperadmin } = usePermission();
+    const { t } = useTranslation('nav');
     const page = usePage();
     const tenant = page.props.tenant;
     const botIaActive = page.props.bot_ia_addon?.activo === true;
@@ -113,11 +116,17 @@ export function NavMainCollapsible({
         return tenantModulesEnabled[moduleKey] !== false;
     };
 
-    const itemVisible = (item: NavItem): boolean => {
-        if (item.requiresBotIa && !botIaActive) {
-            return false;
-        }
+    const hasComunicacionesAccess =
+        can('comunicaciones-cola.view')
+        || can('comunicaciones-historico.view')
+        || can('comunicaciones-cola.manage')
+        || can('config-general.view')
+        || can('config-general.update');
 
+    const isBotIaNovedadPromo = (item: NavItem): boolean =>
+        item.novedadWhenBotIaInactive === true && !botIaActive && hasComunicacionesAccess;
+
+    const itemVisible = (item: NavItem): boolean => {
         const moduleKey = item.moduleKey ?? moduleKeyForHref(
             typeof item.href === 'string' ? item.href : '',
         );
@@ -126,11 +135,19 @@ export function NavMainCollapsible({
             return false;
         }
 
-        return (
-            isItemImplemented(item) &&
-            (!item.permission || can(item.permission)) &&
-            matchesContext(item.context, hasTenant, isSuperadmin)
-        );
+        if (!isItemImplemented(item) || !matchesContext(item.context, hasTenant, isSuperadmin)) {
+            return false;
+        }
+
+        if (isBotIaNovedadPromo(item)) {
+            return true;
+        }
+
+        if (item.requiresBotIa && !botIaActive) {
+            return false;
+        }
+
+        return !item.permission || can(item.permission);
     };
 
     const closeMobileSidebar = () => {
@@ -142,7 +159,7 @@ export function NavMainCollapsible({
     const visibleSingles = useMemo(
         () => singles.filter(itemVisible),
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [singles, hasTenant, isSuperadmin, botIaActive],
+        [singles, hasTenant, isSuperadmin, botIaActive, hasComunicacionesAccess],
     );
 
     const visibleGroups = useMemo(() => {
@@ -164,7 +181,7 @@ export function NavMainCollapsible({
                 return group.items.length > 0;
             });
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [groups, hasTenant, isSuperadmin, botIaActive]);
+    }, [groups, hasTenant, isSuperadmin, botIaActive, hasComunicacionesAccess]);
 
     const initialOpenMap = useMemo(() => {
         const map: Record<string, boolean> = {};
@@ -244,6 +261,8 @@ export function NavMainCollapsible({
                                                 item.href,
                                             )}
                                             index={index}
+                                            isNovedadPromo={isBotIaNovedadPromo(item)}
+                                            novedadBadgeLabel={t('items.bot_ia_novedad_badge')}
                                             onNavigate={closeMobileSidebar}
                                         />
                                     ))}
@@ -262,6 +281,8 @@ type NavSubItemProps = {
     active: boolean;
     /** Posición dentro del grupo, usada para stagger animation. */
     index: number;
+    isNovedadPromo?: boolean;
+    novedadBadgeLabel?: string;
     /** Callback al hacer click — útil para cerrar sidebar en móvil. */
     onNavigate?: () => void;
 };
@@ -270,7 +291,14 @@ type NavSubItemProps = {
  * Sub-item individual del menú desplegable.
  * Lleva su propia animación de entrada (stagger por índice).
  */
-function NavSubItem({ item, active, index, onNavigate }: NavSubItemProps) {
+function NavSubItem({
+    item,
+    active,
+    index,
+    isNovedadPromo = false,
+    novedadBadgeLabel = 'Nuevo',
+    onNavigate,
+}: NavSubItemProps) {
     const LinkComponent = isOfflinePath(item.href) ? OfflineAwareLink : Link;
 
     return (
@@ -285,9 +313,11 @@ function NavSubItem({ item, active, index, onNavigate }: NavSubItemProps) {
                 data-active={active}
                 className={cn(
                     'group/sub relative flex h-9 items-center gap-2.5 overflow-hidden rounded-md pr-2 pl-3 text-sm transition-all duration-200 outline-hidden focus-visible:ring-2 focus-visible:ring-ring',
-                    active
-                        ? 'bg-primary/10 font-medium text-primary'
-                        : 'text-sidebar-foreground/85 hover:translate-x-0.5 hover:bg-primary/8 hover:text-foreground',
+                    isNovedadPromo && !active
+                        ? 'border border-violet-500/25 bg-violet-500/8 text-foreground hover:bg-violet-500/12'
+                        : active
+                          ? 'bg-primary/10 font-medium text-primary'
+                          : 'text-sidebar-foreground/85 hover:translate-x-0.5 hover:bg-primary/8 hover:text-foreground',
                 )}
             >
                 {/* Barra vertical brand cuando está activo */}
@@ -306,14 +336,25 @@ function NavSubItem({ item, active, index, onNavigate }: NavSubItemProps) {
                         strokeWidth={2.25}
                         className={cn(
                             'size-4 shrink-0 transition-colors duration-200',
-                            active
-                                ? 'text-primary'
-                                : 'text-muted-foreground group-hover/sub:text-primary',
+                            isNovedadPromo && !active
+                                ? 'text-violet-600'
+                                : active
+                                  ? 'text-primary'
+                                  : 'text-muted-foreground group-hover/sub:text-primary',
                         )}
                     />
                 )}
 
-                <span className="truncate">{item.title}</span>
+                <span className="min-w-0 flex-1 truncate">{item.title}</span>
+
+                {isNovedadPromo ? (
+                    <Badge
+                        variant="outline"
+                        className="h-5 shrink-0 border-violet-500/30 bg-violet-500/15 px-1.5 text-[0.65rem] font-semibold text-violet-700 dark:text-violet-300"
+                    >
+                        {novedadBadgeLabel}
+                    </Badge>
+                ) : null}
             </LinkComponent>
         </SidebarMenuSubItem>
     );

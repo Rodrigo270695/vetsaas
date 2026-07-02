@@ -48,7 +48,17 @@ final class BotIaAccess
             return true;
         }
 
-        return self::userHasViewFallback($user);
+        if (self::userHasViewFallback($user)) {
+            return true;
+        }
+
+        $tenant ??= self::resolveCurrentTenant();
+
+        if (! self::isActiveForTenant($tenant) && self::userHasComunicacionesAccess($user)) {
+            return true;
+        }
+
+        return false;
     }
 
     public static function userCanManage(?User $user, ?Tenant $tenant = null): bool
@@ -71,6 +81,15 @@ final class BotIaAccess
         return $user->hasPermissionTo('config-general.view')
             || $user->hasPermissionTo('config-general.update')
             || $user->hasPermissionTo('comunicaciones-cola.manage');
+    }
+
+    public static function userHasComunicacionesAccess(User $user): bool
+    {
+        return $user->hasPermissionTo('comunicaciones-cola.view')
+            || $user->hasPermissionTo('comunicaciones-historico.view')
+            || $user->hasPermissionTo('comunicaciones-cola.manage')
+            || $user->hasPermissionTo('config-general.view')
+            || $user->hasPermissionTo('config-general.update');
     }
 
     public static function userHasManageFallback(User $user): bool

@@ -84,6 +84,17 @@ export function usePermission(): UsePermissionReturn {
                 return true;
             }
             if (
+                !botIaActive &&
+                p === 'comunicaciones-bot-ia.view' &&
+                (permissionSet.has('comunicaciones-cola.view') ||
+                    permissionSet.has('comunicaciones-historico.view') ||
+                    permissionSet.has('comunicaciones-cola.manage') ||
+                    permissionSet.has('config-general.view') ||
+                    permissionSet.has('config-general.update'))
+            ) {
+                return true;
+            }
+            if (
                 botIaActive &&
                 p === 'comunicaciones-bot-ia.manage' &&
                 (permissionSet.has('config-general.update') ||

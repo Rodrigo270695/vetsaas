@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 use App\Models\Plan;
 use App\Models\Subscription;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Tests\Support\CreatesTestTenant;
 use Tests\Support\RefreshDatabaseWithPgsqlSafety;
 
@@ -144,6 +146,36 @@ it('muestra la novedad solo cuando el add-on bot ia no está contratado', functi
             ->component('comunicaciones/bot-ia/index')
             ->where('bot_ia.activo', false)
             ->where('announcement.id', $announcement->id));
+});
+
+it('permite ver la página promocional de bot ia con permiso de cola saliente', function (): void {
+    \App\Models\BotIaAnnouncement::query()->create([
+        'title' => 'Activa el Asistente IA en tu clínica',
+        'badge' => \App\Models\BotIaAnnouncement::BADGE_NUEVO,
+        'bullet_1' => 'Responde consultas 24/7 por WhatsApp.',
+        'bullet_2' => 'Registra clientes y agenda citas desde el chat.',
+        'bullet_3' => 'Precio desde S/. 15 en tu renovación de plan.',
+        'is_active' => true,
+        'published_at' => now(),
+    ]);
+
+    $recepcionista = User::factory()->create([
+        'email' => 'recep-'.$this->testTenantSlug.'@test.local',
+        'tenant_id' => $this->testTenant->id,
+        'password' => Hash::make('password'),
+        'is_active' => true,
+        'must_change_password' => false,
+        'email_verified_at' => now(),
+    ]);
+    $recepcionista->assignRole('recepcionista');
+
+    $this->actingAs($recepcionista)
+        ->get('http://'.$this->testTenantHost.'/comunicaciones/bot-ia')
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('comunicaciones/bot-ia/index')
+            ->where('bot_ia.activo', false)
+            ->has('announcement'));
 });
 
 it('muestra vista bloqueada de asistente ia cuando no está contratado', function (): void {
