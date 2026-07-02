@@ -51,6 +51,30 @@ router.on('success', (event) => {
     rememberInertiaPage(event.detail.page);
 });
 
+// PWA instalada: si el bundle quedó desactualizado, forzar recarga completa.
+router.on('invalid', () => {
+    window.location.reload();
+});
+
+window.addEventListener('unhandledrejection', (event) => {
+    const reason = event.reason;
+    const message =
+        typeof reason === 'string'
+            ? reason
+            : reason instanceof Error
+              ? reason.message
+              : '';
+
+    if (
+        message.includes('Failed to fetch dynamically imported module') ||
+        message.includes('Importing a module script failed') ||
+        message.includes('error loading dynamically imported module')
+    ) {
+        event.preventDefault();
+        window.location.reload();
+    }
+});
+
 initializeTheme();
 
 if ('serviceWorker' in navigator) {

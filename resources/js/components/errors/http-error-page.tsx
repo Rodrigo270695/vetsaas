@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { dashboard } from '@/routes';
 
 type HttpErrorPageProps = {
-    status: 403 | 404 | 500;
+    status: 403 | 404 | 500 | 503;
     message?: string | null;
     attempted_path?: string | null;
     is_authenticated?: boolean;
@@ -21,7 +21,7 @@ export function HttpErrorPage({
     const { t } = useTranslation('common');
 
     const isForbidden = status === 403;
-    const isServerError = status === 500;
+    const isServerError = status === 500 || status === 503;
     const Icon = isForbidden ? Lock : isServerError ? TriangleAlert : SearchX;
     const title = isForbidden
         ? t('http_errors.forbidden.title')

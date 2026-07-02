@@ -26,6 +26,7 @@ use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use Spatie\Permission\Exceptions\PermissionDoesNotExist;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleMiddleware;
 use Spatie\Permission\Middleware\RoleOrPermissionMiddleware;
@@ -177,11 +178,12 @@ return Application::configure(basePath: dirname(__DIR__))
                 return null;
             }
 
-            return Inertia::render($page, [
+            return Inertia::render($page, array_filter([
                 'message' => $userFacingHttpMessage($message),
                 'attempted_path' => '/'.ltrim($request->path(), '/'),
                 'is_authenticated' => Auth::guard('web')->check(),
-            ])
+                'status' => $page === 'errors/server-error' ? $status : null,
+            ], fn ($value) => $value !== null))
                 ->toResponse($request)
                 ->setStatusCode($status);
         };
@@ -208,6 +210,17 @@ return Application::configure(basePath: dirname(__DIR__))
             );
         });
 
+        $exceptions->renderable(function (PermissionDoesNotExist $e, Request $request) use ($renderInertiaHttpError) {
+            report($e);
+
+            return $renderInertiaHttpError(
+                $request,
+                403,
+                'errors/forbidden',
+                'Falta sincronizar permisos. Ejecuta: php artisan db:seed --class=PermissionsSeeder',
+            );
+        });
+
         $exceptions->renderable(function (HttpException $e, Request $request) use ($renderInertiaHttpError) {
             $status = $e->getStatusCode();
 
@@ -225,6 +238,15 @@ return Application::configure(basePath: dirname(__DIR__))
                     $request,
                     404,
                     'errors/not-found',
+                    $e->getMessage() !== '' ? $e->getMessage() : null,
+                );
+            }
+
+            if ($status === 503) {
+                return $renderInertiaHttpError(
+                    $request,
+                    503,
+                    'errors/server-error',
                     $e->getMessage() !== '' ? $e->getMessage() : null,
                 );
             }

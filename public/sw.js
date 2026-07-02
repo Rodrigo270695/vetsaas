@@ -1,8 +1,8 @@
 /**
  * Service Worker VetSaaS — Fase 8 offline (+ centro de sync /offline/cola).
  */
-const STATIC_CACHE = 'vetsaas-static-v9';
-const INERTIA_OFFLINE_CACHE = 'vetsaas-inertia-offline-v9';
+const STATIC_CACHE = 'vetsaas-static-v10';
+const INERTIA_OFFLINE_CACHE = 'vetsaas-inertia-offline-v10';
 const OFFLINE_PREFIXES = [
     '/offline',
     '/caja',
@@ -14,6 +14,9 @@ const OFFLINE_PREFIXES = [
     '/reportes',
     '/configuracion',
 ];
+
+/** Rutas de plataforma/superadmin: siempre red, nunca caché (evita 500 por assets viejos en PWA). */
+const NETWORK_ONLY_PREFIXES = ['/plataforma', '/login', '/dashboard'];
 
 self.addEventListener('install', (event) => {
     self.skipWaiting();
@@ -48,6 +51,12 @@ function isNavigationOrInertia(request) {
 
 function isOfflineModulePath(pathname) {
     return OFFLINE_PREFIXES.some(
+        (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+    );
+}
+
+function isNetworkOnlyPath(pathname) {
+    return NETWORK_ONLY_PREFIXES.some(
         (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
     );
 }
@@ -94,6 +103,11 @@ self.addEventListener('fetch', (event) => {
     const url = new URL(event.request.url);
 
     if (url.origin !== self.location.origin) {
+        return;
+    }
+
+    if (isNetworkOnlyPath(url.pathname)) {
+        event.respondWith(fetch(event.request));
         return;
     }
 
