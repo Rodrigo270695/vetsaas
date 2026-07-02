@@ -10,6 +10,7 @@
         "scheduled": "Scheduled"
     },
     "columns": {
+        "badge": "Badge",
         "title": "Title",
         "status": "Status",
         "published_at": "Published",
@@ -30,16 +31,24 @@
         "delete": "Delete",
         "create_first": "Create first update"
     },
+    "badges": {
+        "nuevo": "New",
+        "mejora": "Improvement",
+        "importante": "Important"
+    },
     "form": {
         "create_title": "New update",
         "edit_title": "Edit update",
+        "badge_label": "Badge",
+        "badge_placeholder": "Select a badge",
         "title_label": "Title",
         "title_placeholder": "New AI assistant improvement",
         "bullet_1_label": "Bullet 1",
-        "bullet_2_label": "Bullet 2 (optional)",
-        "bullet_3_label": "Bullet 3 (optional)",
+        "bullet_2_label": "Bullet 2",
+        "bullet_3_label": "Bullet 3",
         "bullet_placeholder": "Describe the improvement in one line",
-        "guide_title_label": "Guide title (optional)",
+        "guide_section_title": "Expandable guide (optional)",
+        "guide_title_label": "Guide title",
         "guide_title_placeholder": "How to get the most out of it",
         "guide_body_label": "Guide text (optional)",
         "guide_body_placeholder": "Short explanation shown when clicking View guide",

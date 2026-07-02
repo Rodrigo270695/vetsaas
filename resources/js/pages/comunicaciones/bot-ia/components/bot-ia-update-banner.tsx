@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-
+import { AnnouncementTypeBadge } from '@/pages/plataforma/bot-ia-announcements/components/announcement-type-badge';
 import type { TenantAnnouncement } from '@/pages/plataforma/bot-ia-announcements/types';
 
 type Props = {
@@ -57,7 +57,10 @@ export function BotIaUpdateBanner({ announcement }: Props) {
     return (
         <Alert className="border-violet-500/30 bg-violet-500/5">
             <Megaphone className="size-4 text-violet-600" />
-            <AlertTitle className="text-foreground">{announcement.title}</AlertTitle>
+            <AlertTitle className="flex flex-wrap items-center gap-2 text-foreground">
+                <AnnouncementTypeBadge badge={announcement.badge} />
+                <span>{announcement.title}</span>
+            </AlertTitle>
             <AlertDescription className="flex flex-col gap-3">
                 <ul className="list-disc space-y-1 pl-4 text-sm text-muted-foreground">
                     {announcement.bullets.map((bullet) => (

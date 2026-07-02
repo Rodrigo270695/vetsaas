@@ -17,7 +17,10 @@ beforeEach(function (): void {
 it('lista novedades del asistente ia en plataforma', function (): void {
     BotIaAnnouncement::query()->create([
         'title' => 'Novedad de prueba',
+        'badge' => BotIaAnnouncement::BADGE_NUEVO,
         'bullet_1' => 'Punto uno',
+        'bullet_2' => 'Punto dos',
+        'bullet_3' => 'Punto tres',
         'is_active' => true,
         'published_at' => now(),
     ]);
@@ -33,7 +36,10 @@ it('lista novedades del asistente ia en plataforma', function (): void {
 it('publica una novedad y desactiva las anteriores', function (): void {
     $previous = BotIaAnnouncement::query()->create([
         'title' => 'Anterior',
-        'bullet_1' => 'Vieja',
+        'badge' => BotIaAnnouncement::BADGE_MEJORA,
+        'bullet_1' => 'Vieja uno',
+        'bullet_2' => 'Vieja dos',
+        'bullet_3' => 'Vieja tres',
         'is_active' => true,
         'published_at' => now()->subDay(),
     ]);
@@ -41,7 +47,10 @@ it('publica una novedad y desactiva las anteriores', function (): void {
     $this->actingAs($this->superadmin)
         ->post('http://127.0.0.1/plataforma/bot-ia-announcements', [
             'title' => 'Nueva',
-            'bullet_1' => 'Actual',
+            'badge' => BotIaAnnouncement::BADGE_NUEVO,
+            'bullet_1' => 'Actual uno',
+            'bullet_2' => 'Actual dos',
+            'bullet_3' => 'Actual tres',
             'is_active' => true,
         ])
         ->assertRedirect()
@@ -54,7 +63,10 @@ it('publica una novedad y desactiva las anteriores', function (): void {
 it('activa una novedad existente desde plataforma', function (): void {
     $draft = BotIaAnnouncement::query()->create([
         'title' => 'Borrador',
-        'bullet_1' => 'Pendiente',
+        'badge' => BotIaAnnouncement::BADGE_IMPORTANTE,
+        'bullet_1' => 'Pendiente uno',
+        'bullet_2' => 'Pendiente dos',
+        'bullet_3' => 'Pendiente tres',
         'is_active' => false,
     ]);
 

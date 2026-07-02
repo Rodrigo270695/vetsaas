@@ -10,6 +10,7 @@
         "scheduled": "Programadas"
     },
     "columns": {
+        "badge": "Badge",
         "title": "Título",
         "status": "Estado",
         "published_at": "Publicación",
@@ -30,16 +31,24 @@
         "delete": "Eliminar",
         "create_first": "Crear primera novedad"
     },
+    "badges": {
+        "nuevo": "Nuevo",
+        "mejora": "Mejora",
+        "importante": "Importante"
+    },
     "form": {
         "create_title": "Nueva novedad",
         "edit_title": "Editar novedad",
+        "badge_label": "Badge",
+        "badge_placeholder": "Selecciona un badge",
         "title_label": "Título",
         "title_placeholder": "Nueva mejora del Asistente IA",
         "bullet_1_label": "Punto 1",
-        "bullet_2_label": "Punto 2 (opcional)",
-        "bullet_3_label": "Punto 3 (opcional)",
+        "bullet_2_label": "Punto 2",
+        "bullet_3_label": "Punto 3",
         "bullet_placeholder": "Describe la mejora en una línea",
-        "guide_title_label": "Título de la guía (opcional)",
+        "guide_section_title": "Guía expandible (opcional)",
+        "guide_title_label": "Título de la guía",
         "guide_title_placeholder": "Cómo aprovecharlo",
         "guide_body_label": "Texto de la guía (opcional)",
         "guide_body_placeholder": "Breve explicación que aparece al pulsar Ver guía",

@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Cache;
 /**
  * @property string      $id
  * @property string      $title
+ * @property string      $badge
  * @property string      $bullet_1
  * @property string|null $bullet_2
  * @property string|null $bullet_3
@@ -31,10 +32,24 @@ final class BotIaAnnouncement extends Model
     use HasUuids;
     use UsesPublicSchema;
 
+    public const BADGE_NUEVO = 'nuevo';
+
+    public const BADGE_MEJORA = 'mejora';
+
+    public const BADGE_IMPORTANTE = 'importante';
+
+    /** @var list<string> */
+    public const BADGES = [
+        self::BADGE_NUEVO,
+        self::BADGE_MEJORA,
+        self::BADGE_IMPORTANTE,
+    ];
+
     private const CACHE_KEY = 'bot_ia_announcement_current';
 
     protected $fillable = [
         'title',
+        'badge',
         'bullet_1',
         'bullet_2',
         'bullet_3',
@@ -96,6 +111,7 @@ final class BotIaAnnouncement extends Model
     /**
      * @return array{
      *     id: string,
+     *     badge: string,
      *     title: string,
      *     bullets: list<string>,
      *     guide_title: string|null,
@@ -107,6 +123,7 @@ final class BotIaAnnouncement extends Model
     {
         return [
             'id' => $this->id,
+            'badge' => $this->badge,
             'title' => $this->title,
             'bullets' => $this->nonEmptyLines([
                 $this->bullet_1,

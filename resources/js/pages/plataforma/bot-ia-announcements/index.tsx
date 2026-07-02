@@ -23,6 +23,7 @@ import type { Paginated } from '@/types';
 import { AnnouncementDeleteDialog } from './components/announcement-delete-dialog';
 import { AnnouncementFormModal } from './components/announcement-form-modal';
 import { AnnouncementRowActions } from './components/announcement-row-actions';
+import { AnnouncementTypeBadge } from './components/announcement-type-badge';
 import type { AnnouncementEntry, AnnouncementFilters, AnnouncementStatusFilter } from './types';
 
 const ROUTE_URL = '/plataforma/bot-ia-announcements';
@@ -130,6 +131,12 @@ export default function Index({
 
     const columns = useMemo<DataTableColumn<AnnouncementEntry>[]>(() => {
         const base: DataTableColumn<AnnouncementEntry>[] = [
+            {
+                key: 'badge',
+                header: t('columns.badge'),
+                cell: (entry) => <AnnouncementTypeBadge badge={entry.badge} />,
+                className: 'w-28',
+            },
             {
                 key: 'title',
                 header: t('columns.title'),

@@ -1,6 +1,9 @@
+export type AnnouncementBadge = 'nuevo' | 'mejora' | 'importante';
+
 export type AnnouncementEntry = {
     id: string;
     title: string;
+    badge: AnnouncementBadge;
     bullet_1: string;
     bullet_2: string | null;
     bullet_3: string | null;
@@ -30,6 +33,7 @@ export type AnnouncementFilters = {
 
 export type TenantAnnouncement = {
     id: string;
+    badge: AnnouncementBadge;
     title: string;
     bullets: string[];
     guide_title: string | null;

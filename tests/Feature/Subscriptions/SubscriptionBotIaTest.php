@@ -103,6 +103,7 @@ it('muestra bot ia activo en mi suscripción del tenant', function (): void {
 it('muestra la vista de asistente ia en comunicaciones cuando está activo', function (): void {
     $announcement = \App\Models\BotIaAnnouncement::query()->create([
         'title' => 'Nueva mejora del Asistente IA',
+        'badge' => \App\Models\BotIaAnnouncement::BADGE_NUEVO,
         'bullet_1' => 'Registra clientes por WhatsApp.',
         'bullet_2' => 'Agenda citas desde el chat.',
         'bullet_3' => 'Revisa conversaciones en Chats.',
