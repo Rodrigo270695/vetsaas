@@ -23,4 +23,11 @@ return [
     | Ej: https://app.vetsaas.orvae.pe/api/webhooks/clinic-bot
     */
     'webhook_url' => env('BOT_IA_WEBHOOK_URL', ''),
+
+    /*
+    | WhatsApp de soporte para activar el add-on (mensaje prellenado en la landing).
+    | Formato E.164 sin +: 51976809804
+    */
+    'activation_whatsapp_phone' => env('BOT_IA_ACTIVATION_WHATSAPP_PHONE', '51976809804'),
+    'activation_whatsapp_display' => env('BOT_IA_ACTIVATION_WHATSAPP_DISPLAY', '976 809 804'),
 ];

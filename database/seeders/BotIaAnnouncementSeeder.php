@@ -26,7 +26,7 @@ final class BotIaAnnouncementSeeder extends Seeder
                 'bullet_3' => 'Agenda citas y turnos confirmando fecha y hora con el cliente, mientras tú te enfocas en la consulta.',
                 'guide_title' => 'Actívalo en minutos',
                 'guide_body' => 'Por solo S/. 15 adicionales a tu plan mensual, tu clínica tendrá un asistente que nunca duerme. Usa el mismo WhatsApp que ya tienes en VetSaaS.',
-                'guide_tip_1' => 'Entra a Configuración → Mi suscripción y activa el add-on Asistente IA.',
+                'guide_tip_1' => 'Pulsa «Activar por WhatsApp» y te respondemos para habilitar el add-on en tu cuenta.',
                 'guide_tip_2' => 'Sincroniza WhatsApp en Comunicaciones → Cola saliente.',
                 'guide_tip_3' => 'Completa horarios, servicios y FAQs para respuestas más precisas desde el día uno.',
                 'is_active' => true,

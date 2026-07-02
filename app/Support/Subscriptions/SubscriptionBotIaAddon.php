@@ -33,6 +33,20 @@ final class SubscriptionBotIaAddon
             && $subscription->estado !== 'cancelled';
     }
 
+    public static function activationWhatsAppUrl(?\App\Models\Tenant $tenant): string
+    {
+        $digits = preg_replace('/\D/', '', (string) config('bot-ia.activation_whatsapp_phone', '51976809804'));
+        $clinic = trim((string) ($tenant?->nombre_comercial ?? 'mi clínica'));
+        $precio = self::defaultPrecioMensual();
+        $message = sprintf(
+            'Hola, soy %s. Quiero activar el Asistente IA de VetSaaS (S/. %s/mes adicional a mi plan).',
+            $clinic,
+            $precio,
+        );
+
+        return 'https://wa.me/'.$digits.'?text='.rawurlencode($message);
+    }
+
     /**
      * @return array<string, mixed>
      */

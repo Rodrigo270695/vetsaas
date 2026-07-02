@@ -66,11 +66,17 @@ type ModalState =
 
 type BotIaAnnouncement = TenantAnnouncement;
 
+type BotIaActivationContact = {
+    whatsapp_url: string;
+    whatsapp_display: string;
+};
+
 type BotIaPageProps = {
     bot_ia: BotIaPayload;
     whatsapp: WhatsAppProps;
     can_manage: boolean;
     announcement?: BotIaAnnouncement | null;
+    activation_contact?: BotIaActivationContact | null;
     assistant: AssistantSettings | null;
     tab: BotIaTab;
     knowledge: Paginated<KnowledgeEntry> | null;
@@ -164,6 +170,7 @@ export default function Index({
     whatsapp,
     can_manage,
     announcement = null,
+    activation_contact = null,
     assistant = DEFAULT_ASSISTANT,
     tab = DEFAULT_TAB,
     knowledge: paginated = EMPTY_KNOWLEDGE,
@@ -362,10 +369,11 @@ export default function Index({
             <div className="flex flex-1 flex-col gap-4 p-4 sm:p-6">
                 <PageHeader title={t('title')} description={t('description')} />
 
-                {!isActive && announcement ? (
+                {!isActive && announcement && activation_contact ? (
                     <BotIaPromoPanel
                         announcement={announcement}
                         precioMensual={bot_ia.precio_mensual}
+                        activationContact={activation_contact}
                     />
                 ) : null}
 

@@ -145,7 +145,23 @@ it('muestra la novedad solo cuando el add-on bot ia no está contratado', functi
         ->assertInertia(fn ($page) => $page
             ->component('comunicaciones/bot-ia/index')
             ->where('bot_ia.activo', false)
-            ->where('announcement.id', $announcement->id));
+            ->where('announcement.id', $announcement->id)
+            ->has('activation_contact.whatsapp_url')
+            ->where('activation_contact.whatsapp_display', '976 809 804'));
+});
+
+it('incluye mensaje de activación por whatsapp con el nombre de la clínica', function (): void {
+    $this->actingAs($this->testTenantAdmin)
+        ->get('http://'.$this->testTenantHost.'/comunicaciones/bot-ia')
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('comunicaciones/bot-ia/index')
+            ->where('bot_ia.activo', false)
+            ->where(
+                'activation_contact.whatsapp_url',
+                fn (string $url) => str_contains($url, 'https://wa.me/51976809804?text=')
+                    && str_contains(urldecode($url), (string) $this->testTenant->nombre_comercial)
+            ));
 });
 
 it('permite ver la página promocional de bot ia con permiso de cola saliente', function (): void {
@@ -206,7 +222,8 @@ it('permite acceder a asistente ia sin permiso explícito si administra la clín
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->component('comunicaciones/bot-ia/index')
-            ->where('bot_ia.activo', true));
+            ->where('bot_ia.activo', true)
+            ->where('activation_contact', null));
 });
 
 it('rechaza toggle bot ia en suscripción cancelada', function (): void {

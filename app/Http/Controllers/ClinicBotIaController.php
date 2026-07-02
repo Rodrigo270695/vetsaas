@@ -69,6 +69,10 @@ final class ClinicBotIaController extends Controller
             'whatsapp' => $whatsapp->forTenant($tenant),
             'can_manage' => $canManage,
             'announcement' => $this->announcementPayload(! $isActive),
+            'activation_contact' => $isActive ? null : [
+                'whatsapp_url' => SubscriptionBotIaAddon::activationWhatsAppUrl($tenant),
+                'whatsapp_display' => (string) config('bot-ia.activation_whatsapp_display', '976 809 804'),
+            ],
             'assistant' => $isActive ? $this->assistantPayload() : null,
             'tab' => $this->resolveTab($request),
             'knowledge' => $knowledge,

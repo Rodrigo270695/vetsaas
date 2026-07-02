@@ -39,7 +39,9 @@
         "price_label": "Inversión mensual",
         "price_hint": "adicional a tu plan VetSaaS",
         "cta_title": "¿Listo para activarlo en tu clínica?",
-        "cta_button": "Activar en Mi suscripción",
+        "cta_whatsapp": "Activar por WhatsApp",
+        "cta_plan_secondary": "Ver mi plan actual",
+        "whatsapp_hint": "Te atendemos al {{phone}} · mensaje con el nombre de tu clínica ya incluido.",
         "persistent_hint": "Disponible hasta que actives el add-on en tu clínica.",
         "expires_hint": "Promoción visible hasta el {{date}}."
     },

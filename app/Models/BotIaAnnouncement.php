@@ -197,7 +197,7 @@ final class BotIaAnnouncement extends Model
             'guide_title' => 'Actívalo en minutos',
             'guide_body' => 'El Asistente IA es un add-on de tu plan VetSaaS. Usa el mismo WhatsApp de tu clínica y empieza a atender desde el primer día.',
             'guide_tips' => [
-                'Entra a Configuración → Mi suscripción y activa el add-on Asistente IA.',
+                'Escríbenos por WhatsApp y te activamos el add-on en minutos.',
                 'Sincroniza WhatsApp en Comunicaciones → Cola saliente.',
                 'Completa horarios, servicios y FAQs para respuestas más precisas.',
             ],

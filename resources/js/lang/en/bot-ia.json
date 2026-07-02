@@ -39,7 +39,9 @@
         "price_label": "Monthly add-on",
         "price_hint": "on top of your VetSaaS plan",
         "cta_title": "Ready to enable it for your clinic?",
-        "cta_button": "Enable in My subscription",
+        "cta_whatsapp": "Activate via WhatsApp",
+        "cta_plan_secondary": "View my current plan",
+        "whatsapp_hint": "We assist you at {{phone}} · message includes your clinic name.",
         "persistent_hint": "Visible until you activate the add-on.",
         "expires_hint": "Promotion available until {{date}}."
     },
