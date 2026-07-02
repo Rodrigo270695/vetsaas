@@ -31,6 +31,7 @@ import AppLayout from '@/layouts/app-layout';
 import type { Paginated } from '@/types';
 import { type WhatsAppProps } from '../components/whatsapp-connect-card';
 import { AssistantGlobalToggle } from './components/assistant-global-toggle';
+import { BotIaUpdateBanner } from './components/bot-ia-update-banner';
 import { KnowledgeDeleteDialog } from './components/knowledge-delete-dialog';
 import { KnowledgeFormModal } from './components/knowledge-form-modal';
 import { KnowledgeRowActions } from './components/knowledge-row-actions';
@@ -46,6 +47,7 @@ import type {
     KnowledgeSectionFilter,
     KnowledgeStats,
 } from './types';
+import type { TenantAnnouncement } from '@/pages/plataforma/bot-ia-announcements/types';
 
 const ROUTE_URL = '/comunicaciones/bot-ia';
 const DEFAULT_PER_PAGE = 10;
@@ -63,10 +65,13 @@ type ModalState =
     | { type: 'edit'; entry: KnowledgeEntry }
     | { type: 'delete'; entry: KnowledgeEntry };
 
+type BotIaAnnouncement = TenantAnnouncement;
+
 type BotIaPageProps = {
     bot_ia: BotIaPayload;
     whatsapp: WhatsAppProps;
     can_manage: boolean;
+    announcement?: BotIaAnnouncement | null;
     assistant: AssistantSettings | null;
     tab: BotIaTab;
     knowledge: Paginated<KnowledgeEntry> | null;
@@ -159,6 +164,7 @@ export default function Index({
     bot_ia,
     whatsapp,
     can_manage,
+    announcement = null,
     assistant = DEFAULT_ASSISTANT,
     tab = DEFAULT_TAB,
     knowledge: paginated = EMPTY_KNOWLEDGE,
@@ -374,6 +380,8 @@ export default function Index({
                     </Alert>
                 ) : (
                     <>
+                        {announcement ? <BotIaUpdateBanner announcement={announcement} /> : null}
+
                         <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/30 px-3 py-2.5 text-sm">
                             <StatBadge
                                 label={t('status.service')}

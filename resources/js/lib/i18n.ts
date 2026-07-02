@@ -47,6 +47,7 @@ import subscriptionExpiryEn from '@/lang/en/subscription-expiry.json';
 import tenantsEn from '@/lang/en/tenants.json';
 import usuariosEn from '@/lang/en/usuarios.json';
 import vacunacionesEn from '@/lang/en/vacunaciones.json';
+import botIaAnnouncementsEn from '@/lang/en/bot-ia-announcements.json';
 import salesbotKnowledgeEn from '@/lang/en/salesbot-knowledge.json';
 import alertasStockEs from '@/lang/es/alertas-stock.json';
 import auditoriaLogsEs from '@/lang/es/auditoria-logs.json';
@@ -93,6 +94,7 @@ import subscriptionExpiryEs from '@/lang/es/subscription-expiry.json';
 import tenantsEs from '@/lang/es/tenants.json';
 import usuariosEs from '@/lang/es/usuarios.json';
 import vacunacionesEs from '@/lang/es/vacunaciones.json';
+import botIaAnnouncementsEs from '@/lang/es/bot-ia-announcements.json';
 import salesbotKnowledgeEs from '@/lang/es/salesbot-knowledge.json';
 
 /**
@@ -160,6 +162,7 @@ const resources = {
         'facturacion-documentos': facturacionDocumentosEs,
         'tarifas-servicios': tarifasServiciosEs,
         'descuentos-promociones': descuentosPromocionesEs,
+        'bot-ia-announcements': botIaAnnouncementsEs,
         'salesbot-knowledge': salesbotKnowledgeEs,
     },
     en: {
@@ -208,6 +211,7 @@ const resources = {
         'facturacion-documentos': facturacionDocumentosEn,
         'tarifas-servicios': tarifasServiciosEn,
         'descuentos-promociones': descuentosPromocionesEn,
+        'bot-ia-announcements': botIaAnnouncementsEn,
         'salesbot-knowledge': salesbotKnowledgeEn,
     },
 } as const;
@@ -264,6 +268,7 @@ void i18n
             'tarifas-servicios',
             'descuentos-promociones',
             'salesbot-knowledge',
+            'bot-ia-announcements',
         ],
         interpolation: {
             // React ya escapa por defecto. Evita doble escaping.

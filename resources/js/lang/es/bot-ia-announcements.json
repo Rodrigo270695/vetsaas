@@ -1,0 +1,72 @@
+{
+    "title": "Novedades Asistente IA",
+    "description": "Crea avisos que verán los admins de cada clínica al entrar a Comunicaciones → Asistente IA.",
+    "hint": "Solo puede haber una novedad publicada a la vez. Al activar una nueva, las demás se desactivan automáticamente.",
+    "search_placeholder": "Buscar por título o contenido...",
+    "filters": {
+        "all": "Todas",
+        "active": "Publicadas",
+        "inactive": "Borradores",
+        "scheduled": "Programadas"
+    },
+    "columns": {
+        "title": "Título",
+        "status": "Estado",
+        "published_at": "Publicación",
+        "expires_at": "Expira",
+        "updated_at": "Actualizado"
+    },
+    "status": {
+        "active": "Publicada",
+        "inactive": "Borrador",
+        "scheduled": "Programada",
+        "expired": "Expirada",
+        "live_now": "Visible ahora"
+    },
+    "actions": {
+        "new": "Nueva novedad",
+        "new_short": "Nueva",
+        "activate": "Publicar",
+        "delete": "Eliminar",
+        "create_first": "Crear primera novedad"
+    },
+    "form": {
+        "create_title": "Nueva novedad",
+        "edit_title": "Editar novedad",
+        "title_label": "Título",
+        "title_placeholder": "Nueva mejora del Asistente IA",
+        "bullet_1_label": "Punto 1",
+        "bullet_2_label": "Punto 2 (opcional)",
+        "bullet_3_label": "Punto 3 (opcional)",
+        "bullet_placeholder": "Describe la mejora en una línea",
+        "guide_title_label": "Título de la guía (opcional)",
+        "guide_title_placeholder": "Cómo aprovecharlo",
+        "guide_body_label": "Texto de la guía (opcional)",
+        "guide_body_placeholder": "Breve explicación que aparece al pulsar Ver guía",
+        "guide_tip_1_label": "Tip 1 (opcional)",
+        "guide_tip_2_label": "Tip 2 (opcional)",
+        "guide_tip_3_label": "Tip 3 (opcional)",
+        "guide_tip_placeholder": "Consejo práctico para la clínica",
+        "is_active_label": "Publicar para tenants",
+        "is_active_hint": "Los admins lo verán una vez hasta pulsar Entendido.",
+        "published_at_label": "Fecha de publicación (opcional)",
+        "expires_at_label": "Fecha de expiración (opcional)",
+        "save": "Guardar",
+        "cancel": "Cancelar"
+    },
+    "delete": {
+        "title": "Eliminar novedad",
+        "description": "¿Eliminar \"<strong>{{title}}</strong>\"? Los tenants dejarán de verla.",
+        "confirm": "Sí, eliminar",
+        "cancel": "Cancelar"
+    },
+    "empty": {
+        "no_records_title": "Sin novedades todavía",
+        "no_records_description": "Crea un aviso para que las clínicas con Bot IA conozcan las mejoras.",
+        "no_results_title": "Sin resultados",
+        "no_results_description": "Prueba con otro término o cambia el filtro."
+    },
+    "toast": {
+        "load_error": "Error al cargar las novedades"
+    }
+}

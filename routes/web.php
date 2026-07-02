@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\BotIaAnnouncementController;
 use App\Http\Controllers\AlertaStockInventarioController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\Auth\ChangePasswordController;
@@ -1036,6 +1037,23 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:salesbot-knowledge.update')
             ->post('salesbot-knowledge/flush-cache', [SalesBotKnowledgeController::class, 'flushCache'])
             ->name('salesbot-knowledge.flush-cache');
+
+        // ── Novedades in-app del Asistente IA (tenants) ──
+        Route::middleware('permission:bot-ia-announcements.view')
+            ->get('bot-ia-announcements', [BotIaAnnouncementController::class, 'index'])
+            ->name('bot-ia-announcements.index');
+        Route::middleware('permission:bot-ia-announcements.create')
+            ->post('bot-ia-announcements', [BotIaAnnouncementController::class, 'store'])
+            ->name('bot-ia-announcements.store');
+        Route::middleware('permission:bot-ia-announcements.update')
+            ->match(['put', 'patch'], 'bot-ia-announcements/{botIaAnnouncement}', [BotIaAnnouncementController::class, 'update'])
+            ->name('bot-ia-announcements.update');
+        Route::middleware('permission:bot-ia-announcements.delete')
+            ->delete('bot-ia-announcements/{botIaAnnouncement}', [BotIaAnnouncementController::class, 'destroy'])
+            ->name('bot-ia-announcements.destroy');
+        Route::middleware('permission:bot-ia-announcements.update')
+            ->post('bot-ia-announcements/{botIaAnnouncement}/activate', [BotIaAnnouncementController::class, 'activate'])
+            ->name('bot-ia-announcements.activate');
 
         // ── Configuración global del SaaS (Twilio + Brevo) ──
         // Singleton en `public.platform_settings` con las credenciales

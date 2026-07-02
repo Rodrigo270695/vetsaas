@@ -1,0 +1,72 @@
+{
+    "title": "AI assistant updates",
+    "description": "Create notices that clinic admins see when opening Communications → AI assistant.",
+    "hint": "Only one update can be published at a time. Activating a new one automatically deactivates the others.",
+    "search_placeholder": "Search by title or content...",
+    "filters": {
+        "all": "All",
+        "active": "Published",
+        "inactive": "Drafts",
+        "scheduled": "Scheduled"
+    },
+    "columns": {
+        "title": "Title",
+        "status": "Status",
+        "published_at": "Published",
+        "expires_at": "Expires",
+        "updated_at": "Updated"
+    },
+    "status": {
+        "active": "Published",
+        "inactive": "Draft",
+        "scheduled": "Scheduled",
+        "expired": "Expired",
+        "live_now": "Live now"
+    },
+    "actions": {
+        "new": "New update",
+        "new_short": "New",
+        "activate": "Publish",
+        "delete": "Delete",
+        "create_first": "Create first update"
+    },
+    "form": {
+        "create_title": "New update",
+        "edit_title": "Edit update",
+        "title_label": "Title",
+        "title_placeholder": "New AI assistant improvement",
+        "bullet_1_label": "Bullet 1",
+        "bullet_2_label": "Bullet 2 (optional)",
+        "bullet_3_label": "Bullet 3 (optional)",
+        "bullet_placeholder": "Describe the improvement in one line",
+        "guide_title_label": "Guide title (optional)",
+        "guide_title_placeholder": "How to get the most out of it",
+        "guide_body_label": "Guide text (optional)",
+        "guide_body_placeholder": "Short explanation shown when clicking View guide",
+        "guide_tip_1_label": "Tip 1 (optional)",
+        "guide_tip_2_label": "Tip 2 (optional)",
+        "guide_tip_3_label": "Tip 3 (optional)",
+        "guide_tip_placeholder": "Practical tip for the clinic",
+        "is_active_label": "Publish to tenants",
+        "is_active_hint": "Admins see it once until they click Got it.",
+        "published_at_label": "Publish date (optional)",
+        "expires_at_label": "Expiry date (optional)",
+        "save": "Save",
+        "cancel": "Cancel"
+    },
+    "delete": {
+        "title": "Delete update",
+        "description": "Delete \"<strong>{{title}}</strong>\"? Tenants will no longer see it.",
+        "confirm": "Yes, delete",
+        "cancel": "Cancel"
+    },
+    "empty": {
+        "no_records_title": "No updates yet",
+        "no_records_description": "Create a notice so clinics with AI assistant learn about improvements.",
+        "no_results_title": "No results",
+        "no_results_description": "Try another term or change the filter."
+    },
+    "toast": {
+        "load_error": "Failed to load updates"
+    }
+}

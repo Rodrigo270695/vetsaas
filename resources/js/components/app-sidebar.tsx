@@ -28,6 +28,7 @@ import {
     Home,
     LayoutGrid,
     LineChart,
+    Megaphone,
     MessageCircle,
     MessageSquareText,
     Package,
@@ -464,11 +465,16 @@ function useNavConfig(): { singles: NavItem[]; groups: NavGroup[] } {
                             permission: 'salesbot-knowledge.view',
                         },
                         {
-                            // Base de conocimiento del bot de ventas IA.
                             title: t('items.salesbot_knowledge'),
                             href: '/plataforma/salesbot-knowledge',
                             icon: Bot,
                             permission: 'salesbot-knowledge.view',
+                        },
+                        {
+                            title: t('items.bot_ia_announcements'),
+                            href: '/plataforma/bot-ia-announcements',
+                            icon: Megaphone,
+                            permission: 'bot-ia-announcements.view',
                         },
                         {
                             // Configuración global: credenciales de Twilio

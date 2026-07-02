@@ -28,6 +28,11 @@
         "toggle_hint": "Respuestas automáticas",
         "off_banner": "El asistente está apagado para toda la clínica. No responderá por WhatsApp hasta que lo actives."
     },
+    "announcement": {
+        "show_guide": "Ver guía",
+        "hide_guide": "Ocultar guía",
+        "dismiss": "Entendido"
+    },
     "knowledge": {
         "title": "Base de conocimiento",
         "description": "FAQs, horarios, políticas y servicios que el asistente usará para responder.",

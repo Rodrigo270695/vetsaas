@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ClinicBotKnowledgeRequest;
+use App\Models\BotIaAnnouncement;
 use App\Models\ClinicBotConversation;
 use App\Models\ClinicBotKnowledge;
 use App\Models\ClinicSetting;
@@ -67,6 +68,7 @@ final class ClinicBotIaController extends Controller
             'bot_ia' => $botIa,
             'whatsapp' => $whatsapp->forTenant($tenant),
             'can_manage' => $canManage,
+            'announcement' => $this->announcementPayload($isActive),
             'assistant' => $isActive ? $this->assistantPayload() : null,
             'tab' => $this->resolveTab($request),
             'knowledge' => $knowledge,
@@ -163,6 +165,25 @@ final class ClinicBotIaController extends Controller
             : 'Asistente IA pausado: no responderá hasta que lo reactives.';
 
         return back()->with('success', $message);
+    }
+
+    /**
+     * @return array{
+     *     id: string,
+     *     title: string,
+     *     bullets: list<string>,
+     *     guide_title: string|null,
+     *     guide_body: string|null,
+     *     guide_tips: list<string>
+     * }|null
+     */
+    private function announcementPayload(bool $addonActive): ?array
+    {
+        if (! $addonActive) {
+            return null;
+        }
+
+        return BotIaAnnouncement::currentForTenants()?->toTenantPayload();
     }
 
     /**

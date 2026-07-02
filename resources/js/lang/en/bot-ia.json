@@ -28,6 +28,11 @@
         "toggle_hint": "Automatic replies",
         "off_banner": "The assistant is off for the whole clinic. It will not reply on WhatsApp until you turn it back on."
     },
+    "announcement": {
+        "show_guide": "View guide",
+        "hide_guide": "Hide guide",
+        "dismiss": "Got it"
+    },
     "knowledge": {
         "title": "Knowledge base",
         "description": "FAQs, hours, policies, and services the assistant will use to reply.",

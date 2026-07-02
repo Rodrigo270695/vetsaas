@@ -67,7 +67,8 @@
         "cobros": "Cobros",
         "platform_settings": "Configuración",
         "salesbot_conversations": "Conversaciones bot",
-        "salesbot_knowledge": "Bot de ventas"
+        "salesbot_knowledge": "Bot de ventas",
+        "bot_ia_announcements": "Novedades Bot IA"
     },
     "user_menu": {
         "settings": "Configuración",

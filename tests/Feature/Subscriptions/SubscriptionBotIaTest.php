@@ -101,6 +101,15 @@ it('muestra bot ia activo en mi suscripción del tenant', function (): void {
 });
 
 it('muestra la vista de asistente ia en comunicaciones cuando está activo', function (): void {
+    $announcement = \App\Models\BotIaAnnouncement::query()->create([
+        'title' => 'Nueva mejora del Asistente IA',
+        'bullet_1' => 'Registra clientes por WhatsApp.',
+        'bullet_2' => 'Agenda citas desde el chat.',
+        'bullet_3' => 'Revisa conversaciones en Chats.',
+        'is_active' => true,
+        'published_at' => now(),
+    ]);
+
     $this->subscription->update([
         'bot_ia_activo' => true,
         'bot_ia_precio_mensual' => '15.00',
@@ -112,7 +121,9 @@ it('muestra la vista de asistente ia en comunicaciones cuando está activo', fun
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->component('comunicaciones/bot-ia/index')
-            ->where('bot_ia.activo', true));
+            ->where('bot_ia.activo', true)
+            ->where('announcement.id', $announcement->id)
+            ->where('announcement.title', 'Nueva mejora del Asistente IA'));
 });
 
 it('muestra vista bloqueada de asistente ia cuando no está contratado', function (): void {
@@ -121,7 +132,8 @@ it('muestra vista bloqueada de asistente ia cuando no está contratado', functio
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->component('comunicaciones/bot-ia/index')
-            ->where('bot_ia.activo', false));
+            ->where('bot_ia.activo', false)
+            ->where('announcement', null));
 });
 
 it('permite acceder a asistente ia sin permiso explícito si administra la clínica', function (): void {

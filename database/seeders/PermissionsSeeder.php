@@ -122,6 +122,11 @@ class PermissionsSeeder extends Seeder
          * que gestiona los planes, módulos y FAQs del bot de ventas.
          */
         'salesbot-knowledge' => ['view', 'create', 'update', 'delete'],
+
+        /*
+         * Novedades in-app del Asistente IA para tenants (banner en Comunicaciones).
+         */
+        'bot-ia-announcements' => ['view', 'create', 'update', 'delete'],
     ];
 
     public function run(): void
