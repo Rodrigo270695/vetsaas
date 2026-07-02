@@ -6,6 +6,7 @@ namespace App\Services\Audit;
 
 use App\Models\AuditLog;
 use App\Models\User;
+use App\Support\Audit\AuditActor;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -34,10 +35,13 @@ final class AuditLogger
             $user = Auth::user();
             $req = $request ?? request();
 
+            $actorNombre = $user?->name ?? AuditActor::nombre();
+            $actorEmail = $user?->email ?? AuditActor::email();
+
             AuditLog::query()->create([
                 'usuario_id' => $user?->getKey(),
-                'usuario_nombre' => $user?->name,
-                'usuario_email' => $user?->email,
+                'usuario_nombre' => $actorNombre,
+                'usuario_email' => $actorEmail,
                 'accion' => $accion,
                 'modulo' => $modulo,
                 'tabla' => $tabla,

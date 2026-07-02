@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ClinicSetting;
 use App\Models\TenantWhatsAppSession;
 use App\Services\ClinicBot\ClinicBotService;
+use App\Support\Audit\AuditActor;
 use App\Services\OpenWa\TenantWhatsAppMessenger;
 use App\Support\Subscriptions\SubscriptionBotIaAddon;
 use App\Support\WhatsApp\WhatsAppContactResolver;
@@ -160,7 +161,10 @@ final class ClinicBotWebhookController extends Controller
             }
 
             try {
-                $reply = $this->botService->reply($conversation, $body);
+                $reply = AuditActor::runAsBotIa(
+                    $phone,
+                    fn (): string => $this->botService->reply($conversation, $body),
+                );
                 $this->messenger->sendText($waSession, $waChatId, $reply);
 
                 Log::info('ClinicBot responded', ['phone' => $phone]);

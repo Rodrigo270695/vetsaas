@@ -1,6 +1,7 @@
 import { Head } from '@inertiajs/react';
 import {
     Activity,
+    Bot,
     CalendarDays,
     Download,
     FileDown,
@@ -34,6 +35,7 @@ import {
 import type { DataTableColumn } from '@/components/data-page';
 import { useDataTablePage } from '@/hooks/use-data-table-page';
 import AppLayout from '@/layouts/app-layout';
+import { cn } from '@/lib/utils';
 import type { Paginated } from '@/types';
 
 const ROUTE_URL = '/auditoria/logs';
@@ -52,6 +54,7 @@ type AuditLogRow = {
     id: string;
     usuario_nombre: string;
     usuario_email: string | null;
+    usuario_es_bot_ia?: boolean;
     accion: string;
     modulo: string;
     registro_label: string | null;
@@ -225,23 +228,35 @@ export default function AuditoriaLogsIndex({
                 key: 'usuario_nombre',
                 header: t('columns.usuario'),
                 sortable: true,
-                cell: (row) => (
-                    <div className="flex items-center gap-2">
-                        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                            <User className="size-4" strokeWidth={2.25} />
-                        </span>
-                        <div className="flex min-w-0 flex-col leading-tight">
-                            <span className="truncate text-sm font-semibold text-foreground">
-                                {row.usuario_nombre}
+                cell: (row) => {
+                    const isBotIa = row.usuario_es_bot_ia === true;
+                    const Icon = isBotIa ? Bot : User;
+
+                    return (
+                        <div className="flex items-center gap-2">
+                            <span
+                                className={cn(
+                                    'flex size-8 shrink-0 items-center justify-center rounded-full',
+                                    isBotIa
+                                        ? 'bg-violet-500/10 text-violet-600'
+                                        : 'bg-primary/10 text-primary',
+                                )}
+                            >
+                                <Icon className="size-4" strokeWidth={2.25} />
                             </span>
-                            {row.usuario_email && (
-                                <span className="truncate text-xs text-muted-foreground">
-                                    {row.usuario_email}
+                            <div className="flex min-w-0 flex-col leading-tight">
+                                <span className="truncate text-sm font-semibold text-foreground">
+                                    {row.usuario_nombre}
                                 </span>
-                            )}
+                                {row.usuario_email ? (
+                                    <span className="truncate text-xs text-muted-foreground">
+                                        {row.usuario_email}
+                                    </span>
+                                ) : null}
+                            </div>
                         </div>
-                    </div>
-                ),
+                    );
+                },
             },
             {
                 key: 'accion',

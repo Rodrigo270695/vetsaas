@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 use App\Exports\AuditLogsXlsxExport;
 use App\Http\Controllers\Concerns\LogsAuditExports;
 use App\Models\AuditLog;
+use App\Support\Audit\AuditActor;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -93,6 +94,7 @@ class AuditLogController extends Controller
                     'id' => (string) $log->getKey(),
                     'usuario_nombre' => $log->usuario_nombre ?? '—',
                     'usuario_email' => $log->usuario_email,
+                    'usuario_es_bot_ia' => AuditActor::isBotIa($log->usuario_nombre),
                     'accion' => $log->accion,
                     'modulo' => $log->modulo,
                     'registro_label' => $log->registro_label,

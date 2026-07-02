@@ -23,7 +23,7 @@ class AuditLogsXlsxExport
     {
         $this->columns = [
             ['label' => 'Fecha', 'value' => fn (AuditLog $l) => optional($l->created_at)->format('Y-m-d H:i:s')],
-            ['label' => 'Usuario', 'value' => fn (AuditLog $l) => (string) ($l->usuario_nombre ?? '')],
+            ['label' => 'Usuario', 'value' => fn (AuditLog $l) => (string) ($l->usuario_nombre ?? '—')],
             ['label' => 'Email', 'value' => fn (AuditLog $l) => (string) ($l->usuario_email ?? '')],
             ['label' => 'Acción', 'value' => fn (AuditLog $l) => (string) $l->accion],
             ['label' => 'Módulo', 'value' => fn (AuditLog $l) => (string) $l->modulo],

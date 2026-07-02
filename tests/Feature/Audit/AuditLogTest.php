@@ -8,6 +8,7 @@ use App\Models\Propietario;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\Audit\AuditLogger;
+use App\Support\Audit\AuditActor;
 use App\Tenancy\TenantManager;
 use Database\Seeders\PermissionsSeeder;
 use Database\Seeders\TenantRolesSeeder;
@@ -80,6 +81,25 @@ afterEach(function (): void {
     }
 
     DB::statement('SET search_path TO public');
+});
+
+it('registra asistente ia como usuario en auditoría', function (): void {
+    app(TenantManager::class)->runForSlug($this->slug, function (): void {
+        AuditActor::runAsBotIa('51999988877', function (): void {
+            Propietario::query()->create([
+                'nombres' => 'Cliente',
+                'apellidos' => 'WhatsApp',
+                'telefono' => '51999988877',
+                'activo' => true,
+            ]);
+        });
+
+        $log = AuditLog::query()->where('modulo', 'propietarios')->latest('id')->first();
+
+        expect($log)->not->toBeNull()
+            ->and($log->usuario_nombre)->toBe('Asistente IA')
+            ->and($log->usuario_email)->toContain('WhatsApp');
+    });
 });
 
 it('registra creación de paciente vía observer', function (): void {
