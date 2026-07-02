@@ -7,13 +7,14 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 
 /**
  * @property string $id
  * @property string $paciente_id
  * @property ?string $veterinario_id
  * @property ?string $sede_id
- * @property \Illuminate\Support\Carbon $inicio_at
+ * @property Carbon $inicio_at
  * @property int $duracion_minutos
  * @property string $estado
  * @property ?string $motivo
@@ -72,6 +73,33 @@ class Cita extends Model
     public function paciente(): BelongsTo
     {
         return $this->belongsTo(Paciente::class, 'paciente_id');
+    }
+
+    /**
+     * Relaciones para listados y detalle (incluye paciente/propietario con soft delete).
+     *
+     * @return array<int|string, mixed>
+     */
+    public static function eagerLoadRelations(bool $withAudit = false): array
+    {
+        $relations = [
+            'paciente' => static function (BelongsTo $query): void {
+                $query->withTrashed()->with([
+                    'propietario' => static function (BelongsTo $propQuery): void {
+                        $propQuery->withTrashed();
+                    },
+                ]);
+            },
+            'veterinario:id,name',
+            'sede:id,nombre,codigo',
+        ];
+
+        if ($withAudit) {
+            $relations[] = 'creadoPor:id,name,email';
+            $relations[] = 'actualizadoPor:id,name,email';
+        }
+
+        return $relations;
     }
 
     public function veterinario(): BelongsTo

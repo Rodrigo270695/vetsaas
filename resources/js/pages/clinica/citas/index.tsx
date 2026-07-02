@@ -27,7 +27,7 @@ import { CitaDetailModal } from './components/cita-detail-modal';
 import { CitaDeleteDialog } from './components/cita-delete-dialog';
 import { CitaFormModal } from './components/cita-form-modal';
 import { CitaRowActions } from './components/cita-row-actions';
-import { CitasCalendar, displayPropietarioCita, monthRangeFromMes, shiftMes } from './components/citas-calendar';
+import { CitasCalendar, displayPacienteCita, displayPropietarioCita, monthRangeFromMes, shiftMes } from './components/citas-calendar';
 import type {
     CitaFilters,
     CitaFormPrefill,
@@ -107,7 +107,8 @@ export default function Index({
     const showRowActions = canUpdate || canDelete || canCancel;
 
     const vista = (filters.vista ?? 'calendario') as VistaCita;
-    const mesActivo = filters.mes ?? cita_filtro_ui.default_mes ?? filters.cita_desde.slice(0, 7);
+    const mesActivo =
+        filters.mes ?? cita_filtro_ui.default_mes ?? filters.cita_desde?.slice(0, 7) ?? '';
 
     const {
         search,
@@ -285,9 +286,9 @@ export default function Index({
                 sortable: true,
                 cell: (row) => (
                     <div className="flex min-w-0 flex-col gap-0.5">
-                        <span className="truncate text-sm font-medium">{row.paciente.nombre}</span>
+                        <span className="truncate text-sm font-medium">{displayPacienteCita(row.paciente)}</span>
                         <span className="truncate text-xs text-muted-foreground">
-                            {displayPropietarioCita(row.paciente.propietario)}
+                            {displayPropietarioCita(row.paciente?.propietario)}
                         </span>
                     </div>
                 ),

@@ -15,7 +15,7 @@ import {
 import { cn } from '@/lib/utils';
 import { formatAtendidoInAppTimezone } from '../../historias-clinicas/format-atendido';
 import type { CitaRow } from '../types';
-import { displayPropietarioCita } from './citas-calendar';
+import { displayPacienteCita, displayPropietarioCita } from './citas-calendar';
 
 type Props = {
     open: boolean;
@@ -97,14 +97,14 @@ export function CitaDetailModal({
                     <DialogHeader className="space-y-3 text-left">
                         <div className="flex flex-wrap items-start justify-between gap-2">
                             <DialogTitle className="text-xl font-semibold tracking-tight">
-                                {cita.paciente.nombre}
+                                {displayPacienteCita(cita.paciente)}
                             </DialogTitle>
                             <Badge variant={estadoBadgeVariant(cita.estado)} className="shrink-0 font-normal">
                                 {t(`citas:estado.${cita.estado}`, { defaultValue: cita.estado })}
                             </Badge>
                         </div>
                         <DialogDescription className="text-sm text-muted-foreground">
-                            {displayPropietarioCita(cita.paciente.propietario)}
+                            {displayPropietarioCita(cita.paciente?.propietario)}
                         </DialogDescription>
                     </DialogHeader>
                 </div>

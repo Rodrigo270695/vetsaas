@@ -72,7 +72,13 @@ function getEstadoAccent(estado: string): string {
     }
 }
 
-export function displayPropietarioCita(p: CitaRow['paciente']['propietario']): string {
+export function displayPacienteCita(paciente: CitaRow['paciente']): string {
+    return paciente?.nombre ?? '—';
+}
+
+export function displayPropietarioCita(
+    p: NonNullable<CitaRow['paciente']>['propietario'] | null | undefined,
+): string {
     if (!p) {
         return '—';
     }
@@ -379,7 +385,7 @@ export function CitasCalendar({
                                                 )}
                                             >
                                                 {format(new TZDate(cita.inicio_at, timeZone), 'HH:mm')}{' '}
-                                                {cita.paciente.nombre}
+                                                {displayPacienteCita(cita.paciente)}
                                             </button>
                                         ))}
                                         {overflow > 0 ? (
@@ -447,7 +453,7 @@ export function CitasCalendar({
                                                     <p className="text-xs font-semibold">
                                                         {format(new TZDate(cita.inicio_at, timeZone), 'HH:mm')}
                                                         {' · '}
-                                                        {cita.paciente.nombre}
+                                                        {displayPacienteCita(cita.paciente)}
                                                     </p>
                                                     {cita.veterinario ? (
                                                         <p className="mt-0.5 truncate text-[0.65rem] opacity-80">

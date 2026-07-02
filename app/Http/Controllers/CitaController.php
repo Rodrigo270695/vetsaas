@@ -13,6 +13,7 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
@@ -89,19 +90,8 @@ class CitaController extends Controller
         if (is_string($editarCitaRaw) && Str::isUuid($editarCitaRaw) && ($request->user()?->can('citas.update') ?? false)) {
             $canAuditCita = $request->user()?->can('audit-trail.view') ?? false;
             $citaEditQuery = Cita::query()
-                ->with([
-                    'paciente.propietario:id,nombres,apellidos,razon_social',
-                    'veterinario:id,name',
-                    'sede:id,nombre,codigo',
-                ])
+                ->with(Cita::eagerLoadRelations($canAuditCita))
                 ->whereKey($editarCitaRaw);
-
-            if ($canAuditCita) {
-                $citaEditQuery->with([
-                    'creadoPor:id,name,email',
-                    'actualizadoPor:id,name,email',
-                ]);
-            }
 
             $citaModel = $citaEditQuery->first();
 
@@ -128,18 +118,7 @@ class CitaController extends Controller
         $canAudit = $request->user()?->can('audit-trail.view') ?? false;
 
         $query = Cita::query()
-            ->with([
-                'paciente.propietario:id,nombres,apellidos,razon_social',
-                'veterinario:id,name',
-                'sede:id,nombre,codigo',
-            ]);
-
-        if ($canAudit) {
-            $query->with([
-                'creadoPor:id,name,email',
-                'actualizadoPor:id,name,email',
-            ]);
-        }
+            ->with(Cita::eagerLoadRelations($canAudit));
 
         $query->whereBetween('citas.inicio_at', [$inicioRango, $finRango]);
 
@@ -163,9 +142,11 @@ class CitaController extends Controller
                 $q->where('citas.motivo', 'ILIKE', "%{$search}%")
                     ->orWhere('citas.notas', 'ILIKE', "%{$search}%")
                     ->orWhereHas('paciente', function ($q2) use ($search) {
-                        $q2->where('nombre', 'ILIKE', "%{$search}%")
+                        $q2->withTrashed()
+                            ->where('nombre', 'ILIKE', "%{$search}%")
                             ->orWhereHas('propietario', function ($q3) use ($search) {
-                                $q3->where('nombres', 'ILIKE', "%{$search}%")
+                                $q3->withTrashed()
+                                    ->where('nombres', 'ILIKE', "%{$search}%")
                                     ->orWhere('apellidos', 'ILIKE', "%{$search}%")
                                     ->orWhere('razon_social', 'ILIKE', "%{$search}%");
                             });
@@ -179,7 +160,7 @@ class CitaController extends Controller
 
         if ($vista === 'calendario') {
             $citasAgenda = (clone $query)->limit(500)->get();
-            $citas = new \Illuminate\Pagination\LengthAwarePaginator(
+            $citas = new LengthAwarePaginator(
                 [],
                 0,
                 $perPage,
@@ -255,12 +236,7 @@ class CitaController extends Controller
 
         $query = clone $ctx['list_query'];
         $query->reorder()->orderBy('citas.inicio_at', 'asc');
-        $query->withOnly([
-            'paciente.propietario:id,nombres,apellidos,razon_social',
-            'veterinario:id,name',
-            'sede:id,nombre,codigo',
-            'creadoPor:id,name',
-        ]);
+        $query->withOnly(Cita::eagerLoadRelations(true));
 
         $filename = 'citas-'.now()->format('Ymd-His').'.xlsx';
         $exporter = new CitasXlsxExport;
@@ -428,9 +404,11 @@ class CitaController extends Controller
                 $q->where('citas.motivo', 'ILIKE', "%{$search}%")
                     ->orWhere('citas.notas', 'ILIKE', "%{$search}%")
                     ->orWhereHas('paciente', function ($q2) use ($search) {
-                        $q2->where('nombre', 'ILIKE', "%{$search}%")
+                        $q2->withTrashed()
+                            ->where('nombre', 'ILIKE', "%{$search}%")
                             ->orWhereHas('propietario', function ($q3) use ($search) {
-                                $q3->where('nombres', 'ILIKE', "%{$search}%")
+                                $q3->withTrashed()
+                                    ->where('nombres', 'ILIKE', "%{$search}%")
                                     ->orWhere('apellidos', 'ILIKE', "%{$search}%")
                                     ->orWhere('razon_social', 'ILIKE', "%{$search}%");
                             });

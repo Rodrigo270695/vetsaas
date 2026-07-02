@@ -71,7 +71,7 @@ export type CitaRow = {
             apellidos: string | null;
             razon_social: string | null;
         };
-    };
+    } | null;
     veterinario: { id: string; name: string } | null;
     sede: { id: string; nombre: string; codigo: string } | null;
     creado_por?: AuditUser | null;
