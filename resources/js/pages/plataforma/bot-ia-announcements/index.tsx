@@ -109,9 +109,7 @@ export default function Index({
     }>({
         routeUrl: ROUTE_URL,
         initialFilters: filters,
-        only: ['entries', 'filters', 'active_announcement_id'],
         errorMessage: t('toast.load_error'),
-        storageKey: 'vetsaas.plataforma.bot-ia-announcements.prefs',
         defaults: {
             per_page: DEFAULT_PER_PAGE,
             sort: null,

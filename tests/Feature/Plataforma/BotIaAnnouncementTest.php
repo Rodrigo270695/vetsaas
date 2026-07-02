@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\BotIaAnnouncement;
+use Inertia\Inertia;
 use Tests\Support\CreatesTestTenant;
 use Tests\Support\RefreshDatabaseWithPgsqlSafety;
 
@@ -58,6 +59,55 @@ it('publica una novedad y desactiva las anteriores', function (): void {
 
     expect($previous->fresh()->is_active)->toBeFalse()
         ->and(BotIaAnnouncement::query()->where('title', 'Nueva')->value('is_active'))->toBeTrue();
+});
+
+it('filtra novedades por estado y busqueda', function (): void {
+    BotIaAnnouncement::query()->create([
+        'title' => 'Activa publicada',
+        'badge' => BotIaAnnouncement::BADGE_NUEVO,
+        'bullet_1' => 'Punto activo',
+        'bullet_2' => 'Punto dos',
+        'bullet_3' => 'Punto tres',
+        'is_active' => true,
+        'published_at' => now()->subHour(),
+    ]);
+
+    BotIaAnnouncement::query()->create([
+        'title' => 'Borrador WhatsApp',
+        'badge' => BotIaAnnouncement::BADGE_IMPORTANTE,
+        'bullet_1' => 'Punto inactivo',
+        'bullet_2' => 'Punto dos',
+        'bullet_3' => 'Punto tres',
+        'is_active' => false,
+    ]);
+
+    $headers = [
+        'X-Inertia' => 'true',
+        'X-Inertia-Version' => Inertia::getVersion(),
+        'X-Inertia-Partial-Data' => 'entries,filters,active_announcement_id',
+        'X-Inertia-Partial-Component' => 'plataforma/bot-ia-announcements/index',
+    ];
+
+    $this->actingAs($this->superadmin)
+        ->get('http://127.0.0.1/plataforma/bot-ia-announcements?status=activo&page=1', $headers)
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->has('entries.data', 1)
+            ->where('filters.status', 'activo'));
+
+    $this->actingAs($this->superadmin)
+        ->get('http://127.0.0.1/plataforma/bot-ia-announcements?status=inactivo&page=1', $headers)
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->has('entries.data', 1)
+            ->where('filters.status', 'inactivo'));
+
+    $this->actingAs($this->superadmin)
+        ->get('http://127.0.0.1/plataforma/bot-ia-announcements?search=WhatsApp&page=1', $headers)
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->has('entries.data', 1)
+            ->where('filters.search', 'WhatsApp'));
 });
 
 it('activa una novedad existente desde plataforma', function (): void {

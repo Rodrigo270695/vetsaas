@@ -20,25 +20,33 @@ final class BotIaAnnouncementController extends Controller
 {
     private const PER_PAGE_OPTIONS = [10, 15, 20, 25, 50];
 
+    /** @var list<string> */
+    private const STATUS_FILTERS = ['todos', 'activo', 'inactivo', 'programado'];
+
     public function index(Request $request): Response
     {
         if (! PublicSchema::hasTable('bot_ia_announcements')) {
             abort(503, 'Falta la tabla bot_ia_announcements. Ejecuta: php artisan migrate');
         }
 
-        $search = (string) $request->input('search', '');
+        $search = trim((string) $request->input('search', ''));
         $status = (string) $request->input('status', 'todos');
+        if (! in_array($status, self::STATUS_FILTERS, true)) {
+            $status = 'todos';
+        }
+
         $perPage = (int) $request->input('per_page', 10);
         $perPage = in_array($perPage, self::PER_PAGE_OPTIONS, true) ? $perPage : 10;
 
-        $query = BotIaAnnouncement::query()->with('createdBy:id,name');
+        $query = BotIaAnnouncement::query();
 
         if ($search !== '') {
-            $query->where(function ($q) use ($search): void {
-                $q->where('title', 'ilike', "%{$search}%")
-                    ->orWhere('bullet_1', 'ilike', "%{$search}%")
-                    ->orWhere('bullet_2', 'ilike', "%{$search}%")
-                    ->orWhere('bullet_3', 'ilike', "%{$search}%");
+            $like = '%'.addcslashes($search, '%_\\').'%';
+            $query->where(function ($q) use ($like): void {
+                $q->where('title', 'ilike', $like)
+                    ->orWhere('bullet_1', 'ilike', $like)
+                    ->orWhere('bullet_2', 'ilike', $like)
+                    ->orWhere('bullet_3', 'ilike', $like);
             });
         }
 
@@ -57,7 +65,12 @@ final class BotIaAnnouncementController extends Controller
             ->paginate($perPage)
             ->withQueryString();
 
-        $active = BotIaAnnouncement::currentForTenants();
+        try {
+            $active = BotIaAnnouncement::currentForTenants();
+        } catch (\Throwable $e) {
+            report($e);
+            $active = null;
+        }
 
         return Inertia::render('plataforma/bot-ia-announcements/index', [
             'entries' => $paginated,
