@@ -3,7 +3,6 @@ import {
     BookOpen,
     Clock,
     HelpCircle,
-    Lock,
     MapPin,
     MessageCircle,
     MessageSquare,
@@ -31,7 +30,7 @@ import AppLayout from '@/layouts/app-layout';
 import type { Paginated } from '@/types';
 import { type WhatsAppProps } from '../components/whatsapp-connect-card';
 import { AssistantGlobalToggle } from './components/assistant-global-toggle';
-import { BotIaUpdateBanner } from './components/bot-ia-update-banner';
+import { BotIaPromoPanel } from './components/bot-ia-promo-panel';
 import { KnowledgeDeleteDialog } from './components/knowledge-delete-dialog';
 import { KnowledgeFormModal } from './components/knowledge-form-modal';
 import { KnowledgeRowActions } from './components/knowledge-row-actions';
@@ -363,26 +362,14 @@ export default function Index({
             <div className="flex flex-1 flex-col gap-4 p-4 sm:p-6">
                 <PageHeader title={t('title')} description={t('description')} />
 
-                {!isActive ? (
-                    <>
-                        {announcement ? <BotIaUpdateBanner announcement={announcement} /> : null}
+                {!isActive && announcement ? (
+                    <BotIaPromoPanel
+                        announcement={announcement}
+                        precioMensual={bot_ia.precio_mensual}
+                    />
+                ) : null}
 
-                        <Alert className="border-amber-500/30 bg-amber-500/5">
-                        <Lock className="size-4 text-amber-600" />
-                        <AlertDescription className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                            <div>
-                                <p className="font-medium text-foreground">{t('locked.title')}</p>
-                                <p className="mt-1 text-sm text-muted-foreground">
-                                    {t('locked.description')}
-                                </p>
-                            </div>
-                            <Button asChild variant="outline" className="shrink-0">
-                                <Link href="/configuracion/suscripcion">{t('locked.cta')}</Link>
-                            </Button>
-                        </AlertDescription>
-                    </Alert>
-                    </>
-                ) : (
+                {isActive ? (
                     <>
                         <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/30 px-3 py-2.5 text-sm">
                             <StatBadge
@@ -548,7 +535,7 @@ export default function Index({
                             </TabsContent>
                         </Tabs>
                     </>
-                )}
+                ) : null}
             </div>
 
             {can_manage && isActive ? (

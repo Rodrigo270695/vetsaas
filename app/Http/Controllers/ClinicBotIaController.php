@@ -186,13 +186,7 @@ final class ClinicBotIaController extends Controller
             return null;
         }
 
-        try {
-            return BotIaAnnouncement::currentForTenants()?->toTenantPayload();
-        } catch (\Throwable $e) {
-            report($e);
-
-            return null;
-        }
+        return BotIaAnnouncement::resolvePromoForTenants();
     }
 
     /**

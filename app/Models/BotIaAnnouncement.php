@@ -116,7 +116,8 @@ final class BotIaAnnouncement extends Model
      *     bullets: list<string>,
      *     guide_title: string|null,
      *     guide_body: string|null,
-     *     guide_tips: list<string>
+     *     guide_tips: list<string>,
+     *     expires_at: string|null
      * }
      */
     public function toTenantPayload(): array
@@ -137,6 +138,70 @@ final class BotIaAnnouncement extends Model
                 $this->guide_tip_2,
                 $this->guide_tip_3,
             ]),
+            'expires_at' => $this->expires_at?->toIso8601String(),
+        ];
+    }
+
+    /**
+     * Novedad publicada o contenido por defecto para tenants sin Bot IA.
+     *
+     * @return array{
+     *     id: string,
+     *     badge: string,
+     *     title: string,
+     *     bullets: list<string>,
+     *     guide_title: string|null,
+     *     guide_body: string|null,
+     *     guide_tips: list<string>,
+     *     expires_at: string|null
+     * }
+     */
+    public static function resolvePromoForTenants(): array
+    {
+        try {
+            $current = self::currentForTenants();
+
+            if ($current !== null) {
+                return $current->toTenantPayload();
+            }
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        return self::defaultPromoPayload();
+    }
+
+    /**
+     * @return array{
+     *     id: string,
+     *     badge: string,
+     *     title: string,
+     *     bullets: list<string>,
+     *     guide_title: string|null,
+     *     guide_body: string|null,
+     *     guide_tips: list<string>,
+     *     expires_at: string|null
+     * }
+     */
+    public static function defaultPromoPayload(): array
+    {
+        return [
+            'id' => 'default-promo',
+            'badge' => self::BADGE_NUEVO,
+            'title' => 'Tu recepción virtual en WhatsApp, 24/7',
+            'bullets' => [
+                'Responde al instante horarios, precios y FAQs con la voz de tu clínica — sin saturar a tu equipo.',
+                'Registra tutores y mascotas nuevos desde el chat y deja todo listo en VetSaaS automáticamente.',
+                'Agenda citas y turnos confirmando fecha y hora con el cliente, mientras tú te enfocas en la consulta.',
+            ],
+            'guide_title' => 'Actívalo en minutos',
+            'guide_body' => 'El Asistente IA es un add-on de tu plan VetSaaS. Usa el mismo WhatsApp de tu clínica y empieza a atender desde el primer día.',
+            'guide_tips' => [
+                'Entra a Configuración → Mi suscripción y activa el add-on Asistente IA.',
+                'Sincroniza WhatsApp en Comunicaciones → Cola saliente.',
+                'Completa horarios, servicios y FAQs para respuestas más precisas.',
+            ],
+            'expires_at' => null,
         ];
     }
 

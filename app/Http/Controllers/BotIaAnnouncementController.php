@@ -9,6 +9,7 @@ use App\Models\BotIaAnnouncement;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -21,6 +22,10 @@ final class BotIaAnnouncementController extends Controller
 
     public function index(Request $request): Response
     {
+        if (! Schema::hasTable('bot_ia_announcements')) {
+            abort(503, 'Falta la tabla bot_ia_announcements. Ejecuta: php artisan migrate');
+        }
+
         $search = (string) $request->input('search', '');
         $status = (string) $request->input('status', 'todos');
         $perPage = (int) $request->input('per_page', 10);

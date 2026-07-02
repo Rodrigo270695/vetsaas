@@ -185,7 +185,8 @@ it('muestra vista bloqueada de asistente ia cuando no está contratado', functio
         ->assertInertia(fn ($page) => $page
             ->component('comunicaciones/bot-ia/index')
             ->where('bot_ia.activo', false)
-            ->where('announcement', null));
+            ->has('announcement')
+            ->where('announcement.title', 'Tu recepción virtual en WhatsApp, 24/7'));
 });
 
 it('permite acceder a asistente ia sin permiso explícito si administra la clínica', function (): void {

@@ -39,4 +39,5 @@ export type TenantAnnouncement = {
     guide_title: string | null;
     guide_body: string | null;
     guide_tips: string[];
+    expires_at?: string | null;
 };

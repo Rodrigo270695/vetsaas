@@ -33,6 +33,16 @@
         "hide_guide": "Ocultar guía",
         "dismiss": "Entendido"
     },
+    "promo": {
+        "badge_nuevo": "Novedad",
+        "subtitle": "Un asistente inteligente en el WhatsApp de tu clínica: responde, registra y agenda — mientras tu equipo atiende en consulta.",
+        "price_label": "Inversión mensual",
+        "price_hint": "adicional a tu plan VetSaaS",
+        "cta_title": "¿Listo para activarlo en tu clínica?",
+        "cta_button": "Activar en Mi suscripción",
+        "persistent_hint": "Disponible hasta que actives el add-on en tu clínica.",
+        "expires_hint": "Promoción visible hasta el {{date}}."
+    },
     "knowledge": {
         "title": "Base de conocimiento",
         "description": "FAQs, horarios, políticas y servicios que el asistente usará para responder.",
