@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\Paciente;
 use App\Models\Propietario;
 use App\Services\ClinicBot\ClinicBotRegistrationService;
+use App\Tenancy\TenantManager;
 use Illuminate\Support\Facades\DB;
 use Tests\Support\CreatesTestTenant;
 use Tests\Support\RefreshDatabaseWithPgsqlSafety;
@@ -26,7 +27,7 @@ afterEach(function (): void {
 });
 
 it('registra propietario y mascota desde whatsapp', function (): void {
-    app(\App\Tenancy\TenantManager::class)->runForSlug($this->testTenant->slug, function (): void {
+    app(TenantManager::class)->runForSlug($this->testTenant->slug, function (): void {
         $service = app(ClinicBotRegistrationService::class);
 
         $owner = $service->registerPropietario(
@@ -56,8 +57,8 @@ it('registra propietario y mascota desde whatsapp', function (): void {
     });
 });
 
-it('crea propietario automaticamente al registrar mascota', function (): void {
-    app(\App\Tenancy\TenantManager::class)->runForSlug($this->testTenant->slug, function (): void {
+it('crea propietario al registrar mascota cuando el cliente confirma sus datos', function (): void {
+    app(TenantManager::class)->runForSlug($this->testTenant->slug, function (): void {
         $service = app(ClinicBotRegistrationService::class);
 
         $pet = $service->registerPaciente(
@@ -65,9 +66,8 @@ it('crea propietario automaticamente al registrar mascota', function (): void {
             nombre: 'Michi',
             especie: 'gato',
             edadAnios: 2,
-            propietarioNombres: null,
-            propietarioApellidos: null,
-            whatsappDisplayName: 'Ana Torres',
+            propietarioNombres: 'Ana',
+            propietarioApellidos: 'Torres',
         );
 
         expect($pet['ok'])->toBeTrue()
@@ -76,5 +76,22 @@ it('crea propietario automaticamente al registrar mascota', function (): void {
         $propietario = Propietario::query()->first();
         expect($propietario?->nombres)->toBe('Ana')
             ->and($propietario?->apellidos)->toBe('Torres');
+    });
+});
+
+it('no registra mascota sin datos basicos del propietario', function (): void {
+    app(TenantManager::class)->runForSlug($this->testTenant->slug, function (): void {
+        $service = app(ClinicBotRegistrationService::class);
+
+        $pet = $service->registerPaciente(
+            phone: '51988777666',
+            nombre: 'Michi',
+            especie: 'gato',
+        );
+
+        expect($pet['ok'])->toBeFalse()
+            ->and($pet['requiere_datos_propietario'] ?? false)->toBeTrue()
+            ->and(Propietario::query()->count())->toBe(0)
+            ->and(Paciente::query()->count())->toBe(0);
     });
 });

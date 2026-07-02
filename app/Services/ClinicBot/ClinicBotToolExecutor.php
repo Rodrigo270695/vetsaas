@@ -56,7 +56,6 @@ final class ClinicBotToolExecutor
                 isset($arguments['edad_anios']) ? (int) $arguments['edad_anios'] : null,
                 isset($arguments['propietario_nombres']) ? (string) $arguments['propietario_nombres'] : null,
                 isset($arguments['propietario_apellidos']) ? (string) $arguments['propietario_apellidos'] : null,
-                $clientName,
             ),
             'registrar_cita' => $this->appointments->registerCita(
                 $clientPhone,

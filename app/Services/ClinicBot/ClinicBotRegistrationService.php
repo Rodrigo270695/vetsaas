@@ -48,13 +48,18 @@ final class ClinicBotRegistrationService
             return ['ok' => false, 'error' => 'Indica el nombre del propietario.'];
         }
 
+        $apellidos = $this->nullableTrim($apellidos);
+        if ($apellidos === null) {
+            return ['ok' => false, 'error' => 'Indica los apellidos del propietario.'];
+        }
+
         if (PlanLimits::tenant() !== null && PlanLimits::wouldExceed('max_propietarios')) {
             return ['ok' => false, 'error' => PlanLimits::message('max_propietarios')];
         }
 
         $propietario = Propietario::query()->create([
             'nombres' => $nombres,
-            'apellidos' => $this->nullableTrim($apellidos),
+            'apellidos' => $apellidos,
             'telefono' => $this->formatPhoneForStorage($phone),
             'activo' => true,
             'notas' => 'Registrado automáticamente por el asistente WhatsApp IA.',
@@ -79,7 +84,6 @@ final class ClinicBotRegistrationService
         ?int $edadAnios = null,
         ?string $propietarioNombres = null,
         ?string $propietarioApellidos = null,
-        ?string $whatsappDisplayName = null,
     ): array {
         $nombre = trim($nombre);
         if ($nombre === '') {
@@ -90,7 +94,6 @@ final class ClinicBotRegistrationService
             $phone,
             $propietarioNombres,
             $propietarioApellidos,
-            $whatsappDisplayName,
         );
 
         if ($propietarioResult['ok'] === false) {
@@ -139,66 +142,33 @@ final class ClinicBotRegistrationService
     }
 
     /**
-     * @return array{ok: true, propietario_id: string}|array{ok: false, error: string}
+     * @return array{ok: true, propietario_id: string}|array{ok: false, error: string, requiere_datos_propietario?: bool}
      */
     private function ensurePropietario(
         string $phone,
         ?string $nombres,
         ?string $apellidos,
-        ?string $whatsappDisplayName,
     ): array {
         $existing = $this->clientResolver->findPropietarioByPhone($phone);
         if ($existing !== null) {
             return ['ok' => true, 'propietario_id' => $existing->id];
         }
 
-        $resolvedNames = $this->resolveOwnerNames($nombres, $apellidos, $whatsappDisplayName);
-
-        return $this->registerPropietario(
-            $phone,
-            $resolvedNames['nombres'],
-            $resolvedNames['apellidos'],
-        );
-    }
-
-    /**
-     * @return array{nombres: string, apellidos: string|null}
-     */
-    private function resolveOwnerNames(
-        ?string $nombres,
-        ?string $apellidos,
-        ?string $whatsappDisplayName,
-    ): array {
         $nombres = $this->nullableTrim($nombres);
         $apellidos = $this->nullableTrim($apellidos);
-
-        if ($nombres !== null) {
+        if ($nombres === null || $apellidos === null) {
             return [
-                'nombres' => $nombres,
-                'apellidos' => $apellidos,
+                'ok' => false,
+                'error' => 'El tutor no está registrado. Pide nombres y apellidos del propietario antes de registrar la mascota o la cita.',
+                'requiere_datos_propietario' => true,
             ];
         }
 
-        return $this->splitDisplayName($whatsappDisplayName);
-    }
-
-    /**
-     * @return array{nombres: string, apellidos: string|null}
-     */
-    private function splitDisplayName(?string $displayName): array
-    {
-        $displayName = trim((string) $displayName);
-        if ($displayName === '') {
-            return ['nombres' => 'Cliente WhatsApp', 'apellidos' => null];
-        }
-
-        $parts = preg_split('/\s+/', $displayName) ?: [];
-        $first = array_shift($parts);
-
-        return [
-            'nombres' => $first !== null && $first !== '' ? $first : 'Cliente WhatsApp',
-            'apellidos' => $parts !== [] ? implode(' ', $parts) : null,
-        ];
+        return $this->registerPropietario(
+            $phone,
+            $nombres,
+            $apellidos,
+        );
     }
 
     private function birthDateFromAge(?int $edadAnios): ?Carbon

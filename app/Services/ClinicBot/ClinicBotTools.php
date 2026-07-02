@@ -87,14 +87,14 @@ final class ClinicBotTools
                 'type' => 'function',
                 'function' => [
                     'name' => 'registrar_propietario',
-                    'description' => 'Registra al propietario/tutor con su número de WhatsApp si aún no existe en la clínica.',
+                    'description' => 'Registra al propietario/tutor con su número de WhatsApp. Solo úsala después de que el cliente confirme sus datos básicos (nombres y apellidos).',
                     'parameters' => [
                         'type' => 'object',
                         'properties' => [
-                            'nombres' => ['type' => 'string', 'description' => 'Nombres del propietario'],
-                            'apellidos' => ['type' => 'string', 'description' => 'Apellidos (opcional)'],
+                            'nombres' => ['type' => 'string', 'description' => 'Nombres del propietario confirmados por el cliente'],
+                            'apellidos' => ['type' => 'string', 'description' => 'Apellidos del propietario confirmados por el cliente'],
                         ],
-                        'required' => ['nombres'],
+                        'required' => ['nombres', 'apellidos'],
                         'additionalProperties' => false,
                     ],
                 ],
@@ -103,7 +103,7 @@ final class ClinicBotTools
                 'type' => 'function',
                 'function' => [
                     'name' => 'registrar_mascota',
-                    'description' => 'Registra una mascota nueva vinculada al número de WhatsApp. Crea al propietario si no existe.',
+                    'description' => 'Registra una mascota nueva vinculada al número de WhatsApp. Si el tutor no está registrado, incluye sus datos básicos confirmados por el cliente.',
                     'parameters' => [
                         'type' => 'object',
                         'properties' => [
@@ -111,10 +111,10 @@ final class ClinicBotTools
                             'especie' => ['type' => 'string', 'description' => 'Ej: perro, gato'],
                             'raza' => ['type' => 'string', 'description' => 'Raza (opcional)'],
                             'edad_anios' => ['type' => 'integer', 'description' => 'Edad aproximada en años'],
-                            'propietario_nombres' => ['type' => 'string', 'description' => 'Nombres del tutor si no está registrado'],
-                            'propietario_apellidos' => ['type' => 'string', 'description' => 'Apellidos del tutor (opcional)'],
+                            'propietario_nombres' => ['type' => 'string', 'description' => 'Nombres del tutor confirmados por el cliente (obligatorio si no está registrado)'],
+                            'propietario_apellidos' => ['type' => 'string', 'description' => 'Apellidos del tutor confirmados por el cliente (obligatorio si no está registrado)'],
                         ],
-                        'required' => ['nombre'],
+                        'required' => ['nombre', 'especie'],
                         'additionalProperties' => false,
                     ],
                 ],
