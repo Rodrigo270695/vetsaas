@@ -108,3 +108,27 @@ export type NuevosClientesMensualRow = {
     propietarios: number;
     is_current: boolean;
 };
+
+export type RentabilidadPeriodo = 'semana' | 'mes_actual' | 'mes_pasado';
+
+export type RentabilidadItemRow = {
+    nombre: string;
+    ingreso: number;
+    costo: number;
+    ganancia: number;
+    cantidad: number;
+    margen_pct: number | null;
+};
+
+export type RentabilidadResumen = {
+    periodo: RentabilidadPeriodo;
+    desde: string;
+    hasta: string;
+    ingresos: number;
+    costo: number;
+    ganancia: number;
+    margen_pct: number | null;
+    unidades: number;
+    productos_sin_costo: number;
+    items: RentabilidadItemRow[];
+};

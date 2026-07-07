@@ -80,6 +80,32 @@
         "citas_asistencia_hint": "Completed, cancelled, and no-shows in the current month.",
         "empty": "No activity in this period yet. Data will appear here as you work."
     },
+    "rentabilidad": {
+        "title": "Profitability & margin",
+        "subtitle": "Estimated profit on sold products (sale price minus purchase price).",
+        "periodo": {
+            "semana": "This week",
+            "mes_actual": "This month",
+            "mes_pasado": "Last month"
+        },
+        "ingresos": "Product revenue",
+        "costo": "Purchase cost",
+        "ganancia": "Gross profit",
+        "margen": "Margin",
+        "unidades": "units sold",
+        "composicion": "Revenue breakdown",
+        "costo_label": "Cost",
+        "ganancia_label": "Profit",
+        "top_title": "Most profitable products",
+        "col_producto": "Product",
+        "col_uds": "Qty",
+        "col_ganancia": "Profit",
+        "sin_costo_aviso": "{{count}} sold product(s) have no purchase price set.",
+        "sin_costo_cta": "Add the purchase price in Inventory for an exact margin.",
+        "nota": "Margin uses each product's current purchase price (not historical) and excludes services.",
+        "empty": "No product sales with a recorded cost in this period.",
+        "loading": "Calculating…"
+    },
     "proximas_citas": {
         "title": "Upcoming appointments",
         "empty": "No upcoming scheduled appointments.",

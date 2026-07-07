@@ -9,6 +9,7 @@ use App\Services\Dashboard\DashboardStatsService;
 use App\Models\Tenant;
 use App\Support\Tenancy\TenantModuleAccess;
 use App\Tenancy\TenantManager;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -58,6 +59,31 @@ class DashboardController extends Controller
             'capabilities' => $capabilities,
             ...$this->stats->build($user, $capabilities),
         ]);
+    }
+
+    /**
+     * Devuelve el resumen de rentabilidad para el periodo solicitado.
+     * Se consume vía fetch desde el widget del dashboard (sin recargar la página).
+     */
+    public function rentabilidad(Request $request): JsonResponse
+    {
+        abort_unless($this->tenantManager->check(), 404);
+
+        /** @var User $user */
+        $user = $request->user();
+
+        abort_unless(
+            $this->userCan($user, 'ventas.view') && $this->userCan($user, 'productos.view'),
+            403,
+        );
+
+        $periodo = (string) $request->query('periodo', 'mes_actual');
+
+        if (! in_array($periodo, ['semana', 'mes_actual', 'mes_pasado'], true)) {
+            $periodo = 'mes_actual';
+        }
+
+        return response()->json($this->stats->rentabilidad($periodo));
     }
 
     private function userCan(User $user, string $ability): bool

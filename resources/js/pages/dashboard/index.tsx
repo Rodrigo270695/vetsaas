@@ -37,6 +37,7 @@ import {
 import { DashboardClientesMensualesChart } from '@/components/dashboard/dashboard-clientes-mensuales-chart';
 import { DashboardFelChart } from '@/components/dashboard/dashboard-fel-chart';
 import { DashboardMonthlyRevenueChart } from '@/components/dashboard/dashboard-monthly-revenue-chart';
+import { DashboardRentabilidadCard } from '@/components/dashboard/dashboard-rentabilidad-card';
 import { DashboardSalesChart } from '@/components/dashboard/dashboard-sales-chart';
 import { DashboardSectionTitle } from '@/components/dashboard/dashboard-section-title';
 import { DashboardTopProductsChart } from '@/components/dashboard/dashboard-top-products-chart';
@@ -54,6 +55,7 @@ import type {
     IngresosMensualRow,
     NuevosClientesMensualRow,
     ProximaCitaRow,
+    RentabilidadResumen,
     TopProductoRow,
     VacunacionesPorDiaRow,
     VentasPorDiaRow,
@@ -74,6 +76,7 @@ type Props = {
     ingresos_mensuales: IngresosMensualRow[];
     comparacion_ingresos_mes: ComparacionIngresosMes | null;
     top_productos_mes: TopProductoRow[];
+    rentabilidad: RentabilidadResumen | null;
     fel_estado_mes: FelEstadoRow[];
     vacunaciones_por_dia: VacunacionesPorDiaRow[];
     nuevos_clientes_mensuales: NuevosClientesMensualRow[];
@@ -111,6 +114,7 @@ export default function DashboardIndex({
     ingresos_mensuales,
     comparacion_ingresos_mes,
     top_productos_mes,
+    rentabilidad,
     fel_estado_mes,
     vacunaciones_por_dia,
     nuevos_clientes_mensuales,
@@ -413,6 +417,13 @@ export default function DashboardIndex({
                             icon={Wallet}
                             accent="emerald"
                         />
+                        {capabilities.productos && rentabilidad && (
+                            <DashboardRentabilidadCard
+                                initial={rentabilidad}
+                                moneda={moneda}
+                                locale={locale}
+                            />
+                        )}
                         <div className="grid min-w-0 gap-4 lg:grid-cols-2">
                             <DashboardChartCard
                                 title={t('charts.ingresos_mensuales')}

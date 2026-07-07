@@ -207,6 +207,9 @@ final class DashboardStatsService
             'top_productos_mes' => ($capabilities['ventas'] ?? false)
                 ? $this->topProductosMes($monthStart, $monthEnd)
                 : [],
+            'rentabilidad' => (($capabilities['ventas'] ?? false) && ($capabilities['productos'] ?? false))
+                ? $this->rentabilidad('mes_actual')
+                : null,
             'fel_estado_mes' => ($capabilities['ventas'] ?? false)
                 ? $this->felEstadoMes($monthStart, $monthEnd)
                 : [],
@@ -255,6 +258,7 @@ final class DashboardStatsService
             'ingresos_mensuales' => [],
             'comparacion_ingresos_mes' => null,
             'top_productos_mes' => [],
+            'rentabilidad' => null,
             'fel_estado_mes' => [],
             'vacunaciones_por_dia' => [],
             'nuevos_clientes_mensuales' => [],
@@ -541,6 +545,136 @@ final class DashboardStatsService
             ])
             ->values()
             ->all();
+    }
+
+    /**
+     * Rentabilidad (margen de ganancia) de productos vendidos en un periodo.
+     *
+     * Margen = precio de venta (subtotal sin IGV de la línea) − costo de compra.
+     * El costo se toma de `productos.precio_compra` (valor ACTUAL, no snapshot
+     * histórico: el sistema no guarda el costo al momento de la venta).
+     * Solo se consideran líneas con `producto_id` y `precio_compra` definidos;
+     * las líneas de servicio y los productos sin costo quedan fuera del margen.
+     *
+     * @return array{
+     *     periodo: string,
+     *     desde: string,
+     *     hasta: string,
+     *     ingresos: float,
+     *     costo: float,
+     *     ganancia: float,
+     *     margen_pct: ?float,
+     *     unidades: float,
+     *     productos_sin_costo: int,
+     *     items: list<array{nombre: string, ingreso: float, costo: float, ganancia: float, cantidad: float, margen_pct: ?float}>
+     * }
+     */
+    public function rentabilidad(string $periodo = 'mes_actual'): array
+    {
+        $tz = (string) config('app.timezone');
+        [$periodo, $start, $end] = $this->resolveRentabilidadRange($periodo, now($tz));
+
+        $base = fn () => DB::table('venta_lineas')
+            ->join('ventas', 'ventas.id', '=', 'venta_lineas.venta_id')
+            ->join('productos', 'productos.id', '=', 'venta_lineas.producto_id')
+            ->where('ventas.estado', Venta::ESTADO_PAGADO)
+            ->whereNull('ventas.deleted_at')
+            ->whereNotNull('venta_lineas.producto_id')
+            ->where(function ($q) use ($start, $end): void {
+                $q->whereBetween('ventas.fecha_pago', [$start, $end])
+                    ->orWhere(function ($q2) use ($start, $end): void {
+                        $q2->whereNull('ventas.fecha_pago')
+                            ->whereBetween('ventas.created_at', [$start, $end]);
+                    });
+            });
+
+        $agg = $base()
+            ->whereNotNull('productos.precio_compra')
+            ->selectRaw('
+                COALESCE(SUM(venta_lineas.subtotal), 0) as ingresos,
+                COALESCE(SUM(venta_lineas.cantidad * productos.precio_compra), 0) as costo,
+                COALESCE(SUM(venta_lineas.cantidad), 0) as unidades
+            ')
+            ->first();
+
+        $ingresos = round((float) ($agg->ingresos ?? 0), 2);
+        $costo = round((float) ($agg->costo ?? 0), 2);
+        $ganancia = round($ingresos - $costo, 2);
+        $unidades = round((float) ($agg->unidades ?? 0), 2);
+
+        $productosSinCosto = (int) $base()
+            ->whereNull('productos.precio_compra')
+            ->distinct()
+            ->count('productos.id');
+
+        /** @var Collection<int, object{nombre: string, ingreso: string, costo: string, cantidad: string}> $topRows */
+        $topRows = $base()
+            ->whereNotNull('productos.precio_compra')
+            ->select(
+                'productos.nombre as nombre',
+                DB::raw('COALESCE(SUM(venta_lineas.subtotal), 0) as ingreso'),
+                DB::raw('COALESCE(SUM(venta_lineas.cantidad * productos.precio_compra), 0) as costo'),
+                DB::raw('COALESCE(SUM(venta_lineas.cantidad), 0) as cantidad'),
+            )
+            ->groupBy('productos.id', 'productos.nombre')
+            ->orderByDesc(DB::raw('COALESCE(SUM(venta_lineas.subtotal), 0) - COALESCE(SUM(venta_lineas.cantidad * productos.precio_compra), 0)'))
+            ->limit(6)
+            ->get();
+
+        $items = $topRows
+            ->map(function (object $row): array {
+                $ingreso = round((float) $row->ingreso, 2);
+                $costoItem = round((float) $row->costo, 2);
+                $gananciaItem = round($ingreso - $costoItem, 2);
+
+                return [
+                    'nombre' => (string) $row->nombre,
+                    'ingreso' => $ingreso,
+                    'costo' => $costoItem,
+                    'ganancia' => $gananciaItem,
+                    'cantidad' => round((float) $row->cantidad, 2),
+                    'margen_pct' => $ingreso > 0 ? round(($gananciaItem / $ingreso) * 100, 1) : null,
+                ];
+            })
+            ->values()
+            ->all();
+
+        return [
+            'periodo' => $periodo,
+            'desde' => $start->toDateString(),
+            'hasta' => $end->toDateString(),
+            'ingresos' => $ingresos,
+            'costo' => $costo,
+            'ganancia' => $ganancia,
+            'margen_pct' => $ingresos > 0 ? round(($ganancia / $ingresos) * 100, 1) : null,
+            'unidades' => $unidades,
+            'productos_sin_costo' => $productosSinCosto,
+            'items' => $items,
+        ];
+    }
+
+    /**
+     * @return array{0: string, 1: CarbonInterface, 2: CarbonInterface}
+     */
+    private function resolveRentabilidadRange(string $periodo, CarbonInterface $now): array
+    {
+        return match ($periodo) {
+            'semana' => [
+                'semana',
+                $now->copy()->startOfWeek(),
+                $now->copy()->endOfWeek(),
+            ],
+            'mes_pasado' => [
+                'mes_pasado',
+                $now->copy()->subMonth()->startOfMonth(),
+                $now->copy()->subMonth()->endOfMonth(),
+            ],
+            default => [
+                'mes_actual',
+                $now->copy()->startOfMonth(),
+                $now->copy()->endOfMonth(),
+            ],
+        };
     }
 
     /**

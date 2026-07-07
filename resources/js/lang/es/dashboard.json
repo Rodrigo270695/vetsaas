@@ -80,6 +80,32 @@
         "citas_asistencia_hint": "Completadas, canceladas y no asistió en el mes en curso.",
         "empty": "Aún no hay movimiento en este periodo. Cuando registres actividad, verás la tendencia aquí."
     },
+    "rentabilidad": {
+        "title": "Rentabilidad y margen",
+        "subtitle": "Ganancia estimada de los productos vendidos (precio de venta menos precio de compra).",
+        "periodo": {
+            "semana": "Esta semana",
+            "mes_actual": "Mes actual",
+            "mes_pasado": "Mes pasado"
+        },
+        "ingresos": "Ingresos por productos",
+        "costo": "Costo de compra",
+        "ganancia": "Ganancia bruta",
+        "margen": "Margen",
+        "unidades": "uds. vendidas",
+        "composicion": "Composición del ingreso",
+        "costo_label": "Costo",
+        "ganancia_label": "Ganancia",
+        "top_title": "Productos más rentables",
+        "col_producto": "Producto",
+        "col_uds": "Uds.",
+        "col_ganancia": "Ganancia",
+        "sin_costo_aviso": "{{count}} producto(s) vendido(s) sin precio de compra registrado.",
+        "sin_costo_cta": "Agrega el precio de compra en Inventario para un margen exacto.",
+        "nota": "El margen usa el precio de compra actual de cada producto (no el histórico) y excluye servicios.",
+        "empty": "No hay ventas de productos con costo registrado en este periodo.",
+        "loading": "Calculando…"
+    },
     "proximas_citas": {
         "title": "Próximas citas",
         "empty": "No hay citas programadas próximamente.",

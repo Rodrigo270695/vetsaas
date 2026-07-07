@@ -116,6 +116,8 @@ Route::middleware(['throttle:12,1'])->group(function (): void {
 Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-change', 'permission:dashboard.view'])
     ->group(function (): void {
         Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+        Route::get('dashboard/rentabilidad', [DashboardController::class, 'rentabilidad'])
+            ->name('dashboard.rentabilidad');
     });
 
 /*
