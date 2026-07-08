@@ -23,6 +23,7 @@ use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Throwable;
 
 /**
@@ -210,6 +211,9 @@ final class DashboardStatsService
             'rentabilidad' => (($capabilities['ventas'] ?? false) && ($capabilities['productos'] ?? false))
                 ? $this->rentabilidad('mes_actual')
                 : null,
+            'rentabilidad_grooming' => ($capabilities['grooming'] ?? false)
+                ? $this->rentabilidadGrooming('mes_actual')
+                : null,
             'fel_estado_mes' => ($capabilities['ventas'] ?? false)
                 ? $this->felEstadoMes($monthStart, $monthEnd)
                 : [],
@@ -259,6 +263,7 @@ final class DashboardStatsService
             'comparacion_ingresos_mes' => null,
             'top_productos_mes' => [],
             'rentabilidad' => null,
+            'rentabilidad_grooming' => null,
             'fel_estado_mes' => [],
             'vacunaciones_por_dia' => [],
             'nuevos_clientes_mensuales' => [],
@@ -649,6 +654,136 @@ final class DashboardStatsService
             'margen_pct' => $ingresos > 0 ? round(($ganancia / $ingresos) * 100, 1) : null,
             'unidades' => $unidades,
             'productos_sin_costo' => $productosSinCosto,
+            'items' => $items,
+        ];
+    }
+
+    /**
+     * Rentabilidad de grooming: precio del servicio menos el costo de los
+     * insumos que consume, sobre los turnos completados en el periodo.
+     *
+     * @return array{
+     *     periodo: string,
+     *     desde: string,
+     *     hasta: string,
+     *     ingresos: float,
+     *     costo: float,
+     *     ganancia: float,
+     *     margen_pct: ?float,
+     *     unidades: float,
+     *     servicios_sin_insumos: int,
+     *     items: list<array{nombre: string, ingreso: float, costo: float, ganancia: float, cantidad: float, margen_pct: ?float}>
+     * }
+     */
+    public function rentabilidadGrooming(string $periodo = 'mes_actual'): array
+    {
+        $tz = (string) config('app.timezone');
+        [$periodo, $start, $end] = $this->resolveRentabilidadRange($periodo, now($tz));
+
+        $empty = [
+            'periodo' => $periodo,
+            'desde' => $start->toDateString(),
+            'hasta' => $end->toDateString(),
+            'ingresos' => 0.0,
+            'costo' => 0.0,
+            'ganancia' => 0.0,
+            'margen_pct' => null,
+            'unidades' => 0.0,
+            'servicios_sin_insumos' => 0,
+            'items' => [],
+        ];
+
+        if (! Schema::hasTable('grooming_turnos')
+            || ! Schema::hasTable('grooming_servicios')
+            || ! Schema::hasTable('grooming_servicio_insumo')) {
+            return $empty;
+        }
+
+        /** @var Collection<int, object{grooming_servicio_id: string, cantidad: int}> $turnos */
+        $turnos = DB::table('grooming_turnos')
+            ->whereNull('deleted_at')
+            ->where('estado', GroomingTurno::ESTADO_COMPLETADA)
+            ->whereNotNull('grooming_servicio_id')
+            ->whereBetween('inicio_at', [$start, $end])
+            ->groupBy('grooming_servicio_id')
+            ->select('grooming_servicio_id', DB::raw('COUNT(*) as cantidad'))
+            ->get();
+
+        if ($turnos->isEmpty()) {
+            return $empty;
+        }
+
+        $ids = $turnos->pluck('grooming_servicio_id')->all();
+
+        /** @var Collection<string, object{id: string, nombre: string, precio_lista: string}> $servicios */
+        $servicios = DB::table('grooming_servicios')
+            ->whereIn('id', $ids)
+            ->get(['id', 'nombre', 'precio_lista'])
+            ->keyBy('id');
+
+        /** @var Collection<string, object{grooming_servicio_id: string, costo_insumos: string}> $costos */
+        $costos = DB::table('grooming_servicio_insumo')
+            ->whereIn('grooming_servicio_id', $ids)
+            ->groupBy('grooming_servicio_id')
+            ->select('grooming_servicio_id', DB::raw('SUM(precio) as costo_insumos'))
+            ->get()
+            ->keyBy('grooming_servicio_id');
+
+        $ingresos = 0.0;
+        $costo = 0.0;
+        $unidades = 0.0;
+        $serviciosSinInsumos = 0;
+        $items = [];
+
+        foreach ($turnos as $turno) {
+            $servicio = $servicios->get($turno->grooming_servicio_id);
+            if ($servicio === null) {
+                continue;
+            }
+
+            $costoRow = $costos->get($turno->grooming_servicio_id);
+            if ($costoRow === null) {
+                $serviciosSinInsumos++;
+
+                continue;
+            }
+
+            $cantidad = (float) $turno->cantidad;
+            $ingresoItem = round($cantidad * (float) $servicio->precio_lista, 2);
+            $costoItem = round($cantidad * (float) $costoRow->costo_insumos, 2);
+            $gananciaItem = round($ingresoItem - $costoItem, 2);
+
+            $ingresos += $ingresoItem;
+            $costo += $costoItem;
+            $unidades += $cantidad;
+
+            $items[] = [
+                'nombre' => (string) $servicio->nombre,
+                'ingreso' => $ingresoItem,
+                'costo' => $costoItem,
+                'ganancia' => $gananciaItem,
+                'cantidad' => $cantidad,
+                'margen_pct' => $ingresoItem > 0 ? round(($gananciaItem / $ingresoItem) * 100, 1) : null,
+            ];
+        }
+
+        usort($items, static fn (array $a, array $b): int => $b['ganancia'] <=> $a['ganancia']);
+        $items = array_slice($items, 0, 6);
+
+        $ingresos = round($ingresos, 2);
+        $costo = round($costo, 2);
+        $ganancia = round($ingresos - $costo, 2);
+
+        return [
+            'periodo' => $periodo,
+            'desde' => $start->toDateString(),
+            'hasta' => $end->toDateString(),
+            'ingresos' => $ingresos,
+            'costo' => $costo,
+            'ganancia' => $ganancia,
+            'margen_pct' => $ingresos > 0 ? round(($ganancia / $ingresos) * 100, 1) : null,
+            'unidades' => round($unidades, 2),
+            'servicios_sin_insumos' => $serviciosSinInsumos,
             'items' => $items,
         ];
     }

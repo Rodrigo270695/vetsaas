@@ -106,6 +106,32 @@
         "empty": "No hay ventas de productos con costo registrado en este periodo.",
         "loading": "Calculando…"
     },
+    "rentabilidad_grooming": {
+        "title": "Rentabilidad de grooming",
+        "subtitle": "Ganancia estimada por servicio: precio del grooming menos el costo de sus insumos.",
+        "periodo": {
+            "semana": "Esta semana",
+            "mes_actual": "Mes actual",
+            "mes_pasado": "Mes pasado"
+        },
+        "ingresos": "Precio de servicios",
+        "costo": "Costo de insumos",
+        "ganancia": "Ganancia bruta",
+        "margen": "Margen",
+        "unidades": "servicios",
+        "composicion": "Composición del precio",
+        "costo_label": "Insumos",
+        "ganancia_label": "Ganancia",
+        "top_title": "Servicios más rentables",
+        "col_servicio": "Servicio",
+        "col_uds": "Cant.",
+        "col_ganancia": "Ganancia",
+        "sin_insumos_aviso": "{{count}} servicio(s) realizado(s) sin insumos registrados.",
+        "sin_insumos_cta": "Asigna insumos en Configuración → Tarifas para calcular su margen.",
+        "nota": "Toma los turnos completados en el periodo. El precio es el de la tarifa del servicio y el costo, la suma de sus insumos.",
+        "empty": "No hay servicios de grooming completados con insumos en este periodo.",
+        "loading": "Calculando…"
+    },
     "proximas_citas": {
         "title": "Próximas citas",
         "empty": "No hay citas programadas próximamente.",

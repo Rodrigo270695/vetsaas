@@ -132,3 +132,16 @@ export type RentabilidadResumen = {
     productos_sin_costo: number;
     items: RentabilidadItemRow[];
 };
+
+export type RentabilidadGroomingResumen = {
+    periodo: RentabilidadPeriodo;
+    desde: string;
+    hasta: string;
+    ingresos: number;
+    costo: number;
+    ganancia: number;
+    margen_pct: number | null;
+    unidades: number;
+    servicios_sin_insumos: number;
+    items: RentabilidadItemRow[];
+};

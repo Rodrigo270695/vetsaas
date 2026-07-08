@@ -86,6 +86,28 @@ class DashboardController extends Controller
         return response()->json($this->stats->rentabilidad($periodo));
     }
 
+    /**
+     * Rentabilidad de grooming (precio del servicio menos costo de insumos).
+     * Se consume vía fetch desde el widget del dashboard.
+     */
+    public function rentabilidadGrooming(Request $request): JsonResponse
+    {
+        abort_unless($this->tenantManager->check(), 404);
+
+        /** @var User $user */
+        $user = $request->user();
+
+        abort_unless($this->userCan($user, 'grooming.view'), 403);
+
+        $periodo = (string) $request->query('periodo', 'mes_actual');
+
+        if (! in_array($periodo, ['semana', 'mes_actual', 'mes_pasado'], true)) {
+            $periodo = 'mes_actual';
+        }
+
+        return response()->json($this->stats->rentabilidadGrooming($periodo));
+    }
+
     private function userCan(User $user, string $ability): bool
     {
         try {

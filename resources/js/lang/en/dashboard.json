@@ -106,6 +106,32 @@
         "empty": "No product sales with a recorded cost in this period.",
         "loading": "Calculating…"
     },
+    "rentabilidad_grooming": {
+        "title": "Grooming profitability",
+        "subtitle": "Estimated profit per service: grooming price minus the cost of its supplies.",
+        "periodo": {
+            "semana": "This week",
+            "mes_actual": "This month",
+            "mes_pasado": "Last month"
+        },
+        "ingresos": "Service price",
+        "costo": "Supplies cost",
+        "ganancia": "Gross profit",
+        "margen": "Margin",
+        "unidades": "services",
+        "composicion": "Price breakdown",
+        "costo_label": "Supplies",
+        "ganancia_label": "Profit",
+        "top_title": "Most profitable services",
+        "col_servicio": "Service",
+        "col_uds": "Qty",
+        "col_ganancia": "Profit",
+        "sin_insumos_aviso": "{{count}} completed service(s) have no supplies set.",
+        "sin_insumos_cta": "Assign supplies in Settings → Rates to compute their margin.",
+        "nota": "Based on completed appointments in the period. Price comes from the service rate and cost is the sum of its supplies.",
+        "empty": "No completed grooming services with supplies in this period.",
+        "loading": "Calculating…"
+    },
     "proximas_citas": {
         "title": "Upcoming appointments",
         "empty": "No upcoming scheduled appointments.",

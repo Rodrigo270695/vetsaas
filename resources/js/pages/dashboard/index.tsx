@@ -38,6 +38,7 @@ import { DashboardClientesMensualesChart } from '@/components/dashboard/dashboar
 import { DashboardFelChart } from '@/components/dashboard/dashboard-fel-chart';
 import { DashboardMonthlyRevenueChart } from '@/components/dashboard/dashboard-monthly-revenue-chart';
 import { DashboardRentabilidadCard } from '@/components/dashboard/dashboard-rentabilidad-card';
+import { DashboardRentabilidadGroomingCard } from '@/components/dashboard/dashboard-rentabilidad-grooming-card';
 import { DashboardSalesChart } from '@/components/dashboard/dashboard-sales-chart';
 import { DashboardSectionTitle } from '@/components/dashboard/dashboard-section-title';
 import { DashboardTopProductsChart } from '@/components/dashboard/dashboard-top-products-chart';
@@ -55,6 +56,7 @@ import type {
     IngresosMensualRow,
     NuevosClientesMensualRow,
     ProximaCitaRow,
+    RentabilidadGroomingResumen,
     RentabilidadResumen,
     TopProductoRow,
     VacunacionesPorDiaRow,
@@ -77,6 +79,7 @@ type Props = {
     comparacion_ingresos_mes: ComparacionIngresosMes | null;
     top_productos_mes: TopProductoRow[];
     rentabilidad: RentabilidadResumen | null;
+    rentabilidad_grooming: RentabilidadGroomingResumen | null;
     fel_estado_mes: FelEstadoRow[];
     vacunaciones_por_dia: VacunacionesPorDiaRow[];
     nuevos_clientes_mensuales: NuevosClientesMensualRow[];
@@ -115,6 +118,7 @@ export default function DashboardIndex({
     comparacion_ingresos_mes,
     top_productos_mes,
     rentabilidad,
+    rentabilidad_grooming,
     fel_estado_mes,
     vacunaciones_por_dia,
     nuevos_clientes_mensuales,
@@ -424,6 +428,13 @@ export default function DashboardIndex({
                                 locale={locale}
                             />
                         )}
+                        {capabilities.grooming && rentabilidad_grooming && (
+                            <DashboardRentabilidadGroomingCard
+                                initial={rentabilidad_grooming}
+                                moneda={moneda}
+                                locale={locale}
+                            />
+                        )}
                         <div className="grid min-w-0 gap-4 lg:grid-cols-2">
                             <DashboardChartCard
                                 title={t('charts.ingresos_mensuales')}
@@ -472,6 +483,22 @@ export default function DashboardIndex({
                                 />
                             </DashboardChartCard>
                         </div>
+                    </section>
+                )}
+
+                {!hasFinancialCharts && capabilities.grooming && rentabilidad_grooming && (
+                    <section className="space-y-4">
+                        <DashboardSectionTitle
+                            title={t('sections.financial')}
+                            description={t('sections.financial_hint')}
+                            icon={Wallet}
+                            accent="emerald"
+                        />
+                        <DashboardRentabilidadGroomingCard
+                            initial={rentabilidad_grooming}
+                            moneda={moneda}
+                            locale={locale}
+                        />
                     </section>
                 )}
 

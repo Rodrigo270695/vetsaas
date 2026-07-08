@@ -119,6 +119,8 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
         Route::get('dashboard/rentabilidad', [DashboardController::class, 'rentabilidad'])
             ->name('dashboard.rentabilidad');
+        Route::get('dashboard/rentabilidad-grooming', [DashboardController::class, 'rentabilidadGrooming'])
+            ->name('dashboard.rentabilidad-grooming');
     });
 
 /*
