@@ -421,20 +421,25 @@ export default function DashboardIndex({
                             icon={Wallet}
                             accent="emerald"
                         />
-                        {capabilities.productos && rentabilidad && (
-                            <DashboardRentabilidadCard
-                                initial={rentabilidad}
-                                moneda={moneda}
-                                locale={locale}
-                            />
-                        )}
-                        {capabilities.grooming && rentabilidad_grooming && (
-                            <DashboardRentabilidadGroomingCard
-                                initial={rentabilidad_grooming}
-                                moneda={moneda}
-                                locale={locale}
-                            />
-                        )}
+                        {(capabilities.productos && rentabilidad) ||
+                        (capabilities.grooming && rentabilidad_grooming) ? (
+                            <div className="grid min-w-0 items-start gap-4 lg:grid-cols-2">
+                                {capabilities.productos && rentabilidad && (
+                                    <DashboardRentabilidadCard
+                                        initial={rentabilidad}
+                                        moneda={moneda}
+                                        locale={locale}
+                                    />
+                                )}
+                                {capabilities.grooming && rentabilidad_grooming && (
+                                    <DashboardRentabilidadGroomingCard
+                                        initial={rentabilidad_grooming}
+                                        moneda={moneda}
+                                        locale={locale}
+                                    />
+                                )}
+                            </div>
+                        ) : null}
                         <div className="grid min-w-0 gap-4 lg:grid-cols-2">
                             <DashboardChartCard
                                 title={t('charts.ingresos_mensuales')}
