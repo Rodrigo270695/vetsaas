@@ -126,10 +126,10 @@
         "col_servicio": "Servicio",
         "col_uds": "Cant.",
         "col_ganancia": "Ganancia",
-        "sin_insumos_aviso": "{{count}} servicio(s) realizado(s) sin insumos registrados.",
+        "sin_insumos_aviso": "{{count}} servicio(s) de grooming vendido(s) sin insumos registrados.",
         "sin_insumos_cta": "Asigna insumos en Configuración → Tarifas para calcular su margen.",
-        "nota": "Toma los turnos completados en el periodo. El precio es el de la tarifa del servicio y el costo, la suma de sus insumos.",
-        "empty": "No hay servicios de grooming completados con insumos en este periodo.",
+        "nota": "Toma las ventas pagadas del periodo. El precio es el cobrado (sin IGV) y el costo, la suma de los insumos del servicio.",
+        "empty": "No hay ventas de grooming con insumos registrados en este periodo.",
         "loading": "Calculando…"
     },
     "proximas_citas": {

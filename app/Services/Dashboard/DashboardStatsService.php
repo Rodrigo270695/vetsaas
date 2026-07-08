@@ -693,76 +693,105 @@ final class DashboardStatsService
             'items' => [],
         ];
 
-        if (! Schema::hasTable('grooming_turnos')
-            || ! Schema::hasTable('grooming_servicios')
-            || ! Schema::hasTable('grooming_servicio_insumo')) {
+        if (! Schema::hasTable('grooming_servicios')
+            || ! Schema::hasTable('grooming_servicio_insumo')
+            || ! Schema::hasTable('venta_lineas')) {
             return $empty;
         }
 
-        /** @var Collection<int, object{grooming_servicio_id: string, cantidad: int}> $turnos */
-        $turnos = DB::table('grooming_turnos')
-            ->whereNull('deleted_at')
-            ->where('estado', GroomingTurno::ESTADO_COMPLETADA)
-            ->whereNotNull('grooming_servicio_id')
-            ->whereBetween('inicio_at', [$start, $end])
+        /** @var Collection<int, object{id: string, nombre: string, precio_lista: string}> $servicios */
+        $servicios = DB::table('grooming_servicios')->get(['id', 'nombre', 'precio_lista']);
+
+        if ($servicios->isEmpty()) {
+            return $empty;
+        }
+
+        /** @var Collection<string, string> $costos costo de insumos por servicio (id => suma) */
+        $costos = DB::table('grooming_servicio_insumo')
             ->groupBy('grooming_servicio_id')
-            ->select('grooming_servicio_id', DB::raw('COUNT(*) as cantidad'))
+            ->select('grooming_servicio_id', DB::raw('SUM(precio) as costo'))
+            ->pluck('costo', 'grooming_servicio_id');
+
+        // Índice por nombre normalizado para emparejar la descripción de la línea
+        // de venta (que puede venir como "Grooming · X" desde el cobro de un turno,
+        // o como el nombre tal cual cuando se agrega como servicio manual en caja).
+        $porNombre = [];
+        foreach ($servicios as $servicio) {
+            $porNombre[$this->normalizeGroomingName((string) $servicio->nombre)] = [
+                'id' => (string) $servicio->id,
+                'nombre' => (string) $servicio->nombre,
+                'precio' => (float) $servicio->precio_lista,
+                'costo_unit' => isset($costos[$servicio->id]) ? (float) $costos[$servicio->id] : null,
+            ];
+        }
+
+        /** @var Collection<int, object{descripcion: string, subtotal: string, cantidad: string}> $lineas */
+        $lineas = DB::table('venta_lineas as vl')
+            ->join('ventas as v', 'v.id', '=', 'vl.venta_id')
+            ->where('v.estado', Venta::ESTADO_PAGADO)
+            ->whereNull('v.deleted_at')
+            ->whereNull('vl.producto_id')
+            ->where(function ($q) use ($start, $end): void {
+                $q->whereBetween('v.fecha_pago', [$start, $end])
+                    ->orWhere(function ($q2) use ($start, $end): void {
+                        $q2->whereNull('v.fecha_pago')
+                            ->whereBetween('v.created_at', [$start, $end]);
+                    });
+            })
+            ->select('vl.descripcion_snapshot as descripcion', 'vl.subtotal', 'vl.cantidad')
             ->get();
 
-        if ($turnos->isEmpty()) {
-            return $empty;
+        $acumulado = [];
+        $sinInsumos = [];
+
+        foreach ($lineas as $linea) {
+            $key = $this->normalizeGroomingName((string) $linea->descripcion);
+            if (! isset($porNombre[$key])) {
+                continue;
+            }
+
+            $servicio = $porNombre[$key];
+
+            if ($servicio['costo_unit'] === null) {
+                $sinInsumos[$servicio['id']] = true;
+
+                continue;
+            }
+
+            $id = $servicio['id'];
+            $acumulado[$id] ??= [
+                'nombre' => $servicio['nombre'],
+                'ingreso' => 0.0,
+                'costo' => 0.0,
+                'cantidad' => 0.0,
+            ];
+
+            $cantidad = (float) $linea->cantidad;
+            $acumulado[$id]['ingreso'] += (float) $linea->subtotal;
+            $acumulado[$id]['costo'] += $cantidad * $servicio['costo_unit'];
+            $acumulado[$id]['cantidad'] += $cantidad;
         }
-
-        $ids = $turnos->pluck('grooming_servicio_id')->all();
-
-        /** @var Collection<string, object{id: string, nombre: string, precio_lista: string}> $servicios */
-        $servicios = DB::table('grooming_servicios')
-            ->whereIn('id', $ids)
-            ->get(['id', 'nombre', 'precio_lista'])
-            ->keyBy('id');
-
-        /** @var Collection<string, object{grooming_servicio_id: string, costo_insumos: string}> $costos */
-        $costos = DB::table('grooming_servicio_insumo')
-            ->whereIn('grooming_servicio_id', $ids)
-            ->groupBy('grooming_servicio_id')
-            ->select('grooming_servicio_id', DB::raw('SUM(precio) as costo_insumos'))
-            ->get()
-            ->keyBy('grooming_servicio_id');
 
         $ingresos = 0.0;
         $costo = 0.0;
         $unidades = 0.0;
-        $serviciosSinInsumos = 0;
         $items = [];
 
-        foreach ($turnos as $turno) {
-            $servicio = $servicios->get($turno->grooming_servicio_id);
-            if ($servicio === null) {
-                continue;
-            }
-
-            $costoRow = $costos->get($turno->grooming_servicio_id);
-            if ($costoRow === null) {
-                $serviciosSinInsumos++;
-
-                continue;
-            }
-
-            $cantidad = (float) $turno->cantidad;
-            $ingresoItem = round($cantidad * (float) $servicio->precio_lista, 2);
-            $costoItem = round($cantidad * (float) $costoRow->costo_insumos, 2);
+        foreach ($acumulado as $row) {
+            $ingresoItem = round($row['ingreso'], 2);
+            $costoItem = round($row['costo'], 2);
             $gananciaItem = round($ingresoItem - $costoItem, 2);
 
             $ingresos += $ingresoItem;
             $costo += $costoItem;
-            $unidades += $cantidad;
+            $unidades += $row['cantidad'];
 
             $items[] = [
-                'nombre' => (string) $servicio->nombre,
+                'nombre' => $row['nombre'],
                 'ingreso' => $ingresoItem,
                 'costo' => $costoItem,
                 'ganancia' => $gananciaItem,
-                'cantidad' => $cantidad,
+                'cantidad' => round($row['cantidad'], 2),
                 'margen_pct' => $ingresoItem > 0 ? round(($gananciaItem / $ingresoItem) * 100, 1) : null,
             ];
         }
@@ -783,9 +812,22 @@ final class DashboardStatsService
             'ganancia' => $ganancia,
             'margen_pct' => $ingresos > 0 ? round(($ganancia / $ingresos) * 100, 1) : null,
             'unidades' => round($unidades, 2),
-            'servicios_sin_insumos' => $serviciosSinInsumos,
+            'servicios_sin_insumos' => count($sinInsumos),
             'items' => $items,
         ];
+    }
+
+    /**
+     * Normaliza un nombre de servicio para emparejar la descripción de venta
+     * con el catálogo: quita el prefijo "Grooming ·/-/:", espacios repetidos y
+     * pasa a minúsculas.
+     */
+    private function normalizeGroomingName(string $name): string
+    {
+        $clean = preg_replace('/^\s*grooming\s*[·\-:]\s*/iu', '', trim($name)) ?? $name;
+        $clean = preg_replace('/\s+/u', ' ', $clean) ?? $clean;
+
+        return mb_strtolower(trim($clean));
     }
 
     /**

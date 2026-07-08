@@ -97,7 +97,7 @@ export function DashboardRentabilidadGroomingCard({ initial, moneda, locale }: P
     }, [initial]);
 
     const tone = marginTone(data.margen_pct);
-    const isEmpty = data.ingresos === 0 && data.costo === 0;
+    const isEmpty = data.ingresos === 0 && data.costo === 0 && data.servicios_sin_insumos === 0;
     const costoPct = data.ingresos > 0 ? Math.max(0, Math.min(100, (data.costo / data.ingresos) * 100)) : 0;
     const gananciaPct = data.ingresos > 0 ? Math.max(0, 100 - costoPct) : 0;
 

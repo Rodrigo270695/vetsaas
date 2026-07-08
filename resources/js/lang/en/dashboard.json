@@ -126,10 +126,10 @@
         "col_servicio": "Service",
         "col_uds": "Qty",
         "col_ganancia": "Profit",
-        "sin_insumos_aviso": "{{count}} completed service(s) have no supplies set.",
+        "sin_insumos_aviso": "{{count}} sold grooming service(s) have no supplies set.",
         "sin_insumos_cta": "Assign supplies in Settings → Rates to compute their margin.",
-        "nota": "Based on completed appointments in the period. Price comes from the service rate and cost is the sum of its supplies.",
-        "empty": "No completed grooming services with supplies in this period.",
+        "nota": "Based on paid sales in the period. Price is the amount charged (before tax) and cost is the sum of the service's supplies.",
+        "empty": "No grooming sales with recorded supplies in this period.",
         "loading": "Calculating…"
     },
     "proximas_citas": {
