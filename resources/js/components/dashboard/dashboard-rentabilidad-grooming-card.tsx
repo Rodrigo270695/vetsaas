@@ -1,4 +1,4 @@
-import { AlertTriangle, Coins, Loader2, PiggyBank, Receipt, Scissors, TrendingUp } from 'lucide-react';
+import { AlertTriangle, ChevronDown, ChevronUp, Coins, Loader2, PiggyBank, Receipt, Scissors, TrendingUp } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -56,13 +56,17 @@ export function DashboardRentabilidadGroomingCard({ initial, moneda, locale }: P
     const [data, setData] = useState<RentabilidadGroomingResumen>(initial);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(false);
+    const [showAll, setShowAll] = useState(false);
     const requestId = useRef(0);
+
+    const TOP_PREVIEW = 3;
 
     const fetchPeriodo = useCallback((next: RentabilidadPeriodo) => {
         const id = ++requestId.current;
         setPeriodo(next);
         setLoading(true);
         setError(false);
+        setShowAll(false);
 
         fetch(`/dashboard/rentabilidad-grooming?periodo=${next}`, {
             credentials: 'same-origin',
@@ -259,7 +263,7 @@ export function DashboardRentabilidadGroomingCard({ initial, moneda, locale }: P
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {data.items.map((item, idx) => {
+                                            {(showAll ? data.items : data.items.slice(0, TOP_PREVIEW)).map((item, idx) => {
                                                 const itemTone = marginTone(item.margen_pct);
                                                 return (
                                                     <tr
@@ -284,6 +288,25 @@ export function DashboardRentabilidadGroomingCard({ initial, moneda, locale }: P
                                         </tbody>
                                     </table>
                                 </div>
+                                {data.items.length > TOP_PREVIEW && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowAll((v) => !v)}
+                                        className="flex w-full cursor-pointer items-center justify-center gap-1 rounded-lg border border-border/60 bg-card/60 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                                    >
+                                        {showAll ? (
+                                            <>
+                                                {t('rentabilidad_grooming.ver_menos')}
+                                                <ChevronUp className="size-3.5" aria-hidden />
+                                            </>
+                                        ) : (
+                                            <>
+                                                {t('rentabilidad_grooming.ver_mas', { count: data.items.length - TOP_PREVIEW })}
+                                                <ChevronDown className="size-3.5" aria-hidden />
+                                            </>
+                                        )}
+                                    </button>
+                                )}
                             </div>
                         )}
 

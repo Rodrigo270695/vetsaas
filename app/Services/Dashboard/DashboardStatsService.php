@@ -623,7 +623,7 @@ final class DashboardStatsService
             )
             ->groupBy('productos.id', 'productos.nombre')
             ->orderByDesc(DB::raw('COALESCE(SUM(venta_lineas.subtotal), 0) - COALESCE(SUM(venta_lineas.cantidad * productos.precio_compra), 0)'))
-            ->limit(6)
+            ->limit(20)
             ->get();
 
         $items = $topRows
@@ -797,7 +797,7 @@ final class DashboardStatsService
         }
 
         usort($items, static fn (array $a, array $b): int => $b['ganancia'] <=> $a['ganancia']);
-        $items = array_slice($items, 0, 6);
+        $items = array_slice($items, 0, 20);
 
         $ingresos = round($ingresos, 2);
         $costo = round($costo, 2);
