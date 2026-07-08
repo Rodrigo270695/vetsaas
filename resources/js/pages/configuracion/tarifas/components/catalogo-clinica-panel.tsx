@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/react';
-import { Loader2, Plus } from 'lucide-react';
+import { Loader2, Package, Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DataTable, StatBadge } from '@/components/data-page';
@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
 import { Input } from '@/components/ui/input';
+import { GroomingInsumosModal } from './grooming-insumos-modal';
 import { TarifaDeleteDialog } from './tarifa-delete-dialog';
 import { TarifaRowActions } from './tarifa-row-actions';
 import type { CatalogoClinicaRow } from '../types';
@@ -105,6 +106,7 @@ export function CatalogoClinicaPanel({
     const [form, setForm] = useState<FormState>(() => emptyForm(kind));
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [submitting, setSubmitting] = useState(false);
+    const [insumosServicio, setInsumosServicio] = useState<CatalogoClinicaRow | null>(null);
 
     const routes = routesFor(kind, routesBase);
     const isGrooming = kind === 'grooming';
@@ -220,6 +222,42 @@ export function CatalogoClinicaPanel({
                 header: t('catalogo.columns.duracion'),
                 className: 'w-28',
                 cell: (row) => `${row.duracion_minutos ?? 60} min`,
+            });
+
+            base.push({
+                key: 'insumos',
+                header: t('insumos.column'),
+                className: 'w-52',
+                cell: (row) => {
+                    const count = row.insumos_count ?? 0;
+                    const total = Number(row.insumos_total ?? 0) || 0;
+
+                    return (
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setInsumosServicio(row)}
+                            className="h-auto cursor-pointer justify-start gap-2 py-1.5"
+                        >
+                            <Package className="size-4 text-muted-foreground" />
+                            <span className="flex flex-col items-start leading-tight">
+                                <span className="text-xs font-medium">
+                                    {t('insumos.count', { count })}
+                                </span>
+                                {count > 0 ? (
+                                    <span className="text-[0.7rem] tabular-nums text-muted-foreground">
+                                        {formatPrecio(String(total), row.moneda)}
+                                    </span>
+                                ) : (
+                                    <span className="text-[0.7rem] text-muted-foreground">
+                                        {t('insumos.assign_cta')}
+                                    </span>
+                                )}
+                            </span>
+                        </Button>
+                    );
+                },
             });
         }
 
@@ -387,6 +425,23 @@ export function CatalogoClinicaPanel({
                 nombre={deleteRow?.nombre ?? ''}
                 onConfirm={confirmDelete}
             />
+
+            {isGrooming ? (
+                <GroomingInsumosModal
+                    open={insumosServicio !== null}
+                    onOpenChange={(open) => !open && setInsumosServicio(null)}
+                    servicio={
+                        insumosServicio
+                            ? {
+                                  id: insumosServicio.id,
+                                  nombre: insumosServicio.nombre,
+                                  moneda: insumosServicio.moneda,
+                              }
+                            : null
+                    }
+                    canUpdate={canUpdate}
+                />
+            ) : null}
         </>
     );
 }

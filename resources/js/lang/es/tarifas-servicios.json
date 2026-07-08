@@ -90,6 +90,27 @@
             "activo": "Activo (disponible al agendar y cobrar)"
         }
     },
+    "insumos": {
+        "column": "Insumos",
+        "count_one": "{{count}} insumo",
+        "count_other": "{{count}} insumos",
+        "assign_cta": "Asignar insumos",
+        "title": "Insumos del servicio",
+        "description": "Define qué insumos consume «{{servicio}}» y el precio de cada uno.",
+        "description_generic": "Define qué insumos consume el servicio y el precio de cada uno.",
+        "add_label": "Agregar insumo",
+        "add_placeholder": "Busca o crea un insumo…",
+        "add_hint": "Elige uno del catálogo de tu clínica o escribe uno nuevo para crearlo.",
+        "search_placeholder": "Buscar insumo…",
+        "empty_catalog": "No hay insumos. Escribe para crear uno nuevo.",
+        "create_option": "Crear «{{nombre}}»",
+        "empty_rows": "Aún no asignaste insumos a este servicio.",
+        "new_badge": "Nuevo insumo",
+        "footer_total_one": "{{count}} insumo · total",
+        "footer_total_other": "{{count}} insumos · total",
+        "precio_label": "Precio de {{nombre}}",
+        "remove_label": "Quitar {{nombre}}"
+    },
     "toast": {
         "load_error": "No se pudieron cargar las tarifas."
     }

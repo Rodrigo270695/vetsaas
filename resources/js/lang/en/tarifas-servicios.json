@@ -63,6 +63,27 @@
         "grooming": "Create a rate to suggest prices when charging grooming appointments.",
         "hotel": "Create a rate to suggest nightly prices when charging stays."
     },
+    "insumos": {
+        "column": "Supplies",
+        "count_one": "{{count}} supply",
+        "count_other": "{{count}} supplies",
+        "assign_cta": "Assign supplies",
+        "title": "Service supplies",
+        "description": "Define which supplies «{{servicio}}» uses and the price of each one.",
+        "description_generic": "Define which supplies the service uses and the price of each one.",
+        "add_label": "Add supply",
+        "add_placeholder": "Search or create a supply…",
+        "add_hint": "Pick one from your clinic catalog or type a new one to create it.",
+        "search_placeholder": "Search supply…",
+        "empty_catalog": "No supplies. Type to create a new one.",
+        "create_option": "Create «{{nombre}}»",
+        "empty_rows": "You haven't assigned supplies to this service yet.",
+        "new_badge": "New supply",
+        "footer_total_one": "{{count}} supply · total",
+        "footer_total_other": "{{count}} supplies · total",
+        "precio_label": "Price of {{nombre}}",
+        "remove_label": "Remove {{nombre}}"
+    },
     "toast": {
         "load_error": "Could not load rates."
     }

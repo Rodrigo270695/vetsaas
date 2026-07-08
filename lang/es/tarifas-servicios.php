@@ -17,4 +17,8 @@ return [
         'missing_legacy_table' => 'Falta la tabla de tarifas legacy de hotel. Ejecuta las migraciones del tenant.',
         'save_failed' => 'No se pudo guardar el tipo de estancia. Verifica migraciones del tenant (t095) o revisa storage/logs/laravel.log.',
     ],
+    'insumos' => [
+        'saved' => 'Insumos del servicio actualizados.',
+        'missing_table' => 'Falta la tabla de insumos de grooming. Ejecuta las migraciones del tenant (t106).',
+    ],
 ];

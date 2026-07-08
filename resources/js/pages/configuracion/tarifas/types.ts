@@ -15,6 +15,27 @@ export type CatalogoClinicaRow = {
     duracion_minutos?: number;
     activo: boolean;
     orden: number;
+    /** Cantidad de insumos asignados (solo grooming personalizado). */
+    insumos_count?: number;
+    /** Suma del precio de los insumos asignados. */
+    insumos_total?: string | number | null;
+};
+
+export type GroomingInsumoCatalogo = {
+    id: string;
+    nombre: string;
+};
+
+export type GroomingInsumoAsignado = {
+    grooming_insumo_id: string;
+    nombre: string;
+    precio: string;
+};
+
+export type GroomingInsumosResponse = {
+    catalogo: GroomingInsumoCatalogo[];
+    asignados: GroomingInsumoAsignado[];
+    moneda: string;
 };
 
 export type GroomingTarifa = {

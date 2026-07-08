@@ -48,4 +48,9 @@ class GroomingServicio extends Model
     {
         return $this->hasMany(GroomingTurno::class, 'grooming_servicio_id');
     }
+
+    public function insumos(): HasMany
+    {
+        return $this->hasMany(GroomingServicioInsumo::class, 'grooming_servicio_id');
+    }
 }

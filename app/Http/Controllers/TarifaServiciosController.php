@@ -53,7 +53,19 @@ class TarifaServiciosController extends Controller
         $hotelTipos = collect();
 
         if ($groomingPersonalizado) {
-            $groomingQuery = GroomingServicio::query()->orderBy('orden')->orderBy('nombre');
+            $groomingQuery = GroomingServicio::query()
+                ->select([
+                    'id', 'nombre', 'categoria', 'codigo_legacy', 'precio_lista', 'moneda', 'duracion_minutos', 'activo', 'orden',
+                ])
+                ->orderBy('orden')
+                ->orderBy('nombre');
+
+            if (Schema::hasTable('grooming_servicio_insumo')) {
+                $groomingQuery
+                    ->withCount('insumos as insumos_count')
+                    ->withSum('insumos as insumos_total', 'precio');
+            }
+
             if ($groomingSearch !== '') {
                 $groomingQuery->where(function ($q) use ($groomingSearch): void {
                     $q->where('nombre', 'ILIKE', "%{$groomingSearch}%")
@@ -61,9 +73,7 @@ class TarifaServiciosController extends Controller
                         ->orWhere('codigo_legacy', 'ILIKE', "%{$groomingSearch}%");
                 });
             }
-            $groomingServicios = $groomingQuery->get([
-                'id', 'nombre', 'categoria', 'codigo_legacy', 'precio_lista', 'moneda', 'duracion_minutos', 'activo', 'orden',
-            ]);
+            $groomingServicios = $groomingQuery->get();
         }
 
         if ($hotelPersonalizado) {

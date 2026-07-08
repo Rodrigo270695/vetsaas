@@ -19,6 +19,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FelDocumentController;
 use App\Http\Controllers\FelSerieController;
 use App\Http\Controllers\GeoController;
+use App\Http\Controllers\GroomingInsumoController;
 use App\Http\Controllers\GroomingServicioController;
 use App\Http\Controllers\GroomingTurnoController;
 use App\Http\Controllers\HospitalizacionController;
@@ -824,6 +825,15 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             ->delete('tarifas/grooming/servicios/{groomingServicio}', [GroomingServicioController::class, 'destroy'])
             ->whereUuid('groomingServicio')
             ->name('tarifas.grooming.servicios.destroy');
+
+        Route::middleware('permission:tarifas.view')
+            ->get('tarifas/grooming/servicios/{groomingServicio}/insumos', [GroomingInsumoController::class, 'index'])
+            ->whereUuid('groomingServicio')
+            ->name('tarifas.grooming.servicios.insumos.index');
+        Route::middleware('permission:tarifas.update')
+            ->put('tarifas/grooming/servicios/{groomingServicio}/insumos', [GroomingInsumoController::class, 'sync'])
+            ->whereUuid('groomingServicio')
+            ->name('tarifas.grooming.servicios.insumos.sync');
         Route::middleware(['permission:tarifas.create', 'tenant.module:hotel'])
             ->post('tarifas/hotel/tipos', [HotelTipoEstanciaController::class, 'store'])
             ->name('tarifas.hotel.tipos.store');
