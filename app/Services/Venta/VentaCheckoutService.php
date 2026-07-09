@@ -17,6 +17,7 @@ use App\Models\Venta;
 use App\Models\VentaLinea;
 use App\Support\Fel\ApisunatCredentialResolver;
 use App\Support\PlanCapabilities;
+use App\Support\Venta\VentaTotales;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -213,25 +214,10 @@ final class VentaCheckoutService
             $lineasCalc = $promoResult->lineas;
             $descuentoMonto = $promoResult->discount_amount;
 
-            $subtotalVenta = 0.0;
-            $totalVenta = 0.0;
-            foreach ($lineasCalc as $line) {
-                $subtotalVenta += (float) $line['subtotal'];
-            }
-
-            if ($precioIncluyeIgv) {
-                $subtotalVenta = round($subtotalVenta, 2);
-                $total = 0.0;
-                foreach ($lineasCalc as $line) {
-                    $total += round((float) $line['subtotal'] * $divisorIgv, 2);
-                }
-                $total = round($total, 2);
-                $igvMonto = round($total - $subtotalVenta, 2);
-            } else {
-                $subtotalVenta = round($subtotalVenta, 2);
-                $igvMonto = round($subtotalVenta * ($igvPct / 100), 2);
-                $total = round($subtotalVenta + $igvMonto, 2);
-            }
+            $totales = VentaTotales::fromLineas($lineasCalc, $igvPct, $precioIncluyeIgv);
+            $subtotalVenta = $totales['subtotal'];
+            $igvMonto = $totales['igv'];
+            $total = $totales['total'];
 
             $metodo = (string) $validated['metodo_pago'];
             $montoRecibido = null;

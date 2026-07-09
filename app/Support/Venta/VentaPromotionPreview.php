@@ -7,6 +7,7 @@ use App\Models\ConsultaCargoLinea;
 use App\Models\GroomingTurno;
 use App\Models\Producto;
 use App\Services\Venta\PromotionCheckoutService;
+use App\Support\Venta\VentaTotales;
 
 final class VentaPromotionPreview
 {
@@ -117,20 +118,11 @@ final class VentaPromotionPreview
         );
 
         $lineas = $promoResult->lineas;
-        $subtotal = array_sum(array_map(fn (array $l): float => (float) $l['subtotal'], $lineas));
-        $subtotal = round($subtotal, 2);
 
-        if ($precioIncluyeIgv) {
-            $total = 0.0;
-            foreach ($lineas as $line) {
-                $total += round((float) $line['subtotal'] * $divisorIgv, 2);
-            }
-            $total = round($total, 2);
-            $igv = round($total - $subtotal, 2);
-        } else {
-            $igv = round($subtotal * ($igvPct / 100), 2);
-            $total = round($subtotal + $igv, 2);
-        }
+        $totales = VentaTotales::fromLineas($lineas, $igvPct, $precioIncluyeIgv);
+        $subtotal = $totales['subtotal'];
+        $igv = $totales['igv'];
+        $total = $totales['total'];
 
         return [
             'lineas' => $lineas,
