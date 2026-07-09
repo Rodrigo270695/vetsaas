@@ -104,7 +104,7 @@
         "ver_menos": "Ver menos",
         "sin_costo_aviso": "{{count}} producto(s) vendido(s) sin precio de compra registrado.",
         "sin_costo_cta": "Agrega el precio de compra en Inventario para un margen exacto.",
-        "nota": "El margen usa el precio de compra actual de cada producto (no el histórico) y excluye servicios.",
+        "nota": "El margen usa el precio de venta y precio de compra actuales del catálogo por cada unidad vendida (no históricos) y excluye servicios.",
         "nota_comprobantes": "Solo ventas pagadas: boletas y facturas emitidas en SUNAT, tickets internos. Se excluyen ventas anuladas.",
         "comprobantes_label": "Tipos de comprobante",
         "por_comprobante_title": "Por tipo de comprobante",
@@ -140,7 +140,7 @@
         "ver_menos": "Ver menos",
         "sin_insumos_aviso": "{{count}} servicio(s) de grooming vendido(s) sin insumos registrados.",
         "sin_insumos_cta": "Asigna insumos en Configuración → Tarifas para calcular su margen.",
-        "nota": "Toma las ventas pagadas del periodo. El precio es el cobrado (sin IGV) y el costo, la suma de los insumos del servicio.",
+        "nota": "Basado en ventas pagadas del periodo. El precio es el del catálogo de grooming y el costo es la suma de insumos del servicio.",
         "empty": "No hay ventas de grooming con insumos registrados en este periodo.",
         "loading": "Calculando…"
     },

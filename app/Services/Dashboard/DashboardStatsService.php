@@ -556,9 +556,9 @@ final class DashboardStatsService
     /**
      * Rentabilidad (margen de ganancia) de productos vendidos en un periodo.
      *
-     * Margen = precio de venta (subtotal sin IGV de la línea) − costo de compra.
-     * El costo se toma de `productos.precio_compra` (valor ACTUAL, no snapshot
-     * histórico: el sistema no guarda el costo al momento de la venta).
+     * Margen = precio de venta del catálogo − precio de compra del catálogo,
+     * por cada unidad vendida (sin descontar IGV).
+     * Ambos precios son el valor ACTUAL del producto (no snapshot histórico).
      * Solo se consideran líneas con `producto_id` y `precio_compra` definidos;
      * las líneas de servicio y los productos sin costo quedan fuera del margen.
      *
@@ -601,14 +601,15 @@ final class DashboardStatsService
         /** @var Collection<int, object{nombre: string, ingreso: string, costo: string, cantidad: string}> $topRows */
         $topRows = $base()
             ->whereNotNull('productos.precio_compra')
+            ->whereNotNull('productos.precio_venta')
             ->select(
                 'productos.nombre as nombre',
-                DB::raw('COALESCE(SUM(venta_lineas.subtotal), 0) as ingreso'),
+                DB::raw('COALESCE(SUM(venta_lineas.cantidad * productos.precio_venta), 0) as ingreso'),
                 DB::raw('COALESCE(SUM(venta_lineas.cantidad * productos.precio_compra), 0) as costo'),
                 DB::raw('COALESCE(SUM(venta_lineas.cantidad), 0) as cantidad'),
             )
             ->groupBy('productos.id', 'productos.nombre')
-            ->orderByDesc(DB::raw('COALESCE(SUM(venta_lineas.subtotal), 0) - COALESCE(SUM(venta_lineas.cantidad * productos.precio_compra), 0)'))
+            ->orderByDesc(DB::raw('COALESCE(SUM(venta_lineas.cantidad * productos.precio_venta), 0) - COALESCE(SUM(venta_lineas.cantidad * productos.precio_compra), 0)'))
             ->limit(20)
             ->get();
 
@@ -619,8 +620,9 @@ final class DashboardStatsService
 
         $agg = $base()
             ->whereNotNull('productos.precio_compra')
+            ->whereNotNull('productos.precio_venta')
             ->selectRaw('
-                COALESCE(SUM(venta_lineas.subtotal), 0) as ingresos,
+                COALESCE(SUM(venta_lineas.cantidad * productos.precio_venta), 0) as ingresos,
                 COALESCE(SUM(venta_lineas.cantidad * productos.precio_compra), 0) as costo,
                 COALESCE(SUM(venta_lineas.cantidad), 0) as unidades
             ')
@@ -752,7 +754,7 @@ final class DashboardStatsService
             ];
 
             $cantidad = (float) $linea->cantidad;
-            $acumulado[$id]['ingreso'] += (float) $linea->subtotal;
+            $acumulado[$id]['ingreso'] += $cantidad * $servicio['precio'];
             $acumulado[$id]['costo'] += $cantidad * $servicio['costo_unit'];
             $acumulado[$id]['cantidad'] += $cantidad;
         }
@@ -953,8 +955,9 @@ final class DashboardStatsService
 
             $agg = $q
                 ->whereNotNull('productos.precio_compra')
+                ->whereNotNull('productos.precio_venta')
                 ->selectRaw('
-                    COALESCE(SUM(venta_lineas.subtotal), 0) as ingresos,
+                    COALESCE(SUM(venta_lineas.cantidad * productos.precio_venta), 0) as ingresos,
                     COALESCE(SUM(venta_lineas.cantidad * productos.precio_compra), 0) as costo,
                     COALESCE(SUM(venta_lineas.cantidad), 0) as unidades
                 ')
@@ -1005,7 +1008,7 @@ final class DashboardStatsService
                 }
 
                 $cantidad = (float) $linea->cantidad;
-                $ingresos += (float) $linea->subtotal;
+                $ingresos += $cantidad * $servicio['precio'];
                 $costo += $cantidad * $servicio['costo_unit'];
                 $unidades += $cantidad;
             }

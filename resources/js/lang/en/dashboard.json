@@ -104,7 +104,7 @@
         "ver_menos": "Show less",
         "sin_costo_aviso": "{{count}} sold product(s) have no purchase price set.",
         "sin_costo_cta": "Add the purchase price in Inventory for an exact margin.",
-        "nota": "Margin uses each product's current purchase price (not historical) and excludes services.",
+        "nota": "Margin uses the product's current sale and purchase prices from the catalog per unit sold (not historical) and excludes services.",
         "nota_comprobantes": "Paid sales only: SUNAT-issued invoices and receipts, internal tickets. Cancelled sales are excluded.",
         "comprobantes_label": "Document types",
         "por_comprobante_title": "By document type",
@@ -140,7 +140,7 @@
         "ver_menos": "Show less",
         "sin_insumos_aviso": "{{count}} sold grooming service(s) have no supplies set.",
         "sin_insumos_cta": "Assign supplies in Settings → Rates to compute their margin.",
-        "nota": "Based on paid sales in the period. Price is the amount charged (before tax) and cost is the sum of the service's supplies.",
+        "nota": "Based on paid sales in the period. Price is the grooming catalog rate and cost is the sum of the service supplies.",
         "empty": "No grooming sales with recorded supplies in this period.",
         "loading": "Calculating…"
     },
