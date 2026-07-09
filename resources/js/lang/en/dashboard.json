@@ -105,6 +105,14 @@
         "sin_costo_aviso": "{{count}} sold product(s) have no purchase price set.",
         "sin_costo_cta": "Add the purchase price in Inventory for an exact margin.",
         "nota": "Margin uses each product's current purchase price (not historical) and excludes services.",
+        "nota_comprobantes": "Paid sales only: SUNAT-issued invoices and receipts, internal tickets. Cancelled sales are excluded.",
+        "comprobantes_label": "Document types",
+        "por_comprobante_title": "By document type",
+        "comprobante": {
+            "boleta": "Receipts",
+            "factura": "Invoices",
+            "ticket": "Tickets"
+        },
         "empty": "No product sales with a recorded cost in this period.",
         "loading": "Calculating…"
     },

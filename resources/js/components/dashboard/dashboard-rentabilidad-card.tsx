@@ -2,8 +2,14 @@ import { AlertTriangle, ChevronDown, ChevronUp, Coins, Loader2, PiggyBank, Recei
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import {
+    DEFAULT_RENTABILIDAD_FILTROS,
+    RentabilidadComprobanteFilterBar,
+    RentabilidadPorComprobanteGrid,
+    buildRentabilidadUrl,
+} from '@/components/dashboard/rentabilidad-comprobante-section';
 import { cn } from '@/lib/utils';
-import type { RentabilidadPeriodo, RentabilidadResumen } from '@/pages/dashboard/types';
+import type { RentabilidadComprobanteFiltros, RentabilidadPeriodo, RentabilidadResumen } from '@/pages/dashboard/types';
 
 type Props = {
     initial: RentabilidadResumen;
@@ -53,6 +59,9 @@ function marginTone(pct: number | null): { text: string; bar: string } {
 export function DashboardRentabilidadCard({ initial, moneda, locale }: Props) {
     const { t } = useTranslation(['dashboard', 'common']);
     const [periodo, setPeriodo] = useState<RentabilidadPeriodo>(initial.periodo);
+    const [filtros, setFiltros] = useState<RentabilidadComprobanteFiltros>(
+        initial.filtros ?? DEFAULT_RENTABILIDAD_FILTROS,
+    );
     const [data, setData] = useState<RentabilidadResumen>(initial);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(false);
@@ -61,14 +70,15 @@ export function DashboardRentabilidadCard({ initial, moneda, locale }: Props) {
 
     const TOP_PREVIEW = 3;
 
-    const fetchPeriodo = useCallback((next: RentabilidadPeriodo) => {
+    const fetchData = useCallback((nextPeriodo: RentabilidadPeriodo, nextFiltros: RentabilidadComprobanteFiltros) => {
         const id = ++requestId.current;
-        setPeriodo(next);
+        setPeriodo(nextPeriodo);
+        setFiltros(nextFiltros);
         setLoading(true);
         setError(false);
         setShowAll(false);
 
-        fetch(`/dashboard/rentabilidad?periodo=${next}`, {
+        fetch(buildRentabilidadUrl('/dashboard/rentabilidad', nextPeriodo, nextFiltros), {
             credentials: 'same-origin',
             headers: {
                 Accept: 'application/json',
@@ -99,6 +109,7 @@ export function DashboardRentabilidadCard({ initial, moneda, locale }: Props) {
     useEffect(() => {
         setData(initial);
         setPeriodo(initial.periodo);
+        setFiltros(initial.filtros ?? DEFAULT_RENTABILIDAD_FILTROS);
     }, [initial]);
 
     const tone = marginTone(data.margen_pct);
@@ -137,7 +148,7 @@ export function DashboardRentabilidadCard({ initial, moneda, locale }: Props) {
                                     type="button"
                                     aria-pressed={active}
                                     disabled={loading}
-                                    onClick={() => !active && fetchPeriodo(p)}
+                                    onClick={() => !active && fetchData(p, filtros)}
                                     className={cn(
                                         'cursor-pointer rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
                                         active
@@ -163,6 +174,12 @@ export function DashboardRentabilidadCard({ initial, moneda, locale }: Props) {
                         formatDateRange(data.desde, data.hasta, locale)
                     )}
                 </p>
+
+                <RentabilidadComprobanteFilterBar
+                    filtros={filtros}
+                    loading={loading}
+                    onChange={(next) => fetchData(periodo, next)}
+                />
             </CardHeader>
 
             <CardContent className="min-w-0 space-y-5 bg-muted/20 px-6 pb-6 pt-5">
@@ -241,6 +258,15 @@ export function DashboardRentabilidadCard({ initial, moneda, locale }: Props) {
                                 </span>
                             </div>
                         </div>
+
+                        {data.por_comprobante && (
+                            <RentabilidadPorComprobanteGrid
+                                data={data.por_comprobante}
+                                moneda={moneda}
+                                locale={locale}
+                                unidadesLabel={t('rentabilidad.unidades')}
+                            />
+                        )}
 
                         {/* Top productos rentables */}
                         {data.items.length > 0 && (
@@ -329,6 +355,9 @@ export function DashboardRentabilidadCard({ initial, moneda, locale }: Props) {
 
                         <p className="text-[11px] leading-relaxed text-muted-foreground">
                             {t('rentabilidad.nota')}
+                        </p>
+                        <p className="text-[11px] leading-relaxed text-muted-foreground">
+                            {t('rentabilidad.nota_comprobantes')}
                         </p>
                     </div>
                 )}

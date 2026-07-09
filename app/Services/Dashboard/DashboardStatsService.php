@@ -8,6 +8,7 @@ use App\Models\CajaSesion;
 use App\Models\Cita;
 use App\Models\ClinicSetting;
 use App\Models\Consulta;
+use App\Models\FelSerie;
 use App\Models\GroomingTurno;
 use App\Models\HotelEstancia;
 use App\Models\Internamiento;
@@ -574,38 +575,23 @@ final class DashboardStatsService
      *     items: list<array{nombre: string, ingreso: float, costo: float, ganancia: float, cantidad: float, margen_pct: ?float}>
      * }
      */
-    public function rentabilidad(string $periodo = 'mes_actual'): array
+    public function rentabilidad(string $periodo = 'mes_actual', ?array $comprobantes = null): array
     {
         $tz = (string) config('app.timezone');
         [$periodo, $start, $end] = $this->resolveRentabilidadRange($periodo, now($tz));
+        $filtros = $this->resolveRentabilidadComprobantes($comprobantes);
 
-        $base = fn () => DB::table('venta_lineas')
-            ->join('ventas', 'ventas.id', '=', 'venta_lineas.venta_id')
-            ->join('productos', 'productos.id', '=', 'venta_lineas.producto_id')
-            ->where('ventas.estado', Venta::ESTADO_PAGADO)
-            ->whereNull('ventas.deleted_at')
-            ->whereNotNull('venta_lineas.producto_id')
-            ->where(function ($q) use ($start, $end): void {
-                $q->whereBetween('ventas.fecha_pago', [$start, $end])
-                    ->orWhere(function ($q2) use ($start, $end): void {
-                        $q2->whereNull('ventas.fecha_pago')
-                            ->whereBetween('ventas.created_at', [$start, $end]);
-                    });
-            });
+        $base = function () use ($start, $end, $filtros) {
+            $q = DB::table('venta_lineas')
+                ->join('ventas', 'ventas.id', '=', 'venta_lineas.venta_id')
+                ->join('productos', 'productos.id', '=', 'venta_lineas.producto_id')
+                ->whereNotNull('venta_lineas.producto_id');
 
-        $agg = $base()
-            ->whereNotNull('productos.precio_compra')
-            ->selectRaw('
-                COALESCE(SUM(venta_lineas.subtotal), 0) as ingresos,
-                COALESCE(SUM(venta_lineas.cantidad * productos.precio_compra), 0) as costo,
-                COALESCE(SUM(venta_lineas.cantidad), 0) as unidades
-            ')
-            ->first();
+            $this->applyVentasRentabilidadFilter($q, $start, $end);
+            $this->applyComprobanteTipoFilter($q, $filtros);
 
-        $ingresos = round((float) ($agg->ingresos ?? 0), 2);
-        $costo = round((float) ($agg->costo ?? 0), 2);
-        $ganancia = round($ingresos - $costo, 2);
-        $unidades = round((float) ($agg->unidades ?? 0), 2);
+            return $q;
+        };
 
         $productosSinCosto = (int) $base()
             ->whereNull('productos.precio_compra')
@@ -627,33 +613,33 @@ final class DashboardStatsService
             ->get();
 
         $items = $topRows
-            ->map(function (object $row): array {
-                $ingreso = round((float) $row->ingreso, 2);
-                $costoItem = round((float) $row->costo, 2);
-                $gananciaItem = round($ingreso - $costoItem, 2);
-
-                return [
-                    'nombre' => (string) $row->nombre,
-                    'ingreso' => $ingreso,
-                    'costo' => $costoItem,
-                    'ganancia' => $gananciaItem,
-                    'cantidad' => round((float) $row->cantidad, 2),
-                    'margen_pct' => $ingreso > 0 ? round(($gananciaItem / $ingreso) * 100, 1) : null,
-                ];
-            })
+            ->map(fn (object $row): array => $this->mapRentabilidadItemRow($row))
             ->values()
             ->all();
+
+        $agg = $base()
+            ->whereNotNull('productos.precio_compra')
+            ->selectRaw('
+                COALESCE(SUM(venta_lineas.subtotal), 0) as ingresos,
+                COALESCE(SUM(venta_lineas.cantidad * productos.precio_compra), 0) as costo,
+                COALESCE(SUM(venta_lineas.cantidad), 0) as unidades
+            ')
+            ->first();
+
+        $totales = $this->formatRentabilidadSlice($agg);
 
         return [
             'periodo' => $periodo,
             'desde' => $start->toDateString(),
             'hasta' => $end->toDateString(),
-            'ingresos' => $ingresos,
-            'costo' => $costo,
-            'ganancia' => $ganancia,
-            'margen_pct' => $ingresos > 0 ? round(($ganancia / $ingresos) * 100, 1) : null,
-            'unidades' => $unidades,
+            'filtros' => $filtros,
+            'ingresos' => $totales['ingresos'],
+            'costo' => $totales['costo'],
+            'ganancia' => $totales['ganancia'],
+            'margen_pct' => $totales['margen_pct'],
+            'unidades' => $totales['unidades'],
             'productos_sin_costo' => $productosSinCosto,
+            'por_comprobante' => $this->rentabilidadProductosPorComprobante($start, $end),
             'items' => $items,
         ];
     }
@@ -675,21 +661,24 @@ final class DashboardStatsService
      *     items: list<array{nombre: string, ingreso: float, costo: float, ganancia: float, cantidad: float, margen_pct: ?float}>
      * }
      */
-    public function rentabilidadGrooming(string $periodo = 'mes_actual'): array
+    public function rentabilidadGrooming(string $periodo = 'mes_actual', ?array $comprobantes = null): array
     {
         $tz = (string) config('app.timezone');
         [$periodo, $start, $end] = $this->resolveRentabilidadRange($periodo, now($tz));
+        $filtros = $this->resolveRentabilidadComprobantes($comprobantes);
 
         $empty = [
             'periodo' => $periodo,
             'desde' => $start->toDateString(),
             'hasta' => $end->toDateString(),
+            'filtros' => $filtros,
             'ingresos' => 0.0,
             'costo' => 0.0,
             'ganancia' => 0.0,
             'margen_pct' => null,
             'unidades' => 0.0,
             'servicios_sin_insumos' => 0,
+            'por_comprobante' => $this->emptyRentabilidadPorComprobante(),
             'items' => [],
         ];
 
@@ -725,20 +714,16 @@ final class DashboardStatsService
             ];
         }
 
-        /** @var Collection<int, object{descripcion: string, subtotal: string, cantidad: string}> $lineas */
+        /** @var Collection<int, object{descripcion: string, subtotal: string, cantidad: string, tipo_comprobante_sunat: ?int}> $lineas */
         $lineas = DB::table('venta_lineas as vl')
             ->join('ventas as v', 'v.id', '=', 'vl.venta_id')
-            ->where('v.estado', Venta::ESTADO_PAGADO)
-            ->whereNull('v.deleted_at')
-            ->whereNull('vl.producto_id')
-            ->where(function ($q) use ($start, $end): void {
-                $q->whereBetween('v.fecha_pago', [$start, $end])
-                    ->orWhere(function ($q2) use ($start, $end): void {
-                        $q2->whereNull('v.fecha_pago')
-                            ->whereBetween('v.created_at', [$start, $end]);
-                    });
-            })
-            ->select('vl.descripcion_snapshot as descripcion', 'vl.subtotal', 'vl.cantidad')
+            ->whereNull('vl.producto_id');
+
+        $this->applyVentasRentabilidadFilter($lineas, $start, $end, 'v');
+        $this->applyComprobanteTipoFilter($lineas, $filtros, 'v');
+
+        $lineas = $lineas
+            ->select('vl.descripcion_snapshot as descripcion', 'vl.subtotal', 'vl.cantidad', 'v.tipo_comprobante_sunat')
             ->get();
 
         $acumulado = [];
@@ -792,7 +777,7 @@ final class DashboardStatsService
                 'costo' => $costoItem,
                 'ganancia' => $gananciaItem,
                 'cantidad' => round($row['cantidad'], 2),
-                'margen_pct' => $ingresoItem > 0 ? round(($gananciaItem / $ingresoItem) * 100, 1) : null,
+                'margen_pct' => $this->calcMargenPct($ingresoItem, $gananciaItem),
             ];
         }
 
@@ -807,14 +792,263 @@ final class DashboardStatsService
             'periodo' => $periodo,
             'desde' => $start->toDateString(),
             'hasta' => $end->toDateString(),
+            'filtros' => $filtros,
             'ingresos' => $ingresos,
             'costo' => $costo,
             'ganancia' => $ganancia,
-            'margen_pct' => $ingresos > 0 ? round(($ganancia / $ingresos) * 100, 1) : null,
+            'margen_pct' => $this->calcMargenPct($ingresos, $ganancia),
             'unidades' => round($unidades, 2),
             'servicios_sin_insumos' => count($sinInsumos),
+            'por_comprobante' => $this->rentabilidadGroomingPorComprobante($start, $end, $porNombre),
             'items' => $items,
         ];
+    }
+
+    /**
+     * @param  array{boleta?: bool, factura?: bool, ticket?: bool}|null  $comprobantes
+     * @return array{boleta: bool, factura: bool, ticket: bool}
+     */
+    public static function resolveRentabilidadComprobantes(?array $comprobantes): array
+    {
+        return [
+            'boleta' => (bool) ($comprobantes['boleta'] ?? true),
+            'factura' => (bool) ($comprobantes['factura'] ?? true),
+            'ticket' => (bool) ($comprobantes['ticket'] ?? true),
+        ];
+    }
+
+    /**
+     * @param  \Illuminate\Database\Query\Builder  $q
+     */
+    private function applyVentasRentabilidadFilter($q, CarbonInterface $start, CarbonInterface $end, string $ventasAlias = 'ventas'): void
+    {
+        $q->where("{$ventasAlias}.estado", Venta::ESTADO_PAGADO)
+            ->whereNull("{$ventasAlias}.deleted_at")
+            ->where(function ($query) use ($start, $end, $ventasAlias): void {
+                $query->whereBetween("{$ventasAlias}.fecha_pago", [$start, $end])
+                    ->orWhere(function ($inner) use ($start, $end, $ventasAlias): void {
+                        $inner->whereNull("{$ventasAlias}.fecha_pago")
+                            ->whereBetween("{$ventasAlias}.created_at", [$start, $end]);
+                    });
+            })
+            ->where(function ($query) use ($ventasAlias): void {
+                $query->where(function ($ticket) use ($ventasAlias): void {
+                    $ticket->where(function ($tipo) use ($ventasAlias): void {
+                        $tipo->whereNull("{$ventasAlias}.tipo_comprobante_sunat")
+                            ->orWhere("{$ventasAlias}.tipo_comprobante_sunat", FelSerie::TIPO_TICKET);
+                    })->where("{$ventasAlias}.fel_estado", Venta::FEL_SIN_CPE);
+                })->orWhere(function ($sunat) use ($ventasAlias): void {
+                    $sunat->whereIn("{$ventasAlias}.tipo_comprobante_sunat", [
+                        FelSerie::TIPO_FACTURA,
+                        FelSerie::TIPO_BOLETA,
+                    ])->where("{$ventasAlias}.fel_estado", Venta::FEL_EMITIDO);
+                });
+            });
+    }
+
+    /**
+     * @param  array{boleta: bool, factura: bool, ticket: bool}  $filtros
+     * @param  \Illuminate\Database\Query\Builder  $q
+     */
+    private function applyComprobanteTipoFilter($q, array $filtros, string $ventasAlias = 'ventas'): void
+    {
+        $tiposSunat = [];
+        if ($filtros['factura']) {
+            $tiposSunat[] = FelSerie::TIPO_FACTURA;
+        }
+        if ($filtros['boleta']) {
+            $tiposSunat[] = FelSerie::TIPO_BOLETA;
+        }
+
+        $q->where(function ($query) use ($filtros, $tiposSunat, $ventasAlias): void {
+            $applied = false;
+
+            if ($filtros['ticket']) {
+                $query->where(function ($ticket) use ($ventasAlias): void {
+                    $ticket->whereNull("{$ventasAlias}.tipo_comprobante_sunat")
+                        ->orWhere("{$ventasAlias}.tipo_comprobante_sunat", FelSerie::TIPO_TICKET);
+                });
+                $applied = true;
+            }
+
+            if ($tiposSunat !== []) {
+                if ($applied) {
+                    $query->orWhereIn("{$ventasAlias}.tipo_comprobante_sunat", $tiposSunat);
+                } else {
+                    $query->whereIn("{$ventasAlias}.tipo_comprobante_sunat", $tiposSunat);
+                }
+            }
+
+            if (! $applied && $tiposSunat === []) {
+                $query->whereRaw('1 = 0');
+            }
+        });
+    }
+
+    private function resolveComprobanteTipoKey(?int $tipo): string
+    {
+        return match ((int) ($tipo ?? FelSerie::TIPO_TICKET)) {
+            FelSerie::TIPO_FACTURA => 'factura',
+            FelSerie::TIPO_BOLETA => 'boleta',
+            default => 'ticket',
+        };
+    }
+
+    /**
+     * @return array{
+     *     ingresos: float,
+     *     costo: float,
+     *     ganancia: float,
+     *     margen_pct: ?float,
+     *     unidades: float
+     * }
+     */
+    private function formatRentabilidadSlice(?object $agg): array
+    {
+        $ingresos = round((float) ($agg->ingresos ?? 0), 2);
+        $costo = round((float) ($agg->costo ?? 0), 2);
+        $ganancia = round($ingresos - $costo, 2);
+
+        return [
+            'ingresos' => $ingresos,
+            'costo' => $costo,
+            'ganancia' => $ganancia,
+            'margen_pct' => $this->calcMargenPct($ingresos, $ganancia),
+            'unidades' => round((float) ($agg->unidades ?? 0), 2),
+        ];
+    }
+
+    /**
+     * @return array{boleta: array, factura: array, ticket: array}
+     */
+    private function emptyRentabilidadPorComprobante(): array
+    {
+        $empty = $this->formatRentabilidadSlice(null);
+
+        return [
+            'boleta' => $empty,
+            'factura' => $empty,
+            'ticket' => $empty,
+        ];
+    }
+
+    /**
+     * @return array{boleta: array, factura: array, ticket: array}
+     */
+    private function rentabilidadProductosPorComprobante(CarbonInterface $start, CarbonInterface $end): array
+    {
+        $result = [];
+
+        foreach (['boleta', 'factura', 'ticket'] as $key) {
+            $filtros = ['boleta' => false, 'factura' => false, 'ticket' => false];
+            $filtros[$key] = true;
+
+            $q = DB::table('venta_lineas')
+                ->join('ventas', 'ventas.id', '=', 'venta_lineas.venta_id')
+                ->join('productos', 'productos.id', '=', 'venta_lineas.producto_id')
+                ->whereNotNull('venta_lineas.producto_id');
+
+            $this->applyVentasRentabilidadFilter($q, $start, $end);
+            $this->applyComprobanteTipoFilter($q, $filtros);
+
+            $agg = $q
+                ->whereNotNull('productos.precio_compra')
+                ->selectRaw('
+                    COALESCE(SUM(venta_lineas.subtotal), 0) as ingresos,
+                    COALESCE(SUM(venta_lineas.cantidad * productos.precio_compra), 0) as costo,
+                    COALESCE(SUM(venta_lineas.cantidad), 0) as unidades
+                ')
+                ->first();
+
+            $result[$key] = $this->formatRentabilidadSlice($agg);
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param  array<string, array{id: string, nombre: string, precio: float, costo_unit: ?float}>  $porNombre
+     * @return array{boleta: array, factura: array, ticket: array}
+     */
+    private function rentabilidadGroomingPorComprobante(CarbonInterface $start, CarbonInterface $end, array $porNombre): array
+    {
+        $result = $this->emptyRentabilidadPorComprobante();
+
+        foreach (['boleta', 'factura', 'ticket'] as $key) {
+            $filtros = ['boleta' => false, 'factura' => false, 'ticket' => false];
+            $filtros[$key] = true;
+
+            $lineas = DB::table('venta_lineas as vl')
+                ->join('ventas as v', 'v.id', '=', 'vl.venta_id')
+                ->whereNull('vl.producto_id');
+
+            $this->applyVentasRentabilidadFilter($lineas, $start, $end, 'v');
+            $this->applyComprobanteTipoFilter($lineas, $filtros, 'v');
+
+            $lineas = $lineas
+                ->select('vl.descripcion_snapshot as descripcion', 'vl.subtotal', 'vl.cantidad')
+                ->get();
+
+            $ingresos = 0.0;
+            $costo = 0.0;
+            $unidades = 0.0;
+
+            foreach ($lineas as $linea) {
+                $servicioKey = $this->normalizeGroomingName((string) $linea->descripcion);
+                if (! isset($porNombre[$servicioKey])) {
+                    continue;
+                }
+
+                $servicio = $porNombre[$servicioKey];
+                if ($servicio['costo_unit'] === null) {
+                    continue;
+                }
+
+                $cantidad = (float) $linea->cantidad;
+                $ingresos += (float) $linea->subtotal;
+                $costo += $cantidad * $servicio['costo_unit'];
+                $unidades += $cantidad;
+            }
+
+            $result[$key] = $this->formatRentabilidadSlice((object) [
+                'ingresos' => $ingresos,
+                'costo' => $costo,
+                'unidades' => $unidades,
+            ]);
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param  object{ingreso: string, costo: string, cantidad: string, nombre: string}  $row
+     * @return array{nombre: string, ingreso: float, costo: float, ganancia: float, cantidad: float, margen_pct: ?float}
+     */
+    private function mapRentabilidadItemRow(object $row): array
+    {
+        $ingreso = round((float) $row->ingreso, 2);
+        $costoItem = round((float) $row->costo, 2);
+        $gananciaItem = round($ingreso - $costoItem, 2);
+
+        return [
+            'nombre' => (string) $row->nombre,
+            'ingreso' => $ingreso,
+            'costo' => $costoItem,
+            'ganancia' => $gananciaItem,
+            'cantidad' => round((float) $row->cantidad, 2),
+            'margen_pct' => $this->calcMargenPct($ingreso, $gananciaItem),
+        ];
+    }
+
+    private function calcMargenPct(float $ingreso, float $ganancia): ?float
+    {
+        if ($ingreso <= 0) {
+            return null;
+        }
+
+        $pct = ($ganancia / $ingreso) * 100;
+
+        return round(max(-999.9, min(999.9, $pct)), 1);
     }
 
     /**

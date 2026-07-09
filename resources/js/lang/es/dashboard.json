@@ -105,6 +105,14 @@
         "sin_costo_aviso": "{{count}} producto(s) vendido(s) sin precio de compra registrado.",
         "sin_costo_cta": "Agrega el precio de compra en Inventario para un margen exacto.",
         "nota": "El margen usa el precio de compra actual de cada producto (no el histórico) y excluye servicios.",
+        "nota_comprobantes": "Solo ventas pagadas: boletas y facturas emitidas en SUNAT, tickets internos. Se excluyen ventas anuladas.",
+        "comprobantes_label": "Tipos de comprobante",
+        "por_comprobante_title": "Por tipo de comprobante",
+        "comprobante": {
+            "boleta": "Boletas",
+            "factura": "Facturas",
+            "ticket": "Tickets"
+        },
         "empty": "No hay ventas de productos con costo registrado en este periodo.",
         "loading": "Calculando…"
     },

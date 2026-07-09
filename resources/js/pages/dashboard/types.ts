@@ -120,16 +120,38 @@ export type RentabilidadItemRow = {
     margen_pct: number | null;
 };
 
+export type RentabilidadComprobanteFiltros = {
+    boleta: boolean;
+    factura: boolean;
+    ticket: boolean;
+};
+
+export type RentabilidadComprobanteSlice = {
+    ingresos: number;
+    costo: number;
+    ganancia: number;
+    margen_pct: number | null;
+    unidades: number;
+};
+
+export type RentabilidadPorComprobante = {
+    boleta: RentabilidadComprobanteSlice;
+    factura: RentabilidadComprobanteSlice;
+    ticket: RentabilidadComprobanteSlice;
+};
+
 export type RentabilidadResumen = {
     periodo: RentabilidadPeriodo;
     desde: string;
     hasta: string;
+    filtros: RentabilidadComprobanteFiltros;
     ingresos: number;
     costo: number;
     ganancia: number;
     margen_pct: number | null;
     unidades: number;
     productos_sin_costo: number;
+    por_comprobante: RentabilidadPorComprobante;
     items: RentabilidadItemRow[];
 };
 
@@ -137,11 +159,13 @@ export type RentabilidadGroomingResumen = {
     periodo: RentabilidadPeriodo;
     desde: string;
     hasta: string;
+    filtros: RentabilidadComprobanteFiltros;
     ingresos: number;
     costo: number;
     ganancia: number;
     margen_pct: number | null;
     unidades: number;
     servicios_sin_insumos: number;
+    por_comprobante: RentabilidadPorComprobante;
     items: RentabilidadItemRow[];
 };

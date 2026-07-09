@@ -83,7 +83,13 @@ class DashboardController extends Controller
             $periodo = 'mes_actual';
         }
 
-        return response()->json($this->stats->rentabilidad($periodo));
+        $comprobantes = DashboardStatsService::resolveRentabilidadComprobantes([
+            'boleta' => $request->has('boleta') ? $request->boolean('boleta') : true,
+            'factura' => $request->has('factura') ? $request->boolean('factura') : true,
+            'ticket' => $request->has('ticket') ? $request->boolean('ticket') : true,
+        ]);
+
+        return response()->json($this->stats->rentabilidad($periodo, $comprobantes));
     }
 
     /**
@@ -105,7 +111,13 @@ class DashboardController extends Controller
             $periodo = 'mes_actual';
         }
 
-        return response()->json($this->stats->rentabilidadGrooming($periodo));
+        $comprobantes = DashboardStatsService::resolveRentabilidadComprobantes([
+            'boleta' => $request->has('boleta') ? $request->boolean('boleta') : true,
+            'factura' => $request->has('factura') ? $request->boolean('factura') : true,
+            'ticket' => $request->has('ticket') ? $request->boolean('ticket') : true,
+        ]);
+
+        return response()->json($this->stats->rentabilidadGrooming($periodo, $comprobantes));
     }
 
     private function userCan(User $user, string $ability): bool
