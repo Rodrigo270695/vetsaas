@@ -50,6 +50,12 @@
         "caja_abierta": "Tu caja está abierta",
         "caja_cerrada": "Sin caja abierta"
     },
+    "consultas_abiertas_banner": {
+        "title": "{{count}} consulta(s) abierta(s)",
+        "subtitle": "Cierra las historias clínicas cuando termines la atención para mantener el panel al día.",
+        "subtitle_antiguas": "{{count}} llevan más de 24 h sin cerrar. Revisa y ciérralas desde el listado.",
+        "cta": "Ver abiertas"
+    },
     "charts": {
         "ventas_7d": "Ventas — últimos 7 días",
         "ventas_7d_hint": "Monto total de ventas pagadas por día.",

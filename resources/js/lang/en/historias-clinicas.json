@@ -11,6 +11,13 @@
         "preset_last_month": "Last month",
         "apply_single_day": "Single day"
     },
+    "filter": {
+        "estado_label": "Visit status",
+        "estado_todas": "All",
+        "estado_abierta": "Open",
+        "estado_cerrada": "Closed",
+        "abiertas_antiguas_hint": "{{count}} open visit(s) have been open for more than 24 hours. Highlighted rows are the oldest."
+    },
     "actions": {
         "new": "New visit",
         "new_short": "New",
@@ -44,7 +51,8 @@
     "row": {
         "system": "System",
         "estado_abierta": "Open",
-        "estado_cerrada": "Closed"
+        "estado_cerrada": "Closed",
+        "antigua_hint": "Open 24h+"
     },
     "toast": {
         "load_error": "Could not load the list."
@@ -75,6 +83,7 @@
         "cerrar": "Close visit",
         "reabrir": "Reopen visit",
         "cerrada_hint": "SOAP data and vitals cannot be edited until the visit is reopened.",
+        "abierta_banner": "This visit is still open. Close it when care and billing are complete.",
         "submit_create": "Save visit",
         "submit_edit": "Update visit",
         "plan_tratamiento_section": "Medication plan (multi-day)",
@@ -172,5 +181,10 @@
             "nota_placeholder": "e.g. appetite, drug reaction, vitals…",
             "submit": "Save note"
         }
+    },
+    "cierre_prompt": {
+        "title": "Close this visit?",
+        "description": "The visit was saved. Mark it as closed so it no longer appears as pending in the list?",
+        "keep_open": "Keep open"
     }
 }

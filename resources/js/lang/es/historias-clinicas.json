@@ -11,6 +11,13 @@
         "preset_last_month": "Mes pasado",
         "apply_single_day": "Un solo día"
     },
+    "filter": {
+        "estado_label": "Estado de la consulta",
+        "estado_todas": "Todas",
+        "estado_abierta": "Abiertas",
+        "estado_cerrada": "Cerradas",
+        "abiertas_antiguas_hint": "{{count}} consulta(s) abierta(s) llevan más de 24 h sin cerrar. Las filas resaltadas son las más antiguas."
+    },
     "actions": {
         "new": "Nueva consulta",
         "new_short": "Nueva",
@@ -44,7 +51,8 @@
     "row": {
         "system": "Sistema",
         "estado_abierta": "Abierta",
-        "estado_cerrada": "Cerrada"
+        "estado_cerrada": "Cerrada",
+        "antigua_hint": "+24 h abierta"
     },
     "toast": {
         "load_error": "No se pudo cargar el listado."
@@ -75,6 +83,7 @@
         "cerrar": "Cerrar consulta",
         "reabrir": "Reabrir consulta",
         "cerrada_hint": "Los datos SOAP y constantes no se pueden editar hasta reabrir.",
+        "abierta_banner": "Esta consulta sigue abierta. Ciérrala cuando termines la atención y el cobro.",
         "submit_create": "Guardar consulta",
         "submit_edit": "Actualizar consulta",
         "plan_tratamiento_section": "Plan de medicación (varios días)",
@@ -172,5 +181,10 @@
             "nota_placeholder": "Ej.: mejor apetito, reacción al fármaco, signos vitales…",
             "submit": "Guardar nota"
         }
+    },
+    "cierre_prompt": {
+        "title": "¿Cerrar consulta?",
+        "description": "La consulta quedó guardada. ¿Deseas marcarla como cerrada para que no quede pendiente en el listado?",
+        "keep_open": "Dejar abierta"
     }
 }

@@ -75,6 +75,7 @@ final class DashboardStatsService
             'citas_pendientes_hoy' => 0,
             'consultas_hoy' => 0,
             'consultas_abiertas' => 0,
+            'consultas_abiertas_antiguas' => 0,
             'ventas_hoy_count' => 0,
             'ventas_hoy_total' => '0.00',
             'pacientes_nuevos_mes' => 0,
@@ -104,8 +105,15 @@ final class DashboardStatsService
                 ->whereBetween('atendido_at', [$todayStart, $todayEnd])
                 ->count();
 
+            $limiteConsultaAntigua = $now->copy()->subHours(24);
+
             $kpis['consultas_abiertas'] = Consulta::query()
                 ->whereNull('cerrada_at')
+                ->count();
+
+            $kpis['consultas_abiertas_antiguas'] = Consulta::query()
+                ->whereNull('cerrada_at')
+                ->where('atendido_at', '<', $limiteConsultaAntigua)
                 ->count();
         }
 
@@ -242,6 +250,7 @@ final class DashboardStatsService
                 'citas_pendientes_hoy' => 0,
                 'consultas_hoy' => 0,
                 'consultas_abiertas' => 0,
+                'consultas_abiertas_antiguas' => 0,
                 'ventas_hoy_count' => 0,
                 'ventas_hoy_total' => '0.00',
                 'pacientes_nuevos_mes' => 0,

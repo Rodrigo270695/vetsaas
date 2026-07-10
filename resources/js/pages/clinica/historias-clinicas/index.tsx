@@ -1,5 +1,5 @@
 import { Head, usePage } from '@inertiajs/react';
-import { FileText, Filter, Plus, Stethoscope } from 'lucide-react';
+import { AlertTriangle, FileText, Filter, Plus, Stethoscope } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Can } from '@/components/can';
@@ -8,6 +8,7 @@ import {
     DataTable,
     DataToolbar,
     EmptyState,
+    FilterChips,
     PageHeader,
 } from '@/components/data-page';
 import type { DataTableColumn } from '@/components/data-page';
@@ -22,9 +23,11 @@ import { AtencionDateRangeFilter } from './components/atencion-date-range-filter
 import { ConsultaDeleteDialog } from './components/consulta-delete-dialog';
 import { ConsultaFormModal } from './components/consulta-form-modal';
 import { ConsultaRowActions } from './components/consulta-row-actions';
+import { isConsultaAbiertaAntigua } from './consulta-estado-utils';
 import { formatAtendidoInAppTimezone } from './format-atendido';
 import type {
     AtencionFiltroUi,
+    ConsultaEstadoFiltro,
     ConsultaHistoriaFilters,
     ConsultaHistoriaRow,
     ConsultaHistoriaStats,
@@ -52,7 +55,10 @@ type Props = {
     stats: ConsultaHistoriaStats;
 };
 
-type HistoriasTableExtra = Pick<ConsultaHistoriaFilters, 'atendido_desde' | 'atendido_hasta'>;
+type HistoriasTableExtra = Pick<
+    ConsultaHistoriaFilters,
+    'atendido_desde' | 'atendido_hasta' | 'estado' | 'solo_abiertas'
+>;
 
 type ModalState =
     | { type: 'idle' }
@@ -151,10 +157,55 @@ export default function Index({
     const openedEditorFromQuery = useRef<string | null>(null);
     const openedPrefillPaciente = useRef<string | null>(null);
 
+    const estadoFiltro: ConsultaEstadoFiltro = filters.estado ?? (filters.solo_abiertas ? 'abierta' : 'todas');
+    const filtrandoAbiertas = estadoFiltro === 'abierta';
+
+    const estadoOptions = useMemo(
+        () => [
+            { value: 'todas' as const, label: t('filter.estado_todas') },
+            {
+                value: 'abierta' as const,
+                label: t('filter.estado_abierta'),
+                count: stats.abiertas_total,
+            },
+            { value: 'cerrada' as const, label: t('filter.estado_cerrada') },
+        ],
+        [t, stats.abiertas_total],
+    );
+
     const closeModal = useCallback(() => setModal({ type: 'idle' }), []);
     const openCreate = useCallback(() => setModal({ type: 'create' }), []);
     const openEdit = useCallback((c: ConsultaHistoriaRow) => setModal({ type: 'edit', consulta: c }), []);
     const openDelete = useCallback((c: ConsultaHistoriaRow) => setModal({ type: 'delete', consulta: c }), []);
+
+    const onEstadoChange = useCallback(
+        (estado: ConsultaEstadoFiltro) => {
+            if (estado === 'abierta') {
+                applyFilter({
+                    estado: 'abierta',
+                    solo_abiertas: undefined,
+                    atendido_desde: undefined,
+                    atendido_hasta: undefined,
+                });
+
+                return;
+            }
+
+            applyFilter({
+                estado,
+                solo_abiertas: undefined,
+            });
+        },
+        [applyFilter],
+    );
+
+    const getRowClassName = useCallback((row: ConsultaHistoriaRow) => {
+        if (!isConsultaAbiertaAntigua(row.atendido_at, row.cerrada_at)) {
+            return undefined;
+        }
+
+        return 'bg-amber-50/60 hover:bg-amber-50/80 dark:bg-amber-950/15 dark:hover:bg-amber-950/25';
+    }, []);
 
     useEffect(() => {
         const row = consulta_abrir_editar;
@@ -234,12 +285,17 @@ export default function Index({
             c += 1;
         }
 
+        if (estadoFiltro !== 'todas') {
+            c += 1;
+        }
+
         return c;
     }, [
         filters.search,
         filters.sort,
         filters.per_page,
         atencion_filtro_ui.fuera_del_mes_actual,
+        estadoFiltro,
     ]);
 
     const columns = useMemo<DataTableColumn<ConsultaHistoriaRow>[]>(() => {
@@ -257,11 +313,25 @@ export default function Index({
             {
                 key: 'estado',
                 header: t('columns.estado'),
-                cell: (row) => (
-                    <Badge variant={row.cerrada_at ? 'secondary' : 'outline'} className="text-[0.65rem] font-normal">
-                        {row.cerrada_at ? t('row.estado_cerrada') : t('row.estado_abierta')}
-                    </Badge>
-                ),
+                cell: (row) => {
+                    const antigua = isConsultaAbiertaAntigua(row.atendido_at, row.cerrada_at);
+
+                    return (
+                        <div className="flex flex-col gap-1">
+                            <Badge
+                                variant={row.cerrada_at ? 'secondary' : antigua ? 'destructive' : 'outline'}
+                                className="w-fit text-[0.65rem] font-normal"
+                            >
+                                {row.cerrada_at ? t('row.estado_cerrada') : t('row.estado_abierta')}
+                            </Badge>
+                            {antigua ? (
+                                <span className="text-[0.65rem] text-amber-700 dark:text-amber-300">
+                                    {t('row.antigua_hint')}
+                                </span>
+                            ) : null}
+                        </div>
+                    );
+                },
                 className: 'w-28',
             },
             {
@@ -414,6 +484,13 @@ export default function Index({
                     }
                 />
 
+                {filtrandoAbiertas && stats.abiertas_antiguas > 0 ? (
+                    <div className="flex items-start gap-2 rounded-lg border border-amber-200/60 bg-amber-50/50 px-3 py-2 text-sm text-amber-900 dark:border-amber-800/30 dark:bg-amber-950/20 dark:text-amber-100">
+                        <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden />
+                        <p>{t('filter.abiertas_antiguas_hint', { count: stats.abiertas_antiguas })}</p>
+                    </div>
+                ) : null}
+
                 <DataTable
                     columns={columns}
                     data={paginated.data}
@@ -421,6 +498,7 @@ export default function Index({
                     sort={sort}
                     onSortChange={setSort}
                     isLoading={isLoading}
+                    getRowClassName={getRowClassName}
                     ariaLiveMessage={t('common:aria.results_count_other', { count: stats.coincidencias })}
                     toolbar={
                         <DataToolbar
@@ -430,6 +508,12 @@ export default function Index({
                             placeholder={t('search_placeholder')}
                             filtersClassName="sm:flex-1 sm:justify-end"
                         >
+                            <FilterChips
+                                ariaLabel={t('filter.estado_label')}
+                                value={estadoFiltro}
+                                onChange={onEstadoChange}
+                                options={estadoOptions}
+                            />
                             <AtencionDateRangeFilter
                                 desde={filters.atendido_desde}
                                 hasta={filters.atendido_hasta}
@@ -437,7 +521,12 @@ export default function Index({
                                 defaultHasta={atencion_filtro_ui.default_hasta}
                                 disabled={isLoading}
                                 onApply={(desde, hasta) =>
-                                    applyFilter({ atendido_desde: desde, atendido_hasta: hasta })
+                                    applyFilter({
+                                        atendido_desde: desde,
+                                        atendido_hasta: hasta,
+                                        estado: estadoFiltro === 'abierta' ? 'abierta' : undefined,
+                                        solo_abiertas: undefined,
+                                    })
                                 }
                             />
                         </DataToolbar>
@@ -451,8 +540,9 @@ export default function Index({
                                 per_page: filters.per_page,
                                 sort: filters.sort ?? undefined,
                                 direction: filters.direction ?? undefined,
-                                atendido_desde: filters.atendido_desde,
-                                atendido_hasta: filters.atendido_hasta,
+                                atendido_desde: filters.atendido_desde ?? undefined,
+                                atendido_hasta: filters.atendido_hasta ?? undefined,
+                                estado: estadoFiltro !== 'todas' ? estadoFiltro : undefined,
                             }}
                         />
                     }

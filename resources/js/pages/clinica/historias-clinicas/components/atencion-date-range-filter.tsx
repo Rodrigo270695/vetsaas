@@ -17,10 +17,10 @@ import { cn } from '@/lib/utils';
 import { rangeLastMonth, rangeLastWeek, rangeThisWeek } from '../atencion-range-presets';
 
 export type AtencionDateRangeFilterProps = {
-    /** Inicio del rango aplicado (YYYY-MM-DD). */
-    desde: string;
-    /** Fin del rango aplicado (YYYY-MM-DD). */
-    hasta: string;
+    /** Inicio del rango aplicado (YYYY-MM-DD). Null = sin filtro de fechas. */
+    desde: string | null;
+    /** Fin del rango aplicado (YYYY-MM-DD). Null = sin filtro de fechas. */
+    hasta: string | null;
     /** Límites del “mes actual” según el servidor (para el botón de restablecer). */
     defaultDesde: string;
     defaultHasta: string;
@@ -73,8 +73,8 @@ export function AtencionDateRangeFilter({
 
     const committed = useMemo(
         () => ({
-            from: parseDay(desde),
-            to: parseDay(hasta),
+            from: desde ? parseDay(desde) : undefined,
+            to: hasta ? parseDay(hasta) : undefined,
         }),
         [desde, hasta],
     );
@@ -131,8 +131,8 @@ export function AtencionDateRangeFilter({
     const handleOpenChange = (next: boolean) => {
         if (next) {
             setRangeDraft({
-                from: parseDay(desde),
-                to: parseDay(hasta),
+                from: desde ? parseDay(desde) : undefined,
+                to: hasta ? parseDay(hasta) : undefined,
             });
         }
 

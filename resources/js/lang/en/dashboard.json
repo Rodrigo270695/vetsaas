@@ -50,6 +50,12 @@
         "caja_abierta": "Your register is open",
         "caja_cerrada": "No open register"
     },
+    "consultas_abiertas_banner": {
+        "title": "{{count}} open visit(s)",
+        "subtitle": "Close clinical visits when care is complete to keep the dashboard accurate.",
+        "subtitle_antiguas": "{{count}} have been open for more than 24 hours. Review and close them from the list.",
+        "cta": "View open"
+    },
     "charts": {
         "ventas_7d": "Sales — last 7 days",
         "ventas_7d_hint": "Total paid sales amount per day.",

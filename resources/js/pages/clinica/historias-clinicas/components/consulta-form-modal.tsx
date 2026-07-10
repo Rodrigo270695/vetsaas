@@ -1,5 +1,5 @@
 import { router, useForm } from '@inertiajs/react';
-import { Loader2 } from 'lucide-react';
+import { AlertTriangle, Loader2 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FormField, FormModal, FormSection } from '@/components/forms';
@@ -13,6 +13,7 @@ import { enqueueIfOffline } from '@/lib/offline/enqueue-if-offline';
 import { useOfflineSync } from '@/hooks/use-offline-sync';
 import clinica from '@/routes/clinica';
 import type { ConsultaHistoriaRow, PacienteHistoriaOpcion } from '../types';
+import { ConsultaCerrarPromptDialog } from './consulta-cerrar-prompt-dialog';
 
 export type ConsultaFormModalProps = {
     open: boolean;
@@ -106,6 +107,7 @@ export function ConsultaFormModal({
 
     const [ownerTouched, setOwnerTouched] = useState(false);
     const [cierreProcessing, setCierreProcessing] = useState(false);
+    const [showClosePrompt, setShowClosePrompt] = useState(false);
     const isEditRef = useRef(isEdit);
     isEditRef.current = isEdit;
 
@@ -171,6 +173,7 @@ export function ConsultaFormModal({
         }
         setDefaults();
         setOwnerTouched(false);
+        setShowClosePrompt(false);
         clearErrors();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, consulta?.id, pacienteIdPrefillNueva]);
@@ -218,6 +221,12 @@ export function ConsultaFormModal({
             return;
         }
         const onSuccess = () => {
+            if (isEdit && consulta && puedeCerrarConsulta && !isCerrada) {
+                setShowClosePrompt(true);
+
+                return;
+            }
+
             reset();
             clearErrors();
             onOpenChange(false);
@@ -305,7 +314,8 @@ export function ConsultaFormModal({
     };
 
     return (
-        <FormModal
+        <>
+            <FormModal
             open={open}
             onOpenChange={onOpenChange}
             title={isEdit ? t('form.title_edit') : t('form.title_create')}
@@ -362,6 +372,17 @@ export function ConsultaFormModal({
             }
         >
             <div className="flex flex-col gap-5">
+                {isEdit && !isCerrada ? (
+                    <div className="flex items-start gap-2 rounded-md border border-amber-200/60 bg-amber-50/50 px-3 py-2 text-sm text-amber-900 dark:border-amber-800/30 dark:bg-amber-950/20 dark:text-amber-100">
+                        <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden />
+                        <div className="min-w-0">
+                            <Badge variant="outline" className="mb-1 text-[0.65rem] font-normal">
+                                {t('row.estado_abierta')}
+                            </Badge>
+                            <p>{t('form.abierta_banner')}</p>
+                        </div>
+                    </div>
+                ) : null}
                 {isEdit && isCerrada ? (
                     <div className="flex items-center gap-2 rounded-md border border-border bg-muted/30 px-3 py-2 text-sm">
                         <Badge variant="secondary">{t('row.estado_cerrada')}</Badge>
@@ -565,5 +586,24 @@ export function ConsultaFormModal({
                 </FormSection>
             </div>
         </FormModal>
+
+            {consulta && puedeCerrarConsulta ? (
+                <ConsultaCerrarPromptDialog
+                    open={showClosePrompt}
+                    onOpenChange={setShowClosePrompt}
+                    consultaId={consulta.id}
+                    onClosed={() => {
+                        reset();
+                        clearErrors();
+                        onOpenChange(false);
+                    }}
+                    onKeepOpen={() => {
+                        reset();
+                        clearErrors();
+                        onOpenChange(false);
+                    }}
+                />
+            ) : null}
+        </>
     );
 }

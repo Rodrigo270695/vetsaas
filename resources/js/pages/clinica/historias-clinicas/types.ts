@@ -12,10 +12,14 @@ export type PacienteHistoriaOpcion = {
     };
 };
 
+export type ConsultaEstadoFiltro = 'todas' | 'abierta' | 'cerrada';
+
 export type ConsultaHistoriaFilters = BaseFilters & {
-    /** Rango aplicado a `atendido_at` (inclusive, día calendario en zona de la app). */
-    atendido_desde: string;
-    atendido_hasta: string;
+    /** Rango aplicado a `atendido_at` (inclusive, día calendario en zona de la app). Null = sin límite (p. ej. solo abiertas). */
+    atendido_desde: string | null;
+    atendido_hasta: string | null;
+    estado: ConsultaEstadoFiltro;
+    solo_abiertas: boolean;
 };
 
 /** Metadatos solo para UI (no van en la query string del listado). */
@@ -28,6 +32,8 @@ export type AtencionFiltroUi = {
 export type ConsultaHistoriaStats = {
     total: number;
     coincidencias: number;
+    abiertas_total: number;
+    abiertas_antiguas: number;
 };
 
 export type ConsultaPlanTratamientoLinea = {

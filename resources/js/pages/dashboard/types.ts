@@ -18,6 +18,7 @@ export type DashboardKpis = {
     citas_pendientes_hoy: number;
     consultas_hoy: number;
     consultas_abiertas: number;
+    consultas_abiertas_antiguas: number;
     ventas_hoy_count: number;
     ventas_hoy_total: string;
     pacientes_nuevos_mes: number;

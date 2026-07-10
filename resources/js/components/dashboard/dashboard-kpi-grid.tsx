@@ -1,4 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
+import { Link } from '@inertiajs/react';
 import { cn } from '@/lib/utils';
 
 export type KpiAccent = 'brand' | 'sky' | 'emerald' | 'amber' | 'violet' | 'rose' | 'slate';
@@ -10,6 +11,8 @@ export type DashboardKpiItem = {
     icon: LucideIcon;
     accent?: KpiAccent;
     highlight?: boolean;
+    /** Si se define, el KPI es un enlace navegable. */
+    href?: string;
 };
 
 const accentStyles: Record<
@@ -69,13 +72,13 @@ export function DashboardKpiGrid({ items }: Props) {
                 const accent = item.accent ?? 'slate';
                 const styles = accentStyles[accent];
 
-                return (
+                const card = (
                     <article
-                        key={item.key}
                         className={cn(
                             'group relative overflow-hidden rounded-xl border p-4 shadow-sm transition-shadow hover:shadow-md',
                             styles.card,
                             item.highlight && 'ring-2 ring-amber-400/50 ring-offset-2 ring-offset-background',
+                            item.href && 'cursor-pointer',
                         )}
                     >
                         <div className="flex items-start justify-between gap-3">
@@ -101,6 +104,16 @@ export function DashboardKpiGrid({ items }: Props) {
                         </div>
                     </article>
                 );
+
+                if (item.href) {
+                    return (
+                        <Link key={item.key} href={item.href} className="block no-underline">
+                            {card}
+                        </Link>
+                    );
+                }
+
+                return <div key={item.key}>{card}</div>;
             })}
         </div>
     );

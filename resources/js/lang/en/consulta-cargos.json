@@ -4,6 +4,11 @@
     "back_list": "Back to medical records list",
     "solo_lectura_sin_permiso": "You can open this screen but cannot enter amounts. Ask an admin to grant «Consultation charges → manage» (consulta-cargos.manage) or re-sync roles: php artisan db:seed --class=TenantRolesSeeder",
     "estado_confirmado_aviso": "This pre-invoice is already confirmed and cannot be edited here.",
+    "consulta_abierta": {
+        "banner": "The clinical visit is still open. Close it when care is complete.",
+        "cobrada_hint": "Charges were collected at the register. Close the clinical visit?",
+        "cerrar_cta": "Close visit"
+    },
     "cobro": {
         "alert_title": "Ready to collect at the register",
         "alert_body": "The pre-invoice is confirmed. Open checkout with preloaded lines.",

@@ -23,6 +23,7 @@ import { DashboardAppointmentsChart } from '@/components/dashboard/dashboard-app
 import { DashboardAppointmentsList } from '@/components/dashboard/dashboard-appointments-list';
 import { DashboardCajaStatus } from '@/components/dashboard/dashboard-caja-status';
 import { DashboardChartCard } from '@/components/dashboard/dashboard-chart-card';
+import { DashboardConsultasAbiertasBanner } from '@/components/dashboard/dashboard-consultas-abiertas-banner';
 import { DashboardConsultasChart } from '@/components/dashboard/dashboard-consultas-chart';
 import { DashboardHero } from '@/components/dashboard/dashboard-hero';
 import {
@@ -47,6 +48,7 @@ import { DashboardVacunacionesChart } from '@/components/dashboard/dashboard-vac
 import { usePermission } from '@/hooks/use-permission';
 import AppLayout from '@/layouts/app-layout';
 import { dashboard } from '@/routes';
+import clinica from '@/routes/clinica';
 import type {
     CitasPorEstadoRow,
     ComparacionIngresosMes,
@@ -189,6 +191,7 @@ export default function DashboardIndex({
                 icon: FileText,
                 accent: 'amber',
                 highlight: kpis.consultas_abiertas > 0,
+                href: clinica.historiasClinicas.url({ query: { solo_abiertas: '1' } }),
             });
         }
 
@@ -378,6 +381,13 @@ export default function DashboardIndex({
                 <DashboardHero clinicLabel={clinic_label} />
 
                 {onboarding?.show && <DashboardOnboardingCard data={onboarding} />}
+
+                {capabilities.consultas && kpis.consultas_abiertas > 0 && (
+                    <DashboardConsultasAbiertasBanner
+                        abiertas={kpis.consultas_abiertas}
+                        antiguas={kpis.consultas_abiertas_antiguas}
+                    />
+                )}
 
                 {capabilities.caja_sesiones && (
                     <DashboardCajaStatus abierta={kpis.caja_abierta} />

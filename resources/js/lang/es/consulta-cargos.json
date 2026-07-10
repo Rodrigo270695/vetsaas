@@ -4,6 +4,11 @@
     "back_list": "Volver al listado de historias",
     "solo_lectura_sin_permiso": "Tu usuario puede abrir esta pantalla pero no tiene permiso para cargar importes. Pide a un administrador que active «Cargos de consulta → gestionar» (consulta-cargos.manage) o que vuelva a sincronizar roles: php artisan db:seed --class=TenantRolesSeeder",
     "estado_confirmado_aviso": "Esta pre-cuenta ya está confirmada; no se puede editar aquí.",
+    "consulta_abierta": {
+        "banner": "La consulta clínica sigue abierta. Ciérrala cuando termines la atención.",
+        "cobrada_hint": "Los cargos ya se cobraron en caja. ¿Cerrar la consulta clínica?",
+        "cerrar_cta": "Cerrar consulta"
+    },
     "cobro": {
         "alert_title": "Listo para cobrar en caja",
         "alert_body": "La pre-cuenta está confirmada. Abre el punto de venta con las líneas precargadas.",

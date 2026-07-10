@@ -1,6 +1,6 @@
 import { Head, resetLayoutProps, router, setLayoutProps, useForm, usePage } from '@inertiajs/react';
 import { Loader2 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { TicketPrintDialog } from '@/components/tickets/ticket-print-dialog';
 import { usePermission } from '@/hooks/use-permission';
@@ -8,6 +8,7 @@ import { normalizeTicketAncho } from '@/lib/ticket-ancho';
 import { dashboard } from '@/routes';
 import clinica from '@/routes/clinica';
 import { ConsultaCargosMain } from './components/consulta-cargos-main';
+import { ConsultaCerrarPromptDialog } from './components/consulta-cerrar-prompt-dialog';
 import { formatAtendidoInAppTimezone } from './format-atendido';
 
 type LineaApi = {
@@ -191,9 +192,12 @@ type Props = {
 export default function ConsultaCargos({ consulta, cargo, cobro, clinic_billing }: Props) {
     const { t, i18n } = useTranslation(['consulta-cargos', 'nav', 'caja']);
     const [ticketModalOpen, setTicketModalOpen] = useState(false);
+    const [showClosePrompt, setShowClosePrompt] = useState(false);
+    const promptedAfterCobroRef = useRef(false);
     const { locale: appLocale, timezone: appTz } = usePage().props;
     const { can } = usePermission();
     const puedeEditarCargos = can('consulta-cargos.manage') || can('historias-clinicas.update');
+    const puedeCerrarConsulta = can('historias-clinicas.update');
     const esBorrador = cargo.estado === 'borrador';
     const puedeEditar = esBorrador && puedeEditarCargos;
 
@@ -229,6 +233,24 @@ export default function ConsultaCargos({ consulta, cargo, cobro, clinic_billing 
     const abrirTicketEnModal = () => {
         setTicketModalOpen(true);
     };
+
+    useEffect(() => {
+        if (
+            promptedAfterCobroRef.current ||
+            !cobro.venta_id ||
+            consulta.cerrada_at ||
+            !puedeCerrarConsulta
+        ) {
+            return;
+        }
+
+        promptedAfterCobroRef.current = true;
+        setShowClosePrompt(true);
+    }, [cobro.venta_id, consulta.cerrada_at, puedeCerrarConsulta]);
+
+    const solicitarCerrarConsulta = useCallback(() => {
+        setShowClosePrompt(true);
+    }, []);
 
     useEffect(() => {
         setLayoutProps({
@@ -351,6 +373,8 @@ export default function ConsultaCargos({ consulta, cargo, cobro, clinic_billing 
                 esBorrador={esBorrador}
                 puedeEditar={puedeEditar}
                 puedeEditarCargos={puedeEditarCargos}
+                puedeCerrarConsulta={puedeCerrarConsulta}
+                onSolicitarCerrarConsulta={solicitarCerrarConsulta}
                 hayLineasGuardadas={hayLineasGuardadas}
                 lineasSoloLectura={lineasSoloLectura}
                 data={data}
@@ -369,6 +393,13 @@ export default function ConsultaCargos({ consulta, cargo, cobro, clinic_billing 
                 formatImporteOnBlur={formatImporteOnBlur}
                 formatDecimal2={formatDecimal2}
             />
+            {puedeCerrarConsulta ? (
+                <ConsultaCerrarPromptDialog
+                    open={showClosePrompt}
+                    onOpenChange={setShowClosePrompt}
+                    consultaId={consulta.id}
+                />
+            ) : null}
         </>
     );
 }

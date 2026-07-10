@@ -49,22 +49,41 @@ class ConsultaHistoriaController extends Controller
         $defaultDesde = $now->copy()->startOfMonth()->toDateString();
         $defaultHasta = $now->copy()->endOfMonth()->toDateString();
 
+        $soloAbiertas = filter_var($request->query('solo_abiertas'), FILTER_VALIDATE_BOOLEAN);
+        $estadoRaw = $request->query('estado');
+        $estado = in_array($estadoRaw, ['abierta', 'cerrada', 'todas'], true) ? $estadoRaw : 'todas';
+        if ($soloAbiertas) {
+            $estado = 'abierta';
+        }
+
+        $filtrarAbiertas = $estado === 'abierta';
+        $filtrarCerradas = $estado === 'cerrada';
+        $fechasExplicitas = $request->has('atendido_desde') || $request->has('atendido_hasta');
+        $omitirRangoMes = $filtrarAbiertas && ! $fechasExplicitas;
+
         $atendidoDesde = $this->parseDateParam($request->query('atendido_desde'));
         $atendidoHasta = $this->parseDateParam($request->query('atendido_hasta'));
 
-        if ($atendidoDesde === null || $atendidoHasta === null) {
+        if ($omitirRangoMes) {
+            $atendidoDesde = null;
+            $atendidoHasta = null;
+            $atencionFueraDelMesActual = false;
+            $inicioRango = null;
+            $finRango = null;
+        } elseif ($atendidoDesde === null || $atendidoHasta === null) {
             $atendidoDesde = $defaultDesde;
             $atendidoHasta = $defaultHasta;
             $atencionFueraDelMesActual = false;
+            $inicioRango = Carbon::parse($atendidoDesde, $tz)->startOfDay();
+            $finRango = Carbon::parse($atendidoHasta, $tz)->endOfDay();
         } else {
             if ($atendidoDesde > $atendidoHasta) {
                 [$atendidoDesde, $atendidoHasta] = [$atendidoHasta, $atendidoDesde];
             }
             $atencionFueraDelMesActual = ($atendidoDesde !== $defaultDesde) || ($atendidoHasta !== $defaultHasta);
+            $inicioRango = Carbon::parse($atendidoDesde, $tz)->startOfDay();
+            $finRango = Carbon::parse($atendidoHasta, $tz)->endOfDay();
         }
-
-        $inicioRango = Carbon::parse($atendidoDesde, $tz)->startOfDay();
-        $finRango = Carbon::parse($atendidoHasta, $tz)->endOfDay();
 
         $canAudit = $request->user()?->can('audit-trail.view') ?? false;
 
@@ -84,7 +103,15 @@ class ConsultaHistoriaController extends Controller
             ]);
         }
 
-        $query->whereBetween('consultas.atendido_at', [$inicioRango, $finRango]);
+        if ($inicioRango !== null && $finRango !== null) {
+            $query->whereBetween('consultas.atendido_at', [$inicioRango, $finRango]);
+        }
+
+        if ($filtrarAbiertas) {
+            $query->whereNull('consultas.cerrada_at');
+        } elseif ($filtrarCerradas) {
+            $query->whereNotNull('consultas.cerrada_at');
+        }
 
         if ($sort === 'paciente') {
             $query
@@ -98,6 +125,8 @@ class ConsultaHistoriaController extends Controller
             if ($sort !== 'atendido_at') {
                 $query->orderByDesc('consultas.atendido_at');
             }
+        } elseif ($filtrarAbiertas && ! $sortValid) {
+            $query->orderBy('consultas.atendido_at', 'asc');
         } else {
             $query->orderByDesc('consultas.atendido_at');
         }
@@ -125,9 +154,33 @@ class ConsultaHistoriaController extends Controller
         $consultaAbrirEditar = $this->consultaParaAbrirEnModal($request, $canAudit);
         $pacientePrefillNuevaConsulta = $this->pacientePrefillNuevaConsultaDesdeQuery($request);
 
-        $totalEnRango = Consulta::query()
-            ->whereBetween('consultas.atendido_at', [$inicioRango, $finRango])
+        $limiteConsultaAntigua = $now->copy()->subHours(24);
+
+        $abiertasTotal = Consulta::query()
+            ->whereNull('cerrada_at')
             ->count();
+
+        $abiertasAntiguas = Consulta::query()
+            ->whereNull('cerrada_at')
+            ->where('atendido_at', '<', $limiteConsultaAntigua)
+            ->count();
+
+        if ($omitirRangoMes) {
+            $totalEnRango = $abiertasTotal;
+        } elseif ($inicioRango !== null && $finRango !== null) {
+            $totalEnRangoQuery = Consulta::query()
+                ->whereBetween('consultas.atendido_at', [$inicioRango, $finRango]);
+
+            if ($filtrarAbiertas) {
+                $totalEnRangoQuery->whereNull('cerrada_at');
+            } elseif ($filtrarCerradas) {
+                $totalEnRangoQuery->whereNotNull('cerrada_at');
+            }
+
+            $totalEnRango = $totalEnRangoQuery->count();
+        } else {
+            $totalEnRango = 0;
+        }
 
         $pacientesOpciones = Paciente::query()
             ->with(['propietario:id,nombres,apellidos,razon_social'])
@@ -148,6 +201,8 @@ class ConsultaHistoriaController extends Controller
                 'direction' => $sortValid && $directionValid ? $direction : null,
                 'atendido_desde' => $atendidoDesde,
                 'atendido_hasta' => $atendidoHasta,
+                'estado' => $estado,
+                'solo_abiertas' => $filtrarAbiertas,
             ],
             'atencion_filtro_ui' => [
                 'default_desde' => $defaultDesde,
@@ -157,6 +212,8 @@ class ConsultaHistoriaController extends Controller
             'stats' => [
                 'total' => $totalEnRango,
                 'coincidencias' => $consultas->total(),
+                'abiertas_total' => $abiertasTotal,
+                'abiertas_antiguas' => $abiertasAntiguas,
             ],
         ]);
     }

@@ -1,6 +1,7 @@
 import { Link } from '@inertiajs/react';
 import {
     ArrowLeft,
+    AlertTriangle,
     CalendarDays,
     CheckCircle2,
     Info,
@@ -70,6 +71,8 @@ export type ConsultaCargosMainProps = {
     };
     consulta: {
         id: string;
+        /** Solo aplica en cargos de consulta clínica; omitir en internamiento. */
+        cerrada_at?: string | null;
         veterinario: { name: string } | null;
     };
     productosBuscarUrl?: string;
@@ -90,6 +93,8 @@ export type ConsultaCargosMainProps = {
     esBorrador: boolean;
     puedeEditar: boolean;
     puedeEditarCargos: boolean;
+    puedeCerrarConsulta?: boolean;
+    onSolicitarCerrarConsulta?: () => void;
     hayLineasGuardadas: boolean;
     lineasSoloLectura: boolean;
     data: { notas: string; lineas: LineaForm[] };
@@ -150,12 +155,49 @@ function StatusBanners({
     puedeEditarCargos,
     hayLineasGuardadas,
     cobro,
+    consulta,
+    puedeCerrarConsulta,
+    onSolicitarCerrarConsulta,
     t,
 }: Pick<
     ConsultaCargosMainProps,
-    'esBorrador' | 'puedeEditarCargos' | 'hayLineasGuardadas' | 'cobro'
+    | 'esBorrador'
+    | 'puedeEditarCargos'
+    | 'hayLineasGuardadas'
+    | 'cobro'
+    | 'consulta'
+    | 'puedeCerrarConsulta'
+    | 'onSolicitarCerrarConsulta'
 > & { t: (key: string, opts?: Record<string, unknown>) => string }) {
     const items: ReactNode[] = [];
+    const consultaAbierta = consulta.cerrada_at === null;
+
+    if (consultaAbierta) {
+        items.push(
+            <StatusBanner
+                key="consulta-abierta"
+                icon={AlertTriangle}
+                tone="warning"
+                action={
+                    puedeCerrarConsulta && onSolicitarCerrarConsulta ? (
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-xs"
+                            onClick={onSolicitarCerrarConsulta}
+                        >
+                            {t('consulta_abierta.cerrar_cta')}
+                        </Button>
+                    ) : undefined
+                }
+            >
+                {cobro.venta_id
+                    ? t('consulta_abierta.cobrada_hint')
+                    : t('consulta_abierta.banner')}
+            </StatusBanner>,
+        );
+    }
 
     if (!puedeEditarCargos && esBorrador && !hayLineasGuardadas) {
         items.push(
@@ -253,6 +295,8 @@ export function ConsultaCargosMain({
     esBorrador,
     puedeEditar,
     puedeEditarCargos,
+    puedeCerrarConsulta = false,
+    onSolicitarCerrarConsulta,
     hayLineasGuardadas,
     lineasSoloLectura,
     data,
@@ -372,6 +416,9 @@ export function ConsultaCargosMain({
                 puedeEditarCargos={puedeEditarCargos}
                 hayLineasGuardadas={hayLineasGuardadas}
                 cobro={cobro}
+                consulta={consulta}
+                puedeCerrarConsulta={puedeCerrarConsulta}
+                onSolicitarCerrarConsulta={onSolicitarCerrarConsulta}
                 t={t}
             />
 

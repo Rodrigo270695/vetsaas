@@ -98,6 +98,10 @@ export type DataTableProps<T> = {
      * y texto largo que no debe invadir celdas vecinas).
      */
     tableLayoutFixed?: boolean;
+    /**
+     * Clases CSS extra por fila (p. ej. resaltar registros antiguos).
+     */
+    getRowClassName?: (row: T) => string | undefined;
     className?: string;
 };
 
@@ -125,6 +129,7 @@ export function DataTable<T>({
     isLoading = false,
     ariaLiveMessage,
     selection,
+    getRowClassName,
     className,
     tableLayoutFixed = false,
 }: DataTableProps<T>) {
@@ -301,6 +306,7 @@ export function DataTable<T>({
                                     const reactKey = String(rowId);
                                     const isRowSelected =
                                         selection?.selectedIds.has(rowId) ?? false;
+                                    const rowClassExtra = getRowClassName?.(row);
 
                                     return (
                                         <tr
@@ -310,6 +316,7 @@ export function DataTable<T>({
                                                 'border-b border-border/40 transition-colors last:border-b-0 hover:bg-muted/30',
                                                 isRowSelected &&
                                                     'bg-primary/5 hover:bg-primary/10',
+                                                rowClassExtra,
                                             )}
                                         >
                                             {hasSelection && selection && (
@@ -364,6 +371,7 @@ export function DataTable<T>({
                         const reactKey = String(rowId);
                         const isRowSelected =
                             selection?.selectedIds.has(rowId) ?? false;
+                        const rowClassExtra = getRowClassName?.(row);
 
                         return (
                             <div
@@ -372,6 +380,7 @@ export function DataTable<T>({
                                 className={cn(
                                     'flex items-start gap-3 px-4 py-3.5 transition-colors hover:bg-muted/30',
                                     isRowSelected && 'bg-primary/5',
+                                    rowClassExtra,
                                 )}
                             >
                                 {hasSelection && selection && (
