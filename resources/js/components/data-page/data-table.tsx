@@ -182,8 +182,8 @@ export function DataTable<T>({
                 onClick={() => handleHeaderClick(col)}
                 className={cn(
                     'inline-flex cursor-pointer items-center gap-1.5 rounded-md transition-colors',
-                    'hover:text-foreground',
-                    isActive && 'text-foreground',
+                    'text-inherit hover:text-brand-950 dark:hover:text-brand-50',
+                    isActive && 'text-brand-950 dark:text-brand-50',
                     col.align === 'right' && 'flex-row-reverse',
                 )}
                 aria-label={`Ordenar por ${
@@ -200,14 +200,14 @@ export function DataTable<T>({
                 )}
                 {isActive && direction === 'asc' && (
                     <ArrowUp
-                        className="size-3 text-primary"
+                        className="size-3 text-brand-700 dark:text-brand-300"
                         strokeWidth={2.5}
                         aria-hidden
                     />
                 )}
                 {isActive && direction === 'desc' && (
                     <ArrowDown
-                        className="size-3 text-primary"
+                        className="size-3 text-brand-700 dark:text-brand-300"
                         strokeWidth={2.5}
                         aria-hidden
                     />
@@ -249,12 +249,12 @@ export function DataTable<T>({
                             tableLayoutFixed && 'table-fixed',
                         )}
                     >
-                        <thead className="bg-muted/40">
+                        <thead>
                             <tr>
                                 {hasSelection && selection && (
                                     <th
                                         scope="col"
-                                        className="w-10 border-b border-border/60 px-3 py-3"
+                                        className="w-10 border-b border-brand-200/60 bg-brand-50/75 px-3 py-3 dark:border-brand-800/40 dark:bg-brand-950/40"
                                     >
                                         <Checkbox
                                             checked={
@@ -275,7 +275,7 @@ export function DataTable<T>({
                                     <th
                                         key={col.key}
                                         className={cn(
-                                            'border-b border-border/60 px-4 py-3 text-left text-xs font-semibold tracking-wide text-muted-foreground',
+                                            'border-b border-brand-200/60 bg-brand-50/75 px-4 py-3 text-left text-xs font-semibold tracking-wide text-brand-800/90 dark:border-brand-800/40 dark:bg-brand-950/40 dark:text-brand-100/90',
                                             col.align === 'right' && 'text-right',
                                             col.align === 'center' && 'text-center',
                                             col.className,
