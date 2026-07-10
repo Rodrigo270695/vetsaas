@@ -4,22 +4,18 @@ declare(strict_types=1);
 
 namespace App\Services\Onboarding;
 
-use App\Models\Cita;
 use App\Models\ClinicSetting;
-use App\Models\FelSerie;
 use App\Models\Paciente;
 use App\Models\Sede;
 use App\Models\Tenant;
 use App\Models\User;
-use App\Models\Venta;
 use Illuminate\Support\Facades\Schema;
 
 /**
  * Checklist de configuración inicial para clínicas nuevas.
  *
  * Paso 0 (sede) es obligatorio: sin sede activa el middleware bloquea
- * módulos operativos. Los demás pasos son recomendados y se detectan
- * automáticamente al cargar el dashboard.
+ * módulos operativos. Los demás pasos son recomendados.
  */
 class ClinicOnboardingService
 {
@@ -27,15 +23,9 @@ class ClinicOnboardingService
 
     public const STEP_CLINIC = 1;
 
-    public const STEP_TEAM = 2;
+    public const STEP_PACIENTE = 2;
 
-    public const STEP_PACIENTE = 3;
-
-    public const STEP_ACTIVITY = 4;
-
-    public const STEP_FEL = 5;
-
-    public const TOTAL_STEPS = 6;
+    public const TOTAL_STEPS = 3;
 
     public function isActiveForTenant(Tenant $tenant): bool
     {
@@ -74,7 +64,7 @@ class ClinicOnboardingService
         $flags = $this->detectStepCompletion($tenant);
         $allComplete = ! in_array(false, $flags, true);
 
-        $paso = self::STEP_FEL;
+        $paso = self::STEP_PACIENTE;
         foreach ($flags as $index => $done) {
             if (! $done) {
                 $paso = $index;
@@ -83,7 +73,7 @@ class ClinicOnboardingService
         }
 
         $tenant->forceFill([
-            'onboarding_paso' => $allComplete ? self::STEP_FEL : $paso,
+            'onboarding_paso' => $allComplete ? self::STEP_PACIENTE : $paso,
             'onboarding_completado' => $allComplete,
         ]);
 
@@ -119,7 +109,7 @@ class ClinicOnboardingService
         $tenant = $this->sync($tenant);
         $flags = $this->detectStepCompletion($tenant);
         $definitions = $this->stepDefinitions($user);
-        $firstIncomplete = self::STEP_FEL;
+        $firstIncomplete = self::STEP_PACIENTE;
 
         foreach ($flags as $index => $done) {
             if (! $done) {
@@ -167,10 +157,7 @@ class ClinicOnboardingService
         return [
             $this->hasActiveSede($tenantId),
             $this->hasClinicProfile(),
-            $this->hasTeam($tenantId),
             $this->hasPaciente(),
-            $this->hasFirstActivity(),
-            $this->hasFelConfigured(),
         ];
     }
 
@@ -195,47 +182,13 @@ class ClinicOnboardingService
                 'required' => false,
             ],
             [
-                'id' => 'team',
-                'title' => 'steps.team.title',
-                'description' => 'steps.team.description',
-                'href' => $user->can('usuarios.view') ? '/configuracion/usuarios' : null,
-                'required' => false,
-            ],
-            [
                 'id' => 'paciente',
                 'title' => 'steps.paciente.title',
                 'description' => 'steps.paciente.description',
                 'href' => $user->can('pacientes.view') ? '/clinica/pacientes' : null,
                 'required' => false,
             ],
-            [
-                'id' => 'activity',
-                'title' => 'steps.activity.title',
-                'description' => 'steps.activity.description',
-                'href' => $this->resolveActivityHref($user),
-                'required' => false,
-            ],
-            [
-                'id' => 'fel',
-                'title' => 'steps.fel.title',
-                'description' => 'steps.fel.description',
-                'href' => $user->can('config-general.view') ? '/configuracion/general' : null,
-                'required' => false,
-            ],
         ];
-    }
-
-    private function resolveActivityHref(User $user): ?string
-    {
-        if ($user->can('citas.view')) {
-            return '/clinica/citas';
-        }
-
-        if ($user->can('ventas.create')) {
-            return '/caja/ventas/create';
-        }
-
-        return null;
     }
 
     private function hasClinicProfile(): bool
@@ -257,15 +210,6 @@ class ClinicOnboardingService
         return $ruc !== '' && ($razon !== '' || $comercial !== '');
     }
 
-    private function hasTeam(string $tenantId): bool
-    {
-        return User::query()
-            ->where('tenant_id', $tenantId)
-            ->where('is_active', true)
-            ->whereNull('deleted_at')
-            ->count() >= 2;
-    }
-
     private function hasPaciente(): bool
     {
         if (! Schema::hasTable('pacientes')) {
@@ -275,43 +219,5 @@ class ClinicOnboardingService
         return Paciente::query()
             ->whereNull('deleted_at')
             ->exists();
-    }
-
-    private function hasFirstActivity(): bool
-    {
-        $hasCita = Schema::hasTable('citas')
-            && Cita::query()->whereNull('deleted_at')->exists();
-
-        if ($hasCita) {
-            return true;
-        }
-
-        if (! Schema::hasTable('ventas')) {
-            return false;
-        }
-
-        return Venta::query()
-            ->where('estado', Venta::ESTADO_PAGADO)
-            ->whereNull('deleted_at')
-            ->exists();
-    }
-
-    private function hasFelConfigured(): bool
-    {
-        if (! Schema::hasTable('cfg_clinic_settings')) {
-            return false;
-        }
-
-        $clinic = ClinicSetting::query()->first();
-
-        if ($clinic !== null && (bool) ($clinic->apisunat_configurado ?? false)) {
-            return true;
-        }
-
-        if (! Schema::hasTable('fel_series')) {
-            return false;
-        }
-
-        return FelSerie::query()->where('activo', true)->exists();
     }
 }

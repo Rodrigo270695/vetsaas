@@ -18,7 +18,7 @@ return new class extends Migration
             })
             ->update([
                 'onboarding_completado' => true,
-                'onboarding_paso' => 5,
+                'onboarding_paso' => 2,
             ]);
     }
 

@@ -17,27 +17,15 @@ return [
     'steps' => [
         'sede' => [
             'title' => 'Create your first branch',
-            'description' => 'Define where you provide care. This is the minimum requirement to operate.',
+            'description' => 'Where you provide care. Minimum requirement to operate.',
         ],
         'clinic' => [
             'title' => 'Clinic details',
-            'description' => 'Tax ID, legal name, and logo for receipts and communications.',
-        ],
-        'team' => [
-            'title' => 'Invite your team',
-            'description' => 'Add vets, front desk, and other clinic users.',
+            'description' => 'Tax ID, legal name, and logo for receipts.',
         ],
         'paciente' => [
             'title' => 'Register a patient',
-            'description' => 'Add the first pet for appointments and medical records.',
-        ],
-        'activity' => [
-            'title' => 'First appointment or sale',
-            'description' => 'Schedule an appointment or record a sale to test the real workflow.',
-        ],
-        'fel' => [
-            'title' => 'Electronic invoicing',
-            'description' => 'Connect APISUNAT and set up series for receipts and invoices.',
+            'description' => 'First pet for appointments and medical records.',
         ],
     ],
 

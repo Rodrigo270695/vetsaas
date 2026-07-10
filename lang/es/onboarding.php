@@ -17,27 +17,15 @@ return [
     'steps' => [
         'sede' => [
             'title' => 'Crear tu primera sede',
-            'description' => 'Define la sucursal donde atiendes. Es el requisito mínimo para operar.',
+            'description' => 'Sucursal donde atiendes. Requisito mínimo para operar.',
         ],
         'clinic' => [
             'title' => 'Datos de la clínica',
-            'description' => 'RUC, razón social y logo para comprobantes y comunicaciones.',
-        ],
-        'team' => [
-            'title' => 'Invitar a tu equipo',
-            'description' => 'Agrega veterinarios, recepción u otros usuarios de la clínica.',
+            'description' => 'RUC, razón social y logo para comprobantes.',
         ],
         'paciente' => [
             'title' => 'Registrar un paciente',
-            'description' => 'Carga la primera mascota para citas e historias clínicas.',
-        ],
-        'activity' => [
-            'title' => 'Primera cita o venta',
-            'description' => 'Agenda una cita o registra una venta para probar el flujo real.',
-        ],
-        'fel' => [
-            'title' => 'Facturación electrónica',
-            'description' => 'Conecta APISUNAT y configura series para boletas y facturas.',
+            'description' => 'Primera mascota para citas e historias clínicas.',
         ],
     ],
 
