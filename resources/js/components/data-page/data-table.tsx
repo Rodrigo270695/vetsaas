@@ -219,7 +219,7 @@ export function DataTable<T>({
     return (
         <div
             className={cn(
-                'overflow-hidden rounded-lg border-2 border-brand-300/70 bg-card shadow-xs dark:border-brand-700/45',
+                'overflow-hidden rounded-lg border border-border/60 bg-card shadow-xs',
                 className,
             )}
         >
@@ -230,7 +230,7 @@ export function DataTable<T>({
             )}
 
             {toolbar && (
-                <div className="border-b border-brand-200/50 bg-muted/20 px-4 py-3 dark:border-brand-800/35">
+                <div className="border-b border-border/60 bg-muted/20 px-4 py-3">
                     {toolbar}
                 </div>
             )}
@@ -423,7 +423,7 @@ export function DataTable<T>({
             </div>
 
             {footer && (
-                <div className="border-t border-brand-200/50 bg-muted/20 dark:border-brand-800/35">
+                <div className="border-t border-border/60 bg-muted/20">
                     {footer}
                 </div>
             )}

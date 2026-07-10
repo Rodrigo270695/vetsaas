@@ -152,14 +152,14 @@
 
     --radius: 0.625rem;
 
-    /* Sidebar */
-    --sidebar: oklch(1 0 0);
-    --sidebar-foreground: oklch(0.270 0.005 80);
+    /* Sidebar — pastel de marca (se adapta al tenant vía --brand-*) */
+    --sidebar: var(--brand-50);
+    --sidebar-foreground: var(--brand-900);
     --sidebar-primary: var(--brand-600);
     --sidebar-primary-foreground: oklch(1 0 0);
-    --sidebar-accent: var(--brand-50);
-    --sidebar-accent-foreground: var(--brand-700);
-    --sidebar-border: oklch(0.918 0.005 80);
+    --sidebar-accent: var(--brand-100);
+    --sidebar-accent-foreground: var(--brand-800);
+    --sidebar-border: var(--brand-200);
     --sidebar-ring: var(--brand-600);
 }
 
@@ -210,13 +210,13 @@
     --chart-4: oklch(0.640 0.221 26);
     --chart-5: oklch(0.660 0.180 295);
 
-    --sidebar: oklch(0.180 0.012 170);
-    --sidebar-foreground: oklch(0.920 0.005 80);
+    --sidebar: var(--brand-950);
+    --sidebar-foreground: var(--brand-100);
     --sidebar-primary: var(--brand-400);
-    --sidebar-primary-foreground: oklch(0.180 0.030 170);
-    --sidebar-accent: oklch(0.260 0.035 170);
-    --sidebar-accent-foreground: var(--brand-200);
-    --sidebar-border: oklch(0.275 0.012 170);
+    --sidebar-primary-foreground: var(--brand-950);
+    --sidebar-accent: var(--brand-900);
+    --sidebar-accent-foreground: var(--brand-100);
+    --sidebar-border: var(--brand-800);
     --sidebar-ring: var(--brand-400);
 }
 
