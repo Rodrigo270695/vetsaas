@@ -9,6 +9,7 @@
         "cta": "Go to setup",
         "completed": "Done",
         "preview": "Preview",
+        "help_center": "Browse guides in the help center",
         "no_permission": "Ask an administrator to complete this step"
     },
     "steps": {

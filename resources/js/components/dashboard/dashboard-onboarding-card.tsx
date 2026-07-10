@@ -125,6 +125,16 @@ export function DashboardOnboardingCard({ data }: Props) {
                     );
                 })}
             </div>
+
+            <div className="border-t border-brand-200/40 px-4 py-2 dark:border-brand-800/25">
+                <Link
+                    href="/configuracion/ayuda"
+                    className="inline-flex items-center gap-1 text-[11px] font-medium text-brand-700 hover:underline dark:text-brand-300"
+                >
+                    {t('banner.help_center')}
+                    <ChevronRight className="size-3" aria-hidden />
+                </Link>
+            </div>
         </section>
     );
 }

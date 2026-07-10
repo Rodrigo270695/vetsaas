@@ -6,6 +6,7 @@ import alertasStockEn from '@/lang/en/alertas-stock.json';
 import auditoriaLogsEn from '@/lang/en/auditoria-logs.json';
 import facturacionDocumentosEn from '@/lang/en/facturacion-documentos.json';
 import authEn from '@/lang/en/auth.json';
+import ayudaEn from '@/lang/en/ayuda.json';
 import cajaEn from '@/lang/en/caja.json';
 import categoriasInventarioEn from '@/lang/en/categorias-inventario.json';
 import cirugiaEn from '@/lang/en/cirugia.json';
@@ -54,6 +55,7 @@ import alertasStockEs from '@/lang/es/alertas-stock.json';
 import auditoriaLogsEs from '@/lang/es/auditoria-logs.json';
 import facturacionDocumentosEs from '@/lang/es/facturacion-documentos.json';
 import authEs from '@/lang/es/auth.json';
+import ayudaEs from '@/lang/es/ayuda.json';
 import cajaEs from '@/lang/es/caja.json';
 import categoriasInventarioEs from '@/lang/es/categorias-inventario.json';
 import cirugiaEs from '@/lang/es/cirugia.json';
@@ -143,6 +145,7 @@ const resources = {
         dashboard: dashboardEs,
         onboarding: onboardingEs,
         auth: authEs,
+        ayuda: ayudaEs,
         general: generalEs,
         platform: platformEs,
         'historias-clinicas': historiasClinicasEs,
@@ -193,6 +196,7 @@ const resources = {
         dashboard: dashboardEn,
         onboarding: onboardingEn,
         auth: authEn,
+        ayuda: ayudaEn,
         general: generalEn,
         platform: platformEn,
         'historias-clinicas': historiasClinicasEn,
@@ -252,6 +256,7 @@ void i18n
             'dashboard',
             'onboarding',
             'auth',
+            'ayuda',
             'general',
             'platform',
             'historias-clinicas',

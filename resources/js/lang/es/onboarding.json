@@ -9,6 +9,7 @@
         "cta": "Ir a configurar",
         "completed": "Completado",
         "preview": "Vista previa",
+        "help_center": "Ver guías en el centro de ayuda",
         "no_permission": "Pide a un administrador que complete este paso"
     },
     "steps": {

@@ -23,6 +23,7 @@ import {
     FlaskConical,
     Folder,
     Hash,
+    CircleHelp,
     Headset,
     History,
     Home,
@@ -354,6 +355,11 @@ function useNavConfig(): { singles: NavItem[]; groups: NavGroup[] } {
                     icon: Cog,
                     context: 'tenant',
                     items: [
+                        {
+                            title: t('items.ayuda'),
+                            href: '/configuracion/ayuda',
+                            icon: CircleHelp,
+                        },
                         {
                             title: t('items.general'),
                             href: '/configuracion/general',

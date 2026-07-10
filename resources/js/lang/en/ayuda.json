@@ -1,0 +1,158 @@
+{
+    "page": {
+        "title": "Help center",
+        "description": "Quick guides to set up your clinic and use VetSaaS day to day.",
+        "search": "Search topics…",
+        "empty": "No results for your search. Try another keyword.",
+        "footer": "Need more help? Contact your plan support or check the documentation from the VetSaaS team."
+    },
+    "categories": {
+        "setup": { "title": "Getting started" },
+        "clinic": { "title": "Clinical care" },
+        "caja": { "title": "Register & sales" },
+        "inventario": { "title": "Inventory" },
+        "facturacion": { "title": "Electronic invoicing" }
+    },
+    "articles": {
+        "sede": {
+            "title": "Create your first branch",
+            "summary": "Without an active branch you cannot use register, appointments, or inventory.",
+            "steps": [
+                "Go to Settings → Branches.",
+                "Click «New branch» and fill in name and address.",
+                "Keep the branch active and save."
+            ],
+            "cta": "Go to Branches"
+        },
+        "clinic": {
+            "title": "Clinic details",
+            "summary": "Tax ID, legal name, and logo for receipts and communications.",
+            "steps": [
+                "Open Settings → General.",
+                "Fill in tax ID, legal name, and trade name.",
+                "Optional: upload the clinic logo."
+            ],
+            "cta": "Go to General"
+        },
+        "paciente": {
+            "title": "Register a patient",
+            "summary": "The pet is the center of appointments, records, and sales.",
+            "steps": [
+                "Go to Clinic → Patients.",
+                "Create or select an owner.",
+                "Register the pet with species, breed, and basic data."
+            ],
+            "cta": "Go to Patients"
+        },
+        "cita": {
+            "title": "Schedule an appointment",
+            "summary": "Organize the schedule by vet and branch.",
+            "steps": [
+                "Go to Clinic → Appointments.",
+                "Pick date, time, patient, and veterinarian.",
+                "Save; you can mark it completed later."
+            ],
+            "cta": "Go to Appointments"
+        },
+        "consulta": {
+            "title": "Open a medical record",
+            "summary": "Document care during or after the visit.",
+            "steps": [
+                "From an appointment or Patients, start a consultation.",
+                "Record reason, exam, and diagnosis.",
+                "Add charges or products if needed."
+            ],
+            "cta": "Go to Medical records"
+        },
+        "vacuna": {
+            "title": "Record a vaccination",
+            "summary": "Track vaccines and booster due dates.",
+            "steps": [
+                "Open Clinic → Vaccinations.",
+                "Select patient and product or protocol.",
+                "Save the dose and next due date."
+            ],
+            "cta": "Go to Vaccinations"
+        },
+        "sesion": {
+            "title": "Open a register session",
+            "summary": "You need an open session to record sales for the shift.",
+            "steps": [
+                "Go to Register → Sessions.",
+                "Click «Open register» and choose the branch.",
+                "Enter opening float if applicable."
+            ],
+            "cta": "Go to Register sessions"
+        },
+        "venta": {
+            "title": "Record a sale",
+            "summary": "Charge for products and services from the POS.",
+            "steps": [
+                "With register open, go to Register → New sale.",
+                "Add lines (products or concepts) and pick receipt type.",
+                "Confirm payment and issue receipt or ticket as needed."
+            ],
+            "cta": "New sale"
+        },
+        "producto": {
+            "title": "Add products",
+            "summary": "The catalog feeds sales, stock, and alerts.",
+            "steps": [
+                "Inventory → Products → New product.",
+                "Set SKU, sale price, and purchase price (for margin).",
+                "Assign category and stock branch if applicable."
+            ],
+            "cta": "Go to Products"
+        },
+        "stock": {
+            "title": "Check stock",
+            "summary": "Review quantities by branch and product.",
+            "steps": [
+                "Inventory → Stock.",
+                "Filter by branch or search by name.",
+                "Use movements for adjustments or manual entries."
+            ],
+            "cta": "Go to Stock"
+        },
+        "compra": {
+            "title": "Record a purchase",
+            "summary": "Bring goods into inventory at real cost.",
+            "steps": [
+                "Inventory → Purchases → New purchase.",
+                "Choose supplier, branch, and product lines.",
+                "Confirm to update stock automatically."
+            ],
+            "cta": "Go to Purchases"
+        },
+        "fel": {
+            "title": "Set up SUNAT e-invoicing",
+            "summary": "Connect APISUNAT to issue electronic receipts and invoices.",
+            "steps": [
+                "Settings → General → Electronic invoicing section.",
+                "Enter your APISUNAT token and save.",
+                "Enable «Issue SUNAT receipts» if your plan allows it."
+            ],
+            "cta": "Go to General"
+        },
+        "series": {
+            "title": "Receipt series",
+            "summary": "Define F001, B001, etc. per branch.",
+            "steps": [
+                "Invoicing → Series.",
+                "Create the series for invoice or receipt type.",
+                "Link it to the corresponding branch."
+            ],
+            "cta": "Go to Series"
+        },
+        "comprobantes": {
+            "title": "View issued receipts",
+            "summary": "Check invoices, receipts, and SUNAT status.",
+            "steps": [
+                "Invoicing → Issued documents.",
+                "Filter by date or type.",
+                "Download PDF/XML or review rejections."
+            ],
+            "cta": "Go to Documents"
+        }
+    }
+}

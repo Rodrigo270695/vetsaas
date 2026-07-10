@@ -744,6 +744,10 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             ->get('suscripcion', [ClinicSubscriptionController::class, 'show'])
             ->name('suscripcion.show');
 
+        Route::middleware('tenant.required')
+            ->inertia('ayuda', 'configuracion/ayuda/index')
+            ->name('ayuda');
+
         // Sedes — CRUD real. Cada verbo HTTP exige su permiso específico.
         Route::middleware('permission:sedes.view')
             ->get('sedes', [SedeController::class, 'index'])

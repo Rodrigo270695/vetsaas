@@ -1,0 +1,158 @@
+{
+    "page": {
+        "title": "Centro de ayuda",
+        "description": "Guías rápidas para configurar tu clínica y usar VetSaaS día a día.",
+        "search": "Buscar tema…",
+        "empty": "No hay resultados para tu búsqueda. Prueba con otra palabra.",
+        "footer": "¿Necesitas más ayuda? Contacta al soporte de tu plan o revisa la documentación que te envió el equipo VetSaaS."
+    },
+    "categories": {
+        "setup": { "title": "Primeros pasos" },
+        "clinic": { "title": "Atención clínica" },
+        "caja": { "title": "Caja y ventas" },
+        "inventario": { "title": "Inventario" },
+        "facturacion": { "title": "Facturación electrónica" }
+    },
+    "articles": {
+        "sede": {
+            "title": "Crear tu primera sede",
+            "summary": "Sin sede activa no puedes usar caja, citas ni inventario.",
+            "steps": [
+                "Ve a Configuración → Sedes.",
+                "Pulsa «Nueva sede» y completa nombre y dirección.",
+                "Deja la sede como activa y guarda."
+            ],
+            "cta": "Ir a Sedes"
+        },
+        "clinic": {
+            "title": "Datos de la clínica",
+            "summary": "RUC, razón social y logo para comprobantes y comunicaciones.",
+            "steps": [
+                "Abre Configuración → General.",
+                "Completa RUC, razón social y nombre comercial.",
+                "Opcional: sube el logo de la clínica."
+            ],
+            "cta": "Ir a General"
+        },
+        "paciente": {
+            "title": "Registrar un paciente",
+            "summary": "La mascota es el centro de citas, historias y ventas.",
+            "steps": [
+                "Entra a Clínica → Pacientes.",
+                "Crea o selecciona un propietario.",
+                "Registra la mascota con especie, raza y datos básicos."
+            ],
+            "cta": "Ir a Pacientes"
+        },
+        "cita": {
+            "title": "Agendar una cita",
+            "summary": "Organiza la agenda por veterinario y sede.",
+            "steps": [
+                "Ve a Clínica → Citas.",
+                "Elige fecha, hora, paciente y veterinario.",
+                "Guarda la cita; podrás marcarla como completada después."
+            ],
+            "cta": "Ir a Citas"
+        },
+        "consulta": {
+            "title": "Abrir una historia clínica",
+            "summary": "Documenta la atención durante o después de la consulta.",
+            "steps": [
+                "Desde una cita o Pacientes, inicia una consulta.",
+                "Registra motivo, examen y diagnóstico.",
+                "Agrega cargos o productos si corresponde."
+            ],
+            "cta": "Ir a Historias clínicas"
+        },
+        "vacuna": {
+            "title": "Registrar una vacunación",
+            "summary": "Lleva control de vacunas y próximas dosis.",
+            "steps": [
+                "Abre Clínica → Vacunaciones.",
+                "Selecciona paciente y producto o protocolo.",
+                "Guarda la aplicación y la fecha de refuerzo."
+            ],
+            "cta": "Ir a Vacunaciones"
+        },
+        "sesion": {
+            "title": "Abrir sesión de caja",
+            "summary": "Debes tener caja abierta para registrar ventas del turno.",
+            "steps": [
+                "Ve a Caja → Sesiones.",
+                "Pulsa «Abrir caja» y elige la sede.",
+                "Indica el monto inicial si aplica."
+            ],
+            "cta": "Ir a Sesiones de caja"
+        },
+        "venta": {
+            "title": "Registrar una venta",
+            "summary": "Cobra productos y servicios desde el punto de venta.",
+            "steps": [
+                "Con caja abierta, entra a Caja → Nueva venta.",
+                "Agrega líneas (productos o conceptos) y elige comprobante.",
+                "Confirma el pago y emite boleta o ticket según corresponda."
+            ],
+            "cta": "Nueva venta"
+        },
+        "producto": {
+            "title": "Cargar productos",
+            "summary": "El catálogo alimenta ventas, stock y alertas.",
+            "steps": [
+                "Inventario → Productos → Nuevo producto.",
+                "Define SKU, precio de venta y precio de compra (para margen).",
+                "Asigna categoría y sede de stock si aplica."
+            ],
+            "cta": "Ir a Productos"
+        },
+        "stock": {
+            "title": "Consultar stock",
+            "summary": "Revisa existencias por sede y producto.",
+            "steps": [
+                "Inventario → Stock.",
+                "Filtra por sede o busca por nombre.",
+                "Usa movimientos para ajustes o entradas manuales."
+            ],
+            "cta": "Ir a Stock"
+        },
+        "compra": {
+            "title": "Registrar una compra",
+            "summary": "Ingresa mercadería al inventario con costo real.",
+            "steps": [
+                "Inventario → Compras → Nueva compra.",
+                "Elige proveedor, sede y líneas de producto.",
+                "Confirma para actualizar el stock automáticamente."
+            ],
+            "cta": "Ir a Compras"
+        },
+        "fel": {
+            "title": "Configurar facturación SUNAT",
+            "summary": "Conecta APISUNAT para emitir boletas y facturas electrónicas.",
+            "steps": [
+                "Configuración → General → sección Facturación electrónica.",
+                "Ingresa el token de APISUNAT y guarda.",
+                "Activa «Emite comprobantes SUNAT» si tu plan lo permite."
+            ],
+            "cta": "Ir a General"
+        },
+        "series": {
+            "title": "Series de comprobantes",
+            "summary": "Define series F001, B001, etc. por sede.",
+            "steps": [
+                "Facturación → Series.",
+                "Crea la serie según tipo (factura o boleta).",
+                "Asóciala a la sede correspondiente."
+            ],
+            "cta": "Ir a Series"
+        },
+        "comprobantes": {
+            "title": "Ver comprobantes emitidos",
+            "summary": "Consulta boletas, facturas y su estado ante SUNAT.",
+            "steps": [
+                "Facturación → Comprobantes emitidos.",
+                "Filtra por fecha o tipo.",
+                "Descarga PDF/XML o revisa rechazos."
+            ],
+            "cta": "Ir a Comprobantes"
+        }
+    }
+}
