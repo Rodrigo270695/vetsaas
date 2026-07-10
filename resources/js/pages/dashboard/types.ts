@@ -155,6 +155,27 @@ export type RentabilidadResumen = {
     items: RentabilidadItemRow[];
 };
 
+export type OnboardingStep = {
+    id: string;
+    title: string;
+    description: string;
+    href: string | null;
+    completed: boolean;
+    current: boolean;
+    locked: boolean;
+    required: boolean;
+};
+
+export type OnboardingSnapshot = {
+    show: boolean;
+    completed: boolean;
+    paso: number;
+    total_steps: number;
+    completed_steps: number;
+    requires_sede: boolean;
+    steps: OnboardingStep[];
+};
+
 export type RentabilidadGroomingResumen = {
     periodo: RentabilidadPeriodo;
     desde: string;

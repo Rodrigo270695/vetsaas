@@ -36,7 +36,7 @@ import {
 } from '@/components/dashboard/dashboard-quick-actions';
 import { DashboardClientesMensualesChart } from '@/components/dashboard/dashboard-clientes-mensuales-chart';
 import { DashboardFelChart } from '@/components/dashboard/dashboard-fel-chart';
-import { DashboardMonthlyRevenueChart } from '@/components/dashboard/dashboard-monthly-revenue-chart';
+import { DashboardOnboardingCard } from '@/components/dashboard/dashboard-onboarding-card';
 import { DashboardRentabilidadCard } from '@/components/dashboard/dashboard-rentabilidad-card';
 import { DashboardRentabilidadGroomingCard } from '@/components/dashboard/dashboard-rentabilidad-grooming-card';
 import { DashboardSalesChart } from '@/components/dashboard/dashboard-sales-chart';
@@ -55,6 +55,7 @@ import type {
     FelEstadoRow,
     IngresosMensualRow,
     NuevosClientesMensualRow,
+    OnboardingSnapshot,
     ProximaCitaRow,
     RentabilidadGroomingResumen,
     RentabilidadResumen,
@@ -68,6 +69,7 @@ import { es, enUS } from 'date-fns/locale';
 type Props = {
     clinic_label: string;
     capabilities: DashboardCapabilities;
+    onboarding: OnboardingSnapshot | null;
     moneda: string;
     kpis: DashboardKpis;
     ventas_por_dia: VentasPorDiaRow[];
@@ -107,6 +109,7 @@ function formatMoney(value: string | number, moneda: string, locale: string): st
 export default function DashboardIndex({
     clinic_label,
     capabilities,
+    onboarding,
     moneda,
     kpis,
     ventas_por_dia,
@@ -372,6 +375,8 @@ export default function DashboardIndex({
 
             <div className="flex min-w-0 flex-col gap-8 p-4 md:p-6">
                 <DashboardHero clinicLabel={clinic_label} />
+
+                {onboarding?.show && <DashboardOnboardingCard data={onboarding} />}
 
                 {capabilities.caja_sesiones && (
                     <DashboardCajaStatus abierta={kpis.caja_abierta} />

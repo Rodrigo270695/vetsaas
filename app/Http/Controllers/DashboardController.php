@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Services\Dashboard\DashboardStatsService;
+use App\Services\Onboarding\ClinicOnboardingService;
 use App\Models\Tenant;
 use App\Support\Tenancy\TenantModuleAccess;
 use App\Tenancy\TenantManager;
@@ -20,6 +21,7 @@ class DashboardController extends Controller
     public function __construct(
         private readonly TenantManager $tenantManager,
         private readonly DashboardStatsService $stats,
+        private readonly ClinicOnboardingService $onboarding,
     ) {}
 
     public function index(Request $request): Response
@@ -57,6 +59,9 @@ class DashboardController extends Controller
         return Inertia::render('dashboard/index', [
             'clinic_label' => $clinicLabel,
             'capabilities' => $capabilities,
+            'onboarding' => $tenantModel !== null
+                ? $this->onboarding->snapshot($tenantModel, $user)
+                : null,
             ...$this->stats->build($user, $capabilities),
         ]);
     }

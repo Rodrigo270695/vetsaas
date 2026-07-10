@@ -77,6 +77,7 @@ return Application::configure(basePath: dirname(__DIR__))
             // contraseña hasta que el usuario lo complete.
             'force-password-change' => EnsurePasswordIsChanged::class,
             'tenant.module' => EnsureTenantModuleEnabled::class,
+            'tenant.active-sede' => \App\Http\Middleware\EnsureTenantHasActiveSede::class,
         ]);
 
         // `ResolveTenant` se aplica a TODO el grupo web. Es inocuo en
@@ -114,6 +115,7 @@ return Application::configure(basePath: dirname(__DIR__))
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
             EnsureTenantSubscriptionAccess::class,
+            \App\Http\Middleware\EnsureTenantHasActiveSede::class,
         ]);
     })
     ->withSchedule(function (Schedule $schedule): void {
