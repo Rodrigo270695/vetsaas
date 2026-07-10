@@ -247,7 +247,7 @@ export function AtencionDateRangeFilter({
                     variant="outline"
                     disabled={disabled}
                     className={cn(
-                        'h-9 min-w-[11rem] justify-start gap-2 rounded-full px-3.5 font-normal shadow-xs transition-colors',
+                        'h-9 min-w-44 justify-start gap-2 rounded-md px-3 font-normal shadow-xs transition-colors',
                         hasRange
                             ? 'border-brand-300/80 bg-brand-50/40 text-foreground hover:bg-brand-50/70 dark:border-brand-700/50 dark:bg-brand-950/30'
                             : 'text-muted-foreground',
@@ -267,7 +267,7 @@ export function AtencionDateRangeFilter({
                         <span
                             role="button"
                             tabIndex={0}
-                            className="inline-flex size-5 shrink-0 cursor-pointer items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                            className="inline-flex size-5 shrink-0 cursor-pointer items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                             aria-label={t('common:date_range.clear')}
                             onClick={handleClear}
                             onKeyDown={(e) => {
@@ -283,7 +283,7 @@ export function AtencionDateRangeFilter({
                 </Button>
             </PopoverTrigger>
             <PopoverContent
-                className="w-[min(100vw-2rem,20.5rem)] overflow-hidden rounded-xl p-0 shadow-lg"
+                className="w-[min(100vw-2rem,20.5rem)] overflow-hidden rounded-lg p-0 shadow-lg"
                 align="start"
                 sideOffset={8}
             >
@@ -379,7 +379,7 @@ export function AtencionDateRangeFilter({
                                 type="button"
                                 size="sm"
                                 disabled={disabled || !canApplyCustom}
-                                className="h-9 w-full cursor-pointer rounded-lg font-medium"
+                                className="h-9 w-full cursor-pointer rounded-md font-medium"
                                 onClick={applyCustom}
                             >
                                 {t('common:date_range.apply')}
