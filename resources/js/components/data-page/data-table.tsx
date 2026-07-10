@@ -105,6 +105,21 @@ export type DataTableProps<T> = {
     className?: string;
 };
 
+/** Pastel por columna usando la escala `--brand-*` (color del tenant). */
+const TABLE_HEADER_PASTELS = [
+    'bg-brand-50/95 text-brand-900 dark:bg-brand-950/45 dark:text-brand-100',
+    'bg-brand-100/70 text-brand-900 dark:bg-brand-900/35 dark:text-brand-100',
+    'bg-brand-50/75 text-brand-800 dark:bg-brand-950/40 dark:text-brand-200',
+    'bg-brand-100/55 text-brand-800 dark:bg-brand-900/30 dark:text-brand-200',
+] as const;
+
+function tableHeaderPastelClass(columnIndex: number): string {
+    return TABLE_HEADER_PASTELS[columnIndex % TABLE_HEADER_PASTELS.length];
+}
+
+const TABLE_HEADER_CELL =
+    'border-b border-brand-200/55 border-r border-brand-200/30 px-4 py-2.5 text-xs font-semibold tracking-wide last:border-r-0';
+
 /**
  * Tabla genérica responsive con slots integrados (toolbar + footer) y
  * soporte de ordenamiento por columna.
@@ -181,9 +196,9 @@ export function DataTable<T>({
                 type="button"
                 onClick={() => handleHeaderClick(col)}
                 className={cn(
-                    'inline-flex cursor-pointer items-center gap-1.5 rounded-md transition-colors',
-                    'hover:text-foreground',
-                    isActive && 'text-foreground',
+                    'inline-flex cursor-pointer items-center gap-1.5 rounded-sm transition-colors',
+                    'text-inherit hover:text-brand-950 dark:hover:text-brand-50',
+                    isActive && 'text-brand-950 dark:text-brand-50',
                     col.align === 'right' && 'flex-row-reverse',
                 )}
                 aria-label={`Ordenar por ${
@@ -200,14 +215,14 @@ export function DataTable<T>({
                 )}
                 {isActive && direction === 'asc' && (
                     <ArrowUp
-                        className="size-3 text-primary"
+                        className="size-3 text-brand-700 dark:text-brand-300"
                         strokeWidth={2.5}
                         aria-hidden
                     />
                 )}
                 {isActive && direction === 'desc' && (
                     <ArrowDown
-                        className="size-3 text-primary"
+                        className="size-3 text-brand-700 dark:text-brand-300"
                         strokeWidth={2.5}
                         aria-hidden
                     />
@@ -219,7 +234,7 @@ export function DataTable<T>({
     return (
         <div
             className={cn(
-                'overflow-hidden rounded-xl border border-border/60 bg-card shadow-xs',
+                'overflow-hidden rounded-lg border border-brand-200/50 bg-card shadow-xs',
                 className,
             )}
         >
@@ -230,7 +245,7 @@ export function DataTable<T>({
             )}
 
             {toolbar && (
-                <div className="border-b border-border/60 bg-muted/20 px-4 py-3">
+                <div className="border-b border-brand-100/60 bg-brand-50/30 px-4 py-3 dark:bg-brand-950/20">
                     {toolbar}
                 </div>
             )}
@@ -249,12 +264,16 @@ export function DataTable<T>({
                             tableLayoutFixed && 'table-fixed',
                         )}
                     >
-                        <thead className="bg-muted/40">
+                        <thead>
                             <tr>
                                 {hasSelection && selection && (
                                     <th
                                         scope="col"
-                                        className="w-10 border-b border-border/60 px-3 py-3"
+                                        className={cn(
+                                            'w-10',
+                                            TABLE_HEADER_CELL,
+                                            tableHeaderPastelClass(0),
+                                        )}
                                     >
                                         <Checkbox
                                             checked={
@@ -271,11 +290,14 @@ export function DataTable<T>({
                                         />
                                     </th>
                                 )}
-                                {columns.map((col) => (
+                                {columns.map((col, columnIndex) => (
                                     <th
                                         key={col.key}
                                         className={cn(
-                                            'border-b border-border/60 px-4 py-3 text-left text-xs font-semibold tracking-wide text-muted-foreground',
+                                            TABLE_HEADER_CELL,
+                                            tableHeaderPastelClass(
+                                                columnIndex + (hasSelection ? 1 : 0),
+                                            ),
                                             col.align === 'right' && 'text-right',
                                             col.align === 'center' && 'text-center',
                                             col.className,
@@ -423,7 +445,7 @@ export function DataTable<T>({
             </div>
 
             {footer && (
-                <div className="border-t border-border/60 bg-muted/20">
+                <div className="border-t border-brand-100/60 bg-brand-50/25 dark:bg-brand-950/15">
                     {footer}
                 </div>
             )}
