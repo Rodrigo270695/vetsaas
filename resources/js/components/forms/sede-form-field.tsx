@@ -79,8 +79,12 @@ export function SedeFormField({
     }
 
     const selectValue = allowNone
-        ? (value ?? '__none__')
-        : (value && value !== '' ? value : undefined);
+        ? value && value !== ''
+            ? value
+            : '__none__'
+        : value && value !== ''
+          ? value
+          : (lockedSedeId ?? sedes[0]?.id ?? '');
 
     return (
         <FormField id={id} label={label} required={required} hint={hint} error={error}>

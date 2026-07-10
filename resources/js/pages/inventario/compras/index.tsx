@@ -383,7 +383,7 @@ export default function Index({
                                     <div className="flex min-w-0 flex-wrap items-center gap-2">
                                         <div className="min-w-0 w-full sm:w-auto sm:max-w-56">
                                             <Select
-                                                value={filters.sede_id}
+                                                value={filters.sede_id || defaultSedeId}
                                                 onValueChange={(sede_id) => applyFilter({ sede_id })}
                                                 disabled={isLoading || sedeOptions.length <= 1}
                                             >

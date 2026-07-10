@@ -156,7 +156,6 @@ export function CompraFormModal({
 
         const onSuccess = () => {
             onOpenChange(false);
-            reset();
             clearErrors();
         };
 
@@ -239,7 +238,7 @@ export function CompraFormModal({
                         id="compra-sede"
                         label={t('modal.sede')}
                         sedes={sedeOptions}
-                        value={data.sede_id || null}
+                        value={data.sede_id}
                         onChange={(sedeId) => setData('sede_id', sedeId ?? '')}
                         error={errors.sede_id}
                         required
