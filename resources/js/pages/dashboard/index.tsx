@@ -36,6 +36,7 @@ import {
 } from '@/components/dashboard/dashboard-quick-actions';
 import { DashboardClientesMensualesChart } from '@/components/dashboard/dashboard-clientes-mensuales-chart';
 import { DashboardFelChart } from '@/components/dashboard/dashboard-fel-chart';
+import { DashboardMonthlyRevenueChart } from '@/components/dashboard/dashboard-monthly-revenue-chart';
 import { DashboardOnboardingCard } from '@/components/dashboard/dashboard-onboarding-card';
 import { DashboardRentabilidadCard } from '@/components/dashboard/dashboard-rentabilidad-card';
 import { DashboardRentabilidadGroomingCard } from '@/components/dashboard/dashboard-rentabilidad-grooming-card';
