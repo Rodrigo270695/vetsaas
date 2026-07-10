@@ -53,6 +53,8 @@
         "condition_type": "Condición de aplicación",
         "grooming_service_slug": "Servicio grooming (opcional)",
         "grooming_service_none": "Cualquier servicio grooming",
+        "producto_id": "Producto (opcional)",
+        "producto_none": "Cualquier producto",
         "auto_apply": "Aplicación",
         "auto_apply_label": "Aplicar automáticamente en caja",
         "valid_from": "Válida desde",

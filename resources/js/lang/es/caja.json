@@ -288,6 +288,7 @@
             "promotion_code": "Código promoción",
             "promotion_code_ph": "Opcional — cupón manual",
             "promotion_applied": "Promoción aplicada: {{name}} (−{{amount}})",
+            "promotion_line_badge": "Cupón",
             "res_total": "Total",
             "res_vuelto": "Vuelto",
             "notas": "Notas (opcional)",

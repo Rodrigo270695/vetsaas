@@ -71,6 +71,7 @@ class Promotion extends Model
         'scope',
         'condition_type',
         'grooming_service_slug',
+        'producto_id',
         'auto_apply',
         'is_active',
         'valid_from',
@@ -104,6 +105,26 @@ class Promotion extends Model
     public function updatedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'updated_by_id');
+    }
+
+    public function producto(): BelongsTo
+    {
+        return $this->belongsTo(Producto::class);
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function conditionTypesForScope(string $scope): array
+    {
+        if ($scope === self::SCOPE_GROOMING) {
+            return self::CONDITION_TYPES;
+        }
+
+        return [
+            self::CONDITION_NONE,
+            self::CONDITION_COUPON_CODE,
+        ];
     }
 
     public function isCurrentlyValid(): bool

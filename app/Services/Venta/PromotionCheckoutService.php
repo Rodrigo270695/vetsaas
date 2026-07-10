@@ -166,7 +166,9 @@ final class PromotionCheckoutService
                 && ($promo->grooming_service_slug === null
                     || (string) ($line['grooming_service_slug'] ?? '') === (string) $promo->grooming_service_slug),
             Promotion::SCOPE_HOTEL => (bool) ($line['is_hotel'] ?? false),
-            Promotion::SCOPE_PRODUCT => $line['producto_id'] !== null,
+            Promotion::SCOPE_PRODUCT => $line['producto_id'] !== null
+                && ($promo->producto_id === null
+                    || (string) $line['producto_id'] === (string) $promo->producto_id),
             Promotion::SCOPE_ENTIRE_SALE => true,
             default => false,
         };

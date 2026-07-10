@@ -10,6 +10,7 @@ export type Promotion = {
     scope: string;
     condition_type: string;
     grooming_service_slug: string | null;
+    producto_id: string | null;
     auto_apply: boolean;
     is_active: boolean;
     valid_from: string | null;
@@ -37,6 +38,12 @@ export type PromotionFilters = BaseFilters & {
 export type GroomingServiceOption = {
     value: string;
     label: string;
+};
+
+export type ProductOption = {
+    id: string;
+    nombre: string;
+    sku: string | null;
 };
 
 export type PromotionMeta = {

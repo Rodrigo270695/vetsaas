@@ -47,7 +47,7 @@ import { useOfflineSync } from '@/hooks/use-offline-sync';
 import caja from '@/routes/caja';
 import { PosPanel } from './components/pos-panel';
 import type { ProductoBusqueda, ServicioTarifaBusqueda, VentasCreateProps } from './types';
-import { calcTotalesVenta, lineTotalLinea } from './venta-pricing';
+import { calcTotalesVenta, lineTotalFromSubtotal, lineTotalLinea } from './venta-pricing';
 
 type CartLine = {
     key: string;
@@ -98,12 +98,20 @@ async function jsonPost(url: string, body: unknown): Promise<unknown> {
     return res.json();
 }
 
+type PromotionPreviewLine = {
+    producto_id: string | null;
+    subtotal: number;
+    promotion_id: string | null;
+    descuento_pct?: number;
+};
+
 type PromotionPreview = {
     discount_amount: string;
     promotion_name: string | null;
     subtotal: string;
     igv_monto: string;
     total: string;
+    lineas?: PromotionPreviewLine[];
 };
 
 async function jsonGet(url: string): Promise<unknown> {
@@ -1068,7 +1076,7 @@ export default function Create({
                                 </div>
                             ) : (
                                 <ul className="divide-y divide-border/40 rounded-md border border-border/50">
-                                    {cart.map((line) => {
+                                    {cart.map((line, cartIndex) => {
                                         const lista = Number(line.precio_venta ?? 0);
                                         const lineTotal = lineTotalLinea(
                                             lista,
@@ -1076,6 +1084,16 @@ export default function Create({
                                             igvPct,
                                             precioIncluyeIgv,
                                         );
+                                        const previewLine = promoPreview?.lineas?.[cartIndex];
+                                        const hasLinePromo = Boolean(previewLine?.promotion_id);
+                                        const displayTotal =
+                                            hasLinePromo && previewLine
+                                                ? lineTotalFromSubtotal(
+                                                      Number(previewLine.subtotal),
+                                                      igvPct,
+                                                      precioIncluyeIgv,
+                                                  )
+                                                : lineTotal;
                                         const excedeStock =
                                             !line.omitir_stock &&
                                             line.cantidad > line.stock_disponible + 0.0001;
@@ -1090,7 +1108,17 @@ export default function Create({
                                             >
                                                 <div className="flex items-start justify-between gap-2">
                                                     <div className="min-w-0 flex-1">
-                                                        <p className="text-xs font-medium leading-snug">{line.nombre}</p>
+                                                        <div className="flex flex-wrap items-center gap-1.5">
+                                                            <p className="text-xs font-medium leading-snug">{line.nombre}</p>
+                                                            {hasLinePromo ? (
+                                                                <Badge
+                                                                    variant="secondary"
+                                                                    className="h-4 px-1 text-[9px] font-medium uppercase tracking-wide"
+                                                                >
+                                                                    {t('caja:ventas.create.promotion_line_badge')}
+                                                                </Badge>
+                                                            ) : null}
+                                                        </div>
                                                         {line.producto_id === null ? (
                                                             <Input
                                                                 type="number"
@@ -1165,9 +1193,21 @@ export default function Create({
                                                             <Plus className="size-3" aria-hidden />
                                                         </Button>
                                                     </div>
-                                                    <span className="text-sm font-semibold tabular-nums">
-                                                        {formatMoney(lineTotal)}
-                                                    </span>
+                                                    <div className="flex flex-col items-end gap-0.5">
+                                                        {hasLinePromo && displayTotal < lineTotal - 0.0001 ? (
+                                                            <span className="text-[10px] text-muted-foreground line-through tabular-nums">
+                                                                {formatMoney(lineTotal)}
+                                                            </span>
+                                                        ) : null}
+                                                        <span
+                                                            className={cn(
+                                                                'text-sm font-semibold tabular-nums',
+                                                                hasLinePromo && 'text-emerald-700 dark:text-emerald-400',
+                                                            )}
+                                                        >
+                                                            {formatMoney(displayTotal)}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </li>
                                         );

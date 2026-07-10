@@ -47,6 +47,25 @@ export function lineTotalLinea(
     return Math.round((base + igv) * 100) / 100;
 }
 
+/** Importe bruto de línea a partir del subtotal (sin IGV) ya descontado. */
+export function lineTotalFromSubtotal(
+    subtotal: number,
+    igvPct: number,
+    precioIncluyeIgv: boolean,
+): number {
+    if (subtotal <= 0) {
+        return 0;
+    }
+
+    if (precioIncluyeIgv) {
+        return Math.round(subtotal * (1 + igvPct / 100) * 100) / 100;
+    }
+
+    const igv = Math.round(subtotal * (igvPct / 100) * 100) / 100;
+
+    return Math.round((subtotal + igv) * 100) / 100;
+}
+
 export function calcTotalesVenta(
     lineas: { precio_venta: string | null; cantidad: number }[],
     igvPct: number,

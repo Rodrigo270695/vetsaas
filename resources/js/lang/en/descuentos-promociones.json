@@ -53,6 +53,8 @@
         "condition_type": "Application condition",
         "grooming_service_slug": "Grooming service (optional)",
         "grooming_service_none": "Any grooming service",
+        "producto_id": "Product (optional)",
+        "producto_none": "Any product",
         "auto_apply": "Application",
         "auto_apply_label": "Apply automatically at checkout",
         "valid_from": "Valid from",

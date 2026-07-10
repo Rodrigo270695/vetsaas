@@ -6,6 +6,7 @@ use App\Http\Requests\PreviewPromotionRequest;
 use App\Http\Requests\PromotionRequest;
 use App\Models\GroomingServicio;
 use App\Models\GroomingServicioTarifa;
+use App\Models\Producto;
 use App\Models\Promotion;
 use App\Support\Venta\VentaPromotionPreview;
 use Illuminate\Http\JsonResponse;
@@ -98,6 +99,7 @@ class PromotionController extends Controller
                 'coincidencias' => $promotions->total(),
             ],
             'groomingServiceOptions' => $this->groomingServiceOptions(),
+            'productOptions' => $this->productOptions(),
             'meta' => [
                 'discount_types' => Promotion::DISCOUNT_TYPES,
                 'scopes' => Promotion::SCOPES,
@@ -183,5 +185,28 @@ class PromotionController extends Controller
         }
 
         return array_values($options);
+    }
+
+    /**
+     * @return list<array{id: string, nombre: string, sku: string|null}>
+     */
+    private function productOptions(): array
+    {
+        if (! Schema::hasTable('productos')) {
+            return [];
+        }
+
+        return Producto::query()
+            ->where('activo', true)
+            ->whereNull('deleted_at')
+            ->orderBy('nombre')
+            ->limit(500)
+            ->get(['id', 'nombre', 'sku'])
+            ->map(fn (Producto $p): array => [
+                'id' => (string) $p->id,
+                'nombre' => (string) $p->nombre,
+                'sku' => $p->sku !== null ? (string) $p->sku : null,
+            ])
+            ->all();
     }
 }

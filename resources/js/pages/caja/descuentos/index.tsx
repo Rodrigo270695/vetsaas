@@ -24,6 +24,7 @@ import { PromotionFormModal } from './components/promotion-form-modal';
 import { PromotionRowActions } from './components/promotion-row-actions';
 import type {
     GroomingServiceOption,
+    ProductOption,
     Promotion,
     PromotionEstadoFilter,
     PromotionFilters,
@@ -36,6 +37,7 @@ type Props = {
     filters: PromotionFilters;
     stats: PromotionStats;
     groomingServiceOptions: GroomingServiceOption[];
+    productOptions: ProductOption[];
     meta: PromotionMeta;
 };
 
@@ -66,6 +68,7 @@ export default function Index({
     filters,
     stats,
     groomingServiceOptions,
+    productOptions,
     meta,
 }: Props) {
     const { t } = useTranslation(['descuentos-promociones', 'common']);
@@ -297,6 +300,7 @@ export default function Index({
                 promotion={modal.type === 'edit' ? modal.promotion : null}
                 meta={meta}
                 groomingServiceOptions={groomingServiceOptions}
+                productOptions={productOptions}
             />
 
             <PromotionDeleteDialog

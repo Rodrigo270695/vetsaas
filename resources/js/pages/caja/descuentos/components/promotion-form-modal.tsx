@@ -16,7 +16,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import type { GroomingServiceOption, Promotion, PromotionMeta } from '../types';
+import type { GroomingServiceOption, ProductOption, Promotion, PromotionMeta } from '../types';
 
 type Props = {
     open: boolean;
@@ -24,6 +24,7 @@ type Props = {
     promotion: Promotion | null;
     meta: PromotionMeta;
     groomingServiceOptions: readonly GroomingServiceOption[];
+    productOptions: readonly ProductOption[];
 };
 
 type FormData = {
@@ -35,6 +36,7 @@ type FormData = {
     scope: string;
     condition_type: string;
     grooming_service_slug: string | null;
+    producto_id: string | null;
     auto_apply: boolean;
     is_active: boolean;
     valid_from: string;
@@ -43,6 +45,16 @@ type FormData = {
     priority: string;
 };
 
+const GROOMING_ONLY_CONDITIONS = new Set(['second_pet_grooming', 'second_grooming_line_in_cart']);
+
+function defaultConditionForScope(scope: string): string {
+    if (scope === 'grooming') {
+        return 'second_pet_grooming';
+    }
+
+    return 'coupon_code';
+}
+
 const emptyForm = (meta: PromotionMeta): FormData => ({
     name: '',
     code: '',
@@ -50,8 +62,9 @@ const emptyForm = (meta: PromotionMeta): FormData => ({
     discount_type: meta.discount_types[0] ?? 'pct_line',
     value: '',
     scope: meta.scopes[0] ?? 'grooming',
-    condition_type: 'second_pet_grooming',
+    condition_type: defaultConditionForScope(meta.scopes[0] ?? 'grooming'),
     grooming_service_slug: null,
+    producto_id: null,
     auto_apply: true,
     is_active: true,
     valid_from: '',
@@ -73,11 +86,31 @@ function toDatetimeLocal(value: string | null): string {
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-export function PromotionFormModal({ open, onOpenChange, promotion, meta, groomingServiceOptions }: Props) {
+function conditionTypesForScope(scope: string, all: readonly string[]): readonly string[] {
+    if (scope === 'grooming') {
+        return all;
+    }
+
+    return all.filter((c) => !GROOMING_ONLY_CONDITIONS.has(c));
+}
+
+export function PromotionFormModal({
+    open,
+    onOpenChange,
+    promotion,
+    meta,
+    groomingServiceOptions,
+    productOptions,
+}: Props) {
     const { t } = useTranslation(['descuentos-promociones', 'common']);
     const isEdit = promotion !== null;
 
     const { data, setData, post, put, processing, errors, reset, clearErrors, transform } = useForm<FormData>(emptyForm(meta));
+
+    const allowedConditions = useMemo(
+        () => conditionTypesForScope(data.scope, meta.condition_types),
+        [data.scope, meta.condition_types],
+    );
 
     useEffect(() => {
         if (!open) {
@@ -100,6 +133,7 @@ export function PromotionFormModal({ open, onOpenChange, promotion, meta, groomi
             scope: promotion.scope,
             condition_type: promotion.condition_type,
             grooming_service_slug: promotion.grooming_service_slug,
+            producto_id: promotion.producto_id,
             auto_apply: promotion.auto_apply,
             is_active: promotion.is_active,
             valid_from: toDatetimeLocal(promotion.valid_from),
@@ -111,6 +145,12 @@ export function PromotionFormModal({ open, onOpenChange, promotion, meta, groomi
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, promotion?.id]);
 
+    useEffect(() => {
+        if (!allowedConditions.includes(data.condition_type)) {
+            setData('condition_type', defaultConditionForScope(data.scope));
+        }
+    }, [allowedConditions, data.condition_type, data.scope, setData]);
+
     const groomingOptions = useMemo<readonly ComboboxOption[]>(
         () => [
             { value: '', label: t('form.grooming_service_none') },
@@ -119,10 +159,37 @@ export function PromotionFormModal({ open, onOpenChange, promotion, meta, groomi
         [groomingServiceOptions, t],
     );
 
+    const productComboboxOptions = useMemo<readonly ComboboxOption[]>(
+        () => [
+            { value: '', label: t('form.producto_none') },
+            ...productOptions.map((p) => ({
+                value: p.id,
+                label: p.sku ? `${p.nombre} (${p.sku})` : p.nombre,
+            })),
+        ],
+        [productOptions, t],
+    );
+
     const isPct = data.discount_type === 'pct_line' || data.discount_type === 'pct_sale';
     const showGroomingService = data.scope === 'grooming';
+    const showProduct = data.scope === 'product';
     const selectTriggerClass = 'w-full min-w-0';
     const gridFieldClass = 'min-w-0';
+
+    const handleScopeChange = (scope: string) => {
+        const conditions = conditionTypesForScope(scope, meta.condition_types);
+        const nextCondition = conditions.includes(data.condition_type)
+            ? data.condition_type
+            : defaultConditionForScope(scope);
+
+        setData((prev) => ({
+            ...prev,
+            scope,
+            condition_type: nextCondition,
+            grooming_service_slug: scope === 'grooming' ? prev.grooming_service_slug : null,
+            producto_id: scope === 'product' ? prev.producto_id : null,
+        }));
+    };
 
     const onSubmit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -138,6 +205,7 @@ export function PromotionFormModal({ open, onOpenChange, promotion, meta, groomi
             code: d.code.trim() === '' ? null : d.code.trim(),
             description: d.description.trim() === '' ? null : d.description,
             grooming_service_slug: showGroomingService ? (d.grooming_service_slug || null) : null,
+            producto_id: showProduct ? (d.producto_id || null) : null,
             valid_from: d.valid_from === '' ? null : d.valid_from,
             valid_until: d.valid_until === '' ? null : d.valid_until,
             max_uses: d.max_uses.trim() === '' ? null : d.max_uses,
@@ -232,7 +300,7 @@ export function PromotionFormModal({ open, onOpenChange, promotion, meta, groomi
 
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <FormField id="promo-scope" label={t('form.scope')} error={errors.scope} className={gridFieldClass}>
-                        <Select value={data.scope} onValueChange={(v) => setData('scope', v)}>
+                        <Select value={data.scope} onValueChange={handleScopeChange}>
                             <SelectTrigger id="promo-scope" className={selectTriggerClass}>
                                 <SelectValue />
                             </SelectTrigger>
@@ -251,7 +319,7 @@ export function PromotionFormModal({ open, onOpenChange, promotion, meta, groomi
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                                {meta.condition_types.map((cond) => (
+                                {allowedConditions.map((cond) => (
                                     <SelectItem key={cond} value={cond}>
                                         {t(`conditions.${cond}`)}
                                     </SelectItem>
@@ -274,6 +342,23 @@ export function PromotionFormModal({ open, onOpenChange, promotion, meta, groomi
                             value={data.grooming_service_slug ?? ''}
                             onChange={(v) => setData('grooming_service_slug', v === '' ? null : v)}
                             placeholder={t('form.grooming_service_none')}
+                        />
+                    </FormField>
+                ) : null}
+
+                {showProduct ? (
+                    <FormField
+                        id="promo-producto"
+                        label={t('form.producto_id')}
+                        error={errors.producto_id}
+                        className={gridFieldClass}
+                    >
+                        <Combobox
+                            id="promo-producto"
+                            options={productComboboxOptions}
+                            value={data.producto_id ?? ''}
+                            onChange={(v) => setData('producto_id', v === '' ? null : v)}
+                            placeholder={t('form.producto_none')}
                         />
                     </FormField>
                 ) : null}

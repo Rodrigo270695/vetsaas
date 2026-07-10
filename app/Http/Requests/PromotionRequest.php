@@ -18,6 +18,9 @@ class PromotionRequest extends FormRequest
         $promotion = $this->route('promotion');
         $promotionId = $promotion instanceof \App\Models\Promotion ? $promotion->id : null;
 
+        $scope = (string) $this->input('scope', '');
+        $allowedConditions = Promotion::conditionTypesForScope($scope);
+
         return [
             'name' => ['required', 'string', 'max:120'],
             'code' => [
@@ -31,8 +34,13 @@ class PromotionRequest extends FormRequest
             'discount_type' => ['required', 'string', Rule::in(Promotion::DISCOUNT_TYPES)],
             'value' => ['required', 'numeric', 'min:0', 'max:99999999.99'],
             'scope' => ['required', 'string', Rule::in(Promotion::SCOPES)],
-            'condition_type' => ['required', 'string', Rule::in(Promotion::CONDITION_TYPES)],
+            'condition_type' => ['required', 'string', Rule::in($allowedConditions)],
             'grooming_service_slug' => ['nullable', 'string', 'max:80'],
+            'producto_id' => [
+                'nullable',
+                'uuid',
+                Rule::exists('productos', 'id')->whereNull('deleted_at'),
+            ],
             'auto_apply' => ['required', 'boolean'],
             'is_active' => ['required', 'boolean'],
             'valid_from' => ['nullable', 'date'],
@@ -51,6 +59,7 @@ class PromotionRequest extends FormRequest
             'auto_apply' => $this->boolean('auto_apply'),
             'is_active' => $this->boolean('is_active'),
             'grooming_service_slug' => trim((string) $this->input('grooming_service_slug', '')) ?: null,
+            'producto_id' => trim((string) $this->input('producto_id', '')) ?: null,
         ]);
 
         if ($this->input('max_uses') === '' || $this->input('max_uses') === null) {
@@ -70,6 +79,16 @@ class PromotionRequest extends FormRequest
 
             if ($this->input('condition_type') === Promotion::CONDITION_COUPON_CODE && blank($this->input('code'))) {
                 $v->errors()->add('code', __('promotions.validation.code_required'));
+            }
+
+            $scope = (string) $this->input('scope', '');
+
+            if ($scope !== Promotion::SCOPE_GROOMING && $this->filled('grooming_service_slug')) {
+                $v->errors()->add('grooming_service_slug', __('promotions.validation.grooming_service_invalid_scope'));
+            }
+
+            if ($scope !== Promotion::SCOPE_PRODUCT && $this->filled('producto_id')) {
+                $v->errors()->add('producto_id', __('promotions.validation.product_invalid_scope'));
             }
         });
     }
