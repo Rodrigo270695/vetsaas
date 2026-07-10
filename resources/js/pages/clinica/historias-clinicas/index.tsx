@@ -12,7 +12,6 @@ import {
     PageHeader,
 } from '@/components/data-page';
 import type { DataTableColumn } from '@/components/data-page';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useDataTablePage } from '@/hooks/use-data-table-page';
 import { usePermission } from '@/hooks/use-permission';
@@ -21,6 +20,7 @@ import clinica from '@/routes/clinica';
 import type { Paginated } from '@/types';
 import { AtencionDateRangeFilter } from './components/atencion-date-range-filter';
 import { ConsultaDeleteDialog } from './components/consulta-delete-dialog';
+import { ConsultaEstadoBadge } from './components/consulta-estado-badge';
 import { ConsultaFormModal } from './components/consulta-form-modal';
 import { ConsultaRowActions } from './components/consulta-row-actions';
 import { isConsultaAbiertaAntigua } from './consulta-estado-utils';
@@ -313,25 +313,13 @@ export default function Index({
             {
                 key: 'estado',
                 header: t('columns.estado'),
-                cell: (row) => {
-                    const antigua = isConsultaAbiertaAntigua(row.atendido_at, row.cerrada_at);
-
-                    return (
-                        <div className="flex flex-col gap-1">
-                            <Badge
-                                variant={row.cerrada_at ? 'secondary' : antigua ? 'destructive' : 'outline'}
-                                className="w-fit text-[0.65rem] font-normal"
-                            >
-                                {row.cerrada_at ? t('row.estado_cerrada') : t('row.estado_abierta')}
-                            </Badge>
-                            {antigua ? (
-                                <span className="text-[0.65rem] text-amber-700 dark:text-amber-300">
-                                    {t('row.antigua_hint')}
-                                </span>
-                            ) : null}
-                        </div>
-                    );
-                },
+                cell: (row) => (
+                    <ConsultaEstadoBadge
+                        cerradaAt={row.cerrada_at}
+                        atendidoAt={row.atendido_at}
+                        showAntiguaHint
+                    />
+                ),
                 className: 'w-28',
             },
             {

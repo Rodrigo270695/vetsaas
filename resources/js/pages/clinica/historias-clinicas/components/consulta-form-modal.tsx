@@ -3,7 +3,6 @@ import { AlertTriangle, Loader2 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FormField, FormModal, FormSection } from '@/components/forms';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Combobox } from '@/components/ui/combobox';
 import type { ComboboxOption } from '@/components/ui/combobox';
@@ -14,6 +13,7 @@ import { useOfflineSync } from '@/hooks/use-offline-sync';
 import clinica from '@/routes/clinica';
 import type { ConsultaHistoriaRow, PacienteHistoriaOpcion } from '../types';
 import { ConsultaCerrarPromptDialog } from './consulta-cerrar-prompt-dialog';
+import { ConsultaEstadoBadge } from './consulta-estado-badge';
 
 export type ConsultaFormModalProps = {
     open: boolean;
@@ -376,16 +376,17 @@ export function ConsultaFormModal({
                     <div className="flex items-start gap-2 rounded-md border border-amber-200/60 bg-amber-50/50 px-3 py-2 text-sm text-amber-900 dark:border-amber-800/30 dark:bg-amber-950/20 dark:text-amber-100">
                         <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden />
                         <div className="min-w-0">
-                            <Badge variant="outline" className="mb-1 text-[0.65rem] font-normal">
-                                {t('row.estado_abierta')}
-                            </Badge>
-                            <p>{t('form.abierta_banner')}</p>
+                            <ConsultaEstadoBadge
+                                cerradaAt={null}
+                                atendidoAt={consulta?.atendido_at}
+                            />
+                            <p className="mt-1.5">{t('form.abierta_banner')}</p>
                         </div>
                     </div>
                 ) : null}
                 {isEdit && isCerrada ? (
-                    <div className="flex items-center gap-2 rounded-md border border-border bg-muted/30 px-3 py-2 text-sm">
-                        <Badge variant="secondary">{t('row.estado_cerrada')}</Badge>
+                    <div className="flex items-center gap-2 rounded-md border border-emerald-200/60 bg-emerald-50/40 px-3 py-2 text-sm dark:border-emerald-800/30 dark:bg-emerald-950/20">
+                        <ConsultaEstadoBadge cerradaAt={consulta.cerrada_at} />
                         <span className="text-muted-foreground">{t('form.cerrada_hint')}</span>
                     </div>
                 ) : null}
