@@ -1,9 +1,15 @@
 import { TZDate } from '@date-fns/tz';
 import {
     endOfMonth,
+    endOfQuarter,
     endOfWeek,
+    endOfYear,
+    startOfDay,
     startOfMonth,
+    startOfQuarter,
     startOfWeek,
+    startOfYear,
+    subDays,
     subMonths,
     subWeeks,
 } from 'date-fns';
@@ -33,6 +39,16 @@ export function rangeLastWeek(timeZone: string): { from: Date; to: Date } {
     };
 }
 
+/** Mes calendario actual completo. */
+export function rangeThisMonth(timeZone: string): { from: Date; to: Date } {
+    const n = nowTz(timeZone);
+
+    return {
+        from: startOfMonth(n),
+        to: endOfMonth(n),
+    };
+}
+
 /** Mes calendario anterior completo. */
 export function rangeLastMonth(timeZone: string): { from: Date; to: Date } {
     const n = nowTz(timeZone);
@@ -41,5 +57,45 @@ export function rangeLastMonth(timeZone: string): { from: Date; to: Date } {
     return {
         from: startOfMonth(ref),
         to: endOfMonth(ref),
+    };
+}
+
+/** Últimos 7 días inclusive (hoy incluido). */
+export function rangeLast7Days(timeZone: string): { from: Date; to: Date } {
+    const n = startOfDay(nowTz(timeZone));
+
+    return {
+        from: subDays(n, 6),
+        to: n,
+    };
+}
+
+/** Últimos 30 días inclusive (hoy incluido). */
+export function rangeLast30Days(timeZone: string): { from: Date; to: Date } {
+    const n = startOfDay(nowTz(timeZone));
+
+    return {
+        from: subDays(n, 29),
+        to: n,
+    };
+}
+
+/** Trimestre calendario en curso. */
+export function rangeThisQuarter(timeZone: string): { from: Date; to: Date } {
+    const n = nowTz(timeZone);
+
+    return {
+        from: startOfQuarter(n),
+        to: endOfQuarter(n),
+    };
+}
+
+/** Año calendario en curso. */
+export function rangeThisYear(timeZone: string): { from: Date; to: Date } {
+    const n = nowTz(timeZone);
+
+    return {
+        from: startOfYear(n),
+        to: endOfYear(n),
     };
 }

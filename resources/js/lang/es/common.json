@@ -115,5 +115,19 @@
             "description": "Ocurrió un problema inesperado al procesar tu solicitud.",
             "helper": "Intenta de nuevo en unos momentos. Si el error persiste, contacta al soporte de tu clínica o al administrador del sistema."
         }
+    },
+    "date_range": {
+        "preset_this_month": "Este mes",
+        "preset_last_month": "Mes anterior",
+        "preset_last_7_days": "Últimos 7 días",
+        "preset_last_30_days": "Últimos 30 días",
+        "preset_this_quarter": "Este trimestre",
+        "preset_this_year": "Este año",
+        "custom": "Personalizado",
+        "from": "Desde",
+        "to": "Hasta",
+        "apply": "Aplicar rango",
+        "clear": "Quitar rango",
+        "all_dates": "Todas las fechas"
     }
 }

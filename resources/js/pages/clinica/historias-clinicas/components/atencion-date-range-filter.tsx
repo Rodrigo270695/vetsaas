@@ -1,12 +1,11 @@
 import { usePage } from '@inertiajs/react';
-import { format } from 'date-fns';
+import { format, isSameMonth, isSameYear } from 'date-fns';
 import { enUS, es as esLocale } from 'date-fns/locale';
-import { CalendarIcon } from 'lucide-react';
-import { useMemo, useState } from 'react';
-import type { DateRange } from 'react-day-picker';
+import { CalendarIcon, Check, X } from 'lucide-react';
+import { useEffect, useMemo, useState, type MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
+import { Input } from '@/components/ui/input';
 import {
     Popover,
     PopoverContent,
@@ -14,7 +13,14 @@ import {
 } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 
-import { rangeLastMonth, rangeLastWeek, rangeThisWeek } from '../atencion-range-presets';
+import {
+    rangeLast30Days,
+    rangeLast7Days,
+    rangeLastMonth,
+    rangeThisMonth,
+    rangeThisQuarter,
+    rangeThisYear,
+} from '../atencion-range-presets';
 
 export type AtencionDateRangeFilterProps = {
     /** Inicio del rango aplicado (YYYY-MM-DD). Null = sin filtro de fechas. */
@@ -27,10 +33,30 @@ export type AtencionDateRangeFilterProps = {
     disabled?: boolean;
     /** Al confirmar un rango (desde ≤ hasta, fechas locales). */
     onApply: (desde: string, hasta: string) => void;
+    /** Si se define, el botón «×» quita el filtro en lugar de volver al mes actual. */
+    onClear?: () => void;
     /** Namespace i18n con claves `date_filter.*` (p. ej. `historias-clinicas`, `movimientos-inventario`). */
     translationNs?: string;
     /** Clases extra del botón disparador (p. ej. `h-10` para alinear con otros filtros). */
     triggerClassName?: string;
+};
+
+type PresetId =
+    | 'this_month'
+    | 'last_month'
+    | 'last_7_days'
+    | 'last_30_days'
+    | 'this_quarter'
+    | 'this_year'
+    | 'custom';
+
+type PresetOption = {
+    id: PresetId;
+    label: string;
+    desde: string;
+    hasta: string;
+    from: Date;
+    to: Date;
 };
 
 function parseDay(iso: string): Date | undefined {
@@ -53,6 +79,43 @@ function toIsoDate(d: Date): string {
     return format(d, 'yyyy-MM-dd');
 }
 
+function formatPresetSpan(from: Date, to: Date, locale: typeof esLocale): string {
+    return `${format(from, 'dd/MM/yyyy', { locale })} — ${format(to, 'dd/MM/yyyy', { locale })}`;
+}
+
+function formatTriggerLabel(
+    from: Date | undefined,
+    to: Date | undefined,
+    locale: typeof esLocale,
+    allDatesLabel: string,
+): string {
+    if (from == null || to == null) {
+        return allDatesLabel;
+    }
+
+    if (isSameMonth(from, to) && isSameYear(from, to)) {
+        const raw = format(from, 'MMM yyyy', { locale });
+
+        return raw.charAt(0).toUpperCase() + raw.slice(1);
+    }
+
+    return formatPresetSpan(from, to, locale);
+}
+
+function detectPresetId(
+    desde: string | null,
+    hasta: string | null,
+    presets: PresetOption[],
+): PresetId {
+    if (!desde || !hasta) {
+        return 'custom';
+    }
+
+    const match = presets.find((p) => p.desde === desde && p.hasta === hasta);
+
+    return match?.id ?? 'custom';
+}
+
 export function AtencionDateRangeFilter({
     desde,
     hasta,
@@ -60,90 +123,121 @@ export function AtencionDateRangeFilter({
     defaultHasta,
     disabled,
     onApply,
+    onClear,
     translationNs = 'historias-clinicas',
     triggerClassName,
 }: AtencionDateRangeFilterProps) {
-    const { t, i18n } = useTranslation(translationNs);
+    const { t, i18n } = useTranslation([translationNs, 'common']);
     const { timezone: appTz } = usePage().props;
 
     const dateFnsLocale = i18n.language.startsWith('en') ? enUS : esLocale;
 
     const [open, setOpen] = useState(false);
-    const [rangeDraft, setRangeDraft] = useState<DateRange | undefined>(undefined);
+    const [customOpen, setCustomOpen] = useState(false);
+    const [customDesde, setCustomDesde] = useState('');
+    const [customHasta, setCustomHasta] = useState('');
 
-    const committed = useMemo(
-        () => ({
-            from: desde ? parseDay(desde) : undefined,
-            to: hasta ? parseDay(hasta) : undefined,
-        }),
-        [desde, hasta],
+    const presets = useMemo((): PresetOption[] => {
+        const build = (
+            id: PresetId,
+            labelKey: string,
+            range: { from: Date; to: Date },
+        ): PresetOption => ({
+            id,
+            label: t(`common:date_range.${labelKey}`),
+            from: range.from,
+            to: range.to,
+            desde: toIsoDate(range.from),
+            hasta: toIsoDate(range.to),
+        });
+
+        const thisMonth = rangeThisMonth(appTz);
+        const serverThisMonth =
+            defaultDesde && defaultHasta
+                ? { from: parseDay(defaultDesde)!, to: parseDay(defaultHasta)! }
+                : thisMonth;
+
+        return [
+            build('this_month', 'preset_this_month', serverThisMonth),
+            build('last_month', 'preset_last_month', rangeLastMonth(appTz)),
+            build('last_7_days', 'preset_last_7_days', rangeLast7Days(appTz)),
+            build('last_30_days', 'preset_last_30_days', rangeLast30Days(appTz)),
+            build('this_quarter', 'preset_this_quarter', rangeThisQuarter(appTz)),
+            build('this_year', 'preset_this_year', rangeThisYear(appTz)),
+        ];
+    }, [appTz, defaultDesde, defaultHasta, t]);
+
+    const committedFrom = desde ? parseDay(desde) : undefined;
+    const committedTo = hasta ? parseDay(hasta) : undefined;
+    const hasRange = Boolean(desde && hasta);
+
+    const activePresetId = useMemo(
+        () => detectPresetId(desde, hasta, presets),
+        [desde, hasta, presets],
     );
 
-    const displayRange = open ? (rangeDraft ?? committed) : committed;
+    const triggerLabel = hasRange
+        ? formatTriggerLabel(committedFrom, committedTo, dateFnsLocale, t('date_filter.placeholder'))
+        : t('common:date_range.all_dates');
 
-    const label =
-        displayRange.from != null ? (
-            displayRange.to != null ? (
-                <>
-                    {format(displayRange.from, 'd MMM yyyy', { locale: dateFnsLocale })} —{' '}
-                    {format(displayRange.to, 'd MMM yyyy', { locale: dateFnsLocale })}
-                </>
-            ) : (
-                format(displayRange.from, 'd MMM yyyy', { locale: dateFnsLocale })
-            )
-        ) : (
-            t('date_filter.placeholder')
-        );
-
-    const defaultMonth = displayRange.from ?? committed.from ?? new Date();
-
-    const applyRange = (from: Date, to: Date) => {
-        const d0 = from <= to ? from : to;
-        const d1 = from <= to ? to : from;
-
-        onApply(toIsoDate(d0), toIsoDate(d1));
+    const applyRange = (fromIso: string, toIso: string) => {
+        onApply(fromIso, toIso);
         setOpen(false);
     };
 
-    const handleSelect = (range: DateRange | undefined) => {
-        setRangeDraft(range);
-
-        if (range?.from != null && range.to !== undefined) {
-            applyRange(range.from, range.to);
-        }
+    const applyPreset = (preset: PresetOption) => {
+        applyRange(preset.desde, preset.hasta);
     };
 
-    const applySingleDay = () => {
-        const from = rangeDraft?.from ?? displayRange.from;
+    const handleClear = (event: MouseEvent) => {
+        event.preventDefault();
+        event.stopPropagation();
 
-        if (from == null) {
-            return;
+        if (onClear) {
+            onClear();
+        } else {
+            onApply(defaultDesde, defaultHasta);
         }
 
-        applyRange(from, from);
-    };
-
-    const resetToCurrentMonth = () => {
-        onApply(defaultDesde, defaultHasta);
         setOpen(false);
     };
 
     const handleOpenChange = (next: boolean) => {
         if (next) {
-            setRangeDraft({
-                from: desde ? parseDay(desde) : undefined,
-                to: hasta ? parseDay(hasta) : undefined,
-            });
+            setCustomDesde(desde ?? defaultDesde);
+            setCustomHasta(hasta ?? defaultHasta);
+            setCustomOpen(activePresetId === 'custom');
         }
 
         setOpen(next);
     };
 
-    const calendarSelected = open ? (rangeDraft ?? committed) : committed;
+    useEffect(() => {
+        if (open && activePresetId === 'custom') {
+            setCustomOpen(true);
+        }
+    }, [open, activePresetId]);
 
-    const applyPreset = (from: Date, to: Date) => {
-        applyRange(from, to);
+    const applyCustom = () => {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(customDesde) || !/^\d{4}-\d{2}-\d{2}$/.test(customHasta)) {
+            return;
+        }
+
+        const from = parseDay(customDesde);
+        const to = parseDay(customHasta);
+
+        if (!from || !to) {
+            return;
+        }
+
+        applyRange(
+            toIsoDate(from <= to ? from : to),
+            toIsoDate(from <= to ? to : from),
+        );
     };
+
+    const canApplyCustom =
+        /^\d{4}-\d{2}-\d{2}$/.test(customDesde) && /^\d{4}-\d{2}-\d{2}$/.test(customHasta);
 
     return (
         <Popover open={open} onOpenChange={handleOpenChange}>
@@ -153,92 +247,145 @@ export function AtencionDateRangeFilter({
                     variant="outline"
                     disabled={disabled}
                     className={cn(
-                        'h-9 min-w-48 justify-start gap-2 px-3 font-normal',
-                        !displayRange.from && 'text-muted-foreground',
+                        'h-9 min-w-[11rem] justify-start gap-2 rounded-full px-3.5 font-normal shadow-xs transition-colors',
+                        hasRange
+                            ? 'border-brand-300/80 bg-brand-50/40 text-foreground hover:bg-brand-50/70 dark:border-brand-700/50 dark:bg-brand-950/30'
+                            : 'text-muted-foreground',
                         triggerClassName,
                     )}
                     aria-label={t('date_filter.aria')}
                 >
-                    <CalendarIcon className="size-4 shrink-0 opacity-70" aria-hidden />
-                    <span className="truncate text-left">{label}</span>
+                    <CalendarIcon
+                        className={cn(
+                            'size-4 shrink-0',
+                            hasRange ? 'text-brand-600 dark:text-brand-300' : 'opacity-60',
+                        )}
+                        aria-hidden
+                    />
+                    <span className="min-w-0 flex-1 truncate text-left text-sm">{triggerLabel}</span>
+                    {hasRange ? (
+                        <span
+                            role="button"
+                            tabIndex={0}
+                            className="inline-flex size-5 shrink-0 cursor-pointer items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                            aria-label={t('common:date_range.clear')}
+                            onClick={handleClear}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    handleClear(e as unknown as MouseEvent);
+                                }
+                            }}
+                        >
+                            <X className="size-3.5" aria-hidden />
+                        </span>
+                    ) : null}
                 </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto max-w-[min(100vw-2rem,22rem)] p-0" align="start" sideOffset={6}>
-                <div className="grid grid-cols-2 gap-1.5 border-b border-border p-2">
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-8 cursor-pointer text-xs font-normal"
-                        disabled={disabled}
-                        onClick={() => {
-                            const { from, to } = rangeThisWeek(appTz);
+            <PopoverContent
+                className="w-[min(100vw-2rem,20.5rem)] overflow-hidden rounded-xl p-0 shadow-lg"
+                align="start"
+                sideOffset={8}
+            >
+                <div className="flex flex-col py-1">
+                    {presets.map((preset) => {
+                        const isActive = activePresetId === preset.id;
 
-                            applyPreset(from, to);
-                        }}
-                    >
-                        {t('date_filter.preset_this_week')}
-                    </Button>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-8 cursor-pointer text-xs font-normal"
-                        disabled={disabled}
-                        onClick={() => {
-                            const { from, to } = rangeLastWeek(appTz);
-
-                            applyPreset(from, to);
-                        }}
-                    >
-                        {t('date_filter.preset_last_week')}
-                    </Button>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-8 cursor-pointer text-xs font-normal"
-                        disabled={disabled}
-                        onClick={() => {
-                            const { from, to } = rangeLastMonth(appTz);
-
-                            applyPreset(from, to);
-                        }}
-                    >
-                        {t('date_filter.preset_last_month')}
-                    </Button>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-8 cursor-pointer text-xs font-normal"
-                        disabled={disabled}
-                        onClick={resetToCurrentMonth}
-                    >
-                        {t('date_filter.reset_month')}
-                    </Button>
+                        return (
+                            <button
+                                key={preset.id}
+                                type="button"
+                                disabled={disabled}
+                                onClick={() => applyPreset(preset)}
+                                className={cn(
+                                    'flex w-full cursor-pointer items-center gap-2 px-3 py-2.5 text-left transition-colors',
+                                    isActive
+                                        ? 'bg-brand-50 text-brand-950 dark:bg-brand-950/40 dark:text-brand-50'
+                                        : 'hover:bg-muted/60',
+                                )}
+                            >
+                                <span
+                                    className={cn(
+                                        'min-w-0 flex-1 text-sm',
+                                        isActive ? 'font-semibold' : 'font-medium text-foreground',
+                                    )}
+                                >
+                                    {preset.label}
+                                </span>
+                                <span
+                                    className={cn(
+                                        'shrink-0 text-[0.68rem] tabular-nums',
+                                        isActive
+                                            ? 'text-brand-700/80 dark:text-brand-200/80'
+                                            : 'text-muted-foreground',
+                                    )}
+                                >
+                                    {formatPresetSpan(preset.from, preset.to, dateFnsLocale)}
+                                </span>
+                            </button>
+                        );
+                    })}
                 </div>
-                <Calendar
-                    key={`${desde}-${hasta}-${String(open)}`}
-                    mode="range"
-                    locale={dateFnsLocale}
-                    defaultMonth={defaultMonth}
-                    selected={calendarSelected}
-                    onSelect={handleSelect}
-                    numberOfMonths={1}
-                />
-                <div className="flex flex-col gap-1 border-t border-border p-2">
-                    {rangeDraft?.from != null && rangeDraft.to == null && (
-                        <Button
-                            type="button"
-                            variant="secondary"
-                            size="sm"
-                            className="w-full cursor-pointer text-xs font-normal"
-                            onClick={applySingleDay}
-                        >
-                            {t('date_filter.apply_single_day')}
-                        </Button>
-                    )}
+
+                <div className="border-t border-border/60">
+                    <button
+                        type="button"
+                        disabled={disabled}
+                        onClick={() => setCustomOpen((v) => !v)}
+                        className={cn(
+                            'flex w-full cursor-pointer items-center justify-between gap-2 px-3 py-2.5 text-left transition-colors',
+                            customOpen || activePresetId === 'custom'
+                                ? 'bg-brand-50/80 dark:bg-brand-950/30'
+                                : 'hover:bg-muted/50',
+                        )}
+                    >
+                        <span className="text-sm font-semibold text-foreground">
+                            {t('common:date_range.custom')}
+                        </span>
+                        {customOpen || activePresetId === 'custom' ? (
+                            <Check className="size-4 text-brand-600 dark:text-brand-300" aria-hidden />
+                        ) : null}
+                    </button>
+
+                    {customOpen ? (
+                        <div className="space-y-3 border-t border-border/40 bg-muted/15 px-3 py-3">
+                            <div className="grid grid-cols-2 gap-2.5">
+                                <label className="flex flex-col gap-1">
+                                    <span className="text-[0.65rem] font-semibold tracking-wide text-muted-foreground uppercase">
+                                        {t('common:date_range.from')}
+                                    </span>
+                                    <Input
+                                        type="date"
+                                        value={customDesde}
+                                        disabled={disabled}
+                                        onChange={(e) => setCustomDesde(e.target.value)}
+                                        className="h-9 bg-card text-sm"
+                                    />
+                                </label>
+                                <label className="flex flex-col gap-1">
+                                    <span className="text-[0.65rem] font-semibold tracking-wide text-muted-foreground uppercase">
+                                        {t('common:date_range.to')}
+                                    </span>
+                                    <Input
+                                        type="date"
+                                        value={customHasta}
+                                        disabled={disabled}
+                                        onChange={(e) => setCustomHasta(e.target.value)}
+                                        className="h-9 bg-card text-sm"
+                                    />
+                                </label>
+                            </div>
+                            <Button
+                                type="button"
+                                size="sm"
+                                disabled={disabled || !canApplyCustom}
+                                className="h-9 w-full cursor-pointer rounded-lg font-medium"
+                                onClick={applyCustom}
+                            >
+                                {t('common:date_range.apply')}
+                            </Button>
+                        </div>
+                    ) : null}
                 </div>
             </PopoverContent>
         </Popover>

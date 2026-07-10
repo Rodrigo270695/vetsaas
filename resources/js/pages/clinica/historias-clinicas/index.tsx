@@ -508,6 +508,17 @@ export default function Index({
                                 defaultDesde={atencion_filtro_ui.default_desde}
                                 defaultHasta={atencion_filtro_ui.default_hasta}
                                 disabled={isLoading}
+                                onClear={
+                                    filtrandoAbiertas
+                                        ? () =>
+                                              applyFilter({
+                                                  estado: 'abierta',
+                                                  solo_abiertas: undefined,
+                                                  atendido_desde: undefined,
+                                                  atendido_hasta: undefined,
+                                              })
+                                        : undefined
+                                }
                                 onApply={(desde, hasta) =>
                                     applyFilter({
                                         atendido_desde: desde,
