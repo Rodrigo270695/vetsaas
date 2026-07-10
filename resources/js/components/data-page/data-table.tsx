@@ -219,7 +219,7 @@ export function DataTable<T>({
     return (
         <div
             className={cn(
-                'overflow-hidden rounded-lg border-x-0 border-y-2 border-brand-300/70 bg-card shadow-xs dark:border-brand-700/45',
+                'overflow-hidden rounded-lg border-2 border-brand-300/70 bg-card shadow-xs dark:border-brand-700/45',
                 className,
             )}
         >
