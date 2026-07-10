@@ -173,6 +173,7 @@ export type OnboardingSnapshot = {
     total_steps: number;
     completed_steps: number;
     requires_sede: boolean;
+    preview: boolean;
     steps: OnboardingStep[];
 };
 

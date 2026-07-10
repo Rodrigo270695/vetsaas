@@ -28,7 +28,7 @@ class EnsureTenantHasActiveSede
 
         $tenant = $this->tenantManager->current()?->tenant;
 
-        if ($tenant === null || ! $this->onboarding->shouldShow($tenant)) {
+        if ($tenant === null || $this->onboarding->isPreviewMode($request) || ! $this->onboarding->shouldShow($tenant)) {
             return $next($request);
         }
 

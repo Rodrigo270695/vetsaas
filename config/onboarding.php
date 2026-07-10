@@ -22,4 +22,11 @@ return [
         explode(',', (string) env('ONBOARDING_ENABLED_SLUGS', ''))
     ))),
 
+    /*
+    | Muestra el panel siempre (solo visualización). No marca el onboarding
+    | como completado ni bloquea módulos sin sede.
+    | También puedes usar ?onboarding_preview=1 en /dashboard.
+    */
+    'preview' => filter_var(env('ONBOARDING_PREVIEW', false), FILTER_VALIDATE_BOOL),
+
 ];

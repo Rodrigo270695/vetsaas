@@ -9,6 +9,7 @@ use App\Models\Paciente;
 use App\Models\Sede;
 use App\Models\Tenant;
 use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 
 /**
@@ -41,6 +42,29 @@ class ClinicOnboardingService
     public function shouldShow(Tenant $tenant): bool
     {
         return $this->isActiveForTenant($tenant) && ! $tenant->onboarding_completado;
+    }
+
+    /**
+     * Panel visible en dashboard (incluye modo vista previa).
+     */
+    public function shouldShowCard(Tenant $tenant, ?Request $request = null): bool
+    {
+        if ($this->isPreviewMode($request)) {
+            return true;
+        }
+
+        return $this->shouldShow($tenant);
+    }
+
+    public function isPreviewMode(?Request $request = null): bool
+    {
+        if ((bool) config('onboarding.preview', false)) {
+            return true;
+        }
+
+        $request ??= request();
+
+        return $request !== null && $request->boolean('onboarding_preview');
     }
 
     public function hasActiveSede(string $tenantId): bool
@@ -92,6 +116,7 @@ class ClinicOnboardingService
      *     total_steps: int,
      *     completed_steps: int,
      *     requires_sede: bool,
+     *     preview: bool,
      *     steps: list<array{
      *         id: string,
      *         title: string,
@@ -104,9 +129,14 @@ class ClinicOnboardingService
      *     }>
      * }
      */
-    public function snapshot(Tenant $tenant, User $user): array
+    public function snapshot(Tenant $tenant, User $user, ?Request $request = null): array
     {
-        $tenant = $this->sync($tenant);
+        $preview = $this->isPreviewMode($request);
+
+        if (! $preview) {
+            $tenant = $this->sync($tenant);
+        }
+
         $flags = $this->detectStepCompletion($tenant);
         $definitions = $this->stepDefinitions($user);
         $firstIncomplete = self::STEP_PACIENTE;
@@ -137,7 +167,8 @@ class ClinicOnboardingService
         $completedSteps = count(array_filter($flags));
 
         return [
-            'show' => $this->shouldShow($tenant),
+            'show' => $this->shouldShowCard($tenant, $request),
+            'preview' => $preview,
             'completed' => (bool) $tenant->onboarding_completado,
             'paso' => (int) $tenant->onboarding_paso,
             'total_steps' => self::TOTAL_STEPS,

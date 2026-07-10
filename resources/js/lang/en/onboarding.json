@@ -8,6 +8,7 @@
         "locked_hint": "Complete the branch step first",
         "cta": "Go to setup",
         "completed": "Done",
+        "preview": "Preview",
         "no_permission": "Ask an administrator to complete this step"
     },
     "steps": {

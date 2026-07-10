@@ -32,6 +32,11 @@ export function DashboardOnboardingCard({ data }: Props) {
                     </div>
                 </div>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    {data.preview && (
+                        <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-violet-700 dark:bg-violet-950/50 dark:text-violet-300">
+                            {t('banner.preview')}
+                        </span>
+                    )}
                     <span className="font-medium tabular-nums">
                         {t('banner.progress', {
                             completed: data.completed_steps,

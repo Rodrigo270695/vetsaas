@@ -8,6 +8,7 @@
         "locked_hint": "Completa la sede primero",
         "cta": "Ir a configurar",
         "completed": "Completado",
+        "preview": "Vista previa",
         "no_permission": "Pide a un administrador que complete este paso"
     },
     "steps": {

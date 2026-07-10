@@ -60,7 +60,7 @@ class DashboardController extends Controller
             'clinic_label' => $clinicLabel,
             'capabilities' => $capabilities,
             'onboarding' => $tenantModel !== null
-                ? $this->onboarding->snapshot($tenantModel, $user)
+                ? $this->onboarding->snapshot($tenantModel, $user, $request)
                 : null,
             ...$this->stats->build($user, $capabilities),
         ]);
