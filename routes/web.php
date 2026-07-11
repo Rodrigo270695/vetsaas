@@ -245,6 +245,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
                 ->post('historias-clinicas/consultas', [ConsultaHistoriaController::class, 'store'])
                 ->name('historias-clinicas.consultas.store');
             Route::middleware('permission:historias-clinicas.update')
+                ->post('historias-clinicas/consultas/cerrar-abiertas', [ConsultaHistoriaController::class, 'cerrarAbiertas'])
+                ->name('historias-clinicas.consultas.cerrar-abiertas');
+            Route::middleware('permission:historias-clinicas.update')
                 ->match(['put', 'patch'], 'historias-clinicas/consultas/{consulta}', [ConsultaHistoriaController::class, 'update'])
                 ->name('historias-clinicas.consultas.update');
             Route::middleware('permission:historias-clinicas.update')

@@ -417,6 +417,33 @@ class ConsultaHistoriaController extends Controller
             ->with('success', __('historias-clinicas.flash.cerrada'));
     }
 
+    public function cerrarAbiertas(): RedirectResponse
+    {
+        abort_unless(auth()->user()?->can('historias-clinicas.update') ?? false, 403);
+
+        $uid = Auth::id();
+        $now = now();
+
+        $count = Consulta::query()
+            ->whereNull('cerrada_at')
+            ->update([
+                'cerrada_at' => $now,
+                'cerrada_por_id' => $uid,
+                'updated_by_id' => $uid,
+                'updated_at' => $now,
+            ]);
+
+        if ($count === 0) {
+            return redirect()
+                ->route('clinica.historias-clinicas')
+                ->with('info', __('historias-clinicas.flash.cerrar_abiertas_ninguna'));
+        }
+
+        return redirect()
+            ->route('clinica.historias-clinicas')
+            ->with('success', __('historias-clinicas.flash.cerrar_abiertas', ['count' => $count]));
+    }
+
     public function reabrir(Consulta $consulta): RedirectResponse
     {
         abort_unless(auth()->user()?->can('historias-clinicas.update') ?? false, 403);

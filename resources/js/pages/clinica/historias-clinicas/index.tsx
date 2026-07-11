@@ -1,5 +1,5 @@
 import { Head, usePage } from '@inertiajs/react';
-import { AlertTriangle, FileText, Filter, Plus, Stethoscope } from 'lucide-react';
+import { AlertTriangle, FileText, Filter, Lock, Plus, Stethoscope } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Can } from '@/components/can';
@@ -19,6 +19,7 @@ import { dashboard } from '@/routes';
 import clinica from '@/routes/clinica';
 import type { Paginated } from '@/types';
 import { AtencionDateRangeFilter } from './components/atencion-date-range-filter';
+import { ConsultaCerrarTodasDialog } from './components/consulta-cerrar-todas-dialog';
 import { ConsultaDeleteDialog } from './components/consulta-delete-dialog';
 import { ConsultaEstadoBadge } from './components/consulta-estado-badge';
 import { ConsultaFormModal } from './components/consulta-form-modal';
@@ -167,6 +168,7 @@ export default function Index({
     });
 
     const [modal, setModal] = useState<ModalState>({ type: 'idle' });
+    const [cerrarTodasOpen, setCerrarTodasOpen] = useState(false);
     const openedEditorFromQuery = useRef<string | null>(null);
     const openedPrefillPaciente = useRef<string | null>(null);
 
@@ -475,13 +477,27 @@ export default function Index({
                         },
                     ]}
                     action={
-                        <Can permission="historias-clinicas.create">
-                            <Button type="button" onClick={openCreate} className="cursor-pointer gap-2">
-                                <Plus className="size-4" strokeWidth={2.5} />
-                                <span className="hidden sm:inline">{t('actions.new')}</span>
-                                <span className="sm:hidden">{t('actions.new_short')}</span>
-                            </Button>
-                        </Can>
+                        <div className="flex flex-wrap items-center justify-end gap-2">
+                            {canUpdate && stats.abiertas_total > 0 ? (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setCerrarTodasOpen(true)}
+                                    className="cursor-pointer gap-2"
+                                >
+                                    <Lock className="size-4" strokeWidth={2.25} aria-hidden />
+                                    <span className="hidden sm:inline">{t('actions.cerrar_abiertas')}</span>
+                                    <span className="sm:hidden">{t('actions.cerrar_abiertas_short')}</span>
+                                </Button>
+                            ) : null}
+                            <Can permission="historias-clinicas.create">
+                                <Button type="button" onClick={openCreate} className="cursor-pointer gap-2">
+                                    <Plus className="size-4" strokeWidth={2.5} />
+                                    <span className="hidden sm:inline">{t('actions.new')}</span>
+                                    <span className="sm:hidden">{t('actions.new_short')}</span>
+                                </Button>
+                            </Can>
+                        </div>
                     }
                 />
 
@@ -607,6 +623,12 @@ export default function Index({
                     }
                 }}
                 consulta={modal.type === 'delete' ? modal.consulta : null}
+            />
+
+            <ConsultaCerrarTodasDialog
+                open={cerrarTodasOpen}
+                onOpenChange={setCerrarTodasOpen}
+                abiertasTotal={stats.abiertas_total}
             />
         </>
     );

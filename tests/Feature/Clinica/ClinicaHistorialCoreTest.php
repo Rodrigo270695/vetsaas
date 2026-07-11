@@ -167,6 +167,34 @@ it('cierra y reabre una consulta vía POST', function (): void {
     });
 });
 
+it('cierra todas las consultas abiertas de una vez', function (): void {
+    $adminId = (string) $this->admin->id;
+    ['consulta' => $consulta1] = clinicaHist_seedPacienteConsultaAbierta($this->slug, $adminId);
+
+    TenantContext::runForSlug($this->slug, function () use ($adminId, $consulta1): void {
+        $historia = HistoriaClinica::query()->findOrFail($consulta1->historia_clinica_id);
+        $historia->consultas()->create([
+            'atendido_at' => now()->subHour(),
+            'motivo' => 'Segunda abierta',
+            'cerrada_at' => null,
+            'cerrada_por_id' => null,
+            'veterinario_id' => $adminId,
+            'created_by_id' => $adminId,
+            'updated_by_id' => $adminId,
+        ]);
+    });
+
+    $this->actingAs($this->admin)
+        ->post('http://'.$this->host.'/clinica/historias-clinicas/consultas/cerrar-abiertas')
+        ->assertRedirect()
+        ->assertSessionHas('success');
+
+    TenantContext::runForSlug($this->slug, function (): void {
+        expect(Consulta::query()->whereNull('cerrada_at')->count())->toBe(0);
+        expect(Consulta::query()->whereNotNull('cerrada_at')->count())->toBe(2);
+    });
+});
+
 it('rechaza crear vacuna vinculada a una consulta cerrada', function (): void {
     $adminId = (string) $this->admin->id;
     ['paciente' => $paciente, 'consulta' => $consulta] = clinicaHist_seedPacienteConsultaAbierta($this->slug, $adminId);

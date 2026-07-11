@@ -24,7 +24,9 @@
         "create_first": "Registrar primera consulta",
         "plan_tratamiento": "Plan y seguimiento",
         "cargos_consulta": "Cargos / pre-cuenta",
-        "registrar_aplicacion": "Registrar aplicación"
+        "registrar_aplicacion": "Registrar aplicación",
+        "cerrar_abiertas": "Cerrar abiertas",
+        "cerrar_abiertas_short": "Cerrar"
     },
     "columns": {
         "atendido_at": "Fecha y hora",
@@ -187,5 +189,10 @@
         "title": "¿Cerrar consulta?",
         "description": "La consulta quedó guardada. ¿Deseas marcarla como cerrada para que no quede pendiente en el listado?",
         "keep_open": "Dejar abierta"
+    },
+    "cerrar_abiertas": {
+        "title": "¿Cerrar todas las consultas abiertas?",
+        "description": "Se cerrarán {{count}} consulta(s) abierta(s) de la clínica. Esta acción no se puede deshacer de forma masiva (tendrás que reabrir cada una si hace falta).",
+        "confirm": "Cerrar todas"
     }
 }

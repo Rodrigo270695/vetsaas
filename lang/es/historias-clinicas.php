@@ -10,6 +10,8 @@ return [
         'updated' => 'Consulta actualizada correctamente.',
         'deleted' => 'Consulta eliminada correctamente.',
         'cerrada' => 'Consulta cerrada correctamente.',
+        'cerrar_abiertas' => ':count consulta(s) abierta(s) cerrada(s) correctamente.',
+        'cerrar_abiertas_ninguna' => 'No hay consultas abiertas para cerrar.',
         'reabierta' => 'Consulta reabierta; ya puedes editarla de nuevo.',
         'ya_cerrada' => 'La consulta ya estaba cerrada.',
         'ya_abierta' => 'La consulta ya estaba abierta.',

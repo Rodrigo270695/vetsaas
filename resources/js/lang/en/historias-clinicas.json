@@ -24,7 +24,9 @@
         "create_first": "Log the first visit",
         "plan_tratamiento": "Treatment plan & follow-up",
         "cargos_consulta": "Charges / pre-invoice",
-        "registrar_aplicacion": "Log application"
+        "registrar_aplicacion": "Log application",
+        "cerrar_abiertas": "Close open visits",
+        "cerrar_abiertas_short": "Close"
     },
     "columns": {
         "atendido_at": "Date & time",
@@ -187,5 +189,10 @@
         "title": "Close this visit?",
         "description": "The visit was saved. Mark it as closed so it no longer appears as pending in the list?",
         "keep_open": "Keep open"
+    },
+    "cerrar_abiertas": {
+        "title": "Close all open visits?",
+        "description": "This will close {{count}} open visit(s) across the clinic. You will need to reopen each one individually if required.",
+        "confirm": "Close all"
     }
 }
