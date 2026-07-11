@@ -8,6 +8,7 @@ use App\Http\Requests\MovimientoInventarioStoreRequest;
 use App\Models\MovimientoInventario;
 use App\Models\Producto;
 use App\Models\Sede;
+use App\Services\Inventario\InventarioLoteService;
 use App\Support\Inventario\MovimientoNotasVista;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
@@ -21,6 +22,10 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class MovimientoInventarioController extends Controller
 {
     use LogsAuditExports;
+
+    public function __construct(
+        private readonly InventarioLoteService $lotes,
+    ) {}
 
     private const PER_PAGE_OPTIONS = [10, 15, 20, 25, 50, 100];
 
@@ -152,21 +157,17 @@ class MovimientoInventarioController extends Controller
     public function store(MovimientoInventarioStoreRequest $request): RedirectResponse
     {
         $data = $request->validated();
-        $cantidad = (float) (string) $data['cantidad'];
-        $delta = match ($data['tipo']) {
-            MovimientoInventario::TIPO_ENTRADA => $cantidad,
-            MovimientoInventario::TIPO_SALIDA, MovimientoInventario::TIPO_MERMA => -$cantidad,
-        };
-
         $userId = $request->user()?->id;
 
-        MovimientoInventario::aplicar(
+        $this->lotes->registrarMovimientoManual(
+            $data['tipo'],
             $data['producto_id'],
             $data['sede_id'],
-            $data['tipo'],
-            (string) $delta,
+            (string) ((float) (string) $data['cantidad']),
             $data['notas'] ?? null,
             $userId !== null ? (string) $userId : null,
+            isset($data['numero_lote']) ? (string) $data['numero_lote'] : null,
+            isset($data['fecha_vencimiento']) ? (string) $data['fecha_vencimiento'] : null,
         );
 
         return back()->with('success', 'Movimiento registrado correctamente.');

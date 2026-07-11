@@ -53,6 +53,7 @@ use App\Models\User;
 use App\Models\VacunaAplicada;
 use App\Models\Venta;
 use App\Services\Venta\VentaCheckoutService;
+use App\Services\Inventario\InventarioLoteService;
 use App\Support\Grooming\GroomingTurnoServicioRules;
 use App\Support\Hotel\HotelEstanciaTipoRules;
 use App\Support\Vacunas\VacunaAplicadaStockSync;
@@ -503,19 +504,16 @@ final class OfflineSyncPushService
     {
         try {
             $validated = $this->validateMovimientoPayload($payload, $user);
-            $cantidad = (float) (string) $validated['cantidad'];
-            $delta = match ($validated['tipo']) {
-                MovimientoInventario::TIPO_ENTRADA => $cantidad,
-                MovimientoInventario::TIPO_SALIDA, MovimientoInventario::TIPO_MERMA => -$cantidad,
-            };
 
-            $mov = MovimientoInventario::aplicar(
+            $mov = app(InventarioLoteService::class)->registrarMovimientoManual(
+                $validated['tipo'],
                 $validated['producto_id'],
                 $validated['sede_id'],
-                $validated['tipo'],
-                (string) $delta,
+                (string) ((float) (string) $validated['cantidad']),
                 $validated['notas'] ?? null,
                 (string) $user->id,
+                isset($validated['numero_lote']) ? (string) $validated['numero_lote'] : null,
+                isset($validated['fecha_vencimiento']) ? (string) $validated['fecha_vencimiento'] : null,
             );
 
             $event->update([

@@ -485,6 +485,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:productos.create')
             ->post('productos', [ProductoInventarioController::class, 'store'])
             ->name('productos.store');
+        Route::middleware('permission:productos.create')
+            ->post('productos/quick', [ProductoInventarioController::class, 'storeQuick'])
+            ->name('productos.quick');
         Route::middleware('permission:productos.update')
             ->match(['put', 'patch'], 'productos/{producto}', [ProductoInventarioController::class, 'update'])
             ->name('productos.update');

@@ -160,6 +160,50 @@ final class InventarioLoteService
     }
 
     /**
+     * Movimiento manual desde kardex (entrada con lote opcional; salida/merma con FEFO).
+     */
+    public function registrarMovimientoManual(
+        string $tipo,
+        string $productoId,
+        string $sedeId,
+        string $cantidad,
+        ?string $notas,
+        ?string $userId,
+        ?string $numeroLote = null,
+        ?string $fechaVencimiento = null,
+    ): MovimientoInventario {
+        if ($tipo === MovimientoInventario::TIPO_ENTRADA) {
+            return $this->registrarEntrada(
+                $productoId,
+                $sedeId,
+                $cantidad,
+                $numeroLote,
+                $fechaVencimiento,
+                $notas,
+                $userId,
+            );
+        }
+
+        if (! in_array($tipo, [MovimientoInventario::TIPO_SALIDA, MovimientoInventario::TIPO_MERMA], true)) {
+            throw ValidationException::withMessages([
+                'tipo' => 'Tipo de movimiento inválido.',
+            ]);
+        }
+
+        $notasTipo = trim(($notas ?? '').($tipo === MovimientoInventario::TIPO_MERMA ? ' · Merma' : ''));
+
+        $movimientos = $this->descontarFefo(
+            $productoId,
+            $sedeId,
+            $cantidad,
+            $notasTipo !== '' ? $notasTipo : null,
+            $userId,
+        );
+
+        return $movimientos[0];
+    }
+
+    /**
      * Revierte un movimiento (entrada ↔ salida) ajustando el lote vinculado.
      */
     public function revertirMovimiento(MovimientoInventario $movimiento, ?string $userId, ?string $notasExtra = null): MovimientoInventario

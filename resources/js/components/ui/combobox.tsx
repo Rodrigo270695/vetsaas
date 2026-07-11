@@ -35,6 +35,8 @@ export type ComboboxProps = {
     createOptionLabel?: (query: string) => string;
     /** Permite confirmar un valor que no está en la lista (se guardará en la clínica). */
     creatable?: boolean;
+    /** Si se define, muestra «crear» en búsqueda sin resultados y delega al padre (p. ej. alta de producto). */
+    onCreateOption?: (query: string) => void;
     id?: string;
     name?: string;
     className?: string;
@@ -67,6 +69,7 @@ export function Combobox({
     clearable = true,
     creatable = false,
     createOptionLabel,
+    onCreateOption,
     id,
     name,
     className,
@@ -83,7 +86,6 @@ export function Combobox({
 
     const trimmedSearch = search.trim();
     const canCreate =
-        creatable &&
         trimmedSearch.length > 0 &&
         !options.some(
             (opt) =>
@@ -93,7 +95,8 @@ export function Combobox({
                 opt.value.localeCompare(trimmedSearch, undefined, {
                     sensitivity: 'accent',
                 }) === 0,
-        );
+        ) &&
+        (creatable || onCreateOption != null);
 
     React.useEffect(() => {
         if (!open) {
@@ -181,7 +184,7 @@ export function Combobox({
                 <Command>
                     <CommandInput
                         placeholder={searchPlaceholder}
-                        onValueChange={creatable ? setSearch : undefined}
+                        onValueChange={creatable || onCreateOption != null ? setSearch : undefined}
                     />
                     <CommandList>
                         <CommandEmpty>{emptyMessage}</CommandEmpty>
@@ -191,7 +194,11 @@ export function Combobox({
                                     key={`__create__:${trimmedSearch}`}
                                     value={trimmedSearch}
                                     onSelect={() => {
-                                        onChange(trimmedSearch);
+                                        if (onCreateOption) {
+                                            onCreateOption(trimmedSearch);
+                                        } else {
+                                            onChange(trimmedSearch);
+                                        }
                                         setOpen(false);
                                         setSearch('');
                                     }}

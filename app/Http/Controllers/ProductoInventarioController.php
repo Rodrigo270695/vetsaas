@@ -2,14 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ProductoInventarioQuickStoreRequest;
 use App\Http\Requests\ProductoInventarioRequest;
 use App\Models\CategoriaProducto;
 use App\Models\Producto;
 use App\Support\Inventario\UnidadMedidaOpciones;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -129,6 +132,56 @@ class ProductoInventarioController extends Controller
         ]);
 
         return back()->with('success', 'Producto creado correctamente.');
+    }
+
+    public function storeQuick(ProductoInventarioQuickStoreRequest $request): JsonResponse
+    {
+        $userId = Auth::id();
+        $validated = $request->validated();
+
+        $producto = Producto::query()->create([
+            'categoria_id' => null,
+            'nombre' => $validated['nombre'],
+            'slug' => $this->generarSlugUnico((string) $validated['nombre']),
+            'descripcion' => null,
+            'sku' => $validated['sku'] ?? null,
+            'codigo_barras' => null,
+            'unidad' => $validated['unidad'] ?? 'UN',
+            'precio_venta' => $validated['precio_venta'] ?? null,
+            'precio_compra' => $validated['precio_compra'] ?? null,
+            'stock_minimo' => null,
+            'medicamento' => (bool) ($validated['medicamento'] ?? false),
+            'activo' => true,
+            'created_by_id' => $userId,
+            'updated_by_id' => $userId,
+        ]);
+
+        return response()->json([
+            'data' => [
+                'id' => (string) $producto->id,
+                'nombre' => (string) $producto->nombre,
+                'sku' => $producto->sku,
+            ],
+        ], 201);
+    }
+
+    private function generarSlugUnico(string $nombre): ?string
+    {
+        $base = Str::slug($nombre);
+        if ($base === '') {
+            return null;
+        }
+
+        $base = mb_substr($base, 0, 150);
+        $slug = $base;
+        $i = 0;
+
+        while (Producto::query()->where('slug', $slug)->exists()) {
+            $i++;
+            $slug = mb_substr($base.'-'.$i, 0, 160);
+        }
+
+        return $slug;
     }
 
     public function update(ProductoInventarioRequest $request, Producto $producto): RedirectResponse

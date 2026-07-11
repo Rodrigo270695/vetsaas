@@ -32,6 +32,7 @@ import type {
     CompraFiltroUi,
     CompraStats,
     ProductoOptionCompra,
+    ProductoUnidadOptionCompra,
     ProveedorOptionCompra,
     SedeOptionCompra,
 } from './types';
@@ -43,6 +44,8 @@ type Props = {
     sedeOptions: SedeOptionCompra[];
     proveedorOptions: ProveedorOptionCompra[];
     productoOptions: ProductoOptionCompra[];
+    unidadOptions: ProductoUnidadOptionCompra[];
+    canCreateProducto: boolean;
     sinSedes: boolean;
     compra_filtro_ui: CompraFiltroUi;
 };
@@ -65,6 +68,8 @@ export default function Index({
     sedeOptions,
     proveedorOptions,
     productoOptions,
+    unidadOptions,
+    canCreateProducto,
     sinSedes,
     compra_filtro_ui,
 }: Props) {
@@ -77,7 +82,7 @@ export default function Index({
     const { search, setSearch, isLoading, sort, setSort, setPerPage, applyFilter } = useDataTablePage<TableExtraFilters>({
         routeUrl: inventario.compras.index.url(),
         initialFilters: filters,
-        only: ['compras', 'filters', 'stats', 'sedeOptions', 'proveedorOptions', 'productoOptions', 'sinSedes', 'compra_filtro_ui'],
+        only: ['compras', 'filters', 'stats', 'sedeOptions', 'proveedorOptions', 'productoOptions', 'unidadOptions', 'canCreateProducto', 'sinSedes', 'compra_filtro_ui'],
         errorMessage: t('toast.load_error'),
         storageKey: 'vetsaas.inventario.compras.prefs',
         defaults: {
@@ -341,7 +346,7 @@ export default function Index({
                                     type="button"
                                     onClick={() => setModalOpen(true)}
                                     className="cursor-pointer gap-2"
-                                    disabled={sinSedes || productoOptions.length === 0}
+                                    disabled={sinSedes}
                                 >
                                     <Plus className="size-4" strokeWidth={2.5} />
                                     <span className="hidden sm:inline">{t('actions.new')}</span>
@@ -461,7 +466,7 @@ export default function Index({
                                     activeFiltersCount > 0 ? t('empty.no_results_description') : t('empty.no_records_description')
                                 }
                                 action={
-                                    activeFiltersCount === 0 && canCreate && productoOptions.length > 0 ? (
+                                    activeFiltersCount === 0 && canCreate && (productoOptions.length > 0 || canCreateProducto) ? (
                                         <Button type="button" onClick={() => setModalOpen(true)} className="cursor-pointer gap-2">
                                             <Plus className="size-4" strokeWidth={2.5} />
                                             {t('actions.create_first')}
@@ -480,6 +485,8 @@ export default function Index({
                 sedeOptions={sedeOptions}
                 proveedorOptions={proveedorOptions}
                 productoOptions={productoOptions}
+                unidadOptions={unidadOptions}
+                canCreateProducto={canCreateProducto}
                 defaultSedeId={filters.sede_id || defaultSedeId}
             />
 

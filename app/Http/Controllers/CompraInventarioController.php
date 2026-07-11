@@ -12,6 +12,7 @@ use App\Models\Producto;
 use App\Models\Proveedor;
 use App\Models\Sede;
 use App\Services\Inventario\InventarioLoteService;
+use App\Support\Inventario\UnidadMedidaOpciones;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -53,6 +54,9 @@ class CompraInventarioController extends Controller
             ->limit(400)
             ->get(['id', 'nombre', 'sku']);
 
+        $unidadOptions = UnidadMedidaOpciones::forProductoForm();
+        $canCreateProducto = $request->user()?->can('productos.create') ?? false;
+
         $filtersPayload = [
             'search' => $ctx['search'],
             'per_page' => $ctx['per_page'],
@@ -78,6 +82,8 @@ class CompraInventarioController extends Controller
                 'sedeOptions' => $ctx['sedes_activas'],
                 'proveedorOptions' => $proveedorOptions,
                 'productoOptions' => $productoOptions,
+                'unidadOptions' => $unidadOptions,
+                'canCreateProducto' => $canCreateProducto,
                 'sinSedes' => $ctx['sedes_activas']->isEmpty(),
             ]);
         }
@@ -114,6 +120,8 @@ class CompraInventarioController extends Controller
             'sedeOptions' => $ctx['sedes_activas'],
             'proveedorOptions' => $proveedorOptions,
             'productoOptions' => $productoOptions,
+            'unidadOptions' => $unidadOptions,
+            'canCreateProducto' => $canCreateProducto,
             'sinSedes' => false,
         ]);
     }

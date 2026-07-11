@@ -16,6 +16,13 @@ export type ProductoOptionCompra = {
     sku: string | null;
 };
 
+export type ProductoUnidadOptionCompra = {
+    id: string;
+    codigo: string;
+    nombre: string;
+    es_sistema: boolean;
+};
+
 export type CompraProveedorFila = {
     id: string;
     ruc: string;

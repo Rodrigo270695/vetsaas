@@ -1,5 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
-import { AlertTriangle, Bell, Filter, Package, ScreenShare, SlidersHorizontal } from 'lucide-react';
+import { AlertTriangle, Bell, CalendarClock, Filter, Package, ScreenShare, SlidersHorizontal } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -30,6 +30,8 @@ import type { Paginated } from '@/types';
 import { StockAdjustDialog } from '../stock/components/stock-adjust-dialog';
 import type { StockProductoFila } from '../stock/types';
 import type {
+    AlertaLoteFila,
+    AlertaModoListado,
     AlertaProductoFila,
     AlertaStockFilters,
     AlertaStockStats,
@@ -38,11 +40,14 @@ import type {
 } from './types';
 
 type Props = {
+    modo: AlertaModoListado;
     productos: Paginated<AlertaProductoFila>;
+    lotes: Paginated<AlertaLoteFila>;
     filters: AlertaStockFilters;
     stats: AlertaStockStats;
     sedeOptions: SedeOptionAlerta[];
     sinSedes: boolean;
+    dias_alerta_vencimiento: number;
 };
 
 type TableExtraFilters = Pick<AlertaStockFilters, 'sede_id' | 'tipo_alerta'>;
@@ -51,11 +56,11 @@ const DEFAULT_PER_PAGE = 10;
 const DEFAULT_TIPO_ALERTA: AlertaTipoFiltro = 'todos';
 
 function tipoAlertaVariant(tipo: string): StatBadgeVariant {
-    if (tipo === 'agotado') {
+    if (tipo === 'agotado' || tipo === 'vencido') {
         return 'danger';
     }
 
-    if (tipo === 'bajo_minimo') {
+    if (tipo === 'bajo_minimo' || tipo === 'por_vencer') {
         return 'warning';
     }
 
@@ -72,7 +77,26 @@ function formatCantidad(value: string | number, locale: string): string {
     return n.toLocaleString(locale, { minimumFractionDigits: 0, maximumFractionDigits: 3 });
 }
 
-export default function Index({ productos: paginated, filters, stats, sedeOptions, sinSedes }: Props) {
+function formatFecha(value: string, locale: string): string {
+    const d = new Date(`${value}T12:00:00`);
+
+    if (Number.isNaN(d.getTime())) {
+        return value;
+    }
+
+    return d.toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+export default function Index({
+    modo,
+    productos: paginatedProductos,
+    lotes: paginatedLotes,
+    filters,
+    stats,
+    sedeOptions,
+    sinSedes,
+    dias_alerta_vencimiento,
+}: Props) {
     const { t, i18n } = useTranslation(['alertas-stock', 'common']);
     const { can } = usePermission();
     const canAdjust = can('stock.adjust');
@@ -80,7 +104,7 @@ export default function Index({ productos: paginated, filters, stats, sedeOption
     const { search, setSearch, isLoading, sort, setSort, setPerPage, applyFilter } = useDataTablePage<TableExtraFilters>({
         routeUrl: inventarioAlertas.url(),
         initialFilters: filters,
-        only: ['productos', 'filters', 'stats', 'sedeOptions', 'sinSedes'],
+        only: ['modo', 'productos', 'lotes', 'filters', 'stats', 'sedeOptions', 'sinSedes', 'dias_alerta_vencimiento'],
         errorMessage: t('toast.load_error'),
         storageKey: 'vetsaas.inventario.alertas.prefs',
         defaults: {
@@ -127,19 +151,36 @@ export default function Index({ productos: paginated, filters, stats, sedeOption
     const sedeIdParaAjuste =
         filters.sede_id && filters.sede_id !== '' ? filters.sede_id : defaultSedeId !== '' ? defaultSedeId : '';
 
-    const columns = useMemo<DataTableColumn<AlertaProductoFila>[]>(() => {
+    const tipoLabel = useCallback(
+        (tipo: string) => {
+            if (tipo === 'agotado') {
+                return t('tipos.agotado');
+            }
+            if (tipo === 'bajo_minimo') {
+                return t('tipos.bajo_minimo');
+            }
+            if (tipo === 'por_vencer') {
+                return t('tipos.por_vencer', { dias: dias_alerta_vencimiento });
+            }
+            if (tipo === 'vencido') {
+                return t('tipos.vencido');
+            }
+
+            return tipo;
+        },
+        [t, dias_alerta_vencimiento],
+    );
+
+    const columnsStock = useMemo<DataTableColumn<AlertaProductoFila>[]>(() => {
         const base: DataTableColumn<AlertaProductoFila>[] = [
             {
                 key: 'tipo_alerta',
                 header: t('columns.tipo'),
                 sortable: !sinSedes,
-                cell: (p) => {
-                    const label =
-                        p.tipo_alerta === 'agotado' ? t('tipos.agotado') : p.tipo_alerta === 'bajo_minimo' ? t('tipos.bajo_minimo') : p.tipo_alerta;
-
-                    return <StatBadge label={label} value="" variant={tipoAlertaVariant(p.tipo_alerta)} />;
-                },
-                className: 'w-36',
+                cell: (p) => (
+                    <StatBadge label={tipoLabel(p.tipo_alerta)} value="" variant={tipoAlertaVariant(p.tipo_alerta)} />
+                ),
+                className: 'w-40',
             },
             {
                 key: 'nombre',
@@ -191,7 +232,9 @@ export default function Index({ productos: paginated, filters, stats, sedeOption
                 sortable: true,
                 cell: (p) =>
                     p.stock_minimo != null && String(p.stock_minimo) !== '' ? (
-                        <span className="tabular-nums text-sm text-muted-foreground">{formatCantidad(p.stock_minimo, i18n.language)}</span>
+                        <span className="tabular-nums text-sm text-muted-foreground">
+                            {formatCantidad(p.stock_minimo, i18n.language)}
+                        </span>
                     ) : (
                         <span className="text-xs text-muted-foreground">—</span>
                     ),
@@ -223,7 +266,103 @@ export default function Index({ productos: paginated, filters, stats, sedeOption
         }
 
         return base;
-    }, [t, i18n.language, sinSedes, canAdjust]);
+    }, [t, i18n.language, sinSedes, canAdjust, tipoLabel]);
+
+    const columnsLotes = useMemo<DataTableColumn<AlertaLoteFila>[]>(
+        () => [
+            {
+                key: 'tipo_alerta',
+                header: t('columns.tipo'),
+                cell: (row) => (
+                    <StatBadge label={tipoLabel(row.tipo_alerta)} value="" variant={tipoAlertaVariant(row.tipo_alerta)} />
+                ),
+                className: 'w-44',
+            },
+            {
+                key: 'nombre',
+                header: t('columns.producto'),
+                sortable: true,
+                cell: (row) => (
+                    <div className="flex min-w-0 flex-col">
+                        <span className="truncate font-medium text-foreground">{row.producto_nombre}</span>
+                        {row.producto_slug ? (
+                            <span className="font-mono text-[0.7rem] text-muted-foreground">{row.producto_slug}</span>
+                        ) : null}
+                    </div>
+                ),
+            },
+            {
+                key: 'sku',
+                header: t('columns.sku'),
+                sortable: true,
+                cell: (row) =>
+                    row.producto_sku ? (
+                        <span className="font-mono text-xs">{row.producto_sku}</span>
+                    ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                    ),
+                className: 'w-28',
+            },
+            {
+                key: 'numero_lote',
+                header: t('columns.lote'),
+                sortable: true,
+                cell: (row) => <span className="font-mono text-xs">{row.numero_lote}</span>,
+                className: 'w-32',
+            },
+            {
+                key: 'fecha_vencimiento',
+                header: t('columns.vencimiento'),
+                sortable: true,
+                cell: (row) => (
+                    <span className="tabular-nums text-sm">{formatFecha(row.fecha_vencimiento, i18n.language)}</span>
+                ),
+                className: 'w-32',
+            },
+            {
+                key: 'dias_restantes',
+                header: t('columns.dias'),
+                sortable: true,
+                cell: (row) => {
+                    const dias = row.dias_restantes;
+
+                    if (dias < 0) {
+                        return (
+                            <span className="text-sm font-medium text-destructive">
+                                {t('lote.dias_vencido', { dias: Math.abs(dias) })}
+                            </span>
+                        );
+                    }
+
+                    if (dias === 0) {
+                        return <span className="text-sm font-medium text-destructive">{t('lote.vence_hoy')}</span>;
+                    }
+
+                    return (
+                        <span className="tabular-nums text-sm text-muted-foreground">
+                            {t('lote.dias_restantes', { dias })}
+                        </span>
+                    );
+                },
+                className: 'w-36',
+            },
+            {
+                key: 'cantidad_lote',
+                header: t('columns.cantidad_lote'),
+                sortable: true,
+                cell: (row) => (
+                    <span className="tabular-nums text-sm font-medium">{formatCantidad(row.cantidad_lote, i18n.language)}</span>
+                ),
+                className: 'w-28',
+            },
+        ],
+        [t, i18n.language, tipoLabel],
+    );
+
+    const pageDescription =
+        modo === 'lotes'
+            ? t('description_lotes', { dias: dias_alerta_vencimiento })
+            : t('description');
 
     return (
         <>
@@ -232,12 +371,19 @@ export default function Index({ productos: paginated, filters, stats, sedeOption
             <div className="flex flex-1 flex-col gap-5 p-4 sm:p-6">
                 <PageHeader
                     title={t('title')}
-                    description={t('description')}
+                    description={pageDescription}
                     stats={[
                         { label: t('stats.agotados'), value: stats.agotados, variant: 'danger', icon: Package },
                         { label: t('stats.bajo_minimo'), value: stats.bajo_minimo, variant: 'warning', icon: Bell },
+                        {
+                            label: t('stats.por_vencer', { dias: dias_alerta_vencimiento }),
+                            value: stats.por_vencer,
+                            variant: 'warning',
+                            icon: CalendarClock,
+                        },
+                        { label: t('stats.vencidos'), value: stats.vencidos, variant: 'danger', icon: AlertTriangle },
                         { label: t('stats.coincidencias'), value: stats.coincidencias, variant: 'primary', icon: ScreenShare },
-                        { label: t('stats.filtros'), value: activeFiltersCount, variant: 'warning', icon: Filter as LucideIcon },
+                        { label: t('stats.filtros'), value: activeFiltersCount, variant: 'muted', icon: Filter as LucideIcon },
                     ]}
                 />
 
@@ -257,9 +403,9 @@ export default function Index({ productos: paginated, filters, stats, sedeOption
                 ) : null}
 
                 <DataTable
-                    columns={columns}
-                    data={paginated.data}
-                    rowKey={(p) => p.id}
+                    columns={modo === 'lotes' ? columnsLotes : columnsStock}
+                    data={modo === 'lotes' ? paginatedLotes.data : paginatedProductos.data}
+                    rowKey={(row) => row.id}
                     sort={sort}
                     onSortChange={setSort}
                     isLoading={isLoading}
@@ -269,7 +415,7 @@ export default function Index({ productos: paginated, filters, stats, sedeOption
                             search={search}
                             onSearchChange={setSearch}
                             isSearching={isLoading}
-                            placeholder={t('search_placeholder')}
+                            placeholder={modo === 'lotes' ? t('search_placeholder_lotes') : t('search_placeholder')}
                             filtersClassName="sm:flex-1 sm:min-w-0"
                         >
                             <div className="flex w-full min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
@@ -299,7 +445,7 @@ export default function Index({ productos: paginated, filters, stats, sedeOption
                                                 </SelectContent>
                                             </Select>
                                         </div>
-                                        <div className="min-w-0 w-full sm:w-auto sm:max-w-48">
+                                        <div className="min-w-0 w-full sm:w-auto sm:max-w-52">
                                             <Select
                                                 value={filters.tipo_alerta}
                                                 onValueChange={(v) => applyFilter({ tipo_alerta: v as AlertaTipoFiltro })}
@@ -315,6 +461,10 @@ export default function Index({ productos: paginated, filters, stats, sedeOption
                                                     <SelectItem value="todos">{t('filter_tipo_all')}</SelectItem>
                                                     <SelectItem value="agotado">{t('filter_tipo_agotado')}</SelectItem>
                                                     <SelectItem value="bajo_minimo">{t('filter_tipo_bajo')}</SelectItem>
+                                                    <SelectItem value="por_vencer">
+                                                        {t('filter_tipo_por_vencer', { dias: dias_alerta_vencimiento })}
+                                                    </SelectItem>
+                                                    <SelectItem value="vencido">{t('filter_tipo_vencido')}</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                         </div>
@@ -325,7 +475,7 @@ export default function Index({ productos: paginated, filters, stats, sedeOption
                     }
                     footer={
                         <DataPagination
-                            meta={paginated}
+                            meta={modo === 'lotes' ? paginatedLotes : paginatedProductos}
                             onPerPageChange={setPerPage}
                             preservedQuery={{
                                 search: filters.search || undefined,
@@ -339,9 +489,15 @@ export default function Index({ productos: paginated, filters, stats, sedeOption
                     }
                     emptyState={
                         <EmptyState
-                            icon={Bell}
+                            icon={modo === 'lotes' ? CalendarClock : Bell}
                             title={activeFiltersCount > 0 ? t('empty.no_results_title') : t('empty.no_records_title')}
-                            description={activeFiltersCount > 0 ? t('empty.no_results_description') : t('empty.no_records_description')}
+                            description={
+                                activeFiltersCount > 0
+                                    ? t('empty.no_results_description')
+                                    : modo === 'lotes'
+                                      ? t('empty.no_records_lotes_description', { dias: dias_alerta_vencimiento })
+                                      : t('empty.no_records_description')
+                            }
                         />
                     }
                 />

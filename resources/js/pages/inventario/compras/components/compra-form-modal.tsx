@@ -1,10 +1,9 @@
 import { useForm } from '@inertiajs/react';
 import { Loader2, Plus, Trash2 } from 'lucide-react';
-import { useEffect, useMemo, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FormField, FormModal, SedeFormField } from '@/components/forms';
 import { Button } from '@/components/ui/button';
-import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
 import { Input } from '@/components/ui/input';
 import {
     Select,
@@ -19,7 +18,13 @@ import { enqueueIfOffline, isOfflineMode } from '@/lib/offline/enqueue-if-offlin
 import { useOfflineSync } from '@/hooks/use-offline-sync';
 import { toastManager } from '@/lib/toast';
 import inventario from '@/routes/inventario';
-import type { ProductoOptionCompra, ProveedorOptionCompra, SedeOptionCompra } from '../types';
+import type {
+    ProductoOptionCompra,
+    ProductoUnidadOptionCompra,
+    ProveedorOptionCompra,
+    SedeOptionCompra,
+} from '../types';
+import { ProductoCompraCombobox } from './producto-compra-combobox';
 
 type CompraFormModalProps = {
     open: boolean;
@@ -27,6 +32,8 @@ type CompraFormModalProps = {
     sedeOptions: SedeOptionCompra[];
     proveedorOptions: ProveedorOptionCompra[];
     productoOptions: ProductoOptionCompra[];
+    unidadOptions: ProductoUnidadOptionCompra[];
+    canCreateProducto: boolean;
     defaultSedeId: string;
 };
 
@@ -78,11 +85,14 @@ export function CompraFormModal({
     sedeOptions,
     proveedorOptions,
     productoOptions,
+    unidadOptions,
+    canCreateProducto,
     defaultSedeId,
 }: CompraFormModalProps) {
     const { t } = useTranslation(['compras-inventario', 'common', 'offline']);
     const { refreshPending } = useOfflineSync();
     const { data, setData, post, processing, errors, reset, clearErrors } = useForm<FormData>(emptyForm());
+    const [productosLocal, setProductosLocal] = useState<ProductoOptionCompra[]>([]);
 
     useEffect(() => {
         if (!open) {
@@ -90,6 +100,7 @@ export function CompraFormModal({
         }
         reset();
         clearErrors();
+        setProductosLocal(productoOptions);
         setData({
             ...emptyForm(),
             sede_id:
@@ -98,18 +109,19 @@ export function CompraFormModal({
                     : resolveDefaultSedeIdOrEmpty(sedeOptions),
         });
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [open, defaultSedeId, sedeOptions]);
+    }, [open, defaultSedeId, sedeOptions, productoOptions]);
 
-    const productoComboboxOptions = useMemo<readonly ComboboxOption[]>(
-        () =>
-            productoOptions.map((p) => ({
-                value: p.id,
-                label: p.sku ? `${p.nombre} (${p.sku})` : p.nombre,
-            })),
-        [productoOptions],
-    );
+    const sinSedes = sedeOptions.length === 0;
 
-    const sinOpciones = sedeOptions.length === 0 || productoOptions.length === 0;
+    const appendProducto = (producto: ProductoOptionCompra) => {
+        setProductosLocal((prev) => {
+            if (prev.some((p) => p.id === producto.id)) {
+                return prev;
+            }
+
+            return [...prev, producto].sort((a, b) => a.nombre.localeCompare(b.nombre));
+        });
+    };
 
     const updateLinea = (index: number, patch: Partial<LineaForm>) => {
         setData(
@@ -156,7 +168,7 @@ export function CompraFormModal({
 
     const onSubmit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        if (sinOpciones) {
+        if (sinSedes) {
             return;
         }
 
@@ -220,7 +232,7 @@ export function CompraFormModal({
                     <Button type="button" variant="outline" disabled={processing} onClick={() => onOpenChange(false)}>
                         {t('common:actions.cancel')}
                     </Button>
-                    <Button type="submit" disabled={processing || sinOpciones} className="gap-2">
+                    <Button type="submit" disabled={processing || sinSedes} className="gap-2">
                         {processing && <Loader2 className="size-4 animate-spin" />}
                         {t('modal.submit')}
                     </Button>
@@ -248,7 +260,7 @@ export function CompraFormModal({
                         onChange={(sedeId) => setData('sede_id', sedeId ?? '')}
                         error={errors.sede_id}
                         required
-                        disabled={processing || sinOpciones}
+                        disabled={processing || sinSedes}
                         allowNone={false}
                         noneLabel={t('modal.sede_placeholder')}
                         controlClassName="h-10 w-full min-w-0 cursor-pointer"
@@ -261,7 +273,7 @@ export function CompraFormModal({
                         <Select
                             value={data.proveedor_id === '' ? 'none' : data.proveedor_id}
                             onValueChange={(v) => setData('proveedor_id', v === 'none' ? '' : v)}
-                            disabled={processing || sinOpciones}
+                            disabled={processing || sinSedes}
                         >
                             <SelectTrigger id="compra-proveedor" className="h-10 w-full min-w-0 cursor-pointer">
                                 <SelectValue placeholder={t('modal.proveedor_placeholder')} />
@@ -382,14 +394,17 @@ export function CompraFormModal({
                                     required
                                     className="min-w-0"
                                 >
-                                    <Combobox
+                                    <ProductoCompraCombobox
                                         id={`compra-linea-p-${index}`}
-                                        options={productoComboboxOptions}
                                         value={linea.producto_id}
                                         onChange={(v) => updateLinea(index, { producto_id: v })}
-                                        placeholder={t('modal.linea_producto_placeholder')}
-                                        searchPlaceholder={t('modal.linea_producto_search')}
+                                        productoOptions={productosLocal}
+                                        onProductoCreated={appendProducto}
+                                        unidadOptions={unidadOptions}
+                                        canCreateProducto={canCreateProducto}
+                                        costoUnitarioHint={linea.costo_unitario}
                                         disabled={processing}
+                                        aria-invalid={Boolean(fieldErr(`lineas.${index}.producto_id`))}
                                     />
                                 </FormField>
                                 <FormField

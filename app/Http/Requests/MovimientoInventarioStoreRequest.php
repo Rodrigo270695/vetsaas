@@ -46,6 +46,8 @@ class MovimientoInventarioStoreRequest extends FormRequest
             'tipo' => ['required', 'string', Rule::in(MovimientoInventario::TIPOS_OPERATIVOS)],
             'cantidad' => ['required', 'numeric', 'min:0.001', 'max:99999999.999'],
             'notas' => ['nullable', 'string', 'max:2000'],
+            'numero_lote' => ['nullable', 'string', 'max:128'],
+            'fecha_vencimiento' => ['nullable', 'date'],
         ];
     }
 
@@ -53,6 +55,15 @@ class MovimientoInventarioStoreRequest extends FormRequest
     {
         if ($this->has('notas') && is_string($this->input('notas')) && trim($this->input('notas')) === '') {
             $this->merge(['notas' => null]);
+        }
+
+        if ($this->has('numero_lote') && is_string($this->input('numero_lote'))) {
+            $lote = trim($this->input('numero_lote'));
+            $this->merge(['numero_lote' => $lote === '' ? null : mb_substr($lote, 0, 128)]);
+        }
+
+        if ($this->has('fecha_vencimiento') && is_string($this->input('fecha_vencimiento')) && trim($this->input('fecha_vencimiento')) === '') {
+            $this->merge(['fecha_vencimiento' => null]);
         }
     }
 }

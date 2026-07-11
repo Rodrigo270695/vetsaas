@@ -92,6 +92,33 @@ afterEach(function (): void {
     }
 });
 
+it('registra movimiento manual de entrada con lote y vencimiento', function (): void {
+    $productoId = (string) $this->scenario['producto']->id;
+    $sedeId = (string) $this->scenario['sede']->id;
+
+    $this->actingAs($this->admin)
+        ->post('http://'.$this->host.'/inventario/movimientos', [
+            'producto_id' => $productoId,
+            'sede_id' => $sedeId,
+            'tipo' => MovimientoInventario::TIPO_ENTRADA,
+            'cantidad' => '5',
+            'numero_lote' => 'MANUAL-001',
+            'fecha_vencimiento' => now()->addMonths(6)->toDateString(),
+            'notas' => 'Entrada manual con lote',
+        ])
+        ->assertRedirect();
+
+    expect(InventarioScenario::stockEnSede($productoId, $sedeId))->toBe(15.0);
+
+    expect(
+        \App\Models\ProductoLote::query()
+            ->where('producto_id', $productoId)
+            ->where('sede_id', $sedeId)
+            ->where('numero_lote', 'MANUAL-001')
+            ->value('cantidad'),
+    )->toBe('5.000');
+});
+
 it('registra movimiento manual de entrada y actualiza existencia', function (): void {
     $productoId = (string) $this->scenario['producto']->id;
     $sedeId = (string) $this->scenario['sede']->id;

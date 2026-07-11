@@ -1,16 +1,20 @@
 {
     "title": "Stock alerts",
     "description": "Active products for the selected branch. Set “Minimum stock” under Inventory → Products: leave it empty for red alerts only at zero stock; set a value for amber alerts when stock is at or below that minimum (including zero).",
+    "description_lotes": "Batches expiring within the next {{dias}} days or already expired with remaining stock at the branch.",
     "toast": {
         "load_error": "Could not load alerts."
     },
     "search_placeholder": "Search by name, SKU, barcode…",
+    "search_placeholder_lotes": "Search by product, SKU, or batch number…",
     "filter_sede": "Branch",
     "filter_sede_placeholder": "Choose branch",
     "filter_tipo": "Alert type",
-    "filter_tipo_all": "All",
+    "filter_tipo_all": "Stock (all)",
     "filter_tipo_agotado": "Out of stock",
     "filter_tipo_bajo": "Below minimum",
+    "filter_tipo_por_vencer": "Expiring ({{dias}} days)",
+    "filter_tipo_vencido": "Expired with stock",
     "sin_sedes": {
         "title": "No active branches",
         "description": "Create an active branch to review stock and alerts.",
@@ -23,15 +27,28 @@
         "categoria": "Category",
         "cantidad": "Branch stock",
         "minimo": "Minimum",
+        "lote": "Batch",
+        "vencimiento": "Expiry",
+        "dias": "Time left",
+        "cantidad_lote": "Batch qty",
         "acciones": "Actions"
     },
     "tipos": {
         "agotado": "Out of stock",
-        "bajo_minimo": "Below minimum"
+        "bajo_minimo": "Below minimum",
+        "por_vencer": "Expiring ({{dias}} d)",
+        "vencido": "Expired"
+    },
+    "lote": {
+        "dias_restantes": "{{dias}} days",
+        "dias_vencido": "{{dias}} days ago",
+        "vence_hoy": "Expires today"
     },
     "stats": {
         "agotados": "Out of stock",
         "bajo_minimo": "Below minimum",
+        "por_vencer": "Expiring ({{dias}} d)",
+        "vencidos": "Expired",
         "coincidencias": "In this view",
         "filtros": "Filters"
     },
@@ -41,6 +58,7 @@
     "empty": {
         "no_records_title": "No alerts",
         "no_records_description": "No products are in alert for this branch. Set a minimum stock on the product or check again when quantity hits zero.",
+        "no_records_lotes_description": "No batches expiring within {{dias}} days or expired with stock at this branch.",
         "no_results_title": "No results",
         "no_results_description": "Try different filters or search terms."
     }

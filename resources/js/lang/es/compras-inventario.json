@@ -90,11 +90,28 @@
         "linea_producto": "Producto",
         "linea_producto_placeholder": "Buscar producto…",
         "linea_producto_search": "Escribir para filtrar…",
+        "linea_producto_empty": "Ningún producto coincide.",
+        "linea_producto_empty_create": "Ningún producto coincide. Escribe el nombre para crear uno nuevo.",
+        "linea_producto_create": "Crear producto «{{nombre}}»",
         "linea_cantidad": "Cantidad",
         "linea_costo": "Costo u.",
         "linea_lote": "Lote",
         "linea_lote_placeholder": "Opcional",
         "linea_vencimiento": "Vencimiento",
         "linea_remove": "Quitar línea"
+    },
+    "producto_quick": {
+        "title": "Nuevo producto",
+        "description": "Se creará en el catálogo y quedará seleccionado en esta línea de compra.",
+        "nombre": "Nombre",
+        "sku": "SKU (opcional)",
+        "unidad": "Unidad",
+        "unidad_sistema": "Unidades del sistema",
+        "unidad_personal": "Personalizadas",
+        "precio_compra": "Precio de compra (opcional)",
+        "medicamento": "Es medicamento veterinario",
+        "submit": "Crear y usar",
+        "success": "Producto creado y seleccionado.",
+        "error": "No se pudo crear el producto."
     }
 }

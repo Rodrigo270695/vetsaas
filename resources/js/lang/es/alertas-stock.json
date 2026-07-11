@@ -1,16 +1,20 @@
 {
     "title": "Alertas de stock",
     "description": "Productos activos en la sede elegida. Configura «Stock mínimo» en Inventario → Productos: si lo dejas vacío, solo verás alerta roja con stock en cero; si lo defines, verás alerta ámbar cuando el stock sea menor o igual a ese mínimo (incluye cero).",
+    "description_lotes": "Lotes con fecha de vencimiento en los próximos {{dias}} días o ya vencidos con stock disponible en la sede.",
     "toast": {
         "load_error": "No se pudieron cargar las alertas."
     },
     "search_placeholder": "Buscar por nombre, SKU, código de barras…",
+    "search_placeholder_lotes": "Buscar por producto, SKU o número de lote…",
     "filter_sede": "Sede",
     "filter_sede_placeholder": "Elegir sede",
     "filter_tipo": "Tipo de alerta",
-    "filter_tipo_all": "Todas",
+    "filter_tipo_all": "Stock (todas)",
     "filter_tipo_agotado": "Agotado",
     "filter_tipo_bajo": "Bajo mínimo",
+    "filter_tipo_por_vencer": "Por vencer ({{dias}} días)",
+    "filter_tipo_vencido": "Vencido con stock",
     "sin_sedes": {
         "title": "No hay sedes activas",
         "description": "Crea una sede activa para consultar existencias y alertas.",
@@ -23,15 +27,28 @@
         "categoria": "Categoría",
         "cantidad": "Stock sede",
         "minimo": "Mínimo",
+        "lote": "Lote",
+        "vencimiento": "Vencimiento",
+        "dias": "Plazo",
+        "cantidad_lote": "Cant. lote",
         "acciones": "Acciones"
     },
     "tipos": {
         "agotado": "Agotado",
-        "bajo_minimo": "Bajo mínimo"
+        "bajo_minimo": "Bajo mínimo",
+        "por_vencer": "Por vencer ({{dias}} d)",
+        "vencido": "Vencido"
+    },
+    "lote": {
+        "dias_restantes": "{{dias}} días",
+        "dias_vencido": "Hace {{dias}} días",
+        "vence_hoy": "Vence hoy"
     },
     "stats": {
         "agotados": "Agotados",
         "bajo_minimo": "Bajo mínimo",
+        "por_vencer": "Por vencer ({{dias}} d)",
+        "vencidos": "Vencidos",
         "coincidencias": "En esta vista",
         "filtros": "Filtros"
     },
@@ -41,6 +58,7 @@
     "empty": {
         "no_records_title": "Sin alertas",
         "no_records_description": "No hay productos en alerta para esta sede. Define «Stock mínimo» en el producto o revisa cuando el stock llegue a cero.",
+        "no_records_lotes_description": "No hay lotes por vencer en {{dias}} días ni vencidos con stock en esta sede.",
         "no_results_title": "Sin resultados",
         "no_results_description": "Prueba otros filtros o términos de búsqueda."
     }

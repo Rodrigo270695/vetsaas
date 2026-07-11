@@ -90,11 +90,28 @@
         "linea_producto": "Product",
         "linea_producto_placeholder": "Search product…",
         "linea_producto_search": "Type to filter…",
+        "linea_producto_empty": "No matching products.",
+        "linea_producto_empty_create": "No match. Type a name to create a new product.",
+        "linea_producto_create": "Create product «{{nombre}}»",
         "linea_cantidad": "Quantity",
         "linea_costo": "Unit cost",
         "linea_lote": "Batch",
         "linea_lote_placeholder": "Optional",
         "linea_vencimiento": "Expiry",
         "linea_remove": "Remove line"
+    },
+    "producto_quick": {
+        "title": "New product",
+        "description": "It will be added to the catalog and selected on this purchase line.",
+        "nombre": "Name",
+        "sku": "SKU (optional)",
+        "unidad": "Unit",
+        "unidad_sistema": "System units",
+        "unidad_personal": "Custom",
+        "precio_compra": "Purchase price (optional)",
+        "medicamento": "Veterinary medication",
+        "submit": "Create and use",
+        "success": "Product created and selected.",
+        "error": "Could not create the product."
     }
 }

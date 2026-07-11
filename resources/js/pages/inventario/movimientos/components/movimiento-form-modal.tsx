@@ -33,6 +33,8 @@ type FormData = {
     sede_id: string;
     tipo: string;
     cantidad: string;
+    numero_lote: string;
+    fecha_vencimiento: string;
     notas: string;
 };
 
@@ -41,6 +43,8 @@ const empty: FormData = {
     sede_id: '',
     tipo: 'entrada',
     cantidad: '',
+    numero_lote: '',
+    fecha_vencimiento: '',
     notas: '',
 };
 
@@ -101,6 +105,12 @@ export function MovimientoFormModal({
             sede_id: data.sede_id,
             tipo: data.tipo,
             cantidad: data.cantidad,
+            numero_lote:
+                data.tipo === 'entrada' && data.numero_lote.trim() !== '' ? data.numero_lote.trim() : null,
+            fecha_vencimiento:
+                data.tipo === 'entrada' && data.fecha_vencimiento.trim() !== ''
+                    ? data.fecha_vencimiento.trim()
+                    : null,
             notas: data.notas.trim() === '' ? null : data.notas.trim(),
         };
 
@@ -212,6 +222,45 @@ export function MovimientoFormModal({
                         />
                     </FormField>
                 </div>
+
+                {data.tipo === 'entrada' ? (
+                    <div className="grid gap-4 sm:grid-cols-2">
+                        <FormField
+                            id="mov-lote"
+                            label={t('modal.lote')}
+                            error={errors.numero_lote}
+                            hint={t('modal.lote_hint')}
+                            className="min-w-0"
+                        >
+                            <Input
+                                id="mov-lote"
+                                value={data.numero_lote}
+                                onChange={(e) => setData('numero_lote', e.target.value)}
+                                disabled={processing || sinOpciones}
+                                maxLength={128}
+                                className="h-10 w-full"
+                                placeholder={t('modal.lote_placeholder')}
+                            />
+                        </FormField>
+                        <FormField
+                            id="mov-venc"
+                            label={t('modal.vencimiento')}
+                            error={errors.fecha_vencimiento}
+                            className="min-w-0"
+                        >
+                            <Input
+                                id="mov-venc"
+                                type="date"
+                                value={data.fecha_vencimiento}
+                                onChange={(e) => setData('fecha_vencimiento', e.target.value)}
+                                disabled={processing || sinOpciones}
+                                className="h-10 w-full"
+                            />
+                        </FormField>
+                    </div>
+                ) : (
+                    <p className="text-xs leading-relaxed text-muted-foreground">{t('modal.salida_fefo_hint')}</p>
+                )}
 
                 <FormField id="mov-notas" label={t('modal.notas')} error={errors.notas} className="min-w-0">
                     <Textarea
