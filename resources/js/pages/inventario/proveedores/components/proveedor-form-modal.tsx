@@ -114,6 +114,7 @@ export function ProveedorFormModal({ open, onOpenChange, proveedor }: ProveedorF
             const body = (await res.json()) as {
                 success?: boolean;
                 message?: string;
+                code?: string;
                 data?: {
                     ruc: string;
                     razon_social: string;
@@ -125,7 +126,11 @@ export function ProveedorFormModal({ open, onOpenChange, proveedor }: ProveedorF
             };
 
             if (!res.ok || !body.success || !body.data) {
-                toastManager.error({ title: body.message ?? t('form.consultar_error') });
+                const title =
+                    res.status === 429 || body.code === 'rate_limit'
+                        ? t('form.consultar_rate_limit')
+                        : (body.message ?? t('form.consultar_error'));
+                toastManager.error({ title });
 
                 return;
             }

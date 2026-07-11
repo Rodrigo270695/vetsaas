@@ -43,6 +43,7 @@
         "notas": "Notas",
         "activo": "Activo en el sistema",
         "consultar_error": "No se pudo consultar el RUC.",
+        "consultar_rate_limit": "Límite de consultas alcanzado. Complete los datos manualmente o intente más tarde.",
         "consultar_invalid": "Ingrese un RUC de 11 dígitos."
     },
     "delete": {

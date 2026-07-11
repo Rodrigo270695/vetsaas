@@ -43,6 +43,7 @@
         "notas": "Notes",
         "activo": "Active in the system",
         "consultar_error": "Could not look up the RUC.",
+        "consultar_rate_limit": "Lookup rate limit reached. Enter the details manually or try again later.",
         "consultar_invalid": "Enter an 11-digit RUC."
     },
     "delete": {

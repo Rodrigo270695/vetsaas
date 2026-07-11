@@ -28,6 +28,9 @@
         "creado_por": "Created by",
         "acciones": "Actions"
     },
+    "row": {
+        "paciente_no_disponible": "Patient unavailable"
+    },
     "estado": {
         "programada": "Scheduled",
         "confirmada": "Confirmed",

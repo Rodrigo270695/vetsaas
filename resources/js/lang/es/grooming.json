@@ -28,6 +28,9 @@
         "creado_por": "Registrado por",
         "acciones": "Acciones"
     },
+    "row": {
+        "paciente_no_disponible": "Paciente no disponible"
+    },
     "estado": {
         "programada": "Programada",
         "confirmada": "Confirmada",

@@ -2,7 +2,7 @@
 
 namespace App\Services\Integrations;
 
-use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Cache;
 use RuntimeException;
 
 /**
@@ -25,21 +25,34 @@ final class ApiPeruRucService
      */
     public function consultar(string $ruc): array
     {
-        $token = trim((string) config('services.apiperu.token', ''));
-        $base = rtrim((string) config('services.apiperu.base_url', 'https://apiperu.dev/api'), '/');
+        $ruc = preg_replace('/\D+/', '', $ruc) ?? '';
 
-        if ($token === '') {
-            throw new RuntimeException('Consulta RUC no disponible: configure APIPERU_TOKEN en el servidor.');
+        if (strlen($ruc) !== 11) {
+            throw new RuntimeException('El RUC debe tener 11 dígitos.');
         }
 
-        $response = Http::timeout(25)
-            ->acceptJson()
-            ->withToken($token)
-            ->post($base.'/ruc', ['ruc' => $ruc]);
+        $cacheKey = "apiperu:ruc:{$ruc}";
 
-        if (! $response->successful()) {
-            throw new RuntimeException('La API de consulta RUC devolvió HTTP '.$response->status().'.');
-        }
+        return Cache::remember($cacheKey, now()->addDays(30), function () use ($ruc): array {
+            return $this->fetchFromApi($ruc);
+        });
+    }
+
+    /**
+     * @return array{
+     *     ruc: string,
+     *     razon_social: string,
+     *     direccion: string|null,
+     *     ubigeo_sunat: string|null,
+     *     estado_sunat: string|null,
+     *     condicion_sunat: string|null,
+     * }
+     */
+    private function fetchFromApi(string $ruc): array
+    {
+        $response = ApiPeruHttp::client()->post('/ruc', ['ruc' => $ruc]);
+
+        ApiPeruHttp::assertSuccessful($response);
 
         $json = $response->json();
         if (! is_array($json) || ! ($json['success'] ?? false)) {

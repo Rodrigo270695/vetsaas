@@ -6,6 +6,7 @@ use App\Grooming\GroomingCatalogoMode;
 use App\Grooming\GroomingCatalogoServicio;
 use App\Http\Requests\StoreGroomingTurnoRequest;
 use App\Http\Requests\UpdateGroomingTurnoRequest;
+use App\Models\GroomingServicio;
 use App\Models\GroomingTurno;
 use App\Models\Paciente;
 use App\Models\Sede;
@@ -69,7 +70,8 @@ class GroomingTurnoController extends Controller
         if (is_string($editarRaw) && Str::isUuid($editarRaw) && ($request->user()?->can('grooming.update') ?? false)) {
             $q = GroomingTurno::query()
                 ->with([
-                    'paciente.propietario:id,nombres,apellidos,razon_social',
+                    'paciente' => fn ($q) => $q->withTrashed(),
+                    'paciente.propietario' => fn ($q) => $q->withTrashed()->select('id', 'nombres', 'apellidos', 'razon_social'),
                     'responsable:id,name',
                     'sede:id,nombre,codigo',
                 ])
@@ -98,7 +100,8 @@ class GroomingTurnoController extends Controller
 
         $query = GroomingTurno::query()
             ->with([
-                'paciente.propietario:id,nombres,apellidos,razon_social',
+                'paciente' => fn ($q) => $q->withTrashed(),
+                'paciente.propietario' => fn ($q) => $q->withTrashed()->select('id', 'nombres', 'apellidos', 'razon_social'),
                 'responsable:id,name',
                 'sede:id,nombre,codigo',
                 'groomingServicio:id,nombre',
@@ -151,7 +154,7 @@ class GroomingTurnoController extends Controller
             ->count();
 
         $pacientesOpciones = Paciente::query()
-            ->with(['propietario:id,nombres,apellidos,razon_social'])
+            ->with(['propietario' => fn ($q) => $q->withTrashed()->select('id', 'nombres', 'apellidos', 'razon_social')])
             ->where('activo', true)
             ->orderBy('nombre')
             ->limit(500)
@@ -174,7 +177,7 @@ class GroomingTurnoController extends Controller
         $catalogoPersonalizado = GroomingCatalogoMode::usaCatalogoPersonalizado();
 
         $groomingServicios = $catalogoPersonalizado
-            ? \App\Models\GroomingServicio::query()
+            ? GroomingServicio::query()
                 ->orderBy('orden')
                 ->orderBy('nombre')
                 ->get(['id', 'nombre', 'categoria', 'codigo_legacy', 'precio_lista', 'moneda', 'duracion_minutos', 'activo', 'orden'])

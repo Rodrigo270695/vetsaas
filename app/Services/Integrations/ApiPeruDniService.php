@@ -2,7 +2,7 @@
 
 namespace App\Services\Integrations;
 
-use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Cache;
 use RuntimeException;
 
 /**
@@ -23,21 +23,32 @@ final class ApiPeruDniService
      */
     public function consultar(string $dni): array
     {
-        $token = trim((string) config('services.apiperu.token', ''));
-        $base = rtrim((string) config('services.apiperu.base_url', 'https://apiperu.dev/api'), '/');
+        $dni = preg_replace('/\D+/', '', $dni) ?? '';
 
-        if ($token === '') {
-            throw new RuntimeException('Consulta DNI no disponible: configure APIPERU_TOKEN en el servidor.');
+        if (strlen($dni) !== 8) {
+            throw new RuntimeException('El DNI debe tener 8 dígitos.');
         }
 
-        $response = Http::timeout(25)
-            ->acceptJson()
-            ->withToken($token)
-            ->post($base.'/dni', ['dni' => $dni]);
+        $cacheKey = "apiperu:dni:{$dni}";
 
-        if (! $response->successful()) {
-            throw new RuntimeException('La API de consulta DNI devolvió HTTP '.$response->status().'.');
-        }
+        return Cache::remember($cacheKey, now()->addDays(30), function () use ($dni): array {
+            return $this->fetchFromApi($dni);
+        });
+    }
+
+    /**
+     * @return array{
+     *     dni: string,
+     *     nombres: string,
+     *     apellidos: string,
+     *     nombre_completo: string,
+     * }
+     */
+    private function fetchFromApi(string $dni): array
+    {
+        $response = ApiPeruHttp::client()->post('/dni', ['dni' => $dni]);
+
+        ApiPeruHttp::assertSuccessful($response);
 
         $json = $response->json();
         if (! is_array($json) || ! ($json['success'] ?? false)) {

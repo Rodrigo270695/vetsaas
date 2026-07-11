@@ -62,6 +62,7 @@
         "consultar_sunat": "Query SUNAT registry",
         "consultar_loading": "Querying…",
         "consultar_error": "Could not complete the query.",
+        "consultar_rate_limit": "Lookup rate limit reached. Enter the details manually or try again later.",
         "consultar_invalid_dni": "Enter an 8-digit national ID.",
         "consultar_invalid_ruc": "Enter an 11-digit tax ID.",
         "nombres": "First name(s)",

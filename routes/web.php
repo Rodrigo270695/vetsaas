@@ -1,9 +1,9 @@
 <?php
 
-use App\Http\Controllers\BotIaAnnouncementController;
 use App\Http\Controllers\AlertaStockInventarioController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\Auth\ChangePasswordController;
+use App\Http\Controllers\BotIaAnnouncementController;
 use App\Http\Controllers\CajaSesionController;
 use App\Http\Controllers\CategoriaInventarioController;
 use App\Http\Controllers\CirugiaController;
@@ -50,8 +50,8 @@ use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\SubscriptionPaymentController;
 use App\Http\Controllers\TarifaServiciosController;
 use App\Http\Controllers\TenantController;
-use App\Http\Controllers\TenantModuleController;
 use App\Http\Controllers\TenantImpersonationController;
+use App\Http\Controllers\TenantModuleController;
 use App\Http\Controllers\TenantWhatsAppController;
 use App\Http\Controllers\TenantWhatsAppPlatformController;
 use App\Http\Controllers\UnidadMedidaInventarioController;
@@ -176,9 +176,11 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
                 ->delete('propietarios/bulk', [PropietarioController::class, 'bulkDestroy'])
                 ->name('propietarios.bulk-destroy');
             Route::middleware('permission:propietarios.create|propietarios.update')
+                ->middleware('throttle:20,1')
                 ->get('propietarios/consulta-ruc', [PropietarioController::class, 'consultaRuc'])
                 ->name('propietarios.consulta-ruc');
             Route::middleware('permission:propietarios.create|propietarios.update')
+                ->middleware('throttle:20,1')
                 ->get('propietarios/consulta-dni', [PropietarioController::class, 'consultaDni'])
                 ->name('propietarios.consulta-dni');
             Route::middleware('permission:propietarios.view')
@@ -529,6 +531,7 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             ->get('alertas', [AlertaStockInventarioController::class, 'alertas'])
             ->name('alertas');
         Route::middleware('permission:proveedores.create|proveedores.update')
+            ->middleware('throttle:20,1')
             ->get('proveedores/consulta-ruc', [ProveedorInventarioController::class, 'consultaRuc'])
             ->name('proveedores.consulta-ruc');
         Route::middleware('permission:proveedores.view')

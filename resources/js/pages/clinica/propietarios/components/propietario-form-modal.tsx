@@ -208,6 +208,7 @@ export function PropietarioFormModal({
             const body = (await res.json()) as {
                 success?: boolean;
                 message?: string;
+                code?: string;
                 data?: {
                     dni?: string;
                     ruc?: string;
@@ -219,7 +220,11 @@ export function PropietarioFormModal({
             };
 
             if (!res.ok || !body.success || !body.data) {
-                toastManager.error({ title: body.message ?? t('form.consultar_error') });
+                const title =
+                    res.status === 429 || body.code === 'rate_limit'
+                        ? t('form.consultar_rate_limit')
+                        : (body.message ?? t('form.consultar_error'));
+                toastManager.error({ title });
 
                 return;
             }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\RespondsToApiPeruConsulta;
 use App\Http\Requests\ProveedorInventarioRequest;
 use App\Models\Proveedor;
 use App\Services\Integrations\ApiPeruRucService;
@@ -11,11 +12,11 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
-use RuntimeException;
-use Throwable;
 
 class ProveedorInventarioController extends Controller
 {
+    use RespondsToApiPeruConsulta;
+
     private const PER_PAGE_OPTIONS = [10, 15, 20, 25, 50, 100];
 
     private const SORTABLE_COLUMNS = ['ruc', 'razon_social', 'activo', 'created_at'];
@@ -102,23 +103,9 @@ class ProveedorInventarioController extends Controller
             'ruc' => ['required', 'string', 'regex:/^[0-9]{11}$/'],
         ]);
 
-        try {
-            $data = $apiPeru->consultar($validated['ruc']);
-
-            return response()->json(['success' => true, 'data' => $data]);
-        } catch (RuntimeException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], 422);
-        } catch (Throwable $e) {
-            report($e);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'No se pudo completar la consulta RUC. Intente de nuevo.',
-            ], 503);
-        }
+        return $this->consultaApiPeruResponse(
+            fn () => $apiPeru->consultar($validated['ruc']),
+        );
     }
 
     public function store(ProveedorInventarioRequest $request): RedirectResponse

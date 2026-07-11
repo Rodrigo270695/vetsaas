@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Exports\PropietariosXlsxExport;
 use App\Http\Controllers\Concerns\LogsAuditExports;
+use App\Http\Controllers\Concerns\RespondsToApiPeruConsulta;
 use App\Http\Requests\PropietarioRequest;
 use App\Models\Departamento;
 use App\Models\Distrito;
@@ -18,13 +19,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
-use RuntimeException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
-use Throwable;
 
 class PropietarioController extends Controller
 {
     use LogsAuditExports;
+    use RespondsToApiPeruConsulta;
 
     private const PER_PAGE_OPTIONS = [10, 15, 20, 25, 50, 100];
 
@@ -180,7 +180,7 @@ class PropietarioController extends Controller
             'ruc' => ['required', 'string', 'regex:/^[0-9]{11}$/'],
         ]);
 
-        return $this->consultaDocumentoResponse(
+        return $this->consultaApiPeruResponse(
             fn () => $apiPeru->consultar($validated['ruc']),
         );
     }
@@ -197,33 +197,9 @@ class PropietarioController extends Controller
             'dni' => ['required', 'string', 'regex:/^[0-9]{8}$/'],
         ]);
 
-        return $this->consultaDocumentoResponse(
+        return $this->consultaApiPeruResponse(
             fn () => $apiPeru->consultar($validated['dni']),
         );
-    }
-
-    /**
-     * @param  callable(): array<string, mixed>  $callback
-     */
-    private function consultaDocumentoResponse(callable $callback): JsonResponse
-    {
-        try {
-            $data = $callback();
-
-            return response()->json(['success' => true, 'data' => $data]);
-        } catch (RuntimeException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], 422);
-        } catch (Throwable $e) {
-            report($e);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'No se pudo completar la consulta. Intente de nuevo.',
-            ], 503);
-        }
     }
 
     public function store(PropietarioRequest $request): RedirectResponse

@@ -78,8 +78,8 @@ export type GroomingTurnoRow = {
             nombres: string;
             apellidos: string | null;
             razon_social: string | null;
-        };
-    };
+        } | null;
+    } | null;
     responsable: { id: string; name: string } | null;
     sede: { id: string; nombre: string; codigo: string } | null;
     venta_id: string | null;

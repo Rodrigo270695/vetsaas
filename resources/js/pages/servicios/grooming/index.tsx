@@ -60,7 +60,13 @@ type ModalState =
 
 const DEFAULT_PER_PAGE = 10;
 
-function displayPropietario(p: GroomingTurnoRow['paciente']['propietario']): string {
+function displayPropietario(
+    p: {
+        nombres: string;
+        apellidos: string | null;
+        razon_social: string | null;
+    } | null | undefined,
+): string {
     if (!p) {
         return '—';
     }
@@ -70,6 +76,15 @@ function displayPropietario(p: GroomingTurnoRow['paciente']['propietario']): str
     }
 
     return [p.nombres, p.apellidos].filter(Boolean).join(' ') || '—';
+}
+
+function displayPacienteNombre(
+    paciente: GroomingTurnoRow['paciente'],
+    fallback: string,
+): string {
+    const nombre = paciente?.nombre?.trim();
+
+    return nombre && nombre !== '' ? nombre : fallback;
 }
 
 function estadoBadgeVariant(estado: string): 'default' | 'secondary' | 'destructive' | 'outline' {
@@ -223,9 +238,11 @@ export default function Index({
                 sortable: true,
                 cell: (row) => (
                     <div className="flex min-w-0 flex-col gap-0.5">
-                        <span className="truncate text-sm font-medium">{row.paciente.nombre}</span>
+                        <span className="truncate text-sm font-medium">
+                            {displayPacienteNombre(row.paciente, t('row.paciente_no_disponible'))}
+                        </span>
                         <span className="truncate text-xs text-muted-foreground">
-                            {displayPropietario(row.paciente.propietario)}
+                            {displayPropietario(row.paciente?.propietario)}
                         </span>
                     </div>
                 ),
