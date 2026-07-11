@@ -19,4 +19,11 @@ return [
         'plan_seguimiento_created' => 'Follow-up note saved successfully.',
         'plan_consulta_cerrada' => 'The plan cannot be changed because the visit is closed.',
     ],
+    'plan' => [
+        'stock' => [
+            'notas' => 'Treatment plan: :medicamento (visit :consulta)',
+            'sede_requerida' => 'Select an active branch to deduct plan inventory.',
+            'cantidad_requerida' => 'Enter the quantity to deduct when linking an inventory product.',
+        ],
+    ],
 ];

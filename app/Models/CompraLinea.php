@@ -19,6 +19,8 @@ class CompraLinea extends Model
         'producto_id',
         'cantidad',
         'costo_unitario',
+        'numero_lote',
+        'fecha_vencimiento',
         'orden',
     ];
 
@@ -27,6 +29,7 @@ class CompraLinea extends Model
         return [
             'cantidad' => 'decimal:3',
             'costo_unitario' => 'decimal:4',
+            'fecha_vencimiento' => 'date',
         ];
     }
 

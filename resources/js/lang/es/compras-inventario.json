@@ -92,6 +92,9 @@
         "linea_producto_search": "Escribir para filtrar…",
         "linea_cantidad": "Cantidad",
         "linea_costo": "Costo u.",
+        "linea_lote": "Lote",
+        "linea_lote_placeholder": "Opcional",
+        "linea_vencimiento": "Vencimiento",
         "linea_remove": "Quitar línea"
     }
 }

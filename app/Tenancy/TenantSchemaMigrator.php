@@ -288,6 +288,9 @@ class TenantSchemaMigrator
                 && Schema::hasColumn('fel_documents', 'apisunat_mode'),
             '2026_06_24_100000_t099_backfill_apisunat_mode_on_fel_documents' => false,
             '2026_06_25_100000_t100_propietarios_unique_documento_per_tenant' => false,
+            '2026_07_11_100000_t108_create_producto_lotes' => Schema::hasTable('producto_lotes')
+                && Schema::hasColumn('movimientos_inventario', 'producto_lote_id')
+                && Schema::hasColumn('consulta_plan_tratamiento_lineas', 'movimiento_inventario_id'),
             default => false,
         };
     }

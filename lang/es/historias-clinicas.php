@@ -19,4 +19,11 @@ return [
         'plan_seguimiento_created' => 'Nota de seguimiento registrada correctamente.',
         'plan_consulta_cerrada' => 'No se puede modificar el plan: la consulta está cerrada.',
     ],
+    'plan' => [
+        'stock' => [
+            'notas' => 'Plan tratamiento: :medicamento (consulta :consulta)',
+            'sede_requerida' => 'Selecciona una sede activa para descontar inventario del plan.',
+            'cantidad_requerida' => 'Indica la cantidad a descontar cuando vinculas un producto de inventario.',
+        ],
+    ],
 ];

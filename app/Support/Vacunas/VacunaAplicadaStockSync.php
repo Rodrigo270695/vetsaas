@@ -4,6 +4,7 @@ namespace App\Support\Vacunas;
 
 use App\Models\MovimientoInventario;
 use App\Models\VacunaAplicada;
+use App\Services\Inventario\InventarioLoteService;
 
 /**
  * Descuenta o revierte stock al vincular una vacunación con producto + sede.
@@ -32,33 +33,22 @@ final class VacunaAplicadaStockSync
             'id' => $vacuna->id,
         ]);
 
-        return MovimientoInventario::aplicar(
-            $vacuna->producto_id,
-            $vacuna->sede_id,
-            MovimientoInventario::TIPO_SALIDA,
-            '-'.self::CANTIDAD_POR_APLICACION,
+        $movimientos = app(InventarioLoteService::class)->descontarFefo(
+            (string) $vacuna->producto_id,
+            (string) $vacuna->sede_id,
+            self::CANTIDAD_POR_APLICACION,
             $notas,
             $userId,
         );
+
+        return $movimientos[0];
     }
 
     /**
-     * Compensa en stock el movimiento de salida vinculado (entrada por la misma cantidad).
+     * Compensa en stock el movimiento de salida vinculado.
      */
     public static function revertirPorMovimiento(MovimientoInventario $movimiento, ?string $userId): MovimientoInventario
     {
-        $cantidad = abs((float) (string) $movimiento->delta);
-        $notas = __('vacunaciones.stock.reversion', [
-            'id' => $movimiento->id,
-        ]);
-
-        return MovimientoInventario::aplicar(
-            $movimiento->producto_id,
-            $movimiento->sede_id,
-            MovimientoInventario::TIPO_ENTRADA,
-            (string) $cantidad,
-            $notas,
-            $userId,
-        );
+        return app(InventarioLoteService::class)->revertirMovimiento($movimiento, $userId);
     }
 }

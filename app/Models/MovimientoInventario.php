@@ -35,6 +35,7 @@ class MovimientoInventario extends Model
         'producto_id',
         'compra_id',
         'venta_id',
+        'producto_lote_id',
         'sede_id',
         'tipo',
         'delta',
@@ -80,6 +81,11 @@ class MovimientoInventario extends Model
         return $this->belongsTo(Sede::class, 'sede_id');
     }
 
+    public function productoLote(): BelongsTo
+    {
+        return $this->belongsTo(ProductoLote::class, 'producto_lote_id');
+    }
+
     /**
      * Aplica el movimiento sobre `existencias_sede` y persiste la fila de kardex.
      *
@@ -94,6 +100,7 @@ class MovimientoInventario extends Model
         ?string $userId,
         ?string $compraId = null,
         ?string $ventaId = null,
+        ?string $productoLoteId = null,
     ): self {
         if (! in_array($tipo, [self::TIPO_ENTRADA, self::TIPO_SALIDA, self::TIPO_MERMA, self::TIPO_AJUSTE], true)) {
             throw ValidationException::withMessages([
@@ -101,7 +108,7 @@ class MovimientoInventario extends Model
             ]);
         }
 
-        return DB::transaction(function () use ($productoId, $sedeId, $tipo, $delta, $notas, $userId, $compraId, $ventaId): self {
+        return DB::transaction(function () use ($productoId, $sedeId, $tipo, $delta, $notas, $userId, $compraId, $ventaId, $productoLoteId): self {
             $existencia = ExistenciaSede::query()
                 ->where('producto_id', $productoId)
                 ->where('sede_id', $sedeId)
@@ -130,6 +137,7 @@ class MovimientoInventario extends Model
                 'producto_id' => $productoId,
                 'compra_id' => $compraId,
                 'venta_id' => $ventaId,
+                'producto_lote_id' => $productoLoteId,
                 'sede_id' => $sedeId,
                 'tipo' => $tipo,
                 'delta' => $deltaNum,

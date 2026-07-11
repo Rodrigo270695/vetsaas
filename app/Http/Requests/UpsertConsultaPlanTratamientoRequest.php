@@ -46,7 +46,7 @@ class UpsertConsultaPlanTratamientoRequest extends FormRequest
                     fn ($query) => $query->where('medicamento', true)->where('activo', true),
                 ),
             ],
-            'lineas.*.cantidad' => ['nullable', 'numeric', 'min:0', 'max:999999'],
+            'lineas.*.cantidad' => ['nullable', 'numeric', 'min:0.001', 'max:999999'],
             'lineas.*.dosis' => ['nullable', 'string', 'max:255'],
             'lineas.*.unidad' => ['nullable', 'string', 'max:64'],
             'lineas.*.via' => ['nullable', 'string', 'max:128'],
@@ -55,5 +55,34 @@ class UpsertConsultaPlanTratamientoRequest extends FormRequest
             'lineas.*.notas' => ['nullable', 'string', 'max:20000'],
             'lineas.*.anadido_en' => ['nullable', 'date'],
         ];
+    }
+
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator): void {
+            $lineas = $this->input('lineas', []);
+            if (! is_array($lineas)) {
+                return;
+            }
+
+            foreach (array_values($lineas) as $index => $row) {
+                if (! is_array($row)) {
+                    continue;
+                }
+
+                $productoId = trim((string) ($row['producto_id'] ?? ''));
+                if ($productoId === '') {
+                    continue;
+                }
+
+                $cantidad = $row['cantidad'] ?? null;
+                if ($cantidad === null || $cantidad === '' || ! is_numeric($cantidad) || (float) $cantidad <= 0) {
+                    $validator->errors()->add(
+                        "lineas.{$index}.cantidad",
+                        __('historias-clinicas.plan.stock.cantidad_requerida'),
+                    );
+                }
+            }
+        });
     }
 }

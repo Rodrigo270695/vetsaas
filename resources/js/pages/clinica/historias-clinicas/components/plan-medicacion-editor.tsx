@@ -313,6 +313,17 @@ export function PlanMedicacionEditor({ consultaId, initialPlan }: PlanMedicacion
             setDraftError(t('plan.lineas_sheet.medicamento_required'));
             return;
         }
+        if (
+            draft.producto_id != null &&
+            draft.producto_id !== '' &&
+            (draft.cantidad == null ||
+                String(draft.cantidad).trim() === '' ||
+                Number.isNaN(Number(draft.cantidad)) ||
+                Number(draft.cantidad) <= 0)
+        ) {
+            setDraftError(t('plan.lineas_sheet.cantidad_required'));
+            return;
+        }
         setDraftError(null);
         const anadido =
             draft.anadido_en.trim() === '' ? todayYmd() : toDateInputValue(draft.anadido_en);

@@ -151,9 +151,9 @@
             "frecuencia": "Frequency",
             "lote": "Batch",
             "cantidad_inventario": "Quantity (use / dispense)",
-            "cantidad_inventario_hint": "Planned or dispensed amount; saving the plan does not move inventory.",
+            "cantidad_inventario_hint": "Saving will deduct from inventory (FEFO) when a product is linked.",
             "stock_sede_referencia": "Stock at branch (reference)",
-            "stock_sede_nota": "Read-only. The plan does not deduct inventory.",
+            "stock_sede_nota": "Current branch stock. Saving with quantity deducts automatically.",
             "notas": "Notes",
             "anadido_en": "Recorded on",
             "sin_detalle": "No dose or schedule on this line",
@@ -175,6 +175,7 @@
             "title_edit": "Edit medication",
             "save": "Save to plan",
             "medicamento_required": "Enter the drug name.",
+            "cantidad_required": "Enter the quantity to deduct when inventory is linked.",
             "edit_aria": "Edit this line"
         },
         "seguimiento": {

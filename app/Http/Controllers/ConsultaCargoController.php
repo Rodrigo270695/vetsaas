@@ -9,9 +9,11 @@ use App\Models\Consulta;
 use App\Models\ConsultaCargo;
 use App\Models\ConsultaCargoLinea;
 use App\Models\Producto;
+use App\Models\Sede;
 use App\Models\User;
 use App\Models\Venta;
 use App\Support\Caja\TicketAnchoMm;
+use App\Support\ConsultaCargo\ConsultaCargoStockSync;
 use App\Support\ConsultaCargo\ConsultaCargoTotales;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -24,6 +26,9 @@ use Inertia\Response;
 
 class ConsultaCargoController extends Controller
 {
+    public function __construct(
+        private readonly ConsultaCargoStockSync $cargoStock,
+    ) {}
     public function show(Request $request, Consulta $consulta): Response
     {
         $this->ensurePuedeVerConsulta($request, $consulta);
@@ -259,14 +264,65 @@ class ConsultaCargoController extends Controller
                 ->with('error', __('consulta-cargos.flash.sin_lineas'));
         }
 
-        $cargo->update([
-            'estado' => ConsultaCargo::ESTADO_CONFIRMADO,
-            'updated_by_id' => Auth::id(),
-        ]);
+        $sedeId = $this->resolveSedeIdParaStock($request, (string) $user->tenant_id);
+        if ($sedeId === '') {
+            return redirect()
+                ->route('clinica.historias-clinicas.consultas.cargos.show', $consulta)
+                ->with('error', __('consulta-cargos.flash.sin_sede_stock'));
+        }
+
+        try {
+            DB::transaction(function () use ($cargo, $sedeId, $user): void {
+                $cargo->load(['lineas.producto:id,nombre']);
+
+                foreach ($cargo->lineas as $linea) {
+                    if (! ConsultaCargoStockSync::debeDescontar($linea, $sedeId)) {
+                        continue;
+                    }
+
+                    $movimientos = $this->cargoStock->registrarSalida($linea, $sedeId, (string) $user->getAuthIdentifier());
+                    $primerMov = $movimientos[0] ?? null;
+                    if ($primerMov !== null) {
+                        $linea->update(['movimiento_inventario_id' => $primerMov->id]);
+                    }
+                }
+
+                $cargo->update([
+                    'estado' => ConsultaCargo::ESTADO_CONFIRMADO,
+                    'updated_by_id' => $user->getAuthIdentifier(),
+                ]);
+            });
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $msg = $e->errors()['cantidad'][0] ?? __('consulta-cargos.flash.stock_insuficiente');
+
+            return redirect()
+                ->route('clinica.historias-clinicas.consultas.cargos.show', $consulta)
+                ->withErrors($e->errors())
+                ->with('error', $msg);
+        }
 
         return redirect()
             ->route('clinica.historias-clinicas.consultas.cargos.show', $consulta)
             ->with('success', __('consulta-cargos.flash.confirmado'));
+    }
+
+    private function resolveSedeIdParaStock(Request $request, string $tenantId): string
+    {
+        $sedeIds = Sede::query()
+            ->where('tenant_id', $tenantId)
+            ->where('activa', true)
+            ->whereNull('deleted_at')
+            ->orderBy('nombre')
+            ->pluck('id')
+            ->all();
+
+        $sedeRequested = (string) $request->input('sede_id', '');
+
+        if (\Illuminate\Support\Str::isUuid($sedeRequested) && in_array($sedeRequested, $sedeIds, true)) {
+            return $sedeRequested;
+        }
+
+        return (string) ($sedeIds[0] ?? '');
     }
 
     private function ensurePuedeVerConsulta(Request $request, Consulta $consulta): void

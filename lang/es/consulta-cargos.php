@@ -3,9 +3,14 @@
 return [
     'flash' => [
         'guardado' => 'Cargos de la consulta guardados.',
-        'confirmado' => 'Pre-cuenta confirmada.',
+        'confirmado' => 'Pre-cuenta confirmada. El stock de productos vinculados fue descontado.',
         'solo_borrador' => 'Solo se puede editar mientras el estado es borrador.',
         'sin_lineas' => 'Añade al menos una línea antes de confirmar.',
+        'sin_sede_stock' => 'No hay sede activa para descontar inventario.',
+        'stock_insuficiente' => 'Stock insuficiente para confirmar los productos de la consulta.',
+    ],
+    'stock' => [
+        'notas' => 'Cargo consulta: :concepto (consulta :consulta)',
     ],
     'ticket' => [
         'document_title' => 'Pre-cuenta (referencia)',

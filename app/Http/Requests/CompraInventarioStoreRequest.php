@@ -42,6 +42,8 @@ class CompraInventarioStoreRequest extends FormRequest
             ],
             'lineas.*.cantidad' => ['required', 'numeric', 'min:0.001'],
             'lineas.*.costo_unitario' => ['nullable', 'numeric', 'min:0'],
+            'lineas.*.numero_lote' => ['nullable', 'string', 'max:128'],
+            'lineas.*.fecha_vencimiento' => ['nullable', 'date'],
         ];
     }
 

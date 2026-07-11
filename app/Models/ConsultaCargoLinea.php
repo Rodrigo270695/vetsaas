@@ -35,6 +35,7 @@ class ConsultaCargoLinea extends Model
         'consulta_cargo_id',
         'tipo_linea',
         'producto_id',
+        'movimiento_inventario_id',
         'concepto',
         'cantidad',
         'precio_unitario',

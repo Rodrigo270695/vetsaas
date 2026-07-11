@@ -15,6 +15,7 @@ use App\Models\Tenant;
 use App\Services\Fel\FelEmisionVentaService;
 use App\Models\Venta;
 use App\Models\VentaLinea;
+use App\Services\Inventario\InventarioLoteService;
 use App\Support\Fel\ApisunatCredentialResolver;
 use App\Support\PlanCapabilities;
 use App\Support\Venta\VentaTotales;
@@ -24,6 +25,10 @@ use Illuminate\Validation\ValidationException;
 
 final class VentaCheckoutService
 {
+    public function __construct(
+        private readonly InventarioLoteService $lotes,
+    ) {}
+
     /**
      * Registra una venta pagada, líneas, correlativo y salidas de inventario.
      *
@@ -100,6 +105,15 @@ final class VentaCheckoutService
             }
 
             $cargoVinculado = $this->resolverCargoVinculado($validated);
+
+            $cargoLineasConStock = [];
+            if ($cargoVinculado !== null) {
+                $cargoLineasConStock = ConsultaCargoLinea::query()
+                    ->where('consulta_cargo_id', $cargoVinculado['consulta_cargo_id'])
+                    ->whereNotNull('movimiento_inventario_id')
+                    ->pluck('movimiento_inventario_id', 'id')
+                    ->all();
+            }
 
             $productoIds = collect($validated['lineas'])
                 ->pluck('producto_id')
@@ -304,17 +318,24 @@ final class VentaCheckoutService
                     continue;
                 }
 
+                $cargoLineaId = $lc['consulta_cargo_linea_id'] ?? null;
+                if (
+                    is_string($cargoLineaId)
+                    && $cargoLineaId !== ''
+                    && isset($cargoLineasConStock[$cargoLineaId])
+                ) {
+                    continue;
+                }
+
                 $notasMov = __('caja.ventas.movimiento_notas', ['numero' => $numero]);
 
                 try {
-                    MovimientoInventario::aplicar(
+                    $this->lotes->descontarFefo(
                         $lc['producto_id'],
                         (string) $sesion->sede_id,
-                        MovimientoInventario::TIPO_SALIDA,
-                        (string) (-1 * (float) $lc['cantidad']),
+                        (string) ((float) $lc['cantidad']),
                         $notasMov,
                         (string) $user->getAuthIdentifier(),
-                        null,
                         (string) $venta->id,
                     );
                 } catch (ValidationException $e) {

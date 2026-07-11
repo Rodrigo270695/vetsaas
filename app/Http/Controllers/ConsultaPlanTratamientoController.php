@@ -180,7 +180,8 @@ class ConsultaPlanTratamientoController extends Controller
         }
 
         $validated = $request->validated();
-        app(SyncConsultaPlanTratamiento::class)->handle($consulta, $validated, Auth::id());
+        $sedeId = $this->resolveSedeIdParaStock($request, (string) $request->user()?->tenant_id);
+        app(SyncConsultaPlanTratamiento::class)->handle($consulta, $validated, Auth::id(), $sedeId !== '' ? $sedeId : null);
 
         return redirect()
             ->route('clinica.historias-clinicas.consultas.plan-tratamiento', $consulta)

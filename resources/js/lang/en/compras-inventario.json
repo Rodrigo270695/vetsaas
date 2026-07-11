@@ -92,6 +92,9 @@
         "linea_producto_search": "Type to filter…",
         "linea_cantidad": "Quantity",
         "linea_costo": "Unit cost",
+        "linea_lote": "Batch",
+        "linea_lote_placeholder": "Optional",
+        "linea_vencimiento": "Expiry",
         "linea_remove": "Remove line"
     }
 }

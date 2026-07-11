@@ -11,6 +11,7 @@ use App\Models\MovimientoInventario;
 use App\Models\Producto;
 use App\Models\Proveedor;
 use App\Models\Sede;
+use App\Services\Inventario\InventarioLoteService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -28,6 +29,10 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class CompraInventarioController extends Controller
 {
     use LogsAuditExports;
+
+    public function __construct(
+        private readonly InventarioLoteService $lotes,
+    ) {}
 
     private const PER_PAGE_OPTIONS = [10, 15, 20, 25, 50, 100];
 
@@ -344,11 +349,13 @@ class CompraInventarioController extends Controller
             $moneda = $data['moneda'] ?? 'PEN';
 
             foreach ($data['lineas'] as $i => $linea) {
-                CompraLinea::query()->create([
+                $compraLinea = CompraLinea::query()->create([
                     'compra_id' => $compra->id,
                     'producto_id' => $linea['producto_id'],
                     'cantidad' => $linea['cantidad'],
                     'costo_unitario' => $linea['costo_unitario'] ?? null,
+                    'numero_lote' => $linea['numero_lote'] ?? null,
+                    'fecha_vencimiento' => $linea['fecha_vencimiento'] ?? null,
                     'orden' => (int) $i,
                 ]);
 
@@ -358,14 +365,16 @@ class CompraInventarioController extends Controller
                     $notasMov .= ' · '.$moneda.' '.number_format((float) (string) $costoUnit, 2, '.', '').'/u.';
                 }
 
-                MovimientoInventario::aplicar(
+                $this->lotes->registrarEntrada(
                     $linea['producto_id'],
                     $data['sede_id'],
-                    MovimientoInventario::TIPO_ENTRADA,
                     (string) ((float) (string) $linea['cantidad']),
+                    isset($linea['numero_lote']) ? (string) $linea['numero_lote'] : null,
+                    isset($linea['fecha_vencimiento']) ? (string) $linea['fecha_vencimiento'] : null,
                     $notasMov,
                     $userId !== null ? (string) $userId : null,
                     (string) $compra->id,
+                    (string) $compraLinea->id,
                 );
             }
         });
@@ -408,49 +417,60 @@ class CompraInventarioController extends Controller
                 $userId = $request->user()?->id;
                 $userIdStr = $userId !== null ? (string) $userId : null;
 
-                $lineas = $c->lineas()->orderBy('orden')->get();
+                $notasRev = 'Anulación compra '.$refDoc.' (reversión de stock)';
                 $reversiones = 0;
+                $movimientosCompra = MovimientoInventario::query()
+                    ->where('compra_id', (string) $c->id)
+                    ->where('tipo', MovimientoInventario::TIPO_ENTRADA)
+                    ->exists();
 
-                if ($lineas->isNotEmpty()) {
-                    foreach ($lineas as $linea) {
-                        $cant = (float) (string) $linea->cantidad;
-                        if ($cant <= 0) {
-                            continue;
-                        }
-                        MovimientoInventario::aplicar(
-                            (string) $linea->producto_id,
-                            (string) $c->sede_id,
-                            MovimientoInventario::TIPO_SALIDA,
-                            $this->deltaNegativoParaSalida($cant),
-                            'Anulación compra '.$refDoc.' (reversión de stock)',
-                            $userIdStr,
-                            null,
-                        );
-                        $reversiones++;
-                    }
+                if ($movimientosCompra) {
+                    $this->lotes->revertirEntradasCompra((string) $c->id, $userIdStr, $notasRev);
+                    $reversiones = 1;
                 } else {
-                    $porProducto = MovimientoInventario::query()
-                        ->where('compra_id', (string) $c->id)
-                        ->where('tipo', MovimientoInventario::TIPO_ENTRADA)
-                        ->selectRaw('producto_id, sede_id, sum(delta) as total_entrada')
-                        ->groupBy('producto_id', 'sede_id')
-                        ->get();
+                    $lineas = $c->lineas()->orderBy('orden')->get();
 
-                    foreach ($porProducto as $row) {
-                        $qty = (float) (string) $row->total_entrada;
-                        if ($qty <= 0) {
-                            continue;
+                    if ($lineas->isNotEmpty()) {
+                        foreach ($lineas as $linea) {
+                            $cant = (float) (string) $linea->cantidad;
+                            if ($cant <= 0) {
+                                continue;
+                            }
+                            MovimientoInventario::aplicar(
+                                (string) $linea->producto_id,
+                                (string) $c->sede_id,
+                                MovimientoInventario::TIPO_SALIDA,
+                                $this->deltaNegativoParaSalida($cant),
+                                $notasRev,
+                                $userIdStr,
+                                null,
+                            );
+                            $reversiones++;
                         }
-                        MovimientoInventario::aplicar(
-                            (string) $row->producto_id,
-                            (string) $row->sede_id,
-                            MovimientoInventario::TIPO_SALIDA,
-                            $this->deltaNegativoParaSalida($qty),
-                            'Anulación compra '.$refDoc.' (reversión según kardex)',
-                            $userIdStr,
-                            null,
-                        );
-                        $reversiones++;
+                    } else {
+                        $porProducto = MovimientoInventario::query()
+                            ->where('compra_id', (string) $c->id)
+                            ->where('tipo', MovimientoInventario::TIPO_ENTRADA)
+                            ->selectRaw('producto_id, sede_id, sum(delta) as total_entrada')
+                            ->groupBy('producto_id', 'sede_id')
+                            ->get();
+
+                        foreach ($porProducto as $row) {
+                            $qty = (float) (string) $row->total_entrada;
+                            if ($qty <= 0) {
+                                continue;
+                            }
+                            MovimientoInventario::aplicar(
+                                (string) $row->producto_id,
+                                (string) $row->sede_id,
+                                MovimientoInventario::TIPO_SALIDA,
+                                $this->deltaNegativoParaSalida($qty),
+                                'Anulación compra '.$refDoc.' (reversión según kardex)',
+                                $userIdStr,
+                                null,
+                            );
+                            $reversiones++;
+                        }
                     }
                 }
 

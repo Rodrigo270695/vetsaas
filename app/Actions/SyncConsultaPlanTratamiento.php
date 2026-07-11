@@ -3,15 +3,21 @@
 namespace App\Actions;
 
 use App\Models\Consulta;
+use App\Support\PlanTratamiento\PlanTratamientoStockSync;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class SyncConsultaPlanTratamiento
 {
+    public function __construct(
+        private readonly PlanTratamientoStockSync $stockSync,
+    ) {}
+
     /**
      * @param  array<string, mixed>|null  $payload
      */
-    public function handle(Consulta $consulta, ?array $payload, ?string $userId): void
+    public function handle(Consulta $consulta, ?array $payload, ?string $userId, ?string $sedeId = null): void
     {
         if ($payload === null) {
             return;
@@ -39,6 +45,7 @@ class SyncConsultaPlanTratamiento
 
         if (! $hasContent) {
             if ($existing !== null) {
+                $this->revertirStockLineas($existing->lineas, $userId);
                 $existing->lineas()->delete();
                 $existing->seguimientos()->delete();
                 $existing->delete();
@@ -61,6 +68,7 @@ class SyncConsultaPlanTratamiento
         ];
 
         if ($existing !== null) {
+            $this->revertirStockLineas($existing->lineas, $userId);
             $existing->update($attrs);
             $plan = $existing;
         } else {
@@ -82,9 +90,12 @@ class SyncConsultaPlanTratamiento
             $anadidoEn = $this->nullableDateString($row['anadido_en'] ?? null)
                 ?? CarbonImmutable::now()->toDateString();
 
-            $plan->lineas()->create([
-                'producto_id' => $this->nullableUuid($row['producto_id'] ?? null),
-                'cantidad' => $this->nullableDecimal($row['cantidad'] ?? null),
+            $productoId = $this->nullableUuid($row['producto_id'] ?? null);
+            $cantidad = $this->nullableDecimal($row['cantidad'] ?? null);
+
+            $linea = $plan->lineas()->create([
+                'producto_id' => $productoId,
+                'cantidad' => $cantidad,
                 'medicamento' => Str::limit($medicamento, 500, ''),
                 'dosis' => $this->nullableString($row['dosis'] ?? null, 255),
                 'unidad' => $this->nullableString($row['unidad'] ?? null, 64),
@@ -95,6 +106,34 @@ class SyncConsultaPlanTratamiento
                 'anadido_en' => $anadidoEn,
                 'sort_order' => $index,
             ]);
+
+            if ($productoId !== null && $cantidad !== null && (float) $cantidad > 0) {
+                if ($sedeId === null || $sedeId === '') {
+                    throw ValidationException::withMessages([
+                        'sede_id' => __('historias-clinicas.plan.stock.sede_requerida'),
+                    ]);
+                }
+
+                $movimientos = $this->stockSync->registrarSalida($linea, $sedeId, $userId);
+                $primerMov = $movimientos[0] ?? null;
+                if ($primerMov !== null) {
+                    $primerMov->loadMissing('productoLote:id,numero_lote');
+                    $linea->update([
+                        'movimiento_inventario_id' => $primerMov->id,
+                        'lote' => $primerMov->productoLote?->numero_lote ?? $linea->lote,
+                    ]);
+                }
+            }
+        }
+    }
+
+    /**
+     * @param  iterable<int, \App\Models\ConsultaPlanTratamientoLinea>  $lineas
+     */
+    private function revertirStockLineas(iterable $lineas, ?string $userId): void
+    {
+        foreach ($lineas as $linea) {
+            $this->stockSync->revertirLinea($linea, $userId);
         }
     }
 

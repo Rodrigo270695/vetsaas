@@ -34,6 +34,8 @@ type LineaForm = {
     producto_id: string | null;
     cantidad: string;
     costo_unitario: string;
+    numero_lote: string;
+    fecha_vencimiento: string;
 };
 
 type FormData = {
@@ -53,6 +55,8 @@ const emptyLinea = (): LineaForm => ({
     producto_id: null,
     cantidad: '1',
     costo_unitario: '',
+    numero_lote: '',
+    fecha_vencimiento: '',
 });
 
 const emptyForm = (): FormData => ({
@@ -145,6 +149,8 @@ export function CompraFormModal({
                 producto_id: l.producto_id,
                 cantidad: l.cantidad,
                 costo_unitario: l.costo_unitario.trim() === '' ? null : l.costo_unitario.trim(),
+                numero_lote: l.numero_lote.trim() === '' ? null : l.numero_lote.trim(),
+                fecha_vencimiento: l.fecha_vencimiento.trim() === '' ? null : l.fecha_vencimiento.trim(),
             })),
     });
 
@@ -367,7 +373,7 @@ export function CompraFormModal({
                         {data.lineas.map((linea, index) => (
                             <div
                                 key={index}
-                                className="grid gap-3 border-b border-border pb-4 last:border-b-0 last:pb-0 sm:grid-cols-[1fr_7rem_7rem_auto]"
+                                className="grid gap-3 border-b border-border pb-4 last:border-b-0 last:pb-0 sm:grid-cols-2 lg:grid-cols-[1fr_6rem_6rem_8rem_9rem_auto]"
                             >
                                 <FormField
                                     id={`compra-linea-p-${index}`}
@@ -422,7 +428,38 @@ export function CompraFormModal({
                                         placeholder="—"
                                     />
                                 </FormField>
-                                <div className="flex items-end justify-end sm:col-span-1">
+                                <FormField
+                                    id={`compra-linea-lote-${index}`}
+                                    label={t('modal.linea_lote')}
+                                    error={fieldErr(`lineas.${index}.numero_lote`)}
+                                    className="min-w-0 sm:col-span-1"
+                                >
+                                    <Input
+                                        id={`compra-linea-lote-${index}`}
+                                        value={linea.numero_lote}
+                                        onChange={(e) => updateLinea(index, { numero_lote: e.target.value })}
+                                        disabled={processing}
+                                        maxLength={128}
+                                        className="h-10"
+                                        placeholder={t('modal.linea_lote_placeholder')}
+                                    />
+                                </FormField>
+                                <FormField
+                                    id={`compra-linea-venc-${index}`}
+                                    label={t('modal.linea_vencimiento')}
+                                    error={fieldErr(`lineas.${index}.fecha_vencimiento`)}
+                                    className="min-w-0 sm:col-span-1"
+                                >
+                                    <Input
+                                        id={`compra-linea-venc-${index}`}
+                                        type="date"
+                                        value={linea.fecha_vencimiento}
+                                        onChange={(e) => updateLinea(index, { fecha_vencimiento: e.target.value })}
+                                        disabled={processing}
+                                        className="h-10"
+                                    />
+                                </FormField>
+                                <div className="flex items-end justify-end sm:col-span-1 lg:col-span-1">
                                     <Button
                                         type="button"
                                         variant="ghost"

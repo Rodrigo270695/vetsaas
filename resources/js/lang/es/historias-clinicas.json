@@ -151,9 +151,9 @@
             "frecuencia": "Frecuencia",
             "lote": "Lote",
             "cantidad_inventario": "Cantidad (uso / dispensación)",
-            "cantidad_inventario_hint": "Cantidad prevista o entregada; no mueve inventario al guardar el plan.",
+            "cantidad_inventario_hint": "Al guardar se descontará del inventario (FEFO) si hay producto vinculado.",
             "stock_sede_referencia": "Stock en sede (referencia)",
-            "stock_sede_nota": "Solo lectura. El plan no descuenta inventario.",
+            "stock_sede_nota": "Stock actual en la sede. Al guardar con cantidad, se descuenta automáticamente.",
             "notas": "Notas",
             "anadido_en": "Fecha de registro",
             "sin_detalle": "Sin dosis ni pauta en la línea",
@@ -175,6 +175,7 @@
             "title_edit": "Editar medicamento",
             "save": "Guardar en el plan",
             "medicamento_required": "Indica el nombre del medicamento.",
+            "cantidad_required": "Indica la cantidad a descontar cuando vinculas inventario.",
             "edit_aria": "Editar esta línea"
         },
         "seguimiento": {

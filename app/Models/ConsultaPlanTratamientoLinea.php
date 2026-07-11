@@ -24,6 +24,7 @@ class ConsultaPlanTratamientoLinea extends Model
     protected $fillable = [
         'plan_id',
         'producto_id',
+        'movimiento_inventario_id',
         'cantidad',
         'medicamento',
         'dosis',
@@ -55,5 +56,10 @@ class ConsultaPlanTratamientoLinea extends Model
     public function producto(): BelongsTo
     {
         return $this->belongsTo(Producto::class, 'producto_id');
+    }
+
+    public function movimientoInventario(): BelongsTo
+    {
+        return $this->belongsTo(MovimientoInventario::class, 'movimiento_inventario_id');
     }
 }

@@ -3,9 +3,14 @@
 return [
     'flash' => [
         'guardado' => 'Consultation charges saved.',
-        'confirmado' => 'Pre-invoice confirmed.',
+        'confirmado' => 'Pre-invoice confirmed. Linked product stock was deducted.',
         'solo_borrador' => 'You can only edit while the status is draft.',
         'sin_lineas' => 'Add at least one line before confirming.',
+        'sin_sede_stock' => 'No active branch available to deduct inventory.',
+        'stock_insuficiente' => 'Insufficient stock to confirm consultation products.',
+    ],
+    'stock' => [
+        'notas' => 'Consultation charge: :concepto (visit :consulta)',
     ],
     'ticket' => [
         'document_title' => 'Pre-invoice (reference)',

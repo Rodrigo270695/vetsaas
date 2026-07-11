@@ -10,8 +10,10 @@ use App\Models\HotelEstancia;
 use App\Models\MovimientoInventario;
 use App\Models\Venta;
 use App\Models\VentaLinea;
+use App\Models\ConsultaCargoLinea;
 use App\Services\Fel\FelAnulacionComprobanteService;
 use App\Services\Fel\FelNotaCreditoComprobanteService;
+use App\Services\Inventario\InventarioLoteService;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -22,6 +24,7 @@ final class VentaAnulacionService
     public function __construct(
         private readonly FelAnulacionComprobanteService $felAnulacion,
         private readonly FelNotaCreditoComprobanteService $felNotaCredito,
+        private readonly InventarioLoteService $lotes,
     ) {}
 
     /**
@@ -92,27 +95,17 @@ final class VentaAnulacionService
 
     private function revertirStock(Venta $venta, Authenticatable $user): void
     {
-        $notas = __('caja.ventas.anulacion.movimiento_notas', ['numero' => $venta->numero]);
+        $movimientos = MovimientoInventario::query()
+            ->where('venta_id', (string) $venta->id)
+            ->where('tipo', MovimientoInventario::TIPO_SALIDA)
+            ->orderBy('created_at')
+            ->get();
 
-        foreach ($venta->lineas as $linea) {
-            if ($linea->producto_id === null) {
-                continue;
-            }
-
-            $cantidad = (float) (string) $linea->cantidad;
-            if ($cantidad <= 0) {
-                continue;
-            }
-
-            MovimientoInventario::aplicar(
-                (string) $linea->producto_id,
-                (string) $venta->sede_id,
-                MovimientoInventario::TIPO_ENTRADA,
-                (string) $cantidad,
-                $notas,
+        foreach ($movimientos as $movimiento) {
+            $this->lotes->revertirMovimiento(
+                $movimiento,
                 (string) $user->getAuthIdentifier(),
-                null,
-                (string) $venta->id,
+                __('caja.ventas.anulacion.movimiento_notas', ['numero' => $venta->numero]),
             );
         }
     }
