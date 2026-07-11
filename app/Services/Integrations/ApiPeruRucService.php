@@ -2,17 +2,25 @@
 
 namespace App\Services\Integrations;
 
+use App\Services\Integrations\Concerns\FallsBackToApisunatLookup;
 use Illuminate\Support\Facades\Cache;
 use RuntimeException;
 
 /**
  * Cliente para consulta de RUC vía {@link https://apiperu.dev apiperu.dev}.
+ * Si apiperu falla por cuota o indisponibilidad, usa APISUNAT (Lucode) como respaldo.
  *
  * Documentación: POST `{base_url}/ruc` con header `Authorization: Bearer {token}`
  * y cuerpo JSON `{"ruc":"20100070970"}` (11 dígitos).
  */
 final class ApiPeruRucService
 {
+    use FallsBackToApisunatLookup;
+
+    public function __construct(
+        private readonly ApisunatLookupService $apisunatLookup,
+    ) {}
+
     /**
      * @return array{
      *     ruc: string,
@@ -31,10 +39,13 @@ final class ApiPeruRucService
             throw new RuntimeException('El RUC debe tener 11 dígitos.');
         }
 
-        $cacheKey = "apiperu:ruc:{$ruc}";
+        $cacheKey = "documento:ruc:{$ruc}";
 
         return Cache::remember($cacheKey, now()->addDays(30), function () use ($ruc): array {
-            return $this->fetchFromApi($ruc);
+            return $this->consultarConFallbackApisunat(
+                fn (): array => $this->fetchFromApiPeru($ruc),
+                fn (): array => $this->apisunatLookup->consultarRuc($ruc),
+            );
         });
     }
 
@@ -48,7 +59,7 @@ final class ApiPeruRucService
      *     condicion_sunat: string|null,
      * }
      */
-    private function fetchFromApi(string $ruc): array
+    private function fetchFromApiPeru(string $ruc): array
     {
         $response = ApiPeruHttp::client()->post('/ruc', ['ruc' => $ruc]);
 

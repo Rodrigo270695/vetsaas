@@ -63,4 +63,18 @@ return [
         'token' => env('APIPERU_TOKEN'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | APISUNAT / Lucode (consulta DNI y RUC — APIs de apoyo)
+    |--------------------------------------------------------------------------
+    |
+    | Respaldo cuando apiperu.dev agota cuota o no responde. Si no se define
+    | APISUNAT_LOOKUP_TOKEN, se intenta el token APISUNAT de la clínica (FEL).
+    |
+    */
+    'apisunat_lookup' => [
+        'base_url' => env('APISUNAT_LOOKUP_BASE_URL', 'https://dev.apisunat.pe/api/v1'),
+        'token' => env('APISUNAT_LOOKUP_TOKEN'),
+    ],
+
 ];

@@ -2,17 +2,25 @@
 
 namespace App\Services\Integrations;
 
+use App\Services\Integrations\Concerns\FallsBackToApisunatLookup;
 use Illuminate\Support\Facades\Cache;
 use RuntimeException;
 
 /**
  * Cliente para consulta de DNI vía {@link https://apiperu.dev apiperu.dev}.
+ * Si apiperu falla por cuota o indisponibilidad, usa APISUNAT (Lucode) como respaldo.
  *
  * Documentación: POST `{base_url}/dni` con header `Authorization: Bearer {token}`
  * y cuerpo JSON `{"dni":"12345678"}` (8 dígitos).
  */
 final class ApiPeruDniService
 {
+    use FallsBackToApisunatLookup;
+
+    public function __construct(
+        private readonly ApisunatLookupService $apisunatLookup,
+    ) {}
+
     /**
      * @return array{
      *     dni: string,
@@ -29,10 +37,13 @@ final class ApiPeruDniService
             throw new RuntimeException('El DNI debe tener 8 dígitos.');
         }
 
-        $cacheKey = "apiperu:dni:{$dni}";
+        $cacheKey = "documento:dni:{$dni}";
 
         return Cache::remember($cacheKey, now()->addDays(30), function () use ($dni): array {
-            return $this->fetchFromApi($dni);
+            return $this->consultarConFallbackApisunat(
+                fn (): array => $this->fetchFromApiPeru($dni),
+                fn (): array => $this->apisunatLookup->consultarDni($dni),
+            );
         });
     }
 
@@ -44,7 +55,7 @@ final class ApiPeruDniService
      *     nombre_completo: string,
      * }
      */
-    private function fetchFromApi(string $dni): array
+    private function fetchFromApiPeru(string $dni): array
     {
         $response = ApiPeruHttp::client()->post('/dni', ['dni' => $dni]);
 
