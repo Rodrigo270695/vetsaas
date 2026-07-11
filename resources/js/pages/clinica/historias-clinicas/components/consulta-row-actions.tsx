@@ -40,12 +40,17 @@ export function ConsultaRowActions({
     const showPlanEntry =
         canPlanManage || (canPlanView && consulta.plan_tratamiento !== null);
 
-    const vacunasPrefillUrl = clinica.vacunaciones.index.url({
-        query: {
-            prefill_paciente_id: consulta.historia_clinica.paciente.id,
-            prefill_consulta_id: consulta.id,
-        },
-    });
+    const pacienteId = consulta.historia_clinica.paciente?.id;
+
+    const vacunasPrefillUrl =
+        pacienteId != null
+            ? clinica.vacunaciones.index.url({
+                  query: {
+                      prefill_paciente_id: pacienteId,
+                      prefill_consulta_id: consulta.id,
+                  },
+              })
+            : null;
 
     if (!canUpdate && !canDelete && !showPlanEntry && !canVacunasCreate && !canCargosView) {
         return null;
@@ -85,7 +90,7 @@ export function ConsultaRowActions({
                         {t('actions.cargos_consulta')}
                     </DropdownMenuItem>
                 )}
-                {canVacunasCreate && !consulta.cerrada_at ? (
+                {canVacunasCreate && !consulta.cerrada_at && vacunasPrefillUrl ? (
                     <DropdownMenuItem asChild className="cursor-pointer p-0">
                         <a
                             href={vacunasPrefillUrl}

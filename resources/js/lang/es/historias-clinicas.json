@@ -52,7 +52,8 @@
         "system": "Sistema",
         "estado_abierta": "Abierta",
         "estado_cerrada": "Cerrada",
-        "antigua_hint": "+24 h abierta"
+        "antigua_hint": "+24 h abierta",
+        "paciente_no_disponible": "Paciente no disponible"
     },
     "toast": {
         "load_error": "No se pudo cargar el listado."

@@ -142,7 +142,7 @@ export function ConsultaFormModal({
         }
         if (consulta) {
             setData({
-                paciente_id: consulta.historia_clinica.paciente.id,
+                paciente_id: consulta.historia_clinica.paciente?.id ?? '',
                 atendido_at: toDatetimeLocalValue(consulta.atendido_at),
                 motivo: consulta.motivo ?? '',
                 subjetivo: consulta.subjetivo ?? '',

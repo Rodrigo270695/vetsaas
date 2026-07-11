@@ -47,7 +47,7 @@ type Props = {
             nombres: string;
             apellidos: string | null;
             razon_social: string | null;
-        };
+        } | null;
     } | null;
     pacientes_opciones: readonly PacienteHistoriaOpcion[];
     filters: ConsultaHistoriaFilters;
@@ -69,7 +69,11 @@ type ModalState =
 const DEFAULT_PER_PAGE = 10;
 
 function displayPropietario(
-    p: ConsultaHistoriaRow['historia_clinica']['paciente']['propietario'],
+    p: {
+        nombres: string;
+        apellidos: string | null;
+        razon_social: string | null;
+    } | null | undefined,
 ): string {
     if (!p) {
         return '—';
@@ -80,6 +84,15 @@ function displayPropietario(
     }
 
     return [p.nombres, p.apellidos].filter(Boolean).join(' ') || '—';
+}
+
+function displayPacienteNombre(
+    paciente: ConsultaHistoriaRow['historia_clinica']['paciente'],
+    fallback: string,
+): string {
+    const nombre = paciente?.nombre?.trim();
+
+    return nombre && nombre !== '' ? nombre : fallback;
 }
 
 function truncate(s: string | null, max: number): string {
@@ -328,7 +341,7 @@ export default function Index({
                 sortable: true,
                 cell: (row) => (
                     <span className="font-medium text-foreground">
-                        {row.historia_clinica.paciente.nombre}
+                        {displayPacienteNombre(row.historia_clinica.paciente, t('row.paciente_no_disponible'))}
                     </span>
                 ),
             },
@@ -337,7 +350,7 @@ export default function Index({
                 header: t('columns.propietario'),
                 cell: (row) => (
                     <span className="text-sm text-muted-foreground">
-                        {displayPropietario(row.historia_clinica.paciente.propietario)}
+                        {displayPropietario(row.historia_clinica.paciente?.propietario)}
                     </span>
                 ),
             },

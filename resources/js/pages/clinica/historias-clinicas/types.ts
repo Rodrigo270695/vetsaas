@@ -9,7 +9,7 @@ export type PacienteHistoriaOpcion = {
         nombres: string;
         apellidos: string | null;
         razon_social: string | null;
-    };
+    } | null;
 };
 
 export type ConsultaEstadoFiltro = 'todas' | 'abierta' | 'cerrada';
@@ -105,8 +105,8 @@ export type ConsultaHistoriaRow = {
                 nombres: string;
                 apellidos: string | null;
                 razon_social: string | null;
-            };
-        };
+            } | null;
+        } | null;
     };
     veterinario: { id: string; name: string } | null;
     creado_por: AuditUser;

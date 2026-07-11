@@ -89,7 +89,8 @@ class ConsultaHistoriaController extends Controller
 
         $query = Consulta::query()
             ->with([
-                'historiaClinica.paciente.propietario:id,nombres,apellidos,razon_social',
+                'historiaClinica.paciente' => fn ($q) => $q->withTrashed(),
+                'historiaClinica.paciente.propietario' => fn ($q) => $q->withTrashed()->select('id', 'nombres', 'apellidos', 'razon_social'),
                 'veterinario:id,name',
                 'cerradaPor:id,name',
                 'planTratamiento.lineas.producto:id,nombre,unidad,sku',
@@ -183,7 +184,7 @@ class ConsultaHistoriaController extends Controller
         }
 
         $pacientesOpciones = Paciente::query()
-            ->with(['propietario:id,nombres,apellidos,razon_social'])
+            ->with(['propietario' => fn ($q) => $q->withTrashed()->select('id', 'nombres', 'apellidos', 'razon_social')])
             ->where('activo', true)
             ->orderBy('nombre')
             ->limit(500)
@@ -244,7 +245,8 @@ class ConsultaHistoriaController extends Controller
 
         $query = Consulta::query()
             ->with([
-                'historiaClinica.paciente.propietario:id,nombres,apellidos,razon_social',
+                'historiaClinica.paciente' => fn ($q) => $q->withTrashed(),
+                'historiaClinica.paciente.propietario' => fn ($q) => $q->withTrashed()->select('id', 'nombres', 'apellidos', 'razon_social'),
                 'veterinario:id,name',
                 'cerradaPor:id,name',
                 'planTratamiento.lineas.producto:id,nombre,unidad,sku',
@@ -276,7 +278,7 @@ class ConsultaHistoriaController extends Controller
         }
 
         $paciente = Paciente::query()
-            ->with(['propietario:id,nombres,apellidos,razon_social'])
+            ->with(['propietario' => fn ($q) => $q->withTrashed()->select('id', 'nombres', 'apellidos', 'razon_social')])
             ->whereKey($raw)
             ->where('activo', true)
             ->first(['id', 'nombre', 'propietario_id']);
@@ -286,19 +288,16 @@ class ConsultaHistoriaController extends Controller
         }
 
         $prop = $paciente->propietario;
-        if ($prop === null) {
-            return null;
-        }
 
         return [
             'id' => $paciente->id,
             'nombre' => $paciente->nombre,
-            'propietario' => [
+            'propietario' => $prop !== null ? [
                 'id' => $prop->id,
                 'nombres' => $prop->nombres,
                 'apellidos' => $prop->apellidos,
                 'razon_social' => $prop->razon_social,
-            ],
+            ] : null,
         ];
     }
 
