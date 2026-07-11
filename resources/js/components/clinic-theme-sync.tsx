@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/react';
-import { useEffect } from 'react';
+import { useLayoutEffect } from 'react';
 import { applyClinicBrandTheme, clearClinicBrandTheme } from '@/lib/clinic-theme';
 import type { ClinicBranding } from '@/types/clinic-branding';
 
@@ -18,24 +18,21 @@ function syncBranding(props: Record<string, unknown> | undefined): void {
     applyClinicBrandTheme(branding.color_primario, branding.color_secundario);
 }
 
+function readRouterPageProps(): Record<string, unknown> | undefined {
+    return (router as unknown as { page?: InertiaPage }).page?.props;
+}
+
 /**
- * Aplica el color primario/secundario de la clínica a las variables CSS de marca.
- *
- * Vive fuera del árbol de Inertia (`withApp`), así que no puede usar `usePage()`;
- * lee `clinic_branding` desde `router.page` y en cada navegación `success`.
+ * Mantiene las variables CSS de marca al día en navegaciones Inertia.
+ * La carga inicial también se cubre en servidor (Blade) y en app.tsx.
  */
 export function ClinicThemeSync() {
-    useEffect(() => {
-        const handle = (props: Record<string, unknown> | undefined): void => {
-            syncBranding(props);
-        };
-
-        const initialPage = (router as unknown as { page?: InertiaPage }).page;
-        handle(initialPage?.props);
+    useLayoutEffect(() => {
+        syncBranding(readRouterPageProps());
 
         const removeSuccess = router.on('success', (event) => {
             const detail = (event as InertiaEvent).detail;
-            handle(detail?.page?.props);
+            syncBranding(detail?.page?.props);
         });
 
         return () => {

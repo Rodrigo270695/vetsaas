@@ -115,7 +115,7 @@ class HandleInertiaRequests extends Middleware
             'tenant' => $tenantPayload,
             'clinic_branding' => $tenantContext === null
                 ? null
-                : fn (): ?array => $this->resolveClinicBranding(),
+                : $this->resolveClinicBranding(),
             'tenancy' => [
                 'root_domain' => TenantSubdomainUrl::rootDomain(),
                 'scheme' => TenantSubdomainUrl::scheme(),

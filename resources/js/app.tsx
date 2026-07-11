@@ -8,10 +8,14 @@ import { initializeTheme } from '@/hooks/use-appearance';
 import AppLayout from '@/layouts/app-layout';
 import AuthLayout from '@/layouts/auth-layout';
 import SettingsLayout from '@/layouts/settings/layout';
-import { rememberInertiaPage } from '@/lib/offline/page-cache';
+import { applyInitialClinicThemeFromDocument } from '@/lib/apply-initial-clinic-theme';
 import '@/lib/i18n';
+import { rememberInertiaPage } from '@/lib/offline/page-cache';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+
+initializeTheme();
+applyInitialClinicThemeFromDocument();
 
 createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),
@@ -74,8 +78,6 @@ window.addEventListener('unhandledrejection', (event) => {
         window.location.reload();
     }
 });
-
-initializeTheme();
 
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {

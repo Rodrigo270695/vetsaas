@@ -6,6 +6,7 @@ use App\Http\Middleware\EnsurePasswordIsChanged;
 use App\Http\Middleware\EnsureTenant;
 use App\Http\Middleware\EnsureTenantSubscriptionAccess;
 use App\Http\Middleware\HandleAppearance;
+use App\Http\Middleware\HandleClinicBrandTheme;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\MatchUserTenant;
 use App\Http\Middleware\ResolveTenant;
@@ -112,6 +113,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->web(append: [
             HandleAppearance::class,
+            HandleClinicBrandTheme::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
             EnsureTenantSubscriptionAccess::class,
