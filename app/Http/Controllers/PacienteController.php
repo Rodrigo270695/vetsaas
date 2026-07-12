@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\PacientesImportTemplateXlsx;
 use App\Exports\PacientesXlsxExport;
 use App\Http\Controllers\Concerns\LogsAuditExports;
 use App\Http\Controllers\Concerns\ResolvesClinicPdfBranding;
@@ -14,6 +15,7 @@ use App\Models\PedidoLaboratorio;
 use App\Models\Propietario;
 use App\Models\Receta;
 use App\Models\VacunaAplicada;
+use App\Services\Clinica\PacienteImportService;
 use App\Support\Pacientes\PacienteEspecieRazaCatalogo;
 use App\Support\Pdf\HistorialClinicoPdfBuilder;
 use App\Tenancy\TenantManager;
@@ -439,6 +441,52 @@ class PacienteController extends Controller
                 'Pragma' => 'no-cache',
             ],
         );
+    }
+
+    public function downloadImportTemplate(): StreamedResponse
+    {
+        $filename = 'plantilla_pacientes_'.now()->format('Y-m-d').'.xlsx';
+
+        return response()->streamDownload(function (): void {
+            (new PacientesImportTemplateXlsx)->streamTo('php://output');
+        }, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
+    }
+
+    public function importExcel(Request $request, PacienteImportService $importService): JsonResponse
+    {
+        $request->validate([
+            'file' => ['required', 'file', 'max:10240'],
+        ]);
+
+        $uploaded = $request->file('file');
+        if ($uploaded === null) {
+            return response()->json([
+                'ok' => false,
+                'error' => 'No se recibió el archivo.',
+                'imported' => 0,
+                'failed' => 0,
+                'skipped' => 0,
+                'rows' => [],
+            ], 422);
+        }
+
+        $extension = strtolower($uploaded->getClientOriginalExtension());
+        if (! in_array($extension, ['xlsx', 'xls'], true)) {
+            return response()->json([
+                'ok' => false,
+                'error' => 'El archivo debe ser .xlsx',
+                'imported' => 0,
+                'failed' => 0,
+                'skipped' => 0,
+                'rows' => [],
+            ], 422);
+        }
+
+        $result = $importService->import($uploaded);
+
+        return response()->json($result, ($result['ok'] ?? false) ? 200 : 422);
     }
 
     /**

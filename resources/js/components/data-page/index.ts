@@ -1,4 +1,5 @@
 export { DataPagination, type DataPaginationProps } from './data-pagination';
+export { BulkImportModal, type BulkImportModalProps } from './bulk-import-modal';
 export {
     BulkAction,
     BulkActionBar,

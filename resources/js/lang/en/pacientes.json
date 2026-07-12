@@ -13,7 +13,31 @@
         "delete_selected": "Delete selected",
         "open_carnet_vacunas": "Open vaccination record in new tab",
         "open_historial": "Clinical history",
-        "open_historial_pdf": "Clinical history (PDF)"
+        "open_historial_pdf": "Clinical history (PDF)",
+        "bulk_import": "Bulk upload",
+        "bulk_import_short": "Bulk"
+    },
+    "import": {
+        "title": "Bulk pet upload",
+        "description": "Download the Excel template, set the owner document, and upload to create several pets.",
+        "template_title": "Template",
+        "template_hint": "The file includes three sheets with Excel table formatting.",
+        "sheet_data": "Pacientes — rows to import (* fields and lists)",
+        "sheet_catalogos": "Catalogos — owners, species, breeds, sex and YES/NO",
+        "sheet_guide": "Required fields — column guide",
+        "required_hint": "Required: nombre*, propietario_documento* and activo*. The owner must already exist (same document).",
+        "download_template": "Download .xlsx template",
+        "upload_title": "Upload Excel",
+        "upload_hint": "Select the completed file. You’ll see results row by row.",
+        "choose_file": "Choose .xlsx file",
+        "upload": "Upload and import",
+        "uploading": "Importing…",
+        "results_empty": "Imported pets and errors will appear here.",
+        "summary_ok": "{{count}} created",
+        "summary_error": "{{count}} with errors",
+        "summary_skipped": "{{count}} skipped",
+        "row_label": "Row {{row}}: {{nombre}}",
+        "error_generic": "Could not import the file. Please try again."
     },
     "bulk": {
         "selected_singular": "pet selected",

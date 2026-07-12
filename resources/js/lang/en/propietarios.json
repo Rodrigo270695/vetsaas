@@ -11,7 +11,31 @@
         "new_short": "New",
         "create_first": "Register first owner",
         "delete_selected": "Delete selected",
-        "view_pets": "View pets"
+        "view_pets": "View pets",
+        "bulk_import": "Bulk upload",
+        "bulk_import_short": "Bulk"
+    },
+    "import": {
+        "title": "Bulk owner upload",
+        "description": "Download the Excel template, fill it in, and upload it to create several owners at once.",
+        "template_title": "Template",
+        "template_hint": "The file includes three sheets with Excel table formatting.",
+        "sheet_data": "Propietarios — rows to import (* fields and lists)",
+        "sheet_catalogos": "Catalogos — document types and YES/NO",
+        "sheet_guide": "Required fields — column guide",
+        "required_hint": "Required: nombres* and activo*. Document (type + number) must be unique.",
+        "download_template": "Download .xlsx template",
+        "upload_title": "Upload Excel",
+        "upload_hint": "Select the completed file. You’ll see results row by row.",
+        "choose_file": "Choose .xlsx file",
+        "upload": "Upload and import",
+        "uploading": "Importing…",
+        "results_empty": "Imported owners and errors will appear here.",
+        "summary_ok": "{{count}} created",
+        "summary_error": "{{count}} with errors",
+        "summary_skipped": "{{count}} skipped",
+        "row_label": "Row {{row}}: {{nombre}}",
+        "error_generic": "Could not import the file. Please try again."
     },
     "bulk": {
         "selected_singular": "owner selected",

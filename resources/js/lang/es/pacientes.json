@@ -13,7 +13,31 @@
         "delete_selected": "Eliminar seleccionados",
         "open_carnet_vacunas": "Ver carnet en nueva pestaña",
         "open_historial": "Historial clínico",
-        "open_historial_pdf": "Historial clínico (PDF)"
+        "open_historial_pdf": "Historial clínico (PDF)",
+        "bulk_import": "Carga masiva",
+        "bulk_import_short": "Masiva"
+    },
+    "import": {
+        "title": "Carga masiva de pacientes",
+        "description": "Descarga la plantilla Excel, indica el documento del titular y súbela para crear varias mascotas.",
+        "template_title": "Plantilla",
+        "template_hint": "El archivo incluye tres hojas con formato de tabla Excel.",
+        "sheet_data": "Pacientes — filas a importar (campos con * y listas)",
+        "sheet_catalogos": "Catalogos — PROPIETARIOS, ESPECIES, RAZAS, SEXOS y SI/NO",
+        "sheet_guide": "Campos obligatorios — guía de cada columna",
+        "required_hint": "Obligatorios: nombre*, propietario_documento* y activo*. El titular debe existir (mismo documento).",
+        "download_template": "Descargar plantilla .xlsx",
+        "upload_title": "Subir Excel",
+        "upload_hint": "Selecciona el archivo completado. Verás el resultado fila por fila.",
+        "choose_file": "Elegir archivo .xlsx",
+        "upload": "Subir e importar",
+        "uploading": "Importando…",
+        "results_empty": "Aquí aparecerán las mascotas importadas y los errores.",
+        "summary_ok": "{{count}} creados",
+        "summary_error": "{{count}} con error",
+        "summary_skipped": "{{count}} omitidos",
+        "row_label": "Fila {{row}}: {{nombre}}",
+        "error_generic": "No se pudo importar el archivo. Inténtalo de nuevo."
     },
     "bulk": {
         "selected_singular": "mascota seleccionada",

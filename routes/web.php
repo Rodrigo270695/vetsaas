@@ -172,6 +172,12 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             Route::middleware('permission:propietarios.view')
                 ->get('propietarios/export', [PropietarioController::class, 'export'])
                 ->name('propietarios.export');
+            Route::middleware('permission:propietarios.create')
+                ->get('propietarios/plantilla-importacion', [PropietarioController::class, 'downloadImportTemplate'])
+                ->name('propietarios.import-template');
+            Route::middleware('permission:propietarios.create')
+                ->post('propietarios/importar', [PropietarioController::class, 'importExcel'])
+                ->name('propietarios.import');
             Route::middleware('permission:propietarios.bulk-delete')
                 ->delete('propietarios/bulk', [PropietarioController::class, 'bulkDestroy'])
                 ->name('propietarios.bulk-destroy');
@@ -206,6 +212,12 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             Route::middleware('permission:pacientes.view')
                 ->get('pacientes/export', [PacienteController::class, 'export'])
                 ->name('pacientes.export');
+            Route::middleware('permission:pacientes.create')
+                ->get('pacientes/plantilla-importacion', [PacienteController::class, 'downloadImportTemplate'])
+                ->name('pacientes.import-template');
+            Route::middleware('permission:pacientes.create')
+                ->post('pacientes/importar', [PacienteController::class, 'importExcel'])
+                ->name('pacientes.import');
             Route::middleware('permission:pacientes.bulk-delete')
                 ->delete('pacientes/bulk', [PacienteController::class, 'bulkDestroy'])
                 ->name('pacientes.bulk-destroy');
