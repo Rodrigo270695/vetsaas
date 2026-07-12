@@ -11,6 +11,7 @@ import {
     EmptyState,
     FilterChips,
     PageHeader,
+    StatBadge,
 } from '@/components/data-page';
 import type { DataTableColumn, FilterChip } from '@/components/data-page';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
