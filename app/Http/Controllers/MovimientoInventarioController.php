@@ -158,6 +158,20 @@ class MovimientoInventarioController extends Controller
     {
         $data = $request->validated();
         $userId = $request->user()?->id;
+        $uid = $userId !== null ? (string) $userId : null;
+
+        if (($data['tipo'] ?? '') === MovimientoInventarioStoreRequest::TIPO_TRASLADO) {
+            $this->lotes->registrarTraslado(
+                $data['producto_id'],
+                $data['sede_id'],
+                (string) $data['sede_destino_id'],
+                (string) ((float) (string) $data['cantidad']),
+                $data['notas'] ?? null,
+                $uid,
+            );
+
+            return back()->with('success', 'Traslado registrado correctamente.');
+        }
 
         $this->lotes->registrarMovimientoManual(
             $data['tipo'],
@@ -165,7 +179,7 @@ class MovimientoInventarioController extends Controller
             $data['sede_id'],
             (string) ((float) (string) $data['cantidad']),
             $data['notas'] ?? null,
-            $userId !== null ? (string) $userId : null,
+            $uid,
             isset($data['numero_lote']) ? (string) $data['numero_lote'] : null,
             isset($data['fecha_vencimiento']) ? (string) $data['fecha_vencimiento'] : null,
         );

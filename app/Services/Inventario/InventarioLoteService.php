@@ -5,7 +5,9 @@ namespace App\Services\Inventario;
 use App\Models\ExistenciaSede;
 use App\Models\MovimientoInventario;
 use App\Models\ProductoLote;
+use App\Models\Sede;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -36,6 +38,7 @@ final class InventarioLoteService
         ?string $userId,
         ?string $compraId = null,
         ?string $compraLineaId = null,
+        ?string $trasladoGrupoId = null,
     ): MovimientoInventario {
         $cantidadNum = round((float) $cantidad, 3);
         if ($cantidadNum <= 0) {
@@ -86,6 +89,8 @@ final class InventarioLoteService
             $compraId,
             null,
             (string) $lote->id,
+            null,
+            $trasladoGrupoId,
         );
     }
 
@@ -101,6 +106,7 @@ final class InventarioLoteService
         ?string $notas,
         ?string $userId,
         ?string $ventaId = null,
+        ?string $trasladoGrupoId = null,
     ): array {
         $pendiente = round((float) $cantidad, 3);
         if ($pendiente <= 0) {
@@ -148,6 +154,7 @@ final class InventarioLoteService
                 $ventaId,
                 (string) $lote->id,
                 $fefoGrupoId,
+                $trasladoGrupoId,
             );
 
             $pendiente = round($pendiente - $tomar, 3);
@@ -160,6 +167,72 @@ final class InventarioLoteService
         }
 
         return $movimientos;
+    }
+
+    /**
+     * Traslado FEFO: sale de origen y entra en destino preservando lote/vencimiento.
+     *
+     * @return list<MovimientoInventario>
+     */
+    public function registrarTraslado(
+        string $productoId,
+        string $sedeOrigenId,
+        string $sedeDestinoId,
+        string $cantidad,
+        ?string $notas,
+        ?string $userId,
+    ): array {
+        if ($sedeOrigenId === $sedeDestinoId) {
+            throw ValidationException::withMessages([
+                'sede_destino_id' => 'La sede de destino debe ser distinta a la de origen.',
+            ]);
+        }
+
+        return DB::transaction(function () use ($productoId, $sedeOrigenId, $sedeDestinoId, $cantidad, $notas, $userId): array {
+            $origen = Sede::query()->find($sedeOrigenId);
+            $destino = Sede::query()->find($sedeDestinoId);
+            $origenLabel = $origen?->nombre ?? $sedeOrigenId;
+            $destinoLabel = $destino?->nombre ?? $sedeDestinoId;
+
+            $grupo = (string) Str::uuid();
+            $notaBase = trim((string) ($notas ?? ''));
+            $notaSalida = trim(($notaBase !== '' ? $notaBase.' · ' : '').'Traslado → '.$destinoLabel);
+            $notaEntrada = trim(($notaBase !== '' ? $notaBase.' · ' : '').'Traslado ← '.$origenLabel);
+
+            $salidas = $this->descontarFefo(
+                $productoId,
+                $sedeOrigenId,
+                $cantidad,
+                $notaSalida,
+                $userId,
+                null,
+                $grupo,
+            );
+
+            $creados = $salidas;
+
+            foreach ($salidas as $salida) {
+                $salida->loadMissing('productoLote');
+                $lote = $salida->productoLote;
+                $qty = abs(round((float) (string) $salida->delta, 3));
+                $venc = $lote?->fecha_vencimiento?->format('Y-m-d');
+
+                $creados[] = $this->registrarEntrada(
+                    $productoId,
+                    $sedeDestinoId,
+                    (string) $qty,
+                    $lote?->numero_lote,
+                    $venc,
+                    $notaEntrada.($lote ? ' · Lote '.$lote->numero_lote : ''),
+                    $userId,
+                    null,
+                    null,
+                    $grupo,
+                );
+            }
+
+            return $creados;
+        });
     }
 
     /**

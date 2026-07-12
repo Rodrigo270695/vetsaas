@@ -31,7 +31,8 @@
         "entrada": "Entrada",
         "salida": "Salida",
         "merma": "Merma",
-        "ajuste": "Ajuste"
+        "ajuste": "Ajuste",
+        "traslado": "Traslado"
     },
     "stats": {
         "total_sede": "Movimientos en sede",
@@ -60,6 +61,9 @@
         "producto": "Producto",
         "producto_placeholder": "Elegir producto",
         "sede": "Sede",
+        "sede_origen": "Sede origen",
+        "sede_destino": "Sede destino",
+        "sede_destino_placeholder": "Elegir destino",
         "tipo": "Tipo",
         "cantidad": "Cantidad",
         "cantidad_hint": "Mínimo 0,001. Máximo 3 decimales.",
@@ -68,6 +72,7 @@
         "lote_hint": "Si no indicas lote, se registrará como SIN-LOTE.",
         "vencimiento": "Vencimiento",
         "salida_fefo_hint": "Salidas y mermas descuentan automáticamente del lote que vence primero (FEFO).",
+        "traslado_hint": "Sale por FEFO en origen y entra en destino con el mismo lote y vencimiento.",
         "notas": "Notas (opcional)",
         "submit": "Registrar",
         "error_submit": "No se pudo registrar el movimiento.",

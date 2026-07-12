@@ -31,7 +31,8 @@
         "entrada": "Receipt",
         "salida": "Issue",
         "merma": "Shrinkage",
-        "ajuste": "Adjustment"
+        "ajuste": "Adjustment",
+        "traslado": "Transfer"
     },
     "stats": {
         "total_sede": "Movements at branch",
@@ -60,6 +61,9 @@
         "producto": "Product",
         "producto_placeholder": "Choose product",
         "sede": "Branch",
+        "sede_origen": "From branch",
+        "sede_destino": "To branch",
+        "sede_destino_placeholder": "Choose destination",
         "tipo": "Type",
         "cantidad": "Quantity",
         "cantidad_hint": "Minimum 0.001. Up to 3 decimal places.",
@@ -68,6 +72,7 @@
         "lote_hint": "If omitted, the batch will be recorded as SIN-LOTE.",
         "vencimiento": "Expiry",
         "salida_fefo_hint": "Outbound movements and shrinkage deduct from the earliest-expiring batch (FEFO).",
+        "traslado_hint": "Leaves origin by FEFO and enters the destination with the same batch and expiry.",
         "notas": "Notes (optional)",
         "submit": "Save",
         "error_submit": "Could not record the movement.",

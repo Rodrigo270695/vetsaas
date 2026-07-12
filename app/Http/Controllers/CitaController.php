@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Exports\CitasXlsxExport;
 use App\Http\Controllers\Concerns\LogsAuditExports;
+use App\Http\Requests\RescheduleCitaRequest;
 use App\Http\Requests\StoreCitaRequest;
 use App\Http\Requests\UpdateCitaRequest;
 use App\Models\Cita;
@@ -285,6 +286,19 @@ class CitaController extends Controller
                 'search', 'per_page', 'sort', 'direction', 'cita_desde', 'cita_hasta', 'vista', 'mes',
             ]))
             ->with('success', __('citas.flash.updated'));
+    }
+
+    public function reschedule(RescheduleCitaRequest $request, Cita $cita): RedirectResponse
+    {
+        $cita->inicio_at = $request->validated('inicio_at');
+        $cita->updated_by_id = Auth::id();
+        $cita->save();
+
+        return redirect()
+            ->route('clinica.citas.index', $request->only([
+                'search', 'per_page', 'sort', 'direction', 'cita_desde', 'cita_hasta', 'vista', 'mes',
+            ]))
+            ->with('success', __('citas.flash.rescheduled'));
     }
 
     public function destroy(Request $request, Cita $cita): RedirectResponse

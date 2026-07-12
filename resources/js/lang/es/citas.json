@@ -29,6 +29,7 @@
         "next_week": "Semana siguiente",
         "more": "más",
         "click_day_hint": "Haz clic en un día para agendar (elige la hora) o usa un horario en la agenda lateral.",
+        "drag_hint": "Arrastra una cita programada o confirmada a otro día u horario para reprogramarla.",
         "pick_month": "Ir a un mes",
         "pick_year": "Ir a un año",
         "day_agenda": "Agenda del día",

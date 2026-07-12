@@ -37,6 +37,7 @@ class MovimientoInventario extends Model
         'venta_id',
         'producto_lote_id',
         'fefo_grupo_id',
+        'traslado_grupo_id',
         'sede_id',
         'tipo',
         'delta',
@@ -103,6 +104,7 @@ class MovimientoInventario extends Model
         ?string $ventaId = null,
         ?string $productoLoteId = null,
         ?string $fefoGrupoId = null,
+        ?string $trasladoGrupoId = null,
     ): self {
         if (! in_array($tipo, [self::TIPO_ENTRADA, self::TIPO_SALIDA, self::TIPO_MERMA, self::TIPO_AJUSTE], true)) {
             throw ValidationException::withMessages([
@@ -110,7 +112,7 @@ class MovimientoInventario extends Model
             ]);
         }
 
-        return DB::transaction(function () use ($productoId, $sedeId, $tipo, $delta, $notas, $userId, $compraId, $ventaId, $productoLoteId, $fefoGrupoId): self {
+        return DB::transaction(function () use ($productoId, $sedeId, $tipo, $delta, $notas, $userId, $compraId, $ventaId, $productoLoteId, $fefoGrupoId, $trasladoGrupoId): self {
             $existencia = ExistenciaSede::query()
                 ->where('producto_id', $productoId)
                 ->where('sede_id', $sedeId)
@@ -141,6 +143,7 @@ class MovimientoInventario extends Model
                 'venta_id' => $ventaId,
                 'producto_lote_id' => $productoLoteId,
                 'fefo_grupo_id' => $fefoGrupoId,
+                'traslado_grupo_id' => $trasladoGrupoId,
                 'sede_id' => $sedeId,
                 'tipo' => $tipo,
                 'delta' => $deltaNum,

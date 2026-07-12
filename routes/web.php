@@ -336,6 +336,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
                 ->post('citas', [CitaController::class, 'store'])
                 ->name('citas.store');
             Route::middleware('permission:citas.update')
+                ->match(['put', 'patch'], 'citas/{cita}/reprogramar', [CitaController::class, 'reschedule'])
+                ->name('citas.reschedule');
+            Route::middleware('permission:citas.update')
                 ->match(['put', 'patch'], 'citas/{cita}', [CitaController::class, 'update'])
                 ->name('citas.update');
             Route::middleware('permission:citas.delete')

@@ -10,7 +10,7 @@ import {
 } from 'date-fns';
 import { enUS, es } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight, Clock, Plus } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, type DragEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import {
@@ -34,13 +34,22 @@ type Props = {
     timeZone: string;
     isLoading?: boolean;
     canCreate: boolean;
+    canUpdate?: boolean;
     onSelectCita: (cita: CitaRow) => void;
     onScheduleDay: (fecha: string, hora?: string) => void;
+    onReschedule?: (cita: CitaRow, fecha: string, hora?: string) => void;
     onPrevMonth: () => void;
     onNextMonth: () => void;
     onJumpToMonth: (mes: string) => void;
     onToday: () => void;
 };
+
+const DND_MIME = 'application/x-vetsaas-cita-id';
+const RESCHEDULABLE = new Set(['programada', 'confirmada']);
+
+function canDragCita(cita: CitaRow, canUpdate: boolean): boolean {
+    return canUpdate && RESCHEDULABLE.has(cita.estado);
+}
 
 function parseMes(mes: string): Date {
     const [y, m] = mes.split('-').map(Number);
@@ -96,8 +105,10 @@ export function CitasCalendar({
     timeZone,
     isLoading,
     canCreate,
+    canUpdate = false,
     onSelectCita,
     onScheduleDay,
+    onReschedule,
     onPrevMonth,
     onNextMonth,
     onJumpToMonth,
@@ -108,6 +119,8 @@ export function CitasCalendar({
 
     const monthStart = useMemo(() => parseMes(mes), [mes]);
     const [selectedDay, setSelectedDay] = useState<string | null>(null);
+    const [dragOverKey, setDragOverKey] = useState<string | null>(null);
+    const citasById = useMemo(() => new Map(citas.map((c) => [c.id, c])), [citas]);
 
     useEffect(() => {
         setSelectedDay(null);
@@ -215,6 +228,70 @@ export function CitasCalendar({
         if (canCreate) {
             onScheduleDay(dateKey);
         }
+    };
+
+    const resolveDragCita = (e: DragEvent): CitaRow | null => {
+        const id = e.dataTransfer.getData(DND_MIME) || e.dataTransfer.getData('text/plain');
+
+        return id ? (citasById.get(id) ?? null) : null;
+    };
+
+    const handleDragStart = (e: DragEvent, cita: CitaRow) => {
+        if (!canDragCita(cita, canUpdate) || !onReschedule) {
+            e.preventDefault();
+
+            return;
+        }
+
+        e.dataTransfer.setData(DND_MIME, cita.id);
+        e.dataTransfer.setData('text/plain', cita.id);
+        e.dataTransfer.effectAllowed = 'move';
+    };
+
+    const handleDropOnDay = (e: DragEvent, dateKey: string, inMonth: boolean) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setDragOverKey(null);
+
+        if (!inMonth || !onReschedule) {
+            return;
+        }
+
+        const cita = resolveDragCita(e);
+        if (!cita || !canDragCita(cita, canUpdate)) {
+            return;
+        }
+
+        setSelectedDay(dateKey);
+        onReschedule(cita, dateKey);
+    };
+
+    const handleDropOnHour = (e: DragEvent, dateKey: string, hour: number) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setDragOverKey(null);
+
+        if (!onReschedule) {
+            return;
+        }
+
+        const cita = resolveDragCita(e);
+        if (!cita || !canDragCita(cita, canUpdate)) {
+            return;
+        }
+
+        setSelectedDay(dateKey);
+        onReschedule(cita, dateKey, `${String(hour).padStart(2, '0')}:00`);
+    };
+
+    const allowDrop = (e: DragEvent, key: string) => {
+        if (!canUpdate || !onReschedule) {
+            return;
+        }
+
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        setDragOverKey(key);
     };
 
     return (
@@ -347,6 +424,13 @@ export function CitasCalendar({
                                             handleDayClick(dateKey, inMonth);
                                         }
                                     }}
+                                    onDragOver={(e) => inMonth && allowDrop(e, `day:${dateKey}`)}
+                                    onDragLeave={() => {
+                                        if (dragOverKey === `day:${dateKey}`) {
+                                            setDragOverKey(null);
+                                        }
+                                    }}
+                                    onDrop={(e) => handleDropOnDay(e, dateKey, inMonth)}
                                     className={cn(
                                         'group relative flex min-h-[5.5rem] flex-col rounded-xl border p-1.5 text-left transition-all sm:min-h-[6.5rem]',
                                         inMonth
@@ -356,6 +440,8 @@ export function CitasCalendar({
                                         isSelected &&
                                             inMonth &&
                                             'border-primary/60 bg-primary/[0.06] shadow-md ring-2 ring-primary/30',
+                                        dragOverKey === `day:${dateKey}` &&
+                                            'border-primary bg-primary/10 ring-2 ring-primary/40',
                                     )}
                                 >
                                     <span
@@ -370,24 +456,32 @@ export function CitasCalendar({
                                     </span>
 
                                     <div className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-hidden">
-                                        {dayCitas.slice(0, MAX_PILLS).map((cita) => (
-                                            <button
-                                                key={cita.id}
-                                                type="button"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setSelectedDay(dateKey);
-                                                    onSelectCita(cita);
-                                                }}
-                                                className={cn(
-                                                    'w-full cursor-pointer truncate rounded-md border-l-[3px] px-1 py-0.5 text-left text-[0.6rem] font-medium leading-tight transition-colors',
-                                                    getEstadoAccent(cita.estado),
-                                                )}
-                                            >
-                                                {format(new TZDate(cita.inicio_at, timeZone), 'HH:mm')}{' '}
-                                                {displayPacienteCita(cita.paciente)}
-                                            </button>
-                                        ))}
+                                        {dayCitas.slice(0, MAX_PILLS).map((cita) => {
+                                            const draggable = canDragCita(cita, canUpdate) && Boolean(onReschedule);
+
+                                            return (
+                                                <button
+                                                    key={cita.id}
+                                                    type="button"
+                                                    draggable={draggable}
+                                                    onDragStart={(e) => handleDragStart(e, cita)}
+                                                    onDragEnd={() => setDragOverKey(null)}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setSelectedDay(dateKey);
+                                                        onSelectCita(cita);
+                                                    }}
+                                                    className={cn(
+                                                        'w-full truncate rounded-md border-l-[3px] px-1 py-0.5 text-left text-[0.6rem] font-medium leading-tight transition-colors',
+                                                        getEstadoAccent(cita.estado),
+                                                        draggable ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer',
+                                                    )}
+                                                >
+                                                    {format(new TZDate(cita.inicio_at, timeZone), 'HH:mm')}{' '}
+                                                    {displayPacienteCita(cita.paciente)}
+                                                </button>
+                                            );
+                                        })}
                                         {overflow > 0 ? (
                                             <span className="px-1 text-[0.6rem] font-medium text-primary">
                                                 +{overflow} {t('calendar.more')}
@@ -405,7 +499,9 @@ export function CitasCalendar({
                         })}
                     </div>
 
-                    {canCreate ? (
+                    {canUpdate && onReschedule ? (
+                        <p className="mt-3 text-center text-xs text-muted-foreground">{t('calendar.drag_hint')}</p>
+                    ) : canCreate ? (
                         <p className="mt-3 text-center text-xs text-muted-foreground">{t('calendar.click_day_hint')}</p>
                     ) : null}
                 </div>
@@ -432,53 +528,79 @@ export function CitasCalendar({
                             });
 
                             const isOccupied = slotCitas.length > 0;
+                            const slotKey = `hour:${activeDay}:${hour}`;
 
                             return (
                                 <div key={hour} className="grid grid-cols-[3rem_1fr] items-start gap-2">
                                     <span className="pt-1 text-[0.65rem] tabular-nums text-muted-foreground">
                                         {String(hour).padStart(2, '0')}:00
                                     </span>
-                                    {isOccupied ? (
-                                        <div className="space-y-1">
-                                            {slotCitas.map((cita) => (
-                                                <button
-                                                    key={cita.id}
-                                                    type="button"
-                                                    onClick={() => onSelectCita(cita)}
-                                                    className={cn(
-                                                        'w-full cursor-pointer rounded-lg border-l-[3px] px-2.5 py-2 text-left transition-colors',
-                                                        getEstadoAccent(cita.estado),
-                                                    )}
-                                                >
-                                                    <p className="text-xs font-semibold">
-                                                        {format(new TZDate(cita.inicio_at, timeZone), 'HH:mm')}
-                                                        {' · '}
-                                                        {displayPacienteCita(cita.paciente)}
-                                                    </p>
-                                                    {cita.veterinario ? (
-                                                        <p className="mt-0.5 truncate text-[0.65rem] opacity-80">
-                                                            {cita.veterinario.name}
-                                                        </p>
-                                                    ) : null}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    ) : canCreate ? (
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                onScheduleDay(activeDay, `${String(hour).padStart(2, '0')}:00`)
+                                    <div
+                                        onDragOver={(e) => allowDrop(e, slotKey)}
+                                        onDragLeave={() => {
+                                            if (dragOverKey === slotKey) {
+                                                setDragOverKey(null);
                                             }
-                                            className="group/slot flex h-9 w-full cursor-pointer items-center gap-2 rounded-lg border border-dashed border-primary/25 px-2 text-left text-[0.65rem] text-muted-foreground transition-colors hover:border-primary/50 hover:bg-primary/5 hover:text-primary"
-                                        >
-                                            <Clock className="size-3 opacity-60 group-hover/slot:opacity-100" />
-                                            {t('calendar.schedule_at', {
-                                                hour: `${String(hour).padStart(2, '0')}:00`,
-                                            })}
-                                        </button>
-                                    ) : (
-                                        <div className="h-9 rounded-lg border border-dashed border-border/40" />
-                                    )}
+                                        }}
+                                        onDrop={(e) => handleDropOnHour(e, activeDay, hour)}
+                                        className={cn(
+                                            'rounded-lg transition-colors',
+                                            dragOverKey === slotKey && 'bg-primary/10 ring-2 ring-primary/40',
+                                        )}
+                                    >
+                                        {isOccupied ? (
+                                            <div className="space-y-1">
+                                                {slotCitas.map((cita) => {
+                                                    const draggable =
+                                                        canDragCita(cita, canUpdate) && Boolean(onReschedule);
+
+                                                    return (
+                                                        <button
+                                                            key={cita.id}
+                                                            type="button"
+                                                            draggable={draggable}
+                                                            onDragStart={(e) => handleDragStart(e, cita)}
+                                                            onDragEnd={() => setDragOverKey(null)}
+                                                            onClick={() => onSelectCita(cita)}
+                                                            className={cn(
+                                                                'w-full rounded-lg border-l-[3px] px-2.5 py-2 text-left transition-colors',
+                                                                getEstadoAccent(cita.estado),
+                                                                draggable
+                                                                    ? 'cursor-grab active:cursor-grabbing'
+                                                                    : 'cursor-pointer',
+                                                            )}
+                                                        >
+                                                            <p className="text-xs font-semibold">
+                                                                {format(new TZDate(cita.inicio_at, timeZone), 'HH:mm')}
+                                                                {' · '}
+                                                                {displayPacienteCita(cita.paciente)}
+                                                            </p>
+                                                            {cita.veterinario ? (
+                                                                <p className="mt-0.5 truncate text-[0.65rem] opacity-80">
+                                                                    {cita.veterinario.name}
+                                                                </p>
+                                                            ) : null}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        ) : canCreate ? (
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    onScheduleDay(activeDay, `${String(hour).padStart(2, '0')}:00`)
+                                                }
+                                                className="group/slot flex h-9 w-full cursor-pointer items-center gap-2 rounded-lg border border-dashed border-primary/25 px-2 text-left text-[0.65rem] text-muted-foreground transition-colors hover:border-primary/50 hover:bg-primary/5 hover:text-primary"
+                                            >
+                                                <Clock className="size-3 opacity-60 group-hover/slot:opacity-100" />
+                                                {t('calendar.schedule_at', {
+                                                    hour: `${String(hour).padStart(2, '0')}:00`,
+                                                })}
+                                            </button>
+                                        ) : (
+                                            <div className="h-9 rounded-lg border border-dashed border-border/40" />
+                                        )}
+                                    </div>
                                 </div>
                             );
                         })}

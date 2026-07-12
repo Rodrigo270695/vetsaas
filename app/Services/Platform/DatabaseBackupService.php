@@ -434,6 +434,147 @@ final class DatabaseBackupService
         ));
     }
 
+    /**
+     * Restaura un schema tenant (`vet_*`) desde un dump custom de backup.
+     *
+     * @return array{
+     *     schema: string,
+     *     dump_path: string,
+     *     folder: string,
+     *     safety_dump: string|null
+     * }
+     */
+    public function restoreTenantSchema(string $schema, ?string $folder = null): array
+    {
+        if (config('database.default') !== 'pgsql') {
+            throw new RuntimeException('Solo se soporta PostgreSQL (DB_CONNECTION=pgsql).');
+        }
+
+        $prefix = (string) config('tenant.schema_prefix', 'vet_');
+        $schema = strtolower(trim($schema));
+
+        if ($schema === '' || ! str_starts_with($schema, $prefix) || ! preg_match('/^[a-z0-9_]+$/', $schema)) {
+            throw new RuntimeException("Schema inválido: solo se permiten schemas {$prefix}*.");
+        }
+
+        if (in_array($schema, ['public', 'full'], true) || str_contains($schema, '..')) {
+            throw new RuntimeException('No se puede restaurar public/full con este comando.');
+        }
+
+        $resolved = $this->resolveTenantDump($schema, $folder);
+        $dumpPath = $resolved['dump_path'];
+        $folderName = $resolved['folder'];
+
+        $basePath = rtrim((string) config('backup.path'), DIRECTORY_SEPARATOR);
+        $safetyDir = $basePath.DIRECTORY_SEPARATOR.'_safety';
+        File::ensureDirectoryExists($safetyDir);
+        $safetyDump = $safetyDir.DIRECTORY_SEPARATOR.$schema.'_pre_restore_'.Carbon::now()->format('Ymd_His').'.dump';
+
+        $schemaExists = (bool) DB::selectOne(
+            'select exists(select 1 from pg_namespace where nspname = ?) as ok',
+            [$schema],
+        )?->ok;
+
+        $safetyPath = null;
+        if ($schemaExists) {
+            $this->dump($safetyDump, $schema);
+            $safetyPath = $safetyDump;
+        }
+
+        DB::statement('DROP SCHEMA IF EXISTS '.$this->quoteIdent($schema).' CASCADE');
+
+        $this->restoreDump($dumpPath, $schema);
+
+        return [
+            'schema' => $schema,
+            'dump_path' => $dumpPath,
+            'folder' => $folderName,
+            'safety_dump' => $safetyPath,
+        ];
+    }
+
+    /**
+     * @return array{dump_path: string, folder: string}
+     */
+    public function resolveTenantDump(string $schema, ?string $folder = null): array
+    {
+        $basePath = rtrim((string) config('backup.path'), DIRECTORY_SEPARATOR);
+        $safeFile = preg_replace('/[^a-zA-Z0-9_]/', '_', $schema) ?: 'schema';
+        $dumpName = $safeFile.'.dump';
+
+        if ($folder !== null && trim($folder) !== '') {
+            $folder = trim($folder);
+            $dir = $basePath.DIRECTORY_SEPARATOR.$folder;
+            $path = $dir.DIRECTORY_SEPARATOR.$dumpName;
+
+            if (! File::isDirectory($dir) || ! File::isFile($path)) {
+                throw new RuntimeException("No se encontró {$dumpName} en la carpeta de backup: {$folder}");
+            }
+
+            return ['dump_path' => $path, 'folder' => $folder];
+        }
+
+        $candidates = [];
+        foreach (File::directories($basePath) as $dir) {
+            $name = basename($dir);
+            if (str_starts_with($name, '_')) {
+                continue;
+            }
+
+            $path = $dir.DIRECTORY_SEPARATOR.$dumpName;
+            if (File::isFile($path)) {
+                $candidates[] = ['dump_path' => $path, 'folder' => $name, 'mtime' => File::lastModified($dir)];
+            }
+        }
+
+        if ($candidates === []) {
+            throw new RuntimeException("No hay dumps locales para {$schema} en {$basePath}");
+        }
+
+        usort($candidates, static fn (array $a, array $b): int => $b['mtime'] <=> $a['mtime']);
+
+        return [
+            'dump_path' => $candidates[0]['dump_path'],
+            'folder' => $candidates[0]['folder'],
+        ];
+    }
+
+    private function quoteIdent(string $ident): string
+    {
+        return '"'.str_replace('"', '""', $ident).'"';
+    }
+
+    private function restoreDump(string $dumpFile, string $schema): void
+    {
+        $connection = config('database.connections.pgsql', []);
+        $pgRestore = (string) config('backup.pg_restore', 'pg_restore');
+
+        $command = [
+            $pgRestore,
+            '--clean',
+            '--if-exists',
+            '--no-owner',
+            '--no-acl',
+            '--schema='.$schema,
+            '-h', (string) ($connection['host'] ?? '127.0.0.1'),
+            '-p', (string) ($connection['port'] ?? 5432),
+            '-U', (string) ($connection['username'] ?? 'postgres'),
+            '-d', (string) ($connection['database'] ?? ''),
+            $dumpFile,
+        ];
+
+        $result = Process::timeout(3600)
+            ->env([
+                'PGPASSWORD' => (string) ($connection['password'] ?? ''),
+            ])
+            ->run($command);
+
+        // pg_restore usa exit 1 para warnings no fatales (p.ej. objetos ausentes con --clean).
+        if ($result->exitCode() > 1) {
+            throw new RuntimeException(trim($result->errorOutput() ?: $result->output()) ?: 'pg_restore falló sin mensaje.');
+        }
+    }
+
     private function dump(string $outputFile, ?string $schema = null): void
     {
         $connection = config('database.connections.pgsql', []);

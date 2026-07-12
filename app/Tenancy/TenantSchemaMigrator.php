@@ -293,6 +293,8 @@ class TenantSchemaMigrator
                 && Schema::hasColumn('consulta_plan_tratamiento_lineas', 'movimiento_inventario_id'),
             '2026_07_12_100000_t109_add_fefo_grupo_id_to_movimientos_inventario' => Schema::hasTable('movimientos_inventario')
                 && Schema::hasColumn('movimientos_inventario', 'fefo_grupo_id'),
+            '2026_07_12_110000_t110_add_traslado_grupo_id_to_movimientos_inventario' => Schema::hasTable('movimientos_inventario')
+                && Schema::hasColumn('movimientos_inventario', 'traslado_grupo_id'),
             default => false,
         };
     }

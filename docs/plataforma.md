@@ -1244,7 +1244,9 @@ Total: **23 tests verdes** del flujo Fase 2.6 (suite completa en PostgreSQL).
 
 ## Módulo Configuración › General (Fase 4 · módulo 1)
 
-> **Objetivo**: que cada clínica tenga un único lugar para editar su **identidad fiscal**, **branding**, **agenda**, **recordatorios automáticos** y **facturación electrónica (Nubefact)**. Es el primer módulo del bloque "Fase 4 — app del tenant" y sirve de **patrón base** para los módulos clínicos que vienen después.
+> **Objetivo**: que cada clínica tenga un único lugar para editar su **identidad fiscal**, **branding**, **agenda**, **recordatorios automáticos** y **facturación electrónica (Lucode / APISUNAT)**. Es el primer módulo del bloque "Fase 4 — app del tenant" y sirve de **patrón base** para los módulos clínicos que vienen después.
+>
+> **Nota jul. 2026**: el emisor CPE en producción del producto es **Lucode (APISUNAT v3)** (`apisunat_*` en `cfg_clinic_settings`). Campos `nubefact_*` pueden existir por legado; la emisión/anulación actuales no dependen de Nubefact.
 
 ### División de responsabilidades: cliente vs SaaS
 
@@ -1630,9 +1632,9 @@ Paleta y tokens definidos en `tailwind.config.ts`. Todos los módulos los reutil
 |------|--------|
 | **Compras — edición in-place del documento** | No implementado; flujo actual: anular + registrar compra nueva (valorar impacto en costos/stock antes de permitir edición). |
 | **Punto de venta (POS)** | Implementado en **Caja › Ventas**: productos, cobro desde **pre-cuenta** (consulta), **internamiento**, **grooming** y **hotel/guardería**; líneas servicio con precio editable en carrito cuando aplica; ver [Módulo Caja](#módulo-caja-del-tenant-mayo-2026), [Grooming](#módulo-servicios--grooming-jun-2026) y [Hotel / guardería](#módulo-servicios--hotel--guardería-jun-2026). |
-| **Lotes y fechas de vencimiento** | No hay tablas/campos de lote ni vencimiento por línea; las alertas **no** cubren caducidad todavía. |
+| **Lotes y fechas de vencimiento (FEFO)** | **Hecho (jul. 2026)**: tablas `producto_lotes` (**t108**), `fefo_grupo_id` en movimientos (**t109**), `InventarioLoteService::descontarFefo` / reversión por grupo; compra con lote/vencimiento por línea; UI de lotes en **Stock**, **Productos** y detalle de **Compras**; alertas de vencimiento en Inventario › Alertas (modo lotes). |
 | **Traslados entre sedes** | Los movimientos actuales no modelan transferencia interna sede ↔ sede como flujo dedicado (valorar si se añade tipo + validación de stock en origen/destino). |
-| **Tests Pest del módulo** | Pendiente: feature tests sobre ajuste de stock, creación de movimiento, exports (movimientos y compras), filtros de alertas y flujo de anulación de compra. |
+| **Tests Pest del módulo** | Parcial: `InventarioLoteFefoPlanTest`, `InventarioMovimientoCompraTest`. Ampliar exports/filtros de alertas según necesidad. |
 | **Feature gating por plan** | Cuando exista Fase 3.5, enlazar `modulo_inventario` (u homónimo en `PlanFeatures`) a middleware/policies del menú Inventario. |
 
 > **Referencia en roadmap genérico**: la tabla [§ 4.4 Bloque OPERACIONES](#44-bloque-operaciones) sigue describiendo la visión de producto; las secciones [Módulo Inventario del tenant (mayo 2026)](#módulo-inventario-del-tenant-mayo-2026) y [Módulo Caja del tenant (mayo 2026)](#módulo-caja-del-tenant-mayo-2026) concretan qué está construido hoy en código.
@@ -1654,9 +1656,10 @@ Paleta y tokens definidos en `tailwind.config.ts`. Todos los módulos los reutil
 | Ventas — desde internamiento | `/caja/ventas/desde-internamiento/{internamiento}` | `VentaController::createDesdeInternamiento` | Precarga desde cargo de internamiento confirmado (análogo a consulta). Permisos `ventas.create` + `consulta-cargos.cobrar`. |
 | Ventas — desde grooming | `/caja/ventas/desde-grooming/{grooming_turno}` | `VentaController::createDesdeGrooming` | Sin pantalla intermedia de pre-cuenta: una línea de **servicio** con concepto según tipo de baño/corte (`GroomingTurno::descripcionParaVenta()`), precio lista **0** hasta que el cajero lo ingrese en el carrito (columna **Precio unit.** editable solo si la línea no tiene `producto_id`). Requiere turno **`completada`**, `venta_id` null, paciente con propietario y sesión de caja abierta. Permisos **`ventas.create` + `grooming.view`**. Tras `store`, `VentaCheckoutService` persiste `grooming_turnos.venta_id` (bloqueo `lockForUpdate` anti doble cobro). Ver [Módulo Servicios › Grooming](#módulo-servicios--grooming-jun-2026). |
 | Ventas — desde hotel | `/caja/ventas/desde-hotel/{hotel_estancia}` | `VentaController::createDesdeHotel` | Una línea de **servicio**: concepto desde `HotelEstancia::descripcionParaVenta()`, **cantidad** = noches sugeridas (ingreso/egreso), **precio unitario** = tarifa activa por `tipo_estancia` en `hotel_estancia_tarifas` (**t087**) o `0.00` si no hay tarifa. Requiere estancia **`completada`**, `venta_id` null, paciente con propietario y sesión de caja abierta del usuario. Permisos **`ventas.create` + `hotel.view`**. Tras `store`, `hotel_estancias.venta_id`. Ver [Módulo Servicios › Hotel / guardería](#módulo-servicios--hotel--guardería-jun-2026). |
-| Ventas — detalle | `/caja/ventas/{venta}` | `VentaController::show` | Líneas, resumen de cobro, estado FEL. Enlace a la consulta si la venta proviene de pre-cuenta. Botón **Ver ticket** (modal + iframe) encima del bloque de productos vendidos. |
-| Ticket de venta | `GET /caja/ventas/{venta}/ticket` | `VentaController::ticket` | Vista Blade `caja/venta-ticket` para impresora térmica (ancho según config). Documento interno de caja; no sustituye CPE SUNAT salvo emisión FEL futura. Query `?print=1` dispara `window.print()` al cargar. |
-| Checkout | — | `VentaCheckoutService` | Transacción: correlativo `VTA-{año}-{#####}`, venta en estado **`pagado`**, líneas con snapshot de precio/descripción, **salida de inventario** solo en líneas con `producto_id`. Líneas de servicio/concepto sin producto no mueven stock. Cobro desde cargo clínico: valida cargo confirmado, sin `venta_id` previo, y coherencia consulta↔cargo. Cobro desde grooming: valida turno completado y sin `venta_id`, luego asigna `grooming_turnos.venta_id`. Cobro desde hotel: valida estancia completada sin `venta_id`, luego asigna `hotel_estancias.venta_id`. Si plan + config lo permiten, `fel_estado` = `pendiente_emision` (sin emisor Nubefact aún). |
+| Ventas — detalle | `/caja/ventas/{venta}` | `VentaController::show` | Líneas, resumen de cobro, estado FEL. Enlace a la consulta si la venta proviene de pre-cuenta. Botón **Ver ticket** (modal + iframe). Si `ventas.delete` y estado pagado: **Anular venta** (motivo + reversión stock + FEL Lucode). |
+| Ticket de venta | `GET /caja/ventas/{venta}/ticket` | `VentaController::ticket` | Vista Blade `caja/venta-ticket` para impresora térmica (ancho según config). Documento interno de caja; el CPE SUNAT es aparte (FEL). Query `?print=1` dispara `window.print()` al cargar. |
+| Anulación | `POST /caja/ventas/{venta}/anular` | `VentaAnulacionService` | Solo ventas **pagadas**. Revierte salidas de inventario por `venta_id` (grupo FEFO si aplica). Libera vínculos cargo/grooming/hotel. Si CPE **emitido**: baja Lucode (`/voided` factura o `/daily-summary` boleta); si falla → **nota de crédito** (requiere serie NC activa en la sede). Permiso `ventas.delete`. Tests: `VentaAnulacionTest`. |
+| Checkout | — | `VentaCheckoutService` | Transacción: correlativo `VTA-{año}-{#####}`, venta **`pagado`**, líneas con snapshot, **salida FEFO** en líneas con `producto_id` (si el cargo ya descontó stock, vincula `venta_id` al grupo FEFO sin doble descuento). Prefills consulta/internamiento/grooming/hotel. Si plan + Lucode configurado + tipo boleta/factura: emite CPE vía `FelEmisionVentaService` / `EmitirFelVentaJob`. |
 
 **Migraciones tenant**
 
@@ -1668,7 +1671,7 @@ Paleta y tokens definidos en `tailwind.config.ts`. Todos los módulos los reutil
 | **`t082`** | `grooming_turnos.venta_id` (FK nullable a `ventas`, `nullOnDelete`) — materializado en `TenantSchemaMigrator` cuando exista la columna. |
 | **`t084`**–**`t087`** | **Hotel / guardería**: **`t084`** `hotel_estancias` (+ `venta_id` → `ventas`), **`t085`** `hotel_estancia_diarios` (bitácora por día), **`t086`** `consulta_cargos.hotel_estancia_id` (opcional; XOR con otros orígenes de cargo), **`t087`** `hotel_estancia_tarifas` (precio lista por noche por `tipo_estancia`). Ver [Hotel / guardería](#módulo-servicios--hotel--guardería-jun-2026). |
 
-**Permisos** (seeder `PermissionsSeeder` / `TenantRolesSeeder`): `caja-sesiones.*`, `ventas.view`, `ventas.create`, `consulta-cargos.cobrar` (cobro desde **pre-cuenta clínica / internamiento**), `grooming.view` (necesario además de `ventas.create` para abrir checkout desde grooming), `hotel.view` / `hotel.update` (listado y bitácora / edición de estancia; recepción suele llevar `hotel.*` acorde al rol para registrar y cobrar). `ventas.update` / `ventas.delete` definidos para admin; sin UI de edición/anulación de venta todavía.
+**Permisos** (seeder `PermissionsSeeder` / `TenantRolesSeeder`): `caja-sesiones.*`, `ventas.view`, `ventas.create`, `ventas.delete` (**anular** venta), `consulta-cargos.cobrar` (cobro desde **pre-cuenta clínica / internamiento**), `grooming.view` (checkout desde grooming), `hotel.view` / `hotel.update`. `ventas.update` definido para admin; sin UI de edición de venta (flujo: anular + nueva).
 
 **Detalles técnicos**
 
@@ -1687,25 +1690,21 @@ Paleta y tokens definidos en `tailwind.config.ts`. Todos los módulos los reutil
 
 | Tema | Estado |
 |------|--------|
-| **Vínculo consulta ↔ venta** | Implementado (jun. 2026): migración **t074**, ruta `ventas/desde-consulta/{consulta}`, `VentaDesdeCargoPrefill`, UI en cargos y POS. Requiere migración tenant en cada clínica. |
-| **Líneas de servicio en venta** | Soportadas al cobrar desde pre-cuenta confirmada, internamiento, **grooming** o **hotel/guardería** (prefill). El alta **solo con productos** sigue siendo vía búsqueda de catálogo; las líneas sin `producto_id` entran por esos prefills y en **carrito** el cajero puede editar **precio unitario** (columna dedicada). |
-| **Facturación electrónica (emisión)** | **Implementado (jun. 2026)**: `FelEmisionVentaService` + `NubefactClient` (JSON v1), tablas **`t075`** (`fel_series` sembradas B001/F001, `fel_documents`), job **`EmitirFelVentaJob`** tras venta si plan `factura_electronica` y clínica con Nubefact + «emite comprobantes»; botón **Emitir comprobante** en detalle de venta (`POST …/emitir-fel`). **Pendiente**: nota de crédito, resúmenes, UI módulo Facturación. |
-| **Pagos parciales** | Modelo admite estados `pendiente` / `parcial` en visión de datos; el checkout actual registra siempre **`pagado`**. |
-| **Anular / editar venta** | Sin flujo UI ni reversión de stock documentada. |
-| **Arqueos de caja** | Visión en § 4.4 (`caja/arqueos`); no implementado (el cierre de sesión cubre efectivo contado). |
-| **Tests Pest del módulo** | Parcial: `tests/Feature/Caja/VentaDesdeConsultaCargoTest.php`, **`tests/Feature/Caja/FelEmisionVentaTest.php`** y **`tests/Feature/Servicios/HotelEstanciaServiciosTest.php`** (hotel: prefill + API bitácora; requiere **PostgreSQL** / BD `*_test`; con `sqlite` del `phpunit.xml` se omiten). Pendiente: más casos stock/IGV/correlativo. |
+| **Vínculo consulta ↔ venta** | Implementado (jun. 2026): migración **t074**, ruta `ventas/desde-consulta/{consulta}`, `VentaDesdeCargoPrefill`, UI en cargos y POS. |
+| **Líneas de servicio en venta** | Soportadas al cobrar desde pre-cuenta, internamiento, grooming o hotel. Alta libre solo-servicio sin prefill **no** está en el MVP. |
+| **Facturación electrónica (emisión + anulación)** | **Hecho (jul. 2026)**: emisor **Lucode / APISUNAT v3** (`ApisunatClient`, `FelEmisionVentaService`, `EmitirFelVentaJob`). Config en Configuración › General (`apisunat_*`). Anulación: `FelAnulacionComprobanteService` (baja factura / resumen boleta) + `FelNotaCreditoComprobanteService` (fallback; requiere serie NC). `NubefactClient` queda residual/legacy. Placeholders de menú Facturación (resúmenes agregados) pueden seguir sin UI completa. |
+| **Pagos parciales** | Modelo admite `pendiente` / `parcial`; checkout actual siempre **`pagado`**. `/caja/pagos` = placeholder. |
+| **Editar venta** | No; anular + registrar de nuevo. |
+| **Arqueos de caja** | Visión en § 4.4; el cierre de sesión cubre efectivo contado. |
+| **Tests Pest del módulo** | Parcial: `VentaDesdeConsultaCargoTest`, `VentaAnulacionTest`, `FelEmisionVentaTest` (actualizar fakes a Lucode si aún citan Nubefact), `HotelEstanciaServiciosTest`. Requieren **PostgreSQL**. |
 
-### Cómo validar FEL **sin sandbox Nubefact** (referencia de calidad)
+### Cómo validar FEL con Lucode (APISUNAT)
 
-Si **aún no hay** RUC/token de prueba en Nubefact, el código permite validar el flujo **sin depender de la red**:
+1. **Staging / producción**: Configuración › General → token Lucode + modo sandbox/producción + «emite comprobantes»; series B001/F001 (y FC01/BC01 para NC) en Facturación › Series.
+2. **Tests**: `Http::fake()` contra `sandbox.apisunat.pe/api/v3/*` en `VentaAnulacionTest` / emisión. Ejemplo: `DB_CONNECTION=pgsql DB_DATABASE=vetsaas_test php artisan test tests/Feature/Caja/VentaAnulacionTest.php`.
+3. **Anulación**: boleta → resumen diario; factura → comunicación de baja; si falla → NC (mensaje claro si falta serie de nota de crédito).
 
-1. **Tests de integración (recomendado)**: `tests/Feature/Caja/FelEmisionVentaTest.php` usa **`Http::fake()`** para simular la API JSON v1. Con **`DB_CONNECTION=pgsql`** y un schema tenant migrado en la BD de test, se verifica la emisión vía **job síncrono** tras registrar una venta (plan con `factura_electronica` + clínica con Nubefact “configurado”) y el **`POST …/ventas/{venta}/emitir-fel`** sobre una venta en **`pendiente_emision`**. Ejemplo: `DB_CONNECTION=pgsql DB_DATABASE=vetsaas_test php artisan test tests/Feature/Caja/FelEmisionVentaTest.php`.
-2. **Tests unitarios**: `tests/Unit/Fel/NubefactClientTest.php` cubre detección de éxito y extracción de mensajes de error **sin HTTP real**.
-3. **Cuando exista sandbox**: repetir en staging con token real (Configuración › General), comprobar series **B001/F001** en `fel_series` (**t075**), emitir boleta/factura de prueba y revisar enlaces PDF/XML frente a la guía Nubefact/SUNAT.
-
-> **Punto fuerte para el equipo**: mientras no haya sandbox, **los tests anteriores son la fuente de verdad** para merges y regresiones de FEL; al conectar sandbox, añadir al menos un caso manual documentado (captura + `fel_documents.nubefact_id`) antes de producción.
-
-> **Referencia cruzada**: ticket de **pre-cuenta clínica** en Clínica › Historias › Cargos (`ConsultaCargoController::ticket`, vista `consulta-cargo-ticket`). Es independiente del ticket de **venta en caja** descrito arriba.
+> **Referencia cruzada**: ticket de **pre-cuenta clínica** en Clínica › Historias › Cargos (`ConsultaCargoController::ticket`). Independiente del ticket de **venta en caja**.
 
 ---
 
@@ -1744,10 +1743,10 @@ Si **aún no hay** RUC/token de prueba en Nubefact, el código permite validar e
 
 | Tema | Estado |
 |------|--------|
-| **Tarifario grooming (BD)** | **Hecho** (**t083**, `grooming_servicio_tarifas`). El cobro desde turno usa precio si hay fila **`activo`** para el `servicio` del catálogo; si no, `0.00` (sigue editable en caja). **Pendiente**: pantalla CRUD en panel (por ahora se puede cargar por SQL/tinker/seed). |
-| **Catálogo “servicios” genérico en POS** | Alta libre de líneas solo-servicio **sin** prefill no está en el MVP; solo productos desde búsqueda + líneas que vienen de pre-cuenta / internamiento / grooming. |
-| **Tests Pest** (grooming + venta con `grooming_turno_id`) | Pendiente. |
-| **Migraciones tenant siguientes** | **`t084`–`t087`** cubren **hotel/guardería** (ver sección dedicada). Siguientes cambios (p. ej. nota de crédito) usarán prefijos posteriores. |
+| **Tarifario grooming (BD + UI)** | **Hecho**: **t083** + CRUD en **Configuración › Tarifas** (`TarifaServiciosController`). Insumos por servicio: `GroomingInsumoController` + modal (`t106`). Prefill de precio en caja desde tarifa activa. |
+| **Catálogo “servicios” genérico en POS** | Alta libre de líneas solo-servicio **sin** prefill no está en el MVP. |
+| **Tests Pest** (grooming + venta con `grooming_turno_id`) | Pendiente / parcial. |
+| **Migraciones tenant siguientes** | **`t084`–`t087`** hotel; **`t108`–`t109`** lotes FEFO. |
 
 ---
 
@@ -1785,7 +1784,7 @@ Si **aún no hay** RUC/token de prueba en Nubefact, el código permite validar e
 
 | Tema | Estado |
 |------|--------|
-| **CRUD tarifario en panel** | Tabla **`hotel_estancia_tarifas`** lista en BD; **pendiente** pantalla administrativa (carga inicial vía SQL/seed/tinker). |
+| **CRUD tarifario en panel** | **Hecho**: misma pantalla **Configuración › Tarifas** (tab hotel) + rutas `tarifas/hotel/*`. |
 | **Tests grooming-only + venta** | Sigue en roadmap; hotel tiene cobertura mínima en **`HotelEstanciaServiciosTest`**. |
 
 ---
@@ -1881,7 +1880,7 @@ Las rutas Wayfinder generadas en `resources/js/routes/clinica/…` incluyen `cer
 
 ### Hueco de producto: precio de la consulta e importe cobrado al cliente (parcialmente cerrado — jun. 2026)
 
-Hoy el flujo **Clínica** cubre registro clínico (SOAP, cierre, plan, vacunas, **recetas**, **laboratorio**, **cirugías** cuando se vinculan a una visita, historial del paciente con resúmenes y vínculos). **Pre-cuenta** (`consulta_cargos` / `consulta_cargo_lineas`) y **Caja › Ventas** quedaron enlazados para cobro desde **consulta** (`ventas.consulta_id`, `consulta_cargo_id`, migración **t074**) e **internamiento** (`ventas/desde-internamiento/{internamiento}`). **Grooming** cobra en caja **sin** paso obligatorio de pre-cuenta en UI: `grooming_turnos.venta_id` (**t082**). **Siguen abiertos a nivel producto**: arancel fijo por tipo de consulta en la ficha de visita, FEL con emisión Nubefact, y políticas UX “¿cierre clínico exige cobro?”.
+Hoy el flujo **Clínica** cubre registro clínico (SOAP, cierre, plan, vacunas, **recetas**, **laboratorio** con adjuntos de resultado, **cirugías**, historial del paciente, **PDFs** de consulta/receta/carnet/historial). **Pre-cuenta** y **Caja** enlazados (consulta, internamiento, grooming, hotel). **FEL** operativo con **Lucode (APISUNAT)** (emisión + anulación/NC). **Siguen abiertos a nivel producto**: arancel fijo por tipo de consulta en la ficha de visita, pagos parciales, y políticas UX “¿cierre clínico exige cobro?”.
 
 **Análisis rápido (qué sigue para “cerrar” del todo el vínculo visita↔caja)**
 
@@ -1889,7 +1888,7 @@ Hoy el flujo **Clínica** cubre registro clínico (SOAP, cierre, plan, vacunas, 
 |-----------|---------------------------|-------------------|
 | Saber “cuánto cuesta esta consulta” | No hay campo único de arancel en `consultas`; el importe vive en **pre-cuenta** o se cobra “a mano” en grooming vía POS. | Catálogo de **servicios / tarifas** por tipo de consulta o sugerencia al abrir cargos. |
 | Total cobrado / vínculo a venta | **Hecho** para pre-cuenta confirmada → venta (`t074`, `consulta_cargos.venta_id`). **Hecho** para internamiento con cargo confirmado. **Hecho** para grooming completado → `venta_id` en turno. | FEL + reportes; opcional: mostrar `venta` desde ficha consulta/turno. |
-| Conciliación con FEL | Caja operativa; `fel_estado` preparado; emisión pendiente de producto. | Emisión Nubefact + comprobante. |
+| Conciliación con FEL | Emisión + anulación Lucode desde venta. | Resúmenes diarios UI agregada / notas-baja menú Facturación (placeholders). |
 
 **Opciones de diseño** (no excluyentes; conviene elegir una como MVP):
 
@@ -2116,18 +2115,18 @@ UI en `/plataforma/tenants/<id>/features-override` para que soporte aumente punt
 | Vacunaciones / aplicaciones | `vacunas_aplicadas` (+ vínculo opcional a `consultas`) | **Hecho**: registro con categoría, stock, **`consulta_id`** opcional (consulta abierta), prefill desde URL; listado con columna consulta. |
 | Historial unificado del paciente | Timeline (consultas + aplicaciones) | **Hecho**: ruta `GET clinica/pacientes/{paciente}`, UI línea de tiempo con resumen SOAP/vitales y enlaces a historias / vacunaciones. **Recetas, laboratorio y cirugías** vinculados por `consulta_id` se listan **dentro del resumen de la consulta** (`detalle.vinculos`), no como entradas separadas del timeline. |
 | Recetas | `recetas`, `recetas_lineas` | **Hecho**: CRUD, PDF, listado con filtros (búsqueda, rango `emitida_at`, estado solo query), deep link `editar_receta`. Registros **sin** `consulta_id` solo aparecen en el módulo Recetas, no en el bloque vinculado del historial del paciente. |
-| Laboratorio (pedidos) | `pedidos_laboratorio`, líneas | **Hecho**: análogo a recetas; `editar_pedido_laboratorio`. **Pendiente**: adjuntos PDF de resultados (visión de producto). |
-| Cirugías | `cirugias` | **Hecho**: CRUD y listado con filtros; `editar_cirugia`. Detalle preoperatorio/postoperatorio ampliado puede ampliarse en iteraciones. |
-| **Cobro en la visita** (precio consulta, total cobrado, vínculo venta/FEL) | **Avanzado** | Pre-cuenta → venta con **`t074`**; internamiento → venta; grooming → venta + `grooming_turnos.venta_id` (**t082**). **Pendiente**: FEL emitido, arancel en consulta, POS libre con alta manual solo-servicio. Ver [§ hueco cobro](#hueco-cobro-consulta) y [§ Módulo Caja](#módulo-caja-del-tenant-mayo-2026) y [§ Grooming](#módulo-servicios--grooming-jun-2026). |
+| Laboratorio (pedidos) | `pedidos_laboratorio`, líneas | **Hecho**: CRUD, deep link, **adjuntos de resultado** (PDF/imagen por línea, `resultado_archivo_*`). Integraciones lab externas: no. |
+| Cirugías | `cirugias` | **Hecho**: CRUD y listado con filtros; `editar_cirugia`. |
+| **Cobro en la visita** (precio consulta, total cobrado, vínculo venta/FEL) | **Avanzado** | Pre-cuenta → venta; internamiento/grooming/hotel → venta; **FEL Lucode** emitido/anulado. Pendiente: arancel fijo en ficha de visita, POS libre solo-servicio, pagos parciales. |
 | Calendario sugerido por especie/edad | — | Pendiente de producto (no confundir con “próxima sugerida” por registro). |
 
 #### 4.3 Bloque AGENDA
 
-| Módulo | Tablas tenant nuevas | Estado en código (mayo 2026) |
+| Módulo | Tablas tenant nuevas | Estado en código (jul. 2026) |
 |---|---|---|
-| `citas` | `citas` (fk paciente, fk veterinario, fecha, estado, motivo, sede) | **Hecho (núcleo)**: migración tenant **t065**, CRUD/listado en panel (`clinica/citas`), permisos. |
-| `citas/calendario` | Vista por veterinario / sede, drag & drop | **No hecho** (visión de producto). |
-| `citas/recordatorios` | Job que envía WhatsApp/email 24h antes | **No hecho**. |
+| `citas` | `citas` (fk paciente, fk veterinario, fecha, estado, motivo, sede) | **Hecho**: migración **t065**, CRUD/listado, permisos. |
+| `citas/calendario` | Vista mes + lista | **Hecho**: `CitasCalendar` en `clinica/citas` (vista calendario / lista) + **DnD** para reprogramar (solo `programada`/`confirmada`, permiso `citas.update`). |
+| `citas/recordatorios` | Job WhatsApp/email | **Hecho (parcial)**: `AppointmentReminderScanner` + `vetsaas:reminders-scan` (cita 48h/2h y otros recordatorios del scheduler). |
 
 #### 4.4 Bloque OPERACIONES
 
@@ -2135,26 +2134,26 @@ UI en `/plataforma/tenants/<id>/features-override` para que soporte aumente punt
 |---|---|
 | `inventario/productos` | Medicinas, vacunas, accesorios. Control de stock por sede. **Avance real**: CRUD + `stock_minimo`; ver [Módulo Inventario del tenant (mayo 2026)](#módulo-inventario-del-tenant-mayo-2026). |
 | `inventario/proveedores` | **Hecho**: maestro de proveedores + consulta RUC SUNAT (apiperu.dev). |
-| `inventario/compras` | **Hecho**: compras con líneas, stock, factura opcional, filtros (sede, proveedor, rango fecha documento), export XLSX (`compras.view`), anulación con reversión de stock (`compras.delete`). Ver [Módulo Inventario del tenant (mayo 2026)](#módulo-inventario-del-tenant-mayo-2026). |
-| `inventario/stock` | **Hecho**: existencias y ajuste por sede. |
-| `inventario/alertas` | **Hecho**: alertas por agotado / umbral mínimo por sede. |
-| `inventario/movimientos` | Entradas, salidas, mermas, ajustes; filtros sede/tipo/fecha; export XLSX (`movimientos-stock.export`). **Pendiente**: traslados entre sedes como flujo dedicado. |
-| `caja/sesiones` | **Hecho**: apertura/cierre por sede y turno; ver [Módulo Caja](#módulo-caja-del-tenant-mayo-2026). |
-| `caja/ventas` | **Hecho**: POS **productos** + cliente/paciente + cobro + ticket; **desde-consulta** / **desde-internamiento** (pre-cuenta confirmada); **desde-grooming**; **desde-hotel** (estancia completada, tarifa por noche si existe); líneas servicio con **precio unitario editable** en carrito si no hay `producto_id`. **Pendiente**: anulación/edición venta, pagos parciales, alta libre línea-servicio sin prefill, FEL. |
+| `inventario/compras` | **Hecho**: compras con líneas, stock, factura opcional, filtros, export, anulación; **lote/vencimiento** por línea. |
+| `inventario/stock` | **Hecho**: existencias, ajuste, **dialog de lotes FEFO** por sede. |
+| `inventario/alertas` | **Hecho**: stock mínimo + **lotes por vencer / vencidos**. |
+| `inventario/movimientos` | Entradas, salidas, mermas, ajustes, **traslados entre sedes** (UI solo si hay ≥2 sedes activas; plan Clínica hasta 3). FEFO en origen + mismo lote/vencimiento en destino (`traslado_grupo_id`, **t110**). |
+| `caja/sesiones` | **Hecho**: apertura/cierre por sede. |
+| `caja/ventas` | **Hecho**: POS + prefills + ticket + **anulación** + **FEL Lucode**. Pendiente: pagos parciales, alta libre solo-servicio. |
 | `caja/pagos` | **Placeholder** — cobranzas parciales. |
-| `caja/descuentos` | **Placeholder** — cupones/promociones. |
+| `caja/descuentos` | **Placeholder** — cupones/promociones (promotions table existe; UI menú puede ser placeholder). |
 | `caja/arqueos` | Cuadre al final del día (no implementado; cierre de sesión cubre efectivo). |
-| `facturacion/*` | FEL Perú: **emisión** operativa vía Nubefact desde detalle de venta + job tras cobro (ver [Módulo Caja](#módulo-caja-del-tenant-mayo-2026)). Pantallas agregadoras del menú Facturación pueden seguir en placeholder. |
+| `facturacion/*` | FEL Perú: **emisión + anulación/NC vía Lucode (APISUNAT)** desde venta. Series en panel. Pantallas agregadoras (resúmenes/notas-baja) pueden seguir en placeholder. |
 
 #### 4.5 Bloque CLÍNICO AVANZADO
 
 | Módulo | Estado en código (mayo 2026) |
 |---|---|
 | `cirugias` | **Hecho** (tenant): tabla `cirugias`, CRUD, permisos, listado con rango `programada_at`, filtro estado por query, deep link `editar_cirugia`. La visión de “protocolo pre-operatorio extendido” puede enriquecerse con más campos o plantillas. |
-| `laboratorio` | **Hecho** (tenant): pedidos con líneas, estados operativos, vínculo opcional a consulta, deep link `editar_pedido_laboratorio`. **Pendiente**: subir **PDF de resultados**, integraciones con laboratorios externos. |
-| `internamiento/hospitalizacion` | **Hecho** (jun. 2026): migraciones **t076** `internamientos`, **t077** `internamiento_evoluciones`, **t078** cargos por internamiento; listado + detalle + evolución diaria; vínculo en historial del paciente; hoja de cargos `/clinica/hospitalizacion/{id}/cargos` (con sugerencia de días de estadía) y cobro vía Caja. **Pendiente**: tarifa diaria en configuración de clínica, protocolos clínicos extendidos. |
-| `servicios/grooming` | **Hecho** (jun. 2026): migraciones **t079–t083** (`grooming_servicio_tarifas` para precios sugeridos); ruta **`/servicios/grooming`**. Listado + CRUD; **Cobrar** → caja con prefill de tarifa si existe; ver [§ Grooming](#módulo-servicios--grooming-jun-2026). **Pendiente**: UI CRUD tarifas, tests Pest grooming, enlaces desde ficha paciente. |
-| `servicios/hotel` | **Hecho** (jun. 2026): migraciones **t084–t087**; **`/servicios/hotel`** + modal **bitácora diaria**; **Cobrar** → **`/caja/ventas/desde-hotel/{id}`**; tests **`HotelEstanciaServiciosTest`**. Ver [§ Hotel / guardería](#módulo-servicios--hotel--guardería-jun-2026). **Pendiente**: UI CRUD tarifas hotel. |
+| `laboratorio` | **Hecho**: pedidos + **adjuntos de resultado** (PDF/imagen). Integraciones lab externas: no. |
+| `internamiento/hospitalizacion` | **Hecho** (**t076–t078**): listado, evolución, cargos, cobro en caja. |
+| `servicios/grooming` | **Hecho** (**t079–t083**, **t106** insumos): turnos, cobro, **tarifas + insumos** en Configuración › Tarifas. |
+| `servicios/hotel` | **Hecho** (**t084–t087**): estancias, bitácora, cobro, **tarifas** en Configuración › Tarifas. |
 
 #### 4.6 Bloque REPORTES Y COMUNICACIONES
 
@@ -2172,7 +2171,7 @@ Pantalla "Bienvenido a tu clínica" que aparece al primer login del admin con ch
 □ Invita a tu equipo                   (→ configuracion/usuarios)
 □ Registra tu primer paciente          (→ pacientes/nuevo)
 □ Agenda tu primera cita               (→ citas/nueva)
-□ Conecta tu cuenta de Nubefact (FEL)  (→ configuracion/facturacion)
+□ Conecta Lucode / APISUNAT (FEL)      (→ configuracion/general)
 ```
 
 Estado persistido en `tenant_onboarding_progress` (schema del tenant). Al completarlo, se oculta el banner.
@@ -2226,7 +2225,9 @@ jobs:
 
 **Requisitos VPS:** `pg_dump` en PATH, cron `* * * * * php artisan schedule:run`, worker de colas si usas «Correr ahora», paquete `league/flysystem-aws-s3-v3`, disco con espacio. En R2/S3 conviene lifecycle de 30 días.
 
-**Pendiente:** `vetsaas:tenant-restore <slug> <fecha>` como comando dedicado; poda remota automática (hoy se recomienda lifecycle del bucket).
+**Restore por tenant:** `php artisan vetsaas:tenant-restore {slug} {folder?} {--force}` restaura solo el schema `vet_*` desde `{BACKUP_PATH}/{folder}/{schema}.dump` (si no hay folder, usa el más reciente). Antes del `DROP SCHEMA CASCADE` genera un safety dump en `{BACKUP_PATH}/_safety/`. No restaura `full`/`public`.
+
+**Pendiente:** poda remota automática (hoy se recomienda lifecycle del bucket).
 #### 5.5 Observabilidad
 
 - **Sentry**: errores PHP y JS, con `tenant_id` como tag.
@@ -2313,8 +2314,27 @@ php artisan vetsaas:tenant-tinker otra-clinica
 
 ---
 
-> **Última actualización (mayo–jun. 2026)**: además de **Fase 4 · Configuración › General** y **Plataforma › Configuración global** (logo, Nubefact tenant vs Twilio/Brevo central, `vetsaas:fresh-demo`, tests citados en versiones anteriores de este párrafo), el **menú Inventario del tenant** tiene núcleo operativo: categorías, unidades, productos (incl. `stock_minimo`), stock por sede con ajuste, **movimientos** (kardex, filtros por fecha, export XLSX, columnas estables), **compras** (líneas, factura opcional, filtros por fecha de documento, export XLSX, anulación con reversión de stock), proveedores, y **alertas de stock** por sede con lógica ámbar/rojo según umbral. Detalle y pendientes en [§ Módulo Inventario del tenant (mayo 2026)](#módulo-inventario-del-tenant-mayo-2026).
+## Estado del producto (jul. 2026) — puntuación real
+
+> Snapshot tras auditoría código vs doc. Escala **0–100** = listo para piloto comercial con clínicas reales en Perú (no “producto eterno perfecto”).
+
+| Bloque | Puntos | Notas |
+|--------|--------|-------|
+| Clínica (HC, vacunas, recetas, lab, cirugías, hosp., PDFs) | **88** | PDFs carnet/receta/consulta/historial + adjuntos lab. |
+| Agenda (citas + calendario + recordatorios) | **90** | Calendario + DnD reprogramar. |
+| Inventario + FEFO/lotes | **92** | Lotes, FEFO, alertas, UI lotes, **traslados sede↔sede** (≥2 sedes). |
+| Caja + anulación + tickets | **85** | Anulación + stock OK. Sin pagos parciales. |
+| FEL Lucode (emitir + anular/NC) | **82** | Operativo; series NC obligatorias para fallback NC; menú Facturación parcial. |
+| Servicios (grooming + hotel + tarifas) | **84** | Tarifas/insumos en panel. |
+| Ops plataforma (backups, presencia, panel) | **92** | Backup + **`vetsaas:tenant-restore`**. |
+| Adopción (onboarding + ayuda) | **80** | Wizard flaggeable + centro de ayuda. |
+| SaaS scale (provisión Orvae) | **78** | API interna sí; portal dueño **no**. |
+| **Core global (piloto)** | **88 / 100** | |
+
+**Pendientes reales (no inventados):** pagos parciales, portal del cliente (Fase 6), UI agregada de resúmenes FEL, tests Pest ampliados.
+
+---
+
+> **Última actualización (jul. 2026)**: se alineó esta doc con el código. **FEL = Lucode/APISUNAT**. **Inventario FEFO/lotes + traslados** (**t108–t110**), **DnD calendario**, **`vetsaas:tenant-restore`**, anulación de ventas, PDFs clínicos, ops/backups y onboarding constan como hechos o parciales según tablas arriba.
 >
-> En **Clínica (tenant)** el núcleo documentado en [§ Módulo clínico del tenant…](#módulo-clínico-del-tenant-historias-plan-vacunas-e-historial-del-paciente-mayo-2026) incluye **migraciones t066–t068** (recetas, pedidos de laboratorio, cirugías), **listados con filtros**, **deep links** a modal de edición y **historial del paciente** con vínculos en el resumen de consulta. **Hospitalización** está implementada (**t076–t078**, cargos y cobro desde caja). **Caja (tenant)** — [§ Módulo Caja](#módulo-caja-del-tenant-mayo-2026): sesiones **`t071`**, ventas **`t073`**, vínculo consulta/cargo **`t074`**, checkout desde **internamiento** y **grooming**, columna de **precio unitario** editable en líneas sin producto, **`t082`** en `grooming_turnos`. **Servicios › Grooming** — [§ dedicada](#módulo-servicios--grooming-jun-2026). **Pendiente global**: FEL con emisión Nubefact, anulación de ventas, tests Pest caja/grooming ampliados, PDF resultados laboratorio, agenda calendario citas.
->
-> **Próximo hito sugerido**: (1) **FEL** — emisión Nubefact cuando `emite_comprobantes_sunat`; (2) **Tests Pest** — caja/ventas (grooming, stock, correlativo) y regresión clínica; (3) **Anulación / nota de crédito** ventas si negocio lo exige; (4) según negocio: tarifario grooming, PDF laboratorio, calendario de citas. Priorizar con el equipo según compliance Perú.
+> **Próximo hito sugerido**: (1) **piloto con 1–2 clínicas** (series FEL/NC + Lucode + checklist ops R2); (2) según dolor real: pagos parciales o portal dueño; (3) endurecer tests Pest caja/FEL Lucode.

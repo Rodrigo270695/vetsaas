@@ -31,6 +31,7 @@ type MovimientoFormModalProps = {
 type FormData = {
     producto_id: string | null;
     sede_id: string;
+    sede_destino_id: string;
     tipo: string;
     cantidad: string;
     numero_lote: string;
@@ -41,6 +42,7 @@ type FormData = {
 const empty: FormData = {
     producto_id: null,
     sede_id: '',
+    sede_destino_id: '',
     tipo: 'entrada',
     cantidad: '',
     numero_lote: '',
@@ -48,7 +50,7 @@ const empty: FormData = {
     notas: '',
 };
 
-const TIPOS_FORM = ['entrada', 'salida', 'merma'] as const;
+const TIPOS_BASE = ['entrada', 'salida', 'merma'] as const;
 
 export function MovimientoFormModal({
     open,
@@ -60,6 +62,12 @@ export function MovimientoFormModal({
     const { t } = useTranslation(['movimientos-inventario', 'common', 'offline']);
     const { refreshPending } = useOfflineSync();
     const { data, setData, post, processing, errors, reset, clearErrors } = useForm<FormData>(empty);
+
+    const puedeTrasladar = sedeOptions.length >= 2;
+    const tiposForm = useMemo(
+        () => (puedeTrasladar ? ([...TIPOS_BASE, 'traslado'] as const) : TIPOS_BASE),
+        [puedeTrasladar],
+    );
 
     useEffect(() => {
         if (!open) {
@@ -77,6 +85,12 @@ export function MovimientoFormModal({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, defaultSedeId, sedeOptions]);
 
+    useEffect(() => {
+        if (data.tipo === 'traslado' && !puedeTrasladar) {
+            setData('tipo', 'entrada');
+        }
+    }, [data.tipo, puedeTrasladar, setData]);
+
     const productoComboboxOptions = useMemo<readonly ComboboxOption[]>(
         () =>
             productoOptions.map((p) => ({
@@ -86,7 +100,13 @@ export function MovimientoFormModal({
         [productoOptions],
     );
 
+    const destinoOptions = useMemo(
+        () => sedeOptions.filter((s) => s.id !== data.sede_id),
+        [sedeOptions, data.sede_id],
+    );
+
     const sinOpciones = sedeOptions.length === 0 || productoOptions.length === 0;
+    const esTraslado = data.tipo === 'traslado';
 
     const onSubmit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -103,6 +123,7 @@ export function MovimientoFormModal({
         const payload = {
             producto_id: data.producto_id,
             sede_id: data.sede_id,
+            sede_destino_id: esTraslado && data.sede_destino_id !== '' ? data.sede_destino_id : null,
             tipo: data.tipo,
             cantidad: data.cantidad,
             numero_lote:
@@ -115,15 +136,17 @@ export function MovimientoFormModal({
         };
 
         void (async () => {
-            const queued = await enqueueIfOffline('inventario.movimiento.create', payload, {
-                refreshPending,
-                onSuccess,
-                title: t('offline:movimiento.queued_title'),
-                description: t('offline:movimiento.queued_body'),
-            });
+            if (!esTraslado) {
+                const queued = await enqueueIfOffline('inventario.movimiento.create', payload, {
+                    refreshPending,
+                    onSuccess,
+                    title: t('offline:movimiento.queued_title'),
+                    description: t('offline:movimiento.queued_body'),
+                });
 
-            if (queued) {
-                return;
+                if (queued) {
+                    return;
+                }
             }
 
             post(inventario.movimientos.store.url(), {
@@ -156,10 +179,16 @@ export function MovimientoFormModal({
             <div className="grid gap-4">
                 <SedeFormField
                     id="mov-sede"
-                    label={t('modal.sede')}
+                    label={esTraslado ? t('modal.sede_origen') : t('modal.sede')}
                     sedes={sedeOptions}
                     value={data.sede_id || null}
-                    onChange={(sedeId) => setData('sede_id', sedeId ?? '')}
+                    onChange={(sedeId) => {
+                        const next = sedeId ?? '';
+                        setData('sede_id', next);
+                        if (data.sede_destino_id === next) {
+                            setData('sede_destino_id', '');
+                        }
+                    }}
                     error={errors.sede_id}
                     required
                     disabled={processing || sinOpciones}
@@ -170,6 +199,25 @@ export function MovimientoFormModal({
                         s.codigo ? `${s.nombre} · ${s.codigo}` : s.nombre
                     }
                 />
+
+                {esTraslado ? (
+                    <SedeFormField
+                        id="mov-sede-destino"
+                        label={t('modal.sede_destino')}
+                        sedes={destinoOptions}
+                        value={data.sede_destino_id || null}
+                        onChange={(sedeId) => setData('sede_destino_id', sedeId ?? '')}
+                        error={errors.sede_destino_id}
+                        required
+                        disabled={processing || sinOpciones || destinoOptions.length === 0}
+                        allowNone={false}
+                        noneLabel={t('modal.sede_destino_placeholder')}
+                        controlClassName="h-10 w-full min-w-0 cursor-pointer"
+                        formatLabel={(s) =>
+                            s.codigo ? `${s.nombre} · ${s.codigo}` : s.nombre
+                        }
+                    />
+                ) : null}
 
                 <FormField
                     id="mov-producto"
@@ -199,7 +247,7 @@ export function MovimientoFormModal({
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                                {TIPOS_FORM.map((tp) => (
+                                {tiposForm.map((tp) => (
                                     <SelectItem key={tp} value={tp}>
                                         {t(`tipos.${tp}`)}
                                     </SelectItem>
@@ -258,6 +306,8 @@ export function MovimientoFormModal({
                             />
                         </FormField>
                     </div>
+                ) : esTraslado ? (
+                    <p className="text-xs leading-relaxed text-muted-foreground">{t('modal.traslado_hint')}</p>
                 ) : (
                     <p className="text-xs leading-relaxed text-muted-foreground">{t('modal.salida_fefo_hint')}</p>
                 )}

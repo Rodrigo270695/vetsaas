@@ -1,4 +1,5 @@
-import { Head, usePage } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
+import { TZDate } from '@date-fns/tz';
 import { Activity, CalendarDays, Download, Filter, LayoutList, Plus, UserCircle } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -152,6 +153,53 @@ export default function Index({
     const openEdit = useCallback((c: CitaRow) => setModal({ type: 'edit', cita: c }), []);
     const openDelete = useCallback((c: CitaRow) => setModal({ type: 'delete', cita: c }), []);
     const openCancel = useCallback((c: CitaRow) => setModal({ type: 'cancel', cita: c }), []);
+
+    const handleReschedule = useCallback(
+        (cita: CitaRow, fecha: string, hora?: string) => {
+            if (!canUpdate) {
+                return;
+            }
+
+            const current = new TZDate(cita.inicio_at, appTz);
+            const pad = (n: number) => String(n).padStart(2, '0');
+            const time =
+                hora ?? `${pad(current.getHours())}:${pad(current.getMinutes())}`;
+            const inicioAt = `${fecha}T${time}`;
+            const currentKey = `${current.getFullYear()}-${pad(current.getMonth() + 1)}-${pad(current.getDate())}T${pad(current.getHours())}:${pad(current.getMinutes())}`;
+
+            if (inicioAt === currentKey) {
+                return;
+            }
+
+            router.patch(
+                clinica.citas.reschedule({ cita: cita.id }).url,
+                {
+                    inicio_at: inicioAt,
+                    search: filters.search || undefined,
+                    per_page: filters.per_page,
+                    sort: filters.sort || undefined,
+                    direction: filters.direction || undefined,
+                    cita_desde: filters.cita_desde,
+                    cita_hasta: filters.cita_hasta,
+                    vista: 'calendario',
+                    mes: mesActivo || undefined,
+                },
+                {
+                    preserveScroll: true,
+                    only: [
+                        'citas',
+                        'citas_agenda',
+                        'filters',
+                        'cita_filtro_ui',
+                        'stats',
+                        'flash',
+                        'errors',
+                    ],
+                },
+            );
+        },
+        [appTz, canUpdate, filters, mesActivo],
+    );
 
     const openedCitaEditarRef = useRef<string | null>(null);
     useEffect(() => {
@@ -513,8 +561,10 @@ export default function Index({
                             timeZone={appTz}
                             isLoading={isLoading}
                             canCreate={canCreate}
+                            canUpdate={canUpdate}
                             onSelectCita={openDetail}
                             onScheduleDay={openCreateOnDay}
+                            onReschedule={handleReschedule}
                             onPrevMonth={() => applyFilter({ mes: shiftMes(mesActivo, -1) })}
                             onNextMonth={() => applyFilter({ mes: shiftMes(mesActivo, 1) })}
                             onJumpToMonth={(nextMes) => applyFilter({ mes: nextMes })}

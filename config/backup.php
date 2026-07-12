@@ -29,6 +29,8 @@ return [
 
     'pg_dump' => env('BACKUP_PG_DUMP', 'pg_dump'),
 
+    'pg_restore' => env('BACKUP_PG_RESTORE', 'pg_restore'),
+
     'compression' => (int) env('BACKUP_COMPRESSION', 6),
 
     /*
