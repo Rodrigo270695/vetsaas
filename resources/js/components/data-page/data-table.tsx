@@ -254,7 +254,7 @@ export function DataTable<T>({
                                 {hasSelection && selection && (
                                     <th
                                         scope="col"
-                                        className="w-10 border-b border-brand-200/60 bg-brand-50/75 px-3 py-3 dark:border-brand-800/40 dark:bg-brand-950/40"
+                                        className="w-10 border-b border-brand-200/60 bg-brand-50/75 px-3 py-2 dark:border-brand-800/40 dark:bg-brand-950/40"
                                     >
                                         <Checkbox
                                             checked={
@@ -275,7 +275,7 @@ export function DataTable<T>({
                                     <th
                                         key={col.key}
                                         className={cn(
-                                            'border-b border-brand-200/60 bg-brand-50/75 px-4 py-3 text-left text-xs font-semibold tracking-wide text-brand-800/90 dark:border-brand-800/40 dark:bg-brand-950/40 dark:text-brand-100/90',
+                                            'border-b border-brand-200/60 bg-brand-50/75 px-4 py-2 text-left text-xs font-semibold tracking-wide text-brand-800/90 dark:border-brand-800/40 dark:bg-brand-950/40 dark:text-brand-100/90',
                                             col.align === 'right' && 'text-right',
                                             col.align === 'center' && 'text-center',
                                             col.className,
@@ -320,7 +320,7 @@ export function DataTable<T>({
                                             )}
                                         >
                                             {hasSelection && selection && (
-                                                <td className="w-10 px-3 py-3 align-middle">
+                                                <td className="w-10 px-3 py-2 align-middle">
                                                     <Checkbox
                                                         checked={isRowSelected}
                                                         onCheckedChange={() =>
@@ -336,7 +336,7 @@ export function DataTable<T>({
                                                 <td
                                                     key={col.key}
                                                     className={cn(
-                                                        'min-w-0 px-4 py-3 align-middle text-sm text-foreground',
+                                                        'min-w-0 px-4 py-2 align-middle text-sm text-foreground',
                                                         col.align === 'right' &&
                                                             'text-right',
                                                         col.align === 'center' &&
@@ -378,7 +378,7 @@ export function DataTable<T>({
                                 key={reactKey}
                                 data-selected={isRowSelected}
                                 className={cn(
-                                    'flex items-start gap-3 px-4 py-3.5 transition-colors hover:bg-muted/30',
+                                    'flex items-start gap-3 px-4 py-2.5 transition-colors hover:bg-muted/30',
                                     isRowSelected && 'bg-primary/5',
                                     rowClassExtra,
                                 )}
