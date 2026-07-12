@@ -235,39 +235,46 @@ export function ProductoBulkImportModal({ open, onOpenChange }: Props) {
                             </Button>
                         </div>
 
-                        <div className="min-h-0 flex-1 overflow-y-auto rounded-lg border border-border/60 bg-muted/20">
-                            {!result ? (
-                                <p className="px-3 py-6 text-center text-xs text-muted-foreground">
+                        {!result ? (
+                            <div className="flex max-h-66 min-h-66 items-center justify-center rounded-lg border border-border/60 bg-muted/20 px-3">
+                                <p className="text-center text-xs text-muted-foreground">
                                     {t('import.results_empty')}
                                 </p>
-                            ) : (
-                                <div className="flex flex-col gap-2 p-3">
-                                    {result.error ? (
-                                        <p className="rounded-md border border-destructive/30 bg-destructive/10 px-2.5 py-2 text-xs text-destructive">
-                                            {result.error}
-                                        </p>
+                            </div>
+                        ) : (
+                            <div className="flex min-h-0 flex-col gap-2">
+                                {result.error ? (
+                                    <p className="rounded-md border border-destructive/30 bg-destructive/10 px-2.5 py-2 text-xs text-destructive">
+                                        {result.error}
+                                    </p>
+                                ) : null}
+
+                                <div className="flex flex-wrap gap-2 text-[0.7rem]">
+                                    <span className="rounded-full bg-emerald-50 px-2 py-0.5 font-medium text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200">
+                                        {t('import.summary_ok', { count: result.imported })}
+                                    </span>
+                                    <span className="rounded-full bg-rose-50 px-2 py-0.5 font-medium text-rose-800 dark:bg-rose-950/40 dark:text-rose-200">
+                                        {t('import.summary_error', { count: result.failed })}
+                                    </span>
+                                    {result.skipped > 0 ? (
+                                        <span className="rounded-full bg-muted px-2 py-0.5 font-medium text-muted-foreground">
+                                            {t('import.summary_skipped', { count: result.skipped })}
+                                        </span>
                                     ) : null}
+                                </div>
 
-                                    <div className="flex flex-wrap gap-2 text-[0.7rem]">
-                                        <span className="rounded-full bg-emerald-50 px-2 py-0.5 font-medium text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200">
-                                            {t('import.summary_ok', { count: result.imported })}
-                                        </span>
-                                        <span className="rounded-full bg-rose-50 px-2 py-0.5 font-medium text-rose-800 dark:bg-rose-950/40 dark:text-rose-200">
-                                            {t('import.summary_error', { count: result.failed })}
-                                        </span>
-                                        {result.skipped > 0 ? (
-                                            <span className="rounded-full bg-muted px-2 py-0.5 font-medium text-muted-foreground">
-                                                {t('import.summary_skipped', { count: result.skipped })}
-                                            </span>
-                                        ) : null}
-                                    </div>
-
-                                    <ul className="space-y-1.5">
-                                        {result.rows.map((row) => (
+                                {/* ~6 filas visibles; el resto con scroll */}
+                                <ul className="max-h-66 space-y-1.5 overflow-y-auto overscroll-contain rounded-lg border border-border/60 bg-muted/20 p-2">
+                                    {result.rows.length === 0 ? (
+                                        <li className="px-2 py-4 text-center text-xs text-muted-foreground">
+                                            {t('import.results_empty')}
+                                        </li>
+                                    ) : (
+                                        result.rows.map((row, index) => (
                                             <li
-                                                key={`${row.row}-${row.nombre}-${row.status}`}
+                                                key={`${row.row}-${index}-${row.status}`}
                                                 className={cn(
-                                                    'flex items-start gap-2 rounded-md border px-2 py-1.5 text-xs',
+                                                    'flex min-h-[2.35rem] items-start gap-2 rounded-md border px-2 py-1.5 text-xs',
                                                     row.status === 'ok' &&
                                                         'border-emerald-200/80 bg-emerald-50/50 dark:border-emerald-900/50 dark:bg-emerald-950/20',
                                                     row.status === 'error' &&
@@ -290,20 +297,20 @@ export function ProductoBulkImportModal({ open, onOpenChange }: Props) {
                                                     <span className="mt-0.5 size-3.5 shrink-0" />
                                                 )}
                                                 <div className="min-w-0 flex-1">
-                                                    <p className="font-medium text-foreground">
+                                                    <p className="truncate font-medium text-foreground">
                                                         {t('import.row_label', {
                                                             row: row.row,
                                                             nombre: row.nombre,
                                                         })}
                                                     </p>
-                                                    <p className="text-muted-foreground">{row.message}</p>
+                                                    <p className="line-clamp-2 text-muted-foreground">{row.message}</p>
                                                 </div>
                                             </li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            )}
-                        </div>
+                                        ))
+                                    )}
+                                </ul>
+                            </div>
+                        )}
                     </div>
                 </div>
             </DialogContent>

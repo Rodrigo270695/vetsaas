@@ -482,6 +482,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:productos.view')
             ->get('productos', [ProductoInventarioController::class, 'index'])
             ->name('productos.index');
+        Route::middleware('permission:productos.view')
+            ->get('productos/export', [ProductoInventarioController::class, 'exportExcel'])
+            ->name('productos.export');
         Route::middleware('permission:productos.create')
             ->post('productos', [ProductoInventarioController::class, 'store'])
             ->name('productos.store');

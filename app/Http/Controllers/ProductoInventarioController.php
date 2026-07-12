@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Exports\ProductosInventarioImportTemplateXlsx;
+use App\Exports\ProductosInventarioXlsxExport;
+use App\Http\Controllers\Concerns\LogsAuditExports;
 use App\Http\Requests\ProductoInventarioQuickStoreRequest;
 use App\Http\Requests\ProductoInventarioRequest;
 use App\Models\CategoriaProducto;
@@ -25,6 +27,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ProductoInventarioController extends Controller
 {
+    use LogsAuditExports;
     private const PER_PAGE_OPTIONS = [10, 15, 20, 25, 50, 100];
 
     private const SORTABLE_COLUMNS = [
@@ -191,6 +194,73 @@ class ProductoInventarioController extends Controller
         }, $filename, [
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         ]);
+    }
+
+    public function exportExcel(Request $request): StreamedResponse
+    {
+        abort_unless($request->user()?->can('productos.view'), 403);
+
+        $search = trim((string) $request->string('search', ''));
+        $sort = (string) $request->string('sort', '');
+        $direction = strtolower((string) $request->string('direction', 'desc'));
+        $sortValid = in_array($sort, self::SORTABLE_COLUMNS, true);
+        $directionValid = in_array($direction, ['asc', 'desc'], true);
+
+        $estado = (string) $request->string('estado', 'todas');
+        if (! in_array($estado, self::ESTADO_OPTIONS, true)) {
+            $estado = 'todas';
+        }
+
+        $categoriaFiltro = (string) $request->string('categoria_id', '');
+        $categoriaFiltroUuid = preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $categoriaFiltro) === 1
+            ? $categoriaFiltro
+            : null;
+
+        $query = Producto::query()->with(['categoria:id,nombre']);
+
+        if ($sortValid) {
+            $query->orderBy($sort, $directionValid ? $direction : 'asc');
+            $query->orderByDesc('created_at');
+        } else {
+            $query->orderBy('nombre');
+            $query->orderByDesc('created_at');
+        }
+
+        if ($search !== '') {
+            $query->where(function ($q) use ($search): void {
+                $q->where('nombre', 'ILIKE', "%{$search}%")
+                    ->orWhere('slug', 'ILIKE', "%{$search}%")
+                    ->orWhere('sku', 'ILIKE', "%{$search}%")
+                    ->orWhere('codigo_barras', 'ILIKE', "%{$search}%")
+                    ->orWhere('descripcion', 'ILIKE', "%{$search}%");
+            });
+        }
+
+        if ($estado === 'activa') {
+            $query->where('activo', true);
+        } elseif ($estado === 'inactiva') {
+            $query->where('activo', false);
+        }
+
+        if ($categoriaFiltroUuid !== null) {
+            $query->where('categoria_id', $categoriaFiltroUuid);
+        }
+
+        $filename = 'productos-inventario-'.now()->format('Ymd-His').'.xlsx';
+        $exporter = new ProductosInventarioXlsxExport;
+        $this->auditExport('productos', $filename);
+
+        return response()->streamDownload(
+            function () use ($exporter, $query): void {
+                $exporter->streamTo($query);
+            },
+            $filename,
+            [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'Cache-Control' => 'no-store, no-cache, must-revalidate',
+                'Pragma' => 'no-cache',
+            ],
+        );
     }
 
     public function importExcel(Request $request, ProductoInventarioImportService $importService): JsonResponse

@@ -1,5 +1,5 @@
 import { Head } from '@inertiajs/react';
-import { Filter, Package, Pill, Plus, PowerOff, ScreenShare, Upload, UserCircle } from 'lucide-react';
+import { Download, Filter, Package, Pill, Plus, PowerOff, ScreenShare, Upload, UserCircle } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -85,6 +85,7 @@ export default function Index({ productos: paginated, filters, stats, categoriaO
     const { t, i18n } = useTranslation(['productos-inventario', 'common']);
     const { can } = usePermission();
     const canCreate = can('productos.create');
+    const canView = can('productos.view');
     const productsLimitReached = usePlanLimitReached('max_productos');
     const canCreateProduct = canCreate && !productsLimitReached;
     const canUpdate = can('productos.update');
@@ -103,6 +104,18 @@ export default function Index({ productos: paginated, filters, stats, categoriaO
             direction: null,
         },
     });
+
+    const exportUrl = useMemo(() => {
+        const params = new URLSearchParams();
+        if (filters.search) params.set('search', filters.search);
+        if (filters.sort) params.set('sort', filters.sort);
+        if (filters.direction) params.set('direction', filters.direction);
+        if (filters.estado && filters.estado !== DEFAULT_ESTADO) params.set('estado', filters.estado);
+        if (filters.categoria_id) params.set('categoria_id', filters.categoria_id);
+        const qs = params.toString();
+
+        return qs ? `/inventario/productos/export?${qs}` : '/inventario/productos/export';
+    }, [filters]);
 
     const [modal, setModal] = useState<ModalState>({ type: 'idle' });
     const closeModal = useCallback(() => setModal({ type: 'idle' }), []);
@@ -290,8 +303,16 @@ export default function Index({ productos: paginated, filters, stats, categoriaO
                         { label: t('stats.matches'), value: stats.coincidencias, variant: 'primary', icon: ScreenShare },
                     ]}
                     action={
-                        <Can permission="productos.create">
-                            <div className="flex flex-row items-center gap-2">
+                        <div className="flex flex-row items-center gap-2">
+                            {canView ? (
+                                <Button asChild variant="outline" className="cursor-pointer gap-2">
+                                    <a href={exportUrl} download>
+                                        <Download className="size-4 shrink-0 opacity-70" strokeWidth={2.5} />
+                                        <span className="hidden sm:inline">{t('common:actions.export_xlsx')}</span>
+                                    </a>
+                                </Button>
+                            ) : null}
+                            <Can permission="productos.create">
                                 <Tooltip>
                                     <TooltipTrigger asChild>
                                         <span className="inline-flex">
@@ -335,8 +356,8 @@ export default function Index({ productos: paginated, filters, stats, categoriaO
                                         </TooltipContent>
                                     ) : null}
                                 </Tooltip>
-                            </div>
-                        </Can>
+                            </Can>
+                        </div>
                     }
                 />
 

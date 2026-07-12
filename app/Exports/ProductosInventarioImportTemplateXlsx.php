@@ -97,7 +97,7 @@ class ProductosInventarioImportTemplateXlsx
             'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF'], 'size' => 11],
             'fill' => [
                 'fillType' => Fill::FILL_SOLID,
-                'startColor' => ['rgb' => '1E3A5F'],
+                'startColor' => ['rgb' => '1F6E4A'],
             ],
             'alignment' => [
                 'horizontal' => Alignment::HORIZONTAL_CENTER,
@@ -106,7 +106,7 @@ class ProductosInventarioImportTemplateXlsx
             'borders' => [
                 'allBorders' => [
                     'borderStyle' => Border::BORDER_THIN,
-                    'color' => ['rgb' => '0F2744'],
+                    'color' => ['rgb' => '0E5236'],
                 ],
             ],
         ]);
@@ -161,7 +161,7 @@ class ProductosInventarioImportTemplateXlsx
 
     private function fillCatalogosSheet(Spreadsheet $spreadsheet, Worksheet $sheet): void
     {
-        $sheet->getTabColor()->setRGB('1E3A5F');
+        $sheet->getTabColor()->setRGB('1F6E4A');
         $sheet->getStyle('A:D')->applyFromArray([
             'fill' => [
                 'fillType' => Fill::FILL_SOLID,
@@ -245,7 +245,7 @@ class ProductosInventarioImportTemplateXlsx
         $sheet->setCellValue("A{$startRow}", $title);
         $sheet->mergeCells("A{$startRow}:D{$startRow}");
         $sheet->getStyle("A{$startRow}")->applyFromArray([
-            'font' => ['bold' => true, 'size' => 12, 'color' => ['rgb' => '1E3A5F']],
+            'font' => ['bold' => true, 'size' => 12, 'color' => ['rgb' => '1F6E4A']],
         ]);
 
         $headerRow = $startRow + 1;
@@ -257,7 +257,7 @@ class ProductosInventarioImportTemplateXlsx
             'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
             'fill' => [
                 'fillType' => Fill::FILL_SOLID,
-                'startColor' => ['rgb' => '1E3A5F'],
+                'startColor' => ['rgb' => '1F6E4A'],
             ],
             'alignment' => [
                 'horizontal' => Alignment::HORIZONTAL_CENTER,
@@ -342,7 +342,7 @@ class ProductosInventarioImportTemplateXlsx
 
         $sheet->setCellValue('A1', 'Campos de la hoja Productos');
         $sheet->getStyle('A1')->applyFromArray([
-            'font' => ['bold' => true, 'size' => 14, 'color' => ['rgb' => '1E3A5F']],
+            'font' => ['bold' => true, 'size' => 14, 'color' => ['rgb' => '1F6E4A']],
         ]);
 
         $sheet->setCellValue(
@@ -379,7 +379,7 @@ class ProductosInventarioImportTemplateXlsx
             'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
             'fill' => [
                 'fillType' => Fill::FILL_SOLID,
-                'startColor' => ['rgb' => '1E3A5F'],
+                'startColor' => ['rgb' => '1F6E4A'],
             ],
         ]);
 
