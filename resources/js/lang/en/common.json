@@ -67,6 +67,8 @@
     },
     "filters": {
         "all": "All",
+        "all_states": "All statuses",
+        "all_states_description": "Show records in any status",
         "active": "Active",
         "inactive": "Inactive"
     },

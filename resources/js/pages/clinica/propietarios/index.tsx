@@ -110,7 +110,11 @@ export default function Index({ propietarios: paginated, filters, stats, departa
 
     const estadoOptions: readonly FilterChip<PropietarioEstadoFilter>[] = useMemo(
         () => [
-            { value: 'todos', label: t('common:filters.all') },
+            {
+                value: 'todos',
+                label: t('common:filters.all_states'),
+                description: t('common:filters.all_states_description'),
+            },
             { value: 'activo', label: t('common:filters.active') },
             { value: 'inactivo', label: t('common:filters.inactive') },
         ],

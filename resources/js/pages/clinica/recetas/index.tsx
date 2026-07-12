@@ -8,18 +8,12 @@ import {
     DataTable,
     DataToolbar,
     EmptyState,
+    FilterChips,
     PageHeader,
 } from '@/components/data-page';
-import type { DataTableColumn } from '@/components/data-page';
+import type { DataTableColumn, FilterChip } from '@/components/data-page';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import { useDataTablePage } from '@/hooks/use-data-table-page';
 import { usePermission } from '@/hooks/use-permission';
 import { dashboard } from '@/routes';
@@ -107,6 +101,21 @@ export default function Index({
     const canPrintPdf = can('recetas.view');
     const canSeeAudit = can('audit-trail.view');
     const showRowActions = canUpdate || canDelete || canPrintPdf;
+
+    const estadoOptions = useMemo<readonly FilterChip<string>[]>(
+        () => [
+            {
+                value: SELECT_ALL,
+                label: t('filters.estado_all'),
+                description: t('common:filters.all_states_description'),
+            },
+            ...ESTADOS_RECETA_FILTRO.map((st) => ({
+                value: st,
+                label: t(`estado.${st}`),
+            })),
+        ],
+        [t],
+    );
 
     const {
         search,
@@ -395,28 +404,16 @@ export default function Index({
                             filtersClassName="sm:flex-1 sm:justify-end"
                         >
                             <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-                                <Select
+                                <FilterChips
+                                    ariaLabel={t('filters.estado')}
                                     value={filters.estado === '' ? SELECT_ALL : filters.estado}
-                                    onValueChange={(v) =>
+                                    onChange={(v) =>
                                         applyFilter({ estado: v === SELECT_ALL ? '' : v })
                                     }
+                                    options={estadoOptions}
                                     disabled={isLoading}
-                                >
-                                    <SelectTrigger
-                                        className="h-10 w-full min-w-0 cursor-pointer sm:w-44"
-                                        aria-label={t('filters.estado')}
-                                    >
-                                        <SelectValue placeholder={t('filters.estado_all')} />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value={SELECT_ALL}>{t('filters.estado_all')}</SelectItem>
-                                        {ESTADOS_RECETA_FILTRO.map((st) => (
-                                            <SelectItem key={st} value={st}>
-                                                {t(`estado.${st}`)}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                    triggerClassName="sm:min-w-48"
+                                />
                                 <AtencionDateRangeFilter
                                     desde={filters.receta_desde}
                                     hasta={filters.receta_hasta}

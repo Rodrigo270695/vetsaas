@@ -107,7 +107,11 @@ export default function Index({ productos: paginated, filters, stats, categoriaO
 
     const estadoOptions: readonly FilterChip<ProductoEstadoFilter>[] = useMemo(
         () => [
-            { value: 'todas', label: t('common:filters.all') },
+            {
+                value: 'todas',
+                label: t('common:filters.all_states'),
+                description: t('common:filters.all_states_description'),
+            },
             { value: 'activa', label: t('common:filters.active') },
             { value: 'inactiva', label: t('common:filters.inactive') },
         ],

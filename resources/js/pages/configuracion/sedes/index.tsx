@@ -137,7 +137,11 @@ export default function Index({
     /** Filtro segmentado de estado (depende de i18n). */
     const estadoOptions: readonly FilterChip<SedeEstadoFilter>[] = useMemo(
         () => [
-            { value: 'todas', label: t('common:filters.all') },
+            {
+                value: 'todas',
+                label: t('common:filters.all_states'),
+                description: t('common:filters.all_states_description'),
+            },
             { value: 'activa', label: t('common:filters.active') },
             { value: 'inactiva', label: t('common:filters.inactive') },
         ],

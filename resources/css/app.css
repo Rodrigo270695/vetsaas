@@ -90,7 +90,7 @@
    ============================================================ */
 :root {
     /* Fondos y texto base */
-    --background: oklch(0.985 0.003 80);      /* #FAFAF9 stone-50 cálido */
+    --background: oklch(1 0 0);               /* #FFFFFF — mismo tono que el contenido */
     --foreground: oklch(0.158 0.005 80);      /* #0C0A09 casi negro cálido */
 
     --card: oklch(1 0 0);                     /* #FFFFFF */

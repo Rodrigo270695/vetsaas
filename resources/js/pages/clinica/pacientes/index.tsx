@@ -146,7 +146,11 @@ export default function Index({
 
     const estadoOptions: readonly FilterChip<PacienteEstadoFilter>[] = useMemo(
         () => [
-            { value: 'todos', label: t('common:filters.all') },
+            {
+                value: 'todos',
+                label: t('common:filters.all_states'),
+                description: t('common:filters.all_states_description'),
+            },
             { value: 'activo', label: t('common:filters.active') },
             { value: 'inactivo', label: t('common:filters.inactive') },
         ],

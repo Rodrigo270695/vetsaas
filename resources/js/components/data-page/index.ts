@@ -17,7 +17,9 @@ export { DataToolbar, type DataToolbarProps } from './data-toolbar';
 export { EmptyState, type EmptyStateProps } from './empty-state';
 export {
     FilterChips,
+    filterChipIcons,
     type FilterChip,
+    type FilterChipTone,
     type FilterChipsProps,
 } from './filter-chips';
 export { PageHeader, type PageHeaderProps, type PageHeaderStat } from './page-header';
