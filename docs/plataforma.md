@@ -2210,11 +2210,22 @@ jobs:
 
 #### 5.4 Backups por tenant
 
-- **Diario**: `pg_dump --schema=vet_*` por cada tenant → S3 cifrado.
-- **Semanal**: dump completo de `public` (catálogo SaaS).
-- Retención: 30 días diarios + 12 meses semanales.
-- Comando de restore: `php artisan vetsaas:tenant-restore <slug> <fecha>`.
+**Implementado (MVP):**
 
+- Comando: `php artisan vetsaas:backup-database`
+- Schedule Laravel: diario **02:00** (`bootstrap/app.php`)
+- Genera en `storage/app/backups/` (o `BACKUP_PATH`):
+  - `full.dump` — recuperación de desastre
+  - `public.dump` — catálogo SaaS
+  - `vet_*.dump` — un archivo por clínica
+  - `latest.json` — estado leído por **Plataforma › Operaciones**
+- Retención: `BACKUP_RETENTION_DAYS` (default 14)
+- UI: Operaciones muestra OK/atrasado/fallido + botón «Correr ahora» (encola `RunDatabaseBackupJob`)
+- Script VPS opcional: `scripts/vetsaas-backup-db.sh`
+
+**Requisitos VPS:** `pg_dump` en PATH, cron `* * * * * php artisan schedule:run`, worker de colas si usas «Correr ahora», disco con espacio.
+
+**Pendiente:** subida automática a S3/R2 cifrado, `vetsaas:tenant-restore <slug> <fecha>` como comando dedicado.
 #### 5.5 Observabilidad
 
 - **Sentry**: errores PHP y JS, con `tenant_id` como tag.

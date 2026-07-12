@@ -26,28 +26,12 @@ final class OperacionesSnapshotService
 {
     public function __construct(
         private readonly OpenWaClient $openWa,
+        private readonly DatabaseBackupService $backups,
+        private readonly PresenceSnapshotService $presence,
     ) {}
 
     /**
-     * @return array{
-     *     health: array{ok: bool, database: bool, checked_at: string, queue_default: string},
-     *     credentials: array{openwa: bool, twilio: bool, brevo: bool},
-     *     tenants: array{total: int, trial: int, active: int, suspended: int, cancelled: int},
-     *     whatsapp: array{
-     *         openwa_configured: bool,
-     *         platform: array{status: string|null, phone: string|null, last_error: string|null, last_synced_at: string|null, ready: bool},
-     *         tenants_ready: int,
-     *         tenants_not_ready: int,
-     *         tenants_with_error: int,
-     *         broken: list<array{tenant_id: string, tenant_slug: string, tenant_label: string, status: string, phone: string|null, last_error: string|null, last_synced_at: string|null}>
-     *     },
-     *     subscriptions: array{grace: int, suspended: int, proximo_cobro_7d: int},
-     *     cobros: array{fallidos_7d: int, pendientes: int},
-     *     failed_jobs: array{
-     *         total: int,
-     *         recent: list<array{id: int, uuid: string, connection: string, queue: string, failed_at: string|null, exception_preview: string, job_name: string|null}>
-     *     }
-     * }
+     * @return array<string, mixed>
      */
     public function build(): array
     {
@@ -63,6 +47,8 @@ final class OperacionesSnapshotService
             ],
             'tenants' => $this->tenantsByEstado(),
             'whatsapp' => $this->whatsappRadar(),
+            'presence' => $this->presence->build(),
+            'backups' => $this->backups->status(),
             'subscriptions' => $this->subscriptionSignals($now),
             'cobros' => $this->cobrosSignals($now),
             'failed_jobs' => $this->failedJobs(),

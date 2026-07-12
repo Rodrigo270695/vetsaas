@@ -4,6 +4,7 @@ import {
     AlertTriangle,
     CheckCircle2,
     Database,
+    HardDrive,
     KeyRound,
     Loader2,
     MessageSquare,
@@ -11,6 +12,7 @@ import {
     Repeat,
     Server,
     Store,
+    Users,
     Wallet,
     XCircle,
 } from 'lucide-react';
@@ -68,6 +70,39 @@ type Snapshot = {
             last_synced_at: string | null;
         }>;
     };
+    presence: {
+        online_users: number;
+        online_tenants: number;
+        open_sessions: number;
+        session_users: number;
+        superadmins_online: number;
+        online_window_minutes: number;
+        session_lifetime_minutes: number;
+        by_tenant: Array<{
+            tenant_id: string;
+            tenant_slug: string;
+            tenant_label: string;
+            online_users: number;
+            open_sessions: number;
+            session_users: number;
+        }>;
+    };
+    backups: {
+        ok: boolean | null;
+        started_at: string | null;
+        finished_at: string | null;
+        duration_seconds: number | null;
+        directory: string | null;
+        full_size_bytes: number;
+        schemas: string[];
+        schema_count: number;
+        error: string | null;
+        age_hours: number | null;
+        stale: boolean;
+        enabled: boolean;
+        retention_days: number;
+        path: string;
+    };
     subscriptions: {
         grace: number;
         suspended: number;
@@ -106,6 +141,12 @@ const formatWhen = (value: string | null): string => {
     });
 };
 
+const formatBytes = (bytes: number): string => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
+
 function CredentialPill({
     ok,
     label,
@@ -136,6 +177,7 @@ export default function Index({ snapshot, can_manage }: Props) {
     const canManage = can_manage && can('plataforma-operaciones.manage');
     const [retryingUuid, setRetryingUuid] = useState<string | null>(null);
     const [retryingAll, setRetryingAll] = useState(false);
+    const [backupRunning, setBackupRunning] = useState(false);
 
     const alertCount = useMemo(() => {
         let n = 0;
@@ -147,8 +189,17 @@ export default function Index({ snapshot, can_manage }: Props) {
         n += snapshot.subscriptions.grace;
         n += snapshot.cobros.fallidos_7d;
         n += snapshot.failed_jobs.total;
+        if (snapshot.backups.stale || snapshot.backups.ok === false) n += 1;
         return n;
     }, [snapshot]);
+
+    const runBackup = () => {
+        setBackupRunning(true);
+        router.post(operaciones.backups.run.url(), {}, {
+            preserveScroll: true,
+            onFinish: () => setBackupRunning(false),
+        });
+    };
 
     const retryJob = (uuid: string) => {
         setRetryingUuid(uuid);
@@ -317,6 +368,201 @@ export default function Index({ snapshot, can_manage }: Props) {
                                 variant="danger"
                             />
                         </div>
+                    </SectionCard>
+
+                    <SectionCard
+                        title={t('presence.title')}
+                        description={t('presence.description', {
+                            minutes: snapshot.presence.online_window_minutes,
+                            session: snapshot.presence.session_lifetime_minutes,
+                        })}
+                        icon={Users}
+                    >
+                        <div className="mb-3 flex flex-wrap gap-2">
+                            <StatBadge
+                                label={t('presence.online_users')}
+                                value={snapshot.presence.online_users}
+                                variant={
+                                    snapshot.presence.online_users > 0
+                                        ? 'success'
+                                        : 'muted'
+                                }
+                            />
+                            <StatBadge
+                                label={t('presence.online_tenants')}
+                                value={snapshot.presence.online_tenants}
+                                variant="info"
+                            />
+                            <StatBadge
+                                label={t('presence.open_sessions')}
+                                value={snapshot.presence.open_sessions}
+                                variant="default"
+                            />
+                            <StatBadge
+                                label={t('presence.session_users')}
+                                value={snapshot.presence.session_users}
+                                variant="default"
+                            />
+                            <StatBadge
+                                label={t('presence.superadmins_online')}
+                                value={snapshot.presence.superadmins_online}
+                                variant={
+                                    snapshot.presence.superadmins_online > 0
+                                        ? 'success'
+                                        : 'muted'
+                                }
+                            />
+                        </div>
+
+                        {snapshot.presence.by_tenant.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">
+                                {t('presence.empty')}
+                            </p>
+                        ) : (
+                            <div className="overflow-x-auto rounded-lg border border-border/50">
+                                <table className="w-full min-w-[480px] text-left text-sm">
+                                    <thead className="border-b border-border/60 bg-muted/40 text-xs text-muted-foreground">
+                                        <tr>
+                                            <th className="px-3 py-2 font-medium">
+                                                {t('presence.columns.tenant')}
+                                            </th>
+                                            <th className="px-3 py-2 font-medium">
+                                                {t('presence.columns.online')}
+                                            </th>
+                                            <th className="px-3 py-2 font-medium">
+                                                {t('presence.columns.sessions')}
+                                            </th>
+                                            <th className="px-3 py-2 font-medium">
+                                                {t('presence.columns.session_users')}
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {snapshot.presence.by_tenant.map(
+                                            (row) => (
+                                                <tr
+                                                    key={row.tenant_id}
+                                                    className="border-b border-border/40 last:border-0"
+                                                >
+                                                    <td className="px-3 py-2">
+                                                        <div className="flex flex-col leading-tight">
+                                                            <span className="font-medium">
+                                                                {
+                                                                    row.tenant_label
+                                                                }
+                                                            </span>
+                                                            <span className="font-mono text-xs text-muted-foreground">
+                                                                {
+                                                                    row.tenant_slug
+                                                                }
+                                                            </span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-3 py-2 tabular-nums">
+                                                        {row.online_users}
+                                                    </td>
+                                                    <td className="px-3 py-2 tabular-nums">
+                                                        {row.open_sessions}
+                                                    </td>
+                                                    <td className="px-3 py-2 tabular-nums">
+                                                        {row.session_users}
+                                                    </td>
+                                                </tr>
+                                            ),
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </SectionCard>
+
+                    <SectionCard
+                        title={t('backups.title')}
+                        description={t('backups.description')}
+                        icon={HardDrive}
+                        badge={
+                            <div className="flex items-center gap-2">
+                                <StatBadge
+                                    label={
+                                        !snapshot.backups.enabled
+                                            ? t('backups.disabled')
+                                            : snapshot.backups.ok === true &&
+                                                !snapshot.backups.stale
+                                              ? t('backups.ok')
+                                              : snapshot.backups.ok === false
+                                                ? t('backups.failed')
+                                                : snapshot.backups.stale
+                                                  ? t('backups.stale')
+                                                  : t('backups.missing')
+                                    }
+                                    value=""
+                                    variant={
+                                        snapshot.backups.ok === true &&
+                                        !snapshot.backups.stale
+                                            ? 'success'
+                                            : 'danger'
+                                    }
+                                />
+                                {canManage ? (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        disabled={backupRunning}
+                                        onClick={runBackup}
+                                    >
+                                        {backupRunning ? (
+                                            <Loader2 className="mr-1.5 size-3.5 animate-spin" />
+                                        ) : (
+                                            <HardDrive className="mr-1.5 size-3.5" />
+                                        )}
+                                        {backupRunning
+                                            ? t('backups.running')
+                                            : t('backups.run')}
+                                    </Button>
+                                ) : null}
+                            </div>
+                        }
+                    >
+                        <div className="flex flex-wrap gap-2">
+                            {snapshot.backups.age_hours !== null ? (
+                                <StatBadge
+                                    label={t('backups.age', {
+                                        hours: snapshot.backups.age_hours,
+                                    })}
+                                    value=""
+                                    variant="muted"
+                                />
+                            ) : null}
+                            <StatBadge
+                                label={t('backups.size')}
+                                value={formatBytes(
+                                    snapshot.backups.full_size_bytes,
+                                )}
+                                variant="info"
+                            />
+                            <StatBadge
+                                label={t('backups.schemas')}
+                                value={snapshot.backups.schema_count}
+                                variant="default"
+                            />
+                            <StatBadge
+                                label={t('backups.retention', {
+                                    days: snapshot.backups.retention_days,
+                                })}
+                                value=""
+                                variant="muted"
+                            />
+                        </div>
+                        {snapshot.backups.error ? (
+                            <p className="mt-3 text-xs text-destructive">
+                                {t('backups.error')}: {snapshot.backups.error}
+                            </p>
+                        ) : null}
+                        {snapshot.backups.finished_at ? (
+                            <p className="mt-2 text-xs text-muted-foreground">
+                                {formatWhen(snapshot.backups.finished_at)}
+                            </p>
+                        ) : null}
                     </SectionCard>
 
                     <SectionCard

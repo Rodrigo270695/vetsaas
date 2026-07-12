@@ -1,6 +1,6 @@
 {
     "title": "Operaciones",
-    "description": "Radar de salud del SaaS: tenants, WhatsApp, colas, cobros y credenciales.",
+    "description": "Radar de salud del SaaS: tenants, WhatsApp, presencia, backups, colas y cobros.",
     "checked_at": "Última lectura: {{when}}",
     "alerts": "Alertas",
     "health": {
@@ -30,6 +30,40 @@
         "suspended": "Suspendidos",
         "cancelled": "Cancelados",
         "cta": "Ver tenants"
+    },
+    "presence": {
+        "title": "Presencia (usuarios)",
+        "description": "Ventana abierta ≈ actividad en los últimos {{minutes}} min. Sesión abierta = cookie Laravel vigente (hasta {{session}} min idle).",
+        "online_users": "Ventana abierta",
+        "online_tenants": "Clínicas online",
+        "open_sessions": "Sesiones abiertas",
+        "session_users": "Usuarios con sesión",
+        "superadmins_online": "Superadmins online",
+        "empty": "Nadie con ventana abierta ni sesión reciente.",
+        "columns": {
+            "tenant": "Clínica",
+            "online": "Ventana",
+            "sessions": "Sesiones",
+            "session_users": "Con sesión"
+        }
+    },
+    "backups": {
+        "title": "Backups",
+        "description": "Dump diario de PostgreSQL (completo + public + cada schema vet_*). Programado a las 02:00.",
+        "ok": "Último OK",
+        "failed": "Falló",
+        "missing": "Sin backups",
+        "stale": "Atrasado",
+        "enabled": "Activo",
+        "disabled": "Deshabilitado",
+        "age": "Hace {{hours}} h",
+        "size": "Tamaño full",
+        "schemas": "Schemas tenant",
+        "retention": "Retención {{days}} días",
+        "run": "Correr ahora",
+        "running": "Encolando…",
+        "error": "Error",
+        "path": "Ruta"
     },
     "whatsapp": {
         "title": "WhatsApp",

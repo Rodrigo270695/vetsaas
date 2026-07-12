@@ -49,6 +49,7 @@ class User extends Authenticatable
             'is_active' => 'boolean',
             'must_change_password' => 'boolean',
             'last_login_at' => 'datetime',
+            'last_seen_at' => 'datetime',
         ];
     }
 

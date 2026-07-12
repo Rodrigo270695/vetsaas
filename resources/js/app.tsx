@@ -1,5 +1,6 @@
 import { createInertiaApp, router } from '@inertiajs/react';
 import { ClinicThemeSync } from '@/components/clinic-theme-sync';
+import { PresenceHeartbeat } from '@/components/presence-heartbeat';
 import PwaInstallBanner from '@/components/pwa-install-banner';
 import { OfflineSyncProvider } from '@/contexts/offline-sync-context';
 import { Toaster } from '@/components/ui/sonner';
@@ -39,6 +40,7 @@ createInertiaApp({
             <OfflineSyncProvider>
                 <TooltipProvider delayDuration={0}>
                     <ClinicThemeSync />
+                    <PresenceHeartbeat />
                     {app}
                     <PwaInstallBanner />
                     <Toaster />

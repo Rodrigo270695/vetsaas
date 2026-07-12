@@ -37,6 +37,7 @@ use App\Http\Controllers\PlataformaOperacionesController;
 use App\Http\Controllers\PlatformRenewalReminderController;
 use App\Http\Controllers\PlatformSettingController;
 use App\Http\Controllers\PlatformWhatsAppController;
+use App\Http\Controllers\PresenceHeartbeatController;
 use App\Http\Controllers\ProductoInventarioController;
 use App\Http\Controllers\PromotionController;
 use App\Http\Controllers\PropietarioController;
@@ -108,6 +109,12 @@ Route::middleware(['auth', 'tenant.match-user'])->group(function (): void {
         ->name('password.change.form');
     Route::post('cuenta/cambiar-password', [ChangePasswordController::class, 'update'])
         ->name('password.change.update');
+
+    // Heartbeat de presencia (ventana abierta). Sin force-password-change
+    // para que también cuente usuarios en flujo de cambio de clave.
+    Route::post('presence/heartbeat', PresenceHeartbeatController::class)
+        ->middleware('throttle:30,1')
+        ->name('presence.heartbeat');
 });
 
 Route::middleware(['throttle:12,1'])->group(function (): void {
@@ -947,6 +954,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:plataforma-operaciones.manage')
             ->post('operaciones/failed-jobs/retry-all', [PlataformaOperacionesController::class, 'retryAllFailedJobs'])
             ->name('operaciones.failed-jobs.retry-all');
+        Route::middleware('permission:plataforma-operaciones.manage')
+            ->post('operaciones/backups/run', [PlataformaOperacionesController::class, 'runBackup'])
+            ->name('operaciones.backups.run');
 
         Route::middleware('permission:plataforma-tenants.view')
             ->get('tenants', [TenantController::class, 'index'])

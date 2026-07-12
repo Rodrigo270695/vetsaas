@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Jobs\RunDatabaseBackupJob;
 use App\Services\Platform\OperacionesSnapshotService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Artisan;
@@ -14,8 +15,8 @@ use Throwable;
 /**
  * Panel de operaciones del SaaS (solo superadmin / host central).
  *
- * Radar de salud de negocio: tenants, WhatsApp, jobs fallidos,
- * suscripciones en riesgo y credenciales globales.
+ * Radar de salud de negocio: tenants, WhatsApp, presencia, backups,
+ * jobs fallidos, suscripciones en riesgo y credenciales globales.
  */
 class PlataformaOperacionesController extends Controller
 {
@@ -25,6 +26,13 @@ class PlataformaOperacionesController extends Controller
             'snapshot' => $snapshot->build(),
             'can_manage' => request()->user()?->can('plataforma-operaciones.manage') ?? false,
         ]);
+    }
+
+    public function runBackup(): RedirectResponse
+    {
+        RunDatabaseBackupJob::dispatch();
+
+        return back()->with('success', 'Backup encolado. Se actualizará el estado al terminar.');
     }
 
     public function retryFailedJob(string $uuid): RedirectResponse
