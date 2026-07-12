@@ -106,14 +106,14 @@ export function FormModal({
             <DialogContent
                 data-form-modal
                 className={cn(
-                    'flex max-h-[calc(100dvh-1.5rem)] flex-col gap-0 overflow-hidden border-brand-100/70 bg-card p-0 shadow-2xl shadow-brand-900/10 ring-1 ring-brand-200/50 dark:border-brand-900/50 dark:shadow-black/30 dark:ring-brand-800/40',
+                    'flex max-h-[calc(100dvh-1.5rem)] flex-col gap-0 overflow-hidden border-border/60 bg-card p-0 shadow-xl shadow-foreground/8 ring-1 ring-border/50 dark:border-border/80 dark:shadow-black/25 dark:ring-border/60',
                     'data-[state=open]:animate-in data-[state=closed]:animate-out',
                     'data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0',
                     'data-[state=open]:zoom-in-[0.97] data-[state=closed]:zoom-out-[0.98]',
                     'data-[state=open]:slide-in-from-bottom-4 data-[state=closed]:slide-out-to-bottom-3',
                     'data-[state=open]:duration-500 data-[state=open]:ease-[cubic-bezier(0.16,1,0.3,1)]',
                     'data-[state=closed]:duration-250 data-[state=closed]:ease-in',
-                    '[&_[data-slot=dialog-close]]:top-5 [&_[data-slot=dialog-close]]:text-brand-800/70 [&_[data-slot=dialog-close]]:hover:bg-brand-100/80 [&_[data-slot=dialog-close]]:hover:text-brand-900 dark:[&_[data-slot=dialog-close]]:text-brand-200/80 dark:[&_[data-slot=dialog-close]]:hover:bg-brand-900/40 dark:[&_[data-slot=dialog-close]]:hover:text-brand-50',
+                    '[&_[data-slot=dialog-close]]:top-5 [&_[data-slot=dialog-close]]:text-muted-foreground [&_[data-slot=dialog-close]]:hover:bg-brand-50/60 [&_[data-slot=dialog-close]]:hover:text-foreground dark:[&_[data-slot=dialog-close]]:hover:bg-brand-950/30',
                     sizeClasses[size],
                     className,
                 )}
@@ -127,12 +127,12 @@ export function FormModal({
                     blockEscape ? (event) => event.preventDefault() : undefined
                 }
             >
-                <DialogHeader className="shrink-0 border-b border-brand-100/80 bg-linear-to-br from-brand-50/95 via-brand-50/70 to-card px-6 pt-6 pb-4 dark:border-brand-900/60 dark:from-brand-950/80 dark:via-brand-950/45 dark:to-card">
-                    <DialogTitle className="pr-8 text-lg font-semibold tracking-tight text-brand-950 dark:text-brand-50">
+                <DialogHeader className="shrink-0 border-b border-border/50 bg-linear-to-br from-brand-50/35 via-brand-50/15 to-card px-6 pt-6 pb-4 dark:border-border/60 dark:from-brand-950/25 dark:via-brand-950/10 dark:to-card">
+                    <DialogTitle className="pr-8 text-lg font-semibold tracking-tight text-foreground">
                         {title}
                     </DialogTitle>
                     {description ? (
-                        <DialogDescription className="text-sm text-brand-900/65 dark:text-brand-200/75">
+                        <DialogDescription className="text-sm text-muted-foreground">
                             {description}
                         </DialogDescription>
                     ) : null}
