@@ -260,30 +260,6 @@
 }
 
 /* ============================================================
-   Scroll hint — indicador "hay más contenido abajo" usado dentro
-   de modales con scroll. Es un movimiento suave (3px) que sugiere
-   un swipe-down sin ser intrusivo.
-   ============================================================ */
-@keyframes scroll-hint-bounce {
-    0%, 100% {
-        transform: translateY(0);
-    }
-    50% {
-        transform: translateY(6px);
-    }
-}
-
-.animate-scroll-hint {
-    animation: scroll-hint-bounce 1.4s cubic-bezier(0.45, 0, 0.55, 1) infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .animate-scroll-hint {
-        animation: none;
-    }
-}
-
-/* ============================================================
    Scrollbar oculto — usado en contenedores donde el scroll
    funciona (rueda, touch, teclado) pero no queremos mostrar la
    barra visual porque tenemos indicadores propios (fades + chip).

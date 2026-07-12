@@ -2,7 +2,7 @@ import { useEffect, useState, type RefObject } from 'react';
 
 /**
  * Observa un contenedor scrolleable y reporta si hay contenido oculto
- * arriba/abajo para mostrar gradientes y/o un indicador "hay más".
+ * arriba/abajo para mostrar gradientes de scroll.
  *
  * Reacciona a:
  *  - scroll del contenedor

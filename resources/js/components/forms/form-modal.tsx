@@ -1,5 +1,4 @@
-import { ChevronDown } from 'lucide-react';
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { useRef, type FormEvent, type ReactNode } from 'react';
 import {
     Dialog,
     DialogContent,
@@ -50,14 +49,12 @@ const sizeClasses: Record<FormModalSize, string> = {
 };
 
 /**
- * Modal padre para formularios de crear/editar.
+ * Modal estándar para formularios de crear/editar.
  *
- * Características:
- * - Header con título y descripción opcional.
- * - Body con scroll cuando el contenido excede la pantalla (max-h dinámico).
+ * - Cabecera con tinte pastel del color de marca del tenant.
+ * - Body con scroll nativo cuando el contenido excede la pantalla.
  * - Footer sticky con slot libre (cancelar/guardar/etc).
  * - Si pasas `onSubmit`, el body se envuelve en `<form>` y captura Enter.
- * - Responsive: ocupa casi toda la pantalla en móvil, max-width en desktop.
  */
 export function FormModal({
     open,
@@ -75,89 +72,48 @@ export function FormModal({
     const scrollRef = useRef<HTMLDivElement>(null);
     const { overflowTop, overflowBottom } = useScrollHint(scrollRef, open);
 
-    // Hint inicial: cuando el modal recién se abre, mostramos el chip
-    // durante unos segundos aunque la detección aún no haya corrido.
-    // Esto garantiza que el usuario VEA el indicador visual ni bien se
-    // abre el modal, sin depender 100% del timing del ResizeObserver.
-    const [initialHint, setInitialHint] = useState(false);
-    useEffect(() => {
-        if (!open) {
-            setInitialHint(false);
-            return;
-        }
-        // Esperamos un frame para que el modal termine de animar entrada.
-        const start = window.setTimeout(() => setInitialHint(true), 400);
-        const end = window.setTimeout(() => setInitialHint(false), 4000);
-        return () => {
-            window.clearTimeout(start);
-            window.clearTimeout(end);
-        };
-    }, [open]);
-
-    const showHint = overflowBottom || initialHint;
-
     const ScrollArea = (
-        <div className="relative">
+        <div className="relative min-h-0">
             <div
                 ref={scrollRef}
-                className="scrollbar-hidden max-h-[min(50vh,calc(100dvh-14rem))] overflow-y-auto px-1 py-3 sm:max-h-[min(55vh,calc(100dvh-13rem))]"
+                className="max-h-[min(62vh,calc(100dvh-11.5rem))] overflow-y-auto overscroll-contain px-1 py-3 sm:max-h-[min(68vh,calc(100dvh-10.5rem))]"
             >
                 {children}
             </div>
 
-            {/* Fade superior: aparece solo cuando el usuario ya hizo scroll */}
             <div
                 aria-hidden
                 className={cn(
-                    'pointer-events-none absolute inset-x-0 top-0 h-8 bg-linear-to-b from-card via-card/80 to-transparent transition-opacity duration-200',
+                    'pointer-events-none absolute inset-x-0 top-0 h-8 bg-linear-to-b from-card via-card/80 to-transparent transition-opacity duration-300',
                     overflowTop ? 'opacity-100' : 'opacity-0',
                 )}
             />
 
-            {/* Fade inferior: degradado que insinúa contenido oculto */}
             <div
                 aria-hidden
                 className={cn(
-                    'pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-linear-to-t from-card via-card/85 to-transparent transition-opacity duration-300',
-                    showHint ? 'opacity-100' : 'opacity-0',
+                    'pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-linear-to-t from-card via-card/90 to-transparent transition-opacity duration-300',
+                    overflowBottom ? 'opacity-100' : 'opacity-0',
                 )}
             />
         </div>
     );
 
-    const ScrollHintChip = (
-        <div
-            aria-hidden
-            className={cn(
-                'pointer-events-none absolute inset-x-0 z-30 flex justify-center transition-opacity duration-300',
-                // Posicionado justo encima del footer del modal (footer ≈ 64-72px).
-                footer ? 'bottom-[4.5rem]' : 'bottom-6',
-                showHint ? 'opacity-100' : 'opacity-0',
-            )}
-        >
-            <div className="animate-scroll-hint flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-[11px] font-semibold tracking-wide text-primary-foreground shadow-lg shadow-primary/30 ring-1 ring-primary/40">
-                <span>Hay más campos</span>
-                <ChevronDown className="size-3.5" strokeWidth={3} />
-            </div>
-        </div>
-    );
+    const bodyWrapperClass = 'relative flex min-h-0 flex-1 flex-col overflow-hidden';
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent
+                data-form-modal
                 className={cn(
-                    // max-h: nunca exceder el alto del viewport. flex column para
-                    // que el scrolleable interior pueda usar min-h-0 + max-h y
-                    // realmente recortar contenido (en vez de empujar el modal).
-                    'flex max-h-[calc(100dvh-2rem)] flex-col gap-0 overflow-hidden p-0 shadow-2xl shadow-foreground/15 ring-1 ring-border/40',
-                    // Entrada: aparece desde abajo con un sutil escala + fade,
-                    // usando un timing cubic-bezier "spring-out" que da una
-                    // sensación más fluida y profesional que la default.
-                    'data-[state=open]:duration-400 data-[state=open]:ease-[cubic-bezier(0.16,1,0.3,1)]',
-                    'data-[state=open]:slide-in-from-bottom-6 data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95',
-                    // Salida: más rápida y discreta.
-                    'data-[state=closed]:duration-200 data-[state=closed]:ease-in',
-                    'data-[state=closed]:slide-out-to-bottom-4 data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95',
+                    'flex max-h-[calc(100dvh-1.5rem)] flex-col gap-0 overflow-hidden border-brand-100/70 bg-card p-0 shadow-2xl shadow-brand-900/10 ring-1 ring-brand-200/50 dark:border-brand-900/50 dark:shadow-black/30 dark:ring-brand-800/40',
+                    'data-[state=open]:animate-in data-[state=closed]:animate-out',
+                    'data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0',
+                    'data-[state=open]:zoom-in-[0.97] data-[state=closed]:zoom-out-[0.98]',
+                    'data-[state=open]:slide-in-from-bottom-4 data-[state=closed]:slide-out-to-bottom-3',
+                    'data-[state=open]:duration-500 data-[state=open]:ease-[cubic-bezier(0.16,1,0.3,1)]',
+                    'data-[state=closed]:duration-250 data-[state=closed]:ease-in',
+                    '[&_[data-slot=dialog-close]]:top-5 [&_[data-slot=dialog-close]]:text-brand-800/70 [&_[data-slot=dialog-close]]:hover:bg-brand-100/80 [&_[data-slot=dialog-close]]:hover:text-brand-900 dark:[&_[data-slot=dialog-close]]:text-brand-200/80 dark:[&_[data-slot=dialog-close]]:hover:bg-brand-900/40 dark:[&_[data-slot=dialog-close]]:hover:text-brand-50',
                     sizeClasses[size],
                     className,
                 )}
@@ -171,44 +127,38 @@ export function FormModal({
                     blockEscape ? (event) => event.preventDefault() : undefined
                 }
             >
-                <DialogHeader className="border-b border-border/60 px-6 pt-6 pb-4">
-                    <DialogTitle className="text-lg font-semibold tracking-tight">
+                <DialogHeader className="shrink-0 border-b border-brand-100/80 bg-linear-to-br from-brand-50/95 via-brand-50/70 to-card px-6 pt-6 pb-4 dark:border-brand-900/60 dark:from-brand-950/80 dark:via-brand-950/45 dark:to-card">
+                    <DialogTitle className="pr-8 text-lg font-semibold tracking-tight text-brand-950 dark:text-brand-50">
                         {title}
                     </DialogTitle>
-                    {description && (
-                        <DialogDescription className="text-sm text-muted-foreground">
+                    {description ? (
+                        <DialogDescription className="text-sm text-brand-900/65 dark:text-brand-200/75">
                             {description}
                         </DialogDescription>
-                    )}
+                    ) : null}
                 </DialogHeader>
 
                 {onSubmit ? (
                     <form
                         onSubmit={onSubmit}
-                        className="relative flex min-h-0 flex-1 flex-col overflow-hidden"
+                        className={bodyWrapperClass}
                         noValidate
                     >
-                        <div className="min-h-0 flex-1 overflow-hidden px-6 pt-1">
-                            {ScrollArea}
-                        </div>
+                        <div className="min-h-0 flex-1 overflow-hidden px-6 pt-1">{ScrollArea}</div>
                         {footer ? (
-                            <DialogFooter className="mt-0 shrink-0 gap-2 border-t border-border/60 bg-card px-6 py-4 sm:justify-end">
+                            <DialogFooter className="mt-0 shrink-0 gap-2 border-t border-border/50 bg-muted/25 px-6 py-4 sm:justify-end dark:bg-muted/10">
                                 {footer}
                             </DialogFooter>
                         ) : null}
-                        {ScrollHintChip}
                     </form>
                 ) : (
-                    <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
-                        <div className="min-h-0 flex-1 overflow-hidden px-6 pt-1">
-                            {ScrollArea}
-                        </div>
+                    <div className={bodyWrapperClass}>
+                        <div className="min-h-0 flex-1 overflow-hidden px-6 pt-1">{ScrollArea}</div>
                         {footer ? (
-                            <DialogFooter className="mt-0 shrink-0 gap-2 border-t border-border/60 bg-card px-6 py-4 sm:justify-end">
+                            <DialogFooter className="mt-0 shrink-0 gap-2 border-t border-border/50 bg-muted/25 px-6 py-4 sm:justify-end dark:bg-muted/10">
                                 {footer}
                             </DialogFooter>
                         ) : null}
-                        {ScrollHintChip}
                     </div>
                 )}
             </DialogContent>
