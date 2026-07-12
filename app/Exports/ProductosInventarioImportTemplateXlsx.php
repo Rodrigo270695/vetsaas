@@ -3,9 +3,12 @@
 namespace App\Exports;
 
 use App\Models\CategoriaProducto;
+use App\Models\Sede;
 use App\Support\Inventario\UnidadMedidaOpciones;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Cell\DataValidation;
 use PhpOffice\PhpSpreadsheet\NamedRange;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -20,7 +23,7 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
  *
  * Hojas:
  * - Productos: captura con listas desplegables en foráneas
- * - Catalogos: UNIDADES / CATEGORIAS / SI_NO (Código, Nombre, Valor en lista)
+ * - Catalogos: UNIDADES / CATEGORIAS / SEDES / SI_NO
  * - Campos obligatorios: guía de columnas
  */
 class ProductosInventarioImportTemplateXlsx
@@ -40,6 +43,10 @@ class ProductosInventarioImportTemplateXlsx
         'precio_compra',
         'stock_minimo',
         'descripcion',
+        'sede',
+        'cantidad_inicial',
+        'numero_lote',
+        'fecha_vencimiento',
     ];
 
     private const HEADER_ROW = 1;
@@ -48,14 +55,17 @@ class ProductosInventarioImportTemplateXlsx
 
     private const DATA_END_ROW = 201;
 
-    /** @var array{unidades: array{start: int, end: int}, categorias: array{start: int, end: int}, si_no: array{start: int, end: int}} */
+    /** @var array{unidades: array{start: int, end: int}, categorias: array{start: int, end: int}, sedes: array{start: int, end: int}, si_no: array{start: int, end: int}} */
     private array $catalogRanges = [
         'unidades' => ['start' => 0, 'end' => -1],
         'categorias' => ['start' => 0, 'end' => -1],
+        'sedes' => ['start' => 0, 'end' => -1],
         'si_no' => ['start' => 0, 'end' => -1],
     ];
 
     private string $ejemploUnidad = 'UN - Unidad';
+
+    private string $ejemploSede = '';
 
     public function streamTo(string $output = 'php://output'): void
     {
@@ -124,6 +134,10 @@ class ProductosInventarioImportTemplateXlsx
             '12.00',
             '5',
             'Fila de ejemplo — bórrala o cámbiala',
+            $this->ejemploSede,
+            '10',
+            'LOTE-EJEMPLO',
+            '2027-12-31',
         ];
         foreach ($example as $index => $value) {
             $col = Coordinate::stringFromColumnIndex($index + 1);
@@ -143,13 +157,17 @@ class ProductosInventarioImportTemplateXlsx
             ],
         ]);
 
-        // B = unidad*, C = medicamento*, D = activo*, E = categoria
+        // B = unidad*, C = medicamento*, D = activo*, E = categoria, L = sede
         $this->applyListValidation($sheet, 'B', 'UNIDADES_LISTA');
         $this->applyListValidation($sheet, 'C', 'SI_NO_LISTA');
         $this->applyListValidation($sheet, 'D', 'SI_NO_LISTA');
         if ($this->catalogRanges['categorias']['end'] >= $this->catalogRanges['categorias']['start']
             && $this->catalogRanges['categorias']['start'] > 0) {
             $this->applyListValidation($sheet, 'E', 'CATEGORIAS_LISTA', allowBlank: true);
+        }
+        if ($this->catalogRanges['sedes']['end'] >= $this->catalogRanges['sedes']['start']
+            && $this->catalogRanges['sedes']['start'] > 0) {
+            $this->applyListValidation($sheet, 'L', 'SEDES_LISTA', allowBlank: true);
         }
 
         foreach (range(1, count($headers)) as $i) {
@@ -216,6 +234,42 @@ class ProductosInventarioImportTemplateXlsx
         $catEnd = $row - 1;
         $this->catalogRanges['categorias'] = $categorias->isNotEmpty()
             ? ['start' => $catStart, 'end' => $catEnd]
+            : ['start' => 0, 'end' => -1];
+
+        $row += 2;
+
+        $tenantId = Auth::user()?->tenant_id;
+        $sedesQuery = Sede::query()
+            ->where('activa', true)
+            ->whereNull('deleted_at')
+            ->orderBy('nombre');
+        if ($tenantId !== null) {
+            $sedesQuery->where('tenant_id', $tenantId);
+        }
+        $sedes = $sedesQuery->get(['id', 'nombre', 'codigo']);
+        $sedeRows = $sedes
+            ->map(static fn (Sede $s): array => [
+                'codigo' => (string) $s->codigo,
+                'nombre' => (string) $s->nombre,
+                'valor' => (string) $s->nombre.' · '.(string) $s->codigo,
+            ])
+            ->all();
+
+        if ($sedeRows === []) {
+            $sedeRows = [[
+                'codigo' => '',
+                'nombre' => '(Sin sedes activas — créalas en Configuración → Sedes)',
+                'valor' => '',
+            ]];
+        } else {
+            $this->ejemploSede = $sedeRows[0]['valor'];
+        }
+
+        $row = $this->writeCatalogBlock($sheet, $row, 'SEDES', $sedeRows);
+        $sedeStart = $row - count($sedeRows);
+        $sedeEnd = $row - 1;
+        $this->catalogRanges['sedes'] = $sedes->isNotEmpty()
+            ? ['start' => $sedeStart, 'end' => $sedeEnd]
             : ['start' => 0, 'end' => -1];
 
         $row += 2;
@@ -300,6 +354,15 @@ class ProductosInventarioImportTemplateXlsx
             ));
         }
 
+        $sede = $this->catalogRanges['sedes'];
+        if ($sede['end'] >= $sede['start'] && $sede['start'] > 0) {
+            $spreadsheet->addNamedRange(new NamedRange(
+                'SEDES_LISTA',
+                $catalogos,
+                '$D$'.$sede['start'].':$D$'.$sede['end'],
+            ));
+        }
+
         $s = $this->catalogRanges['si_no'];
         if ($s['end'] >= $s['start'] && $s['start'] > 0) {
             $spreadsheet->addNamedRange(new NamedRange(
@@ -347,14 +410,14 @@ class ProductosInventarioImportTemplateXlsx
 
         $sheet->setCellValue(
             'A2',
-            'Los campos con * son obligatorios. Las foráneas se eligen con la lista desplegable (valores de Catalogos → columna «Valor en lista»).',
+            'Los campos con * son obligatorios. Stock inicial es opcional: si pones sede y cantidad_inicial se crea entrada con lote/vencimiento. Las foráneas se eligen con la lista (Catalogos → Valor en lista).',
         );
         $sheet->mergeCells('A2:C2');
         $sheet->getStyle('A2')->applyFromArray([
             'font' => ['italic' => true, 'size' => 10, 'color' => ['rgb' => '6B7280']],
             'alignment' => ['wrapText' => true],
         ]);
-        $sheet->getRowDimension(2)->setRowHeight(32);
+        $sheet->getRowDimension(2)->setRowHeight(40);
 
         $sheet->fromArray(
             [
@@ -370,6 +433,10 @@ class ProductosInventarioImportTemplateXlsx
                 ['precio_compra', 'No', 'Número ≥ 0'],
                 ['stock_minimo', 'No', 'Número ≥ 0'],
                 ['descripcion', 'No', 'Texto'],
+                ['sede', 'Condicional', 'Lista SEDES. Requerida si hay cantidad_inicial'],
+                ['cantidad_inicial', 'Condicional', 'Número > 0. Requiere sede'],
+                ['numero_lote', 'No', 'Texto (opcional con stock inicial)'],
+                ['fecha_vencimiento', 'No', 'YYYY-MM-DD o DD/MM/YYYY'],
             ],
             null,
             'A4',

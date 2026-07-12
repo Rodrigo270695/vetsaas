@@ -65,6 +65,11 @@ class Producto extends Model
         return $this->hasMany(ExistenciaSede::class, 'producto_id');
     }
 
+    public function lotes(): HasMany
+    {
+        return $this->hasMany(ProductoLote::class, 'producto_id');
+    }
+
     public function movimientosInventario(): HasMany
     {
         return $this->hasMany(MovimientoInventario::class, 'producto_id');

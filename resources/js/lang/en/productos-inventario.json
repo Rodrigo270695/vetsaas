@@ -21,8 +21,11 @@
         "categoria": "Category",
         "sku": "SKU",
         "unidad": "Unit",
+        "precios": "Prices",
         "precio": "Sale price",
         "precio_compra": "Purchase price",
+        "lote": "Lot",
+        "vencimiento": "Expiry",
         "medicamento": "Medication",
         "estado": "Status",
         "creado_por": "Created by",
@@ -31,6 +34,7 @@
     "row": {
         "sin_categoria": "No category",
         "medicamento_si": "Medication",
+        "precio_compra_short": "Cost",
         "system": "System"
     },
     "actions": {
@@ -46,9 +50,9 @@
         "template_title": "Template",
         "template_hint": "The file includes three sheets formatted as Excel tables.",
         "sheet_productos": "Productos — rows to import (fields with * and dropdown lists)",
-        "sheet_categorias": "Catalogos — UNIDADES, CATEGORIAS and SI/NO (list values)",
+        "sheet_categorias": "Catalogos — UNIDADES, CATEGORIAS, SEDES and SI/NO (list values)",
         "sheet_unidades": "Campos obligatorios — column guide",
-        "required_hint": "Required: nombre*, unidad*, medicamento*, activo* (pick foreign keys from the list)",
+        "required_hint": "Required: nombre*, unidad*, medicamento*, activo*. Optional initial stock: sede + cantidad_inicial (+ lote / vencimiento)",
         "download_template": "Download .xlsx template",
         "upload_title": "Upload Excel",
         "upload_hint": "Select the completed file. You’ll see results row by row.",

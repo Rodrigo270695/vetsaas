@@ -21,8 +21,11 @@
         "categoria": "Categoría",
         "sku": "SKU",
         "unidad": "Unidad",
+        "precios": "Precios",
         "precio": "Precio venta",
         "precio_compra": "Precio compra",
+        "lote": "Lote",
+        "vencimiento": "Vencimiento",
         "medicamento": "Medicamento",
         "estado": "Estado",
         "creado_por": "Creado por",
@@ -31,6 +34,7 @@
     "row": {
         "sin_categoria": "Sin categoría",
         "medicamento_si": "Medicamento",
+        "precio_compra_short": "Compra",
         "system": "Sistema"
     },
     "actions": {
@@ -46,9 +50,9 @@
         "template_title": "Plantilla",
         "template_hint": "El archivo incluye tres hojas con formato de tabla Excel.",
         "sheet_productos": "Productos — filas a importar (campos con * y listas desplegables)",
-        "sheet_categorias": "Catalogos — UNIDADES, CATEGORIAS y SI/NO (Valor en lista)",
+        "sheet_categorias": "Catalogos — UNIDADES, CATEGORIAS, SEDES y SI/NO (Valor en lista)",
         "sheet_unidades": "Campos obligatorios — guía de cada columna",
-        "required_hint": "Obligatorios: nombre*, unidad*, medicamento*, activo* (elige foráneas con la lista)",
+        "required_hint": "Obligatorios: nombre*, unidad*, medicamento*, activo*. Stock inicial opcional: sede + cantidad_inicial (+ lote / vencimiento)",
         "download_template": "Descargar plantilla .xlsx",
         "upload_title": "Subir Excel",
         "upload_hint": "Selecciona el archivo completado. Verás el resultado fila por fila.",

@@ -28,6 +28,10 @@ export type Producto = {
     stock_minimo: string | null;
     created_at: string;
     updated_at: string;
+    /** Lote FEFO con stock (null si no hay o es SIN-LOTE). */
+    lote_numero?: string | null;
+    /** YYYY-MM-DD del lote próximo a vencer. */
+    lote_vencimiento?: string | null;
     categoria: ProductoCategoria;
     creado_por: ProductoAuditUser;
     actualizado_por: ProductoAuditUser;

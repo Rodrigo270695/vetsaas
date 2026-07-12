@@ -3,6 +3,8 @@
 namespace App\Exports;
 
 use App\Models\Producto;
+use App\Models\ProductoLote;
+use App\Services\Inventario\InventarioLoteService;
 use Illuminate\Database\Eloquent\Builder;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
@@ -59,6 +61,14 @@ class ProductosInventarioXlsxExport
             [
                 'label' => 'Stock mínimo',
                 'value' => fn (Producto $p) => $p->stock_minimo !== null ? (string) $p->stock_minimo : '',
+            ],
+            [
+                'label' => 'Lote (próximo)',
+                'value' => fn (Producto $p) => (string) ($p->getAttribute('lote_numero') ?? ''),
+            ],
+            [
+                'label' => 'Vencimiento (próximo)',
+                'value' => fn (Producto $p) => (string) ($p->getAttribute('lote_vencimiento') ?? ''),
             ],
             [
                 'label' => 'Medicamento',
@@ -137,8 +147,11 @@ class ProductosInventarioXlsxExport
         }
 
         $row = $dataStartRow;
+        $productos = $query->get();
+        $this->appendLoteProximo($productos);
+
         /** @var Producto $producto */
-        foreach ($query->cursor() as $producto) {
+        foreach ($productos as $producto) {
             foreach ($this->columns as $index => $col) {
                 $colLetter = Coordinate::stringFromColumnIndex($index + 1);
                 $sheet->setCellValueExplicit(
@@ -209,5 +222,41 @@ class ProductosInventarioXlsxExport
         $table = new Table($tableRange, 'TablaProductos');
         $table->setStyle(new TableStyle(TableStyle::TABLE_STYLE_MEDIUM2));
         $sheet->addTable($table);
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, Producto>  $productos
+     */
+    private function appendLoteProximo($productos): void
+    {
+        if ($productos->isEmpty()) {
+            return;
+        }
+
+        $ids = $productos->pluck('id')->all();
+        $lotes = ProductoLote::query()
+            ->whereIn('producto_id', $ids)
+            ->where('cantidad', '>', 0)
+            ->orderByRaw('fecha_vencimiento IS NULL')
+            ->orderBy('fecha_vencimiento')
+            ->orderBy('created_at')
+            ->get(['producto_id', 'numero_lote', 'fecha_vencimiento']);
+
+        $byProducto = $lotes->groupBy('producto_id');
+
+        foreach ($productos as $producto) {
+            /** @var ProductoLote|null $lote */
+            $lote = $byProducto->get((string) $producto->id)?->first();
+            $numero = $lote !== null ? (string) $lote->numero_lote : null;
+            if ($numero === InventarioLoteService::LOTE_SIN_ESPECIFICAR) {
+                $numero = null;
+            }
+
+            $producto->setAttribute('lote_numero', $numero);
+            $producto->setAttribute(
+                'lote_vencimiento',
+                $lote?->fecha_vencimiento?->format('Y-m-d'),
+            );
+        }
     }
 }

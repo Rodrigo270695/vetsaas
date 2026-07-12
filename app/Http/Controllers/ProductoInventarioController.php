@@ -9,6 +9,7 @@ use App\Http\Requests\ProductoInventarioQuickStoreRequest;
 use App\Http\Requests\ProductoInventarioRequest;
 use App\Models\CategoriaProducto;
 use App\Models\Producto;
+use App\Models\ProductoLote;
 use App\Models\Sede;
 use App\Services\Inventario\InventarioLoteService;
 use App\Services\Inventario\ProductoInventarioImportService;
@@ -17,6 +18,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -99,6 +101,7 @@ class ProductoInventarioController extends Controller
         }
 
         $productos = $query->paginate($perPage)->withQueryString();
+        $this->appendLoteProximo($productos->getCollection());
 
         $categoriaQuery = CategoriaProducto::query()->where('activo', true);
         if (Schema::hasColumn('categorias_productos', 'orden')) {
@@ -371,5 +374,44 @@ class ProductoInventarioController extends Controller
         $producto->delete();
 
         return back()->with('success', 'Producto eliminado correctamente.');
+    }
+
+    /**
+     * Adjunta el lote con vencimiento más cercano (FEFO) con cantidad > 0.
+     *
+     * @param  Collection<int, Producto>  $productos
+     */
+    private function appendLoteProximo(Collection $productos): void
+    {
+        if ($productos->isEmpty()) {
+            return;
+        }
+
+        $ids = $productos->pluck('id')->all();
+
+        $lotes = ProductoLote::query()
+            ->whereIn('producto_id', $ids)
+            ->where('cantidad', '>', 0)
+            ->orderByRaw('fecha_vencimiento IS NULL')
+            ->orderBy('fecha_vencimiento')
+            ->orderBy('created_at')
+            ->get(['producto_id', 'numero_lote', 'fecha_vencimiento', 'cantidad']);
+
+        $byProducto = $lotes->groupBy('producto_id');
+
+        foreach ($productos as $producto) {
+            /** @var ProductoLote|null $lote */
+            $lote = $byProducto->get((string) $producto->id)?->first();
+            $numero = $lote !== null ? (string) $lote->numero_lote : null;
+            if ($numero === InventarioLoteService::LOTE_SIN_ESPECIFICAR) {
+                $numero = null;
+            }
+
+            $producto->setAttribute('lote_numero', $numero);
+            $producto->setAttribute(
+                'lote_vencimiento',
+                $lote?->fecha_vencimiento?->format('Y-m-d'),
+            );
+        }
     }
 }

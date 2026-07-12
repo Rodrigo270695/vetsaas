@@ -196,28 +196,56 @@ export default function Index({ productos: paginated, filters, stats, categoriaO
                 className: 'w-24',
             },
             {
-                key: 'precio_compra',
-                header: t('columns.precio_compra'),
+                key: 'precios',
+                header: t('columns.precios'),
+                sortable: true,
+                sortKey: 'precio_venta',
                 cell: (p) => {
-                    const txt = formatPrecio(p.precio_compra, i18n.language);
-                    return txt ? (
-                        <span className="tabular-nums text-sm">{txt}</span>
-                    ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
+                    const compra = formatPrecio(p.precio_compra, i18n.language);
+                    const venta = formatPrecio(p.precio_venta, i18n.language);
+                    if (!compra && !venta) {
+                        return <span className="text-xs text-muted-foreground">—</span>;
+                    }
+                    return (
+                        <div className="flex flex-col leading-tight">
+                            <span className="tabular-nums text-sm font-medium text-foreground">
+                                {venta ?? '—'}
+                            </span>
+                            <span className="tabular-nums text-[0.7rem] text-muted-foreground">
+                                {t('row.precio_compra_short')}: {compra ?? '—'}
+                            </span>
+                        </div>
                     );
                 },
                 className: 'w-28',
             },
             {
-                key: 'precio_venta',
-                header: t('columns.precio'),
-                sortable: true,
-                cell: (p) => {
-                    const txt = formatPrecio(p.precio_venta, i18n.language);
-                    return txt ? (
-                        <span className="tabular-nums text-sm font-medium">{txt}</span>
+                key: 'lote',
+                header: t('columns.lote'),
+                cell: (p) =>
+                    p.lote_numero ? (
+                        <span className="font-mono text-xs text-foreground">{p.lote_numero}</span>
                     ) : (
                         <span className="text-xs text-muted-foreground">—</span>
+                    ),
+                className: 'w-28',
+            },
+            {
+                key: 'vencimiento',
+                header: t('columns.vencimiento'),
+                cell: (p) => {
+                    if (!p.lote_vencimiento) {
+                        return <span className="text-xs text-muted-foreground">—</span>;
+                    }
+                    const d = new Date(`${p.lote_vencimiento}T12:00:00`);
+                    return (
+                        <span className="tabular-nums text-sm text-foreground">
+                            {d.toLocaleDateString(i18n.language, {
+                                day: '2-digit',
+                                month: 'short',
+                                year: 'numeric',
+                            })}
+                        </span>
                     );
                 },
                 className: 'w-28',

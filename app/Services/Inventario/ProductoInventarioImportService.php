@@ -4,6 +4,8 @@ namespace App\Services\Inventario;
 
 use App\Models\CategoriaProducto;
 use App\Models\Producto;
+use App\Models\Sede;
+use App\Services\Inventario\InventarioLoteService;
 use App\Support\Inventario\UnidadMedidaOpciones;
 use App\Support\Plan\PlanLimits;
 use Illuminate\Http\UploadedFile;
@@ -112,6 +114,32 @@ final class ProductoInventarioImportService
             ->mapWithKeys(fn (CategoriaProducto $c) => [mb_strtolower((string) $c->id) => (string) $c->id])
             ->all();
 
+        $tenantId = Auth::user()?->tenant_id;
+        $sedesQuery = Sede::query()
+            ->where('activa', true)
+            ->whereNull('deleted_at');
+        if ($tenantId !== null) {
+            $sedesQuery->where('tenant_id', $tenantId);
+        }
+        $sedes = $sedesQuery->get(['id', 'nombre', 'codigo']);
+        $sedesByCodigo = [];
+        $sedesByNombre = [];
+        $sedesByValor = [];
+        foreach ($sedes as $sede) {
+            $id = (string) $sede->id;
+            $codigo = mb_strtolower(trim((string) $sede->codigo));
+            $nombreSede = mb_strtolower(trim((string) $sede->nombre));
+            if ($codigo !== '') {
+                $sedesByCodigo[$codigo] = $id;
+            }
+            if ($nombreSede !== '') {
+                $sedesByNombre[$nombreSede] = $id;
+            }
+            $sedesByValor[$nombreSede.' · '.$codigo] = $id;
+            $sedesByValor[$nombreSede.' - '.$codigo] = $id;
+        }
+
+        $loteService = app(InventarioLoteService::class);
         $userId = Auth::id();
         $results = [];
         $imported = 0;
@@ -262,6 +290,67 @@ final class ProductoInventarioImportService
                 ? mb_substr($data['codigo_barras'], 0, 64)
                 : null;
 
+            $sedeRaw = $data['sede'] ?? '';
+            $cantidadInicialRaw = $data['cantidad_inicial'] ?? ($data['cantidad'] ?? '');
+            $numeroLote = ($data['numero_lote'] ?? ($data['lote'] ?? '')) !== ''
+                ? mb_substr((string) ($data['numero_lote'] ?? $data['lote']), 0, 128)
+                : null;
+            $fechaVencimientoRaw = $data['fecha_vencimiento'] ?? ($data['vencimiento'] ?? '');
+
+            $sedeId = null;
+            $cantidadInicial = null;
+            if ($sedeRaw !== '' || $cantidadInicialRaw !== '') {
+                if ($sedeRaw === '' || $cantidadInicialRaw === '') {
+                    $failed++;
+                    $results[] = [
+                        'row' => $excelRow,
+                        'nombre' => $nombre,
+                        'status' => 'error',
+                        'message' => 'Stock inicial requiere sede y cantidad_inicial juntos.',
+                    ];
+                    continue;
+                }
+
+                $sedeId = $this->resolveSedeId($sedeRaw, $sedesByCodigo, $sedesByNombre, $sedesByValor);
+                if ($sedeId === null) {
+                    $failed++;
+                    $results[] = [
+                        'row' => $excelRow,
+                        'nombre' => $nombre,
+                        'status' => 'error',
+                        'message' => 'Sede no encontrada o inactiva: «'.$sedeRaw.'».',
+                    ];
+                    continue;
+                }
+
+                $cantidadInicial = $this->parseDecimal($cantidadInicialRaw);
+                if ($cantidadInicial === false || $cantidadInicial === null || (float) $cantidadInicial <= 0) {
+                    $failed++;
+                    $results[] = [
+                        'row' => $excelRow,
+                        'nombre' => $nombre,
+                        'status' => 'error',
+                        'message' => 'cantidad_inicial debe ser un número mayor que 0.',
+                    ];
+                    continue;
+                }
+            }
+
+            $fechaVencimiento = null;
+            if ($fechaVencimientoRaw !== '') {
+                $fechaVencimiento = $this->parseDate($fechaVencimientoRaw);
+                if ($fechaVencimiento === null) {
+                    $failed++;
+                    $results[] = [
+                        'row' => $excelRow,
+                        'nombre' => $nombre,
+                        'status' => 'error',
+                        'message' => 'fecha_vencimiento inválida (usa YYYY-MM-DD o DD/MM/YYYY).',
+                    ];
+                    continue;
+                }
+            }
+
             try {
                 DB::transaction(function () use (
                     $nombre,
@@ -276,8 +365,13 @@ final class ProductoInventarioImportService
                     $stockMinimo,
                     $descripcion,
                     $userId,
+                    $sedeId,
+                    $cantidadInicial,
+                    $numeroLote,
+                    $fechaVencimiento,
+                    $loteService,
                 ): void {
-                    Producto::query()->create([
+                    $producto = Producto::query()->create([
                         'categoria_id' => $categoriaId,
                         'nombre' => mb_substr($nombre, 0, 255),
                         'slug' => $this->generarSlugUnico($nombre),
@@ -293,6 +387,18 @@ final class ProductoInventarioImportService
                         'created_by_id' => $userId,
                         'updated_by_id' => $userId,
                     ]);
+
+                    if ($sedeId !== null && $cantidadInicial !== null) {
+                        $loteService->registrarEntrada(
+                            (string) $producto->id,
+                            $sedeId,
+                            (string) $cantidadInicial,
+                            $numeroLote,
+                            $fechaVencimiento,
+                            'Stock inicial (importación masiva)',
+                            $userId !== null ? (string) $userId : null,
+                        );
+                    }
                 });
 
                 $imported++;
@@ -300,7 +406,9 @@ final class ProductoInventarioImportService
                     'row' => $excelRow,
                     'nombre' => $nombre,
                     'status' => 'ok',
-                    'message' => 'Producto creado.',
+                    'message' => $sedeId !== null
+                        ? 'Producto creado con stock inicial.'
+                        : 'Producto creado.',
                 ];
             } catch (Throwable $e) {
                 report($e);
@@ -349,9 +457,72 @@ final class ProductoInventarioImportService
             'codigo_de_barras' => 'codigo_barras',
             'categoría' => 'categoria',
             'categoria_nombre' => 'categoria',
+            'lote' => 'numero_lote',
+            'vencimiento' => 'fecha_vencimiento',
+            'cantidad' => 'cantidad_inicial',
+            'stock_inicial' => 'cantidad_inicial',
         ];
 
         return $aliases[$h] ?? $h;
+    }
+
+    /**
+     * @param  array<string, string>  $byCodigo
+     * @param  array<string, string>  $byNombre
+     * @param  array<string, string>  $byValor
+     */
+    private function resolveSedeId(string $raw, array $byCodigo, array $byNombre, array $byValor): ?string
+    {
+        $key = mb_strtolower(trim($raw));
+        if ($key === '') {
+            return null;
+        }
+
+        if (isset($byValor[$key])) {
+            return $byValor[$key];
+        }
+        if (isset($byCodigo[$key])) {
+            return $byCodigo[$key];
+        }
+        if (isset($byNombre[$key])) {
+            return $byNombre[$key];
+        }
+
+        if (preg_match('/^(.+?)\s*[·\-–]\s*(.+)$/u', $key, $m) === 1) {
+            $nombrePart = trim($m[1]);
+            $codigoPart = trim($m[2]);
+            $combo = $nombrePart.' · '.$codigoPart;
+            if (isset($byValor[$combo])) {
+                return $byValor[$combo];
+            }
+            if (isset($byCodigo[$codigoPart])) {
+                return $byCodigo[$codigoPart];
+            }
+        }
+
+        return null;
+    }
+
+    private function parseDate(string $value): ?string
+    {
+        $v = trim($value);
+        if ($v === '') {
+            return null;
+        }
+
+        if (preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $v, $m) === 1) {
+            return sprintf('%04d-%02d-%02d', (int) $m[1], (int) $m[2], (int) $m[3]);
+        }
+
+        if (preg_match('/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/', $v, $m) === 1) {
+            return sprintf('%04d-%02d-%02d', (int) $m[3], (int) $m[2], (int) $m[1]);
+        }
+
+        try {
+            return \Carbon\Carbon::parse($v)->format('Y-m-d');
+        } catch (Throwable) {
+            return null;
+        }
     }
 
     /**
