@@ -25,7 +25,7 @@
         "sheet_data": "Pacientes — rows to import (* fields and lists)",
         "sheet_catalogos": "Catalogos — owners, species, breeds, sex and YES/NO",
         "sheet_guide": "Required fields — column guide",
-        "required_hint": "Required: nombre*, propietario_documento* and activo*. The owner must already exist (same document).",
+        "required_hint": "Required: nombre*, propietario_documento* and activo*. Dates: DD/MM/YYYY (e.g. 15/01/2022). Owner must already exist.",
         "download_template": "Download .xlsx template",
         "upload_title": "Upload Excel",
         "upload_hint": "Select the completed file. You’ll see results row by row.",

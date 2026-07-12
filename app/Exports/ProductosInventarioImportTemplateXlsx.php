@@ -137,11 +137,16 @@ class ProductosInventarioImportTemplateXlsx
             $this->ejemploSede,
             '10',
             'LOTE-EJEMPLO',
-            '2027-12-31',
+            '31/12/2027',
         ];
         foreach ($example as $index => $value) {
             $col = Coordinate::stringFromColumnIndex($index + 1);
-            $sheet->setCellValue("{$col}".self::DATA_START_ROW, $value);
+            // Forzar fecha de ejemplo como texto DD/MM/AAAA (evitar serial de Excel).
+            if ($index === array_key_last($example)) {
+                $sheet->setCellValueExplicit("{$col}".self::DATA_START_ROW, $value, DataType::TYPE_STRING);
+            } else {
+                $sheet->setCellValue("{$col}".self::DATA_START_ROW, $value);
+            }
         }
 
         $sheet->getStyle('A'.self::DATA_START_ROW.":{$lastCol}".self::DATA_END_ROW)->applyFromArray([
@@ -410,7 +415,7 @@ class ProductosInventarioImportTemplateXlsx
 
         $sheet->setCellValue(
             'A2',
-            'Los campos con * son obligatorios. Stock inicial es opcional: si pones sede y cantidad_inicial se crea entrada con lote/vencimiento. Las foráneas se eligen con la lista (Catalogos → Valor en lista).',
+            'Los campos con * son obligatorios. Stock inicial es opcional: si pones sede y cantidad_inicial se crea entrada con lote/vencimiento. Fechas: usa DD/MM/AAAA (ej. 31/12/2027).',
         );
         $sheet->mergeCells('A2:C2');
         $sheet->getStyle('A2')->applyFromArray([
@@ -436,7 +441,7 @@ class ProductosInventarioImportTemplateXlsx
                 ['sede', 'Condicional', 'Lista SEDES. Requerida si hay cantidad_inicial'],
                 ['cantidad_inicial', 'Condicional', 'Número > 0. Requiere sede'],
                 ['numero_lote', 'No', 'Texto (opcional con stock inicial)'],
-                ['fecha_vencimiento', 'No', 'YYYY-MM-DD o DD/MM/YYYY'],
+                ['fecha_vencimiento', 'No', 'Formato DD/MM/AAAA (ej. 31/12/2027). También acepta AAAA-MM-DD'],
             ],
             null,
             'A4',

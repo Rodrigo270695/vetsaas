@@ -25,7 +25,7 @@
         "sheet_data": "Pacientes — filas a importar (campos con * y listas)",
         "sheet_catalogos": "Catalogos — PROPIETARIOS, ESPECIES, RAZAS, SEXOS y SI/NO",
         "sheet_guide": "Campos obligatorios — guía de cada columna",
-        "required_hint": "Obligatorios: nombre*, propietario_documento* y activo*. El titular debe existir (mismo documento).",
+        "required_hint": "Obligatorios: nombre*, propietario_documento* y activo*. Fechas: DD/MM/AAAA (ej. 15/01/2022). El titular debe existir.",
         "download_template": "Descargar plantilla .xlsx",
         "upload_title": "Subir Excel",
         "upload_hint": "Selecciona el archivo completado. Verás el resultado fila por fila.",

@@ -25,7 +25,7 @@ class PacientesImportTemplateXlsx
         'especie',
         'raza',
         'sexo',
-        'fecha_nacimiento',
+        'fecha_nacimiento (DD/MM/AAAA)',
         'peso_kg',
         'microchip',
         'color',
@@ -101,7 +101,7 @@ class PacientesImportTemplateXlsx
             'Perro',
             'Mestizo',
             'M',
-            '2022-01-15',
+            '15/01/2022',
             '12.5',
             '',
             'Marrón',
@@ -109,8 +109,19 @@ class PacientesImportTemplateXlsx
             'Fila de ejemplo — bórrala',
         ];
         foreach ($example as $i => $value) {
-            $sheet->setCellValue(Coordinate::stringFromColumnIndex($i + 1).self::DATA_START_ROW, $value);
+            $col = Coordinate::stringFromColumnIndex($i + 1);
+            // fecha_nacimiento (columna G, índice 6): texto DD/MM/AAAA para que Excel no lo convierta a serial
+            if ($i === 6) {
+                $sheet->setCellValueExplicit("{$col}".self::DATA_START_ROW, $value, DataType::TYPE_STRING);
+            } else {
+                $sheet->setCellValue("{$col}".self::DATA_START_ROW, $value);
+            }
         }
+
+        // Columna G = fecha_nacimiento: formato texto en filas de datos
+        $sheet->getStyle('G'.self::DATA_START_ROW.':G'.self::DATA_END_ROW)
+            ->getNumberFormat()
+            ->setFormatCode('@');
 
         $sheet->getStyle('A'.self::DATA_START_ROW.":{$lastCol}".self::DATA_END_ROW)->applyFromArray([
             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'FBF7F0']],
@@ -276,7 +287,7 @@ class PacientesImportTemplateXlsx
         ]);
         $sheet->setCellValue(
             'A2',
-            'propietario_documento* debe coincidir con un titular existente (lista Catalogos → PROPIETARIOS). Formato: «DNI 12345678» o solo el número.',
+            'propietario_documento* debe coincidir con un titular existente (lista Catalogos → PROPIETARIOS). fecha_nacimiento: usa DD/MM/AAAA (ej. 15/01/2022).',
         );
         $sheet->mergeCells('A2:C2');
         $sheet->getStyle('A2')->applyFromArray([
@@ -293,7 +304,7 @@ class PacientesImportTemplateXlsx
                 ['especie', 'No', 'Lista o texto libre'],
                 ['raza', 'No', 'Lista o texto libre'],
                 ['sexo', 'No', 'M / H / U'],
-                ['fecha_nacimiento', 'No', 'YYYY-MM-DD o DD/MM/YYYY'],
+                ['fecha_nacimiento', 'No', 'Formato DD/MM/AAAA (ej. 15/01/2022)'],
                 ['peso_kg', 'No', 'Número ≥ 0'],
                 ['microchip', 'No', 'Texto'],
                 ['color', 'No', 'Texto'],

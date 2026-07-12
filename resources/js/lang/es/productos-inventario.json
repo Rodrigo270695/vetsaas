@@ -52,7 +52,7 @@
         "sheet_productos": "Productos — filas a importar (campos con * y listas desplegables)",
         "sheet_categorias": "Catalogos — UNIDADES, CATEGORIAS, SEDES y SI/NO (Valor en lista)",
         "sheet_unidades": "Campos obligatorios — guía de cada columna",
-        "required_hint": "Obligatorios: nombre*, unidad*, medicamento*, activo*. Stock inicial opcional: sede + cantidad_inicial (+ lote / vencimiento)",
+        "required_hint": "Obligatorios: nombre*, unidad*, medicamento*, activo*. Stock inicial opcional: sede + cantidad_inicial (+ lote). Fechas: DD/MM/AAAA (ej. 31/12/2027)",
         "download_template": "Descargar plantilla .xlsx",
         "upload_title": "Subir Excel",
         "upload_hint": "Selecciona el archivo completado. Verás el resultado fila por fila.",

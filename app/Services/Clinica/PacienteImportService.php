@@ -68,6 +68,14 @@ final class PacienteImportService
             return $this->fail('No se encontró la fila de encabezados (nombre*, propietario_documento*, …).');
         }
 
+        $fechaColIndex = null;
+        foreach ($headers as $colIndex => $header) {
+            if ($header === 'fecha_nacimiento') {
+                $fechaColIndex = $colIndex;
+                break;
+            }
+        }
+
         $propietarios = Propietario::query()
             ->whereNotNull('numero_documento')
             ->where('numero_documento', '!=', '')
@@ -196,9 +204,11 @@ final class PacienteImportService
                 }
             }
 
-            $fechaRaw = $data['fecha_nacimiento'] ?? '';
+            $fechaRaw = $fechaColIndex !== null
+                ? ($cells[$fechaColIndex] ?? null)
+                : ($data['fecha_nacimiento'] ?? null);
             $fecha = null;
-            if ($fechaRaw !== '') {
+            if (! $this->isBlankDateValue($fechaRaw)) {
                 $fecha = $this->parseDate($fechaRaw);
                 if ($fecha === null) {
                     $failed++;
@@ -206,7 +216,7 @@ final class PacienteImportService
                         'row' => $excelRow,
                         'nombre' => $nombre,
                         'status' => 'error',
-                        'message' => 'fecha_nacimiento inválida.',
+                        'message' => 'fecha_nacimiento inválida. Usa DD/MM/AAAA (ej. 15/01/2022).',
                     ];
                     continue;
                 }
@@ -333,12 +343,15 @@ final class PacienteImportService
     {
         $h = mb_strtolower(trim($header));
         $h = preg_replace('/^\xEF\xBB\xBF/', '', $h) ?? $h;
+        // Quitar notas de formato en el encabezado: «fecha_nacimiento (DD/MM/AAAA)»
+        $h = preg_replace('/\s*\([^)]*\)\s*/', '', $h) ?? $h;
         $h = str_replace(['*', ' '], ['', '_'], $h);
         $h = preg_replace('/_+/', '_', $h) ?? $h;
+        $h = trim($h, '_');
 
         return match ($h) {
             'propietario', 'documento_propietario', 'doc_propietario', 'titular' => 'propietario_documento',
-            'fecha_nac', 'nacimiento' => 'fecha_nacimiento',
+            'fecha_nac', 'nacimiento', 'fecha_nacimiento_dd_mm_aaaa' => 'fecha_nacimiento',
             'peso', 'peso_kg' => 'peso_kg',
             default => $h,
         };
@@ -391,23 +404,70 @@ final class PacienteImportService
         return $n < 0 ? false : $n;
     }
 
-    private function parseDate(string $value): ?string
+    private function isBlankDateValue(mixed $value): bool
     {
-        $v = trim($value);
-        if ($v === '') {
+        if ($value === null) {
+            return true;
+        }
+
+        if (is_string($value)) {
+            return trim($value) === '';
+        }
+
+        return false;
+    }
+
+    private function parseDate(mixed $value): ?string
+    {
+        if ($this->isBlankDateValue($value)) {
             return null;
         }
-        if (preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $v, $m) === 1) {
-            return sprintf('%04d-%02d-%02d', (int) $m[1], (int) $m[2], (int) $m[3]);
+
+        if ($value instanceof \DateTimeInterface) {
+            return $value->format('Y-m-d');
         }
+
+        if (is_int($value) || is_float($value) || (is_string($value) && preg_match('/^\d+(\.\d+)?$/', trim($value)) === 1)) {
+            $serial = (float) $value;
+            if ($serial >= 18000 && $serial <= 73000) {
+                try {
+                    return \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($serial)->format('Y-m-d');
+                } catch (Throwable) {
+                }
+            }
+        }
+
+        $v = trim((string) $value);
+        if (preg_match('/^(\d{1,4}[\/\-.]\d{1,2}[\/\-.]\d{1,4})/', $v, $onlyDate) === 1) {
+            $v = $onlyDate[1];
+        }
+
         if (preg_match('/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/', $v, $m) === 1) {
-            return sprintf('%04d-%02d-%02d', (int) $m[3], (int) $m[2], (int) $m[1]);
+            $day = (int) $m[1];
+            $month = (int) $m[2];
+            $year = (int) $m[3];
+            if ($month > 12 && $day <= 12) {
+                [$day, $month] = [$month, $day];
+            }
+            if (! checkdate($month, $day, $year)) {
+                return null;
+            }
+
+            return sprintf('%04d-%02d-%02d', $year, $month, $day);
         }
-        try {
-            return \Carbon\Carbon::parse($v)->format('Y-m-d');
-        } catch (Throwable) {
-            return null;
+
+        if (preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $v, $m) === 1) {
+            $year = (int) $m[1];
+            $month = (int) $m[2];
+            $day = (int) $m[3];
+            if (! checkdate($month, $day, $year)) {
+                return null;
+            }
+
+            return sprintf('%04d-%02d-%02d', $year, $month, $day);
         }
+
+        return null;
     }
 
     private function nullableStr(string $value, int $max): ?string

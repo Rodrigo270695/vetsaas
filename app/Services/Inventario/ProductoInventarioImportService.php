@@ -97,6 +97,14 @@ final class ProductoInventarioImportService
             ];
         }
 
+        $fechaColIndex = null;
+        foreach ($headers as $colIndex => $header) {
+            if ($header === 'fecha_vencimiento' || $header === 'vencimiento') {
+                $fechaColIndex = $colIndex;
+                break;
+            }
+        }
+
         $allowedUnidades = array_fill_keys(
             array_map('strtoupper', UnidadMedidaOpciones::allowedCodigos()),
             true,
@@ -295,7 +303,10 @@ final class ProductoInventarioImportService
             $numeroLote = ($data['numero_lote'] ?? ($data['lote'] ?? '')) !== ''
                 ? mb_substr((string) ($data['numero_lote'] ?? $data['lote']), 0, 128)
                 : null;
-            $fechaVencimientoRaw = $data['fecha_vencimiento'] ?? ($data['vencimiento'] ?? '');
+            // Valor crudo: Excel suele devolver fechas como serial numérico, no como texto.
+            $fechaVencimientoRaw = $fechaColIndex !== null
+                ? ($cells[$fechaColIndex] ?? null)
+                : ($data['fecha_vencimiento'] ?? ($data['vencimiento'] ?? null));
 
             $sedeId = null;
             $cantidadInicial = null;
@@ -337,7 +348,7 @@ final class ProductoInventarioImportService
             }
 
             $fechaVencimiento = null;
-            if ($fechaVencimientoRaw !== '') {
+            if (! $this->isBlankDateValue($fechaVencimientoRaw)) {
                 $fechaVencimiento = $this->parseDate($fechaVencimientoRaw);
                 if ($fechaVencimiento === null) {
                     $failed++;
@@ -345,7 +356,7 @@ final class ProductoInventarioImportService
                         'row' => $excelRow,
                         'nombre' => $nombre,
                         'status' => 'error',
-                        'message' => 'fecha_vencimiento inválida (usa YYYY-MM-DD o DD/MM/YYYY).',
+                        'message' => 'fecha_vencimiento inválida. Usa DD/MM/AAAA (ej. 31/12/2027).',
                     ];
                     continue;
                 }
@@ -503,26 +514,82 @@ final class ProductoInventarioImportService
         return null;
     }
 
-    private function parseDate(string $value): ?string
+    private function isBlankDateValue(mixed $value): bool
     {
-        $v = trim($value);
-        if ($v === '') {
+        if ($value === null) {
+            return true;
+        }
+
+        if (is_string($value)) {
+            return trim($value) === '';
+        }
+
+        return false;
+    }
+
+    /**
+     * Normaliza fechas desde Excel (texto DD/MM/AAAA, YYYY-MM-DD o serial de Excel).
+     */
+    private function parseDate(mixed $value): ?string
+    {
+        if ($this->isBlankDateValue($value)) {
             return null;
+        }
+
+        if ($value instanceof \DateTimeInterface) {
+            return $value->format('Y-m-d');
+        }
+
+        // Serial de Excel (número de días desde 1899-12-30).
+        if (is_int($value) || is_float($value) || (is_string($value) && preg_match('/^\d+(\.\d+)?$/', trim($value)) === 1)) {
+            $serial = (float) $value;
+            // Rango razonable ~1950–2100 (seriales ~18000–73000).
+            if ($serial >= 18000 && $serial <= 73000) {
+                try {
+                    return \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($serial)->format('Y-m-d');
+                } catch (Throwable) {
+                    // sigue con parseo textual
+                }
+            }
+        }
+
+        $v = trim((string) $value);
+        // Quitar hora si Excel la añadió: "31/12/2027 0:00:00"
+        if (preg_match('/^(\d{1,4}[\/\-.]\d{1,2}[\/\-.]\d{1,4})/', $v, $onlyDate) === 1) {
+            $v = $onlyDate[1];
+        }
+
+        // Preferido: DD/MM/AAAA
+        if (preg_match('/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/', $v, $m) === 1) {
+            $day = (int) $m[1];
+            $month = (int) $m[2];
+            $year = (int) $m[3];
+            if ($day > 12 && $month <= 12) {
+                // Claramente día/mes
+            } elseif ($month > 12 && $day <= 12) {
+                // Intercambiar si viniera MM/DD por error de locale
+                [$day, $month] = [$month, $day];
+            }
+            if (! checkdate($month, $day, $year)) {
+                return null;
+            }
+
+            return sprintf('%04d-%02d-%02d', $year, $month, $day);
         }
 
         if (preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $v, $m) === 1) {
-            return sprintf('%04d-%02d-%02d', (int) $m[1], (int) $m[2], (int) $m[3]);
+            $year = (int) $m[1];
+            $month = (int) $m[2];
+            $day = (int) $m[3];
+            if (! checkdate($month, $day, $year)) {
+                return null;
+            }
+
+            return sprintf('%04d-%02d-%02d', $year, $month, $day);
         }
 
-        if (preg_match('/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/', $v, $m) === 1) {
-            return sprintf('%04d-%02d-%02d', (int) $m[3], (int) $m[2], (int) $m[1]);
-        }
-
-        try {
-            return \Carbon\Carbon::parse($v)->format('Y-m-d');
-        } catch (Throwable) {
-            return null;
-        }
+        // No usar Carbon::parse con números sueltos (genera años inválidos → overflow en Postgres).
+        return null;
     }
 
     /**
