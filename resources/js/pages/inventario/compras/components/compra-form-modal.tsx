@@ -1,6 +1,6 @@
-import { useForm } from '@inertiajs/react';
+import { useForm, usePage } from '@inertiajs/react';
 import { Loader2, Plus, Trash2 } from 'lucide-react';
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FormField, FormModal, SedeFormField } from '@/components/forms';
 import { Button } from '@/components/ui/button';
@@ -24,6 +24,7 @@ import type {
     ProveedorOptionCompra,
     SedeOptionCompra,
 } from '../types';
+import { todayCalendarDateInAppTimezone } from '@/pages/clinica/historias-clinicas/format-atendido';
 import { ProductoCompraCombobox } from './producto-compra-combobox';
 import { ProductoQuickCreateDialog } from './producto-quick-create-dialog';
 
@@ -73,10 +74,10 @@ const emptyLinea = (): LineaForm => ({
     fecha_vencimiento: '',
 });
 
-const emptyForm = (): FormData => ({
+const emptyForm = (fechaDocumento = ''): FormData => ({
     sede_id: '',
     proveedor_id: '',
-    fecha_documento: new Date().toISOString().slice(0, 10),
+    fecha_documento: fechaDocumento,
     numero_documento: '',
     serie: '',
     moneda: 'PEN',
@@ -98,7 +99,14 @@ export function CompraFormModal({
 }: CompraFormModalProps) {
     const { t } = useTranslation(['compras-inventario', 'common', 'offline']);
     const { refreshPending } = useOfflineSync();
-    const { data, setData, post, processing, errors, reset, clearErrors } = useForm<FormData>(emptyForm());
+    const { timezone: appTz } = usePage().props;
+    const hoyEnClinica = useMemo(
+        () => todayCalendarDateInAppTimezone(String(appTz ?? 'America/Lima')),
+        [appTz],
+    );
+    const { data, setData, post, processing, errors, reset, clearErrors } = useForm<FormData>(
+        emptyForm(hoyEnClinica),
+    );
     const [productosLocal, setProductosLocal] = useState<ProductoOptionCompra[]>([]);
     const [quickCreateProducto, setQuickCreateProducto] = useState<QuickCreateProductoState | null>(null);
 
@@ -111,14 +119,14 @@ export function CompraFormModal({
         clearErrors();
         setProductosLocal(productoOptions);
         setData({
-            ...emptyForm(),
+            ...emptyForm(hoyEnClinica),
             sede_id:
                 defaultSedeId && defaultSedeId !== ''
                     ? defaultSedeId
                     : resolveDefaultSedeIdOrEmpty(sedeOptions),
         });
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [open, defaultSedeId, sedeOptions, productoOptions]);
+    }, [open, defaultSedeId, sedeOptions, productoOptions, hoyEnClinica]);
 
     const sinSedes = sedeOptions.length === 0;
 

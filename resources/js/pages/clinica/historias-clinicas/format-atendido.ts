@@ -26,6 +26,15 @@ export function formatAtendidoInAppTimezone(
 }
 
 /**
+ * Fecha calendario de hoy (Y-m-d) en la zona horaria de la app (p. ej. America/Lima).
+ */
+export function todayCalendarDateInAppTimezone(timeZone: string): string {
+    const d = new TZDate(Date.now(), timeZone);
+
+    return format(d, 'yyyy-MM-dd');
+}
+
+/**
  * Formatea una fecha calendario (Y-m-d o ISO con hora) sin componente horario.
  */
 export function formatDateOnlyLabel(value: string, localeCode: string): string {
