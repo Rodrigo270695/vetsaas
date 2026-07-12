@@ -56,7 +56,27 @@ return [
             'url' => env('AWS_URL'),
             'endpoint' => env('AWS_ENDPOINT'),
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
-            'throw' => false,
+            'throw' => true,
+            'report' => false,
+        ],
+
+        /*
+         * Disco dedicado a dumps offsite. Misma config AWS_* / R2;
+         * se separa por si más adelante quieres otro bucket.
+         */
+        'backups' => [
+            'driver' => 's3',
+            'key' => env('BACKUP_AWS_ACCESS_KEY_ID', env('AWS_ACCESS_KEY_ID')),
+            'secret' => env('BACKUP_AWS_SECRET_ACCESS_KEY', env('AWS_SECRET_ACCESS_KEY')),
+            'region' => env('BACKUP_AWS_DEFAULT_REGION', env('AWS_DEFAULT_REGION', 'us-east-1')),
+            'bucket' => env('BACKUP_AWS_BUCKET', env('AWS_BUCKET')),
+            'url' => env('BACKUP_AWS_URL', env('AWS_URL')),
+            'endpoint' => env('BACKUP_AWS_ENDPOINT', env('AWS_ENDPOINT')),
+            'use_path_style_endpoint' => env(
+                'BACKUP_AWS_USE_PATH_STYLE_ENDPOINT',
+                env('AWS_USE_PATH_STYLE_ENDPOINT', false),
+            ),
+            'throw' => true,
             'report' => false,
         ],
 

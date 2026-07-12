@@ -49,7 +49,7 @@
     },
     "backups": {
         "title": "Backups",
-        "description": "Dump diario de PostgreSQL (completo + public + cada schema vet_*). Programado a las 02:00.",
+        "description": "Dump diario de PostgreSQL (completo + public + cada schema vet_*). Programado a las 02:00. Con remoto activo también sube a S3/R2.",
         "ok": "Último OK",
         "failed": "Falló",
         "missing": "Sin backups",
@@ -63,7 +63,13 @@
         "run": "Correr ahora",
         "running": "Encolando…",
         "error": "Error",
-        "path": "Ruta"
+        "path": "Ruta",
+        "remote_ok": "Remoto OK",
+        "remote_failed": "Remoto falló",
+        "remote_off": "Solo local",
+        "remote_missing_creds": "Remoto sin credenciales",
+        "remote_path": "Ruta remota",
+        "remote_files": "Archivos remotos"
     },
     "whatsapp": {
         "title": "WhatsApp",

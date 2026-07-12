@@ -2219,13 +2219,14 @@ jobs:
   - `public.dump` — catálogo SaaS
   - `vet_*.dump` — un archivo por clínica
   - `latest.json` — estado leído por **Plataforma › Operaciones**
-- Retención: `BACKUP_RETENTION_DAYS` (default 14)
-- UI: Operaciones muestra OK/atrasado/fallido + botón «Correr ahora» (encola `RunDatabaseBackupJob`)
+- Retención local: `BACKUP_RETENTION_DAYS` (default 14)
+- **Offsite S3/R2**: `BACKUP_REMOTE_ENABLED=true` + credenciales `AWS_*` (o `BACKUP_AWS_*`). Sube la carpeta del día a `{BACKUP_REMOTE_PREFIX}/{Y-m-d_His}/`. Disco `backups` en `config/filesystems.php`.
+- UI: Operaciones muestra OK/atrasado/fallido + estado remoto + botón «Correr ahora»
 - Script VPS opcional: `scripts/vetsaas-backup-db.sh`
 
-**Requisitos VPS:** `pg_dump` en PATH, cron `* * * * * php artisan schedule:run`, worker de colas si usas «Correr ahora», disco con espacio.
+**Requisitos VPS:** `pg_dump` en PATH, cron `* * * * * php artisan schedule:run`, worker de colas si usas «Correr ahora», paquete `league/flysystem-aws-s3-v3`, disco con espacio. En R2/S3 conviene lifecycle de 30 días.
 
-**Pendiente:** subida automática a S3/R2 cifrado, `vetsaas:tenant-restore <slug> <fecha>` como comando dedicado.
+**Pendiente:** `vetsaas:tenant-restore <slug> <fecha>` como comando dedicado; poda remota automática (hoy se recomienda lifecycle del bucket).
 #### 5.5 Observabilidad
 
 - **Sentry**: errores PHP y JS, con `tenant_id` como tag.

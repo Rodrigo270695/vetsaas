@@ -33,6 +33,20 @@ class DatabaseBackupCommand extends Command
         ));
         $this->line('Directorio: '.$result['directory']);
 
+        if ($result['remote_enabled'] ?? false) {
+            if (($result['remote_ok'] ?? null) === true) {
+                $this->info(sprintf(
+                    'Remoto OK — %d archivos → %s',
+                    $result['remote_files'] ?? 0,
+                    $result['remote_path'] ?? '',
+                ));
+            } else {
+                $this->error('Remoto falló: '.($result['remote_error'] ?? 'sin detalle'));
+
+                return self::FAILURE;
+            }
+        }
+
         return self::SUCCESS;
     }
 

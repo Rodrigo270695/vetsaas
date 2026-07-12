@@ -8,6 +8,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Process;
+use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 use Throwable;
 
@@ -15,7 +16,8 @@ use Throwable;
  * Backups diarios de PostgreSQL: dump completo + public + cada schema vet_*.
  *
  * Escribe un manifest en `{path}/latest.json` para que Operaciones muestre
- * si el último backup fue OK / atrasado / fallido.
+ * si el último backup fue OK / atrasado / fallido. Opcionalmente sube la
+ * carpeta a S3/R2 (fuera del VPS).
  */
 final class DatabaseBackupService
 {
@@ -31,7 +33,12 @@ final class DatabaseBackupService
      *     full_size_bytes: int,
      *     schemas: list<string>,
      *     schema_count: int,
-     *     error: string|null
+     *     error: string|null,
+     *     remote_enabled: bool,
+     *     remote_ok: bool|null,
+     *     remote_path: string|null,
+     *     remote_error: string|null,
+     *     remote_files: int
      * }
      */
     public function run(): array
@@ -39,35 +46,16 @@ final class DatabaseBackupService
         $started = Carbon::now();
 
         if (! (bool) config('backup.enabled', true)) {
-            return $this->writeManifest([
-                'ok' => false,
-                'started_at' => $started->toIso8601String(),
-                'finished_at' => Carbon::now()->toIso8601String(),
-                'duration_seconds' => 0,
-                'directory' => '',
-                'full_size_bytes' => 0,
-                'schemas' => [],
-                'schema_count' => 0,
-                'error' => 'Backups deshabilitados (BACKUP_ENABLED=false).',
-            ]);
+            return $this->writeManifest($this->emptyResult($started, 'Backups deshabilitados (BACKUP_ENABLED=false).'));
         }
 
         if (config('database.default') !== 'pgsql') {
-            return $this->writeManifest([
-                'ok' => false,
-                'started_at' => $started->toIso8601String(),
-                'finished_at' => Carbon::now()->toIso8601String(),
-                'duration_seconds' => 0,
-                'directory' => '',
-                'full_size_bytes' => 0,
-                'schemas' => [],
-                'schema_count' => 0,
-                'error' => 'Solo se soporta PostgreSQL (DB_CONNECTION=pgsql).',
-            ]);
+            return $this->writeManifest($this->emptyResult($started, 'Solo se soporta PostgreSQL (DB_CONNECTION=pgsql).'));
         }
 
         $basePath = rtrim((string) config('backup.path'), DIRECTORY_SEPARATOR);
-        $dayDir = $basePath.DIRECTORY_SEPARATOR.$started->format('Y-m-d_His');
+        $folderName = $started->format('Y-m-d_His');
+        $dayDir = $basePath.DIRECTORY_SEPARATOR.$folderName;
 
         try {
             File::ensureDirectoryExists($dayDir);
@@ -82,10 +70,22 @@ final class DatabaseBackupService
             }
 
             $fullSize = File::size($dayDir.DIRECTORY_SEPARATOR.'full.dump');
+            $remote = $this->uploadRemote($dayDir, $folderName);
+
+            $remoteRequired = (bool) config('backup.remote.required', true);
+            $remoteEnabled = (bool) config('backup.remote.enabled', false);
+            $ok = true;
+            $error = null;
+
+            if ($remoteEnabled && $remoteRequired && $remote['remote_ok'] !== true) {
+                $ok = false;
+                $error = $remote['remote_error'] ?? 'Falló la subida remota del backup.';
+            }
+
             $finished = Carbon::now();
 
             $manifest = $this->writeManifest([
-                'ok' => true,
+                'ok' => $ok,
                 'started_at' => $started->toIso8601String(),
                 'finished_at' => $finished->toIso8601String(),
                 'duration_seconds' => $started->diffInSeconds($finished),
@@ -93,7 +93,8 @@ final class DatabaseBackupService
                 'full_size_bytes' => $fullSize,
                 'schemas' => $schemas,
                 'schema_count' => count($schemas),
-                'error' => null,
+                'error' => $error,
+                ...$remote,
             ]);
 
             $this->pruneOldBackups($basePath);
@@ -103,15 +104,10 @@ final class DatabaseBackupService
             report($e);
 
             return $this->writeManifest([
-                'ok' => false,
-                'started_at' => $started->toIso8601String(),
-                'finished_at' => Carbon::now()->toIso8601String(),
-                'duration_seconds' => $started->diffInSeconds(Carbon::now()),
+                ...$this->emptyResult($started, $e->getMessage()),
                 'directory' => $dayDir,
-                'full_size_bytes' => 0,
-                'schemas' => [],
-                'schema_count' => 0,
-                'error' => $e->getMessage(),
+                'duration_seconds' => $started->diffInSeconds(Carbon::now()),
+                'finished_at' => Carbon::now()->toIso8601String(),
             ]);
         }
     }
@@ -131,7 +127,13 @@ final class DatabaseBackupService
      *     stale: bool,
      *     enabled: bool,
      *     retention_days: int,
-     *     path: string
+     *     path: string,
+     *     remote_enabled: bool,
+     *     remote_ok: bool|null,
+     *     remote_path: string|null,
+     *     remote_error: string|null,
+     *     remote_files: int,
+     *     remote_configured: bool
      * }
      */
     public function status(): array
@@ -140,6 +142,7 @@ final class DatabaseBackupService
         $manifestPath = $path.DIRECTORY_SEPARATOR.self::MANIFEST_NAME;
         $staleAfter = (int) config('backup.stale_after_hours', 30);
         $enabled = (bool) config('backup.enabled', true);
+        $remoteEnabled = (bool) config('backup.remote.enabled', false);
 
         $base = [
             'ok' => null,
@@ -156,6 +159,12 @@ final class DatabaseBackupService
             'enabled' => $enabled,
             'retention_days' => (int) config('backup.retention_days', 14),
             'path' => $path,
+            'remote_enabled' => $remoteEnabled,
+            'remote_ok' => null,
+            'remote_path' => null,
+            'remote_error' => null,
+            'remote_files' => 0,
+            'remote_configured' => $this->isRemoteConfigured(),
         ];
 
         if (! File::exists($manifestPath)) {
@@ -178,9 +187,18 @@ final class DatabaseBackupService
             : null;
 
         $ageHours = $finishedAt?->diffInSeconds(Carbon::now()) / 3600;
+        $ok = (bool) ($data['ok'] ?? false);
+        $remoteOk = array_key_exists('remote_ok', $data)
+            ? (is_bool($data['remote_ok']) ? $data['remote_ok'] : null)
+            : null;
+
+        $stale = $ageHours === null || $ageHours > $staleAfter || ! $ok;
+        if ($remoteEnabled && $remoteOk !== true) {
+            $stale = true;
+        }
 
         return [
-            'ok' => (bool) ($data['ok'] ?? false),
+            'ok' => $ok,
             'started_at' => is_string($data['started_at'] ?? null) ? $data['started_at'] : null,
             'finished_at' => $finishedAt?->toIso8601String(),
             'duration_seconds' => isset($data['duration_seconds']) ? (int) $data['duration_seconds'] : null,
@@ -193,11 +211,109 @@ final class DatabaseBackupService
             'schema_count' => (int) ($data['schema_count'] ?? 0),
             'error' => is_string($data['error'] ?? null) ? $data['error'] : null,
             'age_hours' => $ageHours !== null ? round($ageHours, 1) : null,
-            'stale' => $ageHours === null || $ageHours > $staleAfter || ! ($data['ok'] ?? false),
+            'stale' => $stale,
             'enabled' => $enabled,
             'retention_days' => (int) config('backup.retention_days', 14),
             'path' => $path,
+            'remote_enabled' => $remoteEnabled,
+            'remote_ok' => $remoteOk,
+            'remote_path' => is_string($data['remote_path'] ?? null) ? $data['remote_path'] : null,
+            'remote_error' => is_string($data['remote_error'] ?? null) ? $data['remote_error'] : null,
+            'remote_files' => (int) ($data['remote_files'] ?? 0),
+            'remote_configured' => $this->isRemoteConfigured(),
         ];
+    }
+
+    /**
+     * @return array{
+     *     remote_enabled: bool,
+     *     remote_ok: bool|null,
+     *     remote_path: string|null,
+     *     remote_error: string|null,
+     *     remote_files: int
+     * }
+     */
+    private function uploadRemote(string $dayDir, string $folderName): array
+    {
+        $enabled = (bool) config('backup.remote.enabled', false);
+
+        if (! $enabled) {
+            return [
+                'remote_enabled' => false,
+                'remote_ok' => null,
+                'remote_path' => null,
+                'remote_error' => null,
+                'remote_files' => 0,
+            ];
+        }
+
+        if (! $this->isRemoteConfigured()) {
+            return [
+                'remote_enabled' => true,
+                'remote_ok' => false,
+                'remote_path' => null,
+                'remote_error' => 'Remoto activo pero faltan credenciales/bucket (AWS_* o BACKUP_AWS_*).',
+                'remote_files' => 0,
+            ];
+        }
+
+        $diskName = (string) config('backup.remote.disk', 'backups');
+        $prefix = trim((string) config('backup.remote.prefix', 'vetsaas/db'), '/');
+        $remoteBase = $prefix !== '' ? $prefix.'/'.$folderName : $folderName;
+
+        try {
+            $disk = Storage::disk($diskName);
+            $uploaded = 0;
+
+            foreach (File::files($dayDir) as $file) {
+                $remoteKey = $remoteBase.'/'.$file->getFilename();
+                $stream = fopen($file->getPathname(), 'r');
+                if ($stream === false) {
+                    throw new RuntimeException('No se pudo leer '.$file->getFilename());
+                }
+
+                try {
+                    $disk->writeStream($remoteKey, $stream);
+                } finally {
+                    if (is_resource($stream)) {
+                        fclose($stream);
+                    }
+                }
+
+                $uploaded++;
+            }
+
+            // Copia también el latest.json (se escribe después; lo subimos al final del run).
+            return [
+                'remote_enabled' => true,
+                'remote_ok' => true,
+                'remote_path' => $remoteBase,
+                'remote_error' => null,
+                'remote_files' => $uploaded,
+            ];
+        } catch (Throwable $e) {
+            report($e);
+
+            return [
+                'remote_enabled' => true,
+                'remote_ok' => false,
+                'remote_path' => $remoteBase,
+                'remote_error' => $e->getMessage(),
+                'remote_files' => 0,
+            ];
+        }
+    }
+
+    private function isRemoteConfigured(): bool
+    {
+        $diskName = (string) config('backup.remote.disk', 'backups');
+        $config = config('filesystems.disks.'.$diskName, []);
+
+        $key = (string) ($config['key'] ?? '');
+        $secret = (string) ($config['secret'] ?? '');
+        $bucket = (string) ($config['bucket'] ?? '');
+
+        return $key !== '' && $secret !== '' && $bucket !== '';
     }
 
     /**
@@ -210,7 +326,12 @@ final class DatabaseBackupService
      *     full_size_bytes: int,
      *     schemas: list<string>,
      *     schema_count: int,
-     *     error: string|null
+     *     error: string|null,
+     *     remote_enabled: bool,
+     *     remote_ok: bool|null,
+     *     remote_path: string|null,
+     *     remote_error: string|null,
+     *     remote_files: int
      * }  $payload
      * @return array{
      *     ok: bool,
@@ -221,19 +342,80 @@ final class DatabaseBackupService
      *     full_size_bytes: int,
      *     schemas: list<string>,
      *     schema_count: int,
-     *     error: string|null
+     *     error: string|null,
+     *     remote_enabled: bool,
+     *     remote_ok: bool|null,
+     *     remote_path: string|null,
+     *     remote_error: string|null,
+     *     remote_files: int
      * }
      */
     private function writeManifest(array $payload): array
     {
         $basePath = rtrim((string) config('backup.path'), DIRECTORY_SEPARATOR);
         File::ensureDirectoryExists($basePath);
+        $manifestPath = $basePath.DIRECTORY_SEPARATOR.self::MANIFEST_NAME;
         File::put(
-            $basePath.DIRECTORY_SEPARATOR.self::MANIFEST_NAME,
+            $manifestPath,
             json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
         );
 
+        // Sube latest.json al remoto si el dump remoto ya fue OK.
+        if (($payload['remote_ok'] ?? null) === true && ($payload['remote_path'] ?? null)) {
+            try {
+                $diskName = (string) config('backup.remote.disk', 'backups');
+                $disk = Storage::disk($diskName);
+                $remoteKey = rtrim((string) $payload['remote_path'], '/').'/'.self::MANIFEST_NAME;
+                $disk->put($remoteKey, File::get($manifestPath));
+                // También en la raíz del prefix para lectura rápida.
+                $prefix = trim((string) config('backup.remote.prefix', 'vetsaas/db'), '/');
+                if ($prefix !== '') {
+                    $disk->put($prefix.'/'.self::MANIFEST_NAME, File::get($manifestPath));
+                }
+            } catch (Throwable $e) {
+                report($e);
+            }
+        }
+
         return $payload;
+    }
+
+    /**
+     * @return array{
+     *     ok: bool,
+     *     started_at: string,
+     *     finished_at: string,
+     *     duration_seconds: int,
+     *     directory: string,
+     *     full_size_bytes: int,
+     *     schemas: list<string>,
+     *     schema_count: int,
+     *     error: string|null,
+     *     remote_enabled: bool,
+     *     remote_ok: bool|null,
+     *     remote_path: string|null,
+     *     remote_error: string|null,
+     *     remote_files: int
+     * }
+     */
+    private function emptyResult(Carbon $started, string $error): array
+    {
+        return [
+            'ok' => false,
+            'started_at' => $started->toIso8601String(),
+            'finished_at' => Carbon::now()->toIso8601String(),
+            'duration_seconds' => 0,
+            'directory' => '',
+            'full_size_bytes' => 0,
+            'schemas' => [],
+            'schema_count' => 0,
+            'error' => $error,
+            'remote_enabled' => (bool) config('backup.remote.enabled', false),
+            'remote_ok' => null,
+            'remote_path' => null,
+            'remote_error' => null,
+            'remote_files' => 0,
+        ];
     }
 
     /** @return list<string> */

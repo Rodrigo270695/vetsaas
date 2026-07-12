@@ -102,6 +102,12 @@ type Snapshot = {
         enabled: boolean;
         retention_days: number;
         path: string;
+        remote_enabled: boolean;
+        remote_ok: boolean | null;
+        remote_path: string | null;
+        remote_error: string | null;
+        remote_files: number;
+        remote_configured: boolean;
     };
     subscriptions: {
         grace: number;
@@ -552,7 +558,41 @@ export default function Index({ snapshot, can_manage }: Props) {
                                 value=""
                                 variant="muted"
                             />
+                            <StatBadge
+                                label={
+                                    !snapshot.backups.remote_enabled
+                                        ? t('backups.remote_off')
+                                        : !snapshot.backups.remote_configured
+                                          ? t('backups.remote_missing_creds')
+                                          : snapshot.backups.remote_ok === true
+                                            ? t('backups.remote_ok')
+                                            : t('backups.remote_failed')
+                                }
+                                value={
+                                    snapshot.backups.remote_ok === true
+                                        ? snapshot.backups.remote_files
+                                        : ''
+                                }
+                                variant={
+                                    !snapshot.backups.remote_enabled
+                                        ? 'muted'
+                                        : snapshot.backups.remote_ok === true
+                                          ? 'success'
+                                          : 'danger'
+                                }
+                            />
                         </div>
+                        {snapshot.backups.remote_path ? (
+                            <p className="mt-2 font-mono text-xs text-muted-foreground">
+                                {t('backups.remote_path')}:{' '}
+                                {snapshot.backups.remote_path}
+                            </p>
+                        ) : null}
+                        {snapshot.backups.remote_error ? (
+                            <p className="mt-2 text-xs text-destructive">
+                                {snapshot.backups.remote_error}
+                            </p>
+                        ) : null}
                         {snapshot.backups.error ? (
                             <p className="mt-3 text-xs text-destructive">
                                 {t('backups.error')}: {snapshot.backups.error}
