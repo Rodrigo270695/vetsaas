@@ -235,7 +235,7 @@ export function FilterChips<TValue extends string>({
             <SelectPrimitive.Trigger
                 aria-label={ariaLabel}
                 className={cn(
-                    'border-input flex h-9 w-full min-w-[9.5rem] cursor-pointer items-center justify-between gap-2 rounded-lg border bg-white px-2.5 text-sm shadow-xs outline-none transition-[color,box-shadow,border-color]',
+                    'border-input flex h-9 w-full min-w-[11rem] cursor-pointer items-center justify-between gap-2 rounded-lg border bg-white px-2.5 text-sm shadow-xs outline-none transition-[color,box-shadow,border-color]',
                     'hover:border-brand-200 hover:bg-white focus-visible:border-brand-300 focus-visible:ring-brand-100/70 focus-visible:ring-[3px]',
                     'data-[state=open]:border-brand-300 data-[state=open]:ring-[3px] data-[state=open]:ring-brand-100/70',
                     'disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto dark:bg-card',
@@ -272,14 +272,14 @@ export function FilterChips<TValue extends string>({
                     sideOffset={6}
                     align="start"
                     className={cn(
-                        'bg-white text-popover-foreground relative z-50 max-h-(--radix-select-content-available-height) w-[var(--radix-select-trigger-width)] min-w-[12rem] overflow-hidden rounded-xl border border-border/60 shadow-lg dark:bg-popover',
+                        'bg-white text-popover-foreground relative z-50 max-h-(--radix-select-content-available-height) min-w-[max(var(--radix-select-trigger-width),14.5rem)] overflow-hidden rounded-xl border border-border/60 shadow-lg dark:bg-popover',
                         'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2',
                     )}
                 >
                     <SelectPrimitive.Viewport className="flex flex-col gap-0.5 p-1">
                         {options.map((opt) => {
                             const tone = inferTone(opt.value, opt.tone);
-                            const asAll = Boolean(opt.description) || isAllValue(opt.value);
+                            const asAll = isAllValue(opt.value);
                             const asBadge = !asAll && tone !== 'default';
 
                             return (
@@ -291,7 +291,6 @@ export function FilterChips<TValue extends string>({
                                         'data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
                                         'focus:bg-brand-50/70 dark:focus:bg-brand-950/30',
                                         'data-[state=checked]:bg-brand-50 data-[state=checked]:dark:bg-brand-950/40',
-                                        asAll && 'items-start py-1.5',
                                     )}
                                 >
                                     <span className="absolute right-1.5 top-1/2 flex size-3.5 -translate-y-1/2 items-center justify-center">
@@ -304,7 +303,6 @@ export function FilterChips<TValue extends string>({
                                         className={cn(
                                             'flex size-6 shrink-0 items-center justify-center rounded-md',
                                             toneIconShell[tone],
-                                            asAll && 'mt-px',
                                         )}
                                         aria-hidden
                                     >
@@ -324,18 +322,11 @@ export function FilterChips<TValue extends string>({
                                             </SelectPrimitive.ItemText>
                                         </span>
                                     ) : (
-                                        <span className="flex min-w-0 flex-1 flex-col gap-0">
-                                            <SelectPrimitive.ItemText asChild>
-                                                <span className="truncate text-sm font-semibold text-foreground">
-                                                    {labelWithCount(opt.label, opt.count)}
-                                                </span>
-                                            </SelectPrimitive.ItemText>
-                                            {opt.description ? (
-                                                <span className="line-clamp-2 text-[0.65rem] leading-snug text-muted-foreground">
-                                                    {opt.description}
-                                                </span>
-                                            ) : null}
-                                        </span>
+                                        <SelectPrimitive.ItemText asChild>
+                                            <span className="whitespace-nowrap text-sm font-semibold text-foreground">
+                                                {labelWithCount(opt.label, opt.count)}
+                                            </span>
+                                        </SelectPrimitive.ItemText>
                                     )}
                                 </SelectPrimitive.Item>
                             );
