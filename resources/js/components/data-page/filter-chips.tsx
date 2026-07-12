@@ -235,9 +235,9 @@ export function FilterChips<TValue extends string>({
             <SelectPrimitive.Trigger
                 aria-label={ariaLabel}
                 className={cn(
-                    'border-input flex h-9 w-full min-w-[11rem] cursor-pointer items-center justify-between gap-2 rounded-lg border bg-white px-2.5 text-sm shadow-xs outline-none transition-[color,box-shadow,border-color]',
-                    'hover:border-brand-200 hover:bg-white focus-visible:border-brand-300 focus-visible:ring-brand-100/70 focus-visible:ring-[3px]',
-                    'data-[state=open]:border-brand-300 data-[state=open]:ring-[3px] data-[state=open]:ring-brand-100/70',
+                    'border-input flex h-9 w-full min-w-[11rem] cursor-pointer items-center justify-between gap-2 rounded-lg border bg-white px-2.5 text-sm shadow-xs outline-none transition-[color,border-color]',
+                    'hover:border-brand-300 hover:bg-white focus-visible:border-brand-400 focus-visible:ring-0',
+                    'data-[state=open]:border-brand-400 data-[state=open]:ring-0',
                     'disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto dark:bg-card',
                     className,
                     triggerClassName,
