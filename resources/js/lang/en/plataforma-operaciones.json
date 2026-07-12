@@ -1,0 +1,87 @@
+{
+    "title": "Operations",
+    "description": "SaaS health radar: tenants, WhatsApp, queues, billing, and credentials.",
+    "checked_at": "Last check: {{when}}",
+    "alerts": "Alerts",
+    "health": {
+        "title": "System health",
+        "description": "Basic application and database check (/up endpoint).",
+        "ok": "Healthy",
+        "down": "Issues detected",
+        "database": "Database",
+        "queue": "Default queue"
+    },
+    "credentials": {
+        "title": "Global credentials",
+        "description": "Integrations shared by every clinic.",
+        "openwa": "OpenWA",
+        "twilio": "Twilio",
+        "brevo": "Brevo",
+        "configured": "Configured",
+        "missing": "Not configured",
+        "cta_settings": "Open Settings"
+    },
+    "tenants": {
+        "title": "Tenants",
+        "description": "Breakdown by operational status.",
+        "total": "Total",
+        "trial": "Trial",
+        "active": "Active",
+        "suspended": "Suspended",
+        "cancelled": "Cancelled",
+        "cta": "View tenants"
+    },
+    "whatsapp": {
+        "title": "WhatsApp",
+        "description": "Platform session and clinic OpenWA status.",
+        "platform": "Platform session",
+        "ready": "Ready",
+        "not_ready": "Not ready",
+        "tenants_ready": "Clinics ready",
+        "tenants_not_ready": "Not ready",
+        "tenants_with_error": "With errors",
+        "broken_title": "Sessions to review",
+        "broken_empty": "All reported sessions look healthy.",
+        "columns": {
+            "tenant": "Clinic",
+            "status": "Status",
+            "phone": "Phone",
+            "error": "Last error",
+            "synced": "Last sync"
+        }
+    },
+    "subscriptions": {
+        "title": "At-risk subscriptions",
+        "description": "Grace, suspension, and upcoming charges.",
+        "grace": "In grace",
+        "suspended": "Suspended",
+        "proximo_cobro_7d": "Charge in 7 days",
+        "cta": "View subscriptions"
+    },
+    "cobros": {
+        "title": "Payments",
+        "description": "Subscription payments that need attention.",
+        "fallidos_7d": "Failed (7 days)",
+        "pendientes": "Pending",
+        "cta": "View payments"
+    },
+    "failed_jobs": {
+        "title": "Failed jobs",
+        "description": "Queue jobs that threw exceptions. Retry to re-queue them.",
+        "total": "Total",
+        "empty": "No failed jobs. The queue is clean.",
+        "retry": "Retry",
+        "retry_all": "Retry all",
+        "retrying": "Re-queuing…",
+        "columns": {
+            "job": "Job",
+            "queue": "Queue",
+            "failed_at": "Failed at",
+            "exception": "Exception",
+            "actions": "Actions"
+        }
+    },
+    "toast": {
+        "retry_error": "Could not retry the job"
+    }
+}

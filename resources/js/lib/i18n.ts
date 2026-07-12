@@ -18,6 +18,7 @@ import cobrosEn from '@/lang/en/cobros.json';
 import configSuscripcionEn from '@/lang/en/config-suscripcion.json';
 import comunicacionesEn from '@/lang/en/comunicaciones.json';
 import plataformaAuditoriaSoporteEn from '@/lang/en/plataforma-auditoria-soporte.json';
+import plataformaOperacionesEn from '@/lang/en/plataforma-operaciones.json';
 import dashboardEn from '@/lang/en/dashboard.json';
 import onboardingEn from '@/lang/en/onboarding.json';
 import descuentosPromocionesEn from '@/lang/en/descuentos-promociones.json';
@@ -67,6 +68,7 @@ import cobrosEs from '@/lang/es/cobros.json';
 import configSuscripcionEs from '@/lang/es/config-suscripcion.json';
 import comunicacionesEs from '@/lang/es/comunicaciones.json';
 import plataformaAuditoriaSoporteEs from '@/lang/es/plataforma-auditoria-soporte.json';
+import plataformaOperacionesEs from '@/lang/es/plataforma-operaciones.json';
 import dashboardEs from '@/lang/es/dashboard.json';
 import onboardingEs from '@/lang/es/onboarding.json';
 import descuentosPromocionesEs from '@/lang/es/descuentos-promociones.json';
@@ -142,6 +144,7 @@ const resources = {
         comunicaciones: comunicacionesEs,
         'bot-ia': botIaEs,
         'plataforma-auditoria-soporte': plataformaAuditoriaSoporteEs,
+        'plataforma-operaciones': plataformaOperacionesEs,
         dashboard: dashboardEs,
         onboarding: onboardingEs,
         auth: authEs,
@@ -193,6 +196,7 @@ const resources = {
         comunicaciones: comunicacionesEn,
         'bot-ia': botIaEn,
         'plataforma-auditoria-soporte': plataformaAuditoriaSoporteEn,
+        'plataforma-operaciones': plataformaOperacionesEn,
         dashboard: dashboardEn,
         onboarding: onboardingEn,
         auth: authEn,
@@ -253,6 +257,8 @@ void i18n
             'config-suscripcion',
             'comunicaciones',
             'bot-ia',
+            'plataforma-auditoria-soporte',
+            'plataforma-operaciones',
             'dashboard',
             'onboarding',
             'auth',

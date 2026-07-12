@@ -1,0 +1,87 @@
+{
+    "title": "Operaciones",
+    "description": "Radar de salud del SaaS: tenants, WhatsApp, colas, cobros y credenciales.",
+    "checked_at": "Última lectura: {{when}}",
+    "alerts": "Alertas",
+    "health": {
+        "title": "Salud del sistema",
+        "description": "Chequeo básico de aplicación y base de datos (endpoint /up).",
+        "ok": "Operativo",
+        "down": "Con problemas",
+        "database": "Base de datos",
+        "queue": "Cola por defecto"
+    },
+    "credentials": {
+        "title": "Credenciales globales",
+        "description": "Integraciones compartidas por todas las clínicas.",
+        "openwa": "OpenWA",
+        "twilio": "Twilio",
+        "brevo": "Brevo",
+        "configured": "Configurado",
+        "missing": "Falta configurar",
+        "cta_settings": "Ir a Configuración"
+    },
+    "tenants": {
+        "title": "Tenants",
+        "description": "Distribución por estado operativo.",
+        "total": "Total",
+        "trial": "Trial",
+        "active": "Activos",
+        "suspended": "Suspendidos",
+        "cancelled": "Cancelados",
+        "cta": "Ver tenants"
+    },
+    "whatsapp": {
+        "title": "WhatsApp",
+        "description": "Sesión de plataforma y clínicas con OpenWA.",
+        "platform": "Sesión plataforma",
+        "ready": "Lista",
+        "not_ready": "No lista",
+        "tenants_ready": "Clínicas listas",
+        "tenants_not_ready": "No listas",
+        "tenants_with_error": "Con error",
+        "broken_title": "Sesiones a revisar",
+        "broken_empty": "Todas las sesiones reportadas están en buen estado.",
+        "columns": {
+            "tenant": "Clínica",
+            "status": "Estado",
+            "phone": "Teléfono",
+            "error": "Último error",
+            "synced": "Última sync"
+        }
+    },
+    "subscriptions": {
+        "title": "Suscripciones en riesgo",
+        "description": "Señales de grace, suspensión y cobros próximos.",
+        "grace": "En grace",
+        "suspended": "Suspendidas",
+        "proximo_cobro_7d": "Cobro en 7 días",
+        "cta": "Ver suscripciones"
+    },
+    "cobros": {
+        "title": "Cobros",
+        "description": "Pagos de suscripción que requieren atención.",
+        "fallidos_7d": "Fallidos (7 días)",
+        "pendientes": "Pendientes",
+        "cta": "Ver cobros"
+    },
+    "failed_jobs": {
+        "title": "Jobs fallidos",
+        "description": "Cola de trabajo con excepciones. Reencola para reintentar.",
+        "total": "Total",
+        "empty": "No hay jobs fallidos. La cola está limpia.",
+        "retry": "Reintentar",
+        "retry_all": "Reintentar todos",
+        "retrying": "Reencolando…",
+        "columns": {
+            "job": "Job",
+            "queue": "Cola",
+            "failed_at": "Falló",
+            "exception": "Excepción",
+            "actions": "Acciones"
+        }
+    },
+    "toast": {
+        "retry_error": "No se pudo reintentar el job"
+    }
+}

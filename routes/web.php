@@ -33,6 +33,7 @@ use App\Http\Controllers\OfflineSyncController;
 use App\Http\Controllers\PacienteController;
 use App\Http\Controllers\PlanController;
 use App\Http\Controllers\PlataformaImpersonationAuditController;
+use App\Http\Controllers\PlataformaOperacionesController;
 use App\Http\Controllers\PlatformRenewalReminderController;
 use App\Http\Controllers\PlatformSettingController;
 use App\Http\Controllers\PlatformWhatsAppController;
@@ -935,6 +936,18 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
     | superadmin (y, a futuro, a roles de soporte interno).
     */
     Route::prefix('plataforma')->name('plataforma.')->group(function () {
+        // ── Operaciones (radar de salud del SaaS) ──
+        Route::middleware('permission:plataforma-operaciones.view')
+            ->get('operaciones', [PlataformaOperacionesController::class, 'index'])
+            ->name('operaciones.index');
+        Route::middleware('permission:plataforma-operaciones.manage')
+            ->post('operaciones/failed-jobs/{uuid}/retry', [PlataformaOperacionesController::class, 'retryFailedJob'])
+            ->whereUuid('uuid')
+            ->name('operaciones.failed-jobs.retry');
+        Route::middleware('permission:plataforma-operaciones.manage')
+            ->post('operaciones/failed-jobs/retry-all', [PlataformaOperacionesController::class, 'retryAllFailedJobs'])
+            ->name('operaciones.failed-jobs.retry-all');
+
         Route::middleware('permission:plataforma-tenants.view')
             ->get('tenants', [TenantController::class, 'index'])
             ->name('tenants.index');

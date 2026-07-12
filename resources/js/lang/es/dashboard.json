@@ -27,8 +27,9 @@
     "central": {
         "title": "Panel central",
         "description": "Las métricas clínicas se muestran en el subdominio de cada veterinaria.",
-        "hint": "Entra al subdominio de la clínica (o usa «Entrar como soporte» desde Plataforma › Tenants) para ver citas, ventas e inventario.",
+        "hint": "Entra al subdominio de la clínica (o usa «Entrar como soporte» desde Plataforma › Tenants) para ver citas, ventas e inventario. El radar del SaaS está en Plataforma › Operaciones.",
         "cta_tenants": "Ir a Plataforma › Tenants",
+        "cta_operaciones": "Ver Operaciones",
         "cta_plataforma": "Ver planes y suscripciones"
     },
     "kpis": {

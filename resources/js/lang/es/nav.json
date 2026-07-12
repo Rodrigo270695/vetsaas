@@ -61,6 +61,7 @@
         "login_attempts": "Intentos de acceso",
         "api_logs": "Logs API",
         "tokens": "Tokens",
+        "operaciones": "Operaciones",
         "auditoria_soporte": "Auditoría soporte",
         "tenants": "Tenants",
         "planes": "Planes",

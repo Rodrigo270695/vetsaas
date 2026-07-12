@@ -27,8 +27,9 @@
     "central": {
         "title": "Central dashboard",
         "description": "Clinical metrics appear on each clinic's subdomain.",
-        "hint": "Open the clinic subdomain (or use «Enter as support» from Platform › Tenants) to see appointments, sales, and inventory.",
+        "hint": "Open the clinic subdomain (or use «Enter as support» from Platform › Tenants) to see appointments, sales, and inventory. The SaaS radar is under Platform › Operations.",
         "cta_tenants": "Go to Platform › Tenants",
+        "cta_operaciones": "View Operations",
         "cta_plataforma": "View plans and subscriptions"
     },
     "kpis": {

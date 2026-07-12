@@ -428,6 +428,12 @@ function useNavConfig(): { singles: NavItem[]; groups: NavGroup[] } {
                     context: 'central',
                     items: [
                         {
+                            title: t('items.operaciones'),
+                            href: '/plataforma/operaciones',
+                            icon: Activity,
+                            permission: 'plataforma-operaciones.view',
+                        },
+                        {
                             title: t('items.tenants'),
                             href: '/plataforma/tenants',
                             icon: Store,

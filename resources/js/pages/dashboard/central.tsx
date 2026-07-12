@@ -1,5 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
-import { Building2, Server } from 'lucide-react';
+import { Activity, Building2, Server } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/data-page';
 import { Button } from '@/components/ui/button';
@@ -28,8 +28,14 @@ export default function DashboardCentral() {
                         </CardTitle>
                         <CardDescription>{t('central.hint')}</CardDescription>
                     </CardHeader>
-                    <CardContent className="flex flex-col gap-3 sm:flex-row">
+                    <CardContent className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                         <Button asChild>
+                            <Link href="/plataforma/operaciones">
+                                <Activity className="mr-2 size-4" />
+                                {t('central.cta_operaciones')}
+                            </Link>
+                        </Button>
+                        <Button variant="outline" asChild>
                             <Link href="/plataforma/tenants">
                                 <Building2 className="mr-2 size-4" />
                                 {t('central.cta_tenants')}
