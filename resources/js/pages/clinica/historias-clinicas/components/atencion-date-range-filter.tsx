@@ -247,9 +247,9 @@ export function AtencionDateRangeFilter({
                     variant="outline"
                     disabled={disabled}
                     className={cn(
-                        'h-9 min-w-44 justify-start gap-2 rounded-md px-3 font-normal shadow-xs transition-colors',
+                        'h-9 min-w-36 justify-start gap-2 rounded-lg px-2.5 font-normal shadow-xs transition-colors',
                         hasRange
-                            ? 'border-brand-300/80 bg-brand-50/40 text-foreground hover:bg-brand-50/70 dark:border-brand-700/50 dark:bg-brand-950/30'
+                            ? 'border-brand-400 bg-brand-50 text-foreground hover:border-brand-500 hover:bg-brand-50/80 dark:border-brand-500/70 dark:bg-brand-950/30'
                             : 'text-muted-foreground',
                         triggerClassName,
                     )}
@@ -257,8 +257,8 @@ export function AtencionDateRangeFilter({
                 >
                     <CalendarIcon
                         className={cn(
-                            'size-4 shrink-0',
-                            hasRange ? 'text-brand-600 dark:text-brand-300' : 'opacity-60',
+                            'size-3.5 shrink-0',
+                            hasRange ? 'text-brand-700 dark:text-brand-300' : 'opacity-60',
                         )}
                         aria-hidden
                     />
@@ -283,11 +283,11 @@ export function AtencionDateRangeFilter({
                 </Button>
             </PopoverTrigger>
             <PopoverContent
-                className="w-[min(100vw-2rem,20.5rem)] overflow-hidden rounded-lg p-0 shadow-lg"
+                className="w-[min(100vw-2rem,14.5rem)] overflow-hidden rounded-xl border border-border/70 p-0 shadow-lg"
                 align="start"
-                sideOffset={8}
+                sideOffset={6}
             >
-                <div className="flex flex-col py-1">
+                <div className="flex flex-col p-1">
                     {presets.map((preset) => {
                         const isActive = activePresetId === preset.id;
 
@@ -298,15 +298,15 @@ export function AtencionDateRangeFilter({
                                 disabled={disabled}
                                 onClick={() => applyPreset(preset)}
                                 className={cn(
-                                    'flex w-full cursor-pointer items-center gap-2 px-3 py-2.5 text-left transition-colors',
+                                    'flex w-full cursor-pointer flex-col gap-0.5 rounded-lg px-2.5 py-1.5 text-left transition-colors',
                                     isActive
-                                        ? 'bg-brand-50 text-brand-950 dark:bg-brand-950/40 dark:text-brand-50'
-                                        : 'hover:bg-muted/60',
+                                        ? 'border border-brand-300 bg-brand-50 text-brand-950 dark:border-brand-700/60 dark:bg-brand-950/40 dark:text-brand-50'
+                                        : 'border border-transparent hover:bg-muted/60',
                                 )}
                             >
                                 <span
                                     className={cn(
-                                        'min-w-0 flex-1 text-sm',
+                                        'min-w-0 text-sm',
                                         isActive ? 'font-semibold' : 'font-medium text-foreground',
                                     )}
                                 >
@@ -314,7 +314,7 @@ export function AtencionDateRangeFilter({
                                 </span>
                                 <span
                                     className={cn(
-                                        'shrink-0 text-[0.68rem] tabular-nums',
+                                        'text-[0.65rem] leading-tight tabular-nums',
                                         isActive
                                             ? 'text-brand-700/80 dark:text-brand-200/80'
                                             : 'text-muted-foreground',
@@ -333,7 +333,7 @@ export function AtencionDateRangeFilter({
                         disabled={disabled}
                         onClick={() => setCustomOpen((v) => !v)}
                         className={cn(
-                            'flex w-full cursor-pointer items-center justify-between gap-2 px-3 py-2.5 text-left transition-colors',
+                            'flex w-full cursor-pointer items-center justify-between gap-2 px-3 py-2 text-left transition-colors',
                             customOpen || activePresetId === 'custom'
                                 ? 'bg-brand-50/80 dark:bg-brand-950/30'
                                 : 'hover:bg-muted/50',
@@ -343,7 +343,7 @@ export function AtencionDateRangeFilter({
                             {t('common:date_range.custom')}
                         </span>
                         {customOpen || activePresetId === 'custom' ? (
-                            <Check className="size-4 text-brand-600 dark:text-brand-300" aria-hidden />
+                            <Check className="size-3.5 text-brand-600 dark:text-brand-300" aria-hidden />
                         ) : null}
                     </button>
 

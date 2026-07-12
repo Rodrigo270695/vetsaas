@@ -90,10 +90,10 @@
    ============================================================ */
 :root {
     /* Fondos y texto base */
-    --background: oklch(1 0 0);               /* #FFFFFF — mismo tono que el contenido */
+    --background: oklch(0.985 0.003 247);     /* slate-50 — canvas detrás de cards */
     --foreground: oklch(0.158 0.005 80);      /* #0C0A09 casi negro cálido */
 
-    --card: oklch(1 0 0);                     /* #FFFFFF */
+    --card: oklch(1 0 0);                     /* #FFFFFF — superficies de contenido */
     --card-foreground: oklch(0.158 0.005 80);
 
     --popover: oklch(1 0 0);
