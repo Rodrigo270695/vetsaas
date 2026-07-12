@@ -11,18 +11,11 @@ import {
 } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { EmptyState, PageHeader, StatBadge, DataTable } from '@/components/data-page';
-import type { DataTableColumn } from '@/components/data-page';
+import { EmptyState, FilterChips, PageHeader, StatBadge, DataTable } from '@/components/data-page';
+import type { DataTableColumn, FilterChip } from '@/components/data-page';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import {
     Sheet,
     SheetContent,
@@ -77,6 +70,27 @@ export default function OfflineColaIndex() {
             return true;
         });
     }, [items, statusFilter, typeFilter]);
+
+    const statusFilterOptions: readonly FilterChip<StatusFilter>[] = useMemo(
+        () => [
+            { value: 'all', label: t('sync_center.filters.status_all') },
+            { value: 'pending', label: t('sync_center.status.pending'), tone: 'warning' },
+            { value: 'syncing', label: t('sync_center.status.syncing'), tone: 'info' },
+            { value: 'failed', label: t('sync_center.status.failed'), tone: 'danger' },
+        ],
+        [t],
+    );
+
+    const typeFilterOptions: readonly FilterChip<'all' | OutboxType>[] = useMemo(
+        () => [
+            { value: 'all', label: t('sync_center.filters.type_all') },
+            ...outboxTypeOptions().map((type) => ({
+                value: type as OutboxType,
+                label: t(outboxTypeI18nKey(type)),
+            })),
+        ],
+        [t],
+    );
 
     const formatDate = useCallback(
         (iso: string) =>
@@ -328,37 +342,21 @@ export default function OfflineColaIndex() {
                         </div>
 
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                            <Select
+                            <FilterChips
+                                ariaLabel={t('sync_center.filters.status')}
                                 value={statusFilter}
-                                onValueChange={(value) => setStatusFilter(value as StatusFilter)}
-                            >
-                                <SelectTrigger className="w-full sm:w-52">
-                                    <SelectValue placeholder={t('sync_center.filters.status')} />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">{t('sync_center.filters.status_all')}</SelectItem>
-                                    <SelectItem value="pending">{t('sync_center.status.pending')}</SelectItem>
-                                    <SelectItem value="syncing">{t('sync_center.status.syncing')}</SelectItem>
-                                    <SelectItem value="failed">{t('sync_center.status.failed')}</SelectItem>
-                                </SelectContent>
-                            </Select>
+                                onChange={(value) => setStatusFilter(value)}
+                                options={statusFilterOptions}
+                                className="sm:min-w-52"
+                            />
 
-                            <Select
+                            <FilterChips
+                                ariaLabel={t('sync_center.filters.type')}
                                 value={typeFilter}
-                                onValueChange={(value) => setTypeFilter(value as 'all' | OutboxType)}
-                            >
-                                <SelectTrigger className="w-full sm:w-64">
-                                    <SelectValue placeholder={t('sync_center.filters.type')} />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">{t('sync_center.filters.type_all')}</SelectItem>
-                                    {outboxTypeOptions().map((type) => (
-                                        <SelectItem key={type} value={type}>
-                                            {t(outboxTypeI18nKey(type))}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                                onChange={(value) => setTypeFilter(value)}
+                                options={typeFilterOptions}
+                                className="sm:min-w-64"
+                            />
                         </div>
 
                         {filteredItems.length === 0 ? (

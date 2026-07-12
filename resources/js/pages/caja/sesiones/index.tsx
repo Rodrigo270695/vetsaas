@@ -6,6 +6,7 @@ import {
     Plus,
     ScreenShare,
     SlidersHorizontal,
+    Store,
     UserCircle,
     Wallet,
 } from 'lucide-react';
@@ -26,13 +27,6 @@ import {
 import type { DataTableColumn, FilterChip } from '@/components/data-page';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import { useDataTablePage } from '@/hooks/use-data-table-page';
 import { usePermission } from '@/hooks/use-permission';
 import AppLayout from '@/layouts/app-layout';
@@ -138,6 +132,18 @@ export default function Index({
             { value: 'cerrada', label: t('caja:sesiones.estado.cerrada') },
         ],
         [t],
+    );
+
+    const sedeFilterOptions: readonly FilterChip<string>[] = useMemo(
+        () => [
+            { value: 'all', label: t('caja:sesiones.filter_sede_todas') },
+            ...sedesOpciones.map((s) => ({
+                value: s.id,
+                label: `${s.nombre} · ${s.codigo}`,
+                icon: <Store className="size-3.5" strokeWidth={2.25} />,
+            })),
+        ],
+        [sedesOpciones, t],
     );
 
     const activeFiltersCount = useMemo(() => {
@@ -413,31 +419,13 @@ export default function Index({
                                     options={estadoOptions}
                                 />
                                 {!sinSedes && sedesOpciones.length > 0 ? (
-                                    <div className="min-w-0 w-full sm:w-auto sm:min-w-48 sm:max-w-72">
-                                        <Select
-                                            value={filters.sede_id ? filters.sede_id : 'all'}
-                                            onValueChange={(v) => applyFilter({ sede_id: v === 'all' ? '' : v })}
-                                        >
-                                            <SelectTrigger
-                                                id="filtro-sede-caja-sesiones"
-                                                className="h-8 w-full min-w-0 cursor-pointer"
-                                                aria-label={t('caja:sesiones.filter_sede_label')}
-                                            >
-                                                <SelectValue placeholder={t('caja:sesiones.filter_sede_todas')} />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="all">{t('caja:sesiones.filter_sede_todas')}</SelectItem>
-                                                {sedesOpciones.map((s) => (
-                                                    <SelectItem key={s.id} value={s.id}>
-                                                        <span>
-                                                            {s.nombre}
-                                                            <span className="ml-2 font-mono text-xs text-muted-foreground">{s.codigo}</span>
-                                                        </span>
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
+                                    <FilterChips
+                                        ariaLabel={t('caja:sesiones.filter_sede_label')}
+                                        value={filters.sede_id ? filters.sede_id : 'all'}
+                                        onChange={(v) => applyFilter({ sede_id: v === 'all' ? '' : v })}
+                                        options={sedeFilterOptions}
+                                        className="sm:min-w-56"
+                                    />
                                 ) : null}
                             </div>
                         </DataToolbar>

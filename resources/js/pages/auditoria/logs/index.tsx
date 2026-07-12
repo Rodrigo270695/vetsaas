@@ -18,21 +18,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
-import {
     DataPagination,
     DataTable,
     DataToolbar,
     EmptyState,
+    FilterChips,
     PageHeader,
     StatBadge,
 } from '@/components/data-page';
-import type { DataTableColumn } from '@/components/data-page';
+import type { DataTableColumn, FilterChip } from '@/components/data-page';
 import { useDataTablePage } from '@/hooks/use-data-table-page';
 import AppLayout from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
@@ -211,6 +205,28 @@ export default function AuditoriaLogsIndex({
         filters.desde,
         filters.hasta,
     ]);
+
+    const accionFilterOptions: readonly FilterChip<AccionFilter>[] = useMemo(
+        () => [
+            { value: 'todos', label: t('acciones.todos') },
+            ...accionOptions.map((accion) => ({
+                value: accion as AccionFilter,
+                label: t(`acciones.${accion}`, { defaultValue: accion }),
+            })),
+        ],
+        [accionOptions, t],
+    );
+
+    const moduloFilterOptions: readonly FilterChip<string>[] = useMemo(
+        () => [
+            { value: 'todos', label: t('modulos.todos') },
+            ...moduloOptions.map((modulo) => ({
+                value: modulo,
+                label: t(`modulos.${modulo}`, { defaultValue: modulo }),
+            })),
+        ],
+        [moduloOptions, t],
+    );
 
     const columns: DataTableColumn<AuditLogRow>[] = useMemo(
         () => [
@@ -431,75 +447,27 @@ export default function AuditoriaLogsIndex({
                             onPerPageChange={setPerPage}
                             filtersSlot={
                                 <div className="flex flex-wrap items-end gap-3">
-                                    <div className="grid gap-1.5">
-                                        <Label htmlFor="filtro-accion">
-                                            {t('filter_accion')}
-                                        </Label>
-                                        <Select
-                                            value={filters.accion}
-                                            onValueChange={(value) =>
-                                                applyFilter({
-                                                    accion: value as AccionFilter,
-                                                })
-                                            }
-                                        >
-                                            <SelectTrigger
-                                                id="filtro-accion"
-                                                className="w-[160px]"
-                                            >
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="todos">
-                                                    {t('acciones.todos')}
-                                                </SelectItem>
-                                                {accionOptions.map((accion) => (
-                                                    <SelectItem
-                                                        key={accion}
-                                                        value={accion}
-                                                    >
-                                                        {t(`acciones.${accion}`, {
-                                                            defaultValue: accion,
-                                                        })}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
+                                    <FilterChips
+                                        ariaLabel={t('filter_accion')}
+                                        value={filters.accion}
+                                        onChange={(value) =>
+                                            applyFilter({
+                                                accion: value,
+                                            })
+                                        }
+                                        options={accionFilterOptions}
+                                        className="sm:min-w-56"
+                                    />
 
-                                    <div className="grid gap-1.5">
-                                        <Label htmlFor="filtro-modulo">
-                                            {t('filter_modulo')}
-                                        </Label>
-                                        <Select
-                                            value={filters.modulo}
-                                            onValueChange={(value) =>
-                                                applyFilter({ modulo: value })
-                                            }
-                                        >
-                                            <SelectTrigger
-                                                id="filtro-modulo"
-                                                className="w-[180px]"
-                                            >
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="todos">
-                                                    {t('modulos.todos')}
-                                                </SelectItem>
-                                                {moduloOptions.map((modulo) => (
-                                                    <SelectItem
-                                                        key={modulo}
-                                                        value={modulo}
-                                                    >
-                                                        {t(`modulos.${modulo}`, {
-                                                            defaultValue: modulo,
-                                                        })}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
+                                    <FilterChips
+                                        ariaLabel={t('filter_modulo')}
+                                        value={filters.modulo}
+                                        onChange={(value) =>
+                                            applyFilter({ modulo: value })
+                                        }
+                                        options={moduloFilterOptions}
+                                        className="sm:min-w-56"
+                                    />
 
                                     <div className="grid gap-1.5">
                                         <Label htmlFor="filtro-desde">

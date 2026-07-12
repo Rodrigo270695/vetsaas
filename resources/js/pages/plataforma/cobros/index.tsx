@@ -29,13 +29,6 @@ import type {
     FilterChip,
 } from '@/components/data-page';
 import { Button } from '@/components/ui/button';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import { SubscriptionExpiryBadge } from '@/components/plataforma/subscription-expiry-badge';
 import { useDataTablePage } from '@/hooks/use-data-table-page';
 import { usePermission } from '@/hooks/use-permission';
@@ -230,6 +223,25 @@ export default function Index({
     }, [plans_catalog, t]);
 
     const tenantFilterValue = filters.tenant_id ?? TENANT_FILTER_ALL;
+
+    const tenantOptions = useMemo<readonly FilterChip<string>[]>(() => {
+        const base: FilterChip<string>[] = [
+            {
+                value: TENANT_FILTER_ALL,
+                label: t('cobros:filter_tenant_all'),
+            },
+        ];
+
+        for (const tenant of tenants_catalog) {
+            base.push({
+                value: tenant.id,
+                label: tenant.razon_social,
+                icon: <Building2 className="size-3.5" strokeWidth={2.25} />,
+            });
+        }
+
+        return base;
+    }, [tenants_catalog, t]);
 
     const [modal, setModal] = useState<ModalState>({ type: 'idle' });
 
@@ -587,46 +599,22 @@ export default function Index({
                                 options={planOptions}
                             />
                             {tenants_catalog.length > 0 ? (
-                                <div className="flex shrink-0 items-center gap-1.5">
-                                    <Building2
-                                        className="size-4 shrink-0 text-muted-foreground"
-                                        aria-hidden
-                                    />
-                                    <Select
-                                        value={tenantFilterValue}
-                                        onValueChange={(value) =>
-                                            applyFilter({
-                                                tenant_id:
-                                                    value === TENANT_FILTER_ALL
-                                                        ? null
-                                                        : value,
-                                            })
-                                        }
-                                    >
-                                        <SelectTrigger className="h-9 w-[min(100%,14rem)] cursor-pointer">
-                                            <SelectValue
-                                                placeholder={t(
-                                                    'cobros:filter_tenant_all',
-                                                )}
-                                            />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem
-                                                value={TENANT_FILTER_ALL}
-                                            >
-                                                {t('cobros:filter_tenant_all')}
-                                            </SelectItem>
-                                            {tenants_catalog.map((tenant) => (
-                                                <SelectItem
-                                                    key={tenant.id}
-                                                    value={tenant.id}
-                                                >
-                                                    {tenant.razon_social}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
+                                <FilterChips
+                                    ariaLabel={t('cobros:filter_tenant_label', {
+                                        defaultValue: 'Filtrar por tenant',
+                                    })}
+                                    value={tenantFilterValue}
+                                    onChange={(value) =>
+                                        applyFilter({
+                                            tenant_id:
+                                                value === TENANT_FILTER_ALL
+                                                    ? null
+                                                    : value,
+                                        })
+                                    }
+                                    options={tenantOptions}
+                                    className="sm:min-w-56"
+                                />
                             ) : null}
                         </DataToolbar>
                     }

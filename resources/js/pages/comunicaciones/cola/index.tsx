@@ -8,18 +8,12 @@ import {
     DataTable,
     DataToolbar,
     EmptyState,
+    FilterChips,
     PageHeader,
     StatBadge,
 } from '@/components/data-page';
-import type { DataTableColumn, StatBadgeVariant } from '@/components/data-page';
+import type { DataTableColumn, FilterChip, StatBadgeVariant } from '@/components/data-page';
 import { Button } from '@/components/ui/button';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import { useDataTablePage } from '@/hooks/use-data-table-page';
 import { usePermission } from '@/hooks/use-permission';
 import { WhatsAppConnectCard } from '../components/whatsapp-connect-card';
@@ -82,6 +76,17 @@ export default function Index({
         storageKey: 'vetsaas.comunicaciones.cola.prefs',
         defaults: { per_page: DEFAULT_PER_PAGE, sort: null, direction: null },
     });
+
+    const tipoFilterOptions: readonly FilterChip<string>[] = useMemo(
+        () => [
+            { value: 'all', label: 'Todos' },
+            ...tipo_options.map((tipo) => ({
+                value: tipo,
+                label: t(`tipo.${tipo}`, { defaultValue: tipo }),
+            })),
+        ],
+        [tipo_options, t],
+    );
 
     const cancelItem = useCallback(
         (id: string) => {
@@ -214,7 +219,7 @@ export default function Index({
                             key={estado}
                             type="button"
                             className="cursor-pointer"
-                            onClick={() => applyFilter('estado', estado)}
+                            onClick={() => applyFilter({ estado })}
                         >
                             <StatBadge
                                 label={t(`stats.${estado}`, { defaultValue: estado })}
@@ -232,22 +237,15 @@ export default function Index({
                     isSearching={isLoading}
                 >
                     {tipo_options.length > 0 ? (
-                        <Select
+                        <FilterChips
+                            ariaLabel={t('columns.tipo')}
                             value={filters.tipo ?? 'all'}
-                            onValueChange={(v) => applyFilter('tipo', v === 'all' ? null : v)}
-                        >
-                            <SelectTrigger className="h-9 w-[180px]">
-                                <SelectValue placeholder={t('columns.tipo')} />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">Todos</SelectItem>
-                                {tipo_options.map((tipo) => (
-                                    <SelectItem key={tipo} value={tipo}>
-                                        {t(`tipo.${tipo}`, { defaultValue: tipo })}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                            onChange={(v) =>
+                                applyFilter({ tipo: v === 'all' ? null : v })
+                            }
+                            options={tipoFilterOptions}
+                            className="sm:min-w-56"
+                        />
                     ) : null}
                 </DataToolbar>
 

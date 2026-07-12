@@ -254,7 +254,7 @@ export function FilterChips<TValue extends string>({
                         >
                             <OptionIcon option={selected} className="size-3.5" />
                         </span>
-                        <span className="truncate font-medium text-foreground">
+                        <span className="truncate font-normal text-foreground">
                             {labelWithCount(selected.label, selected.count)}
                         </span>
                     </span>
@@ -312,7 +312,7 @@ export function FilterChips<TValue extends string>({
                                     {asBadge ? (
                                         <span
                                             className={cn(
-                                                'inline-flex max-w-full items-center gap-1 rounded-full border px-2 py-0.5 text-[0.7rem] font-semibold',
+                                                'inline-flex max-w-full items-center gap-1 rounded-full border px-2 py-0.5 text-[0.7rem] font-medium',
                                                 toneBadge[tone],
                                             )}
                                         >
@@ -323,7 +323,7 @@ export function FilterChips<TValue extends string>({
                                         </span>
                                     ) : (
                                         <SelectPrimitive.ItemText asChild>
-                                            <span className="whitespace-nowrap text-sm font-semibold text-foreground">
+                                            <span className="whitespace-nowrap text-sm font-normal text-foreground">
                                                 {labelWithCount(opt.label, opt.count)}
                                             </span>
                                         </SelectPrimitive.ItemText>

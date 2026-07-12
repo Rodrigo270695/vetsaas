@@ -14,7 +14,8 @@ import {
     XCircle,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { PageHeader, StatBadge } from '@/components/data-page';
+import { FilterChips, PageHeader, StatBadge } from '@/components/data-page';
+import type { FilterChip } from '@/components/data-page';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -116,6 +117,18 @@ export default function Index({
     const selectedSedeNombre = useMemo(
         () => sedesOpciones.find((s) => s.id === formSede)?.nombre ?? '',
         [formSede, sedesOpciones],
+    );
+
+    const sedeFilterOptions: readonly FilterChip<string>[] = useMemo(
+        () => [
+            { value: ALL_SEDES, label: 'Todas las sedes' },
+            ...sedesOpciones.map((sede) => ({
+                value: sede.id,
+                label: sede.codigo ? `${sede.nombre} · ${sede.codigo}` : sede.nombre,
+                icon: <Building2 className="size-3.5" strokeWidth={2.25} />,
+            })),
+        ],
+        [sedesOpciones],
     );
 
     const applySedeFilter = (sedeId: string) => {
@@ -245,28 +258,15 @@ export default function Index({
 
                 {sedesOpciones.length > 0 ? (
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="flex min-w-0 items-center gap-2">
-                            <Building2 className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-                            <Select
-                                value={sedeFiltro || ALL_SEDES}
-                                onValueChange={(value) =>
-                                    applySedeFilter(value === ALL_SEDES ? '' : value)
-                                }
-                            >
-                                <SelectTrigger className="h-9 w-full min-w-[12rem] cursor-pointer sm:w-72">
-                                    <SelectValue placeholder="Todas las sedes" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value={ALL_SEDES}>Todas las sedes</SelectItem>
-                                    {sedesOpciones.map((sede) => (
-                                        <SelectItem key={sede.id} value={sede.id}>
-                                            {sede.nombre}
-                                            {sede.codigo ? ` · ${sede.codigo}` : ''}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
+                        <FilterChips
+                            ariaLabel="Filtrar por sede"
+                            value={sedeFiltro || ALL_SEDES}
+                            onChange={(value) =>
+                                applySedeFilter(value === ALL_SEDES ? '' : value)
+                            }
+                            options={sedeFilterOptions}
+                            className="sm:min-w-56"
+                        />
                         {sedeFiltro ? (
                             <StatBadge
                                 label="Sede filtrada"
