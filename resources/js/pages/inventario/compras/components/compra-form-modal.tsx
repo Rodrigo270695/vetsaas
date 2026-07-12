@@ -25,6 +25,13 @@ import type {
     SedeOptionCompra,
 } from '../types';
 import { ProductoCompraCombobox } from './producto-compra-combobox';
+import { ProductoQuickCreateDialog } from './producto-quick-create-dialog';
+
+type QuickCreateProductoState = {
+    lineIndex: number;
+    nombre: string;
+    precioCompra?: string;
+};
 
 type CompraFormModalProps = {
     open: boolean;
@@ -93,9 +100,11 @@ export function CompraFormModal({
     const { refreshPending } = useOfflineSync();
     const { data, setData, post, processing, errors, reset, clearErrors } = useForm<FormData>(emptyForm());
     const [productosLocal, setProductosLocal] = useState<ProductoOptionCompra[]>([]);
+    const [quickCreateProducto, setQuickCreateProducto] = useState<QuickCreateProductoState | null>(null);
 
     useEffect(() => {
         if (!open) {
+            setQuickCreateProducto(null);
             return;
         }
         reset();
@@ -219,17 +228,34 @@ export function CompraFormModal({
         });
     };
 
+    const handleCompraOpenChange = (nextOpen: boolean) => {
+        if (!nextOpen && quickCreateProducto !== null) {
+            return;
+        }
+
+        onOpenChange(nextOpen);
+    };
+
     return (
+        <>
         <FormModal
             open={open}
-            onOpenChange={onOpenChange}
+            onOpenChange={handleCompraOpenChange}
             title={t('modal.title')}
             description={t('modal.description')}
             size="xl"
             onSubmit={onSubmit}
             footer={
                 <>
-                    <Button type="button" variant="outline" disabled={processing} onClick={() => onOpenChange(false)}>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        disabled={processing}
+                        onClick={() => {
+                            setQuickCreateProducto(null);
+                            onOpenChange(false);
+                        }}
+                    >
                         {t('common:actions.cancel')}
                     </Button>
                     <Button type="submit" disabled={processing || sinSedes} className="gap-2">
@@ -399,10 +425,14 @@ export function CompraFormModal({
                                         value={linea.producto_id}
                                         onChange={(v) => updateLinea(index, { producto_id: v })}
                                         productoOptions={productosLocal}
-                                        onProductoCreated={appendProducto}
-                                        unidadOptions={unidadOptions}
                                         canCreateProducto={canCreateProducto}
-                                        costoUnitarioHint={linea.costo_unitario}
+                                        onRequestCreate={(nombre) =>
+                                            setQuickCreateProducto({
+                                                lineIndex: index,
+                                                nombre,
+                                                precioCompra: linea.costo_unitario,
+                                            })
+                                        }
                                         disabled={processing}
                                         aria-invalid={Boolean(fieldErr(`lineas.${index}.producto_id`))}
                                     />
@@ -493,5 +523,29 @@ export function CompraFormModal({
                 </div>
             </div>
         </FormModal>
+
+        {canCreateProducto ? (
+            <ProductoQuickCreateDialog
+                open={quickCreateProducto !== null}
+                onOpenChange={(nextOpen) => {
+                    if (!nextOpen) {
+                        setQuickCreateProducto(null);
+                    }
+                }}
+                initialNombre={quickCreateProducto?.nombre ?? ''}
+                initialPrecioCompra={quickCreateProducto?.precioCompra}
+                unidadOptions={unidadOptions}
+                onCreated={(producto) => {
+                    appendProducto(producto);
+
+                    if (quickCreateProducto !== null) {
+                        updateLinea(quickCreateProducto.lineIndex, { producto_id: producto.id });
+                    }
+
+                    setQuickCreateProducto(null);
+                }}
+            />
+        ) : null}
+        </>
     );
 }

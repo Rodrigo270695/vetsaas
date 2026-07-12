@@ -74,15 +74,12 @@ export function ProductoQuickCreateDialog({
     const unidadesSistema = unidadOptions.filter((u) => u.es_sistema);
     const unidadesPersonal = unidadOptions.filter((u) => !u.es_sistema);
 
-    const onSubmit = (e: FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
+    const submitQuickProduct = async () => {
+        setSubmitting(true);
+        setErrors({});
 
-        void (async () => {
-            setSubmitting(true);
-            setErrors({});
-
-            try {
-                const res = await fetch(inventario.productos.quick.url(), {
+        try {
+            const res = await fetch(inventario.productos.quick.url(), {
                     method: 'POST',
                     headers: {
                         Accept: 'application/json',
@@ -134,12 +131,17 @@ export function ProductoQuickCreateDialog({
                 onCreated(body.data);
                 onOpenChange(false);
                 toastManager.success({ title: t('producto_quick.success') });
-            } catch {
-                toastManager.error({ title: t('producto_quick.error') });
-            } finally {
-                setSubmitting(false);
-            }
-        })();
+        } catch {
+            toastManager.error({ title: t('producto_quick.error') });
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const onSubmit = (e: FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+        void submitQuickProduct();
     };
 
     return (
@@ -155,7 +157,12 @@ export function ProductoQuickCreateDialog({
                     <Button type="button" variant="outline" disabled={submitting} onClick={() => onOpenChange(false)}>
                         {t('common:actions.cancel')}
                     </Button>
-                    <Button type="submit" disabled={submitting || form.nombre.trim() === ''} className="gap-2">
+                    <Button
+                        type="button"
+                        disabled={submitting || form.nombre.trim() === ''}
+                        className="gap-2"
+                        onClick={() => void submitQuickProduct()}
+                    >
                         {submitting && <Loader2 className="size-4 animate-spin" />}
                         {t('producto_quick.submit')}
                     </Button>

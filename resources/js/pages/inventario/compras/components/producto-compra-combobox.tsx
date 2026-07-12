@@ -1,18 +1,15 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
-import type { ProductoOptionCompra, ProductoUnidadOptionCompra } from '../types';
-import { ProductoQuickCreateDialog } from './producto-quick-create-dialog';
+import type { ProductoOptionCompra } from '../types';
 
 type ProductoCompraComboboxProps = {
     id?: string;
     value: string | null;
     onChange: (productoId: string | null) => void;
     productoOptions: readonly ProductoOptionCompra[];
-    onProductoCreated: (producto: ProductoOptionCompra) => void;
-    unidadOptions: readonly ProductoUnidadOptionCompra[];
     canCreateProducto: boolean;
-    costoUnitarioHint?: string;
+    onRequestCreate?: (query: string) => void;
     disabled?: boolean;
     'aria-invalid'?: boolean;
 };
@@ -22,16 +19,12 @@ export function ProductoCompraCombobox({
     value,
     onChange,
     productoOptions,
-    onProductoCreated,
-    unidadOptions,
     canCreateProducto,
-    costoUnitarioHint,
+    onRequestCreate,
     disabled = false,
     'aria-invalid': ariaInvalid,
 }: ProductoCompraComboboxProps) {
     const { t } = useTranslation(['compras-inventario']);
-    const [createOpen, setCreateOpen] = useState(false);
-    const [createNombre, setCreateNombre] = useState('');
 
     const options = useMemo<readonly ComboboxOption[]>(
         () =>
@@ -43,43 +36,24 @@ export function ProductoCompraCombobox({
     );
 
     const handleCreateOption = (query: string) => {
-        setCreateNombre(query.trim());
-        setCreateOpen(true);
-    };
-
-    const handleCreated = (producto: ProductoOptionCompra) => {
-        onProductoCreated(producto);
-        onChange(producto.id);
+        onRequestCreate?.(query.trim());
     };
 
     return (
-        <>
-            <Combobox
-                id={id}
-                options={options}
-                value={value}
-                onChange={onChange}
-                placeholder={t('modal.linea_producto_placeholder')}
-                searchPlaceholder={t('modal.linea_producto_search')}
-                emptyMessage={
-                    canCreateProducto ? t('modal.linea_producto_empty_create') : t('modal.linea_producto_empty')
-                }
-                disabled={disabled}
-                onCreateOption={canCreateProducto ? handleCreateOption : undefined}
-                createOptionLabel={(q) => t('modal.linea_producto_create', { nombre: q })}
-                aria-invalid={ariaInvalid}
-            />
-
-            {canCreateProducto ? (
-                <ProductoQuickCreateDialog
-                    open={createOpen}
-                    onOpenChange={setCreateOpen}
-                    initialNombre={createNombre}
-                    initialPrecioCompra={costoUnitarioHint}
-                    unidadOptions={unidadOptions}
-                    onCreated={handleCreated}
-                />
-            ) : null}
-        </>
+        <Combobox
+            id={id}
+            options={options}
+            value={value}
+            onChange={onChange}
+            placeholder={t('modal.linea_producto_placeholder')}
+            searchPlaceholder={t('modal.linea_producto_search')}
+            emptyMessage={
+                canCreateProducto ? t('modal.linea_producto_empty_create') : t('modal.linea_producto_empty')
+            }
+            disabled={disabled}
+            onCreateOption={canCreateProducto ? handleCreateOption : undefined}
+            createOptionLabel={(q) => t('modal.linea_producto_create', { nombre: q })}
+            aria-invalid={ariaInvalid}
+        />
     );
 }
