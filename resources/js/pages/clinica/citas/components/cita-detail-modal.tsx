@@ -13,7 +13,6 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
-import { DateText } from '@/components/ui/date-text';
 import { formatAtendidoInAppTimezone } from '../../historias-clinicas/format-atendido';
 import type { CitaRow } from '../types';
 import { displayPacienteCita, displayPropietarioCita } from './citas-calendar';
@@ -116,7 +115,7 @@ export function CitaDetailModal({
                         label={t('citas:columns.inicio_at')}
                         value={
                             <span className="font-medium">
-                                <DateText>{formatAtendidoInAppTimezone(cita.inicio_at, appLocale, appTz)}</DateText>
+                                {formatAtendidoInAppTimezone(cita.inicio_at, appLocale, appTz)}
                                 <span className="ml-2 text-muted-foreground">
                                     · {cita.duracion_minutos} min
                                 </span>

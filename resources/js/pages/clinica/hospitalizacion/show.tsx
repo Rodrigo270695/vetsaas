@@ -22,7 +22,6 @@ import {
 import { usePermission } from '@/hooks/use-permission';
 import { dashboard } from '@/routes';
 import { formatAtendidoInAppTimezone } from '../historias-clinicas/format-atendido';
-import { DateText } from '@/components/ui/date-text';
 import { EvolucionDeleteDialog } from './components/evolucion-delete-dialog';
 import { EvolucionFormModal } from './components/evolucion-form-modal';
 import type {
@@ -140,22 +139,22 @@ export default function Show({ internamiento, usuarios_opciones, cobro }: Props)
                                 <div>
                                     <p className="text-xs text-muted-foreground">{t('columns.ingreso_at')}</p>
                                     <p className="font-medium">
-                                        <DateText>{formatAtendidoInAppTimezone(
+                                        {formatAtendidoInAppTimezone(
                                             internamiento.ingreso_at,
                                             appLocale,
                                             appTz,
-                                        )}</DateText>
+                                        )}
                                     </p>
                                 </div>
                                 {internamiento.alta_at ? (
                                     <div>
                                         <p className="text-xs text-muted-foreground">{t('columns.alta_at')}</p>
                                         <p className="font-medium">
-                                            <DateText>{formatAtendidoInAppTimezone(
+                                            {formatAtendidoInAppTimezone(
                                                 internamiento.alta_at,
                                                 appLocale,
                                                 appTz,
-                                            )}</DateText>
+                                            )}
                                         </p>
                                     </div>
                                 ) : null}
@@ -262,11 +261,11 @@ export default function Show({ internamiento, usuarios_opciones, cobro }: Props)
                                             <div className="flex items-start justify-between gap-2">
                                                 <div className="min-w-0 flex-1 space-y-1">
                                                     <p className="text-xs font-medium text-muted-foreground">
-                                                        <DateText>{formatAtendidoInAppTimezone(
+                                                        {formatAtendidoInAppTimezone(
                                                             e.registrado_at,
                                                             appLocale,
                                                             appTz,
-                                                        )}</DateText>
+                                                        )}
                                                         {e.veterinario ? ` · ${e.veterinario.name}` : ''}
                                                     </p>
                                                     <p className="text-xs text-muted-foreground">

@@ -23,7 +23,6 @@ import {
     formatAtendidoInAppTimezone,
     formatDateOnlyLabel,
 } from '../historias-clinicas/format-atendido';
-import { DateText } from '@/components/ui/date-text';
 import { VacunaDeleteDialog } from './components/vacuna-delete-dialog';
 import { VacunaFormModal } from './components/vacuna-form-modal';
 import { VacunaRowActions } from './components/vacuna-row-actions';
@@ -201,7 +200,7 @@ export default function Index({
                 sortable: true,
                 cell: (row) => (
                     <span className="whitespace-nowrap text-sm">
-                        <DateText>{formatAtendidoInAppTimezone(row.aplicada_at, appLocale, appTz)}</DateText>
+                        {formatAtendidoInAppTimezone(row.aplicada_at, appLocale, appTz)}
                     </span>
                 ),
             },
@@ -246,7 +245,7 @@ export default function Index({
 
                     return (
                         <span className="whitespace-nowrap text-sm text-muted-foreground">
-                            <DateText>{formatAtendidoInAppTimezone(c.atendido_at, appLocale, appTz)}</DateText>
+                            {formatAtendidoInAppTimezone(c.atendido_at, appLocale, appTz)}
                         </span>
                     );
                 },
@@ -281,17 +280,13 @@ export default function Index({
                 key: 'fecha_proxima_sugerida',
                 header: t('columns.proxima'),
                 cell: (row) => (
-                    <span className="whitespace-nowrap text-sm">
-                        {row.fecha_proxima_sugerida ? (
-                            <DateText>
-                                {formatDateOnlyLabel(
-                                    row.fecha_proxima_sugerida,
-                                    String(appLocale ?? 'es'),
-                                )}
-                            </DateText>
-                        ) : (
-                            '—'
-                        )}
+                    <span className="whitespace-nowrap text-sm text-muted-foreground">
+                        {row.fecha_proxima_sugerida
+                            ? formatDateOnlyLabel(
+                                  row.fecha_proxima_sugerida,
+                                  String(appLocale ?? 'es'),
+                              )
+                            : '—'}
                     </span>
                 ),
             },
@@ -351,7 +346,7 @@ export default function Index({
                                 <span className="truncate text-xs font-medium text-foreground">
                                     {row.creado_por.name}
                                 </span>
-                                <span className="text-[0.65rem] text-date">
+                                <span className="text-[0.65rem] text-muted-foreground">
                                     {new Date(row.created_at).toLocaleDateString(undefined, {
                                         day: '2-digit',
                                         month: 'short',

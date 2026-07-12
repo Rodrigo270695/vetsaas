@@ -20,7 +20,6 @@ import { dashboard } from '@/routes';
 import type { Paginated } from '@/types';
 import { AtencionDateRangeFilter } from '../historias-clinicas/components/atencion-date-range-filter';
 import { formatAtendidoInAppTimezone } from '../historias-clinicas/format-atendido';
-import { DateText } from '@/components/ui/date-text';
 import { InternamientoDeleteDialog } from './components/internamiento-delete-dialog';
 import { InternamientoFormModal } from './components/internamiento-form-modal';
 import { InternamientoRowActions } from './components/internamiento-row-actions';
@@ -226,7 +225,7 @@ export default function Index({
                 sortable: true,
                 cell: (row) => (
                     <span className="whitespace-nowrap text-sm">
-                        <DateText>{formatAtendidoInAppTimezone(row.ingreso_at, appLocale, appTz)}</DateText>
+                        {formatAtendidoInAppTimezone(row.ingreso_at, appLocale, appTz)}
                     </span>
                 ),
             },
@@ -284,7 +283,7 @@ export default function Index({
                 cell: (row) => (
                     <span className="whitespace-nowrap text-xs text-muted-foreground">
                         {row.alta_at
-                            ? <DateText>{formatAtendidoInAppTimezone(row.alta_at, appLocale, appTz)}</DateText>
+                            ? {formatAtendidoInAppTimezone(row.alta_at, appLocale, appTz)}
                             : '—'}
                     </span>
                 ),
@@ -325,7 +324,7 @@ export default function Index({
                                 <span className="truncate text-xs font-medium text-foreground">
                                     {row.creado_por.name}
                                 </span>
-                                <span className="text-[0.65rem] text-date">
+                                <span className="text-[0.65rem] text-muted-foreground">
                                     {new Date(row.created_at).toLocaleDateString(undefined, {
                                         day: '2-digit',
                                         month: 'short',

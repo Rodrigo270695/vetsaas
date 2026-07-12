@@ -26,7 +26,6 @@ import { ConsultaFormModal } from './components/consulta-form-modal';
 import { ConsultaRowActions } from './components/consulta-row-actions';
 import { isConsultaAbiertaAntigua } from './consulta-estado-utils';
 import { formatAtendidoInAppTimezone } from './format-atendido';
-import { DateText } from '@/components/ui/date-text';
 import type {
     AtencionFiltroUi,
     ConsultaEstadoFiltro,
@@ -178,7 +177,11 @@ export default function Index({
 
     const estadoOptions = useMemo(
         () => [
-            { value: 'todas' as const, label: t('filter.estado_todas') },
+            {
+                value: 'todas' as const,
+                label: t('filter.estado_todas'),
+                description: t('common:filters.all_states_description'),
+            },
             {
                 value: 'abierta' as const,
                 label: t('filter.estado_abierta'),
@@ -322,7 +325,7 @@ export default function Index({
                 sortable: true,
                 cell: (row) => (
                     <span className="whitespace-nowrap text-sm">
-                        <DateText>{formatAtendidoInAppTimezone(row.atendido_at, appLocale, appTz)}</DateText>
+                        {formatAtendidoInAppTimezone(row.atendido_at, appLocale, appTz)}
                     </span>
                 ),
             },

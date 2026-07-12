@@ -21,7 +21,6 @@ import clinica from '@/routes/clinica';
 import type { Paginated } from '@/types';
 import { AtencionDateRangeFilter } from '../historias-clinicas/components/atencion-date-range-filter';
 import { formatAtendidoInAppTimezone } from '../historias-clinicas/format-atendido';
-import { DateText } from '@/components/ui/date-text';
 import { CirugiaDeleteDialog } from './components/cirugia-delete-dialog';
 import { CirugiaFormModal } from './components/cirugia-form-modal';
 import { CirugiaRowActions } from './components/cirugia-row-actions';
@@ -228,7 +227,7 @@ export default function Index({
                 sortable: true,
                 cell: (row) => (
                     <span className="whitespace-nowrap text-sm">
-                        <DateText>{formatAtendidoInAppTimezone(row.programada_at, appLocale, appTz)}</DateText>
+                        {formatAtendidoInAppTimezone(row.programada_at, appLocale, appTz)}
                     </span>
                 ),
             },
@@ -272,7 +271,7 @@ export default function Index({
                 cell: (row) => (
                     <span className="max-w-36 truncate text-xs text-muted-foreground">
                         {row.consulta?.atendido_at
-                            ? <DateText>{formatAtendidoInAppTimezone(row.consulta.atendido_at, appLocale, appTz)}</DateText>
+                            ? {formatAtendidoInAppTimezone(row.consulta.atendido_at, appLocale, appTz)}
                             : '—'}
                     </span>
                 ),
@@ -313,7 +312,7 @@ export default function Index({
                                 <span className="truncate text-xs font-medium text-foreground">
                                     {row.creado_por.name}
                                 </span>
-                                <span className="text-[0.65rem] text-date">
+                                <span className="text-[0.65rem] text-muted-foreground">
                                     {new Date(row.created_at).toLocaleDateString(undefined, {
                                         day: '2-digit',
                                         month: 'short',

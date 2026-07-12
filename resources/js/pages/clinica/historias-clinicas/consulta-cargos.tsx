@@ -10,7 +10,6 @@ import clinica from '@/routes/clinica';
 import { ConsultaCargosMain } from './components/consulta-cargos-main';
 import { ConsultaCerrarPromptDialog } from './components/consulta-cerrar-prompt-dialog';
 import { formatAtendidoInAppTimezone } from './format-atendido';
-import { DateText } from '@/components/ui/date-text';
 
 type LineaApi = {
     id: string;

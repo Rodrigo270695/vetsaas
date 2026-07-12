@@ -356,7 +356,7 @@ export default function Index({
                                 <span className="text-xs font-medium text-foreground">
                                     {sede.creado_por.name}
                                 </span>
-                                <span className="text-[0.65rem] text-date">
+                                <span className="text-[0.65rem] text-muted-foreground">
                                     {new Date(sede.created_at).toLocaleDateString(
                                         undefined,
                                         {

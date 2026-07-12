@@ -142,7 +142,7 @@ export default function Index({ categorias: paginated, filters, stats, parentOpt
                             </span>
                             <div className="flex flex-col leading-tight">
                                 <span className="text-xs font-medium text-foreground">{categoria.creado_por.name}</span>
-                                <span className="text-[0.65rem] text-date">
+                                <span className="text-[0.65rem] text-muted-foreground">
                                     {new Date(categoria.created_at).toLocaleDateString(undefined, {
                                         day: '2-digit',
                                         month: 'short',

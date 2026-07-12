@@ -172,7 +172,7 @@ count += 1;
                             </span>
                             <div className="flex min-w-0 flex-col leading-tight">
                                 <span className="truncate text-xs font-medium text-foreground">{p.creado_por.name}</span>
-                                <span className="text-[0.65rem] text-date">
+                                <span className="text-[0.65rem] text-muted-foreground">
                                     {new Date(p.created_at).toLocaleDateString(undefined, {
                                         day: '2-digit',
                                         month: 'short',

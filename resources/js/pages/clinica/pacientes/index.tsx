@@ -301,7 +301,7 @@ export default function Index({
                                 <span className="text-xs font-medium text-foreground">
                                     {p.creado_por.name}
                                 </span>
-                                <span className="text-[0.65rem] text-date">
+                                <span className="text-[0.65rem] text-muted-foreground">
                                     {new Date(p.created_at).toLocaleDateString(undefined, {
                                         day: '2-digit',
                                         month: 'short',
