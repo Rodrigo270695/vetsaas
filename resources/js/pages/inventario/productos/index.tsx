@@ -1,5 +1,5 @@
 import { Head } from '@inertiajs/react';
-import { Download, Filter, Package, Pill, Plus, PowerOff, ScreenShare, Upload, UserCircle } from 'lucide-react';
+import { Download, Filter, Package, Pill, Plus, PowerOff, ScreenShare, Tags, Upload, UserCircle } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -20,13 +20,6 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import { useDataTablePage } from '@/hooks/use-data-table-page';
 import { usePlanLimitReached } from '@/hooks/use-plan-limits';
 import { usePermission } from '@/hooks/use-permission';
@@ -125,12 +118,28 @@ export default function Index({ productos: paginated, filters, stats, categoriaO
             {
                 value: 'todas',
                 label: t('common:filters.all_states'),
-                description: t('common:filters.all_states_description'),
             },
             { value: 'activa', label: t('common:filters.active') },
             { value: 'inactiva', label: t('common:filters.inactive') },
         ],
         [t],
+    );
+
+    const categoriaFilterOptions: readonly FilterChip<string>[] = useMemo(
+        () => [
+            {
+                value: '__all__',
+                label: t('filter_categoria_all'),
+            },
+            ...categoriaOptions.map(
+                (c): FilterChip<string> => ({
+                    value: c.id,
+                    label: c.nombre,
+                    icon: <Tags className="size-3.5" strokeWidth={2.25} />,
+                }),
+            ),
+        ],
+        [categoriaOptions, t],
     );
 
     const activeFiltersCount = useMemo(() => {
@@ -377,28 +386,17 @@ export default function Index({ productos: paginated, filters, stats, categoriaO
                             placeholder={t('search_placeholder')}
                         >
                             <div className="flex w-full min-w-0 flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
-                                <div className="min-w-0 flex-1 sm:max-w-56">
-                                    <Select
-                                        value={filters.categoria_id && filters.categoria_id !== '' ? filters.categoria_id : '__all__'}
-                                        onValueChange={(v) => applyFilter({ categoria_id: v === '__all__' ? '' : v })}
-                                    >
-                                        <SelectTrigger
-                                            id="filtro-categoria"
-                                            className="h-9 w-full min-w-0 cursor-pointer"
-                                            aria-label={t('filter_categoria')}
-                                        >
-                                            <SelectValue placeholder={t('filter_categoria_placeholder')} />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="__all__">{t('filter_categoria_all')}</SelectItem>
-                                            {categoriaOptions.map((c) => (
-                                                <SelectItem key={c.id} value={c.id}>
-                                                    {c.nombre}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
+                                <FilterChips
+                                    ariaLabel={t('filter_categoria')}
+                                    value={
+                                        filters.categoria_id && filters.categoria_id !== ''
+                                            ? filters.categoria_id
+                                            : '__all__'
+                                    }
+                                    onChange={(v) => applyFilter({ categoria_id: v === '__all__' ? '' : v })}
+                                    options={categoriaFilterOptions}
+                                    className="sm:min-w-48"
+                                />
                                 <FilterChips
                                     ariaLabel={t('filter_estado')}
                                     value={filters.estado}

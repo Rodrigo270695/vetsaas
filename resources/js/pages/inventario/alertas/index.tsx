@@ -1,5 +1,15 @@
 import { Head, Link } from '@inertiajs/react';
-import { AlertTriangle, Bell, CalendarClock, Filter, Package, ScreenShare, SlidersHorizontal } from 'lucide-react';
+import {
+    AlertTriangle,
+    Bell,
+    CalendarClock,
+    Filter,
+    Package,
+    PackageX,
+    ScreenShare,
+    SlidersHorizontal,
+    Store,
+} from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -9,19 +19,13 @@ import {
     DataTable,
     DataToolbar,
     EmptyState,
+    FilterChips,
     PageHeader,
     StatBadge,
 } from '@/components/data-page';
-import type { DataTableColumn, StatBadgeVariant } from '@/components/data-page';
+import type { DataTableColumn, FilterChip, StatBadgeVariant } from '@/components/data-page';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import { useDataTablePage } from '@/hooks/use-data-table-page';
 import { usePermission } from '@/hooks/use-permission';
 import AppLayout from '@/layouts/app-layout';
@@ -120,6 +124,47 @@ export default function Index({
     const defaultSedeId = sedeOptions[0]?.id ?? '';
     const sedeFilterActive =
         !sinSedes && sedeOptions.length > 1 && filters.sede_id !== '' && filters.sede_id !== defaultSedeId;
+
+    const sedeFilterOptions: readonly FilterChip<string>[] = useMemo(
+        () =>
+            sedeOptions.map((s) => ({
+                value: s.id,
+                label: `${s.nombre} · ${s.codigo}`,
+                icon: <Store className="size-3.5" strokeWidth={2.25} />,
+            })),
+        [sedeOptions],
+    );
+
+    const tipoAlertaOptions: readonly FilterChip<AlertaTipoFiltro>[] = useMemo(
+        () => [
+            { value: 'todos', label: t('filter_tipo_all') },
+            {
+                value: 'agotado',
+                label: t('filter_tipo_agotado'),
+                tone: 'danger',
+                icon: <PackageX className="size-3.5" strokeWidth={2.25} />,
+            },
+            {
+                value: 'bajo_minimo',
+                label: t('filter_tipo_bajo'),
+                tone: 'warning',
+                icon: <Bell className="size-3.5" strokeWidth={2.25} />,
+            },
+            {
+                value: 'por_vencer',
+                label: t('filter_tipo_por_vencer', { dias: dias_alerta_vencimiento }),
+                tone: 'warning',
+                icon: <CalendarClock className="size-3.5" strokeWidth={2.25} />,
+            },
+            {
+                value: 'vencido',
+                label: t('filter_tipo_vencido'),
+                tone: 'danger',
+                icon: <AlertTriangle className="size-3.5" strokeWidth={2.25} />,
+            },
+        ],
+        [dias_alerta_vencimiento, t],
+    );
     const tipoFilterActive = filters.tipo_alerta !== DEFAULT_TIPO_ALERTA;
 
     const activeFiltersCount = useMemo(() => {
@@ -421,53 +466,25 @@ export default function Index({
                             <div className="flex w-full min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                                 {!sinSedes && sedeOptions.length > 0 ? (
                                     <div className="flex min-w-0 flex-wrap items-center gap-2">
-                                        <div className="min-w-0 w-full sm:w-auto sm:max-w-56">
-                                            <Select
-                                                value={filters.sede_id && filters.sede_id !== '' ? filters.sede_id : defaultSedeId}
-                                                onValueChange={(v) => applyFilter({ sede_id: v })}
-                                            >
-                                                <SelectTrigger
-                                                    id="filtro-sede-alerta"
-                                                    className="h-9 w-full min-w-0 cursor-pointer"
-                                                    aria-label={t('filter_sede')}
-                                                >
-                                                    <SelectValue placeholder={t('filter_sede_placeholder')} />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {sedeOptions.map((s) => (
-                                                        <SelectItem key={s.id} value={s.id}>
-                                                            <span>
-                                                                {s.nombre}
-                                                                <span className="ml-2 font-mono text-xs text-muted-foreground">{s.codigo}</span>
-                                                            </span>
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                        <div className="min-w-0 w-full sm:w-auto sm:max-w-52">
-                                            <Select
-                                                value={filters.tipo_alerta}
-                                                onValueChange={(v) => applyFilter({ tipo_alerta: v as AlertaTipoFiltro })}
-                                            >
-                                                <SelectTrigger
-                                                    id="filtro-tipo-alerta"
-                                                    className="h-9 w-full min-w-0 cursor-pointer"
-                                                    aria-label={t('filter_tipo')}
-                                                >
-                                                    <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="todos">{t('filter_tipo_all')}</SelectItem>
-                                                    <SelectItem value="agotado">{t('filter_tipo_agotado')}</SelectItem>
-                                                    <SelectItem value="bajo_minimo">{t('filter_tipo_bajo')}</SelectItem>
-                                                    <SelectItem value="por_vencer">
-                                                        {t('filter_tipo_por_vencer', { dias: dias_alerta_vencimiento })}
-                                                    </SelectItem>
-                                                    <SelectItem value="vencido">{t('filter_tipo_vencido')}</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
+                                        <FilterChips
+                                            ariaLabel={t('filter_sede')}
+                                            value={
+                                                filters.sede_id && filters.sede_id !== ''
+                                                    ? filters.sede_id
+                                                    : defaultSedeId
+                                            }
+                                            onChange={(v) => applyFilter({ sede_id: v })}
+                                            options={sedeFilterOptions}
+                                            disabled={sedeOptions.length <= 1}
+                                            className="sm:min-w-56"
+                                        />
+                                        <FilterChips
+                                            ariaLabel={t('filter_tipo')}
+                                            value={filters.tipo_alerta}
+                                            onChange={(v) => applyFilter({ tipo_alerta: v })}
+                                            options={tipoAlertaOptions}
+                                            className="sm:min-w-48"
+                                        />
                                     </div>
                                 ) : null}
                             </div>

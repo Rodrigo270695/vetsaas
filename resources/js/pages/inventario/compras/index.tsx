@@ -3,18 +3,11 @@ import { Download, FileDown, ListOrdered, Package, Plus, ScreenShare, SlidersHor
 import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Can } from '@/components/can';
-import { DataPagination, DataTable, DataToolbar, EmptyState, PageHeader } from '@/components/data-page';
-import type { DataTableColumn } from '@/components/data-page';
+import { DataPagination, DataTable, DataToolbar, EmptyState, FilterChips, PageHeader } from '@/components/data-page';
+import type { DataTableColumn, FilterChip } from '@/components/data-page';
 import { Button } from '@/components/ui/button';
 import { Combobox } from '@/components/ui/combobox';
 import type { ComboboxOption } from '@/components/ui/combobox';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import { useDataTablePage } from '@/hooks/use-data-table-page';
 import { usePermission } from '@/hooks/use-permission';
 import AppLayout from '@/layouts/app-layout';
@@ -102,6 +95,16 @@ export default function Index({
     const sedeFilterActive =
         !sinSedes && sedeOptions.length > 1 && filters.sede_id !== '' && filters.sede_id !== defaultSedeId;
     const proveedorFilterActive = Boolean(filters.proveedor_id);
+
+    const sedeFilterOptions: readonly FilterChip<string>[] = useMemo(
+        () =>
+            sedeOptions.map((s) => ({
+                value: s.id,
+                label: `${s.nombre} · ${s.codigo}`,
+                icon: <Store className="size-3.5" strokeWidth={2.25} />,
+            })),
+        [sedeOptions],
+    );
 
     const activeFiltersCount = useMemo(() => {
         let count = 0;
@@ -383,26 +386,16 @@ export default function Index({
                                     )}
                                 >
                                     <div className="flex min-w-0 flex-wrap items-center gap-2">
-                                        <div className="min-w-0 w-full sm:w-auto sm:max-w-56">
-                                            <Select
+                                        <div className="min-w-0 w-full sm:w-auto sm:min-w-56">
+                                            <FilterChips
+                                                ariaLabel={t('filters.sede')}
                                                 value={filters.sede_id || defaultSedeId}
-                                                onValueChange={(sede_id) => applyFilter({ sede_id })}
+                                                onChange={(sede_id) => applyFilter({ sede_id })}
+                                                options={sedeFilterOptions}
                                                 disabled={isLoading || sedeOptions.length <= 1}
-                                            >
-                                                <SelectTrigger className="h-10 w-full min-w-0 cursor-pointer" aria-label={t('filters.sede')}>
-                                                    <SelectValue placeholder={t('filters.sede')} />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {sedeOptions.map((s) => (
-                                                        <SelectItem key={s.id} value={s.id}>
-                                                            {s.nombre}{' '}
-                                                            <span className="font-mono text-xs text-muted-foreground">{s.codigo}</span>
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
+                                            />
                                         </div>
-                                        <div className="min-w-0 w-full sm:w-auto sm:min-w-[12rem] sm:max-w-[20rem]">
+                                        <div className="min-w-0 w-full sm:w-auto sm:min-w-48 sm:max-w-80">
                                             <Combobox
                                                 id="filtro-proveedor-compra"
                                                 options={proveedorComboboxOptions}

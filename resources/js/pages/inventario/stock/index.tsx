@@ -1,5 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
-import { AlertTriangle, Filter, Package, ScreenShare, SlidersHorizontal } from 'lucide-react';
+import { AlertTriangle, Filter, Package, ScreenShare, SlidersHorizontal, Store } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -9,19 +9,13 @@ import {
     DataTable,
     DataToolbar,
     EmptyState,
+    FilterChips,
     PageHeader,
     StatBadge,
 } from '@/components/data-page';
-import type { DataTableColumn } from '@/components/data-page';
+import type { DataTableColumn, FilterChip } from '@/components/data-page';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import { useDataTablePage } from '@/hooks/use-data-table-page';
 import { usePermission } from '@/hooks/use-permission';
 import AppLayout from '@/layouts/app-layout';
@@ -76,6 +70,16 @@ export default function Index({ productos: paginated, filters, stats, sedeOption
     const defaultSedeId = sedeOptions[0]?.id ?? '';
     const sedeFilterActive =
         !sinSedes && sedeOptions.length > 1 && filters.sede_id !== '' && filters.sede_id !== defaultSedeId;
+
+    const sedeFilterOptions: readonly FilterChip<string>[] = useMemo(
+        () =>
+            sedeOptions.map((s) => ({
+                value: s.id,
+                label: `${s.nombre} · ${s.codigo}`,
+                icon: <Store className="size-3.5" strokeWidth={2.25} />,
+            })),
+        [sedeOptions],
+    );
 
     const activeFiltersCount = useMemo(() => {
         let count = 0;
@@ -237,30 +241,14 @@ export default function Index({ productos: paginated, filters, stats, sedeOption
                             placeholder={t('search_placeholder')}
                         >
                             {!sinSedes && sedeOptions.length > 0 ? (
-                                <div className="min-w-0 flex-1 sm:max-w-72">
-                                    <Select
-                                        value={filters.sede_id && filters.sede_id !== '' ? filters.sede_id : defaultSedeId}
-                                        onValueChange={(v) => applyFilter({ sede_id: v })}
-                                    >
-                                        <SelectTrigger
-                                            id="filtro-sede-stock"
-                                            className="h-9 w-full min-w-0 cursor-pointer"
-                                            aria-label={t('filter_sede')}
-                                        >
-                                            <SelectValue placeholder={t('filter_sede_placeholder')} />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {sedeOptions.map((s) => (
-                                                <SelectItem key={s.id} value={s.id}>
-                                                    <span>
-                                                        {s.nombre}
-                                                        <span className="ml-2 font-mono text-xs text-muted-foreground">{s.codigo}</span>
-                                                    </span>
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
+                                <FilterChips
+                                    ariaLabel={t('filter_sede')}
+                                    value={filters.sede_id && filters.sede_id !== '' ? filters.sede_id : defaultSedeId}
+                                    onChange={(v) => applyFilter({ sede_id: v })}
+                                    options={sedeFilterOptions}
+                                    disabled={sedeOptions.length <= 1}
+                                    className="sm:min-w-56"
+                                />
                             ) : null}
                         </DataToolbar>
                     }
