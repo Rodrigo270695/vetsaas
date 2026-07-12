@@ -21,6 +21,7 @@ import AppLayout from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
 import { AtencionDateRangeFilter } from '@/pages/clinica/historias-clinicas/components/atencion-date-range-filter';
 import { formatDateOnlyLabel } from '@/pages/clinica/historias-clinicas/format-atendido';
+import { DateText } from '@/components/ui/date-text';
 import inventario from '@/routes/inventario';
 import { exportMethod as comprasExportExcel } from '@/routes/inventario/compras';
 import type { Paginated } from '@/types';
@@ -213,7 +214,7 @@ export default function Index({
                 sortable: true,
                 cell: (row) => (
                     <span className="text-sm text-foreground">
-                        {formatDateOnlyLabel(row.fecha_documento, i18n.language)}
+                        <DateText>{formatDateOnlyLabel(row.fecha_documento, i18n.language)}</DateText>
                     </span>
                 ),
                 className: 'w-32',

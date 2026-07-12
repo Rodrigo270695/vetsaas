@@ -22,6 +22,7 @@ import { exportMethod as citasExportExcel } from '@/routes/clinica/citas';
 import type { Paginated } from '@/types';
 import { AtencionDateRangeFilter } from '../historias-clinicas/components/atencion-date-range-filter';
 import { formatAtendidoInAppTimezone } from '../historias-clinicas/format-atendido';
+import { DateText } from '@/components/ui/date-text';
 import { CitaCancelDialog } from './components/cita-cancel-dialog';
 import { CitaDetailModal } from './components/cita-detail-modal';
 import { CitaDeleteDialog } from './components/cita-delete-dialog';
@@ -267,7 +268,7 @@ export default function Index({
                 sortable: true,
                 cell: (row) => (
                     <span className="whitespace-nowrap text-sm">
-                        {formatAtendidoInAppTimezone(row.inicio_at, appLocale, appTz)}
+                        <DateText>{formatAtendidoInAppTimezone(row.inicio_at, appLocale, appTz)}</DateText>
                     </span>
                 ),
             },
@@ -351,7 +352,7 @@ export default function Index({
                                 <span className="truncate text-xs font-medium text-foreground">
                                     {row.creado_por.name}
                                 </span>
-                                <span className="text-[0.65rem] text-muted-foreground">
+                                <span className="text-[0.65rem] text-date">
                                     {new Date(row.created_at).toLocaleDateString(undefined, {
                                         day: '2-digit',
                                         month: 'short',

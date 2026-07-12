@@ -8,6 +8,7 @@ import { normalizeTicketAncho } from '@/lib/ticket-ancho';
 import { dashboard } from '@/routes';
 import { ConsultaCargosMain } from '../historias-clinicas/components/consulta-cargos-main';
 import { formatAtendidoInAppTimezone } from '../historias-clinicas/format-atendido';
+import { DateText } from '@/components/ui/date-text';
 
 type LineaApi = {
     id: string;

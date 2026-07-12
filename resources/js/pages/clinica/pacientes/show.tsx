@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils';
 import { dashboard } from '@/routes';
 import clinica from '@/routes/clinica';
 import { formatAtendidoInAppTimezone } from '../historias-clinicas/format-atendido';
+import { DateText } from '@/components/ui/date-text';
 import type { Paciente } from '../propietarios/types';
 
 export type TimelineConsultaVinculos = {

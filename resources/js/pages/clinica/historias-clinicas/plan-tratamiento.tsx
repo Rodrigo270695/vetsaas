@@ -15,6 +15,7 @@ import { dashboard } from '@/routes';
 import clinica from '@/routes/clinica';
 import { PlanMedicacionEditor } from './components/plan-medicacion-editor';
 import { formatAtendidoInAppTimezone } from './format-atendido';
+import { DateText } from '@/components/ui/date-text';
 import type { ConsultaHistoriaPlanPageRow } from './types';
 
 type Props = {
@@ -486,11 +487,11 @@ export default function PlanTratamiento({ consulta }: Props) {
                                                         <div className="rounded-xl border border-primary/15 bg-gradient-to-br from-card to-primary/[0.04] px-3 py-2.5 shadow-sm transition-shadow hover:border-primary/25 hover:shadow-md dark:to-primary/10">
                                                             <div className="flex flex-wrap items-baseline justify-between gap-2">
                                                                 <span className="text-xs font-semibold uppercase tracking-wide text-primary">
-                                                                    {formatAtendidoInAppTimezone(
+                                                                    <DateText>{formatAtendidoInAppTimezone(
                                                                         s.registrado_at,
                                                                         appLocale,
                                                                         appTz,
-                                                                    )}
+                                                                    )}</DateText>
                                                                 </span>
                                                                 {s.creado_por ? (
                                                                     <span className="text-[0.7rem] text-muted-foreground">

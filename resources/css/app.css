@@ -271,3 +271,13 @@
 .scrollbar-hidden::-webkit-scrollbar {
     display: none;            /* Chromium / Safari */
 }
+
+/* Fechas en tablas / listados — color de marca suave */
+.text-date {
+    color: var(--brand-700);
+    font-variant-numeric: tabular-nums;
+}
+
+.dark .text-date {
+    color: var(--brand-300);
+}

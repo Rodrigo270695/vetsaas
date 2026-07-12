@@ -245,7 +245,7 @@ export default function Index({ propietarios: paginated, filters, stats, departa
                                 <span className="text-xs font-medium text-foreground">
                                     {p.creado_por.name}
                                 </span>
-                                <span className="text-[0.65rem] text-muted-foreground">
+                                <span className="text-[0.65rem] text-date">
                                     {new Date(p.created_at).toLocaleDateString(undefined, {
                                         day: '2-digit',
                                         month: 'short',
