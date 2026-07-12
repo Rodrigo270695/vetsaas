@@ -11,6 +11,32 @@
     },
     "filter_sede": "Branch",
     "filter_sede_placeholder": "Choose branch",
+    "actions": {
+        "bulk_import": "Bulk upload",
+        "bulk_import_short": "Bulk"
+    },
+    "import": {
+        "title": "Bulk stock upload",
+        "description": "Download the Excel template, set branch and quantity per product, then upload to update stock.",
+        "template_title": "Template",
+        "template_hint": "The file includes three sheets with Excel table formatting.",
+        "sheet_stock": "Stock — rows to import (sede* and cantidad* required)",
+        "sheet_catalogos": "Catalogos — BRANCHES (list value for the dropdown)",
+        "sheet_guide": "Required fields — column guide",
+        "required_hint": "Required: sede* and cantidad*. Identify the product with sku, name or barcode.",
+        "download_template": "Download .xlsx template",
+        "upload_title": "Upload Excel",
+        "upload_hint": "Select the completed file. You’ll see results row by row.",
+        "choose_file": "Choose .xlsx file",
+        "upload": "Upload and import",
+        "uploading": "Importing…",
+        "results_empty": "Updated stock rows and errors will appear here.",
+        "summary_ok": "{{count}} updated",
+        "summary_error": "{{count}} with errors",
+        "summary_skipped": "{{count}} skipped",
+        "row_label": "Row {{row}}: {{nombre}}",
+        "error_generic": "Could not import the file. Please try again."
+    },
     "columns": {
         "nombre": "Product",
         "categoria": "Category",

@@ -11,6 +11,32 @@
     },
     "filter_sede": "Sede",
     "filter_sede_placeholder": "Elegir sede",
+    "actions": {
+        "bulk_import": "Carga masiva",
+        "bulk_import_short": "Masiva"
+    },
+    "import": {
+        "title": "Carga masiva de stock",
+        "description": "Descarga la plantilla Excel, indica sede y cantidad por producto, y súbela para actualizar existencias.",
+        "template_title": "Plantilla",
+        "template_hint": "El archivo incluye tres hojas con formato de tabla Excel.",
+        "sheet_stock": "Stock — filas a importar (sede* y cantidad* obligatorios)",
+        "sheet_catalogos": "Catalogos — SEDES (Valor en lista para el desplegable)",
+        "sheet_guide": "Campos obligatorios — guía de cada columna",
+        "required_hint": "Obligatorios: sede* y cantidad*. Identifica el producto con sku, nombre o codigo_barras.",
+        "download_template": "Descargar plantilla .xlsx",
+        "upload_title": "Subir Excel",
+        "upload_hint": "Selecciona el archivo completado. Verás el resultado fila por fila.",
+        "choose_file": "Elegir archivo .xlsx",
+        "upload": "Subir e importar",
+        "uploading": "Importando…",
+        "results_empty": "Aquí aparecerán los stock actualizados y los errores.",
+        "summary_ok": "{{count}} actualizados",
+        "summary_error": "{{count}} con error",
+        "summary_skipped": "{{count}} omitidos",
+        "row_label": "Fila {{row}}: {{nombre}}",
+        "error_generic": "No se pudo importar el archivo. Inténtalo de nuevo."
+    },
     "columns": {
         "nombre": "Producto",
         "categoria": "Categoría",

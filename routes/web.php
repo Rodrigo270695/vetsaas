@@ -527,6 +527,15 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:stock.view')
             ->get('stock', [StockInventarioController::class, 'index'])
             ->name('stock');
+        Route::middleware('permission:stock.view')
+            ->get('stock/export', [StockInventarioController::class, 'exportExcel'])
+            ->name('stock.export');
+        Route::middleware('permission:stock.adjust')
+            ->get('stock/plantilla-importacion', [StockInventarioController::class, 'downloadImportTemplate'])
+            ->name('stock.import-template');
+        Route::middleware('permission:stock.adjust')
+            ->post('stock/importar', [StockInventarioController::class, 'importExcel'])
+            ->name('stock.import');
         Route::middleware('permission:stock.adjust')
             ->patch('stock', [StockInventarioController::class, 'adjust'])
             ->name('stock.adjust');

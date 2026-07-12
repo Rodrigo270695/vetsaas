@@ -1,5 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
-import { AlertTriangle, Filter, Package, ScreenShare, SlidersHorizontal, Store } from 'lucide-react';
+import { AlertTriangle, Download, Filter, Package, ScreenShare, SlidersHorizontal, Store, Upload } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -11,7 +11,6 @@ import {
     EmptyState,
     FilterChips,
     PageHeader,
-    StatBadge,
 } from '@/components/data-page';
 import type { DataTableColumn, FilterChip } from '@/components/data-page';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -22,6 +21,7 @@ import AppLayout from '@/layouts/app-layout';
 import inventario from '@/routes/inventario';
 import type { Paginated } from '@/types';
 import { StockAdjustDialog } from './components/stock-adjust-dialog';
+import { StockBulkImportModal } from './components/stock-bulk-import-modal';
 import type { SedeOption, StockFilters, StockProductoFila, StockStats } from './types';
 
 type Props = {
@@ -65,11 +65,31 @@ export default function Index({ productos: paginated, filters, stats, sedeOption
     });
 
     const [adjustProducto, setAdjustProducto] = useState<StockProductoFila | null>(null);
+    const [bulkOpen, setBulkOpen] = useState(false);
     const closeAdjust = useCallback(() => setAdjustProducto(null), []);
+    const canView = can('stock.view');
 
     const defaultSedeId = sedeOptions[0]?.id ?? '';
     const sedeFilterActive =
         !sinSedes && sedeOptions.length > 1 && filters.sede_id !== '' && filters.sede_id !== defaultSedeId;
+
+    const exportUrl = useMemo(() => {
+        const params = new URLSearchParams();
+        if (filters.sede_id) {
+            params.set('sede_id', filters.sede_id);
+        }
+        if (filters.search) {
+            params.set('search', filters.search);
+        }
+        if (filters.sort) {
+            params.set('sort', filters.sort);
+        }
+        if (filters.direction) {
+            params.set('direction', filters.direction);
+        }
+        const qs = params.toString();
+        return `/inventario/stock/export${qs ? `?${qs}` : ''}`;
+    }, [filters.sede_id, filters.search, filters.sort, filters.direction]);
 
     const sedeFilterOptions: readonly FilterChip<string>[] = useMemo(
         () =>
@@ -208,6 +228,31 @@ export default function Index({ productos: paginated, filters, stats, sedeOption
                         { label: t('stats.coincidencias'), value: stats.coincidencias, variant: 'primary', icon: ScreenShare },
                         { label: t('stats.filtros'), value: activeFiltersCount, variant: 'warning', icon: Filter as LucideIcon },
                     ]}
+                    action={
+                        <div className="flex flex-row items-center gap-2">
+                            {canView && !sinSedes ? (
+                                <Button asChild variant="outline" className="cursor-pointer gap-2">
+                                    <a href={exportUrl} download>
+                                        <Download className="size-4 shrink-0 opacity-70" strokeWidth={2.5} />
+                                        <span className="hidden sm:inline">{t('common:actions.export_xlsx')}</span>
+                                    </a>
+                                </Button>
+                            ) : null}
+                            <Can permission="stock.adjust">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setBulkOpen(true)}
+                                    disabled={sinSedes}
+                                    className="cursor-pointer gap-2"
+                                >
+                                    <Upload className="size-4" strokeWidth={2.5} />
+                                    <span className="hidden sm:inline">{t('actions.bulk_import')}</span>
+                                    <span className="sm:hidden">{t('actions.bulk_import_short')}</span>
+                                </Button>
+                            </Can>
+                        </div>
+                    }
                 />
 
                 {sinSedes ? (
@@ -283,6 +328,8 @@ export default function Index({ productos: paginated, filters, stats, sedeOption
                 producto={adjustProducto}
                 sedeId={filters.sede_id}
             />
+
+            <StockBulkImportModal open={bulkOpen} onOpenChange={setBulkOpen} />
         </>
     );
 }

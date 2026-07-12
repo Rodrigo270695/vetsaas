@@ -2,17 +2,23 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\StockInventarioImportTemplateXlsx;
+use App\Exports\StockInventarioXlsxExport;
 use App\Http\Requests\StockInventarioAdjustRequest;
 use App\Models\ExistenciaSede;
 use App\Models\MovimientoInventario;
 use App\Models\Producto;
 use App\Models\Sede;
+use App\Services\Inventario\StockInventarioImportService;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class StockInventarioController extends Controller
 {
@@ -163,5 +169,152 @@ class StockInventarioController extends Controller
         );
 
         return back()->with('success', 'Stock actualizado correctamente.');
+    }
+
+    public function downloadImportTemplate(): StreamedResponse
+    {
+        $filename = 'plantilla_stock_'.now()->format('Y-m-d').'.xlsx';
+
+        return response()->streamDownload(function (): void {
+            (new StockInventarioImportTemplateXlsx)->streamTo('php://output');
+        }, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
+    }
+
+    public function exportExcel(Request $request): StreamedResponse
+    {
+        abort_unless($request->user()?->can('stock.view'), 403);
+
+        $tenantId = $request->user()?->tenant_id;
+        abort_if($tenantId === null, 403);
+
+        $resolved = $this->resolveSedeForExport($request, $tenantId);
+        abort_if($resolved === null, 422, 'No hay sedes activas para exportar stock.');
+
+        [$sedeId, $sedeNombre, $sedeCodigo] = $resolved;
+
+        $search = trim((string) $request->string('search', ''));
+        $sort = (string) $request->string('sort', '');
+        $direction = strtolower((string) $request->string('direction', 'desc'));
+        $sortValid = in_array($sort, self::SORTABLE_COLUMNS, true);
+        $directionValid = in_array($direction, ['asc', 'desc'], true);
+        $directionSql = $directionValid ? $direction : 'desc';
+
+        $query = $this->stockQuery($sedeId, $search, $sortValid ? $sort : '', $directionSql);
+
+        $filename = 'stock_'.$sedeCodigo.'_'.now()->format('Y-m-d_His').'.xlsx';
+
+        return response()->streamDownload(function () use ($query, $sedeNombre, $sedeCodigo): void {
+            (new StockInventarioXlsxExport($sedeNombre, $sedeCodigo))->streamTo($query);
+        }, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
+    }
+
+    public function importExcel(Request $request, StockInventarioImportService $importService): JsonResponse
+    {
+        abort_unless($request->user()?->can('stock.adjust'), 403);
+
+        $request->validate([
+            'file' => ['required', 'file', 'max:10240'],
+        ]);
+
+        $uploaded = $request->file('file');
+        if ($uploaded === null) {
+            return response()->json([
+                'ok' => false,
+                'error' => 'No se recibió el archivo.',
+                'imported' => 0,
+                'failed' => 0,
+                'skipped' => 0,
+                'rows' => [],
+            ], 422);
+        }
+
+        $extension = strtolower($uploaded->getClientOriginalExtension());
+        if (! in_array($extension, ['xlsx', 'xls'], true)) {
+            return response()->json([
+                'ok' => false,
+                'error' => 'El archivo debe ser .xlsx',
+                'imported' => 0,
+                'failed' => 0,
+                'skipped' => 0,
+                'rows' => [],
+            ], 422);
+        }
+
+        $result = $importService->import($uploaded);
+        $status = ($result['ok'] ?? false) ? 200 : 422;
+
+        return response()->json($result, $status);
+    }
+
+    /**
+     * @return array{0: string, 1: string, 2: string}|null
+     */
+    private function resolveSedeForExport(Request $request, string $tenantId): ?array
+    {
+        $sedesActivas = Sede::query()
+            ->where('tenant_id', $tenantId)
+            ->where('activa', true)
+            ->whereNull('deleted_at')
+            ->orderBy('nombre')
+            ->get(['id', 'nombre', 'codigo']);
+
+        if ($sedesActivas->isEmpty()) {
+            return null;
+        }
+
+        $sedeIds = $sedesActivas->pluck('id')->all();
+        $sedeRequested = (string) $request->string('sede_id', '');
+        $sede = preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $sedeRequested) === 1
+            && in_array($sedeRequested, $sedeIds, true)
+            ? $sedesActivas->firstWhere('id', $sedeRequested)
+            : $sedesActivas->first();
+
+        if ($sede === null) {
+            return null;
+        }
+
+        return [(string) $sede->id, (string) $sede->nombre, (string) $sede->codigo];
+    }
+
+    /**
+     * @return Builder<Producto>
+     */
+    private function stockQuery(string $sedeId, string $search, string $sort, string $directionSql): Builder
+    {
+        $query = Producto::query()
+            ->with(['categoria:id,nombre'])
+            ->leftJoin('existencias_sede as es', function ($join) use ($sedeId): void {
+                $join->on('es.producto_id', '=', 'productos.id')
+                    ->where('es.sede_id', '=', $sedeId);
+            })
+            ->select('productos.*')
+            ->addSelect(DB::raw('COALESCE(es.cantidad, 0) as cantidad_stock'));
+
+        if ($sort === 'cantidad_stock') {
+            $query->orderByRaw('COALESCE(es.cantidad, 0) '.$directionSql);
+            $query->orderBy('productos.nombre');
+        } elseif ($sort !== '' && in_array($sort, self::SORTABLE_COLUMNS, true)) {
+            $query->orderBy('productos.'.$sort, $directionSql);
+            $query->orderByDesc('productos.created_at');
+        } else {
+            $query->orderBy('productos.nombre');
+            $query->orderByDesc('productos.created_at');
+        }
+
+        if ($search !== '') {
+            $query->where(function ($q) use ($search): void {
+                $q->where('productos.nombre', 'ILIKE', "%{$search}%")
+                    ->orWhere('productos.slug', 'ILIKE', "%{$search}%")
+                    ->orWhere('productos.sku', 'ILIKE', "%{$search}%")
+                    ->orWhere('productos.codigo_barras', 'ILIKE', "%{$search}%")
+                    ->orWhere('productos.descripcion', 'ILIKE', "%{$search}%");
+            });
+        }
+
+        return $query;
     }
 }
