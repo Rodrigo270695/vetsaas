@@ -50,6 +50,8 @@
         "vacio": "No hay líneas cargadas.",
         "col_producto": "Producto",
         "col_cantidad": "Cant.",
+        "col_lote": "Lote",
+        "col_vencimiento": "Vencimiento",
         "col_costo": "Costo u.",
         "subtotal": "Subtotal"
     },

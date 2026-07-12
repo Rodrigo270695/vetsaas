@@ -50,7 +50,21 @@
     "row": {
         "sin_categoria": "No category",
         "medicamento_si": "Drug",
-        "ajustar": "Adjust"
+        "ajustar": "Adjust",
+        "ver_lotes": "Lots",
+        "lotes_count": "{{count}} lots",
+        "lote_uno": "1 lot"
+    },
+    "lotes_dialog": {
+        "title": "Lots at branch",
+        "subtitle": "{{producto}}",
+        "subtitle_sede": "{{producto}} · {{sede}}",
+        "vacio": "No lots with available quantity at this branch.",
+        "col_lote": "Lot",
+        "col_vencimiento": "Expiry",
+        "col_cantidad": "Qty",
+        "sin_numero": "No number",
+        "fefo_primero": "Next out (FEFO)"
     },
     "empty": {
         "no_records_title": "No products in the catalog",

@@ -50,6 +50,8 @@
         "vacio": "No line items loaded.",
         "col_producto": "Product",
         "col_cantidad": "Qty",
+        "col_lote": "Lot",
+        "col_vencimiento": "Expiry",
         "col_costo": "Unit cost",
         "subtotal": "Subtotal"
     },

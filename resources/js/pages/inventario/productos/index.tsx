@@ -28,6 +28,7 @@ import type { Paginated } from '@/types';
 import { ProductoBulkImportModal } from './components/producto-bulk-import-modal';
 import { ProductoDeleteDialog } from './components/producto-delete-dialog';
 import { ProductoFormModal } from './components/producto-form-modal';
+import { ProductoLotesDialog } from './components/producto-lotes-dialog';
 import { ProductoRowActions } from './components/producto-row-actions';
 import type {
     Producto,
@@ -111,7 +112,9 @@ export default function Index({ productos: paginated, filters, stats, categoriaO
     }, [filters]);
 
     const [modal, setModal] = useState<ModalState>({ type: 'idle' });
+    const [lotesProducto, setLotesProducto] = useState<Producto | null>(null);
     const closeModal = useCallback(() => setModal({ type: 'idle' }), []);
+    const closeLotes = useCallback(() => setLotesProducto(null), []);
 
     const estadoOptions: readonly FilterChip<ProductoEstadoFilter>[] = useMemo(
         () => [
@@ -222,13 +225,30 @@ export default function Index({ productos: paginated, filters, stats, categoriaO
             {
                 key: 'lote',
                 header: t('columns.lote'),
-                cell: (p) =>
-                    p.lote_numero ? (
-                        <span className="font-mono text-xs text-foreground">{p.lote_numero}</span>
-                    ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
-                    ),
-                className: 'w-28',
+                cell: (p) => {
+                    const lotesCount = p.lotes?.length ?? 0;
+                    if (lotesCount === 0) {
+                        return <span className="text-xs text-muted-foreground">—</span>;
+                    }
+
+                    return (
+                        <button
+                            type="button"
+                            className="flex w-fit cursor-pointer flex-col items-start gap-0.5 text-left hover:underline"
+                            onClick={() => setLotesProducto(p)}
+                        >
+                            <span className="font-mono text-xs text-foreground">
+                                {p.lote_numero ?? t('lotes_dialog.sin_numero')}
+                            </span>
+                            <span className="text-[0.65rem] font-medium text-primary">
+                                {lotesCount === 1
+                                    ? t('row.lote_uno')
+                                    : t('row.lotes_count', { count: lotesCount })}
+                            </span>
+                        </button>
+                    );
+                },
+                className: 'w-32',
             },
             {
                 key: 'vencimiento',
@@ -239,13 +259,18 @@ export default function Index({ productos: paginated, filters, stats, categoriaO
                     }
                     const d = new Date(`${p.lote_vencimiento}T12:00:00`);
                     return (
-                        <span className="tabular-nums text-sm text-foreground">
-                            {d.toLocaleDateString(i18n.language, {
-                                day: '2-digit',
-                                month: 'short',
-                                year: 'numeric',
-                            })}
-                        </span>
+                        <div className="flex flex-col gap-0.5">
+                            <span className="tabular-nums text-sm text-foreground">
+                                {d.toLocaleDateString(i18n.language, {
+                                    day: '2-digit',
+                                    month: 'short',
+                                    year: 'numeric',
+                                })}
+                            </span>
+                            {(p.lotes?.length ?? 0) > 0 ? (
+                                <span className="text-[0.65rem] text-muted-foreground">{t('row.fefo_hint')}</span>
+                            ) : null}
+                        </div>
                     );
                 },
                 className: 'w-28',
@@ -472,6 +497,14 @@ export default function Index({ productos: paginated, filters, stats, categoriaO
                 onOpenChange={(open) => {
                     if (!open) closeModal();
                 }}
+            />
+
+            <ProductoLotesDialog
+                open={lotesProducto !== null}
+                onOpenChange={(open) => {
+                    if (!open) closeLotes();
+                }}
+                producto={lotesProducto}
             />
 
             <ProductoFormModal

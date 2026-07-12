@@ -12,6 +12,16 @@ export type ProductoCategoria = {
     slug: string | null;
 } | null;
 
+export type ProductoLoteFila = {
+    id: string;
+    numero_lote: string | null;
+    fecha_vencimiento: string | null;
+    cantidad: string;
+    sede_id: string;
+    sede_nombre?: string | null;
+    sede_codigo?: string | null;
+};
+
 export type Producto = {
     id: string;
     categoria_id: string | null;
@@ -32,6 +42,8 @@ export type Producto = {
     lote_numero?: string | null;
     /** YYYY-MM-DD del lote próximo a vencer. */
     lote_vencimiento?: string | null;
+    /** Todos los lotes con cantidad > 0 (todas las sedes), orden FEFO. */
+    lotes?: ProductoLoteFila[];
     categoria: ProductoCategoria;
     creado_por: ProductoAuditUser;
     actualizado_por: ProductoAuditUser;

@@ -6,6 +6,7 @@ use App\Exports\StockInventarioImportTemplateXlsx;
 use App\Exports\StockInventarioXlsxExport;
 use App\Http\Requests\StockInventarioAdjustRequest;
 use App\Models\Producto;
+use App\Models\ProductoLote;
 use App\Models\Sede;
 use App\Services\Inventario\InventarioLoteService;
 use App\Services\Inventario\StockInventarioImportService;
@@ -119,6 +120,39 @@ class StockInventarioController extends Controller
         }
 
         $productos = $query->paginate($perPage)->withQueryString();
+
+        $productoIds = $productos->getCollection()->pluck('id')->all();
+        $lotesPorProducto = ProductoLote::query()
+            ->where('sede_id', $sedeId)
+            ->whereIn('producto_id', $productoIds)
+            ->where('cantidad', '>', 0)
+            ->orderByRaw('fecha_vencimiento ASC NULLS LAST')
+            ->orderBy('created_at')
+            ->get(['id', 'producto_id', 'numero_lote', 'fecha_vencimiento', 'cantidad'])
+            ->groupBy('producto_id');
+
+        $productos->getCollection()->transform(function (Producto $producto) use ($lotesPorProducto): Producto {
+            $lotes = $lotesPorProducto->get($producto->id, collect())
+                ->map(static function (ProductoLote $lote): array {
+                    $numero = $lote->numero_lote;
+                    if ($numero === InventarioLoteService::LOTE_SIN_ESPECIFICAR) {
+                        $numero = null;
+                    }
+
+                    return [
+                        'id' => $lote->id,
+                        'numero_lote' => $numero,
+                        'fecha_vencimiento' => $lote->fecha_vencimiento?->format('Y-m-d'),
+                        'cantidad' => (string) $lote->cantidad,
+                    ];
+                })
+                ->values()
+                ->all();
+
+            $producto->setAttribute('lotes', $lotes);
+
+            return $producto;
+        });
 
         return Inertia::render('inventario/stock/index', [
             'productos' => $productos,

@@ -33,6 +33,8 @@ export type CompraLineaFila = {
     id: string;
     cantidad: string;
     costo_unitario: string | null;
+    numero_lote: string | null;
+    fecha_vencimiento: string | null;
     producto: {
         id: string;
         nombre: string;

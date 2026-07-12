@@ -50,7 +50,21 @@
     "row": {
         "sin_categoria": "Sin categoría",
         "medicamento_si": "Medicamento",
-        "ajustar": "Ajustar"
+        "ajustar": "Ajustar",
+        "ver_lotes": "Lotes",
+        "lotes_count": "{{count}} lotes",
+        "lote_uno": "1 lote"
+    },
+    "lotes_dialog": {
+        "title": "Lotes en sede",
+        "subtitle": "{{producto}}",
+        "subtitle_sede": "{{producto}} · {{sede}}",
+        "vacio": "No hay lotes con cantidad disponible en esta sede.",
+        "col_lote": "Lote",
+        "col_vencimiento": "Vencimiento",
+        "col_cantidad": "Cant.",
+        "sin_numero": "Sin número",
+        "fefo_primero": "Próximo a salir (FEFO)"
     },
     "empty": {
         "no_records_title": "Sin productos en el catálogo",

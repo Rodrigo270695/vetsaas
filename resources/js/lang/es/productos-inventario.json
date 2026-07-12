@@ -35,7 +35,22 @@
         "sin_categoria": "Sin categoría",
         "medicamento_si": "Medicamento",
         "precio_compra_short": "Compra",
-        "system": "Sistema"
+        "system": "Sistema",
+        "ver_lotes": "Ver lotes",
+        "lotes_count": "{{count}} lotes",
+        "lote_uno": "1 lote",
+        "fefo_hint": "Próximo FEFO"
+    },
+    "lotes_dialog": {
+        "title": "Lotes del producto",
+        "subtitle": "{{producto}} — cantidad disponible por lote y sede",
+        "vacio": "No hay lotes con cantidad disponible.",
+        "col_lote": "Lote",
+        "col_sede": "Sede",
+        "col_vencimiento": "Vencimiento",
+        "col_cantidad": "Cant.",
+        "sin_numero": "Sin número",
+        "fefo_primero": "Próximo a salir (FEFO)"
     },
     "actions": {
         "new": "Nuevo producto",

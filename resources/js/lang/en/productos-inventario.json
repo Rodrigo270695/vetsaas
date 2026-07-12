@@ -35,7 +35,22 @@
         "sin_categoria": "No category",
         "medicamento_si": "Medication",
         "precio_compra_short": "Cost",
-        "system": "System"
+        "system": "System",
+        "ver_lotes": "View lots",
+        "lotes_count": "{{count}} lots",
+        "lote_uno": "1 lot",
+        "fefo_hint": "Next FEFO"
+    },
+    "lotes_dialog": {
+        "title": "Product lots",
+        "subtitle": "{{producto}} — available quantity by lot and branch",
+        "vacio": "No lots with available quantity.",
+        "col_lote": "Lot",
+        "col_sede": "Branch",
+        "col_vencimiento": "Expiry",
+        "col_cantidad": "Qty",
+        "sin_numero": "No number",
+        "fefo_primero": "Next out (FEFO)"
     },
     "actions": {
         "new": "New product",

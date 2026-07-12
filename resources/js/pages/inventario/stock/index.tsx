@@ -1,5 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
-import { AlertTriangle, Download, Filter, Package, ScreenShare, SlidersHorizontal, Store, Upload } from 'lucide-react';
+import { AlertTriangle, Download, Filter, Layers, Package, ScreenShare, SlidersHorizontal, Store, Upload } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -23,6 +23,7 @@ import inventario from '@/routes/inventario';
 import type { Paginated } from '@/types';
 import { StockAdjustDialog } from './components/stock-adjust-dialog';
 import { StockBulkImportModal } from './components/stock-bulk-import-modal';
+import { StockLotesDialog } from './components/stock-lotes-dialog';
 import type { SedeOption, StockFilters, StockProductoFila, StockStats } from './types';
 
 type Props = {
@@ -66,13 +67,19 @@ export default function Index({ productos: paginated, filters, stats, sedeOption
     });
 
     const [adjustProducto, setAdjustProducto] = useState<StockProductoFila | null>(null);
+    const [lotesProducto, setLotesProducto] = useState<StockProductoFila | null>(null);
     const [bulkOpen, setBulkOpen] = useState(false);
     const closeAdjust = useCallback(() => setAdjustProducto(null), []);
+    const closeLotes = useCallback(() => setLotesProducto(null), []);
     const canView = can('stock.view');
 
     const defaultSedeId = sedeOptions[0]?.id ?? '';
     const sedeFilterActive =
         !sinSedes && sedeOptions.length > 1 && filters.sede_id !== '' && filters.sede_id !== defaultSedeId;
+    const sedeNombreActiva = useMemo(
+        () => sedeOptions.find((s) => s.id === (filters.sede_id || defaultSedeId))?.nombre ?? null,
+        [sedeOptions, filters.sede_id, defaultSedeId],
+    );
 
     const exportUrl = useMemo(() => {
         const params = new URLSearchParams();
@@ -158,11 +165,28 @@ export default function Index({ productos: paginated, filters, stats, sedeOption
                 key: 'cantidad_stock',
                 header: t('columns.cantidad'),
                 sortable: !sinSedes,
-                cell: (p) => (
-                    <span className="tabular-nums text-sm font-medium">
-                        {sinSedes ? '—' : formatCantidad(p.cantidad_stock, i18n.language)}
-                    </span>
-                ),
+                cell: (p) => {
+                    const lotesCount = p.lotes?.length ?? 0;
+
+                    return (
+                        <div className="flex flex-col gap-0.5">
+                            <span className="tabular-nums text-sm font-medium">
+                                {sinSedes ? '—' : formatCantidad(p.cantidad_stock, i18n.language)}
+                            </span>
+                            {!sinSedes && lotesCount > 0 ? (
+                                <button
+                                    type="button"
+                                    className="w-fit cursor-pointer text-left text-[0.65rem] font-medium text-primary hover:underline"
+                                    onClick={() => setLotesProducto(p)}
+                                >
+                                    {lotesCount === 1
+                                        ? t('row.lote_uno')
+                                        : t('row.lotes_count', { count: lotesCount })}
+                                </button>
+                            ) : null}
+                        </div>
+                    );
+                },
                 className: 'w-28',
             },
             {
@@ -190,31 +214,45 @@ export default function Index({ productos: paginated, filters, stats, sedeOption
             },
         ];
 
-        if (canAdjust && !sinSedes) {
+        if (!sinSedes && (canView || canAdjust)) {
             base.push({
                 key: 'acciones',
                 header: <span className="md:sr-only">{t('columns.acciones')}</span>,
                 align: 'right',
                 cell: (p) => (
-                    <div className="flex justify-end">
-                        <Button
-                            type="button"
-                            variant="default"
-                            size="sm"
-                            className="h-7 min-h-7 cursor-pointer gap-1 rounded-md px-2 text-xs font-medium shadow-sm ring-1 ring-primary/15 hover:ring-primary/30 has-[>svg]:px-2"
-                            onClick={() => setAdjustProducto(p)}
-                        >
-                            <SlidersHorizontal className="size-3 shrink-0 opacity-90" strokeWidth={2.5} aria-hidden />
-                            {t('row.ajustar')}
-                        </Button>
+                    <div className="flex justify-end gap-1.5">
+                        {canView ? (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-7 min-h-7 cursor-pointer gap-1 rounded-md px-2 text-xs font-medium has-[>svg]:px-2"
+                                onClick={() => setLotesProducto(p)}
+                            >
+                                <Layers className="size-3 shrink-0 opacity-90" strokeWidth={2.5} aria-hidden />
+                                {t('row.ver_lotes')}
+                            </Button>
+                        ) : null}
+                        {canAdjust ? (
+                            <Button
+                                type="button"
+                                variant="default"
+                                size="sm"
+                                className="h-7 min-h-7 cursor-pointer gap-1 rounded-md px-2 text-xs font-medium shadow-sm ring-1 ring-primary/15 hover:ring-primary/30 has-[>svg]:px-2"
+                                onClick={() => setAdjustProducto(p)}
+                            >
+                                <SlidersHorizontal className="size-3 shrink-0 opacity-90" strokeWidth={2.5} aria-hidden />
+                                {t('row.ajustar')}
+                            </Button>
+                        ) : null}
                     </div>
                 ),
-                className: 'w-28',
+                className: 'w-44',
             });
         }
 
         return base;
-    }, [t, i18n.language, sinSedes, canAdjust]);
+    }, [t, i18n.language, sinSedes, canAdjust, canView]);
 
     return (
         <>
@@ -328,6 +366,15 @@ export default function Index({ productos: paginated, filters, stats, sedeOption
                 }}
                 producto={adjustProducto}
                 sedeId={filters.sede_id}
+            />
+
+            <StockLotesDialog
+                open={lotesProducto !== null}
+                onOpenChange={(open) => {
+                    if (!open) closeLotes();
+                }}
+                producto={lotesProducto}
+                sedeNombre={sedeNombreActiva}
             />
 
             <StockBulkImportModal open={bulkOpen} onOpenChange={setBulkOpen} />

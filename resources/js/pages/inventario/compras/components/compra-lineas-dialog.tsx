@@ -14,6 +14,17 @@ type CompraLineasDialogProps = {
     compra: CompraFila | null;
 };
 
+function formatFecha(value: string | null | undefined, locale: string): string {
+    if (!value) {
+        return '—';
+    }
+    const d = new Date(`${value.slice(0, 10)}T12:00:00`);
+    if (Number.isNaN(d.getTime())) {
+        return value;
+    }
+    return d.toLocaleDateString(locale, { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
 export function CompraLineasDialog({ open, onOpenChange, compra }: CompraLineasDialogProps) {
     const { t, i18n } = useTranslation(['compras-inventario']);
     const lineas = compra?.lineas ?? [];
@@ -21,7 +32,7 @@ export function CompraLineasDialog({ open, onOpenChange, compra }: CompraLineasD
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
+            <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-3xl">
                 <DialogHeader>
                     <DialogTitle>{t('lineas_dialog.title')}</DialogTitle>
                     <DialogDescription>
@@ -31,20 +42,25 @@ export function CompraLineasDialog({ open, onOpenChange, compra }: CompraLineasD
                 {lineas.length === 0 ? (
                     <p className="text-sm text-muted-foreground">{t('lineas_dialog.vacio')}</p>
                 ) : (
-                    <div className="rounded-md border border-border">
-                        <div className="grid grid-cols-[1fr_5.5rem_7rem] gap-2 border-b border-border bg-muted/40 px-3 py-2 text-xs font-medium text-muted-foreground">
+                    <div className="overflow-x-auto rounded-md border border-border">
+                        <div className="grid min-w-[36rem] grid-cols-[minmax(8rem,1.4fr)_4.5rem_5.5rem_5.5rem_6.5rem] gap-2 border-b border-border bg-muted/40 px-3 py-2 text-xs font-medium text-muted-foreground">
                             <span>{t('lineas_dialog.col_producto')}</span>
                             <span className="text-right">{t('lineas_dialog.col_cantidad')}</span>
+                            <span>{t('lineas_dialog.col_lote')}</span>
+                            <span>{t('lineas_dialog.col_vencimiento')}</span>
                             <span className="text-right">{t('lineas_dialog.col_costo')}</span>
                         </div>
-                        <ul className="divide-y divide-border">
+                        <ul className="min-w-[36rem] divide-y divide-border">
                             {lineas.map((ln) => {
                                 const qty = Number(ln.cantidad);
                                 const cost = ln.costo_unitario != null ? Number(ln.costo_unitario) : null;
                                 const sub = cost !== null && !Number.isNaN(cost) && !Number.isNaN(qty) ? qty * cost : null;
 
                                 return (
-                                    <li key={ln.id} className="grid grid-cols-[1fr_5.5rem_7rem] gap-2 px-3 py-2.5 text-sm">
+                                    <li
+                                        key={ln.id}
+                                        className="grid grid-cols-[minmax(8rem,1.4fr)_4.5rem_5.5rem_5.5rem_6.5rem] gap-2 px-3 py-2.5 text-sm"
+                                    >
                                         <div className="min-w-0">
                                             <div className="font-medium text-foreground">{ln.producto?.nombre ?? '—'}</div>
                                             {ln.producto?.sku ? (
@@ -53,6 +69,14 @@ export function CompraLineasDialog({ open, onOpenChange, compra }: CompraLineasD
                                         </div>
                                         <div className="text-right tabular-nums text-muted-foreground">
                                             {qty.toLocaleString(i18n.language, { maximumFractionDigits: 3 })}
+                                        </div>
+                                        <div className="min-w-0 font-mono text-xs text-foreground">
+                                            {ln.numero_lote?.trim() && ln.numero_lote !== 'SIN-LOTE'
+                                                ? ln.numero_lote
+                                                : '—'}
+                                        </div>
+                                        <div className="tabular-nums text-xs text-muted-foreground">
+                                            {formatFecha(ln.fecha_vencimiento, i18n.language)}
                                         </div>
                                         <div className="text-right">
                                             {cost !== null && !Number.isNaN(cost) ? (

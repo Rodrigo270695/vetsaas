@@ -377,7 +377,7 @@ class ProductoInventarioController extends Controller
     }
 
     /**
-     * Adjunta el lote con vencimiento más cercano (FEFO) con cantidad > 0.
+     * Adjunta el lote FEFO próximo y el listado completo de lotes con stock (> 0).
      *
      * @param  Collection<int, Producto>  $productos
      */
@@ -392,16 +392,22 @@ class ProductoInventarioController extends Controller
         $lotes = ProductoLote::query()
             ->whereIn('producto_id', $ids)
             ->where('cantidad', '>', 0)
-            ->orderByRaw('fecha_vencimiento IS NULL')
-            ->orderBy('fecha_vencimiento')
+            ->orderByRaw('fecha_vencimiento ASC NULLS LAST')
             ->orderBy('created_at')
-            ->get(['producto_id', 'numero_lote', 'fecha_vencimiento', 'cantidad']);
+            ->get(['id', 'producto_id', 'sede_id', 'numero_lote', 'fecha_vencimiento', 'cantidad']);
+
+        $sedes = Sede::query()
+            ->whereIn('id', $lotes->pluck('sede_id')->unique()->filter()->all())
+            ->get(['id', 'nombre', 'codigo'])
+            ->keyBy('id');
 
         $byProducto = $lotes->groupBy('producto_id');
 
         foreach ($productos as $producto) {
+            $grupo = $byProducto->get((string) $producto->id) ?? collect();
+
             /** @var ProductoLote|null $lote */
-            $lote = $byProducto->get((string) $producto->id)?->first();
+            $lote = $grupo->first();
             $numero = $lote !== null ? (string) $lote->numero_lote : null;
             if ($numero === InventarioLoteService::LOTE_SIN_ESPECIFICAR) {
                 $numero = null;
@@ -411,6 +417,27 @@ class ProductoInventarioController extends Controller
             $producto->setAttribute(
                 'lote_vencimiento',
                 $lote?->fecha_vencimiento?->format('Y-m-d'),
+            );
+
+            $producto->setAttribute(
+                'lotes',
+                $grupo->map(static function (ProductoLote $item) use ($sedes): array {
+                    $num = (string) $item->numero_lote;
+                    if ($num === InventarioLoteService::LOTE_SIN_ESPECIFICAR) {
+                        $num = null;
+                    }
+                    $sede = $sedes->get($item->sede_id);
+
+                    return [
+                        'id' => $item->id,
+                        'numero_lote' => $num,
+                        'fecha_vencimiento' => $item->fecha_vencimiento?->format('Y-m-d'),
+                        'cantidad' => (string) $item->cantidad,
+                        'sede_id' => $item->sede_id,
+                        'sede_nombre' => $sede?->nombre,
+                        'sede_codigo' => $sede?->codigo,
+                    ];
+                })->values()->all(),
             );
         }
     }
