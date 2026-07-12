@@ -165,13 +165,14 @@ function CredentialPill({
     missingLabel: string;
 }) {
     return (
-        <div className="flex items-center justify-between gap-3 rounded-lg border border-border/50 bg-muted/30 px-3 py-2.5">
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/50 bg-muted/30 px-3 py-2.5">
             <span className="text-sm font-medium text-foreground">{label}</span>
             <StatBadge
                 label={ok ? okLabel : missingLabel}
                 value=""
                 variant={ok ? 'success' : 'danger'}
                 icon={ok ? CheckCircle2 : XCircle}
+                className="max-w-full"
             />
         </div>
     );
@@ -260,7 +261,7 @@ export default function Index({ snapshot, can_manage }: Props) {
                     ]}
                 />
 
-                <div className="grid gap-4 lg:grid-cols-2">
+                <div className="grid min-w-0 gap-4 lg:grid-cols-2">
                     <SectionCard
                         title={t('health.title')}
                         description={t('health.description')}
@@ -425,60 +426,95 @@ export default function Index({ snapshot, can_manage }: Props) {
                                 {t('presence.empty')}
                             </p>
                         ) : (
-                            <div className="overflow-x-auto rounded-lg border border-border/50">
-                                <table className="w-full min-w-[480px] text-left text-sm">
-                                    <thead className="border-b border-border/60 bg-muted/40 text-xs text-muted-foreground">
-                                        <tr>
-                                            <th className="px-3 py-2 font-medium">
-                                                {t('presence.columns.tenant')}
-                                            </th>
-                                            <th className="px-3 py-2 font-medium">
-                                                {t('presence.columns.online')}
-                                            </th>
-                                            <th className="px-3 py-2 font-medium">
-                                                {t('presence.columns.sessions')}
-                                            </th>
-                                            <th className="px-3 py-2 font-medium">
-                                                {t('presence.columns.session_users')}
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {snapshot.presence.by_tenant.map(
-                                            (row) => (
-                                                <tr
-                                                    key={row.tenant_id}
-                                                    className="border-b border-border/40 last:border-0"
-                                                >
-                                                    <td className="px-3 py-2">
-                                                        <div className="flex flex-col leading-tight">
-                                                            <span className="font-medium">
-                                                                {
-                                                                    row.tenant_label
-                                                                }
-                                                            </span>
-                                                            <span className="font-mono text-xs text-muted-foreground">
-                                                                {
-                                                                    row.tenant_slug
-                                                                }
-                                                            </span>
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-3 py-2 tabular-nums">
-                                                        {row.online_users}
-                                                    </td>
-                                                    <td className="px-3 py-2 tabular-nums">
-                                                        {row.open_sessions}
-                                                    </td>
-                                                    <td className="px-3 py-2 tabular-nums">
-                                                        {row.session_users}
-                                                    </td>
-                                                </tr>
-                                            ),
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
+                            <>
+                                <div className="flex flex-col gap-2 md:hidden">
+                                    {snapshot.presence.by_tenant.map((row) => (
+                                        <div
+                                            key={row.tenant_id}
+                                            className="rounded-lg border border-border/50 bg-muted/20 px-3 py-2.5"
+                                        >
+                                            <div className="flex flex-col leading-tight">
+                                                <span className="text-sm font-medium">
+                                                    {row.tenant_label}
+                                                </span>
+                                                <span className="font-mono text-xs text-muted-foreground">
+                                                    {row.tenant_slug}
+                                                </span>
+                                            </div>
+                                            <div className="mt-2 flex flex-wrap gap-1.5">
+                                                <StatBadge
+                                                    label={t('presence.columns.online')}
+                                                    value={row.online_users}
+                                                    variant="success"
+                                                />
+                                                <StatBadge
+                                                    label={t('presence.columns.sessions')}
+                                                    value={row.open_sessions}
+                                                />
+                                                <StatBadge
+                                                    label={t('presence.columns.session_users')}
+                                                    value={row.session_users}
+                                                />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className="hidden overflow-x-auto rounded-lg border border-border/50 md:block">
+                                    <table className="w-full min-w-[480px] text-left text-sm">
+                                        <thead className="border-b border-border/60 bg-muted/40 text-xs text-muted-foreground">
+                                            <tr>
+                                                <th className="px-3 py-2 font-medium">
+                                                    {t('presence.columns.tenant')}
+                                                </th>
+                                                <th className="px-3 py-2 font-medium">
+                                                    {t('presence.columns.online')}
+                                                </th>
+                                                <th className="px-3 py-2 font-medium">
+                                                    {t('presence.columns.sessions')}
+                                                </th>
+                                                <th className="px-3 py-2 font-medium">
+                                                    {t('presence.columns.session_users')}
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {snapshot.presence.by_tenant.map(
+                                                (row) => (
+                                                    <tr
+                                                        key={row.tenant_id}
+                                                        className="border-b border-border/40 last:border-0"
+                                                    >
+                                                        <td className="px-3 py-2">
+                                                            <div className="flex flex-col leading-tight">
+                                                                <span className="font-medium">
+                                                                    {
+                                                                        row.tenant_label
+                                                                    }
+                                                                </span>
+                                                                <span className="font-mono text-xs text-muted-foreground">
+                                                                    {
+                                                                        row.tenant_slug
+                                                                    }
+                                                                </span>
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-3 py-2 tabular-nums">
+                                                            {row.online_users}
+                                                        </td>
+                                                        <td className="px-3 py-2 tabular-nums">
+                                                            {row.open_sessions}
+                                                        </td>
+                                                        <td className="px-3 py-2 tabular-nums">
+                                                            {row.session_users}
+                                                        </td>
+                                                    </tr>
+                                                ),
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </>
                         )}
                     </SectionCard>
 
@@ -487,7 +523,7 @@ export default function Index({ snapshot, can_manage }: Props) {
                         description={t('backups.description')}
                         icon={HardDrive}
                         badge={
-                            <div className="flex items-center gap-2">
+                            <div className="flex flex-wrap items-center gap-2">
                                 <StatBadge
                                     label={
                                         !snapshot.backups.enabled
@@ -741,50 +777,80 @@ export default function Index({ snapshot, can_manage }: Props) {
                                 {t('whatsapp.broken_empty')}
                             </p>
                         ) : (
-                            <div className="overflow-x-auto rounded-lg border border-border/50">
-                                <table className="w-full min-w-[520px] text-left text-sm">
-                                    <thead className="border-b border-border/60 bg-muted/40 text-xs text-muted-foreground">
-                                        <tr>
-                                            <th className="px-3 py-2 font-medium">
-                                                {t('whatsapp.columns.tenant')}
-                                            </th>
-                                            <th className="px-3 py-2 font-medium">
-                                                {t('whatsapp.columns.status')}
-                                            </th>
-                                            <th className="px-3 py-2 font-medium">
-                                                {t('whatsapp.columns.error')}
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {snapshot.whatsapp.broken.map((row) => (
-                                            <tr
-                                                key={`${row.tenant_id}-${row.status}-${row.last_synced_at ?? ''}`}
-                                                className="border-b border-border/40 last:border-0"
-                                            >
-                                                <td className="px-3 py-2">
-                                                    <div className="flex flex-col leading-tight">
-                                                        <span className="font-medium">
-                                                            {row.tenant_label}
-                                                        </span>
-                                                        <span className="font-mono text-xs text-muted-foreground">
-                                                            {row.tenant_slug}
-                                                        </span>
-                                                    </div>
-                                                </td>
-                                                <td className="px-3 py-2">
-                                                    <span className="font-mono text-xs">
-                                                        {row.status}
-                                                    </span>
-                                                </td>
-                                                <td className="max-w-[240px] truncate px-3 py-2 text-xs text-muted-foreground">
-                                                    {row.last_error || '—'}
-                                                </td>
+                            <>
+                                <div className="flex flex-col gap-2 md:hidden">
+                                    {snapshot.whatsapp.broken.map((row) => (
+                                        <div
+                                            key={`${row.tenant_id}-${row.status}-${row.last_synced_at ?? ''}`}
+                                            className="rounded-lg border border-border/50 bg-muted/20 px-3 py-2.5"
+                                        >
+                                            <div className="flex flex-col leading-tight">
+                                                <span className="text-sm font-medium">
+                                                    {row.tenant_label}
+                                                </span>
+                                                <span className="font-mono text-xs text-muted-foreground">
+                                                    {row.tenant_slug}
+                                                </span>
+                                            </div>
+                                            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                                                <span className="rounded-md bg-muted px-2 py-0.5 font-mono text-xs">
+                                                    {row.status}
+                                                </span>
+                                            </div>
+                                            {row.last_error ? (
+                                                <p className="mt-2 text-xs wrap-break-word text-muted-foreground">
+                                                    {row.last_error}
+                                                </p>
+                                            ) : null}
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className="hidden overflow-x-auto rounded-lg border border-border/50 md:block">
+                                    <table className="w-full min-w-[520px] text-left text-sm">
+                                        <thead className="border-b border-border/60 bg-muted/40 text-xs text-muted-foreground">
+                                            <tr>
+                                                <th className="px-3 py-2 font-medium">
+                                                    {t('whatsapp.columns.tenant')}
+                                                </th>
+                                                <th className="px-3 py-2 font-medium">
+                                                    {t('whatsapp.columns.status')}
+                                                </th>
+                                                <th className="px-3 py-2 font-medium">
+                                                    {t('whatsapp.columns.error')}
+                                                </th>
                                             </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
+                                        </thead>
+                                        <tbody>
+                                            {snapshot.whatsapp.broken.map((row) => (
+                                                <tr
+                                                    key={`${row.tenant_id}-${row.status}-${row.last_synced_at ?? ''}`}
+                                                    className="border-b border-border/40 last:border-0"
+                                                >
+                                                    <td className="px-3 py-2">
+                                                        <div className="flex flex-col leading-tight">
+                                                            <span className="font-medium">
+                                                                {row.tenant_label}
+                                                            </span>
+                                                            <span className="font-mono text-xs text-muted-foreground">
+                                                                {row.tenant_slug}
+                                                            </span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-3 py-2">
+                                                        <span className="font-mono text-xs">
+                                                            {row.status}
+                                                        </span>
+                                                    </td>
+                                                    <td className="max-w-[240px] truncate px-3 py-2 text-xs text-muted-foreground">
+                                                        {row.last_error || '—'}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </>
                         )}
                     </SectionCard>
                 </div>
@@ -794,7 +860,7 @@ export default function Index({ snapshot, can_manage }: Props) {
                     description={t('failed_jobs.description')}
                     icon={AlertTriangle}
                     badge={
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                             <StatBadge
                                 label={t('failed_jobs.total')}
                                 value={snapshot.failed_jobs.total}
@@ -823,14 +889,56 @@ export default function Index({ snapshot, can_manage }: Props) {
                             ) : null}
                         </div>
                     }
+                    className="min-w-0"
                 >
                     {snapshot.failed_jobs.recent.length === 0 ? (
                         <p className="text-sm text-muted-foreground">
                             {t('failed_jobs.empty')}
                         </p>
                     ) : (
-                        <div className="overflow-x-auto rounded-lg border border-border/50">
-                            <table className="w-full min-w-[720px] text-left text-sm">
+                        <>
+                            <div className="flex flex-col gap-2 md:hidden">
+                                {snapshot.failed_jobs.recent.map((job) => (
+                                    <div
+                                        key={job.uuid}
+                                        className="rounded-lg border border-border/50 bg-muted/20 px-3 py-2.5"
+                                    >
+                                        <div className="flex flex-col leading-tight">
+                                            <span className="text-sm font-medium">
+                                                {job.job_name ?? '—'}
+                                            </span>
+                                            <span className="font-mono text-[10px] text-muted-foreground">
+                                                {job.queue} · {job.uuid.slice(0, 8)}…
+                                            </span>
+                                        </div>
+                                        <p className="mt-1 text-xs text-muted-foreground">
+                                            {formatWhen(job.failed_at)}
+                                        </p>
+                                        <p className="mt-1 text-xs wrap-break-word text-muted-foreground">
+                                            {job.exception_preview}
+                                        </p>
+                                        {canManage ? (
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="mt-2 h-8 px-2"
+                                                disabled={retryingUuid === job.uuid}
+                                                onClick={() => retryJob(job.uuid)}
+                                            >
+                                                {retryingUuid === job.uuid ? (
+                                                    <Loader2 className="mr-1.5 size-3.5 animate-spin" />
+                                                ) : (
+                                                    <RefreshCw className="mr-1.5 size-3.5" />
+                                                )}
+                                                {t('failed_jobs.retry')}
+                                            </Button>
+                                        ) : null}
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="hidden overflow-x-auto rounded-lg border border-border/50 md:block">
+                                <table className="w-full min-w-[720px] text-left text-sm">
                                 <thead className="border-b border-border/60 bg-muted/40 text-xs text-muted-foreground">
                                     <tr>
                                         <th className="px-3 py-2 font-medium">
@@ -906,7 +1014,8 @@ export default function Index({ snapshot, can_manage }: Props) {
                                     ))}
                                 </tbody>
                             </table>
-                        </div>
+                            </div>
+                        </>
                     )}
                 </SectionCard>
             </div>

@@ -1,6 +1,6 @@
-# Comandos Artisan — VetSaaS / Bot de ventas
+# Comandos Artisan — VetSaaS
 
-Referencia rápida para ejecutar tareas manualmente en el VPS.
+Referencia de comandos propios (`vetsaas:*` y `salesbot:*`) para el VPS y entornos locales.
 
 **Ruta habitual en el servidor:**
 
@@ -11,41 +11,291 @@ php artisan <comando>
 
 **Antes de probar en producción**, usa `--dry-run` cuando el comando lo soporte: lista qué haría sin enviar mensajes ni guardar cambios.
 
+```bash
+# Ver todos los comandos registrados
+php artisan list
+
+# Solo namespace vetsaas / salesbot
+php artisan list vetsaas
+php artisan list salesbot
+```
+
+---
+
+## Índice rápido
+
+| Grupo | Comandos |
+|-------|----------|
+| **Tenants** | `tenant-diagnose`, `tenant-migrate`, `tenant-migrate-all`, `tenant-create-admin`, `tenant-restore`, `onboarding-reset` |
+| **Backups** | `backup-database`, `tenant-restore` |
+| **Cobros / suscripciones** | `billing-supervisor`, `subscription-renewal-reminders`, `sync-tenants-from-subscriptions` |
+| **WhatsApp / notificaciones clínicas** | `whatsapp-sync-sessions`, `reminders-scan`, `notifications-dispatch`, `clinic-bot-register-webhooks` |
+| **Bot de ventas / leads** | `salesbot:*`, `reactivate-cold-leads`, `import-leads`, `import-leads-from-openwa`, `resolve-lid-leads`, `sync-bot-knowledge` |
+| **Demo / mantenimiento** | `reset-demo`, `fresh-demo`, `geo-fix-encoding`, `nubefact-diagnose`, `test-password-reset-mail` |
+
 ---
 
 ## Panel web (sin terminal)
 
-Muchas acciones ya están en **Plataforma → Conversaciones bot**:
-
 | Acción | Dónde |
 |--------|--------|
-| Pausar / reanudar bot por lead | Botón en cada fila |
-| Responder con IA (lead nuevo o sin respuesta) | Botón **Responder con IA** en la barra de filtros |
-| Reactivar lead frío (un lead) | Icono ✉ en la fila |
-| Importar CSV | Botón **Importar CSV** |
-| Marcar convertido | Icono ✓ verde |
+| Pausar / reanudar bot por lead | **Plataforma → Conversaciones bot** |
+| Responder con IA | Mismo panel → **Responder con IA** |
+| Reactivar lead frío (uno) | Icono ✉ en la fila |
+| Importar CSV de leads | Botón **Importar CSV** |
+| Estado de backups / «Correr ahora» | **Plataforma → Operaciones** |
+| Sesiones WhatsApp clínicas | **Plataforma → Operaciones** (radar OpenWA) |
 
-Los comandos de abajo son el **plan B** cuando no tienes el panel a mano o necesitas automatizar/scriptear.
+Los comandos de abajo son el **plan B** (SSH, scripts, recuperación).
+
+> **Restore de BD:** no hay UI de restauración. Solo CLI (`vetsaas:tenant-restore`). A propósito: es destructivo (`DROP SCHEMA CASCADE`).
+
+---
+
+## Tenants (schemas, migraciones, admin)
+
+### `vetsaas:tenant-diagnose` — Diagnóstico rápido
+
+Comprueba registro central, existencia del schema PostgreSQL y URL de login.
+
+```bash
+php artisan vetsaas:tenant-diagnose mi-clinica
+```
+
+---
+
+### `vetsaas:tenant-migrate` — Migrar un schema
+
+Ejecuta `database/migrations/tenant` en el schema indicado.
+
+```bash
+php artisan vetsaas:tenant-migrate vet_xxxxxxxx
+
+# Desarrollo: borrar historial tenant en public.migrations y reaplicar
+php artisan vetsaas:tenant-migrate vet_xxxxxxxx --replay
+
+# Schema a medias: DROP SCHEMA CASCADE + recrear + migrar
+php artisan vetsaas:tenant-migrate vet_xxxxxxxx --wipe
+```
+
+> `--wipe` / `--replay` son peligrosos en producción.
+
+---
+
+### `vetsaas:tenant-migrate-all` — Migrar todos (o uno)
+
+Aplica migraciones tenant **pendientes** a todos los tenants registrados.
+
+```bash
+# Todos
+php artisan vetsaas:tenant-migrate-all
+
+# Solo uno
+php artisan vetsaas:tenant-migrate-all --slug=mi-clinica
+php artisan vetsaas:tenant-migrate-all --schema=vet_xxxxxxxx
+
+# Solo listar qué se migraría
+php artisan vetsaas:tenant-migrate-all --dry-run
+
+# Parar al primer fallo (por defecto continúa con el resto)
+php artisan vetsaas:tenant-migrate-all --stop-on-error
+```
+
+**Tras deploy con migraciones nuevas (ej. t109/t110 lotes/traslados):**
+
+```bash
+php artisan vetsaas:tenant-migrate-all
+```
+
+---
+
+### `vetsaas:tenant-create-admin` — Crear / actualizar admin de clínica
+
+Por defecto genera contraseña e **envía invitación por correo**.
+
+```bash
+php artisan vetsaas:tenant-create-admin mi-clinica \
+  --email=admin@clinica.com \
+  --name="María Quispe"
+
+# Contraseña explícita
+php artisan vetsaas:tenant-create-admin mi-clinica \
+  --email=admin@clinica.com \
+  --password='Secreta123!' \
+  --force
+
+# Sin correo (tests / seeds)
+php artisan vetsaas:tenant-create-admin mi-clinica \
+  --email=admin@clinica.com \
+  --no-invite \
+  --no-force-change
+```
+
+---
+
+### `vetsaas:tenant-restore` — Restaurar schema desde backup
+
+Restaura **solo** un schema `vet_*` desde un dump local (`pg_restore`).  
+Antes del `DROP SCHEMA CASCADE` genera un **safety dump** en `{BACKUP_PATH}/_safety/`.
+
+**No restaura** `full.dump` ni `public.dump`.
+
+```bash
+# Usa el dump más reciente que exista para ese schema
+php artisan vetsaas:tenant-restore mi-clinica
+
+# Carpeta concreta (nombre = Y-m-d_His bajo BACKUP_PATH)
+php artisan vetsaas:tenant-restore mi-clinica 2026-07-12_020015
+
+# Sin pregunta interactiva
+php artisan vetsaas:tenant-restore mi-clinica 2026-07-12_020015 --force
+
+# También acepta schema directo
+php artisan vetsaas:tenant-restore vet_xxxxxxxx --force
+```
+
+**Requisitos:** `DB_CONNECTION=pgsql`, `pg_restore` en PATH (`BACKUP_PG_RESTORE`), dumps en `BACKUP_PATH` (default `storage/app/backups`).
+
+---
+
+### `vetsaas:onboarding-reset` — Reiniciar wizard de onboarding
+
+```bash
+php artisan vetsaas:onboarding-reset mi-clinica
+```
+
+---
+
+## Backups de PostgreSQL
+
+### `vetsaas:backup-database` — Dump diario
+
+Genera en `{BACKUP_PATH}/{Y-m-d_His}/`:
+
+| Archivo | Contenido |
+|---------|-----------|
+| `full.dump` | BD completa (desastre) |
+| `public.dump` | Catálogo SaaS |
+| `vet_*.dump` | Un archivo por clínica |
+| `latest.json` | Estado leído por **Operaciones** |
+
+Si `BACKUP_REMOTE_ENABLED=true`, sube la carpeta a S3/R2.
+
+```bash
+php artisan vetsaas:backup-database
+```
+
+**Scheduler:** diario **02:00**. También se puede disparar desde **Plataforma → Operaciones → Correr ahora**.
+
+**Env útiles:** `BACKUP_ENABLED`, `BACKUP_PATH`, `BACKUP_RETENTION_DAYS`, `BACKUP_PG_DUMP`, `BACKUP_PG_RESTORE`, `BACKUP_REMOTE_*`.
+
+---
+
+## Cobros y suscripciones
+
+### `vetsaas:billing-supervisor`
+
+Aplica grace / suspended a suscripciones con cobro o trial vencido sin pago.
+
+```bash
+php artisan vetsaas:billing-supervisor
+```
+
+**Scheduler:** diario **06:00**.
+
+---
+
+### `vetsaas:subscription-renewal-reminders`
+
+Avisos WhatsApp de **vencimiento de suscripción** (plataforma → clínica). No es el bot de ventas.
+
+```bash
+php artisan vetsaas:subscription-renewal-reminders --dry-run
+php artisan vetsaas:subscription-renewal-reminders --report
+php artisan vetsaas:subscription-renewal-reminders
+```
+
+**Scheduler:** diario **09:00**.
+
+---
+
+### `vetsaas:sync-tenants-from-subscriptions`
+
+Alinea `estado` / trial de tenants con su suscripción viva.
+
+```bash
+php artisan vetsaas:sync-tenants-from-subscriptions
+```
+
+---
+
+## WhatsApp clínico, recordatorios y notificaciones
+
+### `vetsaas:whatsapp-sync-sessions`
+
+Crea / sincroniza sesiones OpenWA por tenant (`slug` = nombre de sesión). Es lo que alimenta el radar de Operaciones (`created`, `qr_ready`, `ready`, etc.).
+
+```bash
+php artisan vetsaas:whatsapp-sync-sessions
+```
+
+**Scheduler:** **cada hora**.
+
+---
+
+### `vetsaas:reminders-scan`
+
+Encola recordatorios automáticos (citas, vacunas, cumpleaños) por tenant.
+
+```bash
+php artisan vetsaas:reminders-scan
+```
+
+**Scheduler:** cada **15 minutos**.
+
+---
+
+### `vetsaas:notifications-dispatch`
+
+Envía mensajes pendientes de la cola vía OpenWA.
+
+```bash
+php artisan vetsaas:notifications-dispatch
+php artisan vetsaas:notifications-dispatch --limit=50
+```
+
+**Scheduler:** cada **5 minutos**.
+
+---
+
+### `vetsaas:clinic-bot-register-webhooks`
+
+Registra el webhook del asistente IA en sesiones OpenWA conectadas.
+
+```bash
+php artisan vetsaas:clinic-bot-register-webhooks --dry-run
+php artisan vetsaas:clinic-bot-register-webhooks
+php artisan vetsaas:clinic-bot-register-webhooks --slug=mi-clinica
+```
 
 ---
 
 ## Bot de ventas y leads
 
-### `salesbot:pause` — Pausar o reanudar el bot por teléfono
+### Panel web (recomendado)
 
-Para que **tú escribas manualmente** en WhatsApp sin que la IA interfiera.
+Muchas acciones ya están en **Plataforma → Conversaciones bot** (pausar, responder con IA, reactivar, importar CSV, marcar convertido).
+
+---
+
+### `salesbot:pause` / `salesbot:resume` — Pausar o reanudar el bot por teléfono
+
+Para escribir manualmente en WhatsApp sin que la IA interfiera.
 
 ```bash
-# Pausar bot para un número
 php artisan salesbot:pause 51986709811
-
-# Reactivar bot (mismo comando con --resume)
 php artisan salesbot:pause 51986709811 --resume
-
-# Atajo equivalente
 php artisan salesbot:resume 51986709811
-
-# Ver todas las conversaciones y su estado
 php artisan salesbot:pause --list
 ```
 
@@ -53,19 +303,12 @@ php artisan salesbot:pause --list
 
 ### `salesbot:engage` — Forzar respuesta de la IA
 
-Cuando el lead escribió pero el bot **no entró** (Facebook Ads, keywords, etc.). Crea la conversación si no existe, genera respuesta con OpenAI y la envía por WhatsApp.
+Cuando el lead escribió pero el bot no entró (Facebook Ads, keywords, etc.).
 
 ```bash
-# Básico
 php artisan salesbot:engage 51961777549
-
-# Con el mensaje real del lead como contexto
 php artisan salesbot:engage 51961777549 --message="Buenos días, información de costos"
-
-# Con nombre (si no está en la BD)
 php artisan salesbot:engage 51961777549 --name="Beatriz Moscol"
-
-# Solo ver qué respondería la IA, sin enviar
 php artisan salesbot:engage 51961777549 --dry-run
 ```
 
@@ -75,58 +318,31 @@ Acepta número corto peruano (`961777549`) o con código país (`51961777549`).
 
 ### `vetsaas:reactivate-cold-leads` — Recordatorio a leads fríos
 
-Envía mensaje de **reactivación con IA** a leads que hablaron con el bot hace varios días y no convirtieron.
+Envía reactivación con IA a leads que hablaron hace varios días y no convirtieron.
 
-**Reglas:**
-- Máximo **2 intentos** por lead
-- Al menos **3 días** entre intentos
-- Leads **convertidos** o **perdidos** se excluyen
-- Tras 2 intentos sin respuesta → se marcan como **perdidos** automáticamente
+**Reglas:** máx. **2** intentos por lead · ≥ **3** días entre intentos · excluye convertidos/perdidos · tras 2 intentos sin respuesta → **perdidos**.
 
 ```bash
-# Ejecutar reactivación real (como el scheduler)
 php artisan vetsaas:reactivate-cold-leads
-
-# Solo ver quién calificaría, sin enviar
 php artisan vetsaas:reactivate-cold-leads --dry-run
-
-# Leads inactivos 5+ días (default: 3)
 php artisan vetsaas:reactivate-cold-leads --days=5
-
-# Máximo de mensajes por corrida (default: 15, máx recomendado: 20/día)
 php artisan vetsaas:reactivate-cold-leads --limit=10
-
-# Segundos entre envíos (default: 15, mínimo recomendado: 10)
 php artisan vetsaas:reactivate-cold-leads --delay=20
-
-# Combinado — prueba segura
 php artisan vetsaas:reactivate-cold-leads --dry-run --days=5 --limit=20
 ```
 
-**Scheduler automático** (ya configurado en `bootstrap/app.php`):
-
-| Hora | Comando |
-|------|---------|
-| 10:00 | `vetsaas:reactivate-cold-leads --limit=10 --delay=15` |
-| 15:00 | `vetsaas:reactivate-cold-leads --limit=10 --delay=15` |
+**Scheduler:** **10:00** y **15:00** (`--limit=10 --delay=15`).
 
 ---
 
 ### `vetsaas:import-leads` — Importar leads desde CSV
 
-Carga leads históricos para que el scheduler los reactivé. Entran con **bot pausado** (`manual:csv-import`).
+Entran con bot pausado (`manual:csv-import`).
 
 ```bash
-# Generar plantilla en storage/app/leads_template.csv
 php artisan vetsaas:import-leads --template
-
-# Importar archivo
 php artisan vetsaas:import-leads /ruta/leads.csv
-
-# Simular inactividad de 6 días (para que cuenten como fríos antes)
 php artisan vetsaas:import-leads leads.csv --days=6
-
-# Solo previsualizar
 php artisan vetsaas:import-leads leads.csv --dry-run
 ```
 
@@ -142,29 +358,18 @@ phone,name,note
 
 ### `vetsaas:import-leads-from-openwa` — Importar chats desde OpenWA
 
-Lee chats de la sesión WhatsApp de plataforma y los registra como leads fríos. Útil para migrar conversaciones antiguas.
-
 ```bash
-# Solo chats con palabras clave de VetSaaS
 php artisan vetsaas:import-leads-from-openwa
-
-# Todos los chats (sin filtro)
 php artisan vetsaas:import-leads-from-openwa --all
-
-# Solo listar, no guardar
 php artisan vetsaas:import-leads-from-openwa --dry-run
-
-# Días de inactividad simulada
 php artisan vetsaas:import-leads-from-openwa --days=6 --limit=50
 ```
 
-> **Nota:** Depende del endpoint `/chats` de tu versión de OpenWA. Si devuelve 404, usa importación CSV.
+> Depende del endpoint `/chats` de tu versión de OpenWA. Si devuelve 404, usa importación CSV.
 
 ---
 
-### `vetsaas:resolve-lid-leads` — Corregir teléfonos @lid
-
-WhatsApp a veces envía un **ID privado** (`@lid`) en vez del número real. Este comando intenta resolver teléfono y nombre vía API de OpenWA.
+### `vetsaas:resolve-lid-leads` — Corregir teléfonos `@lid`
 
 ```bash
 php artisan vetsaas:resolve-lid-leads --dry-run
@@ -175,34 +380,94 @@ php artisan vetsaas:resolve-lid-leads
 
 ### `vetsaas:sync-bot-knowledge` — Sincronizar base de conocimiento del bot
 
-Actualiza FAQs y módulos en `salesbot_knowledge` desde los **planes reales** de la BD. No sobrescribe entradas editadas manualmente en el panel.
+Actualiza FAQs/módulos en `salesbot_knowledge` desde los planes reales de la BD. No sobrescribe entradas editadas a mano (salvo `--force`).
 
 ```bash
 php artisan vetsaas:sync-bot-knowledge
-
-# Forzar sobrescritura incluso de entradas manuales
 php artisan vetsaas:sync-bot-knowledge --force
 ```
 
-**Scheduler:** todos los días a las **03:30**.
+**Scheduler:** diario **03:30**.
+
+---
+
+## Demo, geo y diagnósticos
+
+### `vetsaas:reset-demo`
+
+Resetea datos y contraseña del tenant demo.
+
+```bash
+php artisan vetsaas:reset-demo
+```
+
+**Scheduler:** diario **03:00**.
+
+---
+
+### `vetsaas:fresh-demo`
+
+`migrate:fresh` + seed + 3 tenants demo. **Peligroso.**
+
+```bash
+php artisan vetsaas:fresh-demo --force
+# Solo si sabes lo que haces:
+php artisan vetsaas:fresh-demo --force --allow-production
+```
+
+---
+
+### `vetsaas:geo-fix-encoding`
+
+Repara tildes/eñes corruptas en el catálogo ubigeo.
+
+```bash
+php artisan vetsaas:geo-fix-encoding --dry-run
+php artisan vetsaas:geo-fix-encoding
+php artisan vetsaas:geo-fix-encoding --sync-denormalized
+```
+
+---
+
+### `vetsaas:nubefact-diagnose`
+
+Diagnóstico legacy de credenciales Nubefact / series SUNAT (error código 21).  
+La emisión/anulación FEL actual es **Lucode/APISUNAT**; este comando sigue útil si queda config Nubefact.
+
+```bash
+php artisan vetsaas:nubefact-diagnose mi-clinica
+```
+
+---
+
+### `vetsaas:test-password-reset-mail`
+
+Envía un correo de prueba de reset de contraseña.
+
+```bash
+php artisan vetsaas:test-password-reset-mail admin@clinica.com --slug=mi-clinica
+```
 
 ---
 
 ## Scheduler automático (resumen)
 
-| Hora | Comando | Para qué |
-|------|---------|----------|
-| 03:00 | `vetsaas:reset-demo` | Reset entorno demo |
-| 03:30 | `vetsaas:sync-bot-knowledge` | FAQs del bot desde BD |
-| 06:00 | `vetsaas:billing-supervisor` | Supervisión de cobros |
-| 09:00 | `vetsaas:subscription-renewal-reminders` | Avisos vencimiento suscripción |
-| 10:00 | `vetsaas:reactivate-cold-leads` | Reactivar leads fríos (mañana) |
-| 15:00 | `vetsaas:reactivate-cold-leads` | Reactivar leads fríos (tarde) |
-| Cada 15 min | `vetsaas:reminders-scan` | Recordatorios clínicas |
-| Cada 5 min | `vetsaas:notifications-dispatch` | Cola de notificaciones |
-| Cada hora | `vetsaas:whatsapp-sync-sessions` | Estado sesiones OpenWA |
+Definido en `bootstrap/app.php`:
 
-Verificar que el cron de Laravel esté activo:
+| Cuándo | Comando |
+|--------|---------|
+| 02:00 | `vetsaas:backup-database` |
+| 03:00 | `vetsaas:reset-demo` |
+| 03:30 | `vetsaas:sync-bot-knowledge` |
+| 06:00 | `vetsaas:billing-supervisor` |
+| 09:00 | `vetsaas:subscription-renewal-reminders` |
+| 10:00 | `vetsaas:reactivate-cold-leads --limit=10 --delay=15` |
+| 15:00 | `vetsaas:reactivate-cold-leads --limit=10 --delay=15` |
+| Cada 15 min | `vetsaas:reminders-scan` |
+| Cada 5 min | `vetsaas:notifications-dispatch` |
+| Cada hora | `vetsaas:whatsapp-sync-sessions` |
+
+Cron del VPS:
 
 ```bash
 * * * * * cd /var/www/vetsaas && php artisan schedule:run >> /dev/null 2>&1
@@ -210,21 +475,82 @@ Verificar que el cron de Laravel esté activo:
 
 ---
 
-## WhatsApp y suscripciones (plataforma)
-
-### `vetsaas:subscription-renewal-reminders`
-
-Avisos de **vencimiento de suscripción** a clínicas (no es el bot de ventas).
+## Mantenimiento post-deploy
 
 ```bash
-php artisan vetsaas:subscription-renewal-reminders --dry-run
-php artisan vetsaas:subscription-renewal-reminders --report
-php artisan vetsaas:subscription-renewal-reminders
+cd /var/www/vetsaas
+
+# Caché
+php artisan cache:clear && php artisan optimize:clear
+
+# Migraciones central (public)
+php artisan migrate --force
+
+# Migraciones tenant (todos)
+php artisan vetsaas:tenant-migrate-all
+
+# Verificar un tenant
+php artisan vetsaas:tenant-diagnose mi-clinica
+
+# Backup manual
+php artisan vetsaas:backup-database
 ```
 
-### `vetsaas:whatsapp-sync-sessions`
+Logs útiles:
 
-Sincroniza estado de sesiones OpenWA (plataforma y tenants).
+```bash
+tail -f storage/logs/laravel.log | grep -iE "SalesBot|reactivat|engage|OpenWA|backup|tenant-restore|Fel|Apisunat"
+```
+
+---
+
+## Flujos frecuentes
+
+### Deploy con migraciones tenant nuevas (lotes, traslados, etc.)
+
+```bash
+php artisan migrate --force
+php artisan vetsaas:tenant-migrate-all
+php artisan vetsaas:tenant-diagnose mi-clinica
+```
+
+### Recuperar una clínica desde backup
+
+```bash
+# Ver dumps locales (en el VPS)
+ls -la /var/backups/vetsaas   # o storage/app/backups según BACKUP_PATH
+
+php artisan vetsaas:tenant-restore mi-clinica                  # última carpeta
+php artisan vetsaas:tenant-restore mi-clinica 2026-07-12_020015 --force
+```
+
+### Lead de Facebook no respondió
+
+1. Panel → **Responder con IA** (recomendado)  
+2. O: `php artisan salesbot:engage 519XXXXXXXX --message="..."`
+
+### Escribir yo sin que el bot moleste
+
+1. Panel → **Pausar** en ese lead  
+2. O: `php artisan salesbot:pause 519XXXXXXXX`
+
+### Enviar recordatorios a leads fríos ahora
+
+```bash
+php artisan vetsaas:reactivate-cold-leads --dry-run
+php artisan vetsaas:reactivate-cold-leads --limit=10
+```
+
+### Importar leads históricos y reactivarlos
+
+```bash
+php artisan vetsaas:import-leads leads_historicos.csv --days=5
+php artisan vetsaas:reactivate-cold-leads --dry-run
+```
+
+### WhatsApp de clínicas “created” en Operaciones
+
+Es normal: el cron horario provisiona sesiones OpenWA. Pasan a **Lista** (`ready`) cuando la clínica escanea el QR en Comunicaciones. No indica usuarios logueados.
 
 ```bash
 php artisan vetsaas:whatsapp-sync-sessions
@@ -232,51 +558,4 @@ php artisan vetsaas:whatsapp-sync-sessions
 
 ---
 
-## Comandos útiles de mantenimiento
-
-```bash
-# Limpiar caché tras deploy
-php artisan cache:clear && php artisan optimize:clear
-
-# Ver todos los comandos registrados
-php artisan list
-
-# Solo comandos vetsaas / salesbot
-php artisan list vetsaas
-php artisan list salesbot
-
-# Logs del bot en tiempo real
-tail -f storage/logs/laravel.log | grep -iE "SalesBot|reactivat|engage|OpenWA"
-```
-
----
-
-## Flujos frecuentes
-
-### Lead de Facebook no respondió
-
-1. Panel → **Responder con IA** (recomendado)  
-2. O: `php artisan salesbot:engage 519XXXXXXXX --message="..."`
-
-### Quiero escribir yo sin que el bot moleste
-
-1. Panel → **Pausar** en ese lead  
-2. O: `php artisan salesbot:pause 519XXXXXXXX`
-
-### Enviar recordatorios a leads fríos ahora (sin esperar 10:00 / 15:00)
-
-```bash
-php artisan vetsaas:reactivate-cold-leads --dry-run   # revisar lista
-php artisan vetsaas:reactivate-cold-leads --limit=10  # enviar
-```
-
-### Importar ~157 leads históricos y reactivarlos
-
-```bash
-php artisan vetsaas:import-leads leads_historicos.csv --days=5
-php artisan vetsaas:reactivate-cold-leads --dry-run
-```
-
----
-
-*Última actualización: junio 2026 — VetSaaS sales bot.*
+*Última actualización: julio 2026 — inventario completo `vetsaas:*` / `salesbot:*` (incluye `tenant-restore`, backups, migraciones tenant).*

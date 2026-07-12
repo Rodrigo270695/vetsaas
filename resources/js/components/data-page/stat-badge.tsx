@@ -47,14 +47,16 @@ export function StatBadge({
     return (
         <span
             className={cn(
-                'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset transition-colors',
+                'inline-flex max-w-full items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset transition-colors',
                 variantStyles[variant],
                 className,
             )}
         >
-            {Icon && <Icon className="size-3.5" strokeWidth={2.5} />}
-            <span>{label}</span>
-            <span className="font-semibold tabular-nums">{value}</span>
+            {Icon && <Icon className="size-3.5 shrink-0" strokeWidth={2.5} />}
+            <span className="min-w-0 wrap-break-word">{label}</span>
+            {value !== '' && value !== null && value !== undefined ? (
+                <span className="shrink-0 font-semibold tabular-nums">{value}</span>
+            ) : null}
         </span>
     );
 }
