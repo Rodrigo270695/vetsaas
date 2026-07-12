@@ -232,3 +232,36 @@ it('revierte y vuelve a descontar al editar plan de tratamiento', function (): v
         expect(InventarioScenario::stockEnSede((string) $producto->id, (string) $inv['sede']->id))->toBe(6.0);
     });
 });
+
+it('ajuste a cantidad baja descuenta FEFO y sube con SIN-LOTE', function (): void {
+    $inv = $this->scenario;
+    $lotes = app(InventarioLoteService::class);
+    $productoId = (string) $inv['producto']->id;
+    $sedeId = (string) $inv['sede']->id;
+    $uid = (string) $this->admin->id;
+
+    TenantContext::runForSlug($this->slug, function () use ($lotes, $productoId, $sedeId, $uid): void {
+        $lotes->registrarEntrada($productoId, $sedeId, '5', 'LOTE-A', now()->addDays(5)->toDateString(), 't', $uid);
+        $lotes->registrarEntrada($productoId, $sedeId, '5', 'LOTE-B', now()->addDays(40)->toDateString(), 't', $uid);
+
+        $lotes->ajustarACantidad($productoId, $sedeId, '7', 'Ajuste test baja', $uid);
+        expect(InventarioScenario::stockEnSede($productoId, $sedeId))->toBe(7.0);
+
+        $loteA = ProductoLote::query()
+            ->where('producto_id', $productoId)
+            ->where('sede_id', $sedeId)
+            ->where('numero_lote', 'LOTE-A')
+            ->value('cantidad');
+        expect(round((float) (string) $loteA, 3))->toBe(2.0);
+
+        $lotes->ajustarACantidad($productoId, $sedeId, '10', 'Ajuste test sube', $uid);
+        expect(InventarioScenario::stockEnSede($productoId, $sedeId))->toBe(10.0);
+
+        $sinLote = ProductoLote::query()
+            ->where('producto_id', $productoId)
+            ->where('sede_id', $sedeId)
+            ->where('numero_lote', InventarioLoteService::LOTE_SIN_ESPECIFICAR)
+            ->value('cantidad');
+        expect(round((float) (string) $sinLote, 3))->toBe(3.0);
+    });
+});

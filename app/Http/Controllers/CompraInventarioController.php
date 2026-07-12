@@ -444,14 +444,12 @@ class CompraInventarioController extends Controller
                             if ($cant <= 0) {
                                 continue;
                             }
-                            MovimientoInventario::aplicar(
+                            $this->lotes->descontarFefo(
                                 (string) $linea->producto_id,
                                 (string) $c->sede_id,
-                                MovimientoInventario::TIPO_SALIDA,
-                                $this->deltaNegativoParaSalida($cant),
+                                (string) $cant,
                                 $notasRev,
                                 $userIdStr,
-                                null,
                             );
                             $reversiones++;
                         }
@@ -468,14 +466,12 @@ class CompraInventarioController extends Controller
                             if ($qty <= 0) {
                                 continue;
                             }
-                            MovimientoInventario::aplicar(
+                            $this->lotes->descontarFefo(
                                 (string) $row->producto_id,
                                 (string) $row->sede_id,
-                                MovimientoInventario::TIPO_SALIDA,
-                                $this->deltaNegativoParaSalida($qty),
+                                (string) $qty,
                                 'Anulación compra '.$refDoc.' (reversión según kardex)',
                                 $userIdStr,
-                                null,
                             );
                             $reversiones++;
                         }
@@ -514,16 +510,6 @@ class CompraInventarioController extends Controller
             'success',
             'Compra anulada: se registraron salidas de inventario por la misma cantidad que entró con la compra; el stock volvió atrás.',
         );
-    }
-
-    /**
-     * Delta numérico negativo como string, coherente con {@see MovimientoInventarioController::store} (salida = cantidad negativa).
-     */
-    private function deltaNegativoParaSalida(float $cantidadPositiva): string
-    {
-        $n = round($cantidadPositiva, 3);
-
-        return (string) (-$n);
     }
 
     public function downloadFactura(Request $request, Compra $compra): BinaryFileResponse

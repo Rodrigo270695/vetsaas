@@ -2,6 +2,7 @@
 
 namespace App\Services\Inventario;
 
+use App\Models\ExistenciaSede;
 use App\Models\MovimientoInventario;
 use App\Models\ProductoLote;
 use Illuminate\Support\Collection;
@@ -157,6 +158,62 @@ final class InventarioLoteService
         }
 
         return $movimientos;
+    }
+
+    /**
+     * Ajusta existencias a una cantidad objetivo usando lotes:
+     * sube → entrada SIN-LOTE; baja → descuento FEFO.
+     */
+    public function ajustarACantidad(
+        string $productoId,
+        string $sedeId,
+        string $cantidadObjetivo,
+        ?string $notas,
+        ?string $userId,
+    ): void {
+        $anterior = ExistenciaSede::query()
+            ->where('producto_id', $productoId)
+            ->where('sede_id', $sedeId)
+            ->value('cantidad');
+        $anteriorF = round((float) (string) ($anterior ?? 0), 3);
+        $nuevoF = round((float) $cantidadObjetivo, 3);
+        $delta = round($nuevoF - $anteriorF, 3);
+
+        if (abs($delta) < 0.0000001) {
+            ExistenciaSede::query()->updateOrCreate(
+                [
+                    'producto_id' => $productoId,
+                    'sede_id' => $sedeId,
+                ],
+                ['cantidad' => $nuevoF],
+            );
+
+            return;
+        }
+
+        $nota = $notas !== null && trim($notas) !== '' ? $notas : 'Ajuste de stock';
+
+        if ($delta > 0) {
+            $this->registrarEntrada(
+                $productoId,
+                $sedeId,
+                (string) $delta,
+                self::LOTE_SIN_ESPECIFICAR,
+                null,
+                $nota,
+                $userId,
+            );
+
+            return;
+        }
+
+        $this->descontarFefo(
+            $productoId,
+            $sedeId,
+            (string) abs($delta),
+            $nota,
+            $userId,
+        );
     }
 
     /**

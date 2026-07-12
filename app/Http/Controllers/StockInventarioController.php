@@ -5,10 +5,9 @@ namespace App\Http\Controllers;
 use App\Exports\StockInventarioImportTemplateXlsx;
 use App\Exports\StockInventarioXlsxExport;
 use App\Http\Requests\StockInventarioAdjustRequest;
-use App\Models\ExistenciaSede;
-use App\Models\MovimientoInventario;
 use App\Models\Producto;
 use App\Models\Sede;
+use App\Services\Inventario\InventarioLoteService;
 use App\Services\Inventario\StockInventarioImportService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -33,6 +32,10 @@ class StockInventarioController extends Controller
         'cantidad_stock',
         'created_at',
     ];
+
+    public function __construct(
+        private readonly InventarioLoteService $lotes,
+    ) {}
 
     public function index(Request $request): Response
     {
@@ -139,34 +142,15 @@ class StockInventarioController extends Controller
     {
         $data = $request->validated();
 
-        $anterior = ExistenciaSede::query()
-            ->where('producto_id', $data['producto_id'])
-            ->where('sede_id', $data['sede_id'])
-            ->value('cantidad');
-        $anteriorF = round((float) (string) ($anterior ?? 0), 3);
-        $nuevoF = round((float) (string) $data['cantidad'], 3);
-        $delta = round($nuevoF - $anteriorF, 3);
-
-        if (abs($delta) < 0.0000001) {
-            ExistenciaSede::query()->updateOrCreate(
-                [
-                    'producto_id' => $data['producto_id'],
-                    'sede_id' => $data['sede_id'],
-                ],
-                ['cantidad' => $nuevoF],
+        DB::transaction(function () use ($data): void {
+            $this->lotes->ajustarACantidad(
+                $data['producto_id'],
+                $data['sede_id'],
+                (string) $data['cantidad'],
+                'Ajuste de stock (panel)',
+                Auth::id() !== null ? (string) Auth::id() : null,
             );
-
-            return back()->with('success', 'Stock actualizado correctamente.');
-        }
-
-        MovimientoInventario::aplicar(
-            $data['producto_id'],
-            $data['sede_id'],
-            MovimientoInventario::TIPO_AJUSTE,
-            (string) $delta,
-            null,
-            Auth::id() !== null ? (string) Auth::id() : null,
-        );
+        });
 
         return back()->with('success', 'Stock actualizado correctamente.');
     }

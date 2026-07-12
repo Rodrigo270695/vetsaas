@@ -576,7 +576,7 @@ final class OfflineSyncPushService
                 $moneda = $validated['moneda'] ?? 'PEN';
 
                 foreach ($validated['lineas'] as $i => $linea) {
-                    CompraLinea::query()->create([
+                    $compraLinea = CompraLinea::query()->create([
                         'compra_id' => $compra->id,
                         'producto_id' => $linea['producto_id'],
                         'cantidad' => $linea['cantidad'],
@@ -590,14 +590,16 @@ final class OfflineSyncPushService
                         $notasMov .= ' · '.$moneda.' '.number_format((float) (string) $costoUnit, 2, '.', '').'/u.';
                     }
 
-                    MovimientoInventario::aplicar(
+                    app(InventarioLoteService::class)->registrarEntrada(
                         $linea['producto_id'],
                         $validated['sede_id'],
-                        MovimientoInventario::TIPO_ENTRADA,
                         (string) ((float) (string) $linea['cantidad']),
+                        isset($linea['numero_lote']) ? (string) $linea['numero_lote'] : null,
+                        isset($linea['fecha_vencimiento']) ? (string) $linea['fecha_vencimiento'] : null,
                         $notasMov,
                         (string) $uid,
                         (string) $compra->id,
+                        (string) $compraLinea->id,
                     );
                 }
 
@@ -1019,32 +1021,15 @@ final class OfflineSyncPushService
         try {
             $validated = $this->validateStockAdjustPayload($payload, $user);
 
-            $anterior = ExistenciaSede::query()
-                ->where('producto_id', $validated['producto_id'])
-                ->where('sede_id', $validated['sede_id'])
-                ->value('cantidad');
-            $anteriorF = round((float) (string) ($anterior ?? 0), 3);
             $nuevoF = round((float) (string) $validated['cantidad'], 3);
-            $delta = round($nuevoF - $anteriorF, 3);
 
-            if (abs($delta) < 0.0000001) {
-                ExistenciaSede::query()->updateOrCreate(
-                    [
-                        'producto_id' => $validated['producto_id'],
-                        'sede_id' => $validated['sede_id'],
-                    ],
-                    ['cantidad' => $nuevoF],
-                );
-            } else {
-                MovimientoInventario::aplicar(
-                    $validated['producto_id'],
-                    $validated['sede_id'],
-                    MovimientoInventario::TIPO_AJUSTE,
-                    (string) $delta,
-                    null,
-                    (string) $user->id,
-                );
-            }
+            app(InventarioLoteService::class)->ajustarACantidad(
+                $validated['producto_id'],
+                $validated['sede_id'],
+                (string) $nuevoF,
+                'Ajuste de stock (offline)',
+                (string) $user->id,
+            );
 
             $label = (string) $nuevoF;
 

@@ -2,8 +2,6 @@
 
 namespace App\Services\Inventario;
 
-use App\Models\ExistenciaSede;
-use App\Models\MovimientoInventario;
 use App\Models\Producto;
 use App\Models\Sede;
 use Illuminate\Http\UploadedFile;
@@ -15,6 +13,10 @@ use Throwable;
 final class StockInventarioImportService
 {
     public const MAX_ROWS = 500;
+
+    public function __construct(
+        private readonly InventarioLoteService $lotes,
+    ) {}
 
     /**
      * @return array{
@@ -382,30 +384,10 @@ final class StockInventarioImportService
 
     private function applyStock(string $productoId, string $sedeId, float $cantidad, ?string $userId): void
     {
-        $anterior = ExistenciaSede::query()
-            ->where('producto_id', $productoId)
-            ->where('sede_id', $sedeId)
-            ->value('cantidad');
-        $anteriorF = round((float) (string) ($anterior ?? 0), 3);
-        $delta = round($cantidad - $anteriorF, 3);
-
-        if (abs($delta) < 0.0000001) {
-            ExistenciaSede::query()->updateOrCreate(
-                [
-                    'producto_id' => $productoId,
-                    'sede_id' => $sedeId,
-                ],
-                ['cantidad' => $cantidad],
-            );
-
-            return;
-        }
-
-        MovimientoInventario::aplicar(
+        $this->lotes->ajustarACantidad(
             $productoId,
             $sedeId,
-            MovimientoInventario::TIPO_AJUSTE,
-            (string) $delta,
+            (string) $cantidad,
             'Importación masiva de stock',
             $userId,
         );

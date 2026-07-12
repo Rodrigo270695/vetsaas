@@ -12,6 +12,7 @@ use App\Models\Producto;
 use App\Models\User;
 use App\Models\Venta;
 use App\Support\Caja\TicketAnchoMm;
+use App\Support\ConsultaCargo\ConsultaCargoStockSync;
 use App\Support\ConsultaCargo\ConsultaCargoTotales;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -19,12 +20,16 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class InternamientoCargoController extends Controller
 {
+    public function __construct(
+        private readonly ConsultaCargoStockSync $cargoStock,
+    ) {}
     public function show(Request $request, Internamiento $internamiento): Response
     {
         $this->ensurePuedeVer($request);
@@ -268,10 +273,46 @@ class InternamientoCargoController extends Controller
                 ->with('error', __('consulta-cargos.flash.sin_lineas'));
         }
 
-        $cargo->update([
-            'estado' => ConsultaCargo::ESTADO_CONFIRMADO,
-            'updated_by_id' => Auth::id(),
-        ]);
+        $sedeId = (string) ($internamiento->sede_id ?? '');
+        if ($sedeId === '') {
+            return redirect()
+                ->route('clinica.hospitalizacion.cargos.show', $internamiento)
+                ->with('error', __('consulta-cargos.flash.sin_sede_stock'));
+        }
+
+        try {
+            DB::transaction(function () use ($cargo, $sedeId, $user): void {
+                $cargo->load(['lineas.producto:id,nombre']);
+
+                foreach ($cargo->lineas as $linea) {
+                    if (! ConsultaCargoStockSync::debeDescontar($linea, $sedeId)) {
+                        continue;
+                    }
+
+                    $movimientos = $this->cargoStock->registrarSalida(
+                        $linea,
+                        $sedeId,
+                        (string) $user->getAuthIdentifier(),
+                    );
+                    $primerMov = $movimientos[0] ?? null;
+                    if ($primerMov !== null) {
+                        $linea->update(['movimiento_inventario_id' => $primerMov->id]);
+                    }
+                }
+
+                $cargo->update([
+                    'estado' => ConsultaCargo::ESTADO_CONFIRMADO,
+                    'updated_by_id' => Auth::id(),
+                ]);
+            });
+        } catch (ValidationException $e) {
+            $msg = $e->errors()['cantidad'][0] ?? __('consulta-cargos.flash.stock_insuficiente');
+
+            return redirect()
+                ->route('clinica.hospitalizacion.cargos.show', $internamiento)
+                ->withErrors($e->errors())
+                ->with('error', $msg);
+        }
 
         return redirect()
             ->route('clinica.hospitalizacion.cargos.show', $internamiento)
