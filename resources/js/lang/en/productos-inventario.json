@@ -82,7 +82,7 @@
         "stock_inicial_cantidad": "Initial quantity",
         "numero_lote": "Batch",
         "numero_lote_placeholder": "Optional",
-        "fecha_vencimiento": "Expiry",
+        "fecha_vencimiento": "Expiry"
     },
     "unidades_dialog": {
         "title": "Custom units of measure",

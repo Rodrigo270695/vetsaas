@@ -82,7 +82,7 @@
         "stock_inicial_cantidad": "Cantidad inicial",
         "numero_lote": "Lote",
         "numero_lote_placeholder": "Opcional",
-        "fecha_vencimiento": "Vencimiento",
+        "fecha_vencimiento": "Vencimiento"
     },
     "unidades_dialog": {
         "title": "Unidades de medida personalizadas",
