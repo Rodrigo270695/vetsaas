@@ -108,6 +108,7 @@ export function CompraFormModal({
         emptyForm(hoyEnClinica),
     );
     const [productosLocal, setProductosLocal] = useState<ProductoOptionCompra[]>([]);
+    const [unidadesLocal, setUnidadesLocal] = useState<ProductoUnidadOptionCompra[]>([]);
     const [quickCreateProducto, setQuickCreateProducto] = useState<QuickCreateProductoState | null>(null);
 
     useEffect(() => {
@@ -118,6 +119,7 @@ export function CompraFormModal({
         reset();
         clearErrors();
         setProductosLocal(productoOptions);
+        setUnidadesLocal([...unidadOptions]);
         setData({
             ...emptyForm(hoyEnClinica),
             sede_id:
@@ -126,7 +128,7 @@ export function CompraFormModal({
                     : resolveDefaultSedeIdOrEmpty(sedeOptions),
         });
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [open, defaultSedeId, sedeOptions, productoOptions, hoyEnClinica]);
+    }, [open, defaultSedeId, sedeOptions, productoOptions, unidadOptions, hoyEnClinica]);
 
     const sinSedes = sedeOptions.length === 0;
 
@@ -542,7 +544,9 @@ export function CompraFormModal({
                 }}
                 initialNombre={quickCreateProducto?.nombre ?? ''}
                 initialPrecioCompra={quickCreateProducto?.precioCompra}
-                unidadOptions={unidadOptions}
+                unidadOptions={unidadesLocal}
+                onUnidadOptionsChange={setUnidadesLocal}
+                canCreateUnidad={canCreateProducto}
                 onCreated={(producto) => {
                     appendProducto(producto);
 

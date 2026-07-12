@@ -1,22 +1,14 @@
 import { Loader2 } from 'lucide-react';
 import { useEffect, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { UnidadMedidaCombobox, type UnidadMedidaOption } from '@/components/inventario/unidad-medida-combobox';
 import { FormField, FormModal } from '@/components/forms';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
-import {
-    Select,
-    SelectContent,
-    SelectGroup,
-    SelectItem,
-    SelectLabel,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import { toastManager } from '@/lib/toast';
 import inventario from '@/routes/inventario';
-import type { ProductoOptionCompra, ProductoUnidadOptionCompra } from '../types';
+import type { ProductoOptionCompra } from '../types';
 
 export type ProductoQuickCreated = ProductoOptionCompra;
 
@@ -25,7 +17,9 @@ type ProductoQuickCreateDialogProps = {
     onOpenChange: (open: boolean) => void;
     initialNombre: string;
     initialPrecioCompra?: string;
-    unidadOptions: readonly ProductoUnidadOptionCompra[];
+    unidadOptions: readonly UnidadMedidaOption[];
+    onUnidadOptionsChange?: (options: readonly UnidadMedidaOption[]) => void;
+    canCreateUnidad?: boolean;
     onCreated: (producto: ProductoQuickCreated) => void;
 };
 
@@ -43,6 +37,8 @@ export function ProductoQuickCreateDialog({
     initialNombre,
     initialPrecioCompra,
     unidadOptions,
+    onUnidadOptionsChange,
+    canCreateUnidad = false,
     onCreated,
 }: ProductoQuickCreateDialogProps) {
     const { t } = useTranslation(['compras-inventario', 'common']);
@@ -71,66 +67,63 @@ export function ProductoQuickCreateDialog({
         setErrors({});
     }, [open, initialNombre, initialPrecioCompra]);
 
-    const unidadesSistema = unidadOptions.filter((u) => u.es_sistema);
-    const unidadesPersonal = unidadOptions.filter((u) => !u.es_sistema);
-
     const submitQuickProduct = async () => {
         setSubmitting(true);
         setErrors({});
 
         try {
             const res = await fetch(inventario.productos.quick.url(), {
-                    method: 'POST',
-                    headers: {
-                        Accept: 'application/json',
-                        'Content-Type': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'X-CSRF-TOKEN':
-                            document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? '',
-                    },
-                    credentials: 'same-origin',
-                    body: JSON.stringify({
-                        nombre: form.nombre.trim(),
-                        sku: form.sku.trim() === '' ? null : form.sku.trim(),
-                        unidad: form.unidad.trim() === '' ? 'UN' : form.unidad.trim().toUpperCase(),
-                        precio_compra: form.precio_compra.trim() === '' ? null : form.precio_compra.trim(),
-                        medicamento: form.medicamento,
-                    }),
+                method: 'POST',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN':
+                        document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? '',
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({
+                    nombre: form.nombre.trim(),
+                    sku: form.sku.trim() === '' ? null : form.sku.trim(),
+                    unidad: form.unidad.trim() === '' ? 'UN' : form.unidad.trim().toUpperCase(),
+                    precio_compra: form.precio_compra.trim() === '' ? null : form.precio_compra.trim(),
+                    medicamento: form.medicamento,
+                }),
+            });
+
+            const body = (await res.json()) as {
+                data?: ProductoQuickCreated;
+                message?: string;
+                errors?: Record<string, string[]>;
+            };
+
+            if (!res.ok) {
+                if (body.errors) {
+                    const mapped: Record<string, string> = {};
+                    for (const [key, msgs] of Object.entries(body.errors)) {
+                        if (Array.isArray(msgs) && msgs[0]) {
+                            mapped[key] = msgs[0];
+                        }
+                    }
+                    setErrors(mapped);
+                }
+
+                toastManager.error({
+                    title: body.message ?? t('producto_quick.error'),
                 });
 
-                const body = (await res.json()) as {
-                    data?: ProductoQuickCreated;
-                    message?: string;
-                    errors?: Record<string, string[]>;
-                };
+                return;
+            }
 
-                if (!res.ok) {
-                    if (body.errors) {
-                        const mapped: Record<string, string> = {};
-                        for (const [key, msgs] of Object.entries(body.errors)) {
-                            if (Array.isArray(msgs) && msgs[0]) {
-                                mapped[key] = msgs[0];
-                            }
-                        }
-                        setErrors(mapped);
-                    }
+            if (!body.data?.id) {
+                toastManager.error({ title: t('producto_quick.error') });
 
-                    toastManager.error({
-                        title: body.message ?? t('producto_quick.error'),
-                    });
+                return;
+            }
 
-                    return;
-                }
-
-                if (!body.data?.id) {
-                    toastManager.error({ title: t('producto_quick.error') });
-
-                    return;
-                }
-
-                onCreated(body.data);
-                onOpenChange(false);
-                toastManager.success({ title: t('producto_quick.success') });
+            onCreated(body.data);
+            onOpenChange(false);
+            toastManager.success({ title: t('producto_quick.success') });
         } catch {
             toastManager.error({ title: t('producto_quick.error') });
         } finally {
@@ -191,37 +184,17 @@ export function ProductoQuickCreateDialog({
                     />
                 </FormField>
                 <FormField id="pq-unidad" label={t('producto_quick.unidad')} error={errors.unidad}>
-                    <Select
+                    <UnidadMedidaCombobox
+                        id="pq-unidad"
                         value={form.unidad}
-                        onValueChange={(v) => setForm((f) => ({ ...f, unidad: v }))}
+                        onChange={(codigo) => setForm((f) => ({ ...f, unidad: codigo }))}
+                        unidadOptions={unidadOptions}
+                        onUnidadOptionsChange={onUnidadOptionsChange}
+                        canCreate={canCreateUnidad}
                         disabled={submitting}
-                    >
-                        <SelectTrigger id="pq-unidad" className="h-10 w-full cursor-pointer">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {unidadesSistema.length > 0 ? (
-                                <SelectGroup>
-                                    <SelectLabel>{t('producto_quick.unidad_sistema')}</SelectLabel>
-                                    {unidadesSistema.map((u) => (
-                                        <SelectItem key={u.codigo} value={u.codigo}>
-                                            {u.nombre} ({u.codigo})
-                                        </SelectItem>
-                                    ))}
-                                </SelectGroup>
-                            ) : null}
-                            {unidadesPersonal.length > 0 ? (
-                                <SelectGroup>
-                                    <SelectLabel>{t('producto_quick.unidad_personal')}</SelectLabel>
-                                    {unidadesPersonal.map((u) => (
-                                        <SelectItem key={u.codigo} value={u.codigo}>
-                                            {u.nombre} ({u.codigo})
-                                        </SelectItem>
-                                    ))}
-                                </SelectGroup>
-                            ) : null}
-                        </SelectContent>
-                    </Select>
+                        aria-invalid={Boolean(errors.unidad)}
+                        translationNs="productos-inventario"
+                    />
                 </FormField>
                 <FormField id="pq-precio" label={t('producto_quick.precio_compra')} error={errors.precio_compra}>
                     <Input

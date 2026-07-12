@@ -6,11 +6,15 @@ use App\Http\Requests\ProductoInventarioQuickStoreRequest;
 use App\Http\Requests\ProductoInventarioRequest;
 use App\Models\CategoriaProducto;
 use App\Models\Producto;
+use App\Models\Sede;
+use App\Services\Inventario\InventarioLoteService;
 use App\Support\Inventario\UnidadMedidaOpciones;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -100,6 +104,13 @@ class ProductoInventarioController extends Controller
 
         $unidadOptions = UnidadMedidaOpciones::forProductoForm();
 
+        $sedesActivas = Sede::query()
+            ->where('tenant_id', tenant_id())
+            ->where('activa', true)
+            ->whereNull('deleted_at')
+            ->orderBy('nombre')
+            ->get(['id', 'nombre', 'codigo']);
+
         return Inertia::render('inventario/productos/index', [
             'productos' => $productos,
             'filters' => [
@@ -118,18 +129,52 @@ class ProductoInventarioController extends Controller
             ],
             'categoriaOptions' => $categoriaOptions,
             'unidadOptions' => $unidadOptions,
+            'sedeOptions' => $sedesActivas,
         ]);
     }
 
-    public function store(ProductoInventarioRequest $request): RedirectResponse
+    public function store(ProductoInventarioRequest $request, InventarioLoteService $inventarioLoteService): RedirectResponse
     {
         $userId = Auth::id();
-
-        Producto::create([
-            ...$request->validated(),
-            'created_by_id' => $userId,
-            'updated_by_id' => $userId,
+        $validated = $request->validated();
+        $productoData = Arr::except($validated, [
+            'stock_inicial_sede_id',
+            'stock_inicial_cantidad',
+            'numero_lote',
+            'fecha_vencimiento',
         ]);
+        $stockSedeId = $validated['stock_inicial_sede_id'] ?? null;
+        $stockCantidad = $validated['stock_inicial_cantidad'] ?? null;
+        $numeroLote = $validated['numero_lote'] ?? null;
+        $fechaVencimiento = $validated['fecha_vencimiento'] ?? null;
+
+        DB::transaction(function () use (
+            $productoData,
+            $userId,
+            $stockSedeId,
+            $stockCantidad,
+            $numeroLote,
+            $fechaVencimiento,
+            $inventarioLoteService,
+        ): void {
+            $producto = Producto::create([
+                ...$productoData,
+                'created_by_id' => $userId,
+                'updated_by_id' => $userId,
+            ]);
+
+            if ($stockSedeId !== null && $stockCantidad !== null) {
+                $inventarioLoteService->registrarEntrada(
+                    (string) $producto->id,
+                    (string) $stockSedeId,
+                    (string) $stockCantidad,
+                    is_string($numeroLote) ? $numeroLote : null,
+                    is_string($fechaVencimiento) ? $fechaVencimiento : null,
+                    'Stock inicial al crear producto',
+                    $userId !== null ? (string) $userId : null,
+                );
+            }
+        });
 
         return back()->with('success', 'Producto creado correctamente.');
     }
@@ -187,7 +232,12 @@ class ProductoInventarioController extends Controller
     public function update(ProductoInventarioRequest $request, Producto $producto): RedirectResponse
     {
         $producto->update([
-            ...$request->validated(),
+            ...Arr::except($request->validated(), [
+                'stock_inicial_sede_id',
+                'stock_inicial_cantidad',
+                'numero_lote',
+                'fecha_vencimiento',
+            ]),
             'updated_by_id' => Auth::id(),
         ]);
 

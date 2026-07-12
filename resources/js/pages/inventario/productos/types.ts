@@ -46,6 +46,12 @@ export type ProductoUnidadOption = {
     created_at?: string;
 };
 
+export type ProductoSedeOption = {
+    id: string;
+    nombre: string;
+    codigo: string;
+};
+
 export type ProductoStats = {
     total: number;
     activos: number;

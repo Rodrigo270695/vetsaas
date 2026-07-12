@@ -642,13 +642,44 @@ final class OfflineSyncPushService
         try {
             $validated = $this->validateProductoPayload($payload, $user);
             $uid = $user->id;
+            $stockSedeId = $validated['stock_inicial_sede_id'] ?? null;
+            $stockCantidad = $validated['stock_inicial_cantidad'] ?? null;
+            $numeroLote = $validated['numero_lote'] ?? null;
+            $fechaVencimiento = $validated['fecha_vencimiento'] ?? null;
+            $productoData = \Illuminate\Support\Arr::except($validated, [
+                'stock_inicial_sede_id',
+                'stock_inicial_cantidad',
+                'numero_lote',
+                'fecha_vencimiento',
+            ]);
 
-            $producto = DB::transaction(function () use ($validated, $uid): Producto {
-                return Producto::query()->create([
-                    ...$validated,
+            $producto = DB::transaction(function () use (
+                $productoData,
+                $uid,
+                $stockSedeId,
+                $stockCantidad,
+                $numeroLote,
+                $fechaVencimiento,
+            ): Producto {
+                $producto = Producto::query()->create([
+                    ...$productoData,
                     'created_by_id' => $uid,
                     'updated_by_id' => $uid,
                 ]);
+
+                if ($stockSedeId !== null && $stockCantidad !== null) {
+                    app(InventarioLoteService::class)->registrarEntrada(
+                        (string) $producto->id,
+                        (string) $stockSedeId,
+                        (string) $stockCantidad,
+                        is_string($numeroLote) ? $numeroLote : null,
+                        is_string($fechaVencimiento) ? $fechaVencimiento : null,
+                        'Stock inicial al crear producto',
+                        $uid !== null ? (string) $uid : null,
+                    );
+                }
+
+                return $producto;
             });
 
             $event->update([

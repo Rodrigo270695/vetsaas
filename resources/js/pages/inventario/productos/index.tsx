@@ -40,6 +40,7 @@ import type {
     ProductoCategoriaOption,
     ProductoEstadoFilter,
     ProductoFilters,
+    ProductoSedeOption,
     ProductoStats,
     ProductoUnidadOption,
 } from './types';
@@ -50,6 +51,7 @@ type Props = {
     stats: ProductoStats;
     categoriaOptions: ProductoCategoriaOption[];
     unidadOptions: ProductoUnidadOption[];
+    sedeOptions: ProductoSedeOption[];
 };
 
 type ModalState =
@@ -77,7 +79,7 @@ function formatPrecio(value: string | null, locale: string): string {
     return n.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-export default function Index({ productos: paginated, filters, stats, categoriaOptions, unidadOptions }: Props) {
+export default function Index({ productos: paginated, filters, stats, categoriaOptions, unidadOptions, sedeOptions }: Props) {
     const { t, i18n } = useTranslation(['productos-inventario', 'common']);
     const { can } = usePermission();
     const canCreate = can('productos.create');
@@ -90,7 +92,7 @@ export default function Index({ productos: paginated, filters, stats, categoriaO
     const { search, setSearch, isLoading, sort, setSort, setPerPage, applyFilter } = useDataTablePage<TableExtraFilters>({
         routeUrl: '/inventario/productos',
         initialFilters: filters,
-        only: ['productos', 'filters', 'stats', 'categoriaOptions', 'unidadOptions'],
+        only: ['productos', 'filters', 'stats', 'categoriaOptions', 'unidadOptions', 'sedeOptions'],
         errorMessage: t('toast.load_error'),
         storageKey: 'vetsaas.inventario.productos.prefs',
         defaults: {
@@ -396,8 +398,8 @@ export default function Index({ productos: paginated, filters, stats, categoriaO
                 producto={modal.type === 'edit' ? modal.producto : null}
                 categoriaOptions={categoriaOptions}
                 unidadOptions={unidadOptions}
-                canGestionarUnidadesCatalogo={canCreate || canUpdate}
-                canEditUnidadesPersonalizadas={canUpdate}
+                sedeOptions={sedeOptions}
+                canCreateUnidad={canCreate || canUpdate}
             />
 
             <ProductoDeleteDialog

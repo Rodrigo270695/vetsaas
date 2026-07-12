@@ -1,37 +1,30 @@
 import { useForm } from '@inertiajs/react';
-import { Loader2, Ruler } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FormField, FormModal } from '@/components/forms';
+import { UnidadMedidaCombobox, type UnidadMedidaOption } from '@/components/inventario/unidad-medida-combobox';
+import { FormField, FormModal, SedeFormField } from '@/components/forms';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Combobox } from '@/components/ui/combobox';
 import type { ComboboxOption } from '@/components/ui/combobox';
 import { Input } from '@/components/ui/input';
-import {
-    Select,
-    SelectContent,
-    SelectGroup,
-    SelectItem,
-    SelectLabel,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { resolveDefaultSedeIdOrEmpty } from '@/lib/default-sede';
 import { enqueueIfOffline } from '@/lib/offline/enqueue-if-offline';
 import { useOfflineSync } from '@/hooks/use-offline-sync';
-import type { Producto, ProductoCategoriaOption, ProductoUnidadOption } from '../types';
-import { UnidadesMedidaManageDialog } from './unidades-medida-manage-dialog';
+import type { Producto, ProductoCategoriaOption, ProductoSedeOption } from '../types';
 
 type ProductoFormModalProps = {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     producto: Producto | null;
     categoriaOptions: readonly ProductoCategoriaOption[];
-    unidadOptions: readonly ProductoUnidadOption[];
-    canGestionarUnidadesCatalogo: boolean;
-    canEditUnidadesPersonalizadas: boolean;
+    unidadOptions: readonly UnidadMedidaOption[];
+    sedeOptions: readonly ProductoSedeOption[];
+    canCreateUnidad: boolean;
+    defaultSedeId?: string;
 };
 
 type FormData = {
@@ -45,6 +38,10 @@ type FormData = {
     precio_venta: string;
     precio_compra: string;
     stock_minimo: string;
+    stock_inicial_sede_id: string;
+    stock_inicial_cantidad: string;
+    numero_lote: string;
+    fecha_vencimiento: string;
     medicamento: boolean;
     activo: boolean;
 };
@@ -60,6 +57,10 @@ const empty: FormData = {
     precio_venta: '',
     precio_compra: '',
     stock_minimo: '',
+    stock_inicial_sede_id: '',
+    stock_inicial_cantidad: '',
+    numero_lote: '',
+    fecha_vencimiento: '',
     medicamento: false,
     activo: true,
 };
@@ -70,24 +71,34 @@ export function ProductoFormModal({
     producto,
     categoriaOptions,
     unidadOptions,
-    canGestionarUnidadesCatalogo,
-    canEditUnidadesPersonalizadas,
+    sedeOptions,
+    canCreateUnidad,
+    defaultSedeId = '',
 }: ProductoFormModalProps) {
     const { t } = useTranslation(['productos-inventario', 'common', 'offline']);
     const { refreshPending } = useOfflineSync();
     const isEdit = producto !== null;
 
     const { data, setData, post, put, processing, errors, reset, clearErrors } = useForm<FormData>(empty);
-    const [unidadesDialogOpen, setUnidadesDialogOpen] = useState(false);
+    const [unidadesLocal, setUnidadesLocal] = useState<UnidadMedidaOption[]>([]);
 
     useEffect(() => {
         if (!open) {
             return;
         }
 
+        setUnidadesLocal([...unidadOptions]);
+
         if (!producto) {
             reset();
             clearErrors();
+            setData({
+                ...empty,
+                stock_inicial_sede_id:
+                    defaultSedeId && defaultSedeId !== ''
+                        ? defaultSedeId
+                        : resolveDefaultSedeIdOrEmpty(sedeOptions),
+            });
 
             return;
         }
@@ -103,20 +114,20 @@ export function ProductoFormModal({
             precio_venta: producto.precio_venta ?? '',
             precio_compra: producto.precio_compra ?? '',
             stock_minimo: producto.stock_minimo != null && producto.stock_minimo !== '' ? String(producto.stock_minimo) : '',
+            stock_inicial_sede_id: '',
+            stock_inicial_cantidad: '',
+            numero_lote: '',
+            fecha_vencimiento: '',
             medicamento: producto.medicamento,
             activo: producto.activo,
         });
         clearErrors();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [open, producto?.id]);
+    }, [open, producto?.id, unidadOptions, sedeOptions, defaultSedeId]);
 
     const handleModalOpenChange = useCallback(
         (next: boolean) => {
             onOpenChange(next);
-
-            if (!next) {
-                setUnidadesDialogOpen(false);
-            }
         },
         [onOpenChange],
     );
@@ -126,28 +137,6 @@ export function ProductoFormModal({
         [categoriaOptions],
     );
 
-    const codigosConocidos = useMemo(() => new Set(unidadOptions.map((u) => u.codigo)), [unidadOptions]);
-
-    const legacyUnidad = useMemo((): ProductoUnidadOption | null => {
-        if (!data.unidad || codigosConocidos.has(data.unidad)) {
-            return null;
-        }
-
-        return {
-            id: '__legacy__',
-            codigo: data.unidad,
-            nombre: t('form.unidad_legacy_label', { codigo: data.unidad }),
-            es_sistema: true,
-        };
-    }, [data.unidad, codigosConocidos, t]);
-
-    const { unidadesSistema, unidadesPersonal } = useMemo(() => {
-        const sistema = unidadOptions.filter((u) => u.es_sistema);
-        const personal = unidadOptions.filter((u) => !u.es_sistema);
-
-        return { unidadesSistema: sistema, unidadesPersonal: personal };
-    }, [unidadOptions]);
-
     const buildCreatePayload = (raw: FormData): Record<string, unknown> => {
         const slug = raw.slug.trim().toLowerCase();
         const sku = raw.sku.trim();
@@ -155,6 +144,10 @@ export function ProductoFormModal({
         const precioVenta = raw.precio_venta.trim();
         const precioCompra = raw.precio_compra.trim();
         const stockMin = raw.stock_minimo.trim();
+        const stockCantidad = raw.stock_inicial_cantidad.trim();
+        const stockSede = raw.stock_inicial_sede_id.trim();
+        const lote = raw.numero_lote.trim();
+        const venc = raw.fecha_vencimiento.trim();
 
         return {
             categoria_id: raw.categoria_id,
@@ -167,6 +160,10 @@ export function ProductoFormModal({
             precio_venta: precioVenta === '' ? null : precioVenta,
             precio_compra: precioCompra === '' ? null : precioCompra,
             stock_minimo: stockMin === '' ? null : stockMin,
+            stock_inicial_sede_id: stockCantidad === '' ? null : stockSede === '' ? null : stockSede,
+            stock_inicial_cantidad: stockCantidad === '' ? null : stockCantidad,
+            numero_lote: lote === '' ? null : lote,
+            fecha_vencimiento: venc === '' ? null : venc,
             medicamento: raw.medicamento,
             activo: raw.activo,
         };
@@ -208,10 +205,9 @@ export function ProductoFormModal({
     };
 
     return (
-        <>
-            <FormModal
-                open={open}
-                onOpenChange={handleModalOpenChange}
+        <FormModal
+            open={open}
+            onOpenChange={handleModalOpenChange}
                 title={isEdit ? t('form.title_edit') : t('form.title_create')}
                 description={t('description')}
                 size="lg"
@@ -272,51 +268,17 @@ export function ProductoFormModal({
                         <FormField id="prod-slug" label={t('form.slug')} error={errors.slug}>
                             <Input id="prod-slug" value={data.slug} onChange={(e) => setData('slug', e.target.value)} />
                         </FormField>
-                        <FormField id="prod-unidad" label={t('form.unidad')} error={errors.unidad}>
-                            <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
-                                <Select value={data.unidad} onValueChange={(v) => setData('unidad', v)}>
-                                    <SelectTrigger id="prod-unidad" className="w-full min-w-0 sm:flex-1" aria-invalid={Boolean(errors.unidad)}>
-                                        <SelectValue placeholder={t('form.unidad_placeholder')} />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {legacyUnidad && (
-                                            <SelectGroup>
-                                                <SelectLabel>{t('form.unidad_grupo_actual')}</SelectLabel>
-                                                <SelectItem value={legacyUnidad.codigo}>{legacyUnidad.nombre}</SelectItem>
-                                            </SelectGroup>
-                                        )}
-                                        <SelectGroup>
-                                            <SelectLabel>{t('form.unidad_grupo_sistema')}</SelectLabel>
-                                            {unidadesSistema.map((u) => (
-                                                <SelectItem key={u.id} value={u.codigo}>
-                                                    {u.nombre} ({u.codigo})
-                                                </SelectItem>
-                                            ))}
-                                        </SelectGroup>
-                                        {unidadesPersonal.length > 0 && (
-                                            <SelectGroup>
-                                                <SelectLabel>{t('form.unidad_grupo_personal')}</SelectLabel>
-                                                {unidadesPersonal.map((u) => (
-                                                    <SelectItem key={u.id} value={u.codigo}>
-                                                        {u.nombre} ({u.codigo})
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectGroup>
-                                        )}
-                                    </SelectContent>
-                                </Select>
-                                {canGestionarUnidadesCatalogo && (
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        className="shrink-0 gap-2 sm:w-auto"
-                                        onClick={() => setUnidadesDialogOpen(true)}
-                                    >
-                                        <Ruler className="size-4" aria-hidden />
-                                        {t('form.unidades_gestionar')}
-                                    </Button>
-                                )}
-                            </div>
+                        <FormField id="prod-unidad" label={t('form.unidad')} error={errors.unidad} className="min-w-0">
+                            <UnidadMedidaCombobox
+                                id="prod-unidad"
+                                value={data.unidad}
+                                onChange={(codigo) => setData('unidad', codigo)}
+                                unidadOptions={unidadesLocal}
+                                onUnidadOptionsChange={setUnidadesLocal}
+                                canCreate={canCreateUnidad}
+                                disabled={processing}
+                                aria-invalid={Boolean(errors.unidad)}
+                            />
                         </FormField>
                     </div>
 
@@ -365,6 +327,75 @@ export function ProductoFormModal({
                         </FormField>
                     </div>
 
+                    {!isEdit ? (
+                        <div className="space-y-3 rounded-lg border border-border p-3">
+                            <div>
+                                <p className="text-sm font-medium text-foreground">{t('form.stock_inicial_title')}</p>
+                                <p className="text-xs text-muted-foreground">{t('form.stock_inicial_hint')}</p>
+                            </div>
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                <SedeFormField
+                                    id="prod-stock-sede"
+                                    label={t('form.stock_inicial_sede')}
+                                    value={data.stock_inicial_sede_id === '' ? null : data.stock_inicial_sede_id}
+                                    onChange={(v) => setData('stock_inicial_sede_id', v ?? '')}
+                                    sedes={sedeOptions}
+                                    error={errors.stock_inicial_sede_id}
+                                    disabled={processing || sedeOptions.length === 0}
+                                />
+                                <FormField
+                                    id="prod-stock-cant"
+                                    label={t('form.stock_inicial_cantidad')}
+                                    error={errors.stock_inicial_cantidad}
+                                    className="min-w-0"
+                                >
+                                    <Input
+                                        id="prod-stock-cant"
+                                        type="number"
+                                        inputMode="decimal"
+                                        min={0.001}
+                                        step="any"
+                                        value={data.stock_inicial_cantidad}
+                                        onChange={(e) => setData('stock_inicial_cantidad', e.target.value)}
+                                        disabled={processing}
+                                        className="h-10"
+                                    />
+                                </FormField>
+                                <FormField
+                                    id="prod-lote"
+                                    label={t('form.numero_lote')}
+                                    error={errors.numero_lote}
+                                    className="min-w-0"
+                                >
+                                    <Input
+                                        id="prod-lote"
+                                        value={data.numero_lote}
+                                        onChange={(e) => setData('numero_lote', e.target.value)}
+                                        disabled={processing}
+                                        maxLength={128}
+                                        className="h-10"
+                                        placeholder={t('form.numero_lote_placeholder')}
+                                    />
+                                </FormField>
+                                <FormField
+                                    id="prod-venc"
+                                    label={t('form.fecha_vencimiento')}
+                                    error={errors.fecha_vencimiento}
+                                    className="min-w-0"
+                                >
+                                    <Input
+                                        id="prod-venc"
+                                        type="date"
+                                        value={data.fecha_vencimiento}
+                                        onChange={(e) => setData('fecha_vencimiento', e.target.value)}
+                                        disabled={processing}
+                                        className="h-10"
+                                    />
+                                </FormField>
+                            </div>
+                        </div>
+                    ) : null}
+
                     <FormField id="prod-desc" label={t('form.descripcion')} error={errors.descripcion}>
                         <Textarea
                             id="prod-desc"
@@ -398,21 +429,5 @@ export function ProductoFormModal({
                     </div>
                 </div>
             </FormModal>
-
-            <UnidadesMedidaManageDialog
-                open={unidadesDialogOpen}
-                onOpenChange={setUnidadesDialogOpen}
-                unidadOptions={unidadOptions}
-                canEdit={canEditUnidadesPersonalizadas}
-                canCreate={canGestionarUnidadesCatalogo}
-                unidadSeleccionadaCodigo={data.unidad}
-                onUnidadMedidaCreated={(codigo) => setData('unidad', codigo)}
-                onUnidadMedidaEliminada={(codigo) => {
-                    if (data.unidad === codigo) {
-                        setData('unidad', 'UN');
-                    }
-                }}
-            />
-        </>
     );
 }

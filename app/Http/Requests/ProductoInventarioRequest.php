@@ -23,7 +23,7 @@ class ProductoInventarioRequest extends FormRequest
         $producto = $this->route('producto');
         $productoId = $producto instanceof Producto ? $producto->id : null;
 
-        return [
+        $rules = [
             'categoria_id' => [
                 'nullable',
                 'uuid',
@@ -56,7 +56,27 @@ class ProductoInventarioRequest extends FormRequest
             'stock_minimo' => ['nullable', 'numeric', 'min:0', 'max:999999999.999'],
             'medicamento' => ['required', 'boolean'],
             'activo' => ['required', 'boolean'],
+            'stock_inicial_sede_id' => [
+                'nullable',
+                'uuid',
+                Rule::exists('sedes', 'id')->whereNull('deleted_at'),
+                'required_with:stock_inicial_cantidad',
+            ],
+            'stock_inicial_cantidad' => ['nullable', 'numeric', 'min:0.001', 'max:999999999.999'],
+            'numero_lote' => ['nullable', 'string', 'max:128'],
+            'fecha_vencimiento' => ['nullable', 'date'],
         ];
+
+        if ($producto instanceof Producto) {
+            unset(
+                $rules['stock_inicial_sede_id'],
+                $rules['stock_inicial_cantidad'],
+                $rules['numero_lote'],
+                $rules['fecha_vencimiento'],
+            );
+        }
+
+        return $rules;
     }
 
     protected function prepareForValidation(): void
@@ -87,6 +107,26 @@ class ProductoInventarioRequest extends FormRequest
         if ($stockMin === null || $stockMin === '') {
             $this->merge(['stock_minimo' => null]);
         }
+
+        $stockCantidad = $this->input('stock_inicial_cantidad');
+        if ($stockCantidad === null || $stockCantidad === '') {
+            $this->merge(['stock_inicial_cantidad' => null]);
+        }
+
+        $stockSede = trim((string) $this->input('stock_inicial_sede_id', ''));
+        $this->merge([
+            'stock_inicial_sede_id' => $stockSede === '' ? null : $stockSede,
+        ]);
+
+        $lote = trim((string) $this->input('numero_lote', ''));
+        $this->merge([
+            'numero_lote' => $lote === '' ? null : mb_substr($lote, 0, 128),
+        ]);
+
+        $venc = trim((string) $this->input('fecha_vencimiento', ''));
+        $this->merge([
+            'fecha_vencimiento' => $venc === '' ? null : $venc,
+        ]);
     }
 
     public function withValidator(Validator $validator): void
