@@ -283,7 +283,7 @@ export default function Index({
                 cell: (row) => (
                     <span className="whitespace-nowrap text-xs text-muted-foreground">
                         {row.alta_at
-                            ? {formatAtendidoInAppTimezone(row.alta_at, appLocale, appTz)}
+                            ? formatAtendidoInAppTimezone(row.alta_at, appLocale, appTz)
                             : '—'}
                     </span>
                 ),

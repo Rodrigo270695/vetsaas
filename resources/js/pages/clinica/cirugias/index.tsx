@@ -271,7 +271,7 @@ export default function Index({
                 cell: (row) => (
                     <span className="max-w-36 truncate text-xs text-muted-foreground">
                         {row.consulta?.atendido_at
-                            ? {formatAtendidoInAppTimezone(row.consulta.atendido_at, appLocale, appTz)}
+                            ? formatAtendidoInAppTimezone(row.consulta.atendido_at, appLocale, appTz)
                             : '—'}
                     </span>
                 ),
