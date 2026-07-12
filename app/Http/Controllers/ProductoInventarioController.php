@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\ProductosInventarioImportTemplateXlsx;
 use App\Http\Requests\ProductoInventarioQuickStoreRequest;
 use App\Http\Requests\ProductoInventarioRequest;
 use App\Models\CategoriaProducto;
 use App\Models\Producto;
 use App\Models\Sede;
 use App\Services\Inventario\InventarioLoteService;
+use App\Services\Inventario\ProductoInventarioImportService;
 use App\Support\Inventario\UnidadMedidaOpciones;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -19,6 +21,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ProductoInventarioController extends Controller
 {
@@ -177,6 +180,54 @@ class ProductoInventarioController extends Controller
         });
 
         return back()->with('success', 'Producto creado correctamente.');
+    }
+
+    public function downloadImportTemplate(): StreamedResponse
+    {
+        $filename = 'plantilla_productos_'.now()->format('Y-m-d').'.xlsx';
+
+        return response()->streamDownload(function (): void {
+            (new ProductosInventarioImportTemplateXlsx)->streamTo('php://output');
+        }, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
+    }
+
+    public function importExcel(Request $request, ProductoInventarioImportService $importService): JsonResponse
+    {
+        $request->validate([
+            'file' => ['required', 'file', 'max:10240'],
+        ]);
+
+        $uploaded = $request->file('file');
+        if ($uploaded === null) {
+            return response()->json([
+                'ok' => false,
+                'error' => 'No se recibió el archivo.',
+                'imported' => 0,
+                'failed' => 0,
+                'skipped' => 0,
+                'rows' => [],
+            ], 422);
+        }
+
+        $extension = strtolower($uploaded->getClientOriginalExtension());
+        if (! in_array($extension, ['xlsx', 'xls'], true)) {
+            return response()->json([
+                'ok' => false,
+                'error' => 'El archivo debe ser .xlsx',
+                'imported' => 0,
+                'failed' => 0,
+                'skipped' => 0,
+                'rows' => [],
+            ], 422);
+        }
+
+        $result = $importService->import($uploaded);
+
+        $status = ($result['ok'] ?? false) ? 200 : 422;
+
+        return response()->json($result, $status);
     }
 
     public function storeQuick(ProductoInventarioQuickStoreRequest $request): JsonResponse

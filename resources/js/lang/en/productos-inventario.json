@@ -36,7 +36,31 @@
     "actions": {
         "new": "New product",
         "new_short": "New",
-        "create_first": "Create first product"
+        "create_first": "Create first product",
+        "bulk_import": "Bulk upload",
+        "bulk_import_short": "Bulk"
+    },
+    "import": {
+        "title": "Bulk product upload",
+        "description": "Download the Excel template, fill it in, and upload it to create several products at once.",
+        "template_title": "Template",
+        "template_hint": "The file includes three sheets formatted as Excel tables.",
+        "sheet_productos": "Productos — rows to import (fields with * are required)",
+        "sheet_categorias": "Categorias — valid category names for your clinic",
+        "sheet_unidades": "Unidades — unit of measure codes",
+        "required_hint": "Required: nombre*, unidad*, medicamento*, activo*",
+        "download_template": "Download .xlsx template",
+        "upload_title": "Upload Excel",
+        "upload_hint": "Select the completed file. You’ll see results row by row.",
+        "choose_file": "Choose .xlsx file",
+        "upload": "Upload and import",
+        "uploading": "Importing…",
+        "results_empty": "Imported products and errors will appear here.",
+        "summary_ok": "{{count}} created",
+        "summary_error": "{{count}} with errors",
+        "summary_skipped": "{{count}} skipped",
+        "row_label": "Row {{row}}: {{nombre}}",
+        "error_generic": "Could not import the file. Please try again."
     },
     "empty": {
         "no_records_title": "No products yet",

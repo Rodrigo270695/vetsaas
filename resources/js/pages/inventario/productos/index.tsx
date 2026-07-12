@@ -1,5 +1,5 @@
 import { Head } from '@inertiajs/react';
-import { Filter, Package, Pill, Plus, PowerOff, ScreenShare, UserCircle } from 'lucide-react';
+import { Filter, Package, Pill, Plus, PowerOff, ScreenShare, Upload, UserCircle } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -32,6 +32,7 @@ import { usePlanLimitReached } from '@/hooks/use-plan-limits';
 import { usePermission } from '@/hooks/use-permission';
 import AppLayout from '@/layouts/app-layout';
 import type { Paginated } from '@/types';
+import { ProductoBulkImportModal } from './components/producto-bulk-import-modal';
 import { ProductoDeleteDialog } from './components/producto-delete-dialog';
 import { ProductoFormModal } from './components/producto-form-modal';
 import { ProductoRowActions } from './components/producto-row-actions';
@@ -57,6 +58,7 @@ type Props = {
 type ModalState =
     | { type: 'idle' }
     | { type: 'create' }
+    | { type: 'bulk' }
     | { type: 'edit'; producto: Producto }
     | { type: 'delete'; producto: Producto };
 
@@ -289,27 +291,51 @@ export default function Index({ productos: paginated, filters, stats, categoriaO
                     ]}
                     action={
                         <Can permission="productos.create">
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <span className="inline-flex">
-                                        <Button
-                                            type="button"
-                                            onClick={() => setModal({ type: 'create' })}
-                                            disabled={productsLimitReached}
-                                            className="cursor-pointer gap-2"
-                                        >
-                                            <Plus className="size-4" strokeWidth={2.5} />
-                                            <span className="hidden sm:inline">{t('actions.new')}</span>
-                                            <span className="sm:hidden">{t('actions.new_short')}</span>
-                                        </Button>
-                                    </span>
-                                </TooltipTrigger>
-                                {productsLimitReached ? (
-                                    <TooltipContent side="bottom" className="max-w-xs">
-                                        {t('plan_limit.max_productos')}
-                                    </TooltipContent>
-                                ) : null}
-                            </Tooltip>
+                            <div className="flex flex-row items-center gap-2">
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <span className="inline-flex">
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                onClick={() => setModal({ type: 'bulk' })}
+                                                disabled={productsLimitReached}
+                                                className="cursor-pointer gap-2"
+                                            >
+                                                <Upload className="size-4" strokeWidth={2.5} />
+                                                <span className="hidden sm:inline">{t('actions.bulk_import')}</span>
+                                                <span className="sm:hidden">{t('actions.bulk_import_short')}</span>
+                                            </Button>
+                                        </span>
+                                    </TooltipTrigger>
+                                    {productsLimitReached ? (
+                                        <TooltipContent side="bottom" className="max-w-xs">
+                                            {t('plan_limit.max_productos')}
+                                        </TooltipContent>
+                                    ) : null}
+                                </Tooltip>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <span className="inline-flex">
+                                            <Button
+                                                type="button"
+                                                onClick={() => setModal({ type: 'create' })}
+                                                disabled={productsLimitReached}
+                                                className="cursor-pointer gap-2"
+                                            >
+                                                <Plus className="size-4" strokeWidth={2.5} />
+                                                <span className="hidden sm:inline">{t('actions.new')}</span>
+                                                <span className="sm:hidden">{t('actions.new_short')}</span>
+                                            </Button>
+                                        </span>
+                                    </TooltipTrigger>
+                                    {productsLimitReached ? (
+                                        <TooltipContent side="bottom" className="max-w-xs">
+                                            {t('plan_limit.max_productos')}
+                                        </TooltipContent>
+                                    ) : null}
+                                </Tooltip>
+                            </div>
                         </Can>
                     }
                 />
@@ -393,6 +419,13 @@ export default function Index({ productos: paginated, filters, stats, categoriaO
                     }
                 />
             </div>
+
+            <ProductoBulkImportModal
+                open={modal.type === 'bulk'}
+                onOpenChange={(open) => {
+                    if (!open) closeModal();
+                }}
+            />
 
             <ProductoFormModal
                 open={modal.type === 'create' || modal.type === 'edit'}

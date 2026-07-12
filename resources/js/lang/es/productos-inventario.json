@@ -36,7 +36,31 @@
     "actions": {
         "new": "Nuevo producto",
         "new_short": "Nuevo",
-        "create_first": "Crear primer producto"
+        "create_first": "Crear primer producto",
+        "bulk_import": "Carga masiva",
+        "bulk_import_short": "Masiva"
+    },
+    "import": {
+        "title": "Carga masiva de productos",
+        "description": "Descarga la plantilla Excel, complétala y súbela para crear varios productos de una vez.",
+        "template_title": "Plantilla",
+        "template_hint": "El archivo incluye tres hojas con formato de tabla Excel.",
+        "sheet_productos": "Productos — filas a importar (campos con * obligatorios)",
+        "sheet_categorias": "Categorias — nombres válidos de tu clínica",
+        "sheet_unidades": "Unidades — códigos de unidad de medida",
+        "required_hint": "Obligatorios: nombre*, unidad*, medicamento*, activo*",
+        "download_template": "Descargar plantilla .xlsx",
+        "upload_title": "Subir Excel",
+        "upload_hint": "Selecciona el archivo completado. Verás el resultado fila por fila.",
+        "choose_file": "Elegir archivo .xlsx",
+        "upload": "Subir e importar",
+        "uploading": "Importando…",
+        "results_empty": "Aquí aparecerán los productos importados y los errores.",
+        "summary_ok": "{{count}} creados",
+        "summary_error": "{{count}} con error",
+        "summary_skipped": "{{count}} omitidos",
+        "row_label": "Fila {{row}}: {{nombre}}",
+        "error_generic": "No se pudo importar el archivo. Inténtalo de nuevo."
     },
     "empty": {
         "no_records_title": "Aún no hay productos",

@@ -486,6 +486,12 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             ->post('productos', [ProductoInventarioController::class, 'store'])
             ->name('productos.store');
         Route::middleware('permission:productos.create')
+            ->get('productos/plantilla-importacion', [ProductoInventarioController::class, 'downloadImportTemplate'])
+            ->name('productos.import-template');
+        Route::middleware('permission:productos.create')
+            ->post('productos/importar', [ProductoInventarioController::class, 'importExcel'])
+            ->name('productos.import');
+        Route::middleware('permission:productos.create')
             ->post('productos/quick', [ProductoInventarioController::class, 'storeQuick'])
             ->name('productos.quick');
         Route::middleware('permission:productos.update')
