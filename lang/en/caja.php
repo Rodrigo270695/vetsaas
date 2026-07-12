@@ -76,6 +76,8 @@ return [
             'fel_error' => 'SUNAT/Lucode rejected the void: :detalle',
             'nota_credito_error' => 'Could not issue the credit note: :detalle',
             'tipo_no_anulable' => 'This document type cannot be voided directly; configure a credit-note series.',
+            'sin_serie_nc' => 'This branch has no active credit-note series (e.g. FC01 or BC01). Add one under Billing › Series.',
+            'fel_o_nc_error' => 'Could not void in SUNAT (:baja). Credit note also failed (:nc). Check Lucode and that the branch has an active credit-note series.',
             'movimiento_notas' => 'Reversal for voided sale :numero',
         ],
         'movimiento_notas' => 'Outbound sale :numero',

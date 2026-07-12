@@ -33,6 +33,10 @@ final class FelSerieResolver
                 default => 'comprobante',
             };
 
+            if ($tipoComprobante === FelSerie::TIPO_NOTA_CREDITO) {
+                throw new RuntimeException(__('caja.ventas.anulacion.sin_serie_nc'));
+            }
+
             throw new RuntimeException(__('caja.ventas.fel.sin_serie', ['tipo' => $tipo]));
         }
 

@@ -78,6 +78,8 @@ return [
             'fel_error' => 'SUNAT/Lucode rechazó la anulación: :detalle',
             'nota_credito_error' => 'No se pudo emitir la nota de crédito: :detalle',
             'tipo_no_anulable' => 'Este tipo de comprobante no admite anulación directa; configura nota de crédito.',
+            'sin_serie_nc' => 'Falta una serie de nota de crédito activa en esta sede (ej. FC01 o BC01). Configúrala en Facturación › Series.',
+            'fel_o_nc_error' => 'No se pudo anular en SUNAT (:baja). Tampoco la nota de crédito (:nc). Revisa Lucode y que la sede tenga serie de nota de crédito activa.',
             'movimiento_notas' => 'Reversión por anulación de venta :numero',
         ],
         'movimiento_notas' => 'Salida por venta :numero',

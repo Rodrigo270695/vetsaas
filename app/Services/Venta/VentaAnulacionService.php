@@ -88,8 +88,17 @@ final class VentaAnulacionService
     {
         try {
             $this->felAnulacion->anularEnSunat($venta);
-        } catch (RuntimeException) {
-            $this->felNotaCredito->emitirPorAnulacionVenta($venta, $motivo);
+        } catch (RuntimeException $bajaError) {
+            try {
+                $this->felNotaCredito->emitirPorAnulacionVenta($venta, $motivo);
+            } catch (RuntimeException $ncError) {
+                throw ValidationException::withMessages([
+                    'venta' => __('caja.ventas.anulacion.fel_o_nc_error', [
+                        'baja' => $bajaError->getMessage(),
+                        'nc' => $ncError->getMessage(),
+                    ]),
+                ]);
+            }
         }
     }
 
