@@ -223,7 +223,7 @@
             "sesion_activa_badge": "Selling at {{sede}}",
             "sesion_activa_body": "Branch: {{sede}} · Session currency: {{moneda}}",
             "stock_sede_hint": "Stock and inventory for branch «{{sede}}».",
-            "hint_fel": "With your current settings, the sale will be flagged for electronic receipt issuance when we wire up Nubefact.",
+            "hint_fel": "With your current settings, saving the sale will issue the electronic receipt via Lucode (APISUNAT).",
             "stat_sede": "Branch",
             "stat_moneda": "Currency",
             "card_cliente": "Customer",

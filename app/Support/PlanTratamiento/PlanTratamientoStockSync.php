@@ -65,6 +65,6 @@ final class PlanTratamientoStockSync
             return;
         }
 
-        $this->lotes->revertirMovimiento($mov, $userId);
+        $this->lotes->revertirSalidaFefoDesdeReferencia($mov, $userId);
     }
 }

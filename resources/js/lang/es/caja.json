@@ -223,7 +223,7 @@
             "sesion_activa_badge": "Venta en {{sede}}",
             "sesion_activa_body": "Sede: {{sede}} · Moneda sesión: {{moneda}}",
             "stock_sede_hint": "Stock e inventario de la sede «{{sede}}».",
-            "hint_fel": "Con la configuración actual, al guardar la venta quedará marcada para emisión de comprobante electrónico cuando integremos Nubefact.",
+            "hint_fel": "Con la configuración actual, al guardar la venta se emitirá el comprobante electrónico vía Lucode (APISUNAT).",
             "stat_sede": "Sede",
             "stat_moneda": "Moneda",
             "card_cliente": "Cliente",

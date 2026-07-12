@@ -120,6 +120,7 @@ final class InventarioLoteService
             ->get();
 
         $movimientos = [];
+        $fefoGrupoId = (string) Str::uuid();
 
         foreach ($lotes as $lote) {
             if ($pendiente <= 0) {
@@ -146,6 +147,7 @@ final class InventarioLoteService
                 null,
                 $ventaId,
                 (string) $lote->id,
+                $fefoGrupoId,
             );
 
             $pendiente = round($pendiente - $tomar, 3);
@@ -301,6 +303,78 @@ final class InventarioLoteService
             null,
             $movimiento->producto_lote_id,
         );
+    }
+
+    /**
+     * Revierte una salida FEFO completa: todos los movimientos del mismo `fefo_grupo_id`,
+     * o solo el movimiento de referencia si no hay grupo (datos legacy).
+     *
+     * @return list<MovimientoInventario>
+     */
+    public function revertirSalidaFefoDesdeReferencia(
+        MovimientoInventario $referencia,
+        ?string $userId,
+        ?string $notasExtra = null,
+    ): array {
+        $salidas = $this->salidasDelGrupoFefo($referencia);
+        $revertidos = [];
+
+        foreach ($salidas as $mov) {
+            if ($this->salidaYaRevertida($mov)) {
+                continue;
+            }
+
+            $revertidos[] = $this->revertirMovimiento($mov, $userId, $notasExtra);
+        }
+
+        return $revertidos;
+    }
+
+    /**
+     * @return \Illuminate\Support\Collection<int, MovimientoInventario>
+     */
+    public function salidasDelGrupoFefo(MovimientoInventario $referencia): Collection
+    {
+        $grupoId = $referencia->fefo_grupo_id;
+
+        if (! is_string($grupoId) || $grupoId === '') {
+            return collect([$referencia]);
+        }
+
+        return MovimientoInventario::query()
+            ->where('fefo_grupo_id', $grupoId)
+            ->whereIn('tipo', [MovimientoInventario::TIPO_SALIDA, MovimientoInventario::TIPO_MERMA])
+            ->where('delta', '<', 0)
+            ->orderBy('created_at')
+            ->get();
+    }
+
+    public function salidaYaRevertida(MovimientoInventario $movimiento): bool
+    {
+        $needle = (string) $movimiento->id;
+
+        return MovimientoInventario::query()
+            ->where('producto_id', $movimiento->producto_id)
+            ->where('sede_id', $movimiento->sede_id)
+            ->where('tipo', MovimientoInventario::TIPO_ENTRADA)
+            ->where('notas', 'like', '%'.$needle.'%')
+            ->exists();
+    }
+
+    /**
+     * Asocia `venta_id` a todas las salidas del grupo FEFO (o al movimiento suelto).
+     */
+    public function vincularSalidaFefoAVenta(MovimientoInventario $referencia, string $ventaId): void
+    {
+        $ids = $this->salidasDelGrupoFefo($referencia)->pluck('id')->all();
+        if ($ids === []) {
+            return;
+        }
+
+        MovimientoInventario::query()
+            ->whereIn('id', $ids)
+            ->whereNull('venta_id')
+            ->update(['venta_id' => $ventaId]);
     }
 
     /**

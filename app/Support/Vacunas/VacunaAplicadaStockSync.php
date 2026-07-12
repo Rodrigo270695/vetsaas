@@ -45,10 +45,12 @@ final class VacunaAplicadaStockSync
     }
 
     /**
-     * Compensa en stock el movimiento de salida vinculado.
+     * Compensa en stock el movimiento de salida vinculado (incluye grupo FEFO).
      */
     public static function revertirPorMovimiento(MovimientoInventario $movimiento, ?string $userId): MovimientoInventario
     {
-        return app(InventarioLoteService::class)->revertirMovimiento($movimiento, $userId);
+        $revertidos = app(InventarioLoteService::class)->revertirSalidaFefoDesdeReferencia($movimiento, $userId);
+
+        return $revertidos !== [] ? $revertidos[array_key_last($revertidos)] : $movimiento;
     }
 }

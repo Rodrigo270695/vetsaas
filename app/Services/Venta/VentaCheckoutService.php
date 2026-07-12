@@ -324,6 +324,11 @@ final class VentaCheckoutService
                     && $cargoLineaId !== ''
                     && isset($cargoLineasConStock[$cargoLineaId])
                 ) {
+                    $movRef = MovimientoInventario::query()->find($cargoLineasConStock[$cargoLineaId]);
+                    if ($movRef !== null) {
+                        $this->lotes->vincularSalidaFefoAVenta($movRef, (string) $venta->id);
+                    }
+
                     continue;
                 }
 

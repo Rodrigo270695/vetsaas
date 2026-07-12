@@ -67,6 +67,6 @@ final class ConsultaCargoStockSync
             return;
         }
 
-        $this->lotes->revertirMovimiento($mov, $userId);
+        $this->lotes->revertirSalidaFefoDesdeReferencia($mov, $userId);
     }
 }

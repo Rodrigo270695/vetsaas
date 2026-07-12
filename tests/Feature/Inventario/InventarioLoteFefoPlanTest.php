@@ -265,3 +265,90 @@ it('ajuste a cantidad baja descuenta FEFO y sube con SIN-LOTE', function (): voi
         expect(round((float) (string) $sinLote, 3))->toBe(3.0);
     });
 });
+
+it('revierte todos los lotes FEFO al editar plan que cruzó varios lotes', function (): void {
+    $inv = $this->scenario;
+    $lotes = app(InventarioLoteService::class);
+    $productoId = (string) $inv['producto']->id;
+    $sedeId = (string) $inv['sede']->id;
+    $uid = (string) $this->admin->id;
+
+    $lotes->registrarEntrada($productoId, $sedeId, '3', 'LOTE-A', now()->addDays(8)->toDateString(), 't', $uid);
+    $lotes->registrarEntrada($productoId, $sedeId, '5', 'LOTE-B', now()->addDays(40)->toDateString(), 't', $uid);
+
+    TenantContext::runForSlug($this->slug, function () use ($inv, $productoId, $sedeId, $uid): void {
+        $prop = Propietario::query()->create([
+            'tipo_documento' => 'DNI',
+            'numero_documento' => '11223344',
+            'nombres' => 'Multi',
+            'apellidos' => 'Lote',
+            'created_by_id' => $uid,
+            'updated_by_id' => $uid,
+        ]);
+
+        $paciente = Paciente::query()->create([
+            'propietario_id' => $prop->id,
+            'nombre' => 'Rocky',
+            'especie' => 'canino',
+            'created_by_id' => $uid,
+            'updated_by_id' => $uid,
+        ]);
+
+        $hc = HistoriaClinica::query()->create([
+            'paciente_id' => $paciente->id,
+            'created_by_id' => $uid,
+            'updated_by_id' => $uid,
+        ]);
+
+        $consulta = Consulta::query()->create([
+            'historia_clinica_id' => $hc->id,
+            'atendido_at' => now(),
+            'created_by_id' => $uid,
+            'updated_by_id' => $uid,
+        ]);
+
+        $producto = Producto::query()->findOrFail($productoId);
+        $producto->update(['medicamento' => true]);
+
+        $sync = app(SyncConsultaPlanTratamiento::class);
+        $sync->handle(
+            $consulta,
+            [
+                'estado' => 'activo',
+                'lineas' => [[
+                    'medicamento' => $producto->nombre,
+                    'producto_id' => $producto->id,
+                    'cantidad' => '5',
+                ]],
+            ],
+            $uid,
+            $sedeId,
+        );
+
+        $loteA = ProductoLote::query()->where('producto_id', $productoId)->where('numero_lote', 'LOTE-A')->first();
+        $loteB = ProductoLote::query()->where('producto_id', $productoId)->where('numero_lote', 'LOTE-B')->first();
+        expect(round((float) (string) $loteA->cantidad, 3))->toBe(0.0)
+            ->and(round((float) (string) $loteB->cantidad, 3))->toBe(3.0)
+            ->and(InventarioScenario::stockEnSede($productoId, $sedeId))->toBe(3.0);
+
+        $sync->handle(
+            $consulta->fresh(),
+            [
+                'estado' => 'activo',
+                'lineas' => [[
+                    'medicamento' => $producto->nombre,
+                    'producto_id' => $producto->id,
+                    'cantidad' => '1',
+                ]],
+            ],
+            $uid,
+            $sedeId,
+        );
+
+        $loteA = ProductoLote::query()->where('producto_id', $productoId)->where('numero_lote', 'LOTE-A')->first();
+        $loteB = ProductoLote::query()->where('producto_id', $productoId)->where('numero_lote', 'LOTE-B')->first();
+        expect(round((float) (string) $loteA->cantidad, 3))->toBe(2.0)
+            ->and(round((float) (string) $loteB->cantidad, 3))->toBe(5.0)
+            ->and(InventarioScenario::stockEnSede($productoId, $sedeId))->toBe(7.0);
+    });
+});

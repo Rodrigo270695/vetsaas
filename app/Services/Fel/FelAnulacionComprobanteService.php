@@ -6,20 +6,24 @@ namespace App\Services\Fel;
 
 use App\Models\ClinicSetting;
 use App\Models\FelDocument;
+use App\Models\FelSerie;
 use App\Models\Venta;
-use App\Support\Fel\NubefactCredentialResolver;
+use App\Support\Fel\ApisunatCredentialResolver;
 use App\Support\PlanCapabilities;
 use App\Tenancy\TenantManager;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
 /**
- * Anulación del comprobante electrónico en SUNAT vía Nubefact (`generar_anulacion`).
+ * Anulación del comprobante electrónico en SUNAT vía Lucode (APISUNAT v3).
+ *
+ * - Factura → `POST /api/v3/voided` (comunicación de baja)
+ * - Boleta → `POST /api/v3/daily-summary` (resumen diario / anular)
  */
 final class FelAnulacionComprobanteService
 {
     public function __construct(
-        private readonly NubefactClient $nubefact,
+        private readonly ApisunatClient $apisunat,
     ) {}
 
     public function requiereAnulacionSunat(Venta $venta): bool
@@ -40,7 +44,7 @@ final class FelAnulacionComprobanteService
 
         if (! PlanCapabilities::facturaElectronica($tenant)
             || ! (bool) $clinic->emite_comprobantes_sunat
-            || ! (bool) $clinic->nubefact_configurado) {
+            || ! ApisunatCredentialResolver::estaConfigurado($clinic)) {
             throw new RuntimeException(__('caja.ventas.anulacion.fel_no_configurado'));
         }
 
@@ -49,26 +53,37 @@ final class FelAnulacionComprobanteService
             throw new RuntimeException(__('caja.ventas.anulacion.sin_documento_fel'));
         }
 
-        $nubefact = NubefactCredentialResolver::fromClinicSetting($clinic);
-
-        $payload = [
-            'operacion' => 'generar_anulacion',
-            'tipo_de_comprobante' => (string) $documento->tipo_comprobante,
-            'serie' => $documento->serie,
-            'numero' => (string) $documento->correlativo,
-        ];
+        $credenciales = ApisunatCredentialResolver::fromClinicSetting($clinic);
+        $tipo = (int) $documento->tipo_comprobante;
+        $serie = (string) $documento->serie;
+        $numero = (int) $documento->correlativo;
+        $motivo = 'ANULACIÓN DE OPERACIÓN';
 
         try {
-            $respuesta = $this->nubefact->generarComprobante($nubefact, $payload);
+            $respuesta = match ($tipo) {
+                FelSerie::TIPO_FACTURA => $this->apisunat->comunicarBaja(
+                    $credenciales,
+                    'factura',
+                    $serie,
+                    $numero,
+                    $motivo,
+                ),
+                FelSerie::TIPO_BOLETA => $this->apisunat->anularBoletaResumen(
+                    $credenciales,
+                    $serie,
+                    $numero,
+                ),
+                default => throw new RuntimeException(__('caja.ventas.anulacion.tipo_no_anulable')),
+            };
         } catch (RuntimeException $e) {
             throw new RuntimeException(__('caja.ventas.anulacion.fel_error', [
                 'detalle' => $e->getMessage(),
             ]), 0, $e);
         }
 
-        if (! $this->nubefact->respuestaExitosa($respuesta) && ! $this->nubefact->respuestaAnulacionExitosa($respuesta)) {
+        if (! $this->apisunat->respuestaExitosa($respuesta)) {
             throw new RuntimeException(__('caja.ventas.anulacion.fel_error', [
-                'detalle' => $this->nubefact->extraerMensajeError($respuesta),
+                'detalle' => $this->apisunat->extraerMensajeError($respuesta),
             ]));
         }
 

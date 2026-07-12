@@ -26,7 +26,12 @@ final class FelSerieResolver
         $serie = $query->first();
 
         if ($serie === null) {
-            $tipo = $tipoComprobante === FelSerie::TIPO_FACTURA ? 'factura' : 'boleta';
+            $tipo = match ($tipoComprobante) {
+                FelSerie::TIPO_FACTURA => 'factura',
+                FelSerie::TIPO_BOLETA => 'boleta',
+                FelSerie::TIPO_NOTA_CREDITO => 'nota de crédito',
+                default => 'comprobante',
+            };
 
             throw new RuntimeException(__('caja.ventas.fel.sin_serie', ['tipo' => $tipo]));
         }

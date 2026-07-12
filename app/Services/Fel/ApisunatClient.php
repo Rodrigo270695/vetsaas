@@ -21,9 +21,19 @@ final class ApisunatClient
 
     private const SANDBOX_URL = 'https://sandbox.apisunat.pe/api/v3/documents';
 
+    private const PROD_VOIDED_URL = 'https://app.apisunat.pe/api/v3/voided';
+
+    private const SANDBOX_VOIDED_URL = 'https://sandbox.apisunat.pe/api/v3/voided';
+
+    private const PROD_SUMMARY_URL = 'https://app.apisunat.pe/api/v3/daily-summary';
+
+    private const SANDBOX_SUMMARY_URL = 'https://sandbox.apisunat.pe/api/v3/daily-summary';
+
     private const DOC_NOMBRES = [
         FelSerie::TIPO_FACTURA => 'factura',
         FelSerie::TIPO_BOLETA => 'boleta',
+        FelSerie::TIPO_NOTA_CREDITO => 'nota_credito',
+        FelSerie::TIPO_NOTA_DEBITO => 'nota_debito',
     ];
 
     /**
@@ -35,6 +45,66 @@ final class ApisunatClient
     {
         $url = $credenciales['mode'] === 'produccion' ? self::PROD_URL : self::SANDBOX_URL;
 
+        return $this->postJson($credenciales, $url, $payload);
+    }
+
+    /**
+     * Comunicación de baja (facturas / NC / ND).
+     *
+     * @param  array{token: string, mode: 'sandbox'|'produccion'}  $credenciales
+     * @return array<string, mixed>
+     */
+    public function comunicarBaja(
+        array $credenciales,
+        string $documentoAfectado,
+        string $serie,
+        int $numero,
+        string $motivo = 'ANULACIÓN DE OPERACIÓN',
+    ): array {
+        $url = $credenciales['mode'] === 'produccion' ? self::PROD_VOIDED_URL : self::SANDBOX_VOIDED_URL;
+
+        return $this->postJson($credenciales, $url, [
+            'documento' => 'comunicacion_baja',
+            'motivo' => mb_substr(trim($motivo) !== '' ? trim($motivo) : 'ANULACIÓN DE OPERACIÓN', 0, 250),
+            'documento_afectado' => [
+                'documento' => $documentoAfectado,
+                'serie' => $serie,
+                'numero' => $numero,
+            ],
+        ]);
+    }
+
+    /**
+     * Resumen diario para anular boletas.
+     *
+     * @param  array{token: string, mode: 'sandbox'|'produccion'}  $credenciales
+     * @return array<string, mixed>
+     */
+    public function anularBoletaResumen(
+        array $credenciales,
+        string $serie,
+        int $numero,
+    ): array {
+        $url = $credenciales['mode'] === 'produccion' ? self::PROD_SUMMARY_URL : self::SANDBOX_SUMMARY_URL;
+
+        return $this->postJson($credenciales, $url, [
+            'documento' => 'resumen_diario',
+            'documentos_afectados' => [[
+                'accion_resumen' => 'anular',
+                'documento' => 'boleta',
+                'serie' => $serie,
+                'numero' => $numero,
+            ]],
+        ]);
+    }
+
+    /**
+     * @param  array{token: string, mode: 'sandbox'|'produccion'}  $credenciales
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private function postJson(array $credenciales, string $url, array $payload): array
+    {
         try {
             $response = Http::withToken($credenciales['token'])
                 ->timeout(45)
@@ -110,6 +180,53 @@ final class ApisunatClient
             'items' => $items,
             'total' => number_format((float) (string) $venta->total, 2, '.', ''),
         ];
+    }
+
+    /**
+     * Nota de crédito por anulación total de la operación (código 01).
+     *
+     * @param  array{
+     *     tipo_doc: int,
+     *     num_doc: string,
+     *     nombre: string,
+     * }  $receptor
+     * @return array<string, mixed>
+     */
+    public function construirPayloadNotaCredito(
+        Venta $venta,
+        ClinicSetting $clinic,
+        string $serieNc,
+        int $correlativoNc,
+        array $receptor,
+        string $motivo,
+        string $documentoAfectadoNombre,
+        string $serieAfectada,
+        int $numeroAfectado,
+    ): array {
+        $base = $this->construirPayload(
+            $venta,
+            $clinic,
+            FelSerie::TIPO_NOTA_CREDITO,
+            $serieNc,
+            $correlativoNc,
+            $receptor,
+        );
+
+        $base['documento'] = 'nota_credito';
+        $base['nota_credito_codigo_tipo'] = '01';
+        $base['nota_credito_motivo'] = mb_substr(trim($motivo) !== '' ? trim($motivo) : 'Anulación de la operación', 0, 250);
+        $base['documento_afectado'] = [
+            'documento' => $documentoAfectadoNombre,
+            'serie' => $serieAfectada,
+            'numero' => $numeroAfectado,
+        ];
+
+        return $base;
+    }
+
+    public function nombreDocumentoTipo(int $tipoComprobante): string
+    {
+        return self::DOC_NOMBRES[$tipoComprobante] ?? 'boleta';
     }
 
     /**

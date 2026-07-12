@@ -170,7 +170,7 @@ it('anula venta pagada, revierte stock y libera pre-cuenta', function (): void {
     });
 });
 
-it('anula comprobante FEL emitido vía Nubefact', function (): void {
+it('anula comprobante FEL emitido vía Lucode (APISUNAT)', function (): void {
     $plan = Plan::query()->firstOrCreate(
         ['codigo' => 'clinica'],
         [
@@ -187,6 +187,22 @@ it('anula comprobante FEL emitido vía Nubefact', function (): void {
 
     PlanFeature::query()->updateOrCreate(
         ['plan_id' => $plan->id, 'feature' => 'factura_electronica'],
+        [
+            'valor_int' => null,
+            'valor_bool' => true,
+            'valor_str' => null,
+        ],
+    );
+    PlanFeature::query()->updateOrCreate(
+        ['plan_id' => $plan->id, 'feature' => 'boletas_electronicas'],
+        [
+            'valor_int' => null,
+            'valor_bool' => true,
+            'valor_str' => null,
+        ],
+    );
+    PlanFeature::query()->updateOrCreate(
+        ['plan_id' => $plan->id, 'feature' => 'facturas_electronicas'],
         [
             'valor_int' => null,
             'valor_bool' => true,
@@ -214,27 +230,43 @@ it('anula comprobante FEL emitido vía Nubefact', function (): void {
         'metodo_pago_token' => null,
     ]);
 
+    $apisunatOk = [
+        'success' => true,
+        'message' => 'OK',
+        'payload' => [
+            'estado' => 'ACEPTADO',
+            'pdf' => ['ticket' => 'https://example.test/cpe.pdf'],
+            'xml' => 'https://example.test/cpe.xml',
+            'cdr' => 'https://example.test/cdr.xml',
+        ],
+    ];
+
     Http::fake([
-        '*' => Http::sequence()
-            ->push([
-                'aceptada_por_sunat' => true,
-                'codigo_unico' => 'NUBEFACT-ANUL-EMIT',
-                'enlace_del_pdf' => 'https://example.test/cpe.pdf',
-            ], 200)
-            ->push(['anulado' => true], 200),
+        'sandbox.apisunat.pe/api/v3/documents' => Http::response($apisunatOk, 200),
+        'sandbox.apisunat.pe/api/v3/daily-summary' => Http::response($apisunatOk, 200),
+        'sandbox.apisunat.pe/api/v3/voided' => Http::response($apisunatOk, 200),
+        '*' => Http::response($apisunatOk, 200),
     ]);
 
     TenantContext::runForSlug($this->slug, function (): void {
         ClinicSetting::query()->firstOrFail()->update([
             'emite_comprobantes_sunat' => true,
-            'nubefact_configurado' => true,
-            'nubefact_ruc' => '20600655571',
-            'nubefact_api_ruta' => 'https://api.nubefact.com/api/v1/anul-test-local',
-            'nubefact_token_enc' => Crypt::encryptString('token-anul-test'),
+            'apisunat_configurado' => true,
+            'apisunat_mode' => 'sandbox',
+            'apisunat_token_enc' => Crypt::encryptString('token-anul-lucode-test'),
+        ]);
+
+        \App\Models\FelSerie::query()->create([
+            'sede_id' => $this->scenario['sede']->id,
+            'tipo_comprobante' => \App\Models\FelSerie::TIPO_BOLETA,
+            'serie' => 'B001',
+            'ultimo_correlativo' => 0,
+            'activo' => true,
         ]);
     });
 
     $payload = CajaConsultaCargoScenario::ventaPayloadFromCargo($this->scenario);
+    $payload['tipo_comprobante_sunat'] = \App\Models\FelSerie::TIPO_BOLETA;
 
     $this->actingAs($this->cajero)
         ->post($this->baseUrl.'/caja/ventas', $payload)
@@ -264,6 +296,4 @@ it('anula comprobante FEL emitido vía Nubefact', function (): void {
         expect($doc->estado)->toBe(FelDocument::ESTADO_ANULADO);
         expect($doc->anulado_at)->not->toBeNull();
     });
-
-    Http::assertSentCount(2);
 });

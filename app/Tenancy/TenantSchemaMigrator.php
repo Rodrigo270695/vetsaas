@@ -291,6 +291,8 @@ class TenantSchemaMigrator
             '2026_07_11_100000_t108_create_producto_lotes' => Schema::hasTable('producto_lotes')
                 && Schema::hasColumn('movimientos_inventario', 'producto_lote_id')
                 && Schema::hasColumn('consulta_plan_tratamiento_lineas', 'movimiento_inventario_id'),
+            '2026_07_12_100000_t109_add_fefo_grupo_id_to_movimientos_inventario' => Schema::hasTable('movimientos_inventario')
+                && Schema::hasColumn('movimientos_inventario', 'fefo_grupo_id'),
             default => false,
         };
     }
