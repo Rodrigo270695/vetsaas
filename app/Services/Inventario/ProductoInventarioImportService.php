@@ -100,10 +100,16 @@ final class ProductoInventarioImportService
             true,
         );
 
-        $categoriasByNombre = CategoriaProducto::query()
+        $categorias = CategoriaProducto::query()
             ->where('activo', true)
-            ->get(['id', 'nombre'])
+            ->get(['id', 'nombre']);
+
+        $categoriasByNombre = $categorias
             ->mapWithKeys(fn (CategoriaProducto $c) => [mb_strtolower(trim((string) $c->nombre)) => (string) $c->id])
+            ->all();
+
+        $categoriasById = $categorias
+            ->mapWithKeys(fn (CategoriaProducto $c) => [mb_strtolower((string) $c->id) => (string) $c->id])
             ->all();
 
         $userId = Auth::id();
@@ -167,11 +173,12 @@ final class ProductoInventarioImportService
                 continue;
             }
 
-            $unidad = strtoupper($data['unidad'] ?? '');
+            $unidadRaw = $data['unidad'] ?? '';
+            $unidad = $this->extractCatalogCode($unidadRaw);
             if ($unidad === '') {
                 $unidad = 'UN';
             }
-            $unidad = substr($unidad, 0, 20);
+            $unidad = substr(strtoupper($unidad), 0, 20);
 
             if (! isset($allowedUnidades[$unidad])) {
                 $failed++;
@@ -179,26 +186,30 @@ final class ProductoInventarioImportService
                     'row' => $excelRow,
                     'nombre' => $nombre,
                     'status' => 'error',
-                    'message' => "Unidad «{$unidad}» no válida. Usa un código de la hoja Unidades.",
+                    'message' => "Unidad «{$unidadRaw}» no válida. Usa la lista de Catalogos → UNIDADES.",
                 ];
                 continue;
             }
 
-            $categoriaNombre = $data['categoria'] ?? '';
+            $categoriaRaw = $data['categoria'] ?? '';
             $categoriaId = null;
-            if ($categoriaNombre !== '') {
+            if ($categoriaRaw !== '') {
+                $categoriaNombre = $this->extractCatalogLabel($categoriaRaw);
                 $key = mb_strtolower($categoriaNombre);
-                if (! isset($categoriasByNombre[$key])) {
+                if (! isset($categoriasByNombre[$key]) && isset($categoriasById[mb_strtolower($categoriaNombre)])) {
+                    $categoriaId = $categoriasById[mb_strtolower($categoriaNombre)];
+                } elseif (isset($categoriasByNombre[$key])) {
+                    $categoriaId = $categoriasByNombre[$key];
+                } else {
                     $failed++;
                     $results[] = [
                         'row' => $excelRow,
                         'nombre' => $nombre,
                         'status' => 'error',
-                        'message' => "Categoría «{$categoriaNombre}» no encontrada. Revisa la hoja Categorias.",
+                        'message' => "Categoría «{$categoriaRaw}» no encontrada. Usa la lista de Catalogos → CATEGORIAS.",
                     ];
                     continue;
                 }
-                $categoriaId = $categoriasByNombre[$key];
             }
 
             $sku = ($data['sku'] ?? '') !== '' ? mb_substr($data['sku'], 0, 64) : null;
@@ -362,18 +373,53 @@ final class ProductoInventarioImportService
         return str_starts_with(mb_strtolower(trim($nombre)), 'ejemplo ');
     }
 
+    /**
+     * Extrae el código de un «Valor en lista» tipo "CAJA - Caja" o "SI".
+     */
+    private function extractCatalogCode(string $value): string
+    {
+        $v = trim($value);
+        if ($v === '') {
+            return '';
+        }
+
+        if (preg_match('/^(.+?)\s+-\s+.+$/u', $v, $m) === 1) {
+            return trim($m[1]);
+        }
+
+        return $v;
+    }
+
+    /**
+     * Extrae la etiqueta visible (nombre) de un valor de lista.
+     * Para categorías el valor es solo el nombre; si viniera "id - nombre", usa el nombre.
+     */
+    private function extractCatalogLabel(string $value): string
+    {
+        $v = trim($value);
+        if ($v === '') {
+            return '';
+        }
+
+        if (preg_match('/^.+?\s+-\s+(.+)$/u', $v, $m) === 1) {
+            return trim($m[1]);
+        }
+
+        return $v;
+    }
+
     private function parseBool(string $value, bool $default): bool
     {
-        $v = mb_strtolower(trim($value));
-        if ($v === '') {
+        $code = mb_strtolower($this->extractCatalogCode($value));
+        if ($code === '') {
             return $default;
         }
 
-        if (in_array($v, ['1', 'si', 'sí', 'yes', 'true', 'verdadero', 'x'], true)) {
+        if (in_array($code, ['1', 'si', 'sí', 'yes', 'true', 'verdadero', 'x'], true)) {
             return true;
         }
 
-        if (in_array($v, ['0', 'no', 'false', 'falso'], true)) {
+        if (in_array($code, ['0', 'no', 'false', 'falso'], true)) {
             return false;
         }
 

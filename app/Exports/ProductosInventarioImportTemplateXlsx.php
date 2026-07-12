@@ -6,27 +6,26 @@ use App\Models\CategoriaProducto;
 use App\Support\Inventario\UnidadMedidaOpciones;
 use Illuminate\Support\Facades\Schema;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\Cell\DataValidation;
+use PhpOffice\PhpSpreadsheet\NamedRange;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
-use PhpOffice\PhpSpreadsheet\Worksheet\Table;
-use PhpOffice\PhpSpreadsheet\Worksheet\Table\TableStyle;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 /**
  * Plantilla XLSX para carga masiva de productos.
  *
  * Hojas:
- * - Productos: columnas a rellenar (* = obligatorio)
- * - Categorias: listado de referencia del tenant
- * - Unidades: códigos de unidad de medida válidos
+ * - Productos: captura con listas desplegables en foráneas
+ * - Catalogos: UNIDADES / CATEGORIAS / SI_NO (Código, Nombre, Valor en lista)
+ * - Campos obligatorios: guía de columnas
  */
 class ProductosInventarioImportTemplateXlsx
 {
     /**
-     * Encabezados de la hoja Productos (tal cual se esperan al importar).
-     *
      * @var list<string>
      */
     public const PRODUCTO_HEADERS = [
@@ -43,6 +42,21 @@ class ProductosInventarioImportTemplateXlsx
         'descripcion',
     ];
 
+    private const HEADER_ROW = 1;
+
+    private const DATA_START_ROW = 2;
+
+    private const DATA_END_ROW = 201;
+
+    /** @var array{unidades: array{start: int, end: int}, categorias: array{start: int, end: int}, si_no: array{start: int, end: int}} */
+    private array $catalogRanges = [
+        'unidades' => ['start' => 0, 'end' => -1],
+        'categorias' => ['start' => 0, 'end' => -1],
+        'si_no' => ['start' => 0, 'end' => -1],
+    ];
+
+    private string $ejemploUnidad = 'UN - Unidad';
+
     public function streamTo(string $output = 'php://output'): void
     {
         $spreadsheet = new Spreadsheet();
@@ -51,62 +65,39 @@ class ProductosInventarioImportTemplateXlsx
             ->setTitle('Plantilla importación de productos')
             ->setSubject('Carga masiva de productos de inventario');
 
-        $this->buildProductosSheet($spreadsheet);
-        $this->buildCategoriasSheet($spreadsheet);
-        $this->buildUnidadesSheet($spreadsheet);
+        // Catalogos primero (rangos nombrados para las listas).
+        $catalogos = $spreadsheet->getActiveSheet();
+        $catalogos->setTitle('Catalogos');
+        $this->fillCatalogosSheet($spreadsheet, $catalogos);
 
-        $spreadsheet->setActiveSheetIndex(0);
+        $productos = $spreadsheet->createSheet(0);
+        $productos->setTitle('Productos');
+        $this->fillProductosSheet($productos);
+
+        $this->buildCamposObligatoriosSheet($spreadsheet);
+
+        $spreadsheet->setActiveSheetIndexByName('Productos');
 
         $writer = new Xlsx($spreadsheet);
         $writer->save($output);
         $spreadsheet->disconnectWorksheets();
     }
 
-    private function buildProductosSheet(Spreadsheet $spreadsheet): void
+    private function fillProductosSheet(Worksheet $sheet): void
     {
-        $sheet = $spreadsheet->getActiveSheet();
-        $sheet->setTitle('Productos');
-
         $headers = self::PRODUCTO_HEADERS;
         $lastCol = Coordinate::stringFromColumnIndex(count($headers));
 
-        $sheet->setCellValue('A1', 'Plantilla de productos — rellena filas debajo de los encabezados');
-        $sheet->mergeCells("A1:{$lastCol}1");
-        $sheet->getStyle('A1')->applyFromArray([
-            'font' => ['bold' => true, 'size' => 14, 'color' => ['rgb' => '0E5236']],
-            'alignment' => [
-                'horizontal' => Alignment::HORIZONTAL_LEFT,
-                'vertical' => Alignment::VERTICAL_CENTER,
-            ],
-        ]);
-        $sheet->getRowDimension(1)->setRowHeight(24);
-
-        $sheet->setCellValue(
-            'A2',
-            'Los campos con * son obligatorios. unidad* debe coincidir con un código de la hoja «Unidades». categoria (opcional) debe coincidir con un nombre de la hoja «Categorias». medicamento*/activo*: usa SI o NO.',
-        );
-        $sheet->mergeCells("A2:{$lastCol}2");
-        $sheet->getStyle('A2')->applyFromArray([
-            'font' => ['italic' => true, 'size' => 10, 'color' => ['rgb' => '6B7280']],
-            'alignment' => [
-                'horizontal' => Alignment::HORIZONTAL_LEFT,
-                'vertical' => Alignment::VERTICAL_CENTER,
-                'wrapText' => true,
-            ],
-        ]);
-        $sheet->getRowDimension(2)->setRowHeight(36);
-
-        $headerRow = 4;
         foreach ($headers as $index => $label) {
             $col = Coordinate::stringFromColumnIndex($index + 1);
-            $sheet->setCellValue("{$col}{$headerRow}", $label);
+            $sheet->setCellValue("{$col}".self::HEADER_ROW, $label);
         }
 
-        $sheet->getStyle("A{$headerRow}:{$lastCol}{$headerRow}")->applyFromArray([
-            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+        $sheet->getStyle('A'.self::HEADER_ROW.":{$lastCol}".self::HEADER_ROW)->applyFromArray([
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF'], 'size' => 11],
             'fill' => [
                 'fillType' => Fill::FILL_SOLID,
-                'startColor' => ['rgb' => '0E5236'],
+                'startColor' => ['rgb' => '1E3A5F'],
             ],
             'alignment' => [
                 'horizontal' => Alignment::HORIZONTAL_CENTER,
@@ -115,15 +106,15 @@ class ProductosInventarioImportTemplateXlsx
             'borders' => [
                 'allBorders' => [
                     'borderStyle' => Border::BORDER_THIN,
-                    'color' => ['rgb' => '0A3D29'],
+                    'color' => ['rgb' => '0F2744'],
                 ],
             ],
         ]);
+        $sheet->getRowDimension(self::HEADER_ROW)->setRowHeight(22);
 
-        // Fila de ejemplo (el import la omite si nombre* = "Ejemplo amoxicilina").
         $example = [
             'Ejemplo amoxicilina',
-            'CAJA',
+            $this->ejemploUnidad,
             'SI',
             'SI',
             '',
@@ -132,131 +123,268 @@ class ProductosInventarioImportTemplateXlsx
             '25.50',
             '12.00',
             '5',
-            'Antibiótico — fila de ejemplo, bórrala o cámbiala',
+            'Fila de ejemplo — bórrala o cámbiala',
         ];
-        $exampleRow = $headerRow + 1;
         foreach ($example as $index => $value) {
             $col = Coordinate::stringFromColumnIndex($index + 1);
-            $sheet->setCellValue("{$col}{$exampleRow}", $value);
+            $sheet->setCellValue("{$col}".self::DATA_START_ROW, $value);
         }
 
-        // Filas vacías extra para que la tabla Excel tenga espacio al rellenar.
-        $tableEndRow = $exampleRow + 24;
-        $table = new Table("A{$headerRow}:{$lastCol}{$tableEndRow}", 'TablaProductos');
-        $style = new TableStyle();
-        $style->setTheme(TableStyle::TABLE_STYLE_MEDIUM2);
-        $style->setShowRowStripes(true);
-        $table->setStyle($style);
-        $sheet->addTable($table);
+        $sheet->getStyle('A'.self::DATA_START_ROW.":{$lastCol}".self::DATA_END_ROW)->applyFromArray([
+            'fill' => [
+                'fillType' => Fill::FILL_SOLID,
+                'startColor' => ['rgb' => 'FBF7F0'],
+            ],
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => Border::BORDER_THIN,
+                    'color' => ['rgb' => 'E5E0D8'],
+                ],
+            ],
+        ]);
+
+        // B = unidad*, C = medicamento*, D = activo*, E = categoria
+        $this->applyListValidation($sheet, 'B', 'UNIDADES_LISTA');
+        $this->applyListValidation($sheet, 'C', 'SI_NO_LISTA');
+        $this->applyListValidation($sheet, 'D', 'SI_NO_LISTA');
+        if ($this->catalogRanges['categorias']['end'] >= $this->catalogRanges['categorias']['start']
+            && $this->catalogRanges['categorias']['start'] > 0) {
+            $this->applyListValidation($sheet, 'E', 'CATEGORIAS_LISTA', allowBlank: true);
+        }
 
         foreach (range(1, count($headers)) as $i) {
             $sheet->getColumnDimension(Coordinate::stringFromColumnIndex($i))->setAutoSize(true);
         }
-        $sheet->freezePane('A5');
+        $sheet->freezePane('A2');
+        $sheet->setAutoFilter('A'.self::HEADER_ROW.":{$lastCol}".self::HEADER_ROW);
     }
 
-    private function buildCategoriasSheet(Spreadsheet $spreadsheet): void
+    private function fillCatalogosSheet(Spreadsheet $spreadsheet, Worksheet $sheet): void
     {
-        $sheet = $spreadsheet->createSheet();
-        $sheet->setTitle('Categorias');
-
-        $sheet->setCellValue('A1', 'Categorías activas de la clínica (referencia)');
-        $sheet->mergeCells('A1:B1');
-        $sheet->getStyle('A1')->applyFromArray([
-            'font' => ['bold' => true, 'size' => 13, 'color' => ['rgb' => '0E5236']],
-        ]);
-
-        $sheet->setCellValue('A2', 'Copia el nombre exacto en la columna «categoria» de la hoja Productos.');
-        $sheet->mergeCells('A2:B2');
-        $sheet->getStyle('A2')->applyFromArray([
-            'font' => ['italic' => true, 'size' => 10, 'color' => ['rgb' => '6B7280']],
-        ]);
-
-        $sheet->setCellValue('A4', 'nombre');
-        $sheet->setCellValue('B4', 'id');
-        $sheet->getStyle('A4:B4')->applyFromArray([
-            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+        $sheet->getTabColor()->setRGB('1E3A5F');
+        $sheet->getStyle('A:D')->applyFromArray([
             'fill' => [
                 'fillType' => Fill::FILL_SOLID,
-                'startColor' => ['rgb' => '0E5236'],
+                'startColor' => ['rgb' => 'FBF7F0'],
             ],
         ]);
+
+        $row = 1;
+        $unidades = UnidadMedidaOpciones::forProductoForm();
+        $unidadRows = array_map(
+            static fn (array $u): array => [
+                'codigo' => (string) $u['codigo'],
+                'nombre' => (string) $u['nombre'],
+                'valor' => (string) $u['codigo'].' - '.(string) $u['nombre'],
+            ],
+            $unidades,
+        );
+        if ($unidadRows !== []) {
+            $this->ejemploUnidad = $unidadRows[0]['valor'];
+        }
+        $row = $this->writeCatalogBlock($sheet, $row, 'UNIDADES', $unidadRows);
+        $this->catalogRanges['unidades'] = [
+            'start' => $row - count($unidadRows),
+            'end' => $row - 1,
+        ];
+
+        $row += 2;
 
         $query = CategoriaProducto::query()->where('activo', true);
         if (Schema::hasColumn('categorias_productos', 'orden')) {
             $query->orderBy('orden');
         }
         $categorias = $query->orderBy('nombre')->get(['id', 'nombre']);
+        $categoriaRows = $categorias
+            ->map(static fn (CategoriaProducto $c): array => [
+                'codigo' => (string) $c->id,
+                'nombre' => (string) $c->nombre,
+                'valor' => (string) $c->nombre,
+            ])
+            ->all();
 
-        $row = 5;
-        foreach ($categorias as $cat) {
-            $sheet->setCellValue("A{$row}", (string) $cat->nombre);
-            $sheet->setCellValue("B{$row}", (string) $cat->id);
-            $row++;
+        if ($categoriaRows === []) {
+            $categoriaRows = [[
+                'codigo' => '',
+                'nombre' => '(Sin categorías — créalas en Inventario → Categorías)',
+                'valor' => '',
+            ]];
         }
 
-        if ($categorias->isEmpty()) {
-            $sheet->setCellValue('A5', '(Sin categorías activas — deja «categoria» vacío o créalas antes)');
+        $row = $this->writeCatalogBlock($sheet, $row, 'CATEGORIAS', $categoriaRows);
+        $catStart = $row - count($categoriaRows);
+        $catEnd = $row - 1;
+        $this->catalogRanges['categorias'] = $categorias->isNotEmpty()
+            ? ['start' => $catStart, 'end' => $catEnd]
+            : ['start' => 0, 'end' => -1];
+
+        $row += 2;
+
+        $siNoRows = [
+            ['codigo' => 'SI', 'nombre' => 'Sí', 'valor' => 'SI'],
+            ['codigo' => 'NO', 'nombre' => 'No', 'valor' => 'NO'],
+        ];
+        $row = $this->writeCatalogBlock($sheet, $row, 'SI_NO', $siNoRows);
+        $this->catalogRanges['si_no'] = [
+            'start' => $row - count($siNoRows),
+            'end' => $row - 1,
+        ];
+
+        foreach (['A', 'B', 'C', 'D'] as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
         }
 
-        $endRow = max(5, $row - 1);
-        $table = new Table("A4:B{$endRow}", 'TablaCategorias');
-        $style = new TableStyle();
-        $style->setTheme(TableStyle::TABLE_STYLE_MEDIUM2);
-        $style->setShowRowStripes(true);
-        $table->setStyle($style);
-        $sheet->addTable($table);
-
-        $sheet->getColumnDimension('A')->setAutoSize(true);
-        $sheet->getColumnDimension('B')->setAutoSize(true);
-        $sheet->freezePane('A5');
+        $this->registerNamedRanges($spreadsheet, $sheet);
     }
 
-    private function buildUnidadesSheet(Spreadsheet $spreadsheet): void
+    /**
+     * @param  list<array{codigo: string, nombre: string, valor: string}>  $rows
+     */
+    private function writeCatalogBlock(Worksheet $sheet, int $startRow, string $title, array $rows): int
     {
-        $sheet = $spreadsheet->createSheet();
-        $sheet->setTitle('Unidades');
-
-        $sheet->setCellValue('A1', 'Unidades de medida válidas (referencia)');
-        $sheet->mergeCells('A1:B1');
-        $sheet->getStyle('A1')->applyFromArray([
-            'font' => ['bold' => true, 'size' => 13, 'color' => ['rgb' => '0E5236']],
+        $sheet->setCellValue("A{$startRow}", $title);
+        $sheet->mergeCells("A{$startRow}:D{$startRow}");
+        $sheet->getStyle("A{$startRow}")->applyFromArray([
+            'font' => ['bold' => true, 'size' => 12, 'color' => ['rgb' => '1E3A5F']],
         ]);
 
-        $sheet->setCellValue('A2', 'Usa el «codigo» en la columna unidad* de la hoja Productos (ej. UN, CAJA, ML).');
-        $sheet->mergeCells('A2:B2');
-        $sheet->getStyle('A2')->applyFromArray([
-            'font' => ['italic' => true, 'size' => 10, 'color' => ['rgb' => '6B7280']],
-        ]);
-
-        $sheet->setCellValue('A4', 'codigo');
-        $sheet->setCellValue('B4', 'nombre');
-        $sheet->getStyle('A4:B4')->applyFromArray([
+        $headerRow = $startRow + 1;
+        $sheet->setCellValue("A{$headerRow}", 'Código');
+        $sheet->setCellValue("B{$headerRow}", 'Nombre');
+        $sheet->setCellValue("C{$headerRow}", 'Referencia');
+        $sheet->setCellValue("D{$headerRow}", 'Valor en lista');
+        $sheet->getStyle("A{$headerRow}:D{$headerRow}")->applyFromArray([
             'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
             'fill' => [
                 'fillType' => Fill::FILL_SOLID,
-                'startColor' => ['rgb' => '0E5236'],
+                'startColor' => ['rgb' => '1E3A5F'],
+            ],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_CENTER,
             ],
         ]);
 
-        $unidades = UnidadMedidaOpciones::forProductoForm();
-        $row = 5;
-        foreach ($unidades as $u) {
-            $sheet->setCellValue("A{$row}", (string) $u['codigo']);
-            $sheet->setCellValue("B{$row}", (string) $u['nombre']);
-            $row++;
+        $r = $headerRow + 1;
+        foreach ($rows as $item) {
+            $sheet->setCellValueExplicit(
+                "A{$r}",
+                $item['codigo'],
+                \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING,
+            );
+            $sheet->setCellValue("B{$r}", $item['nombre']);
+            $sheet->setCellValue("C{$r}", '');
+            $sheet->setCellValue("D{$r}", $item['valor']);
+            $r++;
         }
 
-        $endRow = max(5, $row - 1);
-        $table = new Table("A4:B{$endRow}", 'TablaUnidades');
-        $style = new TableStyle();
-        $style->setTheme(TableStyle::TABLE_STYLE_MEDIUM2);
-        $style->setShowRowStripes(true);
-        $table->setStyle($style);
-        $sheet->addTable($table);
+        return $r;
+    }
 
-        $sheet->getColumnDimension('A')->setAutoSize(true);
-        $sheet->getColumnDimension('B')->setAutoSize(true);
-        $sheet->freezePane('A5');
+    private function registerNamedRanges(Spreadsheet $spreadsheet, Worksheet $catalogos): void
+    {
+        $u = $this->catalogRanges['unidades'];
+        if ($u['end'] >= $u['start'] && $u['start'] > 0) {
+            $spreadsheet->addNamedRange(new NamedRange(
+                'UNIDADES_LISTA',
+                $catalogos,
+                '$D$'.$u['start'].':$D$'.$u['end'],
+            ));
+        }
+
+        $c = $this->catalogRanges['categorias'];
+        if ($c['end'] >= $c['start'] && $c['start'] > 0) {
+            $spreadsheet->addNamedRange(new NamedRange(
+                'CATEGORIAS_LISTA',
+                $catalogos,
+                '$D$'.$c['start'].':$D$'.$c['end'],
+            ));
+        }
+
+        $s = $this->catalogRanges['si_no'];
+        if ($s['end'] >= $s['start'] && $s['start'] > 0) {
+            $spreadsheet->addNamedRange(new NamedRange(
+                'SI_NO_LISTA',
+                $catalogos,
+                '$D$'.$s['start'].':$D$'.$s['end'],
+            ));
+        }
+    }
+
+    private function applyListValidation(
+        Worksheet $sheet,
+        string $column,
+        string $namedRange,
+        bool $allowBlank = false,
+    ): void {
+        $validation = new DataValidation();
+        $validation->setType(DataValidation::TYPE_LIST);
+        $validation->setErrorStyle(DataValidation::STYLE_STOP);
+        $validation->setAllowBlank($allowBlank);
+        $validation->setShowInputMessage(true);
+        $validation->setShowErrorMessage(true);
+        $validation->setShowDropDown(true);
+        $validation->setErrorTitle('Valor no válido');
+        $validation->setError('Selecciona un valor de la lista (hoja Catalogos).');
+        $validation->setPromptTitle('Seleccionar');
+        $validation->setPrompt('Elige un valor del catálogo.');
+        $validation->setFormula1("={$namedRange}");
+
+        $sheet->setDataValidation(
+            "{$column}".self::DATA_START_ROW.":{$column}".self::DATA_END_ROW,
+            $validation,
+        );
+    }
+
+    private function buildCamposObligatoriosSheet(Spreadsheet $spreadsheet): void
+    {
+        $sheet = $spreadsheet->createSheet();
+        $sheet->setTitle('Campos obligatorios');
+
+        $sheet->setCellValue('A1', 'Campos de la hoja Productos');
+        $sheet->getStyle('A1')->applyFromArray([
+            'font' => ['bold' => true, 'size' => 14, 'color' => ['rgb' => '1E3A5F']],
+        ]);
+
+        $sheet->setCellValue(
+            'A2',
+            'Los campos con * son obligatorios. Las foráneas se eligen con la lista desplegable (valores de Catalogos → columna «Valor en lista»).',
+        );
+        $sheet->mergeCells('A2:C2');
+        $sheet->getStyle('A2')->applyFromArray([
+            'font' => ['italic' => true, 'size' => 10, 'color' => ['rgb' => '6B7280']],
+            'alignment' => ['wrapText' => true],
+        ]);
+        $sheet->getRowDimension(2)->setRowHeight(32);
+
+        $sheet->fromArray(
+            [
+                ['Campo', 'Obligatorio', 'Cómo completarlo'],
+                ['nombre*', 'Sí', 'Texto libre'],
+                ['unidad*', 'Sí', 'Lista: Catalogos → UNIDADES (Valor en lista)'],
+                ['medicamento*', 'Sí', 'Lista: SI / NO'],
+                ['activo*', 'Sí', 'Lista: SI / NO'],
+                ['categoria', 'No', 'Lista: Catalogos → CATEGORIAS (Valor en lista)'],
+                ['sku', 'No', 'Único en el catálogo'],
+                ['codigo_barras', 'No', 'Texto'],
+                ['precio_venta', 'No', 'Número ≥ 0'],
+                ['precio_compra', 'No', 'Número ≥ 0'],
+                ['stock_minimo', 'No', 'Número ≥ 0'],
+                ['descripcion', 'No', 'Texto'],
+            ],
+            null,
+            'A4',
+        );
+
+        $sheet->getStyle('A4:C4')->applyFromArray([
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+            'fill' => [
+                'fillType' => Fill::FILL_SOLID,
+                'startColor' => ['rgb' => '1E3A5F'],
+            ],
+        ]);
+
+        foreach (['A', 'B', 'C'] as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
     }
 }
