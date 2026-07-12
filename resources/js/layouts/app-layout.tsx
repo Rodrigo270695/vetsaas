@@ -1,3 +1,4 @@
+import { PresenceHeartbeat } from '@/components/presence-heartbeat';
 import AppLayoutTemplate from '@/layouts/app/app-sidebar-layout';
 import type { BreadcrumbItem } from '@/types';
 
@@ -10,6 +11,7 @@ export default function AppLayout({
 }) {
     return (
         <AppLayoutTemplate breadcrumbs={breadcrumbs}>
+            <PresenceHeartbeat />
             {children}
         </AppLayoutTemplate>
     );
