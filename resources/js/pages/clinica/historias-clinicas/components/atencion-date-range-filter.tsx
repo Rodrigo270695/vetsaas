@@ -249,7 +249,7 @@ export function AtencionDateRangeFilter({
                     className={cn(
                         'h-9 min-w-36 justify-start gap-2 rounded-lg px-2.5 font-normal shadow-xs transition-colors',
                         hasRange
-                            ? 'border-brand-400 bg-brand-50 text-foreground hover:border-brand-500 hover:bg-brand-50/80 dark:border-brand-500/70 dark:bg-brand-950/30'
+                            ? 'border-brand-400 bg-white text-foreground hover:border-brand-500 hover:bg-white dark:border-brand-500/70 dark:bg-card'
                             : 'text-muted-foreground',
                         triggerClassName,
                     )}
