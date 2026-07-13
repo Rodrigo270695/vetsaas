@@ -17,14 +17,16 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class SedeController extends Controller
 {
     /**
-     * Usuarios de clínica tienen `tenant_id`; sin él no deben listar sedes.
+     * Tenant del host actual (clínica). Incluye modo soporte:
+     * el superadmin tiene `users.tenant_id = null`, pero el subdominio
+     * ya resolvió el tenant vía TenantManager.
      */
     private function tenantIdOrAbort(Request $request): string
     {
-        $id = $request->user()?->tenant_id;
-        abort_if($id === null, 403, 'Solo usuarios de clínica pueden gestionar sedes.');
+        $id = tenant_id() ?? $request->user()?->tenant_id;
+        abort_if($id === null || $id === '', 403, 'Solo usuarios de clínica pueden gestionar sedes.');
 
-        return $id;
+        return (string) $id;
     }
 
     /**
