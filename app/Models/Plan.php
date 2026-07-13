@@ -113,7 +113,7 @@ class Plan extends Model
         }
 
         return match ($meta['type']) {
-            'int' => $row->valor_int,
+            'int' => $row->valor_int !== null ? (int) $row->valor_int : null,
             'bool' => $row->valor_bool,
             'str' => $row->valor_str,
             default => null,

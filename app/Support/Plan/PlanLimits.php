@@ -12,6 +12,7 @@ use App\Models\Sede;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Tenancy\TenantManager;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Throwable;
 
@@ -79,6 +80,10 @@ final class PlanLimits
 
         $value = $plan->resolveFeature($feature);
 
+        if (is_numeric($value)) {
+            $value = (int) $value;
+        }
+
         if (! is_int($value) || $value < 0) {
             return null;
         }
@@ -106,10 +111,9 @@ final class PlanLimits
                     return User::query()->where('tenant_id', $tenantId)->count();
                 }
 
-                if (! self::tableExistsForModel(Sede::class)) {
-                    return 0;
-                }
-
+                // sedes vive en public.*; no usar Schema::hasTable('sedes') con
+                // search_path del tenant (current_schema = vet_*), que devolvería
+                // false y dejaría used=0 aunque haya sedes.
                 return Sede::query()->where('tenant_id', $tenantId)->count();
             }
 
@@ -203,6 +207,18 @@ final class PlanLimits
     private static function tableExistsForModel(string $modelClass): bool
     {
         $table = (new $modelClass)->getTable();
+
+        // Modelos con UsesPublicSchema (`public.sedes`, etc.): current_schema()
+        // en un request tenant es vet_*, donde esa tabla no existe.
+        if (DB::getDriverName() === 'pgsql' && str_contains($table, '.')) {
+            [$schema, $name] = explode('.', $table, 2);
+
+            return (bool) DB::selectOne(
+                'select 1 from information_schema.tables where table_schema = ? and table_name = ? limit 1',
+                [$schema, $name],
+            );
+        }
+
         $name = str_contains($table, '.')
             ? substr($table, strrpos($table, '.') + 1)
             : $table;

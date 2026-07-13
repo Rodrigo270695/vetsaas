@@ -24,6 +24,7 @@ class PlanFeature extends Model
     protected function casts(): array
     {
         return [
+            'valor_int' => 'integer',
             'valor_bool' => 'boolean',
         ];
     }
