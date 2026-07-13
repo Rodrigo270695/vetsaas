@@ -78,7 +78,7 @@ class PlansAndFeaturesSeeder extends Seeder
                 'trial_days' => 14,
                 'orden' => 3,
                 'features' => [
-                    ['feature' => 'max_sedes', 'valor_int' => 3, 'valor_bool' => null, 'valor_str' => null],
+                    ['feature' => 'max_sedes', 'valor_int' => 1, 'valor_bool' => null, 'valor_str' => null],
                     ['feature' => 'max_pacientes', 'valor_int' => -1, 'valor_bool' => null, 'valor_str' => null],
                     ['feature' => 'max_propietarios', 'valor_int' => -1, 'valor_bool' => null, 'valor_str' => null],
                     ['feature' => 'max_productos', 'valor_int' => 500, 'valor_bool' => null, 'valor_str' => null],
@@ -107,7 +107,7 @@ class PlansAndFeaturesSeeder extends Seeder
                 'trial_days' => 7,
                 'orden' => 4,
                 'features' => [
-                    ['feature' => 'max_sedes', 'valor_int' => -1, 'valor_bool' => null, 'valor_str' => null],
+                    ['feature' => 'max_sedes', 'valor_int' => 3, 'valor_bool' => null, 'valor_str' => null],
                     ['feature' => 'max_pacientes', 'valor_int' => -1, 'valor_bool' => null, 'valor_str' => null],
                     ['feature' => 'max_propietarios', 'valor_int' => -1, 'valor_bool' => null, 'valor_str' => null],
                     ['feature' => 'max_productos', 'valor_int' => -1, 'valor_bool' => null, 'valor_str' => null],
