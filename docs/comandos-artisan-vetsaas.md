@@ -150,11 +150,12 @@ php artisan vetsaas:tenant-restore mi-clinica 2026-07-12_020015
 # Sin pregunta interactiva
 php artisan vetsaas:tenant-restore mi-clinica 2026-07-12_020015 --force
 
-# También acepta schema directo
-php artisan vetsaas:tenant-restore vet_xxxxxxxx --force
+# Restaurar TODOS los schemas faltantes (tras un DROP masivo)
+php artisan vetsaas:tenant-restore-all --force
+php artisan vetsaas:tenant-restore-all --dry-run   # solo lista
 ```
 
-**Requisitos:** `DB_CONNECTION=pgsql`, `pg_restore` en PATH (`BACKUP_PG_RESTORE`), dumps en `BACKUP_PATH` (default `storage/app/backups`).
+**Requisitos:** dumps `vet_*.dump` en `BACKUP_PATH` (default `storage/app/backups`).
 
 ---
 
