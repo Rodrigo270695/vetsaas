@@ -1,6 +1,9 @@
 {
     "title": "Roles y permisos",
     "description": "Define qué puede hacer cada tipo de usuario en la plataforma. Los roles del sistema están protegidos y no se pueden modificar.",
+    "demo_locked": {
+        "description": "Clínica demo: puedes consultar roles, pero no crearlos ni cambiar permisos (afectarían a otras clínicas)."
+    },
     "actions": {
         "new": "Nuevo rol",
         "new_short": "Nuevo",

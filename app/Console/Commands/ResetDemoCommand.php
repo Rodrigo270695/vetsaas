@@ -9,10 +9,13 @@ use App\Models\Tenant;
 use App\Models\User;
 use Database\Seeders\DemoDataSeeder;
 use Database\Seeders\InventarioCategoriasYProductosSeeder;
+use Database\Seeders\PermissionsSeeder;
+use Database\Seeders\TenantRolesSeeder;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\PermissionRegistrar;
 
 /**
  * Resetea el tenant slug `demo` (datos + contraseña).
@@ -78,6 +81,11 @@ final class ResetDemoCommand extends Command
             }
         }
 
+        // Roles Spatie son globales (teams=false). Si alguien vació permisos
+        // de admin_clinica desde otra clínica, el demo queda en 403 aunque
+        // tenga el rol asignado. Re-sincronizamos catálogo + rol base.
+        $this->resyncRbac();
+
         $user = User::query()
             ->where('tenant_id', $tenant->id)
             ->where('email', self::DEMO_EMAIL)
@@ -89,6 +97,7 @@ final class ResetDemoCommand extends Command
             $user->is_active = true;
             $user->save();
             $user->syncRoles(['admin_clinica']);
+            $user->forgetCachedPermissions();
             $this->line('  → Usuario demo@vetsaas.pe: clave demo1234 + rol admin_clinica.');
         } else {
             $this->warn('  ⚠ Usuario demo@vetsaas.pe no encontrado — recreando…');
@@ -102,6 +111,7 @@ final class ResetDemoCommand extends Command
                 'email_verified_at' => now(),
             ]);
             $user->syncRoles(['admin_clinica']);
+            $user->forgetCachedPermissions();
         }
 
         $this->ensureDemoSede($tenant);
@@ -115,6 +125,22 @@ final class ResetDemoCommand extends Command
         $this->line('  demo@vetsaas.pe / demo1234');
 
         return self::SUCCESS;
+    }
+
+    private function resyncRbac(): void
+    {
+        $this->line('  → Re-sincronizando permisos y rol admin_clinica…');
+
+        $perms = new PermissionsSeeder;
+        $perms->setCommand($this);
+        $perms->run();
+
+        $roles = new TenantRolesSeeder;
+        $roles->setCommand($this);
+        $roles->run();
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+        $this->line('  → Caché de permisos Spatie limpiada.');
     }
 
     private function rebuildSchema(Tenant $tenant, string $schema): bool

@@ -54,6 +54,8 @@ type RolesIndexProps = {
     stats: RoleStats;
     /** Catálogo completo de permisos agrupado por módulo. */
     permissions_catalog: PermissionsCatalog;
+    /** Solo tenant demo: bloquear create/edit/delete de roles. */
+    mutations_locked?: boolean;
 };
 
 /**
@@ -93,14 +95,15 @@ export default function Index({
     filters,
     stats,
     permissions_catalog,
+    mutations_locked = false,
 }: RolesIndexProps) {
     const { t } = useTranslation(['roles', 'common']);
     const { can } = usePermission();
-    const canCreate = can('roles.create');
-    const canUpdate = can('roles.update');
-    const canDelete = can('roles.delete');
+    const canCreate = !mutations_locked && can('roles.create');
+    const canUpdate = !mutations_locked && can('roles.update');
+    const canDelete = !mutations_locked && can('roles.delete');
     const canExport = can('roles.export');
-    const canBulkDelete = can('roles.bulk-delete');
+    const canBulkDelete = !mutations_locked && can('roles.bulk-delete');
     const showRowActions = canUpdate || canDelete;
 
     const {
@@ -329,7 +332,11 @@ export default function Index({
             <div className="flex flex-1 flex-col gap-5 p-4 sm:p-6">
                 <PageHeader
                     title={t('roles:title')}
-                    description={t('roles:description')}
+                    description={
+                        mutations_locked
+                            ? t('roles:demo_locked.description')
+                            : t('roles:description')
+                    }
                     stats={[
                         {
                             label: t('roles:stats.total'),

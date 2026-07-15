@@ -94,11 +94,15 @@ class RoleController extends Controller
                 'coincidencias' => $roles->total(),
             ],
             'permissions_catalog' => $permissionsCatalog,
+            // Solo demo: roles Spatie son globales; bloquear mutaciones en UI.
+            'mutations_locked' => is_public_demo_tenant(),
         ]);
     }
 
     public function store(RoleRequest $request): RedirectResponse
     {
+        $this->abortIfDemoRolesLocked();
+
         $data = $request->validated();
 
         Role::create([
@@ -112,6 +116,8 @@ class RoleController extends Controller
 
     public function update(RoleRequest $request, Role $role): RedirectResponse
     {
+        $this->abortIfDemoRolesLocked();
+
         ClinicAdminScope::assertRoleAccessible($role);
 
         // Bloqueamos toda edición de roles del sistema. Hacerlo en el
@@ -145,6 +151,8 @@ class RoleController extends Controller
      */
     public function updatePermissions(Request $request, Role $role): RedirectResponse
     {
+        $this->abortIfDemoRolesLocked();
+
         ClinicAdminScope::assertRoleAccessible($role);
 
         // Nota de diseño:
@@ -191,6 +199,8 @@ class RoleController extends Controller
 
     public function destroy(Role $role): RedirectResponse
     {
+        $this->abortIfDemoRolesLocked();
+
         ClinicAdminScope::assertRoleAccessible($role);
 
         if ($role->is_system) {
@@ -211,6 +221,8 @@ class RoleController extends Controller
      */
     public function bulkDestroy(Request $request): RedirectResponse
     {
+        $this->abortIfDemoRolesLocked();
+
         $data = $request->validate([
             'ids' => ['required', 'array', 'min:1', 'max:500'],
             'ids.*' => ['integer'],
@@ -281,6 +293,20 @@ class RoleController extends Controller
                 'Pragma' => 'no-cache',
             ],
         );
+    }
+
+    /**
+     * En el tenant público `demo` no se permiten alta/edición/borrado de
+     * roles ni sync de permisos: Spatie no aísla por tenant y un cambio
+     * afectaría a todas las clínicas reales.
+     */
+    private function abortIfDemoRolesLocked(): void
+    {
+        if (! is_public_demo_tenant()) {
+            return;
+        }
+
+        abort(403, 'En la clínica demo no se pueden modificar roles ni permisos.');
     }
 
     /**

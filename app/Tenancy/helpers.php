@@ -34,3 +34,14 @@ if (! function_exists('tenant_id')) {
         return app(TenantManager::class)->id();
     }
 }
+
+if (! function_exists('is_public_demo_tenant')) {
+    /**
+     * Tenant público de demostración (slug fijo `demo`).
+     * Ahí los roles Spatie son globales: no se deben editar desde la UI.
+     */
+    function is_public_demo_tenant(): bool
+    {
+        return current_tenant()?->slug === 'demo';
+    }
+}

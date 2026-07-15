@@ -1,6 +1,9 @@
 {
     "title": "Roles & permissions",
     "description": "Define what each type of user can do on the platform. System roles are protected and cannot be modified.",
+    "demo_locked": {
+        "description": "Demo clinic: you can view roles, but cannot create or change permissions (that would affect other clinics)."
+    },
     "actions": {
         "new": "New role",
         "new_short": "New",
