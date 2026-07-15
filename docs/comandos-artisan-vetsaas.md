@@ -395,25 +395,34 @@ php artisan vetsaas:sync-bot-knowledge --force
 
 ### `vetsaas:reset-demo`
 
-Resetea datos y contraseña del tenant demo.
+Resetea **solo** el tenant `demo` (datos + contraseña `demo1234`).
 
 ```bash
+# Reset datos (nocturno / habitual)
 php artisan vetsaas:reset-demo
+
+# Si el schema quedó roto, sin permisos o tras un accidente:
+php artisan vetsaas:reset-demo --rebuild
 ```
 
-**Scheduler:** diario **03:00**.
+**Scheduler:** diario **03:00** (sin `--rebuild`).
+
+Login: `https://demo.<TENANT_ROOT_DOMAIN>/login` → `demo@vetsaas.pe` / `demo1234`
 
 ---
 
 ### `vetsaas:fresh-demo`
 
-`migrate:fresh` + seed + 3 tenants demo. **Peligroso.**
+`migrate:fresh` + seed + tenant demo. **Solo local/staging.**  
+En **producción está bloqueado** (antes podía dropear todos los `vet_*` y dejar clínicas sin schema).
 
 ```bash
+# Solo desarrollo
 php artisan vetsaas:fresh-demo --force
-# Solo si sabes lo que haces:
-php artisan vetsaas:fresh-demo --force --allow-production
 ```
+
+En producción, para la demo usa **`vetsaas:reset-demo --rebuild`**.  
+Si necesitas recuperar otra clínica: `vetsaas:tenant-restore {slug} {carpeta} --force`.
 
 ---
 

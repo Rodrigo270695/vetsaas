@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Sede;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Database\Seeder;
@@ -108,6 +109,7 @@ class DemoTenantsSeeder extends Seeder
                 $invSeeder->setCommand($this->command);
             }
             $invSeeder->seedForSchema($schemaName, $config['slug']);
+            $this->ensurePrimarySede($tenant);
 
             $loginEmail = (string) ($config['email_override'] ?? ('admin@'.$config['slug'].'.test'));
             $loginPass  = (string) ($config['password_override'] ?? self::DEMO_PASSWORD);
@@ -120,12 +122,33 @@ class DemoTenantsSeeder extends Seeder
                 $loginPass,
             ));
         }
+    }
 
-        $sedesSeeder = new SedesSeeder;
-        if ($this->command !== null) {
-            $sedesSeeder->setCommand($this->command);
-        }
-        $sedesSeeder->run();
+    /**
+     * Una sola sede activa por tenant demo. No invoca SedesSeeder global
+     * (ese seeder toca TODOS los tenants de public y choca con soft-deletes).
+     */
+    private function ensurePrimarySede(Tenant $tenant): void
+    {
+        Sede::withTrashed()->updateOrCreate(
+            [
+                'tenant_id' => $tenant->id,
+                'codigo' => 'LIM-01',
+            ],
+            [
+                'nombre' => 'Sede Lima Centro',
+                'direccion' => 'Av. Arequipa 1234',
+                'distrito' => 'Lince',
+                'provincia' => 'Lima',
+                'departamento' => 'Lima',
+                'telefono' => '+51 1 555-0101',
+                'email' => 'lima@vetsaas.pe',
+                'serie_factura' => 'F001',
+                'serie_boleta' => 'B001',
+                'activa' => true,
+                'deleted_at' => null,
+            ],
+        );
     }
 
     /**

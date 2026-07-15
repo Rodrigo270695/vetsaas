@@ -65,7 +65,7 @@ class SedesSeeder extends Seeder
 
         foreach ($tenants as $tenant) {
             foreach (self::SEDES_PLANTILLA as $fila) {
-                Sede::query()->updateOrCreate(
+                Sede::withTrashed()->updateOrCreate(
                     [
                         'tenant_id' => $tenant->id,
                         'codigo' => $fila['codigo'],
@@ -73,6 +73,7 @@ class SedesSeeder extends Seeder
                     [
                         ...$fila,
                         'tenant_id' => $tenant->id,
+                        'deleted_at' => null,
                     ],
                 );
             }
