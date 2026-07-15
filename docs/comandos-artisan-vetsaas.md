@@ -20,6 +20,17 @@ php artisan list vetsaas
 php artisan list salesbot
 ```
 
+## Reglas de seguridad (production)
+
+| Nunca | Usar en su lugar |
+|-------|------------------|
+| ~~`vetsaas:fresh-demo`~~ (eliminado) | `vetsaas:reset-demo` / `--rebuild` (solo slug `demo`) |
+| `migrate:fresh` en el VPS | No; Laravel ya lo prohíbe en production |
+| `tenant-migrate --wipe` en clínicas reales | Solo permitido en schema **demo**; resto → `tenant-restore` |
+| Editar roles/permisos en la clínica demo | Bloqueado en UI y API (roles Spatie son globales) |
+
+Recuperación de una clínica: `vetsaas:tenant-restore {slug} --force` (exige dump; falla si quedan 0 tablas).
+
 ---
 
 ## Índice rápido
@@ -31,7 +42,7 @@ php artisan list salesbot
 | **Cobros / suscripciones** | `billing-supervisor`, `subscription-renewal-reminders`, `sync-tenants-from-subscriptions` |
 | **WhatsApp / notificaciones clínicas** | `whatsapp-sync-sessions`, `reminders-scan`, `notifications-dispatch`, `clinic-bot-register-webhooks` |
 | **Bot de ventas / leads** | `salesbot:*`, `reactivate-cold-leads`, `import-leads`, `import-leads-from-openwa`, `resolve-lid-leads`, `sync-bot-knowledge` |
-| **Demo / mantenimiento** | `reset-demo`, `fresh-demo`, `geo-fix-encoding`, `nubefact-diagnose`, `test-password-reset-mail` |
+| **Demo / mantenimiento** | `reset-demo`, `geo-fix-encoding`, `nubefact-diagnose`, `test-password-reset-mail` |
 
 ---
 
@@ -150,12 +161,17 @@ php artisan vetsaas:tenant-restore mi-clinica 2026-07-12_020015
 # Sin pregunta interactiva
 php artisan vetsaas:tenant-restore mi-clinica 2026-07-12_020015 --force
 
-# Restaurar TODOS los schemas faltantes (tras un DROP masivo)
+# Restaurar TODOS los schemas **faltantes** (recuperación; no toca los que ya existen)
+php artisan vetsaas:tenant-restore-all --dry-run
 php artisan vetsaas:tenant-restore-all --force
-php artisan vetsaas:tenant-restore-all --dry-run   # solo lista
+
+# Sobrescribir existentes en production exige escribir RESTORE-ALL
+php artisan vetsaas:tenant-restore-all --force --include-existing
 ```
 
-**Requisitos:** dumps `vet_*.dump` en `BACKUP_PATH` (default `storage/app/backups`).
+**Requisitos:** dumps `vet_*.dump` en `BACKUP_PATH`. El restore **falla** si el schema queda con 0 tablas (ya no reporta OK falso).
+
+> **Eliminado:** `vetsaas:fresh-demo` (dropeaba todos los `vet_*`). Demo → solo `vetsaas:reset-demo`.
 
 ---
 
@@ -410,20 +426,8 @@ php artisan vetsaas:reset-demo --rebuild
 
 Login: `https://demo.<TENANT_ROOT_DOMAIN>/login` → `demo@vetsaas.pe` / `demo1234`
 
----
-
-### `vetsaas:fresh-demo`
-
-`migrate:fresh` + seed + tenant demo. **Solo local/staging.**  
-En **producción está bloqueado** (antes podía dropear todos los `vet_*` y dejar clínicas sin schema).
-
-```bash
-# Solo desarrollo
-php artisan vetsaas:fresh-demo --force
-```
-
-En producción, para la demo usa **`vetsaas:reset-demo --rebuild`**.  
-Si necesitas recuperar otra clínica: `vetsaas:tenant-restore {slug} {carpeta} --force`.
+> **Importante:** no existe `vetsaas:fresh-demo`. Ese comando se eliminó porque
+> dropeaba todos los schemas `vet_*`. En production solo se usa `reset-demo`.
 
 ---
 

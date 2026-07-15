@@ -2285,10 +2285,12 @@ Sin una restricción de negocio en contra, **el orden técnico recomendable es F
 ## Comandos de operación frecuente
 
 ```bash
-# RESET COMPLETO de desarrollo: migrate:fresh + seed + 3 tenants demo listos
-# (mi-clinica, vet-amigos, paws-care). Admins con password "clave123456".
-php artisan vetsaas:fresh-demo            # pide confirmación
-php artisan vetsaas:fresh-demo --force    # sin prompt (scripts)
+# RESET SOLO del tenant demo (seguro en production):
+php artisan vetsaas:reset-demo --rebuild
+
+# Setup local (desarrollo): migrate + seed + DemoTenantsSeeder
+php artisan migrate --seed
+php artisan db:seed --class=DemoTenantsSeeder
 
 # Solo recrear los tenants demo sin tocar public:
 php artisan db:seed --class=DemoTenantsSeeder --force

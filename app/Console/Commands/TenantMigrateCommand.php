@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Tenant;
 use App\Tenancy\TenantSchemaMigrator;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
@@ -25,13 +26,30 @@ class TenantMigrateCommand extends Command
             return self::FAILURE;
         }
 
+        $wipe = (bool) $this->option('wipe');
+        $replay = (bool) $this->option('replay');
+
+        if (($wipe || $replay) && app()->isProduction() && ! $this->isDemoSchema($schema)) {
+            $this->error('En producción --wipe/--replay solo están permitidos en el schema del tenant demo.');
+            $this->line('Para otras clínicas usa: php artisan vetsaas:tenant-restore {slug} --force');
+
+            return self::FAILURE;
+        }
+
         $code = $migrator->migrate(
             $schema,
             $this->output,
-            (bool) $this->option('wipe'),
-            (bool) $this->option('replay'),
+            $wipe,
+            $replay,
         );
 
         return $code === TenantSchemaMigrator::EXIT_SUCCESS ? self::SUCCESS : self::FAILURE;
+    }
+
+    private function isDemoSchema(string $schema): bool
+    {
+        $demo = Tenant::query()->where('slug', 'demo')->value('schema_name');
+
+        return is_string($demo) && $demo !== '' && $schema === $demo;
     }
 }

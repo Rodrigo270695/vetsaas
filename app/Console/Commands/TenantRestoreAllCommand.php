@@ -11,23 +11,23 @@ use Illuminate\Support\Facades\DB;
 use Throwable;
 
 /**
- * Restaura schemas vet_* desde backup local.
+ * Restaura schemas vet_* desde backup local (recuperación).
  *
- * Uso típico (recuperación tras DROP masivo):
- *   php artisan vetsaas:tenant-restore-all --force
+ * Por defecto SOLO schemas faltantes. Sobrescribir requiere
+ * --include-existing y, en production, confirmar escribiendo RESTORE-ALL.
  *
- * Solo lista:
  *   php artisan vetsaas:tenant-restore-all --dry-run
+ *   php artisan vetsaas:tenant-restore-all --force
  */
 final class TenantRestoreAllCommand extends Command
 {
     protected $signature = 'vetsaas:tenant-restore-all
                             {folder? : Carpeta (Y-m-d_His). Si se omite, cada tenant usa la más reciente con dump}
-                            {--force : Sin confirmación}
-                            {--include-existing : También restaura schemas que ya existen (sobrescribe)}
+                            {--force : Sin prompt sí/no (en production con --include-existing aún pide RESTORE-ALL)}
+                            {--include-existing : También sobrescribe schemas que ya existen}
                             {--dry-run : Solo lista, no restaura}';
 
-    protected $description = 'Restaura schemas vet_* faltantes (o todos) desde backup local';
+    protected $description = 'Restaura schemas vet_* faltantes desde backup (recuperación; no es mantenimiento diario)';
 
     public function handle(DatabaseBackupService $backups): int
     {
@@ -115,7 +115,15 @@ final class TenantRestoreAllCommand extends Command
             return $fail > 0 ? self::FAILURE : self::SUCCESS;
         }
 
-        if (! $this->option('force') && ! $this->confirm('¿Restaurar todos los listados?', false)) {
+        if ($includeExisting && app()->isProduction()) {
+            $this->error('Vas a SOBRESCRIBIR schemas existentes en PRODUCTION.');
+            $typed = (string) $this->ask('Escribe exactamente RESTORE-ALL para continuar');
+            if ($typed !== 'RESTORE-ALL') {
+                $this->info('Cancelado.');
+
+                return self::SUCCESS;
+            }
+        } elseif (! $this->option('force') && ! $this->confirm('¿Restaurar todos los listados?', false)) {
             $this->info('Cancelado.');
 
             return self::SUCCESS;
@@ -127,7 +135,8 @@ final class TenantRestoreAllCommand extends Command
             $this->line("→ {$row['slug']} ({$row['schema']})…");
             try {
                 $result = $backups->restoreTenantSchema($row['schema'], $folder ?? $row['folder']);
-                $this->info("  OK  ← {$result['dump_path']}");
+                $tables = $result['tables'] ?? '?';
+                $this->info("  OK  tablas={$tables} ← {$result['dump_path']}");
                 $ok++;
             } catch (Throwable $e) {
                 $this->error('  FAIL: '.$e->getMessage());

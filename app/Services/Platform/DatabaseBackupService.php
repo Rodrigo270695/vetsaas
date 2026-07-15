@@ -7,6 +7,7 @@ namespace App\Services\Platform;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
@@ -482,14 +483,30 @@ final class DatabaseBackupService
         }
 
         DB::statement('DROP SCHEMA IF EXISTS '.$this->quoteIdent($schema).' CASCADE');
+        // NO pre-crear el schema: si existe vacío, el CREATE SCHEMA del dump
+        // falla y pg_restore puede saltar todas las tablas dependientes.
+        // El dump (pg_dump --schema=vet_*) ya trae CREATE SCHEMA + objetos.
 
-        $this->restoreDump($dumpPath, $schema);
+        $stderr = $this->restoreDump($dumpPath, $schema);
+
+        $tableCount = (int) (DB::selectOne(
+            'select count(*)::int as c from information_schema.tables where table_schema = ?',
+            [$schema],
+        )->c ?? 0);
+
+        if ($tableCount < 1) {
+            throw new RuntimeException(
+                "pg_restore dejó {$schema} sin tablas (dump vacío o restaurado mal)."
+                .($stderr !== '' ? ' stderr: '.mb_substr($stderr, 0, 2000) : ''),
+            );
+        }
 
         return [
             'schema' => $schema,
             'dump_path' => $dumpPath,
             'folder' => $folderName,
             'safety_dump' => $safetyPath,
+            'tables' => $tableCount,
         ];
     }
 
@@ -544,18 +561,21 @@ final class DatabaseBackupService
         return '"'.str_replace('"', '""', $ident).'"';
     }
 
-    private function restoreDump(string $dumpFile, string $schema): void
+    /**
+     * @return string stderr de pg_restore (para diagnóstico si queda vacío)
+     */
+    private function restoreDump(string $dumpFile, string $schema): string
     {
         $connection = config('database.connections.pgsql', []);
         $pgRestore = (string) config('backup.pg_restore', 'pg_restore');
 
+        // El dump ya es de un solo schema (pg_dump --schema=vet_*).
+        // NO usar --schema= aquí: con el schema pre-creado/inexistente
+        // filtraba mal y dejaba 0 tablas. NO --clean: ya hicimos DROP SCHEMA.
         $command = [
             $pgRestore,
-            '--clean',
-            '--if-exists',
             '--no-owner',
             '--no-acl',
-            '--schema='.$schema,
             '-h', (string) ($connection['host'] ?? '127.0.0.1'),
             '-p', (string) ($connection['port'] ?? 5432),
             '-U', (string) ($connection['username'] ?? 'postgres'),
@@ -569,10 +589,22 @@ final class DatabaseBackupService
             ])
             ->run($command);
 
-        // pg_restore usa exit 1 para warnings no fatales (p.ej. objetos ausentes con --clean).
+        $stderr = trim($result->errorOutput());
+
+        // pg_restore usa exit 1 para warnings no fatales; >1 es error duro.
         if ($result->exitCode() > 1) {
-            throw new RuntimeException(trim($result->errorOutput() ?: $result->output()) ?: 'pg_restore falló sin mensaje.');
+            throw new RuntimeException($stderr !== '' ? $stderr : (trim($result->output()) ?: 'pg_restore falló sin mensaje.'));
         }
+
+        if ($result->exitCode() === 1 && $stderr !== '') {
+            Log::warning('pg_restore exit 1 (warnings)', [
+                'schema' => $schema,
+                'dump' => $dumpFile,
+                'stderr' => mb_substr($stderr, 0, 4000),
+            ]);
+        }
+
+        return $stderr;
     }
 
     private function dump(string $outputFile, ?string $schema = null): void

@@ -91,6 +91,9 @@ class TenantRestoreCommand extends Command
 
         $this->info("OK — schema {$result['schema']} restaurado.");
         $this->line("  desde: {$result['dump_path']}");
+        if (isset($result['tables'])) {
+            $this->line("  tablas: {$result['tables']}");
+        }
 
         if ($result['safety_dump'] !== null) {
             $this->line("  safety dump (pre-restore): {$result['safety_dump']}");

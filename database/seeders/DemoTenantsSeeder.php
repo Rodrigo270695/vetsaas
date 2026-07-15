@@ -35,9 +35,12 @@ use Illuminate\Support\Facades\Hash;
  *
  *     php artisan db:seed --class=DemoTenantsSeeder
  *
- * O, recomendado, vía el comando wrapper:
+ * O, recomendado en desarrollo local:
  *
- *     php artisan vetsaas:fresh-demo
+ *     php artisan migrate --seed
+ *     php artisan db:seed --class=DemoTenantsSeeder
+ *
+ * En production NUNCA uses wipe global: solo `vetsaas:reset-demo --rebuild`.
  */
 class DemoTenantsSeeder extends Seeder
 {
@@ -93,6 +96,16 @@ class DemoTenantsSeeder extends Seeder
             $this->command?->warn('DemoTenantsSeeder requiere PostgreSQL (multi-schema). Omitido.');
 
             return;
+        }
+
+        if (app()->isProduction()) {
+            foreach (self::TENANTS as $config) {
+                if (($config['slug'] ?? '') !== 'demo') {
+                    $this->command?->error('DemoTenantsSeeder en production solo admite el slug demo. Abortado.');
+
+                    return;
+                }
+            }
         }
 
         $schemaPrefix = (string) config('tenant.schema_prefix', 'vet_');
