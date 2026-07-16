@@ -8,6 +8,7 @@ use App\Http\Controllers\CajaSesionController;
 use App\Http\Controllers\CategoriaInventarioController;
 use App\Http\Controllers\CirugiaController;
 use App\Http\Controllers\CitaController;
+use App\Http\Controllers\ClinicalHistoryWhatsAppController;
 use App\Http\Controllers\ClinicBotIaController;
 use App\Http\Controllers\ClinicSettingController;
 use App\Http\Controllers\ClinicSubscriptionController;
@@ -241,6 +242,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             Route::middleware('permission:pacientes.view')
                 ->get('pacientes/{paciente}/historial-clinico.pdf', [PacienteController::class, 'historialClinicoPdf'])
                 ->name('pacientes.historial-clinico-pdf');
+            Route::middleware('permission:pacientes.view')
+                ->post('pacientes/{paciente}/historial-clinico/whatsapp', [ClinicalHistoryWhatsAppController::class, 'historial'])
+                ->name('pacientes.historial-clinico-whatsapp');
             Route::middleware('permission:pacientes.create')
                 ->post('pacientes', [PacienteController::class, 'store'])
                 ->name('pacientes.store');
@@ -260,6 +264,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             Route::middleware('permission:historias-clinicas.view')
                 ->get('historias-clinicas/consultas/{consulta}/pdf', [ConsultaHistoriaController::class, 'pdf'])
                 ->name('historias-clinicas.consultas.pdf');
+            Route::middleware('permission:historias-clinicas.view')
+                ->post('historias-clinicas/consultas/{consulta}/whatsapp', [ClinicalHistoryWhatsAppController::class, 'consulta'])
+                ->name('historias-clinicas.consultas.whatsapp');
             Route::middleware('permission:historias-clinicas-planes.manage')
                 ->get('historias-clinicas/productos-medicamento', [ConsultaPlanTratamientoController::class, 'productosMedicamento'])
                 ->name('historias-clinicas.productos-medicamento');

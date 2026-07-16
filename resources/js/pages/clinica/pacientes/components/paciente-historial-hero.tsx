@@ -5,6 +5,7 @@ import {
     Cat,
     Dog,
     FileDown,
+    MessageCircle,
     PawPrint,
     Plus,
     Scale,
@@ -27,6 +28,7 @@ type Props = {
         nueva_consulta: string;
         nueva_aplicacion: string;
         historial_pdf: string | null;
+        historial_whatsapp: string | null;
     };
     permisos: {
         consultas_crear: boolean;
@@ -38,22 +40,28 @@ type Props = {
         total: number;
     };
     hasTimeline: boolean;
+    onShareHistory: () => void;
 };
 
 function sexoLabel(t: (k: string) => string, sexo: string | null): string | null {
     if (!sexo) {
         return null;
     }
+
     const k = sexo.toLowerCase();
+
     if (k === 'm') {
         return t('row.sexo_m');
     }
+
     if (k === 'h') {
         return t('row.sexo_h');
     }
+
     if (k === 'u') {
         return t('row.sexo_u');
     }
+
     return sexo;
 }
 
@@ -64,31 +72,40 @@ function textoEdad(
     if (!edad) {
         return null;
     }
+
     if (edad.menosDeUnMes) {
         return t('card.edad_menos_un_mes');
     }
+
     const y = edad.years;
     const m = edad.months;
+
     if (y === 0) {
         return m === 1 ? t('card.edad_un_mes') : t('card.edad_n_meses', { count: m });
     }
+
     if (m === 0) {
         return y === 1 ? t('card.edad_un_año') : t('card.edad_n_años', { count: y });
     }
+
     const yStr = y === 1 ? t('card.edad_un_año') : t('card.edad_n_años', { count: y });
     const mStr = m === 1 ? t('card.edad_un_mes') : t('card.edad_n_meses', { count: m });
+
     return `${yStr} ${t('card.edad_y')} ${mStr}`;
 }
 
-function especieIcon(especie: string | null) {
+function SpeciesIcon({ especie, className }: { especie: string | null; className: string }) {
     const e = (especie ?? '').toLowerCase();
+
     if (e.includes('perro') || e.includes('canin') || e.includes('dog')) {
-        return Dog;
+        return <Dog className={className} strokeWidth={1.75} />;
     }
+
     if (e.includes('gato') || e.includes('felin') || e.includes('cat')) {
-        return Cat;
+        return <Cat className={className} strokeWidth={1.75} />;
     }
-    return PawPrint;
+
+    return <PawPrint className={className} strokeWidth={1.75} />;
 }
 
 export function PacienteHistorialHero({
@@ -98,9 +115,9 @@ export function PacienteHistorialHero({
     permisos,
     timelineStats,
     hasTimeline,
+    onShareHistory,
 }: Props) {
     const { t } = useTranslation(['pacientes']);
-    const EspecieIcon = especieIcon(paciente.especie);
     const subline = [paciente.especie, paciente.raza].filter(Boolean).join(' · ');
     const sexo = sexoLabel(t, paciente.sexo);
     const edad = useMemo(() => calcularEdadMascota(paciente.fecha_nacimiento), [paciente.fecha_nacimiento]);
@@ -132,7 +149,10 @@ export function PacienteHistorialHero({
                                 />
                             ) : (
                                 <span className="flex size-20 items-center justify-center rounded-2xl border-2 border-dashed border-primary/25 bg-background/70 shadow-sm sm:size-24">
-                                    <EspecieIcon className="size-9 text-primary/70" strokeWidth={1.75} />
+                                    <SpeciesIcon
+                                        especie={paciente.especie}
+                                        className="size-9 text-primary/70"
+                                    />
                                 </span>
                             )}
                             <span
@@ -163,7 +183,10 @@ export function PacienteHistorialHero({
 
                             {subline ? (
                                 <p className="flex items-center gap-1.5 text-sm font-medium text-foreground/80">
-                                    <EspecieIcon className="size-4 shrink-0 text-sky-600 dark:text-sky-400" />
+                                    <SpeciesIcon
+                                        especie={paciente.especie}
+                                        className="size-4 shrink-0 text-sky-600 dark:text-sky-400"
+                                    />
                                     {subline}
                                 </p>
                             ) : null}
@@ -247,6 +270,18 @@ export function PacienteHistorialHero({
                                 <FileDown className="size-4" strokeWidth={2.25} />
                                 {t('historial.action_historial_pdf')}
                             </a>
+                        </Button>
+                    ) : null}
+                    {links.historial_whatsapp && hasTimeline ? (
+                        <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="gap-2 border-emerald-500/30 text-emerald-700 hover:bg-emerald-500/10 hover:text-emerald-800 dark:text-emerald-300"
+                            onClick={onShareHistory}
+                        >
+                            <MessageCircle className="size-4" strokeWidth={2.25} />
+                            {t('historial.action_whatsapp')}
                         </Button>
                     ) : null}
                 </div>

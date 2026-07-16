@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\ConsultaHistoriaController;
+use App\Http\Controllers\PacienteController;
 use App\Http\Controllers\Tenant\TenantDashboardController;
 use Illuminate\Support\Facades\Route;
 
@@ -27,6 +29,16 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::middleware(['tenant.required'])->group(function (): void {
+    Route::middleware(['signed', 'throttle:60,1'])
+        ->prefix('documentos-publicos')
+        ->name('tenant.public.clinical-history.')
+        ->group(function (): void {
+            Route::get('consultas/{consulta}.pdf', [ConsultaHistoriaController::class, 'publicPdf'])
+                ->name('consulta');
+            Route::get('pacientes/{paciente}/historial-clinico.pdf', [PacienteController::class, 'publicHistorialClinicoPdf'])
+                ->name('historial');
+        });
+
     Route::get('/', [TenantDashboardController::class, 'welcome'])
         ->name('tenant.home');
 });

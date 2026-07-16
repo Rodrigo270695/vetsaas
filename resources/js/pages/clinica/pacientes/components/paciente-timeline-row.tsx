@@ -6,6 +6,7 @@ import {
     ExternalLink,
     FileDown,
     Heart,
+    MessageCircle,
     Stethoscope,
     Syringe,
     Thermometer,
@@ -34,6 +35,7 @@ type TimelineRowProps = {
         vacunas_ver: boolean;
     };
     isLast: boolean;
+    onShareConsulta: (item: Extract<TimelineItem, { kind: 'consulta' }>) => void;
 };
 
 function vinculosConsultaTieneContenido(v: TimelineConsultaVinculos): boolean {
@@ -129,6 +131,7 @@ function itemTheme(item: TimelineItem) {
     }
 
     const cat = (item.categoria ?? 'vacuna').toLowerCase();
+
     if (cat === 'desparasitacion') {
         return {
             stripe: 'bg-amber-500',
@@ -139,6 +142,7 @@ function itemTheme(item: TimelineItem) {
             Icon: Syringe,
         };
     }
+
     if (cat === 'otro') {
         return {
             stripe: 'bg-violet-500',
@@ -160,21 +164,35 @@ function itemTheme(item: TimelineItem) {
     };
 }
 
-export function PacienteTimelineRow({ item, appLocale, appTz, permisos, isLast }: TimelineRowProps) {
+export function PacienteTimelineRow({
+    item,
+    appLocale,
+    appTz,
+    permisos,
+    isLast,
+    onShareConsulta,
+}: TimelineRowProps) {
     const { t } = useTranslation(['pacientes', 'recetas', 'laboratorio', 'cirugia', 'common']);
     const [resumenAbierto, setResumenAbierto] = useState(false);
     const theme = itemTheme(item);
 
-    const fechaFmt = formatAtendidoInAppTimezone(item.ocurrido_at, String(appLocale ?? 'es'), appTz);
+    const fechaFmt = formatAtendidoInAppTimezone(
+        item.ocurrido_at,
+        String(appLocale ?? 'es'),
+        appTz ?? 'UTC',
+    );
 
     const categoriaEtiqueta = (c: string) => {
         const k = (c ?? 'vacuna').toLowerCase();
+
         if (k === 'desparasitacion') {
             return t('historial.cat_desparasitacion');
         }
+
         if (k === 'otro') {
             return t('historial.cat_otro');
         }
+
         return t('historial.cat_vacuna');
     };
 
@@ -344,6 +362,17 @@ export function PacienteTimelineRow({ item, appLocale, appTz, permisos, isLast }
                                             <FileDown className="size-3.5" strokeWidth={2.25} />
                                             PDF
                                         </a>
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-8 gap-1.5 border-emerald-500/30 px-2.5 text-xs text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-300"
+                                        onClick={() => onShareConsulta(item)}
+                                    >
+                                        <MessageCircle className="size-3.5" strokeWidth={2.25} />
+                                        <span className="sr-only">{t('historial.action_whatsapp')}</span>
+                                        <span aria-hidden>WhatsApp</span>
                                     </Button>
                                 </>
                             ) : null}

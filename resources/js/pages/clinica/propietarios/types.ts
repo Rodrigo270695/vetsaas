@@ -113,6 +113,7 @@ export type Paciente = {
         nombres: string;
         apellidos: string | null;
         razon_social: string | null;
+        telefono?: string | null;
     };
     creado_por: AuditUser;
     actualizado_por: AuditUser;

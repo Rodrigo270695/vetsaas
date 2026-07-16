@@ -8,8 +8,8 @@ use App\Http\Controllers\Concerns\LogsAuditExports;
 use App\Http\Controllers\Concerns\ResolvesClinicPdfBranding;
 use App\Http\Requests\PacienteRequest;
 use App\Models\Cirugia;
-use App\Models\Internamiento;
 use App\Models\HistoriaClinica;
+use App\Models\Internamiento;
 use App\Models\Paciente;
 use App\Models\PedidoLaboratorio;
 use App\Models\Propietario;
@@ -21,6 +21,7 @@ use App\Support\Pdf\HistorialClinicoPdfBuilder;
 use App\Tenancy\TenantManager;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -36,6 +37,7 @@ class PacienteController extends Controller
 {
     use LogsAuditExports;
     use ResolvesClinicPdfBranding;
+
     private const PER_PAGE_OPTIONS = [10, 15, 20, 25, 50, 100];
 
     private const SORTABLE_COLUMNS = [
@@ -192,6 +194,7 @@ class PacienteController extends Controller
                             'atendido_hasta' => $at->copy()->endOfMonth()->toDateString(),
                         ]),
                         'pdf_url' => route('clinica.historias-clinicas.consultas.pdf', $c),
+                        'whatsapp_url' => route('clinica.historias-clinicas.consultas.whatsapp', $c),
                         'detalle' => [
                             'peso_kg' => $c->peso_kg !== null && trim((string) $c->peso_kg) !== '' ? trim((string) $c->peso_kg) : null,
                             'temperatura_c' => $c->temperatura_c !== null && trim((string) $c->temperatura_c) !== '' ? trim((string) $c->temperatura_c) : null,
@@ -265,6 +268,9 @@ class PacienteController extends Controller
                 'historial_pdf' => ($canVerConsultas || $canVerVacunas)
                     ? route('clinica.pacientes.historial-clinico-pdf', $paciente)
                     : null,
+                'historial_whatsapp' => ($canVerConsultas || $canVerVacunas)
+                    ? route('clinica.pacientes.historial-clinico-whatsapp', $paciente)
+                    : null,
             ],
             'permisos' => [
                 'consultas_ver' => $canVerConsultas,
@@ -283,6 +289,27 @@ class PacienteController extends Controller
         $canVerVacunas = $request->user()?->can('vacunaciones.view') ?? false;
         abort_unless($canVerConsultas || $canVerVacunas, 403);
 
+        return $this->renderHistorialClinicoPdf(
+            $request,
+            $paciente,
+            $canVerConsultas,
+            $canVerVacunas,
+            true,
+        );
+    }
+
+    public function publicHistorialClinicoPdf(Request $request, Paciente $paciente): HttpResponse
+    {
+        return $this->renderHistorialClinicoPdf($request, $paciente, true, true, false);
+    }
+
+    private function renderHistorialClinicoPdf(
+        Request $request,
+        Paciente $paciente,
+        bool $canVerConsultas,
+        bool $canVerVacunas,
+        bool $audit,
+    ): HttpResponse {
         $paciente->load(['propietario:id,nombres,apellidos,razon_social']);
 
         $entries = HistorialClinicoPdfBuilder::make()->entriesForPaciente(
@@ -304,7 +331,9 @@ class PacienteController extends Controller
         $slug = Str::slug($paciente->nombre) ?: 'paciente';
         $filename = 'historial-clinico-'.$slug.'.pdf';
 
-        $this->auditDownload('pacientes', (string) $paciente->getKey(), $paciente->nombre, $filename);
+        if ($audit) {
+            $this->auditDownload('pacientes', (string) $paciente->getKey(), $paciente->nombre, $filename);
+        }
 
         return $this->respondClinicPdf($request, $pdf, $filename);
     }
@@ -531,7 +560,7 @@ class PacienteController extends Controller
     }
 
     /**
-     * @param  \Illuminate\Database\Eloquent\Collection<int, \App\Models\Receta>  $recetas
+     * @param  Collection<int, Receta>  $recetas
      * @return list<array{id: string, estado: string, lineas_count: int, url: string}>
      */
     private function timelineRecetasVinculo(?Authenticatable $user, $recetas, string $tz): array
@@ -568,7 +597,7 @@ class PacienteController extends Controller
     }
 
     /**
-     * @param  \Illuminate\Database\Eloquent\Collection<int, \App\Models\PedidoLaboratorio>  $pedidos
+     * @param  Collection<int, PedidoLaboratorio>  $pedidos
      * @return list<array{id: string, estado: string, lineas_count: int, url: string}>
      */
     private function timelineLaboratorioVinculo(?Authenticatable $user, $pedidos, string $tz): array
@@ -605,7 +634,7 @@ class PacienteController extends Controller
     }
 
     /**
-     * @param  \Illuminate\Database\Eloquent\Collection<int, \App\Models\Cirugia>  $cirugias
+     * @param  Collection<int, Cirugia>  $cirugias
      * @return list<array{id: string, estado: string, titulo: string, url: string}>
      */
     private function timelineCirugiasVinculo(?Authenticatable $user, $cirugias, string $tz): array
@@ -642,7 +671,7 @@ class PacienteController extends Controller
     }
 
     /**
-     * @param  \Illuminate\Database\Eloquent\Collection<int, \App\Models\Internamiento>  $internamientos
+     * @param  Collection<int, Internamiento>  $internamientos
      * @return list<array{id: string, estado: string, titulo: string, url: string}>
      */
     private function timelineInternamientosVinculo(?Authenticatable $user, $internamientos, string $tz): array
@@ -671,6 +700,7 @@ class PacienteController extends Controller
             'ingreso_desde' => $at->copy()->startOfMonth()->toDateString(),
             'ingreso_hasta' => $at->copy()->endOfMonth()->toDateString(),
         ];
+
         return route('clinica.hospitalizacion.show', $i);
     }
 

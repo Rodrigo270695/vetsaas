@@ -23,6 +23,7 @@ use Symfony\Component\HttpFoundation\Response as HttpResponse;
 class ConsultaHistoriaController extends Controller
 {
     use ResolvesClinicPdfBranding;
+
     private const PER_PAGE_OPTIONS = [10, 15, 20, 25, 50, 100];
 
     private const SORTABLE_COLUMNS = [
@@ -479,6 +480,16 @@ class ConsultaHistoriaController extends Controller
     {
         abort_unless($request->user()?->can('historias-clinicas.view') ?? false, 403);
 
+        return $this->renderPdf($request, $consulta);
+    }
+
+    public function publicPdf(Request $request, Consulta $consulta): HttpResponse
+    {
+        return $this->renderPdf($request, $consulta);
+    }
+
+    private function renderPdf(Request $request, Consulta $consulta): HttpResponse
+    {
         $consulta->load([
             'historiaClinica.paciente.propietario:id,nombres,apellidos,razon_social',
             'veterinario:id,name',

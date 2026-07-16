@@ -1,13 +1,15 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import { CalendarDays, History } from 'lucide-react';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Can } from '@/components/can';
 import { dashboard } from '@/routes';
 import clinica from '@/routes/clinica';
+import type { Paciente } from '../propietarios/types';
+import { ClinicalHistoryWhatsAppDialog } from './components/clinical-history-whatsapp-dialog';
+import type { ClinicalHistoryShareTarget } from './components/clinical-history-whatsapp-dialog';
 import { PacienteHistorialHero } from './components/paciente-historial-hero';
 import { PacienteTimelineRow } from './components/paciente-timeline-row';
-import type { Paciente } from '../propietarios/types';
 
 export type TimelineConsultaVinculos = {
     recetas: readonly { id: string; estado: string; lineas_count: number; url: string }[];
@@ -48,6 +50,7 @@ export type TimelineItem =
           veterinario: string | null | undefined;
           historia_url: string;
           pdf_url: string;
+          whatsapp_url: string;
           detalle: TimelineConsultaDetalle;
       }
     | {
@@ -70,6 +73,7 @@ type Props = {
         nueva_consulta: string;
         nueva_aplicacion: string;
         historial_pdf: string | null;
+        historial_whatsapp: string | null;
     };
     permisos: {
         consultas_ver: boolean;
@@ -82,6 +86,7 @@ type Props = {
 export default function PacienteShow({ paciente, timeline, links, permisos }: Props) {
     const { t } = useTranslation(['pacientes', 'common']);
     const { locale: appLocale, timezone: appTz } = usePage().props;
+    const [shareTarget, setShareTarget] = useState<ClinicalHistoryShareTarget>(null);
 
     const title = useMemo(() => `${paciente.nombre} · ${t('historial.title_suffix')}`, [paciente.nombre, t]);
 
@@ -119,6 +124,14 @@ export default function PacienteShow({ paciente, timeline, links, permisos }: Pr
                     permisos={permisos}
                     timelineStats={timelineStats}
                     hasTimeline={timeline.length > 0}
+                    onShareHistory={() => {
+                        if (links.historial_whatsapp) {
+                            setShareTarget({
+                                url: links.historial_whatsapp,
+                                label: t('historial.document_general'),
+                            });
+                        }
+                    }}
                 />
 
                 <section className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm ring-1 ring-black/[0.03] dark:ring-white/5">
@@ -154,6 +167,12 @@ export default function PacienteShow({ paciente, timeline, links, permisos }: Pr
                                         appTz={appTz}
                                         permisos={permisos}
                                         isLast={index === timeline.length - 1}
+                                        onShareConsulta={(consulta) =>
+                                            setShareTarget({
+                                                url: consulta.whatsapp_url,
+                                                label: t('historial.document_consulta'),
+                                            })
+                                        }
                                     />
                                 ))}
                             </ul>
@@ -172,6 +191,16 @@ export default function PacienteShow({ paciente, timeline, links, permisos }: Pr
                     </p>
                 </Can>
             </div>
+
+            <ClinicalHistoryWhatsAppDialog
+                target={shareTarget}
+                defaultPhone={paciente.propietario?.telefono ?? ''}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setShareTarget(null);
+                    }
+                }}
+            />
         </>
     );
 }
