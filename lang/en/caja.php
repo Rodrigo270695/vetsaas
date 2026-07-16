@@ -56,10 +56,10 @@ return [
         ],
         'flash' => [
             'registrada' => 'Sale :numero recorded successfully.',
-            'whatsapp_enviado' => 'Receipt sent via WhatsApp.',
-            'whatsapp_no_phone' => 'Enter a valid WhatsApp number to send the receipt.',
-            'whatsapp_fallo' => 'Could not send the receipt via WhatsApp.',
-            'whatsapp_anulada' => 'Cannot send the receipt for a voided sale.',
+            'whatsapp_enviado' => 'Ticket sent via WhatsApp.',
+            'whatsapp_no_phone' => 'Enter a valid WhatsApp number to send the ticket.',
+            'whatsapp_fallo' => 'Could not send the ticket via WhatsApp.',
+            'whatsapp_anulada' => 'Cannot send the ticket for a voided sale.',
         ],
         'fel' => [
             'no_emitible' => 'This sale cannot issue an electronic receipt.',

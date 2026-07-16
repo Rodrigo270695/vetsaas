@@ -120,7 +120,7 @@ final class ReminderMessageBuilder
         $lines = [
             "Hola {$ownerName} 👋",
             '',
-            "🧾 Comprobante de *{$clinicName}*",
+            "🧾 Ticket de *{$clinicName}*",
             "📄 *{$numeroDisplay}*",
             "💰 Total: *{$totalFormatted}*",
             "📅 {$fechaDisplay}",

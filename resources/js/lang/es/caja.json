@@ -144,8 +144,8 @@
         },
         "whatsapp": {
             "title": "Enviar comprobante por WhatsApp",
-            "description_with_phone": "Se enviará el resumen de {{numero}} a {{cliente}} ({{telefono}}).",
-            "description_no_phone": "{{cliente}} no tiene teléfono registrado. Ingresa el número de WhatsApp destino.",
+            "description_with_phone": "Se enviará el ticket PDF de {{numero}} a {{cliente}} ({{telefono}}).",
+            "description_no_phone": "{{cliente}} no tiene teléfono registrado. Ingresa el número de WhatsApp para enviar el ticket.",
             "phone_label": "Número de WhatsApp",
             "phone_placeholder": "987654321 o 51987654321",
             "phone_hint": "Celular peruano de 9 dígitos o con código de país.",

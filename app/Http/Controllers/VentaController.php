@@ -24,11 +24,10 @@ use App\Models\Propietario;
 use App\Models\Sede;
 use App\Models\Venta;
 use App\Services\Fel\FelEmisionVentaService;
-use App\Services\Notifications\NotificationQueueService;
-use App\Services\Notifications\ReminderMessageBuilder;
-use App\Services\Notifications\WhatsAppNotificationDispatcher;
 use App\Services\Venta\VentaAnulacionService;
 use App\Services\Venta\VentaCheckoutService;
+use App\Services\Venta\VentaTicketPdfService;
+use App\Services\Venta\VentaWhatsAppComprobanteSender;
 use App\Support\Caja\VentaTicketPolicy;
 use App\Support\Fel\ApisunatCredentialResolver;
 use App\Support\Fel\FelReceptorResolver;
@@ -750,7 +749,7 @@ class VentaController extends Controller
      * Vista HTML para impresora térmica (58 mm o 80 mm según Configuración → General).
      * No sustituye comprobante SUNAT salvo que la venta tenga CPE emitido.
      */
-    public function ticket(Request $request, Venta $venta): View
+    public function ticket(Request $request, Venta $venta, VentaTicketPdfService $ticketPdf): View
     {
         $tenantId = $request->user()?->tenant_id;
         abort_if($tenantId === null, 403);
@@ -764,79 +763,22 @@ class VentaController extends Controller
             __('caja.ventas.ticket.no_disponible'),
         );
 
-        $venta->load([
-            'felDocument',
-            'lineas' => fn ($q) => $q->orderBy('id'),
-            'propietario:id,nombres,apellidos,razon_social,numero_documento',
-            'paciente:id,nombre',
-            'creadoPor:id,name',
-        ]);
-
         $ancho = TicketAnchoMm::fromRequest($request, (string) $cfg->ticket_ancho_mm);
+        $data = $ticketPdf->viewData($venta, $cfg, (string) $tenantId, $ancho);
+        $data['auto_print'] = $request->boolean('print');
 
-        $propietario = $venta->propietario;
-        $clienteNombre = $propietario === null
-            ? '—'
-            : ($propietario->razon_social ?: trim(implode(' ', array_filter([$propietario->nombres, $propietario->apellidos]))));
-
-        $sedeNombre = Sede::query()
-            ->where('tenant_id', $tenantId)
-            ->whereKey($venta->sede_id)
-            ->value('nombre');
-
-        $metodoPagoLabel = $venta->metodo_pago !== null
-            ? __('caja.ventas.ticket.metodo_'.$venta->metodo_pago)
-            : null;
-
-        $lineas = $venta->lineas->map(fn ($ln): array => [
-            'descripcion' => $ln->descripcion_snapshot,
-            'cantidad' => (string) $ln->cantidad,
-            'subtotal' => (string) $ln->subtotal,
-        ])->values()->all();
-
-        $clinicNombre = $cfg->nombre_comercial ?: $cfg->razon_social ?: config('app.name');
-        $trim = static function (?string $v): ?string {
-            if ($v === null) {
-                return null;
-            }
-            $t = trim($v);
-
-            return $t === '' ? null : $t;
-        };
-
-        $fechaCobro = ($venta->fecha_pago ?? $venta->created_at)
-            ?->timezone(config('app.timezone'))
-            ->format('d/m/Y H:i') ?? '—';
-
-        return view('caja.venta-ticket', [
-            'ancho_mm' => $ancho,
-            'clinic_logo_url' => $cfg->logo_url,
-            'clinic_nombre' => $clinicNombre,
-            'clinic_ruc' => $trim($cfg->ruc),
-            'clinic_direccion' => $trim($cfg->direccion_fiscal),
-            'clinic_telefono' => $trim($cfg->telefono_principal),
-            'moneda' => $venta->moneda,
-            'igv_porcentaje' => (string) $cfg->igv_porcentaje,
-            'venta' => $venta,
-            'lineas' => $lineas,
-            'fecha_cobro' => $fechaCobro,
-            'sede_nombre' => $sedeNombre,
-            'cliente_nombre' => $clienteNombre,
-            'cliente_doc' => $propietario?->numero_documento,
-            'paciente_nombre' => $venta->paciente?->nombre,
-            'cajero_nombre' => $venta->creadoPor?->name,
-            'metodo_pago_label' => $metodoPagoLabel,
-            'cpe_numero' => $venta->felDocument?->numero_completo,
-            'auto_print' => $request->boolean('print'),
-        ]);
+        return view('caja.venta-ticket', $data);
     }
 
     /**
-     * Envía resumen del comprobante por WhatsApp (OpenWA) al cliente/propietario.
+     * Envía el ticket/comprobante por WhatsApp (PDF adjunto) al cliente/propietario.
      * Acepta `telefono` opcional cuando el propietario no tiene número guardado.
      */
-    public function enviarWhatsApp(Request $request, Venta $venta): RedirectResponse
-    {
+    public function enviarWhatsApp(
+        Request $request,
+        Venta $venta,
+        VentaWhatsAppComprobanteSender $sender,
+    ): RedirectResponse {
         abort_unless($request->user()?->can('ventas.view'), 403);
 
         if ($venta->estado === Venta::ESTADO_ANULADO) {
@@ -849,7 +791,6 @@ class VentaController extends Controller
 
         $venta->loadMissing([
             'propietario:id,nombres,apellidos,razon_social,telefono',
-            'felDocument:id,venta_id,numero_completo,estado,url_pdf,enlace_consulta',
         ]);
 
         $propietario = $venta->propietario;
@@ -862,60 +803,28 @@ class VentaController extends Controller
             return back()->with('warning', __('caja.ventas.flash.whatsapp_no_phone'));
         }
 
-        $clinic = ClinicSetting::current();
-        $messages = app(ReminderMessageBuilder::class);
-        $clinicName = $messages->clinicDisplayName($clinic);
+        $tenantId = tenant_id();
+        $tenant = $tenantId !== null ? Tenant::query()->find($tenantId) : null;
+        if ($tenant === null) {
+            return back()->with('warning', __('caja.ventas.flash.whatsapp_fallo'));
+        }
 
         $ownerName = $propietario !== null
             ? (trim($propietario->displayName()) !== '' ? $propietario->displayName() : 'cliente')
             : 'cliente';
 
-        $numeroDisplay = $venta->felDocument?->numero_completo ?? $venta->numero;
-        $fecha = ($venta->fecha_pago ?? $venta->created_at)
-            ?->timezone(config('app.timezone'))
-            ->format('d/m/Y H:i') ?? now()->format('d/m/Y H:i');
-
-        $totalFormatted = number_format((float) $venta->total, 2, '.', ',').' '.$venta->moneda;
-        $pdfUrl = $venta->felDocument?->url_pdf ?: $venta->felDocument?->enlace_consulta;
-
         try {
-            $item = app(NotificationQueueService::class)->enqueue(
-                tipo: 'venta_comprobante',
-                destinatario: $chatId,
-                cuerpo: $messages->ventaComprobante(
-                    $clinicName,
-                    $ownerName,
-                    $numeroDisplay,
-                    $totalFormatted,
-                    $fecha,
-                    is_string($pdfUrl) && $pdfUrl !== '' ? $pdfUrl : null,
-                ),
-                enviarAt: now(),
-                destinatarioNombre: $ownerName,
-                referenciaTipo: 'venta',
-                referenciaId: $venta->id,
-                dedupeKey: 'venta_comprobante:'.$venta->id.':'.now()->timestamp,
-                prioridad: 3,
+            $sender->send(
+                $venta,
+                $tenant,
+                $chatId,
+                $ownerName,
+                ClinicSetting::current(),
             );
-
-            if ($item !== null) {
-                $tenantId = tenant_id();
-                $tenant = $tenantId !== null ? Tenant::query()->find($tenantId) : null;
-                if ($tenant !== null) {
-                    try {
-                        app(WhatsAppNotificationDispatcher::class)->dispatchOne($item, $tenant);
-                    } catch (Throwable $e) {
-                        Log::warning('Dispatch inmediato de venta WhatsApp falló; queda en cola', [
-                            'venta_id' => $venta->id,
-                            'error' => $e->getMessage(),
-                        ]);
-                    }
-                }
-            }
 
             return back()->with('success', __('caja.ventas.flash.whatsapp_enviado'));
         } catch (Throwable $e) {
-            Log::warning('No se pudo encolar WhatsApp de venta', [
+            Log::warning('No se pudo enviar ticket WhatsApp de venta', [
                 'venta_id' => $venta->id,
                 'error' => $e->getMessage(),
             ]);

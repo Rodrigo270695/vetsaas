@@ -56,10 +56,10 @@ return [
         ],
         'flash' => [
             'registrada' => 'Venta :numero registrada correctamente.',
-            'whatsapp_enviado' => 'Comprobante enviado por WhatsApp.',
-            'whatsapp_no_phone' => 'Indica un número de WhatsApp válido para enviar el comprobante.',
-            'whatsapp_fallo' => 'No se pudo enviar el comprobante por WhatsApp.',
-            'whatsapp_anulada' => 'No se puede enviar el comprobante de una venta anulada.',
+            'whatsapp_enviado' => 'Ticket enviado por WhatsApp.',
+            'whatsapp_no_phone' => 'Indica un número de WhatsApp válido para enviar el ticket.',
+            'whatsapp_fallo' => 'No se pudo enviar el ticket por WhatsApp.',
+            'whatsapp_anulada' => 'No se puede enviar el ticket de una venta anulada.',
         ],
         'fel' => [
             'no_emitible' => 'Esta venta no puede emitir comprobante electrónico.',

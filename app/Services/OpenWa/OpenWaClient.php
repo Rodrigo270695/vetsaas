@@ -209,17 +209,6 @@ final class OpenWaClient
     /**
      * Envía una nota de voz (audio ogg/opus) a un chat de WhatsApp.
      *
-     * El audio se envía como base64. OpenWA lo procesa como PTT (push-to-talk)
-     * para que se muestre como nota de voz en WhatsApp, no como archivo adjunto.
-     *
-     * @param  string  $sessionId  ID de la sesión OpenWA activa.
-     * @param  string  $chatId  Chat destino (ej: "51987654321@c.us").
-     * @param  string  $audioContent  Contenido binario del audio (ogg/opus).
-     * @return array<string, mixed>
-     */
-    /**
-     * Envía una nota de voz (audio ogg/opus) a un chat de WhatsApp.
-     *
      * El audio se guarda temporalmente en storage/app/public/salesbot/ y se
      * envía a OpenWA como URL pública. OpenWA descarga el archivo y lo envía
      * como PTT (nota de voz) al destinatario.
@@ -258,6 +247,53 @@ final class OpenWaClient
         }
 
         return is_array($response) ? $response : [];
+    }
+
+    /**
+     * Envía un documento (PDF, etc.) por URL pública o contenido binario (base64).
+     *
+     * @param  string|null  $url  URL http(s) remota (mutuamente excluyente con $binaryContent).
+     * @param  string|null  $binaryContent  Bytes del archivo (requiere $mimetype).
+     * @return array<string, mixed>
+     */
+    public function sendDocument(
+        string $sessionId,
+        string $chatId,
+        ?string $url = null,
+        ?string $binaryContent = null,
+        string $filename = 'documento.pdf',
+        string $mimetype = 'application/pdf',
+        ?string $caption = null,
+    ): array {
+        $payload = [
+            'chatId' => $chatId,
+            'filename' => mb_substr($filename, 0, 255),
+        ];
+
+        if ($caption !== null && $caption !== '') {
+            $payload['caption'] = mb_substr($caption, 0, 1024);
+        }
+
+        $urlTrimmed = $url !== null ? trim($url) : '';
+        if ($urlTrimmed !== '') {
+            $payload['url'] = $urlTrimmed;
+            if ($mimetype !== '') {
+                $payload['mimetype'] = $mimetype;
+            }
+        } elseif ($binaryContent !== null && $binaryContent !== '') {
+            $payload['base64'] = base64_encode($binaryContent);
+            $payload['mimetype'] = $mimetype !== '' ? $mimetype : 'application/pdf';
+        } else {
+            throw new RuntimeException('sendDocument requiere url o contenido binario.');
+        }
+
+        $response = $this->request('post', '/api/sessions/'.$sessionId.'/messages/send-document', $payload);
+
+        if (! is_array($response)) {
+            throw new RuntimeException('OpenWA no confirmó el envío del documento.');
+        }
+
+        return $response;
     }
 
     /**
