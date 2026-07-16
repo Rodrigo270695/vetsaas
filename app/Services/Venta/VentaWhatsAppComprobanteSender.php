@@ -76,11 +76,13 @@ final class VentaWhatsAppComprobanteSender
         $mode = 'text';
         $messageId = null;
         $lastError = null;
+        $documentAttempted = false;
 
         $felPdfUrl = $venta->felDocument?->url_pdf ?: $venta->felDocument?->enlace_consulta;
         $felPdfUrl = is_string($felPdfUrl) && trim($felPdfUrl) !== '' ? trim($felPdfUrl) : null;
 
         if ($felPdfUrl !== null && str_starts_with($felPdfUrl, 'http')) {
+            $documentAttempted = true;
             try {
                 $safeNumero = preg_replace('/[^A-Za-z0-9_-]+/', '-', $numeroDisplay) ?: 'comprobante';
                 $result = $this->client->sendDocument(
@@ -103,9 +105,10 @@ final class VentaWhatsAppComprobanteSender
         }
 
         if ($mode === 'text') {
-            try {
-                $pdf = $this->ticketPdf->renderForWhatsApp($venta, $clinic, (string) $tenant->id, $anchoMm);
-                if ($pdf !== null) {
+            $pdf = $this->ticketPdf->renderForWhatsApp($venta, $clinic, (string) $tenant->id, $anchoMm);
+            if ($pdf !== null) {
+                $documentAttempted = true;
+                try {
                     $result = $this->client->sendDocument(
                         sessionId: $sessionId,
                         chatId: $chatId,
@@ -116,34 +119,35 @@ final class VentaWhatsAppComprobanteSender
                     );
                     $mode = 'ticket_pdf';
                     $messageId = isset($result['messageId']) ? (string) $result['messageId'] : null;
+                } catch (Throwable $e) {
+                    $lastError = $e;
+                    Log::warning('Envío ticket PDF por WhatsApp falló', [
+                        'venta_id' => $venta->id,
+                        'error' => $e->getMessage(),
+                    ]);
                 }
-            } catch (Throwable $e) {
-                $lastError = $e;
-                Log::warning('Envío ticket PDF por WhatsApp falló; se intenta solo texto', [
-                    'venta_id' => $venta->id,
-                    'error' => $e->getMessage(),
-                ]);
             }
         }
 
         if ($mode === 'text') {
+            if ($documentAttempted) {
+                throw new RuntimeException(
+                    $lastError?->getMessage() ?? 'No se pudo enviar el ticket por WhatsApp.',
+                    0,
+                    $lastError,
+                );
+            }
+
             try {
                 $result = $this->client->sendText($sessionId, $chatId, $caption);
                 $messageId = isset($result['messageId']) ? (string) $result['messageId'] : null;
             } catch (Throwable $e) {
-                Log::warning('Envío texto WhatsApp de venta también falló', [
+                Log::warning('Envío texto WhatsApp de venta falló', [
                     'venta_id' => $venta->id,
                     'error' => $e->getMessage(),
-                    'prev' => $lastError?->getMessage(),
                 ]);
 
-                throw new RuntimeException(
-                    $lastError !== null
-                        ? $lastError->getMessage().' | texto: '.$e->getMessage()
-                        : $e->getMessage(),
-                    0,
-                    $e,
-                );
+                throw new RuntimeException($e->getMessage(), 0, $e);
             }
         }
 

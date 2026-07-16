@@ -343,7 +343,11 @@ final class OpenWaClient
         $response = $this->request('post', '/api/sessions/'.$sessionId.'/messages/send-document', $payload);
 
         if (! is_array($response)) {
-            throw new RuntimeException('OpenWA no confirmó el envío del documento.');
+            return ['messageId' => null];
+        }
+
+        if (isset($response['data']) && is_array($response['data'])) {
+            return $response['data'];
         }
 
         return $response;
@@ -416,6 +420,8 @@ final class OpenWaClient
             );
         }
 
-        return $response->json();
+        $json = $response->json();
+
+        return is_array($json) ? $json : [];
     }
 }
