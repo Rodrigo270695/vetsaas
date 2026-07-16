@@ -6,6 +6,7 @@ import {
     CreditCard,
     Loader2,
     Minus,
+    PackagePlus,
     PackageSearch,
     Plus,
     Search,
@@ -38,6 +39,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import AppLayout from '@/layouts/app-layout';
 import { PropietarioFormModal } from '@/pages/clinica/propietarios/components/propietario-form-modal';
+import { ProductoRapidoDialog, ServicioRapidoDialog } from './components/registro-rapido-dialogs';
 import { toastManager } from '@/lib/toast';
 import { loadCajaBootstrap, searchCachedProductos } from '@/lib/offline/cache';
 import { isIndexedDbSupported } from '@/lib/offline/idb';
@@ -138,6 +140,9 @@ export default function Create({
     propietarios_opciones: propietariosOpciones,
     departamentos,
     desde_cargo: desdeCargo = null,
+    puede_crear_producto: puedeCrearProducto,
+    puede_crear_servicio: puedeCrearServicio,
+    unidad_opciones: unidadOpciones,
 }: VentasCreateProps) {
     const { t, i18n } = useTranslation(['caja', 'common', 'offline']);
     const { isOnline, refreshPending } = useOfflineSync();
@@ -154,6 +159,8 @@ export default function Create({
     const [propietariosLocales, setPropietariosLocales] = useState(propietariosOpciones);
     const [nuevoClienteOpen, setNuevoClienteOpen] = useState(false);
     const [catalogTab, setCatalogTab] = useState<'productos' | 'servicios'>('productos');
+    const [productoRapidoOpen, setProductoRapidoOpen] = useState(false);
+    const [servicioRapidoOpen, setServicioRapidoOpen] = useState(false);
 
     const form = useForm({
         caja_sesion_id: mi_sesion?.id ?? '',
@@ -961,6 +968,19 @@ export default function Create({
                                             {t('caja:ventas.create.sin_resultados')}
                                         </p>
                                     ) : null}
+                                    {puedeCrearProducto ? (
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-8 w-full justify-center gap-1.5 border-dashed"
+                                            disabled={!puede_vender}
+                                            onClick={() => setProductoRapidoOpen(true)}
+                                        >
+                                            <PackagePlus className="size-3.5" aria-hidden />
+                                            {t('caja:ventas.create.rapido_producto_cta')}
+                                        </Button>
+                                    ) : null}
                                 </TabsContent>
 
                                 <TabsContent value="servicios" className="mt-0 flex flex-col gap-2">
@@ -1052,6 +1072,19 @@ export default function Create({
                                             <span className="hidden sm:inline">{t('caja:ventas.create.agregar_servicio')}</span>
                                         </Button>
                                     </div>
+                                    {puedeCrearServicio ? (
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-8 w-full justify-center gap-1.5 border-dashed"
+                                            disabled={!puede_vender}
+                                            onClick={() => setServicioRapidoOpen(true)}
+                                        >
+                                            <Stethoscope className="size-3.5" aria-hidden />
+                                            {t('caja:ventas.create.rapido_servicio_cta')}
+                                        </Button>
+                                    ) : null}
                                 </TabsContent>
                             </Tabs>
                         </PosPanel>
@@ -1485,6 +1518,23 @@ export default function Create({
                     });
                     onPropietarioChange(p.id);
                 }}
+            />
+
+            <ProductoRapidoDialog
+                open={productoRapidoOpen}
+                onOpenChange={setProductoRapidoOpen}
+                initialNombre={qProducto}
+                unidadOptions={unidadOpciones}
+                sedeNombre={mi_sesion?.sede_nombre ?? null}
+                onCreated={(p) => addProduct(p)}
+            />
+
+            <ServicioRapidoDialog
+                open={servicioRapidoOpen}
+                onOpenChange={setServicioRapidoOpen}
+                initialNombre={servicioConcepto || qServicio}
+                initialPrecio={servicioPrecio}
+                onCreated={(s) => addServicioFromTarifa(s)}
             />
         </>
     );

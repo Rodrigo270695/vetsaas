@@ -19,6 +19,9 @@ return [
         'solo_apertura_puede_cerrar' => 'Solo quien abrió la sesión puede cerrarla.',
     ],
     'ventas' => [
+        'create' => [
+            'rapido_sin_sesion' => 'Abre tu sesión de caja antes de registrar un producto con stock.',
+        ],
         'validation' => [
             'sesion_cerrada' => 'La sesión de caja ya no está abierta.',
             'sesion_no_tuya' => 'Solo puedes vender con la sesión de caja que tú abriste.',

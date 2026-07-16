@@ -316,7 +316,31 @@
             "sin_stock_body": "«{{producto}}» no tiene existencias en la sede de tu sesión de caja.",
             "stock_insuficiente_title": "Stock insuficiente",
             "stock_insuficiente_body": "Solo hay {{stock}} unidades de «{{producto}}» disponibles.",
-            "desde_cargo_titulo": "Cobro desde pre-cuenta"
+            "desde_cargo_titulo": "Cobro desde pre-cuenta",
+            "rapido_producto_cta": "Registrar producto nuevo",
+            "rapido_servicio_cta": "Guardar servicio en catálogo",
+            "rapido_producto_title": "Registrar producto y stock",
+            "rapido_producto_desc": "Crea el producto y su stock inicial en la sede de tu sesión para venderlo al instante.",
+            "rapido_producto_submit": "Registrar y agregar",
+            "rapido_servicio_title": "Registrar servicio",
+            "rapido_servicio_desc": "Guarda el servicio en el catálogo para reutilizarlo y agrégalo a esta venta.",
+            "rapido_servicio_submit": "Registrar y agregar",
+            "rapido_nombre": "Nombre",
+            "rapido_precio_venta": "Precio de venta",
+            "rapido_precio_servicio": "Precio",
+            "rapido_stock": "Stock inicial",
+            "rapido_unidad": "Unidad",
+            "rapido_sku": "SKU (opcional)",
+            "rapido_lote": "Lote (opcional)",
+            "rapido_vencimiento": "Vencimiento (opcional)",
+            "rapido_medicamento": "Es medicamento",
+            "rapido_duracion": "Duración (min)",
+            "rapido_categoria": "Categoría (opcional)",
+            "rapido_stock_hint": "El stock se registrará en la sede «{{sede}}» de tu sesión de caja.",
+            "rapido_producto_ok": "«{{producto}}» registrado y agregado al carrito.",
+            "rapido_servicio_ok": "«{{servicio}}» registrado y agregado al carrito.",
+            "rapido_error": "No se pudo registrar. Revisa los datos e inténtalo de nuevo.",
+            "rapido_sin_sesion": "Abre tu sesión de caja antes de registrar un producto con stock."
         }
     }
 }

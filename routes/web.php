@@ -652,6 +652,12 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:ventas.create')
             ->post('ventas/propietarios-rapido', [VentaController::class, 'storePropietarioRapido'])
             ->name('ventas.propietarios-rapido');
+        Route::middleware(['permission:ventas.create', 'permission:productos.create'])
+            ->post('ventas/productos-rapido', [VentaController::class, 'storeProductoRapido'])
+            ->name('ventas.productos-rapido');
+        Route::middleware('permission:ventas.create')
+            ->post('ventas/servicios-rapido', [VentaController::class, 'storeServicioRapido'])
+            ->name('ventas.servicios-rapido');
         Route::middleware('permission:ventas.create')
             ->get('ventas/pacientes-por-propietario', [VentaController::class, 'pacientesPorPropietario'])
             ->name('ventas.pacientes-por-propietario');

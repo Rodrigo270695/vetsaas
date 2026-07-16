@@ -113,6 +113,13 @@ export type GeoOption = {
     name: string;
 };
 
+export type UnidadMedidaOpcion = {
+    id: string;
+    codigo: string;
+    nombre: string;
+    es_sistema: boolean;
+};
+
 export type VentasCreateProps = {
     puede_vender: boolean;
     mi_sesion: MiSesionVenta | null;
@@ -120,6 +127,12 @@ export type VentasCreateProps = {
     propietarios_opciones: PropietarioOpcion[];
     departamentos: readonly GeoOption[];
     desde_cargo?: DesdeCargoPrefill | null;
+    /** El usuario puede dar de alta productos de inventario. */
+    puede_crear_producto: boolean;
+    /** El tenant usa catálogo de servicios editable y el usuario puede administrarlo. */
+    puede_crear_servicio: boolean;
+    /** Unidades de medida disponibles para el alta rápida de producto. */
+    unidad_opciones: readonly UnidadMedidaOpcion[];
 };
 
 export type ConsultaVinculoShow = {

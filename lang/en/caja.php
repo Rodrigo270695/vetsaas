@@ -19,6 +19,9 @@ return [
         'solo_apertura_puede_cerrar' => 'Only the user who opened the session can close it.',
     ],
     'ventas' => [
+        'create' => [
+            'rapido_sin_sesion' => 'Open your cash session before registering a product with stock.',
+        ],
         'validation' => [
             'sesion_cerrada' => 'This cash session is no longer open.',
             'sesion_no_tuya' => 'You can only sell using the cash session you opened.',

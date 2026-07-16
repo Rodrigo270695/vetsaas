@@ -316,7 +316,31 @@
             "sin_stock_body": "«{{producto}}» has no stock at your cash session branch.",
             "stock_insuficiente_title": "Insufficient stock",
             "stock_insuficiente_body": "Only {{stock}} units of «{{producto}}» are available.",
-            "desde_cargo_titulo": "Checkout from pre-invoice"
+            "desde_cargo_titulo": "Checkout from pre-invoice",
+            "rapido_producto_cta": "Register new product",
+            "rapido_servicio_cta": "Save service to catalog",
+            "rapido_producto_title": "Register product and stock",
+            "rapido_producto_desc": "Create the product and its initial stock at your session branch to sell it right away.",
+            "rapido_producto_submit": "Register and add",
+            "rapido_servicio_title": "Register service",
+            "rapido_servicio_desc": "Save the service to the catalog to reuse it and add it to this sale.",
+            "rapido_servicio_submit": "Register and add",
+            "rapido_nombre": "Name",
+            "rapido_precio_venta": "Sale price",
+            "rapido_precio_servicio": "Price",
+            "rapido_stock": "Initial stock",
+            "rapido_unidad": "Unit",
+            "rapido_sku": "SKU (optional)",
+            "rapido_lote": "Batch (optional)",
+            "rapido_vencimiento": "Expiry (optional)",
+            "rapido_medicamento": "Is medication",
+            "rapido_duracion": "Duration (min)",
+            "rapido_categoria": "Category (optional)",
+            "rapido_stock_hint": "Stock will be registered at the «{{sede}}» branch of your cash session.",
+            "rapido_producto_ok": "«{{producto}}» registered and added to the cart.",
+            "rapido_servicio_ok": "«{{servicio}}» registered and added to the cart.",
+            "rapido_error": "Could not register. Check the data and try again.",
+            "rapido_sin_sesion": "Open your cash session before registering a product with stock."
         }
     }
 }

@@ -3,9 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Exports\VentasXlsxExport;
-use App\Http\Controllers\Concerns\LogsAuditExports;
 use App\Grooming\GroomingCatalogoMode;
+use App\Http\Controllers\Concerns\LogsAuditExports;
 use App\Http\Requests\AnularVentaRequest;
+use App\Http\Requests\ProductoRapidoVentaRequest;
 use App\Http\Requests\PropietarioRequest;
 use App\Http\Requests\StoreVentaRequest;
 use App\Models\CajaSesion;
@@ -22,22 +23,24 @@ use App\Models\Paciente;
 use App\Models\Producto;
 use App\Models\Propietario;
 use App\Models\Sede;
+use App\Models\Tenant;
 use App\Models\Venta;
 use App\Services\Fel\FelEmisionVentaService;
+use App\Services\Inventario\InventarioLoteService;
 use App\Services\Venta\VentaAnulacionService;
 use App\Services\Venta\VentaCheckoutService;
 use App\Services\Venta\VentaTicketPdfService;
 use App\Services\Venta\VentaWhatsAppComprobanteSender;
+use App\Support\Caja\TicketAnchoMm;
 use App\Support\Caja\VentaTicketPolicy;
 use App\Support\Fel\ApisunatCredentialResolver;
 use App\Support\Fel\FelReceptorResolver;
 use App\Support\Fel\FelSerieResolver;
+use App\Support\Inventario\UnidadMedidaOpciones;
 use App\Support\PlanCapabilities;
-use App\Support\Venta\VentaDesdeCargoPrefill;
-use App\Support\Caja\TicketAnchoMm;
-use App\Support\WhatsApp\WhatsAppChatId;
-use App\Models\Tenant;
 use App\Support\Tenancy\TenantModuleAccess;
+use App\Support\Venta\VentaDesdeCargoPrefill;
+use App\Support\WhatsApp\WhatsAppChatId;
 use App\Tenancy\TenantManager;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -47,6 +50,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Inertia\Inertia;
@@ -887,6 +891,143 @@ class VentaController extends Controller
     }
 
     /**
+     * Alta rápida de un producto vendible con stock inicial, sin salir de la venta.
+     *
+     * El stock se registra en la sede de la sesión de caja abierta del cajero,
+     * de modo que el producto queda inmediatamente disponible en el buscador.
+     */
+    public function storeProductoRapido(ProductoRapidoVentaRequest $request, InventarioLoteService $inventario): JsonResponse
+    {
+        $sesion = CajaSesion::query()
+            ->where('estado', CajaSesion::ESTADO_ABIERTA)
+            ->where('opened_by_id', Auth::id())
+            ->first();
+
+        if ($sesion === null) {
+            return response()->json([
+                'message' => __('caja.ventas.create.rapido_sin_sesion'),
+            ], 422);
+        }
+
+        $userId = Auth::id();
+        $data = $request->validated();
+        $stockCantidad = (string) $data['stock_inicial'];
+
+        $producto = DB::transaction(function () use ($data, $userId, $sesion, $stockCantidad, $inventario): Producto {
+            $producto = Producto::query()->create([
+                'categoria_id' => null,
+                'nombre' => $data['nombre'],
+                'slug' => $this->generarSlugProductoUnico((string) $data['nombre']),
+                'descripcion' => null,
+                'sku' => $data['sku'] ?? null,
+                'codigo_barras' => null,
+                'unidad' => $data['unidad'] ?? 'UN',
+                'precio_venta' => $data['precio_venta'],
+                'precio_compra' => null,
+                'stock_minimo' => null,
+                'medicamento' => (bool) ($data['medicamento'] ?? false),
+                'activo' => true,
+                'created_by_id' => $userId,
+                'updated_by_id' => $userId,
+            ]);
+
+            $inventario->registrarEntrada(
+                (string) $producto->id,
+                (string) $sesion->sede_id,
+                $stockCantidad,
+                $data['numero_lote'] ?? null,
+                $data['fecha_vencimiento'] ?? null,
+                'Stock inicial al registrar producto desde venta',
+                $userId !== null ? (string) $userId : null,
+            );
+
+            return $producto;
+        });
+
+        return response()->json([
+            'producto' => [
+                'id' => (string) $producto->id,
+                'nombre' => $producto->nombre,
+                'sku' => $producto->sku,
+                'precio_venta' => $producto->precio_venta !== null ? (string) $producto->precio_venta : null,
+                'unidad' => $producto->unidad,
+                'stock_sede' => (string) round((float) $stockCantidad, 3),
+            ],
+        ], 201);
+    }
+
+    /**
+     * Alta rápida de un servicio en el catálogo editable (grooming personalizado),
+     * para reutilizarlo en próximas ventas. Solo disponible cuando el tenant usa
+     * catálogo personalizado y el usuario puede administrarlo.
+     */
+    public function storeServicioRapido(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user?->can('ventas.create') ?? false, 403);
+        abort_unless($this->puedeCrearServicioCatalogo($request), 403);
+
+        $data = $request->validate([
+            'nombre' => ['required', 'string', 'min:2', 'max:200'],
+            'precio_lista' => ['required', 'numeric', 'min:0', 'max:999999.99'],
+            'categoria' => ['nullable', 'string', 'max:80'],
+            'duracion_minutos' => ['nullable', 'integer', 'min:5', 'max:480'],
+        ]);
+
+        $nombre = trim((string) $data['nombre']);
+        $categoria = isset($data['categoria']) ? trim((string) $data['categoria']) : '';
+        $maxOrden = (int) GroomingServicio::query()->max('orden');
+
+        $servicio = GroomingServicio::query()->create([
+            'nombre' => $nombre,
+            'categoria' => $categoria === '' ? null : $categoria,
+            'precio_lista' => $data['precio_lista'],
+            'moneda' => 'PEN',
+            'duracion_minutos' => (int) ($data['duracion_minutos'] ?? 60),
+            'activo' => true,
+            'orden' => $maxOrden + 1,
+        ]);
+
+        return response()->json([
+            'servicio' => [
+                'nombre' => $servicio->nombre,
+                'precio_lista' => (string) $servicio->precio_lista,
+            ],
+        ], 201);
+    }
+
+    private function puedeCrearServicioCatalogo(Request $request): bool
+    {
+        if (! GroomingCatalogoMode::usaCatalogoPersonalizado()) {
+            return false;
+        }
+
+        $user = $request->user();
+
+        return ($user?->can('grooming.create') ?? false)
+            || ($user?->can('tarifas.create') ?? false);
+    }
+
+    private function generarSlugProductoUnico(string $nombre): ?string
+    {
+        $base = Str::slug($nombre);
+        if ($base === '') {
+            return null;
+        }
+
+        $base = mb_substr($base, 0, 150);
+        $slug = $base;
+        $i = 0;
+
+        while (Producto::query()->where('slug', $slug)->exists()) {
+            $i++;
+            $slug = mb_substr($base.'-'.$i, 0, 160);
+        }
+
+        return $slug;
+    }
+
+    /**
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
@@ -933,6 +1074,11 @@ class VentaController extends Controller
             ->orderBy('name')
             ->get(['id', 'name']);
 
+        $user = request()->user();
+        $puedeCrearProducto = $user?->can('productos.create') ?? false;
+        $puedeCrearServicio = GroomingCatalogoMode::usaCatalogoPersonalizado()
+            && (($user?->can('grooming.create') ?? false) || ($user?->can('tarifas.create') ?? false));
+
         return [
             'puede_vender' => $miSesion !== null,
             'mi_sesion' => $miSesion === null ? null : [
@@ -951,6 +1097,9 @@ class VentaController extends Controller
             ],
             'propietarios_opciones' => $propietarios,
             'departamentos' => $departamentos,
+            'puede_crear_producto' => $puedeCrearProducto,
+            'puede_crear_servicio' => $puedeCrearServicio,
+            'unidad_opciones' => UnidadMedidaOpciones::forProductoForm(),
         ];
     }
 
