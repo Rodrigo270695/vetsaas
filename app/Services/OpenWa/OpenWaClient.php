@@ -278,7 +278,7 @@ final class OpenWaClient
 
         $urlTrimmed = $url !== null ? trim($url) : '';
         if ($urlTrimmed !== '' && ($binaryContent === null || $binaryContent === '')) {
-            return $this->postDocument($sessionId, [
+            return $this->postDocumentWithDeliveryFallback($sessionId, [
                 'chatId' => $chatId,
                 'url' => $urlTrimmed,
                 'filename' => $safeFilename,
@@ -295,35 +295,54 @@ final class OpenWaClient
         $storagePath = 'whatsapp-temp/doc_'.uniqid('', true).'.'.$ext;
         Storage::disk('public')->put($storagePath, $binaryContent);
 
+        $publicUrl = Storage::disk('public')->url($storagePath);
+        if (! str_starts_with($publicUrl, 'http')) {
+            $publicUrl = rtrim((string) config('app.url'), '/').$publicUrl;
+        }
+
         try {
-            $publicUrl = Storage::disk('public')->url($storagePath);
-            if (! str_starts_with($publicUrl, 'http')) {
-                $publicUrl = rtrim((string) config('app.url'), '/').$publicUrl;
-            }
-
-            try {
-                return $this->postDocument($sessionId, [
-                    'chatId' => $chatId,
-                    'url' => $publicUrl,
-                    'filename' => $safeFilename,
-                    'mimetype' => $mime,
-                    'caption' => $captionTrimmed,
-                ]);
-            } catch (RuntimeException $urlError) {
-                if ($this->shouldAssumeDocumentDelivered($urlError)) {
-                    Log::warning('OpenWA send-document: timeout/red tras URL temporal; se asume envío OK', [
-                        'error' => $urlError->getMessage(),
-                        'filename' => $safeFilename,
-                        'public_url' => $publicUrl,
-                    ]);
-
-                    return ['messageId' => null];
-                }
-
-                throw $urlError;
-            }
-        } finally {
+            $result = $this->postDocumentWithDeliveryFallback($sessionId, [
+                'chatId' => $chatId,
+                'url' => $publicUrl,
+                'filename' => $safeFilename,
+                'mimetype' => $mime,
+                'caption' => $captionTrimmed,
+            ]);
+        } catch (RuntimeException $urlError) {
             Storage::disk('public')->delete($storagePath);
+
+            throw $urlError;
+        }
+
+        if (! ($result['_assumed_delivery'] ?? false)) {
+            Storage::disk('public')->delete($storagePath);
+        }
+
+        unset($result['_assumed_delivery']);
+
+        return $result;
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private function postDocumentWithDeliveryFallback(string $sessionId, array $payload): array
+    {
+        try {
+            return $this->postDocument($sessionId, $payload);
+        } catch (RuntimeException $error) {
+            if ($this->shouldAssumeDocumentDelivered($error)) {
+                Log::warning('OpenWA send-document: respuesta ambigua; se asume envío OK', [
+                    'error' => $error->getMessage(),
+                    'filename' => $payload['filename'] ?? null,
+                    'source_url' => $payload['url'] ?? null,
+                ]);
+
+                return ['messageId' => null, '_assumed_delivery' => true];
+            }
+
+            throw $error;
         }
     }
 

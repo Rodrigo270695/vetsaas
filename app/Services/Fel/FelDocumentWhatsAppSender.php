@@ -81,14 +81,10 @@ final class FelDocumentWhatsAppSender
 
         foreach ($attachments as $attachment) {
             try {
-                $binary = $this->downloadAttachment($attachment);
-
-                $result = $this->client->sendDocument(
+                $result = $this->sendAttachment(
                     sessionId: $sessionId,
                     chatId: $chatId,
-                    binaryContent: $binary,
-                    filename: $attachment['filename'],
-                    mimetype: $attachment['mimetype'],
+                    attachment: $attachment,
                     caption: $isFirstAttachment ? $intro : null,
                 );
 
@@ -185,7 +181,52 @@ final class FelDocumentWhatsAppSender
     }
 
     /**
-     * @param  array{url?: string, binary?: string, label: string}  $attachment
+     * @param  array{tipo: string, label: string, filename: string, mimetype: string, url?: string}  $attachment
+     * @return array<string, mixed>
+     */
+    private function sendAttachment(
+        string $sessionId,
+        string $chatId,
+        array $attachment,
+        ?string $caption,
+    ): array {
+        $url = trim((string) ($attachment['url'] ?? ''));
+
+        // 1) URL APISUNAT directa (OpenWA descarga; mismo patrón que ventas con URL remota).
+        if ($url !== '') {
+            try {
+                return $this->client->sendDocument(
+                    sessionId: $sessionId,
+                    chatId: $chatId,
+                    url: $url,
+                    filename: $attachment['filename'],
+                    mimetype: $attachment['mimetype'],
+                    caption: $caption,
+                );
+            } catch (Throwable $urlError) {
+                Log::notice('CPE WhatsApp: URL APISUNAT falló; reintento vía storage temporal', [
+                    'tipo' => $attachment['tipo'],
+                    'url' => $url,
+                    'error' => $urlError->getMessage(),
+                ]);
+            }
+        }
+
+        // 2) Descarga en VetSaaS + URL temporal pública (igual que ticket de venta).
+        $binary = $this->downloadAttachment($attachment);
+
+        return $this->client->sendDocument(
+            sessionId: $sessionId,
+            chatId: $chatId,
+            binaryContent: $binary,
+            filename: $attachment['filename'],
+            mimetype: $attachment['mimetype'],
+            caption: $caption,
+        );
+    }
+
+    /**
+     * @param  array{url?: string, binary?: string, label: string, tipo?: string, filename?: string}  $attachment
      */
     private function downloadAttachment(array $attachment): string
     {
@@ -217,6 +258,18 @@ final class FelDocumentWhatsAppSender
         $body = (string) $response->body();
         if ($body === '') {
             throw new RuntimeException('El archivo '.$attachment['label'].' está vacío.');
+        }
+
+        $filename = (string) ($attachment['filename'] ?? '');
+        if (
+            ($attachment['tipo'] ?? '') === 'pdf_ticket'
+            || str_ends_with(strtolower($filename), '.pdf')
+        ) {
+            if (! str_starts_with($body, '%PDF')) {
+                throw new RuntimeException(
+                    'El PDF de '.$attachment['label'].' no es válido. Verifica la URL en APISUNAT.',
+                );
+            }
         }
 
         return $body;
