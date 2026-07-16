@@ -8,8 +8,8 @@ use App\Http\Controllers\Controller;
 use App\Models\ClinicSetting;
 use App\Models\TenantWhatsAppSession;
 use App\Services\ClinicBot\ClinicBotService;
-use App\Support\Audit\AuditActor;
 use App\Services\OpenWa\TenantWhatsAppMessenger;
+use App\Support\Audit\AuditActor;
 use App\Support\ClinicBot\ClinicBotWebhookGuard;
 use App\Support\Subscriptions\SubscriptionBotIaAddon;
 use App\Support\WhatsApp\WhatsAppContactResolver;
@@ -140,7 +140,7 @@ final class ClinicBotWebhookController extends Controller
                 }
 
                 $audioReply = ClinicBotWebhookGuard::AUDIO_UNSUPPORTED_REPLY;
-                $this->messenger->sendText($waSession, $waChatId, $audioReply);
+                $this->messenger->sendTextWithDeliveryFallback($waSession, $waChatId, $audioReply);
                 $this->guard->rememberOutbound($openWaSessionId, $waChatId, $audioReply);
                 $this->guard->markReplied($openWaSessionId, $waChatId);
                 $this->guard->rememberInbound($openWaSessionId, $messageId, $waChatId, $body);
@@ -174,8 +174,32 @@ final class ClinicBotWebhookController extends Controller
                     $phone,
                     fn (): string => $this->botService->reply($conversation, $body),
                 );
+            } catch (Throwable $e) {
+                Log::error('ClinicBot reply error', [
+                    'phone' => $phone,
+                    'error' => $e->getMessage(),
+                ]);
 
-                $this->messenger->sendText($waSession, $waChatId, $reply);
+                // Solo se disculpa cuando la IA no pudo generar respuesta.
+                if ($this->guard->shouldNotifyUserOfFailure($e)) {
+                    try {
+                        $errorReply = ClinicBotWebhookGuard::ERROR_REPLY;
+                        $this->messenger->sendTextWithDeliveryFallback($waSession, $waChatId, $errorReply);
+                        $this->guard->rememberOutbound($openWaSessionId, $waChatId, $errorReply);
+                    } catch (Throwable) {
+                        // ignore secondary failure
+                    }
+                }
+
+                return response()->json(['ok' => false, 'error' => 'reply_failed']);
+            }
+
+            try {
+                // Con fallback: si OpenWA responde tarde (timeout / 5xx tardío)
+                // la respuesta normalmente ya salió. Y si el envío falla de
+                // verdad, NO se manda el mensaje de disculpa: llegaría junto a
+                // una respuesta que sí se entregó y confunde al cliente.
+                $this->messenger->sendTextWithDeliveryFallback($waSession, $waChatId, $reply);
                 $this->guard->rememberOutbound($openWaSessionId, $waChatId, $reply);
                 $this->guard->markReplied($openWaSessionId, $waChatId);
 
@@ -183,20 +207,10 @@ final class ClinicBotWebhookController extends Controller
 
                 return response()->json(['ok' => true, 'replied' => true]);
             } catch (Throwable $e) {
-                Log::error('ClinicBot reply error', [
+                Log::error('ClinicBot send error', [
                     'phone' => $phone,
                     'error' => $e->getMessage(),
                 ]);
-
-                if ($this->guard->shouldNotifyUserOfFailure($e)) {
-                    try {
-                        $errorReply = ClinicBotWebhookGuard::ERROR_REPLY;
-                        $this->messenger->sendText($waSession, $waChatId, $errorReply);
-                        $this->guard->rememberOutbound($openWaSessionId, $waChatId, $errorReply);
-                    } catch (Throwable) {
-                        // ignore secondary failure
-                    }
-                }
 
                 return response()->json(['ok' => false, 'error' => 'reply_failed']);
             }

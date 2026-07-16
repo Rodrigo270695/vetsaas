@@ -81,7 +81,7 @@ it('responde a un mensaje entrante vía webhook clinic-bot', function (): void {
 
     $this->mock(OpenWaClient::class, function ($mock): void {
         $mock->shouldReceive('isConfigured')->andReturn(true);
-        $mock->shouldReceive('sendText')
+        $mock->shouldReceive('sendTextWithDeliveryFallback')
             ->once()
             ->with('session-clinic-bot-001', '51999999999@c.us', 'Atendemos los lunes de 9 a 10 am.')
             ->andReturn(['messageId' => 'msg-1']);
@@ -115,7 +115,7 @@ it('rechaza webhook sin secreto cuando está configurado', function (): void {
 });
 
 it('no responde cuando el asistente global está apagado', function (): void {
-    app(\App\Tenancy\TenantManager::class)->runForSlug($this->testTenant->slug, function (): void {
+    app(TenantManager::class)->runForSlug($this->testTenant->slug, function (): void {
         ClinicSetting::current()->update(['bot_ia_respuestas_activo' => false]);
     });
 
@@ -123,6 +123,7 @@ it('no responde cuando el asistente global está apagado', function (): void {
     $this->mock(OpenWaClient::class, function ($mock): void {
         $mock->shouldReceive('isConfigured')->andReturn(true);
         $mock->shouldNotReceive('sendText');
+        $mock->shouldNotReceive('sendTextWithDeliveryFallback');
     });
 
     $this->postJson('http://127.0.0.1/api/webhooks/clinic-bot', [
@@ -145,6 +146,7 @@ it('ignora eco de respuesta propia del bot', function (): void {
     $this->mock(OpenWaClient::class, function ($mock): void {
         $mock->shouldReceive('isConfigured')->andReturn(true);
         $mock->shouldNotReceive('sendText');
+        $mock->shouldNotReceive('sendTextWithDeliveryFallback');
     });
 
     $reply = 'Hola, atendemos de lunes a viernes.';
@@ -176,7 +178,7 @@ it('no devuelve HTTP 500 cuando falla el envío a OpenWA', function (): void {
 
     $this->mock(OpenWaClient::class, function ($mock): void {
         $mock->shouldReceive('isConfigured')->andReturn(true);
-        $mock->shouldReceive('sendText')
+        $mock->shouldReceive('sendTextWithDeliveryFallback')
             ->once()
             ->andThrow(new RuntimeException('OpenWA HTTP 429: Too Many Requests'));
     });
