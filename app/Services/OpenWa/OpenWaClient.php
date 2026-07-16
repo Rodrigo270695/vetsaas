@@ -253,10 +253,9 @@ final class OpenWaClient
     /**
      * Envía un documento (PDF, etc.) por URL pública o contenido binario.
      *
-     * - Si se pasa URL remota, OpenWA la descarga directamente.
-     * - Si se pasa binario, se guarda en storage público temporal (mismo patrón que
-     *   {@see sendVoice}), OpenWA lo descarga por URL y se borra al terminar.
-     *   Si la URL pública falla, se reintenta con base64.
+     * - URL remota: OpenWA la descarga directamente.
+     * - Binario: se guarda en storage público temporal (mismo patrón que {@see sendVoice}),
+     *   OpenWA lo descarga por URL y se borra al terminar. No se usa base64 (límite 413 en OpenWA).
      *
      * @param  string|null  $url  URL http(s) remota.
      * @param  string|null  $binaryContent  Bytes del archivo.
@@ -311,23 +310,38 @@ final class OpenWaClient
                     'caption' => $captionTrimmed,
                 ]);
             } catch (RuntimeException $urlError) {
-                Log::notice('OpenWA send-document por URL falló; reintento base64', [
-                    'error' => $urlError->getMessage(),
-                    'filename' => $safeFilename,
-                    'bytes' => strlen($binaryContent),
-                ]);
+                if ($this->shouldAssumeDocumentDelivered($urlError)) {
+                    Log::warning('OpenWA send-document: timeout/red tras URL temporal; se asume envío OK', [
+                        'error' => $urlError->getMessage(),
+                        'filename' => $safeFilename,
+                        'public_url' => $publicUrl,
+                    ]);
 
-                return $this->postDocument($sessionId, [
-                    'chatId' => $chatId,
-                    'base64' => base64_encode($binaryContent),
-                    'filename' => $safeFilename,
-                    'mimetype' => $mime,
-                    'caption' => $captionTrimmed,
-                ]);
+                    return ['messageId' => null];
+                }
+
+                throw $urlError;
             }
         } finally {
             Storage::disk('public')->delete($storagePath);
         }
+    }
+
+    /**
+     * OpenWA a veces tarda en responder tras descargar la URL temporal,
+     * pero el documento ya llegó a WhatsApp (timeout / 5xx tardío).
+     */
+    private function shouldAssumeDocumentDelivered(RuntimeException $error): bool
+    {
+        $message = $error->getMessage();
+
+        if (str_contains($message, 'Error de red con OpenWA')
+            || str_contains($message, 'timed out')
+            || str_contains($message, 'cURL error 28')) {
+            return true;
+        }
+
+        return (bool) preg_match('/OpenWA HTTP 5\d{2}/', $message);
     }
 
     /**
@@ -340,17 +354,39 @@ final class OpenWaClient
             unset($payload['caption']);
         }
 
-        $response = $this->request('post', '/api/sessions/'.$sessionId.'/messages/send-document', $payload);
+        $apiKey = trim((string) config('openwa.api_key', ''));
+        if ($apiKey === '') {
+            throw new RuntimeException('OPENWA_API_KEY no configurada.');
+        }
 
-        if (! is_array($response)) {
+        $url = rtrim((string) config('openwa.api_url'), '/')
+            .'/api/sessions/'.$sessionId.'/messages/send-document';
+
+        try {
+            $response = Http::timeout((int) config('openwa.document_timeout_seconds', 90))
+                ->acceptJson()
+                ->withHeaders(['X-API-Key' => $apiKey])
+                ->post($url, $payload);
+        } catch (RequestException $e) {
+            throw new RuntimeException('Error de red con OpenWA: '.$e->getMessage(), 0, $e);
+        }
+
+        if (! $response->successful()) {
+            throw new RuntimeException(
+                'OpenWA HTTP '.$response->status().': '.(string) $response->body(),
+            );
+        }
+
+        $json = $response->json();
+        if (! is_array($json)) {
             return ['messageId' => null];
         }
 
-        if (isset($response['data']) && is_array($response['data'])) {
-            return $response['data'];
+        if (isset($json['data']) && is_array($json['data'])) {
+            return $json['data'];
         }
 
-        return $response;
+        return $json;
     }
 
     /**
