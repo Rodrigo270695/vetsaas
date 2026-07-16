@@ -51,6 +51,24 @@ function toDatetimeLocalValue(d: Date): string {
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+function isDatetimeLocalPast(value: string): boolean {
+    if (!value) {
+        return false;
+    }
+
+    const d = new Date(value);
+
+    return !Number.isNaN(d.getTime()) && d.getTime() <= Date.now();
+}
+
+function isHoraPastOnDate(fecha: string, hora: string): boolean {
+    if (!fecha || !hora) {
+        return false;
+    }
+
+    return isDatetimeLocalPast(`${fecha}T${hora}`);
+}
+
 function parseIsoToDatetimeLocal(iso: string): string {
     const d = new Date(iso);
 
@@ -135,7 +153,7 @@ export function CitaFormModal({
     const authUser = usePage().props.auth?.user as { id?: string } | undefined;
     const defaultVetId = authUser?.id ?? null;
 
-    const { data, setData, post, put, processing, errors, clearErrors, transform, setDefaults } =
+    const { data, setData, post, put, processing, errors, clearErrors, transform, setDefaults, setError } =
         useForm<FormShape>(emptyForm(defaultVetId, sedesOpciones));
 
     const [hora, setHora] = useState('09:00');
@@ -200,12 +218,21 @@ export function CitaFormModal({
     }, [open, cita?.id, defaultVetId, cita, prefill?.fecha, prefill?.hora, sedesOpciones]);
 
     const applyHora = (nextHora: string) => {
+        if (lockedDate && isHoraPastOnDate(lockedDate, nextHora)) {
+            return;
+        }
+
         setHora(nextHora);
 
         if (lockedDate) {
             setData('inicio_at', `${lockedDate}T${nextHora}`);
         }
     };
+
+    const minDatetimeLocal = useMemo(() => toDatetimeLocalValue(new Date()), [open]);
+
+    const requiresFutureInicio =
+        !isEdit || data.estado === 'programada' || data.estado === 'confirmada';
 
     const pacienteComboboxOptions: ComboboxOption[] = pacientesOpciones.map((p) => ({
         value: p.id,
@@ -230,6 +257,12 @@ export function CitaFormModal({
 
     const onSubmit = (e: FormEvent) => {
         e.preventDefault();
+
+        if (requiresFutureInicio && isDatetimeLocalPast(data.inicio_at)) {
+            setError('inicio_at', t('validation.inicio_pasado'));
+
+            return;
+        }
 
         if (isEdit && cita) {
             put(clinica.citas.update({ cita: cita.id }).url, {
@@ -338,23 +371,35 @@ export function CitaFormModal({
                                     onChange={(e) => applyHora(e.target.value)}
                                     aria-invalid={Boolean(errors.inicio_at)}
                                     disabled={processing}
+                                    min={
+                                        lockedDate &&
+                                        lockedDate === toDatetimeLocalValue(new Date()).slice(0, 10)
+                                            ? toDatetimeLocalValue(new Date()).slice(11, 16)
+                                            : undefined
+                                    }
                                 />
                             </div>
 
                             <div className="flex flex-wrap gap-1.5">
-                                {QUICK_TIMES.map((slot) => (
-                                    <Button
-                                        key={slot}
-                                        type="button"
-                                        size="sm"
-                                        variant={hora === slot ? 'default' : 'outline'}
-                                        className="h-7 cursor-pointer px-2.5 text-xs tabular-nums"
-                                        onClick={() => applyHora(slot)}
-                                        disabled={processing}
-                                    >
-                                        {slot}
-                                    </Button>
-                                ))}
+                                {QUICK_TIMES.map((slot) => {
+                                    const past = Boolean(
+                                        lockedDate && isHoraPastOnDate(lockedDate, slot),
+                                    );
+
+                                    return (
+                                        <Button
+                                            key={slot}
+                                            type="button"
+                                            size="sm"
+                                            variant={hora === slot ? 'default' : 'outline'}
+                                            className="h-7 cursor-pointer px-2.5 text-xs tabular-nums"
+                                            onClick={() => applyHora(slot)}
+                                            disabled={processing || past}
+                                        >
+                                            {slot}
+                                        </Button>
+                                    );
+                                })}
                             </div>
                         </div>
                     ) : (
@@ -363,6 +408,7 @@ export function CitaFormModal({
                             type="datetime-local"
                             className={controlClass}
                             value={data.inicio_at}
+                            min={!isEdit || requiresFutureInicio ? minDatetimeLocal : undefined}
                             onChange={(e) => setData('inicio_at', e.target.value)}
                             aria-invalid={Boolean(errors.inicio_at)}
                             disabled={processing}

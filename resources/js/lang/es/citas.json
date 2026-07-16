@@ -81,7 +81,11 @@
         "no_records_description": "Crea la primera cita con el botón «Nueva cita»."
     },
     "toast": {
-        "load_error": "No se pudo cargar el listado."
+        "load_error": "No se pudo cargar el listado.",
+        "inicio_pasado": "No puedes agendar ni reprogramar en una fecha u hora ya pasada."
+    },
+    "validation": {
+        "inicio_pasado": "No puedes agendar ni reprogramar una cita en una fecha u hora ya pasada."
     },
     "form": {
         "title_create": "Nueva cita",

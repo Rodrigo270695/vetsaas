@@ -81,7 +81,11 @@
         "no_records_description": "Create the first appointment with «New appointment»."
     },
     "toast": {
-        "load_error": "Could not load the list."
+        "load_error": "Could not load the list.",
+        "inicio_pasado": "You cannot schedule or reschedule in the past."
+    },
+    "validation": {
+        "inicio_pasado": "You cannot schedule or reschedule an appointment in the past."
     },
     "form": {
         "title_create": "New appointment",

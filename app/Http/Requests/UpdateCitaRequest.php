@@ -5,7 +5,9 @@ namespace App\Http\Requests;
 use App\Http\Requests\Concerns\AssignsAuthenticatedVeterinario;
 use App\Models\Cita;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class UpdateCitaRequest extends FormRequest
 {
@@ -68,5 +70,30 @@ class UpdateCitaRequest extends FormRequest
             'motivo' => ['nullable', 'string', 'max:2000'],
             'notas' => ['nullable', 'string', 'max:20000'],
         ];
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator): void {
+            $estado = (string) $this->input('estado');
+            if (! in_array($estado, [Cita::ESTADO_PROGRAMADA, Cita::ESTADO_CONFIRMADA], true)) {
+                return;
+            }
+
+            $raw = $this->input('inicio_at');
+            if (! is_string($raw) || $raw === '') {
+                return;
+            }
+
+            try {
+                $inicio = Carbon::parse($raw, config('app.timezone'));
+            } catch (\Throwable) {
+                return;
+            }
+
+            if ($inicio->lte(now())) {
+                $validator->errors()->add('inicio_at', __('citas.validation.inicio_pasado'));
+            }
+        });
     }
 }

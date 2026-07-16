@@ -13,6 +13,7 @@ return [
     ],
     'validation' => [
         'cancel_not_allowed' => 'This appointment cannot be cancelled in its current state.',
+        'inicio_pasado' => 'You cannot schedule or reschedule an appointment in the past.',
     ],
     'reschedule' => [
         'estado_bloqueado' => 'Only scheduled or confirmed appointments can be rescheduled.',

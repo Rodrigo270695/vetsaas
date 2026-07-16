@@ -19,7 +19,17 @@ class RescheduleCitaRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'inicio_at' => ['required', 'date'],
+            'inicio_at' => ['required', 'date', 'after:now'],
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'inicio_at.after' => __('citas.validation.inicio_pasado'),
         ];
     }
 

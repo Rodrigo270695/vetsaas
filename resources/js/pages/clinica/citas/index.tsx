@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useDataTablePage } from '@/hooks/use-data-table-page';
 import { usePermission } from '@/hooks/use-permission';
+import { toastManager } from '@/lib/toast';
 import { dashboard } from '@/routes';
 import clinica from '@/routes/clinica';
 import { exportMethod as citasExportExcel } from '@/routes/clinica/citas';
@@ -171,6 +172,16 @@ export default function Index({
                 return;
             }
 
+            const target = new TZDate(`${inicioAt}:00`, appTz);
+            if (target.getTime() <= Date.now()) {
+                toastManager.add({
+                    type: 'warning',
+                    title: t('toast.inicio_pasado'),
+                });
+
+                return;
+            }
+
             router.patch(
                 clinica.citas.reschedule({ cita: cita.id }).url,
                 {
@@ -198,7 +209,7 @@ export default function Index({
                 },
             );
         },
-        [appTz, canUpdate, filters, mesActivo],
+        [appTz, canUpdate, filters, mesActivo, t],
     );
 
     const openedCitaEditarRef = useRef<string | null>(null);

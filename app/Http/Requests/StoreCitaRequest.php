@@ -68,10 +68,20 @@ class StoreCitaRequest extends FormRequest
                     fn ($q) => $q->where('tenant_id', $tenantId)->where('activa', true),
                 ),
             ],
-            'inicio_at' => ['required', 'date'],
+            'inicio_at' => ['required', 'date', 'after:now'],
             'duracion_minutos' => ['required', 'integer', 'min:5', 'max:480'],
             'motivo' => ['nullable', 'string', 'max:2000'],
             'notas' => ['nullable', 'string', 'max:20000'],
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'inicio_at.after' => __('citas.validation.inicio_pasado'),
         ];
     }
 }

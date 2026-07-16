@@ -64,6 +64,18 @@ function toDateKey(d: Date, timeZone: string): string {
     return `${tz.getFullYear()}-${pad(tz.getMonth() + 1)}-${pad(tz.getDate())}`;
 }
 
+/** true si dateKey + HH:mm ya pasó respecto a ahora (zona de la app). */
+function isDateTimePast(dateKey: string, timeHHMM: string, timeZone: string): boolean {
+    const slot = new TZDate(`${dateKey}T${timeHHMM}:00`, timeZone);
+
+    return slot.getTime() <= Date.now();
+}
+
+/** true si el día completo ya terminó. */
+function isDateFullyPast(dateKey: string, timeZone: string): boolean {
+    return isDateTimePast(dateKey, '23:59', timeZone);
+}
+
 function getEstadoAccent(estado: string): string {
     switch (estado) {
         case 'confirmada':
@@ -225,7 +237,7 @@ export function CitasCalendar({
 
         setSelectedDay(dateKey);
 
-        if (canCreate) {
+        if (canCreate && !isDateFullyPast(dateKey, timeZone)) {
             onScheduleDay(dateKey);
         }
     };
@@ -253,7 +265,7 @@ export function CitasCalendar({
         e.stopPropagation();
         setDragOverKey(null);
 
-        if (!inMonth || !onReschedule) {
+        if (!inMonth || !onReschedule || isDateFullyPast(dateKey, timeZone)) {
             return;
         }
 
@@ -275,13 +287,18 @@ export function CitasCalendar({
             return;
         }
 
+        const hora = `${String(hour).padStart(2, '0')}:00`;
+        if (isDateTimePast(dateKey, hora, timeZone)) {
+            return;
+        }
+
         const cita = resolveDragCita(e);
         if (!cita || !canDragCita(cita, canUpdate)) {
             return;
         }
 
         setSelectedDay(dateKey);
-        onReschedule(cita, dateKey, `${String(hour).padStart(2, '0')}:00`);
+        onReschedule(cita, dateKey, hora);
     };
 
     const allowDrop = (e: DragEvent, key: string) => {
@@ -529,14 +546,25 @@ export function CitasCalendar({
 
                             const isOccupied = slotCitas.length > 0;
                             const slotKey = `hour:${activeDay}:${hour}`;
+                            const hourLabel = `${String(hour).padStart(2, '0')}:00`;
+                            const slotPast = isDateTimePast(activeDay, hourLabel, timeZone);
 
                             return (
                                 <div key={hour} className="grid grid-cols-[3rem_1fr] items-start gap-2">
-                                    <span className="pt-1 text-[0.65rem] tabular-nums text-muted-foreground">
-                                        {String(hour).padStart(2, '0')}:00
+                                    <span
+                                        className={cn(
+                                            'pt-1 text-[0.65rem] tabular-nums text-muted-foreground',
+                                            slotPast && 'opacity-50',
+                                        )}
+                                    >
+                                        {hourLabel}
                                     </span>
                                     <div
-                                        onDragOver={(e) => allowDrop(e, slotKey)}
+                                        onDragOver={(e) => {
+                                            if (!slotPast) {
+                                                allowDrop(e, slotKey);
+                                            }
+                                        }}
                                         onDragLeave={() => {
                                             if (dragOverKey === slotKey) {
                                                 setDragOverKey(null);
@@ -584,19 +612,21 @@ export function CitasCalendar({
                                                     );
                                                 })}
                                             </div>
-                                        ) : canCreate ? (
+                                        ) : canCreate && !slotPast ? (
                                             <button
                                                 type="button"
-                                                onClick={() =>
-                                                    onScheduleDay(activeDay, `${String(hour).padStart(2, '0')}:00`)
-                                                }
+                                                onClick={() => onScheduleDay(activeDay, hourLabel)}
                                                 className="group/slot flex h-9 w-full cursor-pointer items-center gap-2 rounded-lg border border-dashed border-primary/25 px-2 text-left text-[0.65rem] text-muted-foreground transition-colors hover:border-primary/50 hover:bg-primary/5 hover:text-primary"
                                             >
                                                 <Clock className="size-3 opacity-60 group-hover/slot:opacity-100" />
                                                 {t('calendar.schedule_at', {
-                                                    hour: `${String(hour).padStart(2, '0')}:00`,
+                                                    hour: hourLabel,
                                                 })}
                                             </button>
+                                        ) : slotPast ? (
+                                            <div className="flex h-9 items-center rounded-lg px-2 text-[0.65rem] text-muted-foreground/50">
+                                                —
+                                            </div>
                                         ) : (
                                             <div className="h-9 rounded-lg border border-dashed border-border/40" />
                                         )}
