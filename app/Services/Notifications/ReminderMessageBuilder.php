@@ -155,7 +155,7 @@ final class ReminderMessageBuilder
             "💰 Total: *{$totalFormatted}*",
             "📅 {$fechaDisplay}",
             '',
-            'Te enviamos los archivos del comprobante electrónico adjuntos 📎',
+            'Gracias por tu preferencia 🐾',
             '',
             "— {$clinicName}",
         ];

@@ -77,12 +77,7 @@ final class FelDocumentWhatsAppSender
         $sessionId = (string) $session->openwa_session_id;
         $messageIds = [];
         $sent = 0;
-
-        $introResult = $this->client->sendText($sessionId, $chatId, $intro);
-        $messageIds[] = isset($introResult['messageId']) ? (string) $introResult['messageId'] : null;
-        $sent++;
-
-        $safeNumero = preg_replace('/[^A-Za-z0-9_-]+/', '-', $documento->numero_completo) ?: 'comprobante';
+        $isFirstAttachment = true;
 
         foreach ($attachments as $attachment) {
             try {
@@ -94,9 +89,10 @@ final class FelDocumentWhatsAppSender
                     binaryContent: $binary,
                     filename: $attachment['filename'],
                     mimetype: $attachment['mimetype'],
-                    caption: null,
+                    caption: $isFirstAttachment ? $intro : null,
                 );
 
+                $isFirstAttachment = false;
                 $messageIds[] = isset($result['messageId']) ? (string) $result['messageId'] : null;
                 $sent++;
 
@@ -109,21 +105,6 @@ final class FelDocumentWhatsAppSender
                     'source_url' => $attachment['url'] ?? null,
                     'error' => $e->getMessage(),
                 ]);
-
-                $linkLines = $this->buildFallbackLinks($attachments);
-                if ($linkLines !== '') {
-                    try {
-                        $fallback = $this->client->sendText(
-                            $sessionId,
-                            $chatId,
-                            "No se pudo adjuntar el archivo por WhatsApp. Descarga aquí:\n\n".$linkLines,
-                        );
-                        $messageIds[] = isset($fallback['messageId']) ? (string) $fallback['messageId'] : null;
-                        $sent++;
-                    } catch (Throwable) {
-                        // ignore
-                    }
-                }
 
                 throw new RuntimeException(
                     'No se pudo enviar '.$attachment['label'].': '.$e->getMessage(),
@@ -145,7 +126,7 @@ final class FelDocumentWhatsAppSender
     }
 
     /**
-     * @return list<array{tipo: string, label: string, filename: string, mimetype: string, caption: string, url?: string, binary?: string}>
+     * @return list<array{tipo: string, label: string, filename: string, mimetype: string, url?: string, binary?: string}>
      */
     private function resolveAttachments(
         FelDocument $documento,
@@ -160,10 +141,9 @@ final class FelDocumentWhatsAppSender
         if ($pdfTicket && filled($documento->url_pdf)) {
             $attachments[] = [
                 'tipo' => 'pdf_ticket',
-                'label' => 'PDF Ticket',
-                'filename' => $safeNumero.'-ticket.pdf',
+                'label' => 'PDF',
+                'filename' => $safeNumero.'.pdf',
                 'mimetype' => 'application/pdf',
-                'caption' => 'PDF Ticket '.$documento->numero_completo,
                 'url' => (string) $documento->url_pdf,
             ];
         }
@@ -176,7 +156,6 @@ final class FelDocumentWhatsAppSender
                     'label' => 'PDF A4',
                     'filename' => $safeNumero.'-a4.pdf',
                     'mimetype' => 'application/pdf',
-                    'caption' => 'PDF A4 '.$documento->numero_completo,
                     'url' => $urlA4,
                 ];
             }
@@ -187,8 +166,7 @@ final class FelDocumentWhatsAppSender
                 'tipo' => 'xml',
                 'label' => 'XML',
                 'filename' => $safeNumero.'.xml',
-                'mimetype' => 'text/xml',
-                'caption' => 'XML '.$documento->numero_completo,
+                'mimetype' => 'application/xml',
                 'url' => (string) $documento->url_xml,
             ];
         }
@@ -197,30 +175,13 @@ final class FelDocumentWhatsAppSender
             $attachments[] = [
                 'tipo' => 'cdr',
                 'label' => 'CDR',
-                'filename' => 'CDR-'.$safeNumero.'.xml',
-                'mimetype' => 'text/xml',
-                'caption' => 'CDR '.$documento->numero_completo,
+                'filename' => 'R-'.$safeNumero.'.xml',
+                'mimetype' => 'application/xml',
                 'url' => (string) $documento->url_cdr,
             ];
         }
 
         return $attachments;
-    }
-
-    /**
-     * @param  list<array{tipo: string, label: string, url?: string}>  $attachments
-     */
-    private function buildFallbackLinks(array $attachments): string
-    {
-        $lines = [];
-        foreach ($attachments as $att) {
-            $url = $att['url'] ?? null;
-            if (is_string($url) && $url !== '') {
-                $lines[] = '• '.$att['label'].': '.$url;
-            }
-        }
-
-        return implode("\n", $lines);
     }
 
     /**
