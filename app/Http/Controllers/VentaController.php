@@ -127,6 +127,7 @@ class VentaController extends Controller
             'ventas' => $ventas,
             'filters' => $filtersPayload,
             'venta_filtro_ui' => $ctx['venta_filtro_ui'],
+            'ticket_ancho_mm' => TicketAnchoMm::normalize((string) ClinicSetting::current()->ticket_ancho_mm),
             'stats' => [
                 ...$ctx['stats_summary'],
                 'coincidencias' => $ventas->total(),
@@ -787,7 +788,11 @@ class VentaController extends Controller
 
         $data = $request->validate([
             'telefono' => ['nullable', 'string', 'max:20'],
+            'ancho' => ['nullable', 'string', 'in:'.implode(',', TicketAnchoMm::ALLOWED)],
         ]);
+
+        $clinic = ClinicSetting::current();
+        $ancho = TicketAnchoMm::normalize($data['ancho'] ?? null, (string) $clinic->ticket_ancho_mm);
 
         $venta->loadMissing([
             'propietario:id,nombres,apellidos,razon_social,telefono',
@@ -819,7 +824,8 @@ class VentaController extends Controller
                 $tenant,
                 $chatId,
                 $ownerName,
-                ClinicSetting::current(),
+                $clinic,
+                $ancho,
             );
 
             return back()->with('success', __('caja.ventas.flash.whatsapp_enviado'));

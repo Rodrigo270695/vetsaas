@@ -83,7 +83,7 @@ function formatMonto(amount: string, moneda: string, locale: string): string {
     return new Intl.NumberFormat(locale, { style: 'currency', currency: cur }).format(n);
 }
 
-export default function Index({ ventas: paginated, filters, stats, venta_filtro_ui }: VentasIndexProps) {
+export default function Index({ ventas: paginated, filters, stats, venta_filtro_ui, ticket_ancho_mm }: VentasIndexProps) {
     const { t, i18n } = useTranslation(['caja', 'common', 'offline']);
     const { can } = usePermission();
     const { isOnline, pendingCount } = useOfflineSync();
@@ -461,6 +461,7 @@ export default function Index({ ventas: paginated, filters, stats, venta_filtro_
                         }
                     }}
                     venta={whatsappVenta}
+                    configAncho={ticket_ancho_mm}
                 />
             </div>
         </>

@@ -4,14 +4,19 @@
     <meta charset="utf-8">
     <title>Ticket {{ $venta->numero }}</title>
     <style>
-        @page { margin: 4mm; }
+        @page {
+            size: {{ $ancho_mm }}mm auto;
+            margin: 2mm;
+        }
         * { box-sizing: border-box; }
         body {
-            margin: 0;
+            margin: 0 auto;
             padding: 0;
-            font-family: DejaVu Sans, sans-serif;
+            width: {{ $ancho_mm }}mm;
+            max-width: {{ $ancho_mm }}mm;
+            font-family: DejaVu Sans Mono, DejaVu Sans, monospace;
             font-size: {{ $tf['fs'] }}px;
-            line-height: 1.3;
+            line-height: 1.25;
             color: #111;
         }
         .center { text-align: center; }
@@ -211,7 +216,8 @@
     @endif
 
     <div class="footer">
-        {{ __('caja.ventas.ticket.disclaimer') }}
+        {{ __('caja.ventas.ticket.disclaimer') }}<br>
+        {{ __('caja.ventas.ticket.ancho_papel', ['mm' => $ancho_mm]) }}
     </div>
 </body>
 </html>

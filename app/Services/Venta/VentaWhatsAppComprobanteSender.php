@@ -37,6 +37,7 @@ final class VentaWhatsAppComprobanteSender
         string $chatId,
         string $ownerName,
         ClinicSetting $clinic,
+        ?string $anchoMm = null,
     ): array {
         if (! $this->client->isConfigured()) {
             throw new RuntimeException('WhatsApp (OpenWA) no está configurado.');
@@ -103,7 +104,7 @@ final class VentaWhatsAppComprobanteSender
 
         if ($mode === 'text') {
             try {
-                $pdf = $this->ticketPdf->renderForWhatsApp($venta, $clinic, (string) $tenant->id);
+                $pdf = $this->ticketPdf->renderForWhatsApp($venta, $clinic, (string) $tenant->id, $anchoMm);
                 if ($pdf !== null) {
                     $result = $this->client->sendDocument(
                         sessionId: $sessionId,

@@ -149,6 +149,8 @@
             "phone_label": "WhatsApp number",
             "phone_placeholder": "987654321 or 51987654321",
             "phone_hint": "Peruvian mobile (9 digits) or with country code.",
+            "ancho_hint": "Choose the thermal roll width. The PDF will be sent in that format.",
+            "ancho_cpe_hint": "If a SUNAT CPE is issued, that PDF is sent. Width applies to the internal cash ticket.",
             "submit": "Send",
             "cancel": "Cancel",
             "sending": "Sending…"

@@ -149,6 +149,8 @@
             "phone_label": "Número de WhatsApp",
             "phone_placeholder": "987654321 o 51987654321",
             "phone_hint": "Celular peruano de 9 dígitos o con código de país.",
+            "ancho_hint": "Elige el ancho del rollo térmico. El PDF se enviará con ese formato.",
+            "ancho_cpe_hint": "Si hay CPE SUNAT emitido se envía ese PDF. El ancho aplica al ticket interno de caja.",
             "submit": "Enviar",
             "cancel": "Cancelar",
             "sending": "Enviando…"

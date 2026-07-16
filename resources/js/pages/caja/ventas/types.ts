@@ -1,4 +1,5 @@
 import type { Paginated } from '@/types';
+import type { TicketAnchoMm } from '@/lib/ticket-ancho';
 
 export type VentaEstadoFiltro =
     | 'todas'
@@ -49,6 +50,8 @@ export type VentasIndexProps = {
     ventas: Paginated<VentaRow>;
     filters: VentasIndexFilters;
     venta_filtro_ui: VentaFiltroUi;
+    /** Ancho de ticket por defecto (Configuración → General). */
+    ticket_ancho_mm: TicketAnchoMm;
     stats: {
         total: number;
         pagado: number;

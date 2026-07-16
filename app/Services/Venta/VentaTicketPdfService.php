@@ -97,13 +97,13 @@ final class VentaTicketPdfService
      *
      * @return array{binary: string, filename: string}|null
      */
-    public function renderIfAllowed(Venta $venta, ClinicSetting $cfg, ?Tenant $tenant, string $tenantId): ?array
+    public function renderIfAllowed(Venta $venta, ClinicSetting $cfg, ?Tenant $tenant, string $tenantId, ?string $anchoMm = null): ?array
     {
         if (! VentaTicketPolicy::puedeImprimir($venta, $cfg, $tenant)) {
             return null;
         }
 
-        return $this->renderPdf($venta, $cfg, $tenantId);
+        return $this->renderPdf($venta, $cfg, $tenantId, $anchoMm);
     }
 
     /**
@@ -111,35 +111,40 @@ final class VentaTicketPdfService
      *
      * @return array{binary: string, filename: string}|null
      */
-    public function renderForWhatsApp(Venta $venta, ClinicSetting $cfg, string $tenantId): ?array
+    public function renderForWhatsApp(Venta $venta, ClinicSetting $cfg, string $tenantId, ?string $anchoMm = null): ?array
     {
         if ($venta->estado !== Venta::ESTADO_PAGADO || $venta->estaAnulada()) {
             return null;
         }
 
-        return $this->renderPdf($venta, $cfg, $tenantId);
+        return $this->renderPdf($venta, $cfg, $tenantId, $anchoMm);
     }
 
     /**
      * @return array{binary: string, filename: string}
      */
-    private function renderPdf(Venta $venta, ClinicSetting $cfg, string $tenantId): array
+    private function renderPdf(Venta $venta, ClinicSetting $cfg, string $tenantId, ?string $anchoMm = null): array
     {
-        $data = $this->viewData($venta, $cfg, $tenantId);
+        $data = $this->viewData($venta, $cfg, $tenantId, $anchoMm);
         $logoDataUri = $this->logoDataUri($cfg);
         if ($logoDataUri !== null) {
             $data['clinic_logo_url'] = $logoDataUri;
         }
         $data['tf'] = TicketAnchoMm::typography((string) $data['ancho_mm']);
 
+        $anchoMmFloat = (float) $data['ancho_mm'];
+        $widthPt = $anchoMmFloat * 72 / 25.4;
+        $lineCount = count($data['lineas']);
+        $heightPt = max(400.0, 100.0 + ($lineCount * 26.0) + 320.0);
+
         try {
-            // A4 es más estable en DomPDF que el rollo térmico en mm.
             $pdf = Pdf::loadView('pdf.venta-ticket', $data);
-            $pdf->setPaper('a4', 'portrait');
+            $pdf->setPaper([0, 0, $widthPt, $heightPt], 'portrait');
             $binary = $pdf->output();
         } catch (\Throwable $e) {
             Log::warning('DomPDF ticket venta falló', [
                 'venta_id' => $venta->id,
+                'ancho_mm' => $data['ancho_mm'],
                 'error' => $e->getMessage(),
             ]);
 
@@ -151,10 +156,11 @@ final class VentaTicketPdfService
         }
 
         $safeNumero = preg_replace('/[^A-Za-z0-9_-]+/', '-', $venta->numero) ?: 'venta';
+        $anchoLabel = (string) $data['ancho_mm'];
 
         return [
             'binary' => $binary,
-            'filename' => 'ticket-'.$safeNumero.'.pdf',
+            'filename' => 'ticket-'.$safeNumero.'-'.$anchoLabel.'mm.pdf',
         ];
     }
 
