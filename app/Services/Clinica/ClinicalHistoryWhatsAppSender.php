@@ -28,7 +28,9 @@ final class ClinicalHistoryWhatsAppSender
             throw new RuntimeException('La sesión de WhatsApp de la clínica no está conectada.');
         }
 
-        return $this->messenger->sendText($session, $chatId, $message);
+        // Con fallback: si OpenWA tarda en responder (timeout / 5xx tardío)
+        // el mensaje normalmente ya salió; evitamos un toast de error falso.
+        return $this->messenger->sendTextWithDeliveryFallback($session, $chatId, $message);
     }
 
     private function resolveReadySession(Tenant $tenant): ?TenantWhatsAppSession

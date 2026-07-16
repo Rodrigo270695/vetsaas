@@ -116,6 +116,32 @@ final class OpenWaClient
     }
 
     /**
+     * Igual que {@see sendText}, pero si OpenWA responde con timeout o 5xx
+     * tardío (el mensaje suele haber salido igual), se asume entrega en vez
+     * de propagar el error. Útil para mensajes one-shot iniciados por el
+     * usuario donde un falso "falló" es peor que un improbable duplicado.
+     *
+     * @return array<string, mixed>
+     */
+    public function sendTextWithDeliveryFallback(string $sessionId, string $chatId, string $text): array
+    {
+        try {
+            return $this->sendText($sessionId, $chatId, $text);
+        } catch (RuntimeException $error) {
+            if ($this->shouldAssumeDelivered($error)) {
+                Log::warning('OpenWA send-text: respuesta ambigua; se asume envío OK', [
+                    'error' => $error->getMessage(),
+                    'chat_id' => $chatId,
+                ]);
+
+                return ['messageId' => null, 'assumed_delivery' => true];
+            }
+
+            throw $error;
+        }
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function startSession(string $sessionId): array
@@ -332,7 +358,7 @@ final class OpenWaClient
         try {
             return $this->postDocument($sessionId, $payload);
         } catch (RuntimeException $error) {
-            if ($this->shouldAssumeDocumentDelivered($error)) {
+            if ($this->shouldAssumeDelivered($error)) {
                 Log::warning('OpenWA send-document: respuesta ambigua; se asume envío OK', [
                     'error' => $error->getMessage(),
                     'filename' => $payload['filename'] ?? null,
@@ -347,10 +373,10 @@ final class OpenWaClient
     }
 
     /**
-     * OpenWA a veces tarda en responder tras descargar la URL temporal,
-     * pero el documento ya llegó a WhatsApp (timeout / 5xx tardío).
+     * OpenWA a veces tarda en responder (timeout / 5xx tardío) aunque el
+     * mensaje o documento ya llegó a WhatsApp.
      */
-    private function shouldAssumeDocumentDelivered(RuntimeException $error): bool
+    private function shouldAssumeDelivered(RuntimeException $error): bool
     {
         $message = $error->getMessage();
 

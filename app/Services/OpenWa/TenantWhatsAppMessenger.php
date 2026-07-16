@@ -18,6 +18,20 @@ final class TenantWhatsAppMessenger
 
     public function sendText(TenantWhatsAppSession $session, string $chatId, string $text): array
     {
+        return $this->client->sendText($this->readySessionId($session), $chatId, $text);
+    }
+
+    /**
+     * Envío tolerante a timeouts/5xx tardíos de OpenWA: asume entrega en vez
+     * de fallar. Usar solo para mensajes one-shot disparados por el usuario.
+     */
+    public function sendTextWithDeliveryFallback(TenantWhatsAppSession $session, string $chatId, string $text): array
+    {
+        return $this->client->sendTextWithDeliveryFallback($this->readySessionId($session), $chatId, $text);
+    }
+
+    private function readySessionId(TenantWhatsAppSession $session): string
+    {
         if (! $session->isReady()) {
             throw new RuntimeException('Sesión WhatsApp del tenant no está conectada.');
         }
@@ -27,6 +41,6 @@ final class TenantWhatsAppMessenger
             throw new RuntimeException('Sesión WhatsApp sin id OpenWA.');
         }
 
-        return $this->client->sendText($sessionId, $chatId, $text);
+        return $sessionId;
     }
 }

@@ -57,6 +57,12 @@ class ResolveTenant
         // fallaría con "Missing required parameter 'tenant_subdomain'".
         URL::defaults(['tenant_subdomain' => $slug]);
 
+        // El comodín `{tenant_subdomain}` del dominio se elimina de los
+        // parámetros de la ruta: si se queda, Laravel lo pasa POSICIONALMENTE
+        // como primer argumento del controller y desplaza los parámetros
+        // reales (p. ej. `Paciente $paciente` recibiría el slug como string).
+        $request->route()?->forgetParameter('tenant_subdomain');
+
         return $next($request);
     }
 }
