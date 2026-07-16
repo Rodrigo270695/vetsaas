@@ -20,6 +20,9 @@ export type DocumentoDownloadRow = {
     id: string;
     numero_completo: string;
     venta_id: string;
+    estado?: string;
+    receptor_nombre?: string;
+    cliente_telefono?: string | null;
     url_pdf_ticket: string | null;
     url_pdf_a4: string | null;
     tiene_xml: boolean;

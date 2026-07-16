@@ -139,6 +139,30 @@ final class ReminderMessageBuilder
         return implode("\n", $lines);
     }
 
+    public function felDocumento(
+        string $clinicName,
+        string $recipientName,
+        string $numeroCompleto,
+        string $tipoLabel,
+        string $totalFormatted,
+        string $fechaDisplay,
+    ): string {
+        $lines = [
+            "Hola {$recipientName} 👋",
+            '',
+            "🧾 *{$tipoLabel}* de *{$clinicName}*",
+            "📄 *{$numeroCompleto}*",
+            "💰 Total: *{$totalFormatted}*",
+            "📅 {$fechaDisplay}",
+            '',
+            'Te enviamos los archivos del comprobante electrónico adjuntos 📎',
+            '',
+            "— {$clinicName}",
+        ];
+
+        return implode("\n", $lines);
+    }
+
     public function clinicDisplayName(?ClinicSetting $setting): string
     {
         if ($setting === null) {

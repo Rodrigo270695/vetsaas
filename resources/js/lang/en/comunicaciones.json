@@ -41,7 +41,8 @@
         "vacuna_proxima": "Vaccine",
         "cumple_paciente": "Birthday",
         "prueba": "Test",
-        "venta_comprobante": "Sale receipt"
+        "venta_comprobante": "Sale receipt",
+        "documento_comprobante": "Electronic receipt"
     },
     "actions": {
         "cancel": "Cancel",

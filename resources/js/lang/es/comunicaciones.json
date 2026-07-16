@@ -41,7 +41,8 @@
         "vacuna_proxima": "Vacuna",
         "cumple_paciente": "Cumpleaños",
         "prueba": "Prueba",
-        "venta_comprobante": "Comprobante de venta"
+        "venta_comprobante": "Comprobante de venta",
+        "documento_comprobante": "CPE electrónico"
     },
     "actions": {
         "cancel": "Cancelar",

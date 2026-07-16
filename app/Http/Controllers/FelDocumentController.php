@@ -2,17 +2,24 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ClinicSetting;
 use App\Models\FelDocument;
 use App\Models\FelSerie;
 use App\Models\Sede;
+use App\Models\Tenant;
+use App\Services\Fel\FelDocumentWhatsAppSender;
 use App\Support\Fel\FelDocumentApisunatModeResolver;
+use App\Support\Fel\FelDocumentPdfUrls;
+use App\Support\WhatsApp\WhatsAppChatId;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Throwable;
 
 class FelDocumentController extends Controller
 {
@@ -72,7 +79,8 @@ class FelDocumentController extends Controller
 
         $query = FelDocument::query()
             ->with([
-                'venta:id,numero,sede_id,estado',
+                'venta:id,numero,sede_id,estado,propietario_id',
+                'venta.propietario:id,nombres,apellidos,razon_social,telefono',
             ]);
 
         if ($search !== '') {
@@ -117,7 +125,8 @@ class FelDocumentController extends Controller
         $documentos->getCollection()->transform(function (FelDocument $doc) use ($sedeNombres): array {
             $venta = $doc->venta;
             $pdfTicket = $doc->url_pdf;
-            $pdfA4 = $this->buildA4FromTicket($pdfTicket);
+            $pdfA4 = FelDocumentPdfUrls::pdfA4FromTicket($pdfTicket);
+            $propietario = $venta?->propietario;
 
             return [
                 'id' => $doc->id,
@@ -134,6 +143,7 @@ class FelDocumentController extends Controller
                 'venta_numero' => $venta?->numero,
                 'venta_estado' => $venta?->estado,
                 'sede' => $venta !== null ? ($sedeNombres[$venta->sede_id] ?? '—') : '—',
+                'cliente_telefono' => $propietario?->telefono,
                 'url_pdf_ticket' => $pdfTicket,
                 'url_pdf_a4' => $pdfA4,
                 'tiene_xml' => filled($doc->url_xml),
@@ -226,6 +236,93 @@ class FelDocumentController extends Controller
         return response()->json($payload, 200, [], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     }
 
+    /**
+     * Envía comprobante electrónico por WhatsApp con adjuntos seleccionados.
+     */
+    public function enviarWhatsApp(
+        Request $request,
+        FelDocument $felDocument,
+        FelDocumentWhatsAppSender $sender,
+    ): RedirectResponse {
+        abort_unless($request->user()?->can('documentos.send'), 403);
+
+        if ($felDocument->estado !== FelDocument::ESTADO_EMITIDO) {
+            return back()->with('warning', __('facturacion.documentos.flash.whatsapp_no_emitido'));
+        }
+
+        $data = $request->validate([
+            'telefono' => ['nullable', 'string', 'max:20'],
+            'pdf_ticket' => ['sometimes', 'boolean'],
+            'pdf_a4' => ['sometimes', 'boolean'],
+            'xml' => ['sometimes', 'boolean'],
+            'cdr' => ['sometimes', 'boolean'],
+        ]);
+
+        $pdfTicket = $request->boolean('pdf_ticket');
+        $pdfA4 = $request->boolean('pdf_a4');
+        $xml = $request->boolean('xml');
+        $cdr = $request->boolean('cdr');
+
+        if (! $pdfTicket && ! $pdfA4 && ! $xml && ! $cdr) {
+            return back()->with('warning', __('facturacion.documentos.flash.whatsapp_sin_adjuntos'));
+        }
+
+        $felDocument->loadMissing([
+            'venta.propietario:id,nombres,apellidos,razon_social,telefono',
+        ]);
+
+        $propietario = $felDocument->venta?->propietario;
+        $phone = trim((string) ($data['telefono'] ?? '')) !== ''
+            ? (string) $data['telefono']
+            : $propietario?->telefono;
+
+        $chatId = WhatsAppChatId::fromPhone($phone);
+        if ($chatId === null) {
+            return back()->with('warning', __('facturacion.documentos.flash.whatsapp_no_phone'));
+        }
+
+        $tenantId = tenant_id();
+        $tenant = $tenantId !== null ? Tenant::query()->find($tenantId) : null;
+        if ($tenant === null) {
+            return back()->with('warning', __('facturacion.documentos.flash.whatsapp_fallo'));
+        }
+
+        $recipientName = trim($felDocument->receptor_nombre) !== ''
+            ? trim($felDocument->receptor_nombre)
+            : ($propietario !== null && trim($propietario->displayName()) !== ''
+                ? $propietario->displayName()
+                : 'cliente');
+
+        try {
+            $sender->send(
+                $felDocument,
+                $tenant,
+                $chatId,
+                $recipientName,
+                ClinicSetting::current(),
+                $pdfTicket,
+                $pdfA4,
+                $xml,
+                $cdr,
+            );
+
+            return back()->with('success', __('facturacion.documentos.flash.whatsapp_enviado'));
+        } catch (Throwable $e) {
+            Log::warning('No se pudo enviar comprobante por WhatsApp', [
+                'fel_document_id' => $felDocument->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            $msg = __('facturacion.documentos.flash.whatsapp_fallo');
+            $detail = trim($e->getMessage());
+            if ($detail !== '') {
+                $msg .= ' '.$detail;
+            }
+
+            return back()->with('warning', $msg);
+        }
+    }
+
     private function authorizeDocument(FelDocument $felDocument): void
     {
         abort_unless(request()->user()?->can('documentos.view'), 403);
@@ -253,19 +350,7 @@ class FelDocumentController extends Controller
 
     private function buildA4FromTicket(?string $ticketUrl): ?string
     {
-        if ($ticketUrl === null || $ticketUrl === '') {
-            return null;
-        }
-
-        if (str_contains($ticketUrl, '/pdf/a4/')) {
-            return $ticketUrl;
-        }
-
-        if (str_contains($ticketUrl, '/pdf/ticket/')) {
-            return str_replace('/pdf/ticket/', '/pdf/a4/', $ticketUrl);
-        }
-
-        return null;
+        return FelDocumentPdfUrls::pdfA4FromTicket($ticketUrl);
     }
 
     private function parseDateParam(mixed $value): ?string

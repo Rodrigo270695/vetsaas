@@ -7,5 +7,25 @@
         "preset_last_week": "Last week",
         "preset_last_month": "Last month",
         "apply_single_day": "Single day"
+    },
+    "whatsapp": {
+        "title": "Send receipt via WhatsApp",
+        "description_with_phone": "{{numero}} will be sent to {{cliente}} ({{telefono}}).",
+        "description_no_phone": "{{cliente}} has no phone on file. Enter the WhatsApp number to send to.",
+        "phone_label": "WhatsApp number",
+        "phone_placeholder": "987654321 or 51987654321",
+        "phone_hint": "Peruvian mobile (9 digits) or with country code.",
+        "adjuntos_label": "Files to send",
+        "adjunto_pdf_ticket": "PDF Ticket (thermal roll)",
+        "adjunto_pdf_a4": "PDF A4",
+        "adjunto_xml": "XML",
+        "adjunto_cdr": "CDR (SUNAT acknowledgement)",
+        "adjuntos_hint": "Check the formats you want to attach. A summary message is sent first, then each file.",
+        "no_disponible": "Unavailable",
+        "sin_adjuntos": "Select at least one file to send.",
+        "submit": "Send",
+        "cancel": "Cancel",
+        "sending": "Sending…",
+        "enviar": "Send {{numero}} via WhatsApp"
     }
 }

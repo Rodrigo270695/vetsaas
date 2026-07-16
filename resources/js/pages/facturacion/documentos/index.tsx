@@ -1,7 +1,8 @@
 import { Head, Link } from '@inertiajs/react';
-import { Eye, FileText } from 'lucide-react';
+import { Eye, FileText, MessageCircle } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     DataPagination,
     DataTable,
@@ -13,12 +14,17 @@ import {
 import type { DataTableColumn, FilterChip } from '@/components/data-page';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Can } from '@/components/can';
 import { useDataTablePage } from '@/hooks/use-data-table-page';
 import AppLayout from '@/layouts/app-layout';
 import { AtencionDateRangeFilter } from '@/pages/clinica/historias-clinicas/components/atencion-date-range-filter';
 import caja from '@/routes/caja';
 import type { Paginated } from '@/types';
 import { DocumentoDownloadMenu, type DocumentoDownloadRow } from './components/documento-download-menu';
+import {
+    DocumentoWhatsAppModal,
+    type DocumentoWhatsAppRow,
+} from './components/documento-whatsapp-modal';
 
 type DocumentoEstadoFiltro = 'todos' | 'emitido' | 'anulado' | 'rechazado' | 'pendiente';
 
@@ -29,6 +35,7 @@ type DocumentoRow = DocumentoDownloadRow & {
     apisunat_mode: 'sandbox' | 'produccion' | null;
     receptor_nombre: string;
     receptor_num_doc: string;
+    cliente_telefono: string | null;
     total: string;
     moneda: string;
     emitido_at: string | null;
@@ -112,6 +119,9 @@ function formatMonto(amount: string, moneda: string, locale: string): string {
 }
 
 export default function Index({ documentos: paginated, filters, documento_filtro_ui, stats }: Props) {
+    const { t } = useTranslation('facturacion-documentos');
+    const [whatsappDocumento, setWhatsappDocumento] = useState<DocumentoWhatsAppRow | null>(null);
+
     const { search, setSearch, isLoading, sort, setSort, setPerPage, applyFilter } =
         useDataTablePage<TableExtraFilters>({
             routeUrl: ROUTE_URL,
@@ -254,6 +264,20 @@ export default function Index({ documentos: paginated, filters, documento_filtro
                 header: 'Acciones',
                 cell: (row) => (
                     <div className="flex flex-wrap items-center gap-1.5">
+                        {row.estado === 'emitido' ? (
+                            <Can permission="documentos.send">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="icon"
+                                    className="size-8 shrink-0 cursor-pointer border-emerald-600/30 bg-emerald-500/5 text-emerald-700 hover:bg-emerald-500/10 hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300"
+                                    aria-label={t('whatsapp.enviar', { numero: row.numero_completo })}
+                                    onClick={() => setWhatsappDocumento(row)}
+                                >
+                                    <MessageCircle className="size-4" strokeWidth={2.25} aria-hidden />
+                                </Button>
+                            </Can>
+                        ) : null}
                         <DocumentoDownloadMenu documento={row} />
                         <Button variant="ghost" size="icon" className="size-8" asChild>
                             <Link
@@ -267,7 +291,7 @@ export default function Index({ documentos: paginated, filters, documento_filtro
                 ),
             },
         ],
-        [],
+        [t],
     );
 
     return (
@@ -359,6 +383,16 @@ export default function Index({ documentos: paginated, filters, documento_filtro
                     }
                 />
             </div>
+
+            <DocumentoWhatsAppModal
+                open={whatsappDocumento !== null}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setWhatsappDocumento(null);
+                    }
+                }}
+                documento={whatsappDocumento}
+            />
         </>
     );
 }
