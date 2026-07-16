@@ -7,9 +7,9 @@ return [
         'rescheduled' => 'Appointment rescheduled successfully.',
         'deleted' => 'Appointment deleted successfully.',
         'cancelled' => 'Appointment cancelled successfully.',
-        'whatsapp_queued' => 'WhatsApp confirmation was queued for the owner.',
+        'whatsapp_queued' => 'WhatsApp confirmation sent to the owner.',
         'whatsapp_no_phone' => 'The appointment was saved, but the owner has no WhatsApp number registered.',
-        'whatsapp_queue_failed' => 'The appointment was saved, but the WhatsApp message could not be queued.',
+        'whatsapp_queue_failed' => 'The appointment was saved, but the WhatsApp message could not be sent.',
     ],
     'validation' => [
         'cancel_not_allowed' => 'This appointment cannot be cancelled in its current state.',
