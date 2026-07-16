@@ -133,13 +133,16 @@ final class VentaTicketPdfService
         $data['tf'] = TicketAnchoMm::typography((string) $data['ancho_mm']);
 
         $anchoMmFloat = (float) $data['ancho_mm'];
+        // Ancho del rollo en puntos (DomPDF). El contenido respeta @page margin + .pad en la vista.
         $widthPt = $anchoMmFloat * 72 / 25.4;
         $lineCount = count($data['lineas']);
-        $heightPt = max(400.0, 100.0 + ($lineCount * 26.0) + 320.0);
+        $heightPt = max(480.0, 140.0 + ($lineCount * 28.0) + 360.0);
 
         try {
             $pdf = Pdf::loadView('pdf.venta-ticket', $data);
             $pdf->setPaper([0, 0, $widthPt, $heightPt], 'portrait');
+            $pdf->setOption('isHtml5ParserEnabled', true);
+            $pdf->setOption('isRemoteEnabled', false);
             $binary = $pdf->output();
         } catch (\Throwable $e) {
             Log::warning('DomPDF ticket venta falló', [
