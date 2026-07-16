@@ -20,9 +20,11 @@ export type VentaRow = {
     fel_estado: string;
     created_at: string | null;
     cliente: string;
+    cliente_telefono: string | null;
     paciente: string | null;
     cajero: string;
     sede: string;
+    pdf_url: string | null;
 };
 
 export type VentasIndexFilters = {

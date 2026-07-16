@@ -139,7 +139,19 @@
         },
         "actions": {
             "nueva": "New sale",
-            "ver_detalle": "View sale {{numero}}"
+            "ver_detalle": "View sale {{numero}}",
+            "enviar_whatsapp": "Send receipt via WhatsApp ({{numero}})"
+        },
+        "whatsapp": {
+            "title": "Send receipt via WhatsApp",
+            "description_with_phone": "The summary of {{numero}} will be sent to {{cliente}} ({{telefono}}).",
+            "description_no_phone": "{{cliente}} has no phone on file. Enter the WhatsApp number to send to.",
+            "phone_label": "WhatsApp number",
+            "phone_placeholder": "987654321 or 51987654321",
+            "phone_hint": "Peruvian mobile (9 digits) or with country code.",
+            "submit": "Send",
+            "cancel": "Cancel",
+            "sending": "Sending…"
         },
         "show": {
             "title": "Sale {{numero}}",

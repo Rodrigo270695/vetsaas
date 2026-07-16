@@ -1,6 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
 import { OfflineAwareLink } from '@/components/offline-aware-link';
-import { Download, Eye, FileCheck2, Plus, ReceiptText } from 'lucide-react';
+import { Download, Eye, FileCheck2, MessageCircle, Plus, ReceiptText } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -27,6 +27,7 @@ import { useOfflineSync } from '@/hooks/use-offline-sync';
 import { AtencionDateRangeFilter } from '@/pages/clinica/historias-clinicas/components/atencion-date-range-filter';
 import caja from '@/routes/caja';
 import { exportMethod as ventasExportExcel } from '@/routes/caja/ventas';
+import { VentaWhatsAppModal } from './components/venta-whatsapp-modal';
 import type { VentaEstadoFiltro, VentasIndexProps, VentaRow } from './types';
 
 type TableExtraFilters = {
@@ -87,6 +88,7 @@ export default function Index({ ventas: paginated, filters, stats, venta_filtro_
     const { can } = usePermission();
     const { isOnline, pendingCount } = useOfflineSync();
     const [pendingOffline, setPendingOffline] = useState<OutboxItem[]>([]);
+    const [whatsappVenta, setWhatsappVenta] = useState<VentaRow | null>(null);
     const canView = can('ventas.view');
 
     useEffect(() => {
@@ -258,7 +260,21 @@ export default function Index({ ventas: paginated, filters, stats, venta_filtro_
                 header: t('caja:ventas.columns.acciones'),
                 align: 'right',
                 cell: (row) => (
-                    <div className="flex justify-end">
+                    <div className="flex justify-end gap-1.5">
+                        {row.estado !== 'anulado' ? (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="icon"
+                                className="size-8 shrink-0 cursor-pointer border-emerald-600/30 bg-emerald-500/5 text-emerald-700 hover:bg-emerald-500/10 hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300"
+                                aria-label={t('caja:ventas.actions.enviar_whatsapp', {
+                                    numero: row.numero_display,
+                                })}
+                                onClick={() => setWhatsappVenta(row)}
+                            >
+                                <MessageCircle className="size-4" strokeWidth={2.25} aria-hidden />
+                            </Button>
+                        ) : null}
                         <Button
                             variant="outline"
                             size="icon"
@@ -435,6 +451,16 @@ export default function Index({ ventas: paginated, filters, stats, venta_filtro_
                             }
                         />
                     }
+                />
+
+                <VentaWhatsAppModal
+                    open={whatsappVenta !== null}
+                    onOpenChange={(open) => {
+                        if (!open) {
+                            setWhatsappVenta(null);
+                        }
+                    }}
+                    venta={whatsappVenta}
                 />
             </div>
         </>

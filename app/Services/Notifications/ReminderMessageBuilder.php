@@ -109,6 +109,36 @@ final class ReminderMessageBuilder
         );
     }
 
+    public function ventaComprobante(
+        string $clinicName,
+        string $ownerName,
+        string $numeroDisplay,
+        string $totalFormatted,
+        string $fechaDisplay,
+        ?string $pdfUrl = null,
+    ): string {
+        $lines = [
+            "Hola {$ownerName} 👋",
+            '',
+            "🧾 Comprobante de *{$clinicName}*",
+            "📄 *{$numeroDisplay}*",
+            "💰 Total: *{$totalFormatted}*",
+            "📅 {$fechaDisplay}",
+        ];
+
+        if ($pdfUrl !== null && $pdfUrl !== '') {
+            $lines[] = '';
+            $lines[] = "📎 PDF: {$pdfUrl}";
+        }
+
+        $lines[] = '';
+        $lines[] = 'Gracias por tu preferencia 🐾';
+        $lines[] = '';
+        $lines[] = "— {$clinicName}";
+
+        return implode("\n", $lines);
+    }
+
     public function clinicDisplayName(?ClinicSetting $setting): string
     {
         if ($setting === null) {

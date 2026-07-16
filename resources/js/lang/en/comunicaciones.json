@@ -40,7 +40,8 @@
         "cita_2h": "Appointment 2h",
         "vacuna_proxima": "Vaccine",
         "cumple_paciente": "Birthday",
-        "prueba": "Test"
+        "prueba": "Test",
+        "venta_comprobante": "Sale receipt"
     },
     "actions": {
         "cancel": "Cancel",

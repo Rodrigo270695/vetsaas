@@ -659,6 +659,10 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             ->get('ventas/{venta}/ticket', [VentaController::class, 'ticket'])
             ->whereUuid('venta')
             ->name('ventas.ticket');
+        Route::middleware('permission:ventas.view')
+            ->post('ventas/{venta}/enviar-whatsapp', [VentaController::class, 'enviarWhatsApp'])
+            ->whereUuid('venta')
+            ->name('ventas.enviar-whatsapp');
         Route::middleware('permission:ventas.create')
             ->post('ventas/{venta}/emitir-fel', [VentaController::class, 'emitirFel'])
             ->whereUuid('venta')

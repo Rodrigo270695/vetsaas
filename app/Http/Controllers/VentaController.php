@@ -24,6 +24,9 @@ use App\Models\Propietario;
 use App\Models\Sede;
 use App\Models\Venta;
 use App\Services\Fel\FelEmisionVentaService;
+use App\Services\Notifications\NotificationQueueService;
+use App\Services\Notifications\ReminderMessageBuilder;
+use App\Services\Notifications\WhatsAppNotificationDispatcher;
 use App\Services\Venta\VentaAnulacionService;
 use App\Services\Venta\VentaCheckoutService;
 use App\Support\Caja\VentaTicketPolicy;
@@ -33,6 +36,7 @@ use App\Support\Fel\FelSerieResolver;
 use App\Support\PlanCapabilities;
 use App\Support\Venta\VentaDesdeCargoPrefill;
 use App\Support\Caja\TicketAnchoMm;
+use App\Support\WhatsApp\WhatsAppChatId;
 use App\Models\Tenant;
 use App\Support\Tenancy\TenantModuleAccess;
 use App\Tenancy\TenantManager;
@@ -43,11 +47,13 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Throwable;
 
 class VentaController extends Controller
 {
@@ -110,9 +116,11 @@ class VentaController extends Controller
                 'fel_estado' => $v->fel_estado,
                 'created_at' => $v->created_at?->toIso8601String(),
                 'cliente' => $nombreCliente,
+                'cliente_telefono' => $p?->telefono,
                 'paciente' => $v->paciente?->nombre,
                 'cajero' => $v->creadoPor?->name ?? '—',
                 'sede' => $sedeNombres[$v->sede_id] ?? '—',
+                'pdf_url' => $v->felDocument?->url_pdf,
             ];
         });
 
@@ -251,10 +259,10 @@ class VentaController extends Controller
 
         $baseQuery = Venta::query()
             ->with([
-                'propietario:id,nombres,apellidos,razon_social',
+                'propietario:id,nombres,apellidos,razon_social,telefono',
                 'paciente:id,nombre',
                 'creadoPor:id,name',
-                'felDocument:id,venta_id,numero_completo,estado',
+                'felDocument:id,venta_id,numero_completo,estado,url_pdf,enlace_consulta',
             ])
             ->whereRaw('DATE(COALESCE(fecha_pago, created_at)) >= ?', [$fechaDesde])
             ->whereRaw('DATE(COALESCE(fecha_pago, created_at)) <= ?', [$fechaHasta]);
@@ -821,6 +829,99 @@ class VentaController extends Controller
             'cpe_numero' => $venta->felDocument?->numero_completo,
             'auto_print' => $request->boolean('print'),
         ]);
+    }
+
+    /**
+     * Envía resumen del comprobante por WhatsApp (OpenWA) al cliente/propietario.
+     * Acepta `telefono` opcional cuando el propietario no tiene número guardado.
+     */
+    public function enviarWhatsApp(Request $request, Venta $venta): RedirectResponse
+    {
+        abort_unless($request->user()?->can('ventas.view'), 403);
+
+        if ($venta->estado === Venta::ESTADO_ANULADO) {
+            return back()->with('warning', __('caja.ventas.flash.whatsapp_anulada'));
+        }
+
+        $data = $request->validate([
+            'telefono' => ['nullable', 'string', 'max:20'],
+        ]);
+
+        $venta->loadMissing([
+            'propietario:id,nombres,apellidos,razon_social,telefono',
+            'felDocument:id,venta_id,numero_completo,estado,url_pdf,enlace_consulta',
+        ]);
+
+        $propietario = $venta->propietario;
+        $phone = trim((string) ($data['telefono'] ?? '')) !== ''
+            ? (string) $data['telefono']
+            : $propietario?->telefono;
+
+        $chatId = WhatsAppChatId::fromPhone($phone);
+        if ($chatId === null) {
+            return back()->with('warning', __('caja.ventas.flash.whatsapp_no_phone'));
+        }
+
+        $clinic = ClinicSetting::current();
+        $messages = app(ReminderMessageBuilder::class);
+        $clinicName = $messages->clinicDisplayName($clinic);
+
+        $ownerName = $propietario !== null
+            ? (trim($propietario->displayName()) !== '' ? $propietario->displayName() : 'cliente')
+            : 'cliente';
+
+        $numeroDisplay = $venta->felDocument?->numero_completo ?? $venta->numero;
+        $fecha = ($venta->fecha_pago ?? $venta->created_at)
+            ?->timezone(config('app.timezone'))
+            ->format('d/m/Y H:i') ?? now()->format('d/m/Y H:i');
+
+        $totalFormatted = number_format((float) $venta->total, 2, '.', ',').' '.$venta->moneda;
+        $pdfUrl = $venta->felDocument?->url_pdf ?: $venta->felDocument?->enlace_consulta;
+
+        try {
+            $item = app(NotificationQueueService::class)->enqueue(
+                tipo: 'venta_comprobante',
+                destinatario: $chatId,
+                cuerpo: $messages->ventaComprobante(
+                    $clinicName,
+                    $ownerName,
+                    $numeroDisplay,
+                    $totalFormatted,
+                    $fecha,
+                    is_string($pdfUrl) && $pdfUrl !== '' ? $pdfUrl : null,
+                ),
+                enviarAt: now(),
+                destinatarioNombre: $ownerName,
+                referenciaTipo: 'venta',
+                referenciaId: $venta->id,
+                dedupeKey: 'venta_comprobante:'.$venta->id.':'.now()->timestamp,
+                prioridad: 3,
+            );
+
+            if ($item !== null) {
+                $tenantId = tenant_id();
+                $tenant = $tenantId !== null ? Tenant::query()->find($tenantId) : null;
+                if ($tenant !== null) {
+                    try {
+                        app(WhatsAppNotificationDispatcher::class)->dispatchOne($item, $tenant);
+                    } catch (Throwable $e) {
+                        Log::warning('Dispatch inmediato de venta WhatsApp falló; queda en cola', [
+                            'venta_id' => $venta->id,
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
+                }
+            }
+
+            return back()->with('success', __('caja.ventas.flash.whatsapp_enviado'));
+        } catch (Throwable $e) {
+            Log::warning('No se pudo encolar WhatsApp de venta', [
+                'venta_id' => $venta->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return back()->with('warning', __('caja.ventas.flash.whatsapp_fallo'));
+        }
     }
 
     public function store(StoreVentaRequest $request, VentaCheckoutService $checkout, TenantManager $tenants): RedirectResponse
