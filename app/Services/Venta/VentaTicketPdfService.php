@@ -11,6 +11,7 @@ use App\Models\Venta;
 use App\Support\Caja\TicketAnchoMm;
 use App\Support\Caja\VentaTicketPolicy;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 
@@ -92,7 +93,9 @@ final class VentaTicketPdfService
     }
 
     /**
-     * @return array{binary: string, filename: string}|null null si el ticket no está disponible
+     * PDF para impresión en caja (respeta política de ticket).
+     *
+     * @return array{binary: string, filename: string}|null
      */
     public function renderIfAllowed(Venta $venta, ClinicSetting $cfg, ?Tenant $tenant, string $tenantId): ?array
     {
@@ -100,6 +103,28 @@ final class VentaTicketPdfService
             return null;
         }
 
+        return $this->renderPdf($venta, $cfg, $tenantId);
+    }
+
+    /**
+     * PDF para WhatsApp: cualquier venta pagada no anulada (ticket interno).
+     *
+     * @return array{binary: string, filename: string}|null
+     */
+    public function renderForWhatsApp(Venta $venta, ClinicSetting $cfg, string $tenantId): ?array
+    {
+        if ($venta->estado !== Venta::ESTADO_PAGADO || $venta->estaAnulada()) {
+            return null;
+        }
+
+        return $this->renderPdf($venta, $cfg, $tenantId);
+    }
+
+    /**
+     * @return array{binary: string, filename: string}
+     */
+    private function renderPdf(Venta $venta, ClinicSetting $cfg, string $tenantId): array
+    {
         $data = $this->viewData($venta, $cfg, $tenantId);
         $logoDataUri = $this->logoDataUri($cfg);
         if ($logoDataUri !== null) {
@@ -107,16 +132,17 @@ final class VentaTicketPdfService
         }
         $data['tf'] = TicketAnchoMm::typography((string) $data['ancho_mm']);
 
-        $anchoMm = (float) $data['ancho_mm'];
-        $widthPt = $anchoMm * 72 / 25.4;
-        // Alto generoso: DomPDF recorta el contenido; el ticket crece con las líneas.
-        $heightPt = max(600.0, 120.0 + (count($data['lineas']) * 28.0) + 280.0);
-
         try {
+            // A4 es más estable en DomPDF que el rollo térmico en mm.
             $pdf = Pdf::loadView('pdf.venta-ticket', $data);
-            $pdf->setPaper([0, 0, $widthPt, $heightPt], 'portrait');
+            $pdf->setPaper('a4', 'portrait');
             $binary = $pdf->output();
         } catch (\Throwable $e) {
+            Log::warning('DomPDF ticket venta falló', [
+                'venta_id' => $venta->id,
+                'error' => $e->getMessage(),
+            ]);
+
             throw new RuntimeException('No se pudo generar el PDF del ticket: '.$e->getMessage(), 0, $e);
         }
 

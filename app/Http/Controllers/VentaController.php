@@ -829,7 +829,13 @@ class VentaController extends Controller
                 'error' => $e->getMessage(),
             ]);
 
-            return back()->with('warning', __('caja.ventas.flash.whatsapp_fallo'));
+            $msg = __('caja.ventas.flash.whatsapp_fallo');
+            $detail = trim($e->getMessage());
+            if ($detail !== '') {
+                $msg .= ' '.$detail;
+            }
+
+            return back()->with('warning', $msg);
         }
     }
 

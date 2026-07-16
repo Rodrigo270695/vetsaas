@@ -250,10 +250,14 @@ final class OpenWaClient
     }
 
     /**
-     * Envía un documento (PDF, etc.) por URL pública o contenido binario (base64).
+     * Envía un documento (PDF, etc.) por URL pública o contenido binario.
+     *
+     * Si se pasa binario, se sube a storage público temporal (mismo patrón que
+     * {@see sendVoice}) y OpenWA lo descarga por URL. Si la URL pública no
+     * es alcanzable, se reintenta con base64.
      *
      * @param  string|null  $url  URL http(s) remota (mutuamente excluyente con $binaryContent).
-     * @param  string|null  $binaryContent  Bytes del archivo (requiere $mimetype).
+     * @param  string|null  $binaryContent  Bytes del archivo.
      * @return array<string, mixed>
      */
     public function sendDocument(
@@ -265,26 +269,72 @@ final class OpenWaClient
         string $mimetype = 'application/pdf',
         ?string $caption = null,
     ): array {
-        $payload = [
-            'chatId' => $chatId,
-            'filename' => mb_substr($filename, 0, 255),
-        ];
-
-        if ($caption !== null && $caption !== '') {
-            $payload['caption'] = mb_substr($caption, 0, 1024);
-        }
+        $captionTrimmed = $caption !== null && $caption !== ''
+            ? mb_substr($caption, 0, 1024)
+            : null;
+        $safeFilename = mb_substr($filename !== '' ? $filename : 'documento.pdf', 0, 255);
+        $mime = $mimetype !== '' ? $mimetype : 'application/pdf';
 
         $urlTrimmed = $url !== null ? trim($url) : '';
         if ($urlTrimmed !== '') {
-            $payload['url'] = $urlTrimmed;
-            if ($mimetype !== '') {
-                $payload['mimetype'] = $mimetype;
-            }
-        } elseif ($binaryContent !== null && $binaryContent !== '') {
-            $payload['base64'] = base64_encode($binaryContent);
-            $payload['mimetype'] = $mimetype !== '' ? $mimetype : 'application/pdf';
-        } else {
+            return $this->postDocument($sessionId, [
+                'chatId' => $chatId,
+                'url' => $urlTrimmed,
+                'filename' => $safeFilename,
+                'mimetype' => $mime,
+                'caption' => $captionTrimmed,
+            ]);
+        }
+
+        if ($binaryContent === null || $binaryContent === '') {
             throw new RuntimeException('sendDocument requiere url o contenido binario.');
+        }
+
+        $ext = pathinfo($safeFilename, PATHINFO_EXTENSION) ?: 'pdf';
+        $storagePath = 'whatsapp-temp/doc_'.uniqid('', true).'.'.$ext;
+        Storage::disk('public')->put($storagePath, $binaryContent);
+
+        try {
+            $publicUrl = Storage::disk('public')->url($storagePath);
+            if (! str_starts_with($publicUrl, 'http')) {
+                $publicUrl = rtrim((string) config('app.url'), '/').$publicUrl;
+            }
+
+            try {
+                return $this->postDocument($sessionId, [
+                    'chatId' => $chatId,
+                    'url' => $publicUrl,
+                    'filename' => $safeFilename,
+                    'mimetype' => $mime,
+                    'caption' => $captionTrimmed,
+                ]);
+            } catch (RuntimeException $urlError) {
+                Log::notice('OpenWA send-document por URL falló; reintento base64', [
+                    'error' => $urlError->getMessage(),
+                ]);
+
+                // Fallback: base64 si OpenWA no puede alcanzar APP_URL (SSRF / red).
+                return $this->postDocument($sessionId, [
+                    'chatId' => $chatId,
+                    'base64' => base64_encode($binaryContent),
+                    'filename' => $safeFilename,
+                    'mimetype' => $mime,
+                    'caption' => $captionTrimmed,
+                ]);
+            }
+        } finally {
+            Storage::disk('public')->delete($storagePath);
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private function postDocument(string $sessionId, array $payload): array
+    {
+        if (($payload['caption'] ?? null) === null) {
+            unset($payload['caption']);
         }
 
         $response = $this->request('post', '/api/sessions/'.$sessionId.'/messages/send-document', $payload);
