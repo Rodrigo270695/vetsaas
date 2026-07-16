@@ -42,6 +42,23 @@ final class ReminderMessageBuilder
         );
     }
 
+    public function citaCreada(
+        string $clinicName,
+        string $ownerName,
+        string $petName,
+        CarbonInterface $inicioAt,
+    ): string {
+        return sprintf(
+            "Hola %s,\n\nRegistramos la cita de *%s* en *%s* para el *%s* a las *%s*.\n\nTe esperamos.\n\n— %s",
+            $ownerName,
+            $petName,
+            $clinicName,
+            $inicioAt->timezone(config('app.timezone'))->translatedFormat('d/m/Y'),
+            $inicioAt->timezone(config('app.timezone'))->format('H:i'),
+            $clinicName,
+        );
+    }
+
     public function vacuna(
         string $clinicName,
         string $ownerName,

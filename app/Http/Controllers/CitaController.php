@@ -8,20 +8,26 @@ use App\Http\Requests\RescheduleCitaRequest;
 use App\Http\Requests\StoreCitaRequest;
 use App\Http\Requests\UpdateCitaRequest;
 use App\Models\Cita;
+use App\Models\ClinicSetting;
 use App\Models\Paciente;
 use App\Models\Sede;
 use App\Models\User;
+use App\Services\Notifications\NotificationQueueService;
+use App\Services\Notifications\ReminderMessageBuilder;
+use App\Support\WhatsApp\WhatsAppChatId;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Throwable;
 
 class CitaController extends Controller
 {
@@ -264,13 +270,84 @@ class CitaController extends Controller
         $data['created_by_id'] = Auth::id();
         $data['updated_by_id'] = Auth::id();
 
-        Cita::query()->create($data);
+        $cita = Cita::query()->create($data);
+        $cita->load(['paciente.propietario']);
 
-        return redirect()
+        $redirect = redirect()
             ->route('clinica.citas.index', $request->only([
                 'search', 'per_page', 'sort', 'direction', 'cita_desde', 'cita_hasta', 'vista', 'mes',
             ]))
             ->with('success', __('citas.flash.created'));
+
+        $whatsappFlash = $this->enqueueCitaCreadaWhatsApp($cita);
+        if ($whatsappFlash !== null) {
+            $redirect->with($whatsappFlash['type'], $whatsappFlash['message']);
+        }
+
+        return $redirect;
+    }
+
+    /**
+     * Encola WhatsApp de confirmación al propietario vía OpenWA.
+     *
+     * @return array{type: 'warning'|'info', message: string}|null
+     */
+    private function enqueueCitaCreadaWhatsApp(Cita $cita): ?array
+    {
+        $propietario = $cita->paciente?->propietario;
+        $phone = $propietario?->telefono;
+        $chatId = WhatsAppChatId::fromPhone($phone);
+
+        if ($chatId === null) {
+            return [
+                'type' => 'warning',
+                'message' => __('citas.flash.whatsapp_no_phone'),
+            ];
+        }
+
+        try {
+            $clinicName = app(ReminderMessageBuilder::class)->clinicDisplayName(ClinicSetting::current());
+            $ownerName = trim((string) ($propietario?->displayName() ?? ''));
+            if ($ownerName === '') {
+                $ownerName = 'cliente';
+            }
+            $petName = (string) ($cita->paciente?->nombre ?? 'tu mascota');
+            $inicioAt = $cita->inicio_at instanceof Carbon
+                ? $cita->inicio_at
+                : Carbon::parse((string) $cita->inicio_at);
+
+            app(NotificationQueueService::class)->enqueue(
+                tipo: 'cita_creada',
+                destinatario: $chatId,
+                cuerpo: app(ReminderMessageBuilder::class)->citaCreada(
+                    $clinicName,
+                    $ownerName,
+                    $petName,
+                    $inicioAt,
+                ),
+                enviarAt: now(),
+                destinatarioNombre: $ownerName,
+                referenciaTipo: 'cita',
+                referenciaId: $cita->id,
+                dedupeKey: 'cita_creada:'.$cita->id,
+                prioridad: 4,
+            );
+
+            return [
+                'type' => 'info',
+                'message' => __('citas.flash.whatsapp_queued'),
+            ];
+        } catch (Throwable $e) {
+            Log::warning('No se pudo encolar WhatsApp de cita creada', [
+                'cita_id' => $cita->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'type' => 'warning',
+                'message' => __('citas.flash.whatsapp_queue_failed'),
+            ];
+        }
     }
 
     public function update(UpdateCitaRequest $request, Cita $cita): RedirectResponse

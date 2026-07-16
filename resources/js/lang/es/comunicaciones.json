@@ -34,6 +34,7 @@
         "error": "Error"
     },
     "tipo": {
+        "cita_creada": "Cita creada",
         "cita_48h": "Cita 48h",
         "cita_2h": "Cita 2h",
         "vacuna_proxima": "Vacuna",
