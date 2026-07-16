@@ -81,14 +81,24 @@ class TenantWhatsAppController extends Controller
             ]);
         }
 
-        $qr = $client->getQrCode($session->openwa_session_id);
+        try {
+            $qr = $client->getQrCode($session->openwa_session_id);
 
-        return response()->json([
-            'ready' => false,
-            'status' => (string) ($qr['status'] ?? $session->status),
-            'qr_code' => $qr['qrCode'] ?? null,
-            'session_id' => $session->openwa_session_id,
-        ]);
+            return response()->json([
+                'ready' => false,
+                'status' => (string) ($qr['status'] ?? $session->status),
+                'qr_code' => $qr['qrCode'] ?? null,
+                'session_id' => $session->openwa_session_id,
+            ]);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json([
+                'ready' => false,
+                'status' => $session->status,
+                'error' => 'No se pudo obtener el código QR.',
+            ], 503);
+        }
     }
 
     public function logout(

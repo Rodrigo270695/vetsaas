@@ -6,6 +6,7 @@ namespace App\Services\OpenWa;
 
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 
@@ -276,18 +277,32 @@ final class OpenWaClient
         $mime = $mimetype !== '' ? $mimetype : 'application/pdf';
 
         $urlTrimmed = $url !== null ? trim($url) : '';
-        if ($urlTrimmed !== '') {
-            return $this->postDocument($sessionId, [
-                'chatId' => $chatId,
-                'url' => $urlTrimmed,
-                'filename' => $safeFilename,
-                'mimetype' => $mime,
-                'caption' => $captionTrimmed,
-            ]);
+        if ($urlTrimmed !== '' && ($binaryContent === null || $binaryContent === '')) {
+            $binaryContent = $this->fetchHttpUrl($urlTrimmed);
         }
 
         if ($binaryContent === null || $binaryContent === '') {
             throw new RuntimeException('sendDocument requiere url o contenido binario.');
+        }
+
+        $payloadBase = [
+            'chatId' => $chatId,
+            'filename' => $safeFilename,
+            'mimetype' => $mime,
+            'caption' => $captionTrimmed,
+        ];
+
+        // Base64 primero: OpenWA a menudo no alcanza APP_URL ni URLs externas (APISUNAT).
+        try {
+            return $this->postDocument($sessionId, [
+                ...$payloadBase,
+                'base64' => base64_encode($binaryContent),
+            ]);
+        } catch (RuntimeException $base64Error) {
+            Log::notice('OpenWA send-document base64 falló; reintento URL temporal', [
+                'error' => $base64Error->getMessage(),
+                'filename' => $safeFilename,
+            ]);
         }
 
         $ext = pathinfo($safeFilename, PATHINFO_EXTENSION) ?: 'pdf';
@@ -300,31 +315,36 @@ final class OpenWaClient
                 $publicUrl = rtrim((string) config('app.url'), '/').$publicUrl;
             }
 
-            try {
-                return $this->postDocument($sessionId, [
-                    'chatId' => $chatId,
-                    'url' => $publicUrl,
-                    'filename' => $safeFilename,
-                    'mimetype' => $mime,
-                    'caption' => $captionTrimmed,
-                ]);
-            } catch (RuntimeException $urlError) {
-                Log::notice('OpenWA send-document por URL falló; reintento base64', [
-                    'error' => $urlError->getMessage(),
-                ]);
-
-                // Fallback: base64 si OpenWA no puede alcanzar APP_URL (SSRF / red).
-                return $this->postDocument($sessionId, [
-                    'chatId' => $chatId,
-                    'base64' => base64_encode($binaryContent),
-                    'filename' => $safeFilename,
-                    'mimetype' => $mime,
-                    'caption' => $captionTrimmed,
-                ]);
-            }
+            return $this->postDocument($sessionId, [
+                ...$payloadBase,
+                'url' => $publicUrl,
+            ]);
         } finally {
             Storage::disk('public')->delete($storagePath);
         }
+    }
+
+    /**
+     * Descarga un archivo HTTP(S) para reenviarlo a OpenWA como documento.
+     */
+    private function fetchHttpUrl(string $url): string
+    {
+        try {
+            $response = Http::timeout(45)->get($url);
+        } catch (\Throwable $e) {
+            throw new RuntimeException('Error al descargar: '.$e->getMessage(), 0, $e);
+        }
+
+        if (! $response->successful()) {
+            throw new RuntimeException('HTTP '.$response->status().' al descargar el archivo.');
+        }
+
+        $body = (string) $response->body();
+        if ($body === '') {
+            throw new RuntimeException('El archivo descargado está vacío.');
+        }
+
+        return $body;
     }
 
     /**

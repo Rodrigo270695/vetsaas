@@ -14,7 +14,6 @@ use App\Services\Notifications\ReminderMessageBuilder;
 use App\Services\OpenWa\OpenWaClient;
 use App\Services\OpenWa\TenantWhatsAppSessionSync;
 use App\Support\Fel\FelDocumentPdfUrls;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
 use Throwable;
@@ -86,29 +85,21 @@ final class FelDocumentWhatsAppSender
 
         foreach ($attachments as $attachment) {
             try {
-                $caption = $attachment['caption'];
-                if (isset($attachment['url'])) {
-                    $result = $this->client->sendDocument(
-                        sessionId: $sessionId,
-                        chatId: $chatId,
-                        url: $attachment['url'],
-                        filename: $attachment['filename'],
-                        mimetype: $attachment['mimetype'],
-                        caption: $caption,
-                    );
-                } else {
-                    $result = $this->client->sendDocument(
-                        sessionId: $sessionId,
-                        chatId: $chatId,
-                        binaryContent: $attachment['binary'],
-                        filename: $attachment['filename'],
-                        mimetype: $attachment['mimetype'],
-                        caption: $caption,
-                    );
-                }
+                $result = $this->client->sendDocument(
+                    sessionId: $sessionId,
+                    chatId: $chatId,
+                    url: $attachment['url'] ?? null,
+                    binaryContent: $attachment['binary'] ?? null,
+                    filename: $attachment['filename'],
+                    mimetype: $attachment['mimetype'],
+                    caption: $attachment['caption'],
+                );
 
                 $messageIds[] = isset($result['messageId']) ? (string) $result['messageId'] : null;
                 $sent++;
+
+                // Pequeña pausa entre adjuntos para evitar saturar OpenWA.
+                usleep(400_000);
             } catch (Throwable $e) {
                 Log::warning('Adjunto WhatsApp de CPE falló', [
                     'fel_document_id' => $documento->id,
@@ -154,7 +145,7 @@ final class FelDocumentWhatsAppSender
                 'label' => 'PDF Ticket',
                 'filename' => $safeNumero.'-ticket.pdf',
                 'mimetype' => 'application/pdf',
-                'caption' => '📄 PDF Ticket — '.$documento->numero_completo,
+                'caption' => 'PDF Ticket '.$documento->numero_completo,
                 'url' => (string) $documento->url_pdf,
             ];
         }
@@ -167,7 +158,7 @@ final class FelDocumentWhatsAppSender
                     'label' => 'PDF A4',
                     'filename' => $safeNumero.'-a4.pdf',
                     'mimetype' => 'application/pdf',
-                    'caption' => '📄 PDF A4 — '.$documento->numero_completo,
+                    'caption' => 'PDF A4 '.$documento->numero_completo,
                     'url' => $urlA4,
                 ];
             }
@@ -178,9 +169,9 @@ final class FelDocumentWhatsAppSender
                 'tipo' => 'xml',
                 'label' => 'XML',
                 'filename' => $safeNumero.'.xml',
-                'mimetype' => 'application/xml',
-                'caption' => '📎 XML — '.$documento->numero_completo,
-                'binary' => $this->fetchRemote((string) $documento->url_xml),
+                'mimetype' => 'text/xml',
+                'caption' => 'XML '.$documento->numero_completo,
+                'url' => (string) $documento->url_xml,
             ];
         }
 
@@ -189,33 +180,13 @@ final class FelDocumentWhatsAppSender
                 'tipo' => 'cdr',
                 'label' => 'CDR',
                 'filename' => 'CDR-'.$safeNumero.'.xml',
-                'mimetype' => 'application/xml',
-                'caption' => '📎 CDR — '.$documento->numero_completo,
-                'binary' => $this->fetchRemote((string) $documento->url_cdr),
+                'mimetype' => 'text/xml',
+                'caption' => 'CDR '.$documento->numero_completo,
+                'url' => (string) $documento->url_cdr,
             ];
         }
 
         return $attachments;
-    }
-
-    private function fetchRemote(string $url): string
-    {
-        try {
-            $response = Http::timeout(30)->get($url);
-        } catch (Throwable $e) {
-            throw new RuntimeException('No se pudo descargar el archivo remoto: '.$e->getMessage(), 0, $e);
-        }
-
-        if (! $response->successful()) {
-            throw new RuntimeException('Descarga remota HTTP '.$response->status());
-        }
-
-        $body = (string) $response->body();
-        if ($body === '') {
-            throw new RuntimeException('El archivo remoto está vacío.');
-        }
-
-        return $body;
     }
 
     private function resolveReadySession(Tenant $tenant): ?TenantWhatsAppSession
