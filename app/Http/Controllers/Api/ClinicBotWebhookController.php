@@ -10,13 +10,14 @@ use App\Models\TenantWhatsAppSession;
 use App\Services\ClinicBot\ClinicBotService;
 use App\Support\Audit\AuditActor;
 use App\Services\OpenWa\TenantWhatsAppMessenger;
+use App\Support\ClinicBot\ClinicBotWebhookGuard;
 use App\Support\Subscriptions\SubscriptionBotIaAddon;
 use App\Support\WhatsApp\WhatsAppContactResolver;
 use App\Tenancy\TenantManager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 /**
  * Webhook OpenWA para el asistente IA de clínicas (sesiones por tenant).
@@ -31,6 +32,7 @@ final class ClinicBotWebhookController extends Controller
         private readonly TenantWhatsAppMessenger $messenger,
         private readonly WhatsAppContactResolver $contactResolver,
         private readonly TenantManager $tenants,
+        private readonly ClinicBotWebhookGuard $guard,
     ) {}
 
     public function handle(Request $request): JsonResponse
@@ -47,6 +49,10 @@ final class ClinicBotWebhookController extends Controller
         $data = is_array($payload['data'] ?? null) ? $payload['data'] : $payload;
 
         $event = (string) ($payload['event'] ?? $payload['type'] ?? '');
+        if ($this->guard->isOutgoingEvent($event)) {
+            return response()->json(['ok' => true, 'skipped' => 'outgoing_event']);
+        }
+
         $fromMe = (bool) ($data['fromMe'] ?? $data['from_me'] ?? false);
         $type = (string) ($data['type'] ?? 'chat');
         $body = trim((string) ($data['body'] ?? $data['content'] ?? $data['text'] ?? ''));
@@ -78,10 +84,14 @@ final class ClinicBotWebhookController extends Controller
             return response()->json(['ok' => true, 'skipped' => 'not_message_event']);
         }
 
+        if ($this->guard->isLikelyOutgoingMessage($data, $fromMe)) {
+            return $this->handleOutgoingMessage($data, $openWaSessionId, $fromMe);
+        }
+
         $contact = $this->contactResolver->resolve(
             $data,
             $openWaSessionId !== '' ? $openWaSessionId : null,
-            forOutgoing: $fromMe,
+            forOutgoing: false,
         );
 
         $waChatId = $contact['wa_chat_id'];
@@ -96,28 +106,30 @@ final class ClinicBotWebhookController extends Controller
             return response()->json(['ok' => false, 'reason' => 'no phone'], 422);
         }
 
+        $messageId = (string) ($data['id'] ?? '');
+
+        if ($this->guard->isDuplicateInbound($openWaSessionId, $messageId, $waChatId, $body)) {
+            return response()->json(['ok' => true, 'skipped' => 'duplicate']);
+        }
+
+        if ($this->guard->shouldSkipOutboundEcho($openWaSessionId, $waChatId, $body)) {
+            return response()->json(['ok' => true, 'skipped' => 'outbound_echo']);
+        }
+
+        if ($this->guard->isBotGeneratedIncomingText($body)) {
+            return response()->json(['ok' => true, 'skipped' => 'bot_echo']);
+        }
+
         return $this->tenants->runForSlug((string) $tenant->slug, function () use (
-            $fromMe,
             $body,
             $type,
-            $data,
             $waSession,
             $waChatId,
             $phone,
             $clientName,
+            $openWaSessionId,
+            $messageId,
         ): JsonResponse {
-            if ($fromMe) {
-                $conversation = $this->botService->findConversation($phone, $waChatId);
-                if ($conversation !== null && $conversation->bot_active) {
-                    $conversation->pauseBotAuto();
-                    Log::info('ClinicBot auto-paused: mensaje manual de la clínica', [
-                        'phone' => $phone,
-                    ]);
-                }
-
-                return response()->json(['ok' => true, 'skipped' => 'fromMe']);
-            }
-
             if ($body === '' && ! in_array($type, ['ptt', 'audio'], true)) {
                 return response()->json(['ok' => true, 'skipped' => 'empty_body']);
             }
@@ -127,26 +139,23 @@ final class ClinicBotWebhookController extends Controller
                     return response()->json(['ok' => true, 'skipped' => 'assistant_globally_off']);
                 }
 
-                $this->messenger->sendText(
-                    $waSession,
-                    $waChatId,
-                    'Hola 👋 Por ahora respondo mejor por texto. ¿Puedes escribir tu consulta?',
-                );
+                $audioReply = ClinicBotWebhookGuard::AUDIO_UNSUPPORTED_REPLY;
+                $this->messenger->sendText($waSession, $waChatId, $audioReply);
+                $this->guard->rememberOutbound($openWaSessionId, $waChatId, $audioReply);
+                $this->guard->markReplied($openWaSessionId, $waChatId);
+                $this->guard->rememberInbound($openWaSessionId, $messageId, $waChatId, $body);
 
                 return response()->json(['ok' => true, 'skipped' => 'audio_not_supported']);
             }
 
-            $messageId = (string) ($data['id'] ?? '');
-            if ($messageId !== '') {
-                $cacheKey = 'clinicbot_msg_'.md5($messageId);
-                if (Cache::has($cacheKey)) {
-                    return response()->json(['ok' => true, 'skipped' => 'duplicate']);
-                }
-                Cache::put($cacheKey, 1, 60);
-            }
+            $this->guard->rememberInbound($openWaSessionId, $messageId, $waChatId, $body);
 
             if (! ClinicSetting::current()->isBotIaResponding()) {
                 return response()->json(['ok' => true, 'skipped' => 'assistant_globally_off']);
+            }
+
+            if ($this->guard->isRateLimited($openWaSessionId, $waChatId)) {
+                return response()->json(['ok' => true, 'skipped' => 'rate_limited']);
             }
 
             $conversation = $this->botService->findOrCreateConversation($phone, $waChatId, $clientName);
@@ -165,30 +174,75 @@ final class ClinicBotWebhookController extends Controller
                     $phone,
                     fn (): string => $this->botService->reply($conversation, $body),
                 );
+
                 $this->messenger->sendText($waSession, $waChatId, $reply);
+                $this->guard->rememberOutbound($openWaSessionId, $waChatId, $reply);
+                $this->guard->markReplied($openWaSessionId, $waChatId);
 
                 Log::info('ClinicBot responded', ['phone' => $phone]);
 
                 return response()->json(['ok' => true, 'replied' => true]);
-            } catch (\Throwable $e) {
+            } catch (Throwable $e) {
                 Log::error('ClinicBot reply error', [
                     'phone' => $phone,
                     'error' => $e->getMessage(),
                 ]);
 
-                try {
-                    $this->messenger->sendText(
-                        $waSession,
-                        $waChatId,
-                        'Disculpa, tuve un problema al procesar tu mensaje. Un asistente de la clínica te ayudará pronto.',
-                    );
-                } catch (\Throwable) {
-                    // ignore secondary failure
+                if ($this->guard->shouldNotifyUserOfFailure($e)) {
+                    try {
+                        $errorReply = ClinicBotWebhookGuard::ERROR_REPLY;
+                        $this->messenger->sendText($waSession, $waChatId, $errorReply);
+                        $this->guard->rememberOutbound($openWaSessionId, $waChatId, $errorReply);
+                    } catch (Throwable) {
+                        // ignore secondary failure
+                    }
                 }
 
-                return response()->json(['ok' => false, 'error' => 'reply_failed'], 500);
+                return response()->json(['ok' => false, 'error' => 'reply_failed']);
             }
         });
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function handleOutgoingMessage(array $data, string $openWaSessionId, bool $fromMe): JsonResponse
+    {
+        $contact = $this->contactResolver->resolve(
+            $data,
+            $openWaSessionId !== '' ? $openWaSessionId : null,
+            forOutgoing: $fromMe,
+        );
+
+        $phone = $contact['phone'];
+        $waChatId = $contact['wa_chat_id'];
+
+        if ($phone !== '' && ! str_ends_with($waChatId, '@g.us')) {
+            $waSession = TenantWhatsAppSession::query()
+                ->with('tenant')
+                ->where('openwa_session_id', $openWaSessionId)
+                ->first();
+
+            $tenant = $waSession?->tenant;
+            if ($tenant !== null) {
+                $this->tenants->runForSlug((string) $tenant->slug, function () use ($phone, $waChatId): void {
+                    $conversation = $this->botService->findConversation($phone, $waChatId);
+                    if ($conversation !== null && $conversation->bot_active) {
+                        $conversation->pauseBotAuto();
+                        Log::info('ClinicBot auto-paused: mensaje manual de la clínica', [
+                            'phone' => $phone,
+                        ]);
+                    }
+                });
+            }
+        }
+
+        $body = trim((string) ($data['body'] ?? $data['content'] ?? $data['text'] ?? ''));
+        if ($body !== '' && $openWaSessionId !== '' && $waChatId !== '') {
+            $this->guard->rememberOutbound($openWaSessionId, $waChatId, $body);
+        }
+
+        return response()->json(['ok' => true, 'skipped' => 'fromMe']);
     }
 
     private function verifyWebhookSecret(Request $request): bool

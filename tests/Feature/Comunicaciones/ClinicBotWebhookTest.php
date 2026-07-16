@@ -9,6 +9,7 @@ use App\Models\Subscription;
 use App\Models\TenantWhatsAppSession;
 use App\Services\OpenWa\OpenWaClient;
 use App\Tenancy\TenantManager;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Tests\Support\CreatesTestTenant;
@@ -137,4 +138,80 @@ it('no responde cuando el asistente global está apagado', function (): void {
     ], [
         'X-Webhook-Secret' => 'test-clinic-bot-secret',
     ])->assertOk()->assertJson(['ok' => true, 'skipped' => 'assistant_globally_off']);
+});
+
+it('ignora eco de respuesta propia del bot', function (): void {
+    Http::fake();
+    $this->mock(OpenWaClient::class, function ($mock): void {
+        $mock->shouldReceive('isConfigured')->andReturn(true);
+        $mock->shouldNotReceive('sendText');
+    });
+
+    $reply = 'Hola, atendemos de lunes a viernes.';
+    Cache::put('clinicbot_out_'.md5('session-clinic-bot-001|51999999999@c.us'), hash('sha256', mb_strtolower($reply)), 180);
+
+    $this->postJson('http://127.0.0.1/api/webhooks/clinic-bot', [
+        'event' => 'message.received',
+        'sessionId' => 'session-clinic-bot-001',
+        'data' => [
+            'id' => 'wamid.echo001',
+            'body' => $reply,
+            'from' => '51999999999@c.us',
+            'fromMe' => false,
+            'type' => 'chat',
+        ],
+    ], [
+        'X-Webhook-Secret' => 'test-clinic-bot-secret',
+    ])->assertOk()->assertJson(['ok' => true, 'skipped' => 'outbound_echo']);
+});
+
+it('no devuelve HTTP 500 cuando falla el envío a OpenWA', function (): void {
+    Http::fake([
+        'api.openai.com/*' => Http::response([
+            'choices' => [
+                ['message' => ['content' => 'Respuesta IA']],
+            ],
+        ]),
+    ]);
+
+    $this->mock(OpenWaClient::class, function ($mock): void {
+        $mock->shouldReceive('isConfigured')->andReturn(true);
+        $mock->shouldReceive('sendText')
+            ->once()
+            ->andThrow(new RuntimeException('OpenWA HTTP 429: Too Many Requests'));
+    });
+
+    $this->postJson('http://127.0.0.1/api/webhooks/clinic-bot', [
+        'event' => 'message.received',
+        'sessionId' => 'session-clinic-bot-001',
+        'data' => [
+            'id' => 'wamid.fail001',
+            'body' => 'Hola',
+            'from' => '51999999999@c.us',
+            'fromMe' => false,
+            'type' => 'chat',
+        ],
+    ], [
+        'X-Webhook-Secret' => 'test-clinic-bot-secret',
+    ])->assertOk()->assertJson(['ok' => false, 'error' => 'reply_failed']);
+});
+
+it('omite eventos message.sent de OpenWA', function (): void {
+    Http::fake();
+    $this->mock(OpenWaClient::class, function ($mock): void {
+        $mock->shouldNotReceive('sendText');
+    });
+
+    $this->postJson('http://127.0.0.1/api/webhooks/clinic-bot', [
+        'event' => 'message.sent',
+        'sessionId' => 'session-clinic-bot-001',
+        'data' => [
+            'body' => 'Mensaje saliente',
+            'from' => '51999999999@c.us',
+            'fromMe' => true,
+            'type' => 'chat',
+        ],
+    ], [
+        'X-Webhook-Secret' => 'test-clinic-bot-secret',
+    ])->assertOk()->assertJson(['ok' => true, 'skipped' => 'outgoing_event']);
 });

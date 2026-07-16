@@ -18,7 +18,7 @@ pest()->extend(TestCase::class)
  // ->use(RefreshDatabase::class)
     ->in('Feature');
 
-pest()->extend(TestCase::class)->in('Unit/Fel', 'Unit/Subscriptions', 'Unit/WhatsApp', 'Unit/OpenWa');
+pest()->extend(TestCase::class)->in('Unit/Fel', 'Unit/Subscriptions', 'Unit/WhatsApp', 'Unit/OpenWa', 'Unit/ClinicBot');
 
 /*
 |--------------------------------------------------------------------------

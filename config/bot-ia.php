@@ -19,6 +19,13 @@ return [
     'temperature' => (float) env('BOT_IA_TEMPERATURE', 0.5),
 
     /*
+    | Anti-eco / anti-spam del webhook clinic-bot (segundos).
+    */
+    'dedupe_ttl_seconds' => (int) env('BOT_IA_DEDUPE_TTL_SECONDS', 120),
+    'outbound_echo_ttl_seconds' => (int) env('BOT_IA_OUTBOUND_ECHO_TTL_SECONDS', 180),
+    'reply_cooldown_seconds' => (int) env('BOT_IA_REPLY_COOLDOWN_SECONDS', 15),
+
+    /*
     | URL pública del webhook (para registrar en OpenWA por sesión de clínica).
     | Ej: https://app.vetsaas.orvae.pe/api/webhooks/clinic-bot
     */
