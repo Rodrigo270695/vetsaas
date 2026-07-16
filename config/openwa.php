@@ -24,6 +24,8 @@ return [
 
     'timeout_seconds' => (int) env('OPENWA_TIMEOUT_SECONDS', 30),
 
+    'document_timeout_seconds' => (int) env('OPENWA_DOCUMENT_TIMEOUT_SECONDS', 90),
+
     'max_attempts' => (int) env('OPENWA_QUEUE_MAX_ATTEMPTS', 3),
 
     /*

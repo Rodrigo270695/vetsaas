@@ -270,41 +270,54 @@ final class OpenWaClient
         string $mimetype = 'application/pdf',
         ?string $caption = null,
     ): array {
+        $safeFilename = mb_substr($filename !== '' ? $filename : 'documento.pdf', 0, 255);
+        $mime = $mimetype !== '' ? $mimetype : 'application/pdf';
         $captionTrimmed = $caption !== null && $caption !== ''
             ? mb_substr($caption, 0, 1024)
             : null;
-        $safeFilename = mb_substr($filename !== '' ? $filename : 'documento.pdf', 0, 255);
-        $mime = $mimetype !== '' ? $mimetype : 'application/pdf';
+
+        $payloadBase = [
+            'chatId' => $chatId,
+            'filename' => $safeFilename,
+            'mimetype' => $mime,
+        ];
+        if ($captionTrimmed !== null) {
+            $payloadBase['caption'] = $captionTrimmed;
+        }
 
         $urlTrimmed = $url !== null ? trim($url) : '';
+
+        // 1) URL remota directa (APISUNAT, etc.): OpenWA descarga sin pasar por VetSaaS.
         if ($urlTrimmed !== '' && ($binaryContent === null || $binaryContent === '')) {
-            $binaryContent = $this->fetchHttpUrl($urlTrimmed);
+            try {
+                return $this->postDocument($sessionId, [
+                    ...$payloadBase,
+                    'url' => $urlTrimmed,
+                ]);
+            } catch (RuntimeException $remoteUrlError) {
+                Log::notice('OpenWA send-document URL remota falló; descarga local', [
+                    'error' => $remoteUrlError->getMessage(),
+                    'filename' => $safeFilename,
+                    'url' => $urlTrimmed,
+                ]);
+                $binaryContent = $this->fetchHttpUrl($urlTrimmed);
+            }
         }
 
         if ($binaryContent === null || $binaryContent === '') {
             throw new RuntimeException('sendDocument requiere url o contenido binario.');
         }
 
-        $payloadBase = [
-            'chatId' => $chatId,
+        $byteSize = strlen($binaryContent);
+
+        Log::info('OpenWA send-document preparado', [
             'filename' => $safeFilename,
             'mimetype' => $mime,
-            'caption' => $captionTrimmed,
-        ];
+            'bytes' => $byteSize,
+            'session_id' => $sessionId,
+        ]);
 
-        // Base64 primero: OpenWA a menudo no alcanza APP_URL ni URLs externas (APISUNAT).
-        try {
-            return $this->postDocument($sessionId, [
-                ...$payloadBase,
-                'base64' => base64_encode($binaryContent),
-            ]);
-        } catch (RuntimeException $base64Error) {
-            Log::notice('OpenWA send-document base64 falló; reintento URL temporal', [
-                'error' => $base64Error->getMessage(),
-                'filename' => $safeFilename,
-            ]);
-        }
-
+        // 2) URL temporal pública en VetSaaS (POST liviano).
         $ext = pathinfo($safeFilename, PATHINFO_EXTENSION) ?: 'pdf';
         $storagePath = 'whatsapp-temp/doc_'.uniqid('', true).'.'.$ext;
         Storage::disk('public')->put($storagePath, $binaryContent);
@@ -315,13 +328,34 @@ final class OpenWaClient
                 $publicUrl = rtrim((string) config('app.url'), '/').$publicUrl;
             }
 
-            return $this->postDocument($sessionId, [
-                ...$payloadBase,
-                'url' => $publicUrl,
-            ]);
+            try {
+                return $this->postDocument($sessionId, [
+                    ...$payloadBase,
+                    'url' => $publicUrl,
+                ]);
+            } catch (RuntimeException $urlError) {
+                Log::notice('OpenWA send-document por URL temporal falló; reintento base64', [
+                    'error' => $urlError->getMessage(),
+                    'filename' => $safeFilename,
+                    'bytes' => $byteSize,
+                    'public_url' => $publicUrl,
+                ]);
+            }
         } finally {
             Storage::disk('public')->delete($storagePath);
         }
+
+        // 3) Base64 (POST pesado; algunos gateways fallan con archivos grandes).
+        if ($byteSize > 8 * 1024 * 1024) {
+            throw new RuntimeException(
+                'El archivo supera 8 MB y OpenWA no pudo recibirlo por URL.',
+            );
+        }
+
+        return $this->postDocument($sessionId, [
+            ...$payloadBase,
+            'base64' => base64_encode($binaryContent),
+        ]);
     }
 
     /**
@@ -357,13 +391,35 @@ final class OpenWaClient
             unset($payload['caption']);
         }
 
-        $response = $this->request('post', '/api/sessions/'.$sessionId.'/messages/send-document', $payload);
+        $apiKey = trim((string) config('openwa.api_key', ''));
+        if ($apiKey === '') {
+            throw new RuntimeException('OPENWA_API_KEY no configurada.');
+        }
 
-        if (! is_array($response)) {
+        $url = rtrim((string) config('openwa.api_url'), '/')
+            .'/api/sessions/'.$sessionId.'/messages/send-document';
+
+        try {
+            $response = Http::timeout((int) config('openwa.document_timeout_seconds', 90))
+                ->acceptJson()
+                ->withHeaders(['X-API-Key' => $apiKey])
+                ->post($url, $payload);
+        } catch (RequestException $e) {
+            throw new RuntimeException('Error de red con OpenWA: '.$e->getMessage(), 0, $e);
+        }
+
+        if (! $response->successful()) {
+            throw new RuntimeException(
+                'OpenWA HTTP '.$response->status().': '.(string) $response->body(),
+            );
+        }
+
+        $json = $response->json();
+        if (! is_array($json)) {
             throw new RuntimeException('OpenWA no confirmó el envío del documento.');
         }
 
-        return $response;
+        return $json;
     }
 
     /**

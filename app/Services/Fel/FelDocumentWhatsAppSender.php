@@ -92,20 +92,36 @@ final class FelDocumentWhatsAppSender
                     binaryContent: $attachment['binary'] ?? null,
                     filename: $attachment['filename'],
                     mimetype: $attachment['mimetype'],
-                    caption: $attachment['caption'],
+                    caption: null,
                 );
 
                 $messageIds[] = isset($result['messageId']) ? (string) $result['messageId'] : null;
                 $sent++;
 
-                // Pequeña pausa entre adjuntos para evitar saturar OpenWA.
-                usleep(400_000);
+                usleep(600_000);
             } catch (Throwable $e) {
                 Log::warning('Adjunto WhatsApp de CPE falló', [
                     'fel_document_id' => $documento->id,
                     'tipo' => $attachment['tipo'],
+                    'filename' => $attachment['filename'],
+                    'source_url' => $attachment['url'] ?? null,
                     'error' => $e->getMessage(),
                 ]);
+
+                $linkLines = $this->buildFallbackLinks($attachments);
+                if ($linkLines !== '') {
+                    try {
+                        $fallback = $this->client->sendText(
+                            $sessionId,
+                            $chatId,
+                            "No se pudo adjuntar el archivo por WhatsApp. Descarga aquí:\n\n".$linkLines,
+                        );
+                        $messageIds[] = isset($fallback['messageId']) ? (string) $fallback['messageId'] : null;
+                        $sent++;
+                    } catch (Throwable) {
+                        // ignore
+                    }
+                }
 
                 throw new RuntimeException(
                     'No se pudo enviar '.$attachment['label'].': '.$e->getMessage(),
@@ -187,6 +203,22 @@ final class FelDocumentWhatsAppSender
         }
 
         return $attachments;
+    }
+
+    /**
+     * @param  list<array{tipo: string, label: string, url?: string}>  $attachments
+     */
+    private function buildFallbackLinks(array $attachments): string
+    {
+        $lines = [];
+        foreach ($attachments as $att) {
+            $url = $att['url'] ?? null;
+            if (is_string($url) && $url !== '') {
+                $lines[] = '• '.$att['label'].': '.$url;
+            }
+        }
+
+        return implode("\n", $lines);
     }
 
     private function resolveReadySession(Tenant $tenant): ?TenantWhatsAppSession
