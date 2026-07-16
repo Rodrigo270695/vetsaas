@@ -262,15 +262,16 @@ export default function Index({ documentos: paginated, filters, documento_filtro
             {
                 key: 'acciones',
                 header: 'Acciones',
+                align: 'right',
                 cell: (row) => (
-                    <div className="flex flex-wrap items-center gap-1.5">
+                    <div className="flex items-center justify-end gap-0.5">
                         {row.estado === 'emitido' ? (
                             <Can permission="documentos.send">
                                 <Button
                                     type="button"
-                                    variant="outline"
+                                    variant="ghost"
                                     size="icon"
-                                    className="size-8 shrink-0 cursor-pointer border-emerald-600/30 bg-emerald-500/5 text-emerald-700 hover:bg-emerald-500/10 hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300"
+                                    className="size-8 shrink-0 border-0 bg-transparent text-emerald-600 shadow-none hover:bg-emerald-500/10 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300"
                                     aria-label={t('whatsapp.enviar', { numero: row.numero_completo })}
                                     onClick={() => setWhatsappDocumento(row)}
                                 >
@@ -279,12 +280,17 @@ export default function Index({ documentos: paginated, filters, documento_filtro
                             </Can>
                         ) : null}
                         <DocumentoDownloadMenu documento={row} />
-                        <Button variant="ghost" size="icon" className="size-8" asChild>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-8 shrink-0 border-0 bg-transparent text-violet-600 shadow-none hover:bg-violet-500/10 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300"
+                            asChild
+                        >
                             <Link
                                 href={caja.ventas.show.url(row.venta_id)}
                                 aria-label={`Ver venta ${row.venta_numero ?? row.numero_completo}`}
                             >
-                                <Eye className="size-4" aria-hidden />
+                                <Eye className="size-4" strokeWidth={2.25} aria-hidden />
                             </Link>
                         </Button>
                     </div>

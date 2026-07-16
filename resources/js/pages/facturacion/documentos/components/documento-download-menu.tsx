@@ -4,8 +4,8 @@ import {
     Download,
     ExternalLink,
     FileText,
-    MoreHorizontal,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
@@ -37,19 +37,19 @@ type Props = {
 };
 
 export function DocumentoDownloadMenu({ documento }: Props) {
+    const { t } = useTranslation('facturacion-documentos');
+
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
                 <Button
                     type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-8 gap-1.5"
-                    aria-label={`Descargas ${documento.numero_completo}`}
+                    variant="ghost"
+                    size="icon"
+                    className="size-8 shrink-0 border-0 bg-transparent text-sky-600 shadow-none hover:bg-sky-500/10 hover:text-sky-700 dark:text-sky-400 dark:hover:text-sky-300"
+                    aria-label={t('actions.descargar', { numero: documento.numero_completo })}
                 >
-                    <Download className="size-3.5" aria-hidden />
-                    Descargar
-                    <MoreHorizontal className="size-3.5 opacity-60" aria-hidden />
+                    <Download className="size-4" strokeWidth={2.25} aria-hidden />
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">

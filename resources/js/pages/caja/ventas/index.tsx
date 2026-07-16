@@ -260,13 +260,13 @@ export default function Index({ ventas: paginated, filters, stats, venta_filtro_
                 header: t('caja:ventas.columns.acciones'),
                 align: 'right',
                 cell: (row) => (
-                    <div className="flex justify-end gap-1.5">
+                    <div className="flex justify-end gap-0.5">
                         {row.estado !== 'anulado' ? (
                             <Button
                                 type="button"
-                                variant="outline"
+                                variant="ghost"
                                 size="icon"
-                                className="size-8 shrink-0 cursor-pointer border-emerald-600/30 bg-emerald-500/5 text-emerald-700 hover:bg-emerald-500/10 hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300"
+                                className="size-8 shrink-0 border-0 bg-transparent text-emerald-600 shadow-none hover:bg-emerald-500/10 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300"
                                 aria-label={t('caja:ventas.actions.enviar_whatsapp', {
                                     numero: row.numero_display,
                                 })}
@@ -276,9 +276,9 @@ export default function Index({ ventas: paginated, filters, stats, venta_filtro_
                             </Button>
                         ) : null}
                         <Button
-                            variant="outline"
+                            variant="ghost"
                             size="icon"
-                            className="size-8 shrink-0 cursor-pointer border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 hover:text-primary"
+                            className="size-8 shrink-0 border-0 bg-transparent text-violet-600 shadow-none hover:bg-violet-500/10 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300"
                             asChild
                         >
                             <Link
