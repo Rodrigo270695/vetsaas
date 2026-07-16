@@ -8,8 +8,8 @@ return [
         'deleted' => 'Cita eliminada correctamente.',
         'cancelled' => 'Cita cancelada correctamente.',
         'whatsapp_queued' => 'Se encoló el WhatsApp de confirmación al propietario.',
-        'whatsapp_no_phone' => 'Cita creada, pero el propietario no tiene un número de WhatsApp registrado.',
-        'whatsapp_queue_failed' => 'Cita creada, pero no se pudo encolar el WhatsApp de confirmación.',
+        'whatsapp_no_phone' => 'La cita se guardó, pero el propietario no tiene un número de WhatsApp registrado.',
+        'whatsapp_queue_failed' => 'La cita se guardó, pero no se pudo encolar el WhatsApp.',
     ],
     'validation' => [
         'cancel_not_allowed' => 'Esta cita no se puede cancelar en su estado actual.',

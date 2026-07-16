@@ -35,6 +35,7 @@
     },
     "tipo": {
         "cita_creada": "Appointment created",
+        "cita_reprogramada": "Appointment rescheduled",
         "cita_48h": "Appointment 48h",
         "cita_2h": "Appointment 2h",
         "vacuna_proxima": "Vaccine",

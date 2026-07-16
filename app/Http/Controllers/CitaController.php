@@ -279,7 +279,7 @@ class CitaController extends Controller
             ]))
             ->with('success', __('citas.flash.created'));
 
-        $whatsappFlash = $this->enqueueCitaCreadaWhatsApp($cita);
+        $whatsappFlash = $this->enqueueCitaWhatsApp($cita, 'creada');
         if ($whatsappFlash !== null) {
             $redirect->with($whatsappFlash['type'], $whatsappFlash['message']);
         }
@@ -288,11 +288,12 @@ class CitaController extends Controller
     }
 
     /**
-     * Encola WhatsApp de confirmación al propietario vía OpenWA.
+     * Encola WhatsApp al propietario vía OpenWA (creación o reprogramación).
      *
+     * @param  'creada'|'reprogramada'  $evento
      * @return array{type: 'warning'|'info', message: string}|null
      */
-    private function enqueueCitaCreadaWhatsApp(Cita $cita): ?array
+    private function enqueueCitaWhatsApp(Cita $cita, string $evento): ?array
     {
         $propietario = $cita->paciente?->propietario;
         $phone = $propietario?->telefono;
@@ -305,8 +306,11 @@ class CitaController extends Controller
             ];
         }
 
+        $tipo = $evento === 'reprogramada' ? 'cita_reprogramada' : 'cita_creada';
+
         try {
-            $clinicName = app(ReminderMessageBuilder::class)->clinicDisplayName(ClinicSetting::current());
+            $messages = app(ReminderMessageBuilder::class);
+            $clinicName = $messages->clinicDisplayName(ClinicSetting::current());
             $ownerName = trim((string) ($propietario?->displayName() ?? ''));
             if ($ownerName === '') {
                 $ownerName = 'cliente';
@@ -316,20 +320,19 @@ class CitaController extends Controller
                 ? $cita->inicio_at
                 : Carbon::parse((string) $cita->inicio_at);
 
+            $cuerpo = $evento === 'reprogramada'
+                ? $messages->citaReprogramada($clinicName, $ownerName, $petName, $inicioAt)
+                : $messages->citaCreada($clinicName, $ownerName, $petName, $inicioAt);
+
             app(NotificationQueueService::class)->enqueue(
-                tipo: 'cita_creada',
+                tipo: $tipo,
                 destinatario: $chatId,
-                cuerpo: app(ReminderMessageBuilder::class)->citaCreada(
-                    $clinicName,
-                    $ownerName,
-                    $petName,
-                    $inicioAt,
-                ),
+                cuerpo: $cuerpo,
                 enviarAt: now(),
                 destinatarioNombre: $ownerName,
                 referenciaTipo: 'cita',
                 referenciaId: $cita->id,
-                dedupeKey: 'cita_creada:'.$cita->id,
+                dedupeKey: $tipo.':'.$cita->id.':'.$inicioAt->timestamp,
                 prioridad: 4,
             );
 
@@ -338,8 +341,9 @@ class CitaController extends Controller
                 'message' => __('citas.flash.whatsapp_queued'),
             ];
         } catch (Throwable $e) {
-            Log::warning('No se pudo encolar WhatsApp de cita creada', [
+            Log::warning('No se pudo encolar WhatsApp de cita', [
                 'cita_id' => $cita->id,
+                'evento' => $evento,
                 'error' => $e->getMessage(),
             ]);
 
@@ -355,14 +359,28 @@ class CitaController extends Controller
         $data = $request->validated();
         $data['updated_by_id'] = Auth::id();
 
+        $inicioAnterior = $cita->inicio_at?->copy();
         $cita->fill($data);
+        $inicioCambio = $cita->isDirty('inicio_at')
+            && ($inicioAnterior === null || ! $inicioAnterior->equalTo($cita->inicio_at));
+
         $cita->save();
 
-        return redirect()
+        $redirect = redirect()
             ->route('clinica.citas.index', $request->only([
                 'search', 'per_page', 'sort', 'direction', 'cita_desde', 'cita_hasta', 'vista', 'mes',
             ]))
             ->with('success', __('citas.flash.updated'));
+
+        if ($inicioCambio) {
+            $cita->loadMissing(['paciente.propietario']);
+            $whatsappFlash = $this->enqueueCitaWhatsApp($cita, 'reprogramada');
+            if ($whatsappFlash !== null) {
+                $redirect->with($whatsappFlash['type'], $whatsappFlash['message']);
+            }
+        }
+
+        return $redirect;
     }
 
     public function reschedule(RescheduleCitaRequest $request, Cita $cita): RedirectResponse
@@ -371,11 +389,20 @@ class CitaController extends Controller
         $cita->updated_by_id = Auth::id();
         $cita->save();
 
-        return redirect()
+        $cita->loadMissing(['paciente.propietario']);
+
+        $redirect = redirect()
             ->route('clinica.citas.index', $request->only([
                 'search', 'per_page', 'sort', 'direction', 'cita_desde', 'cita_hasta', 'vista', 'mes',
             ]))
             ->with('success', __('citas.flash.rescheduled'));
+
+        $whatsappFlash = $this->enqueueCitaWhatsApp($cita, 'reprogramada');
+        if ($whatsappFlash !== null) {
+            $redirect->with($whatsappFlash['type'], $whatsappFlash['message']);
+        }
+
+        return $redirect;
     }
 
     public function destroy(Request $request, Cita $cita): RedirectResponse
