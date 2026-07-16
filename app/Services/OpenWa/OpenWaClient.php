@@ -251,14 +251,13 @@ final class OpenWaClient
     }
 
     /**
-     * Envía un documento (PDF, etc.) por URL pública o contenido binario.
+     * Envía un documento (PDF, XML, etc.) por WhatsApp vía OpenWA.
      *
-     * Si se pasa binario, se sube a storage público temporal (mismo patrón que
-     * {@see sendVoice}) y OpenWA lo descarga por URL. Si la URL pública no
-     * es alcanzable, se reintenta con base64.
+     * Si se pasa una URL remota (APISUNAT, etc.), VetSaaS la descarga en memoria
+     * y envía el binario en base64. OpenWA no debe ir a buscar links externos.
      *
-     * @param  string|null  $url  URL http(s) remota (mutuamente excluyente con $binaryContent).
-     * @param  string|null  $binaryContent  Bytes del archivo.
+     * @param  string|null  $url  URL http(s) remota (se descarga localmente antes de enviar).
+     * @param  string|null  $binaryContent  Bytes del archivo (p. ej. PDF generado en servidor).
      * @return array<string, mixed>
      */
     public function sendDocument(
@@ -287,21 +286,12 @@ final class OpenWaClient
 
         $urlTrimmed = $url !== null ? trim($url) : '';
 
-        // 1) URL remota directa (APISUNAT, etc.): OpenWA descarga sin pasar por VetSaaS.
         if ($urlTrimmed !== '' && ($binaryContent === null || $binaryContent === '')) {
-            try {
-                return $this->postDocument($sessionId, [
-                    ...$payloadBase,
-                    'url' => $urlTrimmed,
-                ]);
-            } catch (RuntimeException $remoteUrlError) {
-                Log::notice('OpenWA send-document URL remota falló; descarga local', [
-                    'error' => $remoteUrlError->getMessage(),
-                    'filename' => $safeFilename,
-                    'url' => $urlTrimmed,
-                ]);
-                $binaryContent = $this->fetchHttpUrl($urlTrimmed);
-            }
+            Log::info('OpenWA send-document: descargando archivo remoto', [
+                'filename' => $safeFilename,
+                'url' => $urlTrimmed,
+            ]);
+            $binaryContent = $this->fetchHttpUrl($urlTrimmed);
         }
 
         if ($binaryContent === null || $binaryContent === '') {
@@ -309,48 +299,19 @@ final class OpenWaClient
         }
 
         $byteSize = strlen($binaryContent);
+        $maxBytes = (int) config('openwa.document_max_bytes', 16 * 1024 * 1024);
+        if ($byteSize > $maxBytes) {
+            throw new RuntimeException(
+                'El archivo supera el límite de '.(int) ($maxBytes / 1024 / 1024).' MB para envío por WhatsApp.',
+            );
+        }
 
-        Log::info('OpenWA send-document preparado', [
+        Log::info('OpenWA send-document: enviando base64', [
             'filename' => $safeFilename,
             'mimetype' => $mime,
             'bytes' => $byteSize,
             'session_id' => $sessionId,
         ]);
-
-        // 2) URL temporal pública en VetSaaS (POST liviano).
-        $ext = pathinfo($safeFilename, PATHINFO_EXTENSION) ?: 'pdf';
-        $storagePath = 'whatsapp-temp/doc_'.uniqid('', true).'.'.$ext;
-        Storage::disk('public')->put($storagePath, $binaryContent);
-
-        try {
-            $publicUrl = Storage::disk('public')->url($storagePath);
-            if (! str_starts_with($publicUrl, 'http')) {
-                $publicUrl = rtrim((string) config('app.url'), '/').$publicUrl;
-            }
-
-            try {
-                return $this->postDocument($sessionId, [
-                    ...$payloadBase,
-                    'url' => $publicUrl,
-                ]);
-            } catch (RuntimeException $urlError) {
-                Log::notice('OpenWA send-document por URL temporal falló; reintento base64', [
-                    'error' => $urlError->getMessage(),
-                    'filename' => $safeFilename,
-                    'bytes' => $byteSize,
-                    'public_url' => $publicUrl,
-                ]);
-            }
-        } finally {
-            Storage::disk('public')->delete($storagePath);
-        }
-
-        // 3) Base64 (POST pesado; algunos gateways fallan con archivos grandes).
-        if ($byteSize > 8 * 1024 * 1024) {
-            throw new RuntimeException(
-                'El archivo supera 8 MB y OpenWA no pudo recibirlo por URL.',
-            );
-        }
 
         return $this->postDocument($sessionId, [
             ...$payloadBase,
