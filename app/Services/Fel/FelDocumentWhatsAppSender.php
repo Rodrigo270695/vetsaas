@@ -14,6 +14,7 @@ use App\Services\Notifications\ReminderMessageBuilder;
 use App\Services\OpenWa\OpenWaClient;
 use App\Services\OpenWa\TenantWhatsAppSessionSync;
 use App\Support\Fel\FelDocumentPdfUrls;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
 use Throwable;
@@ -85,11 +86,12 @@ final class FelDocumentWhatsAppSender
 
         foreach ($attachments as $attachment) {
             try {
+                $binary = $this->downloadAttachment($attachment);
+
                 $result = $this->client->sendDocument(
                     sessionId: $sessionId,
                     chatId: $chatId,
-                    url: $attachment['url'] ?? null,
-                    binaryContent: $attachment['binary'] ?? null,
+                    binaryContent: $binary,
                     filename: $attachment['filename'],
                     mimetype: $attachment['mimetype'],
                     caption: null,
@@ -219,6 +221,44 @@ final class FelDocumentWhatsAppSender
         }
 
         return implode("\n", $lines);
+    }
+
+    /**
+     * @param  array{url?: string, binary?: string, label: string}  $attachment
+     */
+    private function downloadAttachment(array $attachment): string
+    {
+        if (isset($attachment['binary']) && is_string($attachment['binary']) && $attachment['binary'] !== '') {
+            return $attachment['binary'];
+        }
+
+        $url = trim((string) ($attachment['url'] ?? ''));
+        if ($url === '') {
+            throw new RuntimeException('No hay URL para descargar '.$attachment['label'].'.');
+        }
+
+        try {
+            $response = Http::timeout(45)->get($url);
+        } catch (Throwable $e) {
+            throw new RuntimeException(
+                'Error al descargar '.$attachment['label'].': '.$e->getMessage(),
+                0,
+                $e,
+            );
+        }
+
+        if (! $response->successful()) {
+            throw new RuntimeException(
+                'HTTP '.$response->status().' al descargar '.$attachment['label'].'.',
+            );
+        }
+
+        $body = (string) $response->body();
+        if ($body === '') {
+            throw new RuntimeException('El archivo '.$attachment['label'].' está vacío.');
+        }
+
+        return $body;
     }
 
     private function resolveReadySession(Tenant $tenant): ?TenantWhatsAppSession
