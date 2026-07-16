@@ -7,6 +7,7 @@ use App\Models\FelDocument;
 use App\Models\FelSerie;
 use App\Models\Sede;
 use App\Models\Tenant;
+use App\Services\Fel\FelDocumentApisunatFileService;
 use App\Services\Fel\FelDocumentWhatsAppSender;
 use App\Support\Fel\FelDocumentApisunatModeResolver;
 use App\Support\Fel\FelDocumentPdfUrls;
@@ -14,7 +15,6 @@ use App\Support\WhatsApp\WhatsAppChatId;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -176,24 +176,32 @@ class FelDocumentController extends Controller
         ]);
     }
 
-    public function downloadXml(FelDocument $felDocument): StreamedResponse|RedirectResponse
-    {
+    public function downloadXml(
+        FelDocument $felDocument,
+        FelDocumentApisunatFileService $lucodeFiles,
+    ): StreamedResponse|RedirectResponse {
         $this->authorizeDocument($felDocument);
 
-        return $this->proxyDownload(
-            $felDocument->url_xml,
+        return $this->proxyLucodeDownload(
+            $lucodeFiles,
+            $felDocument,
+            'xml',
             $felDocument->numero_completo.'.xml',
             'application/xml',
         );
     }
 
-    public function downloadCdr(FelDocument $felDocument): StreamedResponse|RedirectResponse
-    {
+    public function downloadCdr(
+        FelDocument $felDocument,
+        FelDocumentApisunatFileService $lucodeFiles,
+    ): StreamedResponse|RedirectResponse {
         $this->authorizeDocument($felDocument);
 
-        return $this->proxyDownload(
-            $felDocument->url_cdr,
-            'CDR-'.$felDocument->numero_completo.'.xml',
+        return $this->proxyLucodeDownload(
+            $lucodeFiles,
+            $felDocument,
+            'cdr',
+            'R-'.$felDocument->numero_completo.'.xml',
             'application/xml',
         );
     }
@@ -328,15 +336,15 @@ class FelDocumentController extends Controller
         abort_unless(request()->user()?->can('documentos.view'), 403);
     }
 
-    private function proxyDownload(?string $url, string $filename, string $mime): StreamedResponse|RedirectResponse
-    {
-        if ($url === null || $url === '') {
-            return back()->with('error', 'El archivo no está disponible.');
-        }
-
+    private function proxyLucodeDownload(
+        FelDocumentApisunatFileService $lucodeFiles,
+        FelDocument $felDocument,
+        string $tipo,
+        string $filename,
+        string $mime,
+    ): StreamedResponse|RedirectResponse {
         try {
-            $response = Http::timeout(30)->get($url);
-            $content = $response->body();
+            $content = $lucodeFiles->descargar($felDocument, ClinicSetting::current(), $tipo);
         } catch (\Throwable $e) {
             return back()->with('error', 'No se pudo descargar el archivo: '.$e->getMessage());
         }

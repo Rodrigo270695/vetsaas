@@ -13,14 +13,13 @@ use App\Models\TenantWhatsAppSession;
 use App\Services\Notifications\ReminderMessageBuilder;
 use App\Services\OpenWa\OpenWaClient;
 use App\Services\OpenWa\TenantWhatsAppSessionSync;
-use App\Support\Fel\FelDocumentPdfUrls;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
 use Throwable;
 
 /**
- * Envía comprobantes electrónicos (CPE) por WhatsApp con adjuntos seleccionables.
+ * Envía comprobantes electrónicos (CPE) por WhatsApp: descarga desde Lucode (APISUNAT)
+ * y adjunta PDF/XML/CDR con el mismo flujo que tickets de venta (storage temporal + OpenWA).
  */
 final class FelDocumentWhatsAppSender
 {
@@ -28,6 +27,7 @@ final class FelDocumentWhatsAppSender
         private readonly OpenWaClient $client,
         private readonly TenantWhatsAppSessionSync $sessionSync,
         private readonly ReminderMessageBuilder $messages,
+        private readonly FelDocumentApisunatFileService $lucodeFiles,
     ) {}
 
     /**
@@ -81,10 +81,14 @@ final class FelDocumentWhatsAppSender
 
         foreach ($attachments as $attachment) {
             try {
-                $result = $this->sendAttachment(
+                $binary = $this->lucodeFiles->descargar($documento, $clinic, $attachment['tipo']);
+
+                $result = $this->client->sendDocument(
                     sessionId: $sessionId,
                     chatId: $chatId,
-                    attachment: $attachment,
+                    binaryContent: $binary,
+                    filename: $attachment['filename'],
+                    mimetype: $attachment['mimetype'],
                     caption: $isFirstAttachment ? $intro : null,
                 );
 
@@ -98,7 +102,6 @@ final class FelDocumentWhatsAppSender
                     'fel_document_id' => $documento->id,
                     'tipo' => $attachment['tipo'],
                     'filename' => $attachment['filename'],
-                    'source_url' => $attachment['url'] ?? null,
                     'error' => $e->getMessage(),
                 ]);
 
@@ -122,7 +125,7 @@ final class FelDocumentWhatsAppSender
     }
 
     /**
-     * @return list<array{tipo: string, label: string, filename: string, mimetype: string, url?: string, binary?: string}>
+     * @return list<array{tipo: string, label: string, filename: string, mimetype: string}>
      */
     private function resolveAttachments(
         FelDocument $documento,
@@ -131,148 +134,47 @@ final class FelDocumentWhatsAppSender
         bool $xml,
         bool $cdr,
     ): array {
+        $enlaces = $this->lucodeFiles->enlaces($documento);
         $safeNumero = preg_replace('/[^A-Za-z0-9_-]+/', '-', $documento->numero_completo) ?: 'comprobante';
         $attachments = [];
 
-        if ($pdfTicket && filled($documento->url_pdf)) {
+        if ($pdfTicket && filled($enlaces['pdf'])) {
             $attachments[] = [
                 'tipo' => 'pdf_ticket',
                 'label' => 'PDF',
                 'filename' => $safeNumero.'.pdf',
                 'mimetype' => 'application/pdf',
-                'url' => (string) $documento->url_pdf,
             ];
         }
 
-        if ($pdfA4) {
-            $urlA4 = FelDocumentPdfUrls::pdfA4FromTicket($documento->url_pdf);
-            if ($urlA4 !== null && $urlA4 !== '') {
-                $attachments[] = [
-                    'tipo' => 'pdf_a4',
-                    'label' => 'PDF A4',
-                    'filename' => $safeNumero.'-a4.pdf',
-                    'mimetype' => 'application/pdf',
-                    'url' => $urlA4,
-                ];
-            }
+        if ($pdfA4 && filled($enlaces['pdf_a4'])) {
+            $attachments[] = [
+                'tipo' => 'pdf_a4',
+                'label' => 'PDF A4',
+                'filename' => $safeNumero.'-a4.pdf',
+                'mimetype' => 'application/pdf',
+            ];
         }
 
-        if ($xml && filled($documento->url_xml)) {
+        if ($xml && filled($enlaces['xml'])) {
             $attachments[] = [
                 'tipo' => 'xml',
                 'label' => 'XML',
                 'filename' => $safeNumero.'.xml',
                 'mimetype' => 'application/xml',
-                'url' => (string) $documento->url_xml,
             ];
         }
 
-        if ($cdr && filled($documento->url_cdr)) {
+        if ($cdr && filled($enlaces['cdr'])) {
             $attachments[] = [
                 'tipo' => 'cdr',
                 'label' => 'CDR',
                 'filename' => 'R-'.$safeNumero.'.xml',
                 'mimetype' => 'application/xml',
-                'url' => (string) $documento->url_cdr,
             ];
         }
 
         return $attachments;
-    }
-
-    /**
-     * @param  array{tipo: string, label: string, filename: string, mimetype: string, url?: string}  $attachment
-     * @return array<string, mixed>
-     */
-    private function sendAttachment(
-        string $sessionId,
-        string $chatId,
-        array $attachment,
-        ?string $caption,
-    ): array {
-        $url = trim((string) ($attachment['url'] ?? ''));
-
-        // 1) URL APISUNAT directa (OpenWA descarga; mismo patrón que ventas con URL remota).
-        if ($url !== '') {
-            try {
-                return $this->client->sendDocument(
-                    sessionId: $sessionId,
-                    chatId: $chatId,
-                    url: $url,
-                    filename: $attachment['filename'],
-                    mimetype: $attachment['mimetype'],
-                    caption: $caption,
-                );
-            } catch (Throwable $urlError) {
-                Log::notice('CPE WhatsApp: URL APISUNAT falló; reintento vía storage temporal', [
-                    'tipo' => $attachment['tipo'],
-                    'url' => $url,
-                    'error' => $urlError->getMessage(),
-                ]);
-            }
-        }
-
-        // 2) Descarga en VetSaaS + URL temporal pública (igual que ticket de venta).
-        $binary = $this->downloadAttachment($attachment);
-
-        return $this->client->sendDocument(
-            sessionId: $sessionId,
-            chatId: $chatId,
-            binaryContent: $binary,
-            filename: $attachment['filename'],
-            mimetype: $attachment['mimetype'],
-            caption: $caption,
-        );
-    }
-
-    /**
-     * @param  array{url?: string, binary?: string, label: string, tipo?: string, filename?: string}  $attachment
-     */
-    private function downloadAttachment(array $attachment): string
-    {
-        if (isset($attachment['binary']) && is_string($attachment['binary']) && $attachment['binary'] !== '') {
-            return $attachment['binary'];
-        }
-
-        $url = trim((string) ($attachment['url'] ?? ''));
-        if ($url === '') {
-            throw new RuntimeException('No hay URL para descargar '.$attachment['label'].'.');
-        }
-
-        try {
-            $response = Http::timeout(45)->get($url);
-        } catch (Throwable $e) {
-            throw new RuntimeException(
-                'Error al descargar '.$attachment['label'].': '.$e->getMessage(),
-                0,
-                $e,
-            );
-        }
-
-        if (! $response->successful()) {
-            throw new RuntimeException(
-                'HTTP '.$response->status().' al descargar '.$attachment['label'].'.',
-            );
-        }
-
-        $body = (string) $response->body();
-        if ($body === '') {
-            throw new RuntimeException('El archivo '.$attachment['label'].' está vacío.');
-        }
-
-        $filename = (string) ($attachment['filename'] ?? '');
-        if (
-            ($attachment['tipo'] ?? '') === 'pdf_ticket'
-            || str_ends_with(strtolower($filename), '.pdf')
-        ) {
-            if (! str_starts_with($body, '%PDF')) {
-                throw new RuntimeException(
-                    'El PDF de '.$attachment['label'].' no es válido. Verifica la URL en APISUNAT.',
-                );
-            }
-        }
-
-        return $body;
     }
 
     private function resolveReadySession(Tenant $tenant): ?TenantWhatsAppSession
