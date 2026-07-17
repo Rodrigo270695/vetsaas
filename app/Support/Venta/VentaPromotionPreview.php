@@ -7,7 +7,6 @@ use App\Models\ConsultaCargoLinea;
 use App\Models\GroomingTurno;
 use App\Models\Producto;
 use App\Services\Venta\PromotionCheckoutService;
-use App\Support\Venta\VentaTotales;
 
 final class VentaPromotionPreview
 {
@@ -117,7 +116,17 @@ final class VentaPromotionPreview
             $precioIncluyeIgv,
         );
 
-        $lineas = $promoResult->lineas;
+        $manualResult = DescuentoManualLinea::apply(
+            $promoResult->lineas,
+            $validated['lineas'],
+            $igvPct,
+            $precioIncluyeIgv,
+        );
+        $lineas = $manualResult['lineas'];
+        $discountAmount = round(
+            (float) $promoResult->discount_amount + $manualResult['discount_amount'],
+            2,
+        );
 
         $totales = VentaTotales::fromLineas($lineas, $igvPct, $precioIncluyeIgv);
         $subtotal = $totales['subtotal'];
@@ -126,7 +135,7 @@ final class VentaPromotionPreview
 
         return [
             'lineas' => $lineas,
-            'discount_amount' => $promoResult->discount_amount,
+            'discount_amount' => number_format($discountAmount, 2, '.', ''),
             'promotion_id' => $promoResult->promotion_id,
             'promotion_name' => $promoResult->promotion_name,
             'promotions_applied' => $promoResult->promotions_applied,

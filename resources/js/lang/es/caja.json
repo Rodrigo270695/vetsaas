@@ -281,6 +281,8 @@
             "col_producto": "Producto",
             "col_cantidad": "Cantidad",
             "col_precio_unit": "Precio unit.",
+            "descuento_linea": "Descuento de esta línea",
+            "descuento_linea_corto": "Desc.",
             "col_sub": "Subtotal",
             "col_total": "Total",
             "precio_unitario": "{{precio}} c/u",

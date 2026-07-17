@@ -59,6 +59,7 @@ type CartLine = {
     nombre: string;
     unidad: string;
     precio_venta: string | null;
+    descuento_pct: number;
     cantidad: number;
     stock_disponible: number;
     omitir_stock: boolean;
@@ -229,6 +230,7 @@ export default function Create({
                 nombre: ln.concepto,
                 unidad: tieneProducto ? 'und' : t('caja:ventas.desde_cargo.linea_servicio'),
                 precio_venta: ln.precio_lista,
+                descuento_pct: 0,
                 cantidad: Number(ln.cantidad) || 1,
                 stock_disponible: tieneProducto ? stock : 999999,
                 omitir_stock: !tieneProducto,
@@ -289,6 +291,7 @@ export default function Create({
                         l.precio_venta === '' || l.precio_venta === null ? '0' : String(l.precio_venta),
                     tipo_linea: l.tipo_linea ?? (l.producto_id ? 'producto' : 'servicio'),
                     cantidad: l.cantidad,
+                    descuento_pct: l.descuento_pct,
                 })),
             })
                 .then((raw) => {
@@ -429,6 +432,7 @@ export default function Create({
                         nombre: p.nombre,
                         unidad: p.unidad,
                         precio_venta: p.precio_venta,
+                        descuento_pct: 0,
                         cantidad: 1,
                         stock_disponible: stock,
                         omitir_stock: false,
@@ -472,6 +476,7 @@ export default function Create({
                     nombre: concepto,
                     unidad: t('caja:ventas.desde_cargo.linea_servicio'),
                     precio_venta: String(precioRedondeado),
+                    descuento_pct: 0,
                     cantidad: 1,
                     stock_disponible: 0,
                     omitir_stock: true,
@@ -522,6 +527,21 @@ export default function Create({
         );
     }, []);
 
+    const setDescuentoLinea = useCallback((lineKey: string, value: string) => {
+        const normalized = value.trim().replace(',', '.');
+        const parsed = normalized === '' || normalized === '.' ? 0 : Number(normalized);
+        if (Number.isNaN(parsed) || parsed < 0) {
+            return;
+        }
+
+        const descuento = Math.round(Math.min(100, parsed) * 100) / 100;
+        setCart((prev) =>
+            prev.map((line) =>
+                line.key === lineKey ? { ...line, descuento_pct: descuento } : line,
+            ),
+        );
+    }, []);
+
     const removeLine = useCallback((lineKey: string) => {
         setCart((prev) => prev.filter((l) => l.key !== lineKey));
     }, []);
@@ -562,6 +582,7 @@ export default function Create({
                 tipo_linea: l.tipo_linea ?? (l.producto_id ? 'producto' : 'servicio'),
                 consulta_cargo_linea_id: l.consulta_cargo_linea_id ?? null,
                 cantidad: l.cantidad,
+                descuento_pct: l.descuento_pct,
             })),
         };
     }, [cart, form.data, mi_sesion]);
@@ -621,6 +642,7 @@ export default function Create({
                 tipo_linea: l.tipo_linea ?? (l.producto_id ? 'producto' : 'servicio'),
                 consulta_cargo_linea_id: l.consulta_cargo_linea_id ?? null,
                 cantidad: l.cantidad,
+                descuento_pct: l.descuento_pct,
             })),
             monto_recibido: d.metodo_pago === 'efectivo' ? d.monto_recibido : null,
         }));
@@ -1111,16 +1133,23 @@ export default function Create({
                                 <ul className="divide-y divide-border/40 rounded-md border border-border/50">
                                     {cart.map((line, cartIndex) => {
                                         const lista = Number(line.precio_venta ?? 0);
-                                        const lineTotal = lineTotalLinea(
+                                        const lineTotalOriginal = lineTotalLinea(
                                             lista,
                                             line.cantidad,
                                             igvPct,
                                             precioIncluyeIgv,
                                         );
+                                        const lineTotal = lineTotalLinea(
+                                            lista,
+                                            line.cantidad,
+                                            igvPct,
+                                            precioIncluyeIgv,
+                                            line.descuento_pct,
+                                        );
                                         const previewLine = promoPreview?.lineas?.[cartIndex];
                                         const hasLinePromo = Boolean(previewLine?.promotion_id);
                                         const displayTotal =
-                                            hasLinePromo && previewLine
+                                            previewLine
                                                 ? lineTotalFromSubtotal(
                                                       Number(previewLine.subtotal),
                                                       igvPct,
@@ -1143,6 +1172,14 @@ export default function Create({
                                                     <div className="min-w-0 flex-1">
                                                         <div className="flex flex-wrap items-center gap-1.5">
                                                             <p className="text-xs font-medium leading-snug">{line.nombre}</p>
+                                                            {line.descuento_pct > 0 ? (
+                                                                <Badge
+                                                                    variant="secondary"
+                                                                    className="h-4 bg-amber-100 px-1 text-[9px] font-medium text-amber-800 dark:bg-amber-950/50 dark:text-amber-300"
+                                                                >
+                                                                    −{line.descuento_pct}%
+                                                                </Badge>
+                                                            ) : null}
                                                             {hasLinePromo ? (
                                                                 <Badge
                                                                     variant="secondary"
@@ -1189,53 +1226,82 @@ export default function Create({
                                                     </Button>
                                                 </div>
                                                 <div className="mt-2 flex items-center justify-between gap-2">
-                                                    <div className="flex items-center gap-0.5">
-                                                        <Button
-                                                            type="button"
-                                                            variant="outline"
-                                                            size="icon"
-                                                            className="size-7 shrink-0"
-                                                            onClick={() => setCantidad(line.key, line.cantidad - 1)}
-                                                            disabled={!puede_vender}
-                                                        >
-                                                            <Minus className="size-3" aria-hidden />
-                                                        </Button>
-                                                        <Input
-                                                            className="h-7 w-12 border-0 bg-transparent px-0 text-center text-xs tabular-nums shadow-none focus-visible:ring-0"
-                                                            value={String(line.cantidad)}
-                                                            onChange={(e) => {
-                                                                const v = Number(e.target.value.replace(',', '.'));
-                                                                if (!Number.isNaN(v)) {
-                                                                    setCantidad(line.key, v);
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="flex items-center gap-0.5">
+                                                            <Button
+                                                                type="button"
+                                                                variant="outline"
+                                                                size="icon"
+                                                                className="size-7 shrink-0"
+                                                                onClick={() => setCantidad(line.key, line.cantidad - 1)}
+                                                                disabled={!puede_vender}
+                                                            >
+                                                                <Minus className="size-3" aria-hidden />
+                                                            </Button>
+                                                            <Input
+                                                                className="h-7 w-12 border-0 bg-transparent px-0 text-center text-xs tabular-nums shadow-none focus-visible:ring-0"
+                                                                value={String(line.cantidad)}
+                                                                onChange={(e) => {
+                                                                    const v = Number(e.target.value.replace(',', '.'));
+                                                                    if (!Number.isNaN(v)) {
+                                                                        setCantidad(line.key, v);
+                                                                    }
+                                                                }}
+                                                                disabled={!puede_vender}
+                                                            />
+                                                            <Button
+                                                                type="button"
+                                                                variant="outline"
+                                                                size="icon"
+                                                                className="size-7 shrink-0"
+                                                                onClick={() => setCantidad(line.key, line.cantidad + 1)}
+                                                                disabled={
+                                                                    !puede_vender ||
+                                                                    (!line.omitir_stock &&
+                                                                        line.cantidad >= line.stock_disponible - 0.0001)
                                                                 }
-                                                            }}
-                                                            disabled={!puede_vender}
-                                                        />
-                                                        <Button
-                                                            type="button"
-                                                            variant="outline"
-                                                            size="icon"
-                                                            className="size-7 shrink-0"
-                                                            onClick={() => setCantidad(line.key, line.cantidad + 1)}
-                                                            disabled={
-                                                                !puede_vender ||
-                                                                (!line.omitir_stock &&
-                                                                    line.cantidad >= line.stock_disponible - 0.0001)
-                                                            }
-                                                        >
-                                                            <Plus className="size-3" aria-hidden />
-                                                        </Button>
+                                                            >
+                                                                <Plus className="size-3" aria-hidden />
+                                                            </Button>
+                                                        </div>
+                                                        <div className="flex items-center gap-1">
+                                                            <span className="text-[10px] text-muted-foreground">
+                                                                {t('caja:ventas.create.descuento_linea_corto')}
+                                                            </span>
+                                                            <div className="relative">
+                                                                <Input
+                                                                    type="number"
+                                                                    inputMode="decimal"
+                                                                    min={0}
+                                                                    max={100}
+                                                                    step={0.01}
+                                                                    className="h-7 w-19 pr-6 text-right text-xs tabular-nums"
+                                                                    value={line.descuento_pct || ''}
+                                                                    placeholder="0"
+                                                                    onChange={(e) =>
+                                                                        setDescuentoLinea(line.key, e.target.value)
+                                                                    }
+                                                                    disabled={!puede_vender}
+                                                                    aria-label={t('caja:ventas.create.descuento_linea')}
+                                                                    title={t('caja:ventas.create.descuento_linea')}
+                                                                />
+                                                                <span className="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 text-[10px] text-muted-foreground">
+                                                                    %
+                                                                </span>
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                     <div className="flex flex-col items-end gap-0.5">
-                                                        {hasLinePromo && displayTotal < lineTotal - 0.0001 ? (
+                                                        {displayTotal < lineTotalOriginal - 0.0001 ? (
                                                             <span className="text-[10px] text-muted-foreground line-through tabular-nums">
-                                                                {formatMoney(lineTotal)}
+                                                                {formatMoney(lineTotalOriginal)}
                                                             </span>
                                                         ) : null}
                                                         <span
                                                             className={cn(
                                                                 'text-sm font-semibold tabular-nums',
-                                                                hasLinePromo && 'text-emerald-700 dark:text-emerald-400',
+                                                                displayTotal < lineTotalOriginal - 0.0001 &&
+                                                                    'text-emerald-700 dark:text-emerald-400',
                                                             )}
                                                         >
                                                             {formatMoney(displayTotal)}

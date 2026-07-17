@@ -6,18 +6,19 @@ use App\Models\CajaSesion;
 use App\Models\ClinicSetting;
 use App\Models\ConsultaCargo;
 use App\Models\ConsultaCargoLinea;
+use App\Models\FelSerie;
 use App\Models\GroomingTurno;
 use App\Models\HotelEstancia;
 use App\Models\MovimientoInventario;
-use App\Models\FelSerie;
 use App\Models\Producto;
 use App\Models\Tenant;
-use App\Services\Fel\FelEmisionVentaService;
 use App\Models\Venta;
 use App\Models\VentaLinea;
+use App\Services\Fel\FelEmisionVentaService;
 use App\Services\Inventario\InventarioLoteService;
 use App\Support\Fel\ApisunatCredentialResolver;
 use App\Support\PlanCapabilities;
+use App\Support\Venta\DescuentoManualLinea;
 use App\Support\Venta\VentaTotales;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Facades\DB;
@@ -125,12 +126,12 @@ final class VentaCheckoutService
             $productos = $productoIds === []
                 ? collect()
                 : Producto::query()
-                ->whereIn('id', $productoIds)
-                ->where('activo', true)
-                ->whereNull('deleted_at')
-                ->lockForUpdate()
-                ->get()
-                ->keyBy('id');
+                    ->whereIn('id', $productoIds)
+                    ->where('activo', true)
+                    ->whereNull('deleted_at')
+                    ->lockForUpdate()
+                    ->get()
+                    ->keyBy('id');
 
             $lineasCalc = [];
             $subtotalVenta = 0.0;
@@ -225,8 +226,17 @@ final class VentaCheckoutService
                 $precioIncluyeIgv,
             );
 
-            $lineasCalc = $promoResult->lineas;
-            $descuentoMonto = $promoResult->discount_amount;
+            $manualResult = DescuentoManualLinea::apply(
+                $promoResult->lineas,
+                $validated['lineas'],
+                $igvPct,
+                $precioIncluyeIgv,
+            );
+            $lineasCalc = $manualResult['lineas'];
+            $descuentoMonto = round(
+                (float) $promoResult->discount_amount + $manualResult['discount_amount'],
+                2,
+            );
 
             $totales = VentaTotales::fromLineas($lineasCalc, $igvPct, $precioIncluyeIgv);
             $subtotalVenta = $totales['subtotal'];

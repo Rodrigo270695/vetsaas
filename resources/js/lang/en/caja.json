@@ -281,6 +281,8 @@
             "col_producto": "Product",
             "col_cantidad": "Qty",
             "col_precio_unit": "Unit price",
+            "descuento_linea": "Discount for this line",
+            "descuento_linea_corto": "Disc.",
             "col_sub": "Subtotal",
             "col_total": "Total",
             "precio_unitario": "{{precio}} ea.",
