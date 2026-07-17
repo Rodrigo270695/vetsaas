@@ -388,10 +388,7 @@ class VentaController extends Controller
             ->where('opened_by_id', Auth::id())
             ->first();
 
-        $sedeNombre = null;
-        if ($miSesion !== null) {
-            $sedeNombre = Sede::query()->whereKey($miSesion->sede_id)->value('nombre');
-        }
+        $sedeNombre = $this->resolveSedeNombre($miSesion?->sede_id);
 
         $clinic = ClinicSetting::current();
         $tenantModel = $tenants->current()?->tenant;
@@ -432,7 +429,7 @@ class VentaController extends Controller
             ->first();
 
         $sedeNombre = $miSesion !== null
-            ? Sede::query()->whereKey($miSesion->sede_id)->value('nombre')
+            ? $this->resolveSedeNombre($miSesion->sede_id)
             : null;
 
         $clinic = ClinicSetting::current();
@@ -479,7 +476,7 @@ class VentaController extends Controller
             ->first();
 
         $sedeNombre = $miSesion !== null
-            ? Sede::query()->whereKey($miSesion->sede_id)->value('nombre')
+            ? $this->resolveSedeNombre($miSesion->sede_id)
             : null;
 
         $clinic = ClinicSetting::current();
@@ -525,9 +522,8 @@ class VentaController extends Controller
             ->where('opened_by_id', Auth::id())
             ->first();
 
-        $sedeNombre = $miSesion !== null
-            ? Sede::query()->whereKey($miSesion->sede_id)->value('nombre')
-            : null;
+        $sedeNombre = $this->resolveSedeNombre($miSesion?->sede_id)
+            ?? $this->resolveSedeNombre($groomingTurno->sede_id);
 
         $clinic = ClinicSetting::current();
         $tenantModel = $tenants->current()?->tenant;
@@ -576,7 +572,7 @@ class VentaController extends Controller
             ->first();
 
         $sedeNombre = $miSesion !== null
-            ? Sede::query()->whereKey($miSesion->sede_id)->value('nombre')
+            ? $this->resolveSedeNombre($miSesion->sede_id)
             : null;
 
         $clinic = ClinicSetting::current();
@@ -1084,7 +1080,7 @@ class VentaController extends Controller
             'mi_sesion' => $miSesion === null ? null : [
                 'id' => $miSesion->id,
                 'sede_id' => $miSesion->sede_id,
-                'sede_nombre' => $sedeNombre ?? '—',
+                'sede_nombre' => $sedeNombre !== null && $sedeNombre !== '' ? $sedeNombre : null,
                 'moneda' => $miSesion->moneda,
             ],
             'clinica' => [
@@ -1233,5 +1229,21 @@ class VentaController extends Controller
                 'precio_lista' => (string) $row->precio_lista,
             ]),
         ]);
+    }
+
+    private function resolveSedeNombre(?string $sedeId): ?string
+    {
+        if ($sedeId === null || $sedeId === '') {
+            return null;
+        }
+
+        $nombre = Sede::query()->whereKey($sedeId)->value('nombre');
+        if (is_string($nombre) && trim($nombre) !== '') {
+            return trim($nombre);
+        }
+
+        $nombre = Sede::withTrashed()->whereKey($sedeId)->value('nombre');
+
+        return is_string($nombre) && trim($nombre) !== '' ? trim($nombre) : null;
     }
 }

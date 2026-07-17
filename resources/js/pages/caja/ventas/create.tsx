@@ -848,7 +848,7 @@ export default function Create({
 
                         {/* Cliente y comprobante en una sola franja */}
                         <section className="rounded-lg border border-border/60 bg-card px-3 py-2.5 shadow-xs ring-1 ring-border/10">
-                            <div className="flex flex-col gap-2.5 lg:flex-row lg:items-end lg:gap-3">
+                            <div className="flex flex-col gap-2.5 lg:flex-row lg:items-start lg:gap-3">
                                 <div className="min-w-0 flex-1 space-y-1">
                                     <div className="flex h-6 items-center justify-between gap-2">
                                         <Label htmlFor="propietario" className="text-xs text-muted-foreground">
@@ -879,17 +879,17 @@ export default function Create({
                                         placeholder={t('caja:ventas.create.propietario_ph')}
                                         disabled={!puede_vender || Boolean(desdeCargo)}
                                     />
+                                    {form.errors.propietario_id ? (
+                                        <p className="text-[11px] text-destructive">{form.errors.propietario_id}</p>
+                                    ) : null}
                                     {desdeCargo ? (
                                         <p className="text-[11px] text-muted-foreground">
                                             {t('caja:ventas.desde_cargo.cliente_bloqueado')}
                                         </p>
                                     ) : null}
-                                    {form.errors.propietario_id ? (
-                                        <p className="text-[11px] text-destructive">{form.errors.propietario_id}</p>
-                                    ) : null}
                                 </div>
 
-                                <div className="shrink-0 space-y-1">
+                                <div className="w-full shrink-0 space-y-1 lg:w-auto lg:min-w-[220px]">
                                     <Label className="flex h-6 items-center text-xs text-muted-foreground">
                                         {t('caja:ventas.create.tipo_comprobante')}
                                     </Label>
@@ -897,7 +897,7 @@ export default function Create({
                                         type="single"
                                         variant="outline"
                                         size="sm"
-                                        className="flex w-full flex-wrap justify-start gap-0.5"
+                                        className="flex h-9 w-full flex-wrap justify-start gap-0.5"
                                         value={String(form.data.tipo_comprobante_sunat)}
                                         onValueChange={(v) => {
                                             if (v === '0' || v === '1' || v === '2') {
@@ -906,16 +906,16 @@ export default function Create({
                                         }}
                                         disabled={!puede_vender}
                                     >
-                                        <ToggleGroupItem value="0" className="h-7 min-w-0 flex-1 cursor-pointer px-2 text-xs">
+                                        <ToggleGroupItem value="0" className="h-9 min-w-0 flex-1 cursor-pointer px-2.5 text-xs">
                                             {t('caja:ventas.create.comprobante_ticket')}
                                         </ToggleGroupItem>
                                         {puedeEmitirBoleta ? (
-                                            <ToggleGroupItem value="2" className="h-7 min-w-0 flex-1 cursor-pointer px-2 text-xs">
+                                            <ToggleGroupItem value="2" className="h-9 min-w-0 flex-1 cursor-pointer px-2.5 text-xs">
                                                 {t('caja:ventas.create.comprobante_boleta')}
                                             </ToggleGroupItem>
                                         ) : null}
                                         {puedeEmitirFactura ? (
-                                            <ToggleGroupItem value="1" className="h-7 min-w-0 flex-1 cursor-pointer px-2 text-xs">
+                                            <ToggleGroupItem value="1" className="h-9 min-w-0 flex-1 cursor-pointer px-2.5 text-xs">
                                                 {t('caja:ventas.create.comprobante_factura')}
                                             </ToggleGroupItem>
                                         ) : null}
