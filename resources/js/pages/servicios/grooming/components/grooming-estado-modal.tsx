@@ -6,25 +6,15 @@ import {
     Images,
     Loader2,
     MessageCircle,
-    Play,
     RefreshCw,
     Trash2,
-    XCircle,
 } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { FormField, FormModal } from '@/components/forms';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import type { GroomingTurnoRow } from '../types';
 
 export type GroomingEstadoTarget =
@@ -133,7 +123,6 @@ export function GroomingEstadoModal({ turno, target, onOpenChange }: Props) {
         return () => {
             revokeAll(photos);
         };
-        // Only on unmount
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -153,9 +142,6 @@ export function GroomingEstadoModal({ turno, target, onOpenChange }: Props) {
         return t(`estado_flow.${target}.description`);
     }, [target, t]);
 
-    const Icon =
-        target === 'en_proceso' ? Play : target === 'completada' ? CheckCircle2 : XCircle;
-
     const canAddMore = photos.length < MAX_FOTOS;
 
     const appendFiles = (fileList: FileList | null) => {
@@ -169,14 +155,12 @@ export function GroomingEstadoModal({ turno, target, onOpenChange }: Props) {
         }
 
         const room = MAX_FOTOS - photos.length;
-        const next = [...photos, ...toPhotoItems(incoming.slice(0, room))];
-        syncFotos(next);
+        syncFotos([...photos, ...toPhotoItems(incoming.slice(0, room))]);
     };
 
     const removeAt = (index: number) => {
-        const next = photos.filter((_, i) => i !== index);
         URL.revokeObjectURL(photos[index]?.preview ?? '');
-        syncFotos(next);
+        syncFotos(photos.filter((_, i) => i !== index));
     };
 
     const replaceAt = (index: number, file: File | null) => {
@@ -184,20 +168,21 @@ export function GroomingEstadoModal({ turno, target, onOpenChange }: Props) {
             return;
         }
 
-        const next = photos.map((item, i) => {
-            if (i !== index) {
-                return item;
-            }
+        syncFotos(
+            photos.map((item, i) => {
+                if (i !== index) {
+                    return item;
+                }
 
-            URL.revokeObjectURL(item.preview);
+                URL.revokeObjectURL(item.preview);
 
-            return {
-                id: newPhotoId(),
-                file,
-                preview: URL.createObjectURL(file),
-            };
-        });
-        syncFotos(next);
+                return {
+                    id: newPhotoId(),
+                    file,
+                    preview: URL.createObjectURL(file),
+                };
+            }),
+        );
     };
 
     const openReplace = (index: number, mode: 'gallery' | 'camera') => {
@@ -206,15 +191,16 @@ export function GroomingEstadoModal({ turno, target, onOpenChange }: Props) {
         ref.current?.click();
     };
 
-    const submit = () => {
+    const onSubmit = (e: FormEvent) => {
+        e.preventDefault();
         if (!turno || !target) {
             return;
         }
 
-        form.transform((data) => ({
+        form.transform(() => ({
             estado: target,
-            telefono: data.telefono,
-            notificar_whatsapp: isAutoWhatsApp(target) ? true : data.notificar_whatsapp,
+            telefono: form.data.telefono,
+            notificar_whatsapp: isAutoWhatsApp(target) ? true : form.data.notificar_whatsapp,
             fotos: photos.map((p) => p.file),
         }));
 
@@ -226,221 +212,15 @@ export function GroomingEstadoModal({ turno, target, onOpenChange }: Props) {
     };
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-lg">
-                <DialogHeader>
-                    <div className="mb-1 flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                        <Icon className="size-5" />
-                    </div>
-                    <DialogTitle>{title}</DialogTitle>
-                    <DialogDescription>{description}</DialogDescription>
-                </DialogHeader>
-
-                <div className="space-y-4 py-1">
-                    {turno ? (
-                        <p className="text-sm text-muted-foreground">
-                            <span className="font-medium text-foreground">
-                                {turno.paciente?.nombre ?? '—'}
-                            </span>
-                            {' · '}
-                            {turno.servicio_label ?? turno.servicio}
-                        </p>
-                    ) : null}
-
-                    {isPhotoFlow(target) ? (
-                        <div className="space-y-3">
-                            <div className="flex items-center justify-between gap-2">
-                                <Label>{t('estado_flow.fotos')}</Label>
-                                <span className="text-[11px] text-muted-foreground">
-                                    {photos.length}/{MAX_FOTOS}
-                                </span>
-                            </div>
-
-                            <input
-                                ref={galleryRef}
-                                type="file"
-                                accept="image/jpeg,image/png,image/webp,image/*"
-                                multiple
-                                className="hidden"
-                                disabled={form.processing || !canAddMore}
-                                onChange={(e) => {
-                                    appendFiles(e.target.files);
-                                    e.target.value = '';
-                                }}
-                            />
-                            <input
-                                ref={cameraRef}
-                                type="file"
-                                accept="image/*"
-                                capture="environment"
-                                className="hidden"
-                                disabled={form.processing || !canAddMore}
-                                onChange={(e) => {
-                                    appendFiles(e.target.files);
-                                    e.target.value = '';
-                                }}
-                            />
-                            <input
-                                ref={replaceGalleryRef}
-                                type="file"
-                                accept="image/jpeg,image/png,image/webp,image/*"
-                                className="hidden"
-                                disabled={form.processing}
-                                onChange={(e) => {
-                                    const idx = replaceIndexRef.current;
-                                    if (idx !== null) {
-                                        replaceAt(idx, e.target.files?.[0] ?? null);
-                                    }
-                                    replaceIndexRef.current = null;
-                                    e.target.value = '';
-                                }}
-                            />
-                            <input
-                                ref={replaceCameraRef}
-                                type="file"
-                                accept="image/*"
-                                capture="environment"
-                                className="hidden"
-                                disabled={form.processing}
-                                onChange={(e) => {
-                                    const idx = replaceIndexRef.current;
-                                    if (idx !== null) {
-                                        replaceAt(idx, e.target.files?.[0] ?? null);
-                                    }
-                                    replaceIndexRef.current = null;
-                                    e.target.value = '';
-                                }}
-                            />
-
-                            <div className="flex flex-wrap gap-2">
-                                <Button
-                                    type="button"
-                                    variant="default"
-                                    size="sm"
-                                    className="gap-1.5"
-                                    disabled={form.processing || !canAddMore}
-                                    onClick={() => cameraRef.current?.click()}
-                                >
-                                    <Camera className="size-3.5" />
-                                    {t('estado_flow.take_photo')}
-                                </Button>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    className="gap-1.5"
-                                    disabled={form.processing || !canAddMore}
-                                    onClick={() => galleryRef.current?.click()}
-                                >
-                                    <Images className="size-3.5" />
-                                    {t('estado_flow.from_gallery')}
-                                </Button>
-                            </div>
-
-                            <p className="text-[11px] text-muted-foreground">{t('estado_flow.fotos_hint')}</p>
-
-                            {photos.length > 0 ? (
-                                <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                                    {photos.map((photo, index) => (
-                                        <li
-                                            key={photo.id}
-                                            className="group relative overflow-hidden rounded-md border bg-muted/20"
-                                        >
-                                            <img
-                                                src={photo.preview}
-                                                alt=""
-                                                className="aspect-square w-full object-cover"
-                                            />
-                                            <div className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-1 bg-black/55 p-1">
-                                                <Button
-                                                    type="button"
-                                                    size="icon"
-                                                    variant="secondary"
-                                                    className="size-7"
-                                                    title={t('estado_flow.retake_photo')}
-                                                    disabled={form.processing}
-                                                    onClick={() => openReplace(index, 'camera')}
-                                                >
-                                                    <Camera className="size-3.5" />
-                                                </Button>
-                                                <Button
-                                                    type="button"
-                                                    size="icon"
-                                                    variant="secondary"
-                                                    className="size-7"
-                                                    title={t('estado_flow.replace_photo')}
-                                                    disabled={form.processing}
-                                                    onClick={() => openReplace(index, 'gallery')}
-                                                >
-                                                    <RefreshCw className="size-3.5" />
-                                                </Button>
-                                                <Button
-                                                    type="button"
-                                                    size="icon"
-                                                    variant="destructive"
-                                                    className="size-7"
-                                                    title={t('estado_flow.remove_photo')}
-                                                    disabled={form.processing}
-                                                    onClick={() => removeAt(index)}
-                                                >
-                                                    <Trash2 className="size-3.5" />
-                                                </Button>
-                                            </div>
-                                        </li>
-                                    ))}
-                                </ul>
-                            ) : (
-                                <div className="flex items-center gap-2 rounded-md border border-dashed px-3 py-4 text-xs text-muted-foreground">
-                                    <ImagePlus className="size-4 shrink-0" />
-                                    {t('estado_flow.fotos_empty')}
-                                </div>
-                            )}
-                            {form.errors.fotos ? (
-                                <p className="text-xs text-destructive">{form.errors.fotos}</p>
-                            ) : null}
-                        </div>
-                    ) : null}
-
-                    <div className="space-y-2">
-                        <Label htmlFor="grooming-estado-phone">{t('estado_flow.phone')}</Label>
-                        <Input
-                            id="grooming-estado-phone"
-                            type="tel"
-                            inputMode="tel"
-                            placeholder="51999999999"
-                            value={form.data.telefono}
-                            disabled={form.processing}
-                            onChange={(e) => form.setData('telefono', e.target.value)}
-                        />
-                        {form.errors.telefono ? (
-                            <p className="text-xs text-destructive">{form.errors.telefono}</p>
-                        ) : null}
-                    </div>
-
-                    {isAutoWhatsApp(target) ? (
-                        <div className="flex gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/8 p-3 text-xs leading-relaxed text-emerald-900 dark:text-emerald-100">
-                            <MessageCircle className="mt-0.5 size-4 shrink-0" />
-                            <p>{t('estado_flow.auto_whatsapp')}</p>
-                        </div>
-                    ) : (
-                        <label className="flex cursor-pointer items-start gap-2.5 text-sm">
-                            <Checkbox
-                                checked={form.data.notificar_whatsapp}
-                                disabled={form.processing}
-                                onCheckedChange={(v) => form.setData('notificar_whatsapp', v === true)}
-                                className="mt-0.5"
-                            />
-                            <span>
-                                <span className="font-medium">{t('estado_flow.notify_label')}</span>
-                                <span className="mt-0.5 block text-xs text-muted-foreground">
-                                    {t('estado_flow.notify_hint')}
-                                </span>
-                            </span>
-                        </label>
-                    )}
-                </div>
-
-                <DialogFooter>
+        <FormModal
+            open={open}
+            onOpenChange={onOpenChange}
+            title={title}
+            description={description}
+            size="md"
+            onSubmit={onSubmit}
+            footer={
+                <>
                     <Button
                         type="button"
                         variant="outline"
@@ -449,7 +229,7 @@ export function GroomingEstadoModal({ turno, target, onOpenChange }: Props) {
                     >
                         {t('common:actions.cancel')}
                     </Button>
-                    <Button type="button" className="gap-2" disabled={form.processing} onClick={submit}>
+                    <Button type="submit" className="gap-2" disabled={form.processing}>
                         {form.processing ? (
                             <Loader2 className="size-4 animate-spin" />
                         ) : (
@@ -457,8 +237,213 @@ export function GroomingEstadoModal({ turno, target, onOpenChange }: Props) {
                         )}
                         {t(`estado_flow.${target ?? 'en_proceso'}.confirm`)}
                     </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
+                </>
+            }
+        >
+            <div className="grid gap-4">
+                {turno ? (
+                    <p className="text-sm text-muted-foreground">
+                        <span className="font-medium text-foreground">
+                            {turno.paciente?.nombre ?? '—'}
+                        </span>
+                        {' · '}
+                        {turno.servicio_label ?? turno.servicio}
+                    </p>
+                ) : null}
+
+                {isPhotoFlow(target) ? (
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-between gap-2">
+                            <p className="text-sm font-medium">{t('estado_flow.fotos')}</p>
+                            <span className="text-[11px] text-muted-foreground">
+                                {photos.length}/{MAX_FOTOS}
+                            </span>
+                        </div>
+
+                        <input
+                            ref={galleryRef}
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp,image/*"
+                            multiple
+                            className="hidden"
+                            disabled={form.processing || !canAddMore}
+                            onChange={(e) => {
+                                appendFiles(e.target.files);
+                                e.target.value = '';
+                            }}
+                        />
+                        <input
+                            ref={cameraRef}
+                            type="file"
+                            accept="image/*"
+                            capture="environment"
+                            className="hidden"
+                            disabled={form.processing || !canAddMore}
+                            onChange={(e) => {
+                                appendFiles(e.target.files);
+                                e.target.value = '';
+                            }}
+                        />
+                        <input
+                            ref={replaceGalleryRef}
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp,image/*"
+                            className="hidden"
+                            disabled={form.processing}
+                            onChange={(e) => {
+                                const idx = replaceIndexRef.current;
+                                if (idx !== null) {
+                                    replaceAt(idx, e.target.files?.[0] ?? null);
+                                }
+                                replaceIndexRef.current = null;
+                                e.target.value = '';
+                            }}
+                        />
+                        <input
+                            ref={replaceCameraRef}
+                            type="file"
+                            accept="image/*"
+                            capture="environment"
+                            className="hidden"
+                            disabled={form.processing}
+                            onChange={(e) => {
+                                const idx = replaceIndexRef.current;
+                                if (idx !== null) {
+                                    replaceAt(idx, e.target.files?.[0] ?? null);
+                                }
+                                replaceIndexRef.current = null;
+                                e.target.value = '';
+                            }}
+                        />
+
+                        <div className="flex flex-wrap gap-2">
+                            <Button
+                                type="button"
+                                variant="default"
+                                size="sm"
+                                className="gap-1.5"
+                                disabled={form.processing || !canAddMore}
+                                onClick={() => cameraRef.current?.click()}
+                            >
+                                <Camera className="size-3.5" />
+                                {t('estado_flow.take_photo')}
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="gap-1.5"
+                                disabled={form.processing || !canAddMore}
+                                onClick={() => galleryRef.current?.click()}
+                            >
+                                <Images className="size-3.5" />
+                                {t('estado_flow.from_gallery')}
+                            </Button>
+                        </div>
+
+                        <p className="text-xs text-muted-foreground">{t('estado_flow.fotos_hint')}</p>
+
+                        {photos.length > 0 ? (
+                            <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                                {photos.map((photo, index) => (
+                                    <li
+                                        key={photo.id}
+                                        className="relative overflow-hidden rounded-md border bg-muted/20"
+                                    >
+                                        <img
+                                            src={photo.preview}
+                                            alt=""
+                                            className="aspect-square w-full object-cover"
+                                        />
+                                        <div className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-1 bg-black/55 p-1">
+                                            <Button
+                                                type="button"
+                                                size="icon"
+                                                variant="secondary"
+                                                className="size-7"
+                                                title={t('estado_flow.retake_photo')}
+                                                disabled={form.processing}
+                                                onClick={() => openReplace(index, 'camera')}
+                                            >
+                                                <Camera className="size-3.5" />
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                size="icon"
+                                                variant="secondary"
+                                                className="size-7"
+                                                title={t('estado_flow.replace_photo')}
+                                                disabled={form.processing}
+                                                onClick={() => openReplace(index, 'gallery')}
+                                            >
+                                                <RefreshCw className="size-3.5" />
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                size="icon"
+                                                variant="destructive"
+                                                className="size-7"
+                                                title={t('estado_flow.remove_photo')}
+                                                disabled={form.processing}
+                                                onClick={() => removeAt(index)}
+                                            >
+                                                <Trash2 className="size-3.5" />
+                                            </Button>
+                                        </div>
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <div className="flex items-center gap-2 rounded-md border border-dashed px-3 py-4 text-xs text-muted-foreground">
+                                <ImagePlus className="size-4 shrink-0" />
+                                {t('estado_flow.fotos_empty')}
+                            </div>
+                        )}
+                        {form.errors.fotos ? (
+                            <p className="text-xs text-destructive">{form.errors.fotos}</p>
+                        ) : null}
+                    </div>
+                ) : null}
+
+                <FormField
+                    id="grooming-estado-phone"
+                    label={t('estado_flow.phone')}
+                    error={form.errors.telefono}
+                >
+                    <Input
+                        id="grooming-estado-phone"
+                        type="tel"
+                        inputMode="tel"
+                        placeholder="51999999999"
+                        className="h-10"
+                        value={form.data.telefono}
+                        disabled={form.processing}
+                        onChange={(e) => form.setData('telefono', e.target.value)}
+                    />
+                </FormField>
+
+                {isAutoWhatsApp(target) ? (
+                    <div className="flex gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/8 p-3 text-xs leading-relaxed text-emerald-900 dark:text-emerald-100">
+                        <MessageCircle className="mt-0.5 size-4 shrink-0" />
+                        <p>{t('estado_flow.auto_whatsapp')}</p>
+                    </div>
+                ) : (
+                    <label className="flex cursor-pointer items-start gap-2.5 text-sm">
+                        <Checkbox
+                            checked={form.data.notificar_whatsapp}
+                            disabled={form.processing}
+                            onCheckedChange={(v) => form.setData('notificar_whatsapp', v === true)}
+                            className="mt-0.5"
+                        />
+                        <span>
+                            <span className="font-medium">{t('estado_flow.notify_label')}</span>
+                            <span className="mt-0.5 block text-xs text-muted-foreground">
+                                {t('estado_flow.notify_hint')}
+                            </span>
+                        </span>
+                    </label>
+                )}
+            </div>
+        </FormModal>
     );
 }

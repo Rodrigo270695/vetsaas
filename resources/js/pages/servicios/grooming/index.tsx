@@ -19,6 +19,7 @@ import type { Paginated } from '@/types';
 import { AtencionDateRangeFilter } from '@/pages/clinica/historias-clinicas/components/atencion-date-range-filter';
 import { formatAtendidoInAppTimezone } from '@/pages/clinica/historias-clinicas/format-atendido';
 import { GroomingDeleteDialog } from './components/grooming-delete-dialog';
+import { GroomingDetalleModal } from './components/grooming-detalle-modal';
 import { GroomingEstadoModal, type GroomingEstadoTarget } from './components/grooming-estado-modal';
 import { GroomingFormModal } from './components/grooming-form-modal';
 import { GroomingRowActions } from './components/grooming-row-actions';
@@ -58,6 +59,7 @@ type ModalState =
     | { type: 'create' }
     | { type: 'edit'; turno: GroomingTurnoRow }
     | { type: 'delete'; turno: GroomingTurnoRow }
+    | { type: 'detalle'; turno: GroomingTurnoRow }
     | { type: 'estado'; turno: GroomingTurnoRow; target: GroomingEstadoTarget };
 
 const DEFAULT_PER_PAGE = 10;
@@ -131,7 +133,7 @@ export default function Index({
     const canDelete = can('grooming.delete');
     const canSeeAudit = can('audit-trail.view');
     const canCobrarGrooming = can('ventas.create') && can('grooming.view');
-    const showRowActions = canUpdate || canDelete || canCobrarGrooming;
+    const showRowActions = true;
 
     const { search, setSearch, isLoading, sort, setSort, setPerPage, applyFilter } =
         useDataTablePage<GroomingTableExtra>({
@@ -170,6 +172,10 @@ export default function Index({
             setModal({ type: 'estado', turno: row, target }),
         [],
     );
+    const openDetalle = useCallback(
+        (row: GroomingTurnoRow) => setModal({ type: 'detalle', turno: row }),
+        [],
+    );
 
     const openedTurnoEditarRef = useRef<string | null>(null);
     useEffect(() => {
@@ -198,6 +204,14 @@ export default function Index({
 
     const editTurno = useMemo(() => {
         if (modal.type !== 'edit') {
+            return null;
+        }
+
+        return paginated.data.find((row) => row.id === modal.turno.id) ?? modal.turno;
+    }, [modal, paginated.data]);
+
+    const detalleTurno = useMemo(() => {
+        if (modal.type !== 'detalle') {
             return null;
         }
 
@@ -367,18 +381,19 @@ export default function Index({
                             onEdit={openEdit}
                             onDelete={openDelete}
                             onEstado={openEstado}
+                            onDetalle={openDetalle}
                             canUpdate={canUpdate}
                             canDelete={canDelete}
                             canCobrar={canCobrarGrooming}
                         />
                     </div>
                 ),
-                className: 'w-44',
+                className: 'w-52',
             });
         }
 
         return base;
-    }, [t, appLocale, appTz, canSeeAudit, showRowActions, canUpdate, canDelete, canCobrarGrooming, grooming_catalogo_personalizado, openEdit, openDelete, openEstado]);
+    }, [t, appLocale, appTz, canSeeAudit, showRowActions, canUpdate, canDelete, canCobrarGrooming, grooming_catalogo_personalizado, openEdit, openDelete, openEstado, openDetalle]);
 
     return (
         <>
@@ -522,6 +537,16 @@ export default function Index({
                         closeModal();
                     }
                 }}
+            />
+
+            <GroomingDetalleModal
+                open={modal.type === 'detalle'}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        closeModal();
+                    }
+                }}
+                turno={detalleTurno}
             />
         </>
     );

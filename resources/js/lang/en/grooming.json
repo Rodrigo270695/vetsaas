@@ -18,6 +18,7 @@
         "cobrar": "Collect",
         "iniciar": "Start",
         "completar": "Complete",
+        "detalle": "Details",
         "cancelar_turno": "Cancel appointment",
         "no_asistio": "No-show"
     },
@@ -75,6 +76,13 @@
         "whatsapp_description": "Pending photos will be sent to the owner's phone.",
         "whatsapp_phone": "WhatsApp phone",
         "whatsapp_submit": "Send photos"
+    },
+    "detalle": {
+        "title": "Appointment details",
+        "description": "Service summary, owner and process photos.",
+        "telefono": "Phone",
+        "fotos": "Process photos",
+        "fotos_empty": "This appointment has no photos yet."
     },
     "estado_flow": {
         "fotos": "Photos (optional)",

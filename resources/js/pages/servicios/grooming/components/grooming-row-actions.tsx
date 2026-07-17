@@ -2,6 +2,7 @@ import { Link } from '@inertiajs/react';
 import {
     Ban,
     CheckCircle2,
+    Eye,
     MoreHorizontal,
     Pencil,
     Play,
@@ -26,6 +27,7 @@ export type GroomingRowActionsProps = {
     onEdit: (t: GroomingTurnoRow) => void;
     onDelete: (t: GroomingTurnoRow) => void;
     onEstado: (t: GroomingTurnoRow, target: GroomingEstadoTarget) => void;
+    onDetalle: (t: GroomingTurnoRow) => void;
     canUpdate: boolean;
     canDelete: boolean;
     canCobrar: boolean;
@@ -36,6 +38,7 @@ export function GroomingRowActions({
     onEdit,
     onDelete,
     onEstado,
+    onDetalle,
     canUpdate,
     canDelete,
     canCobrar,
@@ -54,12 +57,25 @@ export function GroomingRowActions({
         canUpdate &&
         !['completada', 'cancelada', 'no_asistio'].includes(turno.estado);
 
-    if (!canUpdate && !canDelete && !urlCobrar) {
-        return null;
-    }
+    const mostrarDetalleRapido =
+        turno.estado === 'completada' ||
+        turno.estado === 'en_proceso' ||
+        (turno.fotos?.length ?? 0) > 0;
 
     return (
         <div className="flex items-center justify-end gap-1">
+            {mostrarDetalleRapido ? (
+                <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 gap-1.5"
+                    onClick={() => onDetalle(turno)}
+                >
+                    <Eye className="size-3.5" aria-hidden />
+                    <span className="hidden lg:inline">{t('actions.detalle')}</span>
+                </Button>
+            ) : null}
             {puedeIniciar ? (
                 <Button
                     type="button"
@@ -105,6 +121,10 @@ export function GroomingRowActions({
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => onDetalle(turno)}>
+                        <Eye className="size-4" strokeWidth={2.25} />
+                        {t('actions.detalle')}
+                    </DropdownMenuItem>
                     {canUpdate ? (
                         <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => onEdit(turno)}>
                             <Pencil className="size-4" strokeWidth={2.25} />

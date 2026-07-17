@@ -18,6 +18,7 @@
         "cobrar": "Cobrar",
         "iniciar": "Iniciar",
         "completar": "Completar",
+        "detalle": "Detalle",
         "cancelar_turno": "Cancelar turno",
         "no_asistio": "No asistió"
     },
@@ -75,6 +76,13 @@
         "whatsapp_description": "Se enviarán las fotos pendientes al teléfono del propietario.",
         "whatsapp_phone": "Teléfono WhatsApp",
         "whatsapp_submit": "Enviar fotos"
+    },
+    "detalle": {
+        "title": "Detalle del turno",
+        "description": "Resumen del servicio, propietario y fotos del proceso.",
+        "telefono": "Teléfono",
+        "fotos": "Fotos del proceso",
+        "fotos_empty": "Este turno no tiene fotos registradas."
     },
     "estado_flow": {
         "fotos": "Fotos (opcional)",
