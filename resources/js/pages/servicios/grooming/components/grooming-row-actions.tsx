@@ -69,11 +69,12 @@ export function GroomingRowActions({
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="h-8 gap-1.5"
+                    className="h-8 gap-1.5 border-sky-500/40 bg-sky-500/10 text-sky-700 hover:bg-sky-500/15 hover:text-sky-800 dark:border-sky-400/40 dark:bg-sky-400/10 dark:text-sky-300 dark:hover:bg-sky-400/15 dark:hover:text-sky-200"
                     onClick={() => onDetalle(turno)}
+                    aria-label={t('actions.detalle')}
                 >
                     <Eye className="size-3.5" aria-hidden />
-                    <span className="hidden lg:inline">{t('actions.detalle')}</span>
+                    <span className="lg:hidden">{t('actions.detalle')}</span>
                 </Button>
             ) : null}
             {puedeIniciar ? (
