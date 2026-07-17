@@ -3,7 +3,11 @@
 return [
     'flash' => [
         'created' => 'Grooming appointment saved successfully.',
+        'created_whatsapp' => 'Appointment saved and owner notified via WhatsApp.',
+        'created_sin_whatsapp' => 'Appointment saved, but WhatsApp notification failed.',
         'updated' => 'Grooming appointment updated successfully.',
+        'updated_whatsapp' => 'Appointment updated and owner notified via WhatsApp.',
+        'updated_sin_whatsapp' => 'Appointment updated, but WhatsApp notification failed.',
         'deleted' => 'Grooming appointment deleted successfully.',
         'foto_uploaded' => 'Process photo saved.',
         'foto_deleted' => 'Photo deleted.',

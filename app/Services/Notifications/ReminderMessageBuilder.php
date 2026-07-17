@@ -262,6 +262,52 @@ final class ReminderMessageBuilder
         ]);
     }
 
+    public function groomingTurnoProgramado(
+        string $clinicName,
+        string $ownerName,
+        string $petName,
+        string $servicioLabel,
+        CarbonInterface $inicioAt,
+    ): string {
+        $fecha = $inicioAt->timezone(config('app.timezone'))->translatedFormat('d/m/Y');
+        $hora = $inicioAt->timezone(config('app.timezone'))->format('H:i');
+
+        return implode("\n", [
+            "Hola {$ownerName} 👋",
+            '',
+            "✅ Agendamos el grooming de *{$petName}*",
+            "🧴 Servicio: *{$servicioLabel}*",
+            "📅 *{$fecha}* a las *{$hora}*",
+            '',
+            'Te esperamos 🐾',
+            '',
+            "— {$clinicName}",
+        ]);
+    }
+
+    public function groomingTurnoReprogramado(
+        string $clinicName,
+        string $ownerName,
+        string $petName,
+        string $servicioLabel,
+        CarbonInterface $inicioAt,
+    ): string {
+        $fecha = $inicioAt->timezone(config('app.timezone'))->translatedFormat('d/m/Y');
+        $hora = $inicioAt->timezone(config('app.timezone'))->format('H:i');
+
+        return implode("\n", [
+            "Hola {$ownerName} 👋",
+            '',
+            "🔄 Reprogramamos el grooming de *{$petName}*",
+            "🧴 Servicio: *{$servicioLabel}*",
+            "📅 Nueva fecha: *{$fecha}* a las *{$hora}*",
+            '',
+            'Te esperamos 🐾',
+            '',
+            "— {$clinicName}",
+        ]);
+    }
+
     public function clinicDisplayName(?ClinicSetting $setting): string
     {
         if ($setting === null) {

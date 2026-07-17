@@ -3,7 +3,11 @@
 return [
     'flash' => [
         'created' => 'Turno de grooming registrado correctamente.',
+        'created_whatsapp' => 'Turno registrado y propietario notificado por WhatsApp.',
+        'created_sin_whatsapp' => 'Turno registrado, pero no se pudo notificar por WhatsApp.',
         'updated' => 'Turno de grooming actualizado correctamente.',
+        'updated_whatsapp' => 'Turno actualizado y propietario notificado por WhatsApp.',
+        'updated_sin_whatsapp' => 'Turno actualizado, pero no se pudo notificar por WhatsApp.',
         'deleted' => 'Turno de grooming eliminado correctamente.',
         'foto_uploaded' => 'Foto del proceso guardada.',
         'foto_deleted' => 'Foto eliminada.',

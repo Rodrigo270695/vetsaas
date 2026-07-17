@@ -30,6 +30,64 @@ final class GroomingProcesoWhatsAppSender
     ) {}
 
     /**
+     * Aviso al agendar o reprogramar (fecha/hora).
+     *
+     * @param  'programado'|'reprogramado'  $tipo
+     * @return array{message_id: string|null}
+     */
+    public function notifyAgenda(
+        GroomingTurno $turno,
+        Tenant $tenant,
+        string $chatId,
+        string $ownerName,
+        ClinicSetting $clinic,
+        string $tipo,
+    ): array {
+        if (! $this->client->isConfigured()) {
+            throw new RuntimeException('WhatsApp (OpenWA) no está configurado.');
+        }
+
+        $session = $this->resolveReadySession($tenant);
+        if ($session === null) {
+            throw new RuntimeException('La sesión WhatsApp de la clínica no está conectada.');
+        }
+
+        $turno->loadMissing(['paciente:id,nombre', 'groomingServicio:id,nombre']);
+
+        $clinicName = $this->messages->clinicDisplayName($clinic);
+        $petName = trim((string) ($turno->paciente?->nombre ?? 'tu mascota')) ?: 'tu mascota';
+        $servicioLabel = trim((string) $turno->servicio_label) ?: 'Grooming';
+        $inicioAt = $turno->inicio_at;
+
+        $text = $tipo === 'reprogramado'
+            ? $this->messages->groomingTurnoReprogramado(
+                $clinicName, $ownerName, $petName, $servicioLabel, $inicioAt,
+            )
+            : $this->messages->groomingTurnoProgramado(
+                $clinicName, $ownerName, $petName, $servicioLabel, $inicioAt,
+            );
+
+        $result = $this->client->sendTextWithDeliveryFallback(
+            (string) $session->openwa_session_id,
+            $chatId,
+            $text,
+        );
+        $messageId = isset($result['messageId']) ? (string) $result['messageId'] : null;
+
+        $this->recordSent(
+            tipo: 'grooming_agenda',
+            chatId: $chatId,
+            ownerName: $ownerName,
+            cuerpo: $text,
+            turnoId: $turno->id,
+            dedupeSuffix: $tipo,
+            messageId: $messageId,
+        );
+
+        return ['message_id' => $messageId];
+    }
+
+    /**
      * Texto de cambio de estado (inicio / completada / cancelada / no asistió).
      * Si hay fotos, también las envía.
      *

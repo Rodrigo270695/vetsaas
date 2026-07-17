@@ -231,35 +231,69 @@ class GroomingTurnoController extends Controller
         ]);
     }
 
-    public function store(StoreGroomingTurnoRequest $request): RedirectResponse
-    {
+    public function store(
+        StoreGroomingTurnoRequest $request,
+        GroomingProcesoWhatsAppSender $sender,
+    ): RedirectResponse {
         $data = GroomingTurnoServicioRules::normalizarParaPersistencia($request->validated());
         $data['estado'] = GroomingTurno::ESTADO_PROGRAMADA;
         $data['created_by_id'] = Auth::id();
         $data['updated_by_id'] = Auth::id();
 
-        GroomingTurno::query()->create($data);
+        $turno = GroomingTurno::query()->create($data);
 
-        return redirect()
+        $wa = $this->tryNotifyAgenda($turno, $sender, 'programado');
+
+        $redirect = redirect()
             ->route('servicios.grooming', $request->only([
                 'search', 'per_page', 'sort', 'direction', 'grooming_desde', 'grooming_hasta',
-            ]))
-            ->with('success', __('grooming.flash.created'));
+            ]));
+
+        if ($wa === 'ok') {
+            return $redirect->with('success', __('grooming.flash.created_whatsapp'));
+        }
+
+        if ($wa === 'fail') {
+            return $redirect->with('warning', __('grooming.flash.created_sin_whatsapp'));
+        }
+
+        return $redirect->with('success', __('grooming.flash.created'));
     }
 
-    public function update(UpdateGroomingTurnoRequest $request, GroomingTurno $groomingTurno): RedirectResponse
-    {
+    public function update(
+        UpdateGroomingTurnoRequest $request,
+        GroomingTurno $groomingTurno,
+        GroomingProcesoWhatsAppSender $sender,
+    ): RedirectResponse {
         $data = GroomingTurnoServicioRules::normalizarParaPersistencia($request->validated());
         $data['updated_by_id'] = Auth::id();
 
+        $inicioAnterior = $groomingTurno->inicio_at?->copy();
         $groomingTurno->fill($data);
+        $inicioCambio = $inicioAnterior === null
+            || ! $groomingTurno->inicio_at?->equalTo($inicioAnterior);
         $groomingTurno->save();
 
-        return redirect()
+        $redirect = redirect()
             ->route('servicios.grooming', $request->only([
                 'search', 'per_page', 'sort', 'direction', 'grooming_desde', 'grooming_hasta',
-            ]))
-            ->with('success', __('grooming.flash.updated'));
+            ]));
+
+        if (! $inicioCambio) {
+            return $redirect->with('success', __('grooming.flash.updated'));
+        }
+
+        $wa = $this->tryNotifyAgenda($groomingTurno, $sender, 'reprogramado');
+
+        if ($wa === 'ok') {
+            return $redirect->with('success', __('grooming.flash.updated_whatsapp'));
+        }
+
+        if ($wa === 'fail') {
+            return $redirect->with('warning', __('grooming.flash.updated_sin_whatsapp'));
+        }
+
+        return $redirect->with('success', __('grooming.flash.updated'));
     }
 
     public function destroy(Request $request, GroomingTurno $groomingTurno): RedirectResponse
@@ -514,5 +548,59 @@ class GroomingTurnoController extends Controller
         }
 
         return $value;
+    }
+
+    /**
+     * Best-effort: no bloquea el CRUD si WhatsApp falla o no hay teléfono.
+     *
+     * @param  'programado'|'reprogramado'  $tipo
+     * @return 'ok'|'skip'|'fail'
+     */
+    private function tryNotifyAgenda(
+        GroomingTurno $turno,
+        GroomingProcesoWhatsAppSender $sender,
+        string $tipo,
+    ): string {
+        $turno->loadMissing([
+            'paciente.propietario:id,nombres,apellidos,razon_social,telefono',
+            'groomingServicio:id,nombre',
+        ]);
+
+        $propietario = $turno->paciente?->propietario;
+        $chatId = WhatsAppChatId::fromPhone($propietario?->telefono);
+        if ($chatId === null) {
+            return 'skip';
+        }
+
+        $tenantId = tenant_id();
+        $tenant = $tenantId !== null ? Tenant::query()->find($tenantId) : null;
+        if ($tenant === null) {
+            return 'skip';
+        }
+
+        $ownerName = $propietario !== null
+            ? (trim($propietario->displayName()) !== '' ? $propietario->displayName() : 'cliente')
+            : 'cliente';
+
+        try {
+            $sender->notifyAgenda(
+                $turno,
+                $tenant,
+                $chatId,
+                $ownerName,
+                ClinicSetting::current(),
+                $tipo,
+            );
+
+            return 'ok';
+        } catch (Throwable $e) {
+            Log::warning('Grooming: no se pudo notificar agenda por WhatsApp', [
+                'turno_id' => $turno->id,
+                'tipo' => $tipo,
+                'error' => $e->getMessage(),
+            ]);
+
+            return 'fail';
+        }
     }
 }
