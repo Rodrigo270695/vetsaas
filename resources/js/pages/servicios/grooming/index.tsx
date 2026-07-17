@@ -189,6 +189,14 @@ export default function Index({
         }
     }, [turno_abrir_editar, canUpdate, openEdit]);
 
+    const editTurno = useMemo(() => {
+        if (modal.type !== 'edit') {
+            return null;
+        }
+
+        return paginated.data.find((row) => row.id === modal.turno.id) ?? modal.turno;
+    }, [modal, paginated.data]);
+
     const activeFiltersCount = useMemo(() => {
         let c = 0;
 
@@ -479,7 +487,7 @@ export default function Index({
                         closeModal();
                     }
                 }}
-                turno={modal.type === 'edit' ? modal.turno : null}
+                turno={editTurno}
                 catalogoPersonalizado={grooming_catalogo_personalizado}
                 serviciosOpciones={grooming_servicios}
                 servicioGrupos={grooming_servicio_grupos}

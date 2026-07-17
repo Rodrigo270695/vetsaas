@@ -458,6 +458,18 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             Route::middleware('permission:grooming.update')
                 ->match(['put', 'patch'], 'grooming/{grooming_turno}', [GroomingTurnoController::class, 'update'])
                 ->name('grooming.update');
+            Route::middleware('permission:grooming.update')
+                ->post('grooming/{grooming_turno}/fotos', [GroomingTurnoController::class, 'storeFoto'])
+                ->whereUuid('grooming_turno')
+                ->name('grooming.fotos.store');
+            Route::middleware('permission:grooming.update')
+                ->delete('grooming/{grooming_turno}/fotos/{foto}', [GroomingTurnoController::class, 'destroyFoto'])
+                ->whereUuid(['grooming_turno', 'foto'])
+                ->name('grooming.fotos.destroy');
+            Route::middleware('permission:grooming.update')
+                ->post('grooming/{grooming_turno}/whatsapp-fotos', [GroomingTurnoController::class, 'enviarWhatsApp'])
+                ->whereUuid('grooming_turno')
+                ->name('grooming.whatsapp');
             Route::middleware('permission:grooming.delete')
                 ->delete('grooming/{grooming_turno}', [GroomingTurnoController::class, 'destroy'])
                 ->name('grooming.destroy');

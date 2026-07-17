@@ -3,19 +3,21 @@
 namespace App\Models;
 
 use App\Grooming\GroomingCatalogoServicio;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 
 /**
  * @property string $id
  * @property string $paciente_id
  * @property ?string $responsable_id
  * @property ?string $sede_id
- * @property \Illuminate\Support\Carbon $inicio_at
+ * @property Carbon $inicio_at
  * @property int $duracion_minutos
  * @property string $estado
  * @property string $servicio
@@ -165,5 +167,10 @@ class GroomingTurno extends Model
     public function actualizadoPor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'updated_by_id');
+    }
+
+    public function fotos(): HasMany
+    {
+        return $this->hasMany(GroomingTurnoFoto::class, 'grooming_turno_id')->orderBy('created_at');
     }
 }

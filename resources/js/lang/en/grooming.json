@@ -53,6 +53,25 @@
     "toast": {
         "load_error": "Could not load the list."
     },
+    "fotos": {
+        "title": "Process photos",
+        "hint": "Upload photos while the appointment is in progress or when completed, then send them to the owner's WhatsApp.",
+        "empty": "No photos on this appointment yet.",
+        "upload": "Upload photo",
+        "tipo_label": "Type",
+        "tipo": {
+            "proceso": "In progress",
+            "final": "Final"
+        },
+        "delete": "Delete photo",
+        "sent": "Sent",
+        "limits": "Max. 8 photos · JPG, PNG or WebP · up to 5 MB.",
+        "send_whatsapp": "Send via WhatsApp",
+        "whatsapp_title": "Send photos via WhatsApp",
+        "whatsapp_description": "Pending photos will be sent to the owner's phone.",
+        "whatsapp_phone": "WhatsApp phone",
+        "whatsapp_submit": "Send photos"
+    },
     "form": {
         "title_create": "New grooming appointment",
         "title_edit": "Edit appointment",

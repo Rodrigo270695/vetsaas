@@ -55,6 +55,17 @@ export type GroomingServicioRow = {
     orden: number;
 };
 
+export type GroomingTurnoFoto = {
+    id: string;
+    grooming_turno_id: string;
+    tipo: 'proceso' | 'final' | string;
+    path: string;
+    caption: string | null;
+    url: string | null;
+    enviado_whatsapp_at: string | null;
+    created_at: string;
+};
+
 export type GroomingTurnoRow = {
     id: string;
     paciente_id: string;
@@ -78,11 +89,13 @@ export type GroomingTurnoRow = {
             nombres: string;
             apellidos: string | null;
             razon_social: string | null;
+            telefono?: string | null;
         } | null;
     } | null;
     responsable: { id: string; name: string } | null;
     sede: { id: string; nombre: string; codigo: string } | null;
     venta_id: string | null;
+    fotos?: GroomingTurnoFoto[];
     creado_por?: AuditUser | null;
     actualizado_por?: AuditUser | null;
 };

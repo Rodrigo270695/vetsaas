@@ -350,6 +350,88 @@ final class OpenWaClient
     }
 
     /**
+     * Envía una imagen por URL pública (OpenWA la descarga). Preferir disco `public`
+     * permanente; no usa base64 (límite 413).
+     *
+     * @return array<string, mixed>
+     */
+    public function sendImage(
+        string $sessionId,
+        string $chatId,
+        string $url,
+        ?string $caption = null,
+    ): array {
+        $urlTrimmed = trim($url);
+        if ($urlTrimmed === '' || ! str_starts_with($urlTrimmed, 'http')) {
+            throw new RuntimeException('sendImage requiere una URL http(s) pública.');
+        }
+
+        $captionTrimmed = $caption !== null && $caption !== ''
+            ? mb_substr($caption, 0, 1024)
+            : null;
+
+        $payload = [
+            'chatId' => $chatId,
+            'url' => $urlTrimmed,
+        ];
+        if ($captionTrimmed !== null) {
+            $payload['caption'] = $captionTrimmed;
+        }
+
+        try {
+            return $this->postImage($sessionId, $payload);
+        } catch (RuntimeException $error) {
+            if ($this->shouldAssumeDelivered($error)) {
+                Log::warning('OpenWA send-image: respuesta ambigua; se asume envío OK', [
+                    'error' => $error->getMessage(),
+                    'source_url' => $urlTrimmed,
+                ]);
+
+                return ['messageId' => null, 'assumed_delivery' => true];
+            }
+
+            throw $error;
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private function postImage(string $sessionId, array $payload): array
+    {
+        $apiKey = trim((string) config('openwa.api_key', ''));
+        if ($apiKey === '') {
+            throw new RuntimeException('OPENWA_API_KEY no configurada.');
+        }
+
+        $url = rtrim((string) config('openwa.api_url'), '/')
+            .'/api/sessions/'.$sessionId.'/messages/send-image';
+
+        try {
+            $response = Http::timeout((int) config('openwa.document_timeout_seconds', 90))
+                ->acceptJson()
+                ->withHeaders(['X-API-Key' => $apiKey])
+                ->post($url, $payload);
+        } catch (RequestException $e) {
+            throw new RuntimeException('Error de red con OpenWA: '.$e->getMessage(), 0, $e);
+        }
+
+        if (! $response->successful()) {
+            throw new RuntimeException(
+                'OpenWA HTTP '.$response->status().': '.(string) $response->body(),
+            );
+        }
+
+        $json = $response->json();
+        if (! is_array($json)) {
+            return ['messageId' => null];
+        }
+
+        return $json;
+    }
+
+    /**
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed>
      */

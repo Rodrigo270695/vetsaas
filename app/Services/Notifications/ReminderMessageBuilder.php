@@ -163,6 +163,33 @@ final class ReminderMessageBuilder
         return implode("\n", $lines);
     }
 
+    public function groomingProcesoFoto(
+        string $clinicName,
+        string $ownerName,
+        string $petName,
+        string $servicioLabel,
+        bool $esFinal,
+    ): string {
+        $headline = $esFinal
+            ? '✨ ¡*%s* ya terminó su grooming!'
+            : '✂️ *%s* está en grooming';
+
+        $lines = [
+            "Hola {$ownerName} 👋",
+            '',
+            sprintf($headline, $petName),
+            "🧴 Servicio: *{$servicioLabel}*",
+            '',
+            $esFinal
+                ? 'Te compartimos la foto final 📸'
+                : 'Te compartimos una foto del proceso 📸',
+            '',
+            "— {$clinicName}",
+        ];
+
+        return implode("\n", $lines);
+    }
+
     public function clinicDisplayName(?ClinicSetting $setting): string
     {
         if ($setting === null) {

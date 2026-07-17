@@ -53,6 +53,25 @@
     "toast": {
         "load_error": "No se pudo cargar el listado."
     },
+    "fotos": {
+        "title": "Fotos del proceso",
+        "hint": "Sube fotos mientras el turno está en proceso o al completarlo, y envíalas al WhatsApp del propietario.",
+        "empty": "Aún no hay fotos en este turno.",
+        "upload": "Subir foto",
+        "tipo_label": "Tipo",
+        "tipo": {
+            "proceso": "En proceso",
+            "final": "Final"
+        },
+        "delete": "Eliminar foto",
+        "sent": "Enviada",
+        "limits": "Máx. 8 fotos · JPG, PNG o WebP · hasta 5 MB.",
+        "send_whatsapp": "Enviar por WhatsApp",
+        "whatsapp_title": "Enviar fotos por WhatsApp",
+        "whatsapp_description": "Se enviarán las fotos pendientes al teléfono del propietario.",
+        "whatsapp_phone": "Teléfono WhatsApp",
+        "whatsapp_submit": "Enviar fotos"
+    },
     "form": {
         "title_create": "Nuevo turno de grooming",
         "title_edit": "Editar turno",

@@ -4,25 +4,37 @@ namespace App\Http\Controllers;
 
 use App\Grooming\GroomingCatalogoMode;
 use App\Grooming\GroomingCatalogoServicio;
+use App\Http\Requests\StoreGroomingTurnoFotoRequest;
 use App\Http\Requests\StoreGroomingTurnoRequest;
 use App\Http\Requests\UpdateGroomingTurnoRequest;
+use App\Models\ClinicSetting;
 use App\Models\GroomingServicio;
 use App\Models\GroomingTurno;
+use App\Models\GroomingTurnoFoto;
 use App\Models\Paciente;
 use App\Models\Sede;
+use App\Models\Tenant;
 use App\Models\User;
+use App\Services\Grooming\GroomingProcesoWhatsAppSender;
 use App\Support\Grooming\GroomingTurnoServicioRules;
+use App\Support\WhatsApp\WhatsAppChatId;
+use App\Tenancy\TenantManager;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
+use Throwable;
 
 class GroomingTurnoController extends Controller
 {
     private const PER_PAGE_OPTIONS = [10, 15, 20, 25, 50, 100];
+
+    private const MAX_FOTOS_POR_TURNO = 8;
 
     private const SORTABLE_COLUMNS = [
         'inicio_at',
@@ -64,6 +76,7 @@ class GroomingTurnoController extends Controller
         }
 
         $canAudit = $request->user()?->can('audit-trail.view') ?? false;
+        $propietarioSelect = ['id', 'nombres', 'apellidos', 'razon_social', 'telefono'];
 
         $turnoAbrirEditar = null;
         $editarRaw = $request->query('editar_grooming_turno');
@@ -71,9 +84,10 @@ class GroomingTurnoController extends Controller
             $q = GroomingTurno::query()
                 ->with([
                     'paciente' => fn ($q) => $q->withTrashed(),
-                    'paciente.propietario' => fn ($q) => $q->withTrashed()->select('id', 'nombres', 'apellidos', 'razon_social'),
+                    'paciente.propietario' => fn ($q) => $q->withTrashed()->select($propietarioSelect),
                     'responsable:id,name',
                     'sede:id,nombre,codigo',
+                    'fotos',
                 ])
                 ->whereKey($editarRaw);
 
@@ -101,10 +115,11 @@ class GroomingTurnoController extends Controller
         $query = GroomingTurno::query()
             ->with([
                 'paciente' => fn ($q) => $q->withTrashed(),
-                'paciente.propietario' => fn ($q) => $q->withTrashed()->select('id', 'nombres', 'apellidos', 'razon_social'),
+                'paciente.propietario' => fn ($q) => $q->withTrashed()->select($propietarioSelect),
                 'responsable:id,name',
                 'sede:id,nombre,codigo',
                 'groomingServicio:id,nombre',
+                'fotos',
             ]);
 
         if ($canAudit) {
@@ -257,6 +272,136 @@ class GroomingTurnoController extends Controller
                 'search', 'per_page', 'sort', 'direction', 'grooming_desde', 'grooming_hasta',
             ]))
             ->with('success', __('grooming.flash.deleted'));
+    }
+
+    public function storeFoto(
+        StoreGroomingTurnoFotoRequest $request,
+        GroomingTurno $groomingTurno,
+        TenantManager $tenants,
+    ): RedirectResponse {
+        $count = $groomingTurno->fotos()->count();
+        if ($count >= self::MAX_FOTOS_POR_TURNO) {
+            return back()->with('warning', __('grooming.flash.fotos_max'));
+        }
+
+        $file = $request->file('foto');
+        $tenant = $tenants->current();
+        $slug = $tenant?->slug ?? 'shared';
+        $extension = strtolower($file->getClientOriginalExtension() ?: $file->guessExtension() ?: 'jpg');
+        $filename = Str::uuid()->toString().'.'.$extension;
+        $dir = "tenants/{$slug}/grooming/{$groomingTurno->id}";
+
+        Storage::disk('public')->putFileAs($dir, $file, $filename, 'public');
+
+        GroomingTurnoFoto::query()->create([
+            'grooming_turno_id' => $groomingTurno->id,
+            'tipo' => $request->validated('tipo'),
+            'path' => $dir.'/'.$filename,
+            'caption' => $request->validated('caption'),
+            'created_by_id' => Auth::id(),
+        ]);
+
+        $groomingTurno->updated_by_id = Auth::id();
+        $groomingTurno->save();
+
+        return back()->with('success', __('grooming.flash.foto_uploaded'));
+    }
+
+    public function destroyFoto(
+        Request $request,
+        GroomingTurno $groomingTurno,
+        GroomingTurnoFoto $foto,
+    ): RedirectResponse {
+        abort_unless($request->user()?->can('grooming.update') ?? false, 403);
+        abort_unless($foto->grooming_turno_id === $groomingTurno->id, 404);
+
+        $disk = Storage::disk('public');
+        if ($foto->path !== '' && $disk->exists($foto->path)) {
+            $disk->delete($foto->path);
+        }
+
+        $foto->delete();
+
+        $groomingTurno->updated_by_id = Auth::id();
+        $groomingTurno->save();
+
+        return back()->with('success', __('grooming.flash.foto_deleted'));
+    }
+
+    public function enviarWhatsApp(
+        Request $request,
+        GroomingTurno $groomingTurno,
+        GroomingProcesoWhatsAppSender $sender,
+    ): RedirectResponse {
+        abort_unless($request->user()?->can('grooming.update') ?? false, 403);
+
+        $data = $request->validate([
+            'telefono' => ['nullable', 'string', 'max:20'],
+            'solo_pendientes' => ['nullable', 'boolean'],
+        ]);
+
+        $groomingTurno->load([
+            'paciente.propietario:id,nombres,apellidos,razon_social,telefono',
+            'fotos',
+            'groomingServicio:id,nombre',
+        ]);
+
+        $fotos = $groomingTurno->fotos;
+        if (($data['solo_pendientes'] ?? true) === true) {
+            $fotos = $fotos->whereNull('enviado_whatsapp_at')->values();
+        }
+
+        if ($fotos->isEmpty()) {
+            return back()->with('warning', __('grooming.flash.whatsapp_sin_fotos'));
+        }
+
+        $propietario = $groomingTurno->paciente?->propietario;
+        $phone = trim((string) ($data['telefono'] ?? '')) !== ''
+            ? (string) $data['telefono']
+            : $propietario?->telefono;
+
+        $chatId = WhatsAppChatId::fromPhone($phone);
+        if ($chatId === null) {
+            return back()->with('warning', __('grooming.flash.whatsapp_no_phone'));
+        }
+
+        $tenantId = tenant_id();
+        $tenant = $tenantId !== null ? Tenant::query()->find($tenantId) : null;
+        if ($tenant === null) {
+            return back()->with('warning', __('grooming.flash.whatsapp_fallo'));
+        }
+
+        $ownerName = $propietario !== null
+            ? (trim($propietario->displayName()) !== '' ? $propietario->displayName() : 'cliente')
+            : 'cliente';
+
+        try {
+            $result = $sender->send(
+                $groomingTurno,
+                $tenant,
+                $chatId,
+                $ownerName,
+                ClinicSetting::current(),
+                $fotos,
+            );
+
+            return back()->with('success', __('grooming.flash.whatsapp_enviado', [
+                'count' => $result['sent'],
+            ]));
+        } catch (Throwable $e) {
+            Log::warning('No se pudo enviar fotos grooming por WhatsApp', [
+                'turno_id' => $groomingTurno->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            $msg = __('grooming.flash.whatsapp_fallo');
+            $detail = trim($e->getMessage());
+            if ($detail !== '') {
+                $msg .= ' '.$detail;
+            }
+
+            return back()->with('warning', $msg);
+        }
     }
 
     private function parseDateParam(mixed $value): ?string

@@ -29,6 +29,7 @@ import type {
     PacienteGroomingOpcion,
     SedeGroomingOpcion,
 } from '../types';
+import { GroomingFotosPanel } from './grooming-fotos-panel';
 
 const controlClass = 'h-10 w-full min-w-0';
 
@@ -541,6 +542,10 @@ export function GroomingFormModal({
                             </SelectContent>
                         </Select>
                     </FormField>
+                ) : null}
+
+                {isEdit && turno ? (
+                    <GroomingFotosPanel turno={turno} estadoActual={data.estado ?? turno.estado} />
                 ) : null}
 
                 <FormField id="gf-notas" label={t('form.notas')} error={errors.notas as string | undefined}>
