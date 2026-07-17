@@ -19,7 +19,7 @@ use RuntimeException;
 use Throwable;
 
 /**
- * Envía fotos de proceso/final de un turno de grooming al propietario por WhatsApp.
+ * Notifica al propietario por WhatsApp cambios de estado y fotos de grooming.
  */
 final class GroomingProcesoWhatsAppSender
 {
@@ -28,6 +28,101 @@ final class GroomingProcesoWhatsAppSender
         private readonly TenantWhatsAppSessionSync $sessionSync,
         private readonly ReminderMessageBuilder $messages,
     ) {}
+
+    /**
+     * Texto de cambio de estado (inicio / completada / cancelada / no asistió).
+     * Si hay fotos, también las envía.
+     *
+     * @param  Collection<int, GroomingTurnoFoto>|null  $fotos
+     * @return array{sent_text: bool, sent_fotos: int, message_ids: list<string|null>}
+     */
+    public function notifyEstado(
+        GroomingTurno $turno,
+        Tenant $tenant,
+        string $chatId,
+        string $ownerName,
+        ClinicSetting $clinic,
+        string $estado,
+        ?Collection $fotos = null,
+    ): array {
+        if (! $this->client->isConfigured()) {
+            throw new RuntimeException('WhatsApp (OpenWA) no está configurado.');
+        }
+
+        $session = $this->resolveReadySession($tenant);
+        if ($session === null) {
+            throw new RuntimeException('La sesión WhatsApp de la clínica no está conectada.');
+        }
+
+        $turno->loadMissing(['paciente:id,nombre', 'groomingServicio:id,nombre']);
+
+        $clinicName = $this->messages->clinicDisplayName($clinic);
+        $petName = trim((string) ($turno->paciente?->nombre ?? 'tu mascota')) ?: 'tu mascota';
+        $servicioLabel = trim((string) $turno->servicio_label) ?: 'Grooming';
+        $sessionId = (string) $session->openwa_session_id;
+
+        $text = match ($estado) {
+            GroomingTurno::ESTADO_EN_PROCESO => $this->messages->groomingEstadoInicio(
+                $clinicName, $ownerName, $petName, $servicioLabel,
+            ),
+            GroomingTurno::ESTADO_COMPLETADA => $this->messages->groomingEstadoCompletada(
+                $clinicName, $ownerName, $petName, $servicioLabel,
+            ),
+            GroomingTurno::ESTADO_CANCELADA => $this->messages->groomingEstadoCancelada(
+                $clinicName, $ownerName, $petName, $servicioLabel,
+            ),
+            GroomingTurno::ESTADO_NO_ASISTIO => $this->messages->groomingEstadoNoAsistio(
+                $clinicName, $ownerName, $petName, $servicioLabel,
+            ),
+            default => null,
+        };
+
+        $messageIds = [];
+        $sentText = false;
+
+        if ($text !== null) {
+            $result = $this->client->sendTextWithDeliveryFallback($sessionId, $chatId, $text);
+            $messageId = isset($result['messageId']) ? (string) $result['messageId'] : null;
+            $messageIds[] = $messageId;
+            $sentText = true;
+            $this->recordSent(
+                tipo: 'grooming_estado',
+                chatId: $chatId,
+                ownerName: $ownerName,
+                cuerpo: $text,
+                turnoId: $turno->id,
+                dedupeSuffix: $estado,
+                messageId: $messageId,
+            );
+        }
+
+        $sentFotos = 0;
+        $toSend = ($fotos ?? collect())->values();
+        if ($toSend->isNotEmpty()) {
+            $fotoResult = $this->sendFotos(
+                $turno,
+                $sessionId,
+                $chatId,
+                $ownerName,
+                $clinicName,
+                $petName,
+                $servicioLabel,
+                $toSend,
+            );
+            $sentFotos = $fotoResult['sent'];
+            $messageIds = array_merge($messageIds, $fotoResult['message_ids']);
+        }
+
+        if (! $sentText && $sentFotos === 0) {
+            throw new RuntimeException('No se pudo notificar por WhatsApp.');
+        }
+
+        return [
+            'sent_text' => $sentText,
+            'sent_fotos' => $sentFotos,
+            'message_ids' => $messageIds,
+        ];
+    }
 
     /**
      * @param  Collection<int, GroomingTurnoFoto>|null  $fotos
@@ -61,8 +156,33 @@ final class GroomingProcesoWhatsAppSender
         $clinicName = $this->messages->clinicDisplayName($clinic);
         $petName = trim((string) ($turno->paciente?->nombre ?? 'tu mascota')) ?: 'tu mascota';
         $servicioLabel = trim((string) $turno->servicio_label) ?: 'Grooming';
-        $sessionId = (string) $session->openwa_session_id;
 
+        return $this->sendFotos(
+            $turno,
+            (string) $session->openwa_session_id,
+            $chatId,
+            $ownerName,
+            $clinicName,
+            $petName,
+            $servicioLabel,
+            $toSend,
+        );
+    }
+
+    /**
+     * @param  Collection<int, GroomingTurnoFoto>  $toSend
+     * @return array{sent: int, message_ids: list<string|null>}
+     */
+    private function sendFotos(
+        GroomingTurno $turno,
+        string $sessionId,
+        string $chatId,
+        string $ownerName,
+        string $clinicName,
+        string $petName,
+        string $servicioLabel,
+        Collection $toSend,
+    ): array {
         $sent = 0;
         $messageIds = [];
 
@@ -103,11 +223,12 @@ final class GroomingProcesoWhatsAppSender
                 $sent++;
 
                 $this->recordSent(
+                    tipo: 'grooming_foto',
                     chatId: $chatId,
                     ownerName: $ownerName,
-                    cuerpo: $caption,
+                    cuerpo: $caption."\n\n[adjunto: foto grooming]",
                     turnoId: $turno->id,
-                    fotoId: $foto->id,
+                    dedupeSuffix: $foto->id,
                     messageId: $messageId,
                 );
             } catch (Throwable $e) {
@@ -150,23 +271,24 @@ final class GroomingProcesoWhatsAppSender
     }
 
     private function recordSent(
+        string $tipo,
         string $chatId,
         string $ownerName,
         string $cuerpo,
         string $turnoId,
-        string $fotoId,
+        string $dedupeSuffix,
         ?string $messageId,
     ): void {
         try {
             NotificationQueue::query()->create([
-                'tipo' => 'grooming_foto',
+                'tipo' => $tipo,
                 'canal' => NotificationQueue::CANAL_WHATSAPP,
                 'destinatario' => $chatId,
                 'destinatario_nombre' => $ownerName,
-                'cuerpo' => $cuerpo."\n\n[adjunto: foto grooming]",
+                'cuerpo' => $cuerpo,
                 'referencia_tipo' => 'grooming_turno',
                 'referencia_id' => $turnoId,
-                'dedupe_key' => 'grooming_foto:'.$fotoId.':'.now()->timestamp,
+                'dedupe_key' => $tipo.':'.$turnoId.':'.$dedupeSuffix.':'.now()->timestamp,
                 'enviar_at' => now(),
                 'prioridad' => 3,
                 'estado' => NotificationQueue::ESTADO_ENVIADO,

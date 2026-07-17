@@ -15,7 +15,11 @@
         "new": "Nuevo turno",
         "new_short": "Nuevo",
         "create_first": "Crear primer turno",
-        "cobrar": "Cobrar"
+        "cobrar": "Cobrar",
+        "iniciar": "Iniciar",
+        "completar": "Completar",
+        "cancelar_turno": "Cancelar turno",
+        "no_asistio": "No asistió"
     },
     "columns": {
         "inicio_at": "Inicio",
@@ -72,6 +76,35 @@
         "whatsapp_phone": "Teléfono WhatsApp",
         "whatsapp_submit": "Enviar fotos"
     },
+    "estado_flow": {
+        "fotos": "Fotos (opcional)",
+        "fotos_hint": "Máx. 8 · JPG, PNG o WebP · hasta 5 MB c/u.",
+        "fotos_empty": "Puedes adjuntar fotos para enviárselas al propietario.",
+        "phone": "Teléfono WhatsApp del propietario",
+        "auto_whatsapp": "Se enviará automáticamente un mensaje de WhatsApp al propietario al confirmar.",
+        "notify_label": "Notificar al propietario por WhatsApp",
+        "notify_hint": "Incluye el aviso del estado y las fotos que subas.",
+        "en_proceso": {
+            "title": "Iniciar grooming",
+            "description": "Marca el turno como en proceso. Puedes subir fotos y avisar al propietario.",
+            "confirm": "Confirmar e iniciar"
+        },
+        "completada": {
+            "title": "Completar grooming",
+            "description": "Marca el turno como terminado. Sube la foto final y notifica al propietario.",
+            "confirm": "Confirmar y completar"
+        },
+        "cancelada": {
+            "title": "Cancelar turno",
+            "description": "El turno quedará cancelado y el propietario recibirá un WhatsApp automático.",
+            "confirm": "Cancelar y notificar"
+        },
+        "no_asistio": {
+            "title": "Registrar no asistencia",
+            "description": "Se marcará como no asistió y el propietario recibirá un WhatsApp automático.",
+            "confirm": "Confirmar y notificar"
+        }
+    },
     "form": {
         "title_create": "Nuevo turno de grooming",
         "title_edit": "Editar turno",
@@ -84,6 +117,7 @@
         "duracion_hint": "Entre 5 y 480 minutos.",
         "duracion_sugerida": "Según el tipo elegido, la agenda sugiere {{minutes}} min; puedes ajustar el valor abajo.",
         "estado": "Estado",
+        "estado_hint": "Estado actual: {{estado}}. Usa los botones de la fila (Iniciar / Completar / Cancelar) para cambiarlo y notificar.",
         "servicio": "Tipo de servicio",
         "servicio_placeholder": "Elige el tipo de baño, corte o combo…",
         "servicio_hint": "El catálogo agrupa protocolos habituales en clínica. Si no encaja, usa «Otro / personalizado» y describe en el campo siguiente.",

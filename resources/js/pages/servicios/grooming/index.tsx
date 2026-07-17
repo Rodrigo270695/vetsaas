@@ -19,6 +19,7 @@ import type { Paginated } from '@/types';
 import { AtencionDateRangeFilter } from '@/pages/clinica/historias-clinicas/components/atencion-date-range-filter';
 import { formatAtendidoInAppTimezone } from '@/pages/clinica/historias-clinicas/format-atendido';
 import { GroomingDeleteDialog } from './components/grooming-delete-dialog';
+import { GroomingEstadoModal, type GroomingEstadoTarget } from './components/grooming-estado-modal';
 import { GroomingFormModal } from './components/grooming-form-modal';
 import { GroomingRowActions } from './components/grooming-row-actions';
 import type {
@@ -56,7 +57,8 @@ type ModalState =
     | { type: 'idle' }
     | { type: 'create' }
     | { type: 'edit'; turno: GroomingTurnoRow }
-    | { type: 'delete'; turno: GroomingTurnoRow };
+    | { type: 'delete'; turno: GroomingTurnoRow }
+    | { type: 'estado'; turno: GroomingTurnoRow; target: GroomingEstadoTarget };
 
 const DEFAULT_PER_PAGE = 10;
 
@@ -163,6 +165,11 @@ export default function Index({
     const openCreate = useCallback(() => setModal({ type: 'create' }), []);
     const openEdit = useCallback((row: GroomingTurnoRow) => setModal({ type: 'edit', turno: row }), []);
     const openDelete = useCallback((row: GroomingTurnoRow) => setModal({ type: 'delete', turno: row }), []);
+    const openEstado = useCallback(
+        (row: GroomingTurnoRow, target: GroomingEstadoTarget) =>
+            setModal({ type: 'estado', turno: row, target }),
+        [],
+    );
 
     const openedTurnoEditarRef = useRef<string | null>(null);
     useEffect(() => {
@@ -359,18 +366,19 @@ export default function Index({
                             turno={row}
                             onEdit={openEdit}
                             onDelete={openDelete}
+                            onEstado={openEstado}
                             canUpdate={canUpdate}
                             canDelete={canDelete}
                             canCobrar={canCobrarGrooming}
                         />
                     </div>
                 ),
-                className: 'w-36',
+                className: 'w-44',
             });
         }
 
         return base;
-    }, [t, appLocale, appTz, canSeeAudit, showRowActions, canUpdate, canDelete, canCobrarGrooming, grooming_catalogo_personalizado, openEdit, openDelete]);
+    }, [t, appLocale, appTz, canSeeAudit, showRowActions, canUpdate, canDelete, canCobrarGrooming, grooming_catalogo_personalizado, openEdit, openDelete, openEstado]);
 
     return (
         <>
@@ -504,6 +512,16 @@ export default function Index({
                     }
                 }}
                 turno={modal.type === 'delete' ? modal.turno : null}
+            />
+
+            <GroomingEstadoModal
+                turno={modal.type === 'estado' ? modal.turno : null}
+                target={modal.type === 'estado' ? modal.target : null}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        closeModal();
+                    }
+                }}
             />
         </>
     );

@@ -190,6 +190,78 @@ final class ReminderMessageBuilder
         return implode("\n", $lines);
     }
 
+    public function groomingEstadoInicio(
+        string $clinicName,
+        string $ownerName,
+        string $petName,
+        string $servicioLabel,
+    ): string {
+        return implode("\n", [
+            "Hola {$ownerName} 👋",
+            '',
+            "✂️ *{$petName}* ya está en grooming",
+            "🧴 Servicio: *{$servicioLabel}*",
+            '',
+            'Te avisaremos cuando termine 🐾',
+            '',
+            "— {$clinicName}",
+        ]);
+    }
+
+    public function groomingEstadoCompletada(
+        string $clinicName,
+        string $ownerName,
+        string $petName,
+        string $servicioLabel,
+    ): string {
+        return implode("\n", [
+            "Hola {$ownerName} 👋",
+            '',
+            "✨ ¡*{$petName}* ya terminó su grooming!",
+            "🧴 Servicio: *{$servicioLabel}*",
+            '',
+            'Ya puede pasar a recogerlo 🐾',
+            '',
+            "— {$clinicName}",
+        ]);
+    }
+
+    public function groomingEstadoCancelada(
+        string $clinicName,
+        string $ownerName,
+        string $petName,
+        string $servicioLabel,
+    ): string {
+        return implode("\n", [
+            "Hola {$ownerName} 👋",
+            '',
+            "El turno de grooming de *{$petName}* fue *cancelado*.",
+            "🧴 Servicio: *{$servicioLabel}*",
+            '',
+            'Si deseas reagendar, escríbenos o llama a la clínica.',
+            '',
+            "— {$clinicName}",
+        ]);
+    }
+
+    public function groomingEstadoNoAsistio(
+        string $clinicName,
+        string $ownerName,
+        string $petName,
+        string $servicioLabel,
+    ): string {
+        return implode("\n", [
+            "Hola {$ownerName} 👋",
+            '',
+            "Registramos que *{$petName}* *no asistió* a su turno de grooming.",
+            "🧴 Servicio: *{$servicioLabel}*",
+            '',
+            'Si fue un imprevisto, podemos ayudarte a reagendar.',
+            '',
+            "— {$clinicName}",
+        ]);
+    }
+
     public function clinicDisplayName(?ClinicSetting $setting): string
     {
         if ($setting === null) {

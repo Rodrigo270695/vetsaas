@@ -15,7 +15,11 @@
         "new": "New appointment",
         "new_short": "New",
         "create_first": "Create first appointment",
-        "cobrar": "Collect"
+        "cobrar": "Collect",
+        "iniciar": "Start",
+        "completar": "Complete",
+        "cancelar_turno": "Cancel appointment",
+        "no_asistio": "No-show"
     },
     "columns": {
         "inicio_at": "Start",
@@ -72,6 +76,35 @@
         "whatsapp_phone": "WhatsApp phone",
         "whatsapp_submit": "Send photos"
     },
+    "estado_flow": {
+        "fotos": "Photos (optional)",
+        "fotos_hint": "Max. 8 · JPG, PNG or WebP · up to 5 MB each.",
+        "fotos_empty": "You can attach photos to send to the owner.",
+        "phone": "Owner WhatsApp phone",
+        "auto_whatsapp": "An automatic WhatsApp message will be sent to the owner on confirm.",
+        "notify_label": "Notify owner via WhatsApp",
+        "notify_hint": "Includes the status update and any photos you upload.",
+        "en_proceso": {
+            "title": "Start grooming",
+            "description": "Mark the appointment as in progress. You can upload photos and notify the owner.",
+            "confirm": "Confirm and start"
+        },
+        "completada": {
+            "title": "Complete grooming",
+            "description": "Mark the appointment as done. Upload the final photo and notify the owner.",
+            "confirm": "Confirm and complete"
+        },
+        "cancelada": {
+            "title": "Cancel appointment",
+            "description": "The appointment will be cancelled and the owner will get an automatic WhatsApp.",
+            "confirm": "Cancel and notify"
+        },
+        "no_asistio": {
+            "title": "Mark as no-show",
+            "description": "It will be marked as no-show and the owner will get an automatic WhatsApp.",
+            "confirm": "Confirm and notify"
+        }
+    },
     "form": {
         "title_create": "New grooming appointment",
         "title_edit": "Edit appointment",
@@ -84,6 +117,7 @@
         "duracion_hint": "Between 5 and 480 minutes.",
         "duracion_sugerida": "Based on the selected type, the schedule suggests {{minutes}} min; you can change it below.",
         "estado": "Status",
+        "estado_hint": "Current status: {{estado}}. Use the row buttons (Start / Complete / Cancel) to change it and notify.",
         "servicio": "Service type",
         "servicio_placeholder": "Choose bath, haircut or combo…",
         "servicio_hint": "Grouped protocols common in practice. If none fit, pick “Custom / other” and describe below.",

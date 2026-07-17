@@ -29,20 +29,10 @@ import type {
     PacienteGroomingOpcion,
     SedeGroomingOpcion,
 } from '../types';
-import { GroomingFotosPanel } from './grooming-fotos-panel';
 
 const controlClass = 'h-10 w-full min-w-0';
 
 const OTRO_PERSONALIZADO = 'otro_personalizado';
-
-const GROOMING_ESTADOS = [
-    'programada',
-    'confirmada',
-    'en_proceso',
-    'completada',
-    'cancelada',
-    'no_asistio',
-] as const;
 
 function toDatetimeLocalValue(d: Date): string {
     const pad = (n: number) => String(n).padStart(2, '0');
@@ -519,33 +509,11 @@ export function GroomingFormModal({
                 </p>
 
                 {isEdit ? (
-                    <FormField
-                        id="gf-estado"
-                        label={t('form.estado')}
-                        required
-                        error={errors.estado as string | undefined}
-                    >
-                        <Select
-                            value={data.estado ?? 'programada'}
-                            onValueChange={(v) => setData('estado', v)}
-                            disabled={processing}
-                        >
-                            <SelectTrigger id="gf-estado" className={controlClass}>
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {GROOMING_ESTADOS.map((st) => (
-                                    <SelectItem key={st} value={st}>
-                                        {t(`estado.${st}`)}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </FormField>
-                ) : null}
-
-                {isEdit && turno ? (
-                    <GroomingFotosPanel turno={turno} estadoActual={data.estado ?? turno.estado} />
+                    <p className="rounded-md border border-border/60 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+                        {t('form.estado_hint', {
+                            estado: t(`estado.${data.estado ?? turno?.estado ?? 'programada'}`),
+                        })}
+                    </p>
                 ) : null}
 
                 <FormField id="gf-notas" label={t('form.notas')} error={errors.notas as string | undefined}>

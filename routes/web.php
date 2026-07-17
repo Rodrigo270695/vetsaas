@@ -459,6 +459,10 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
                 ->match(['put', 'patch'], 'grooming/{grooming_turno}', [GroomingTurnoController::class, 'update'])
                 ->name('grooming.update');
             Route::middleware('permission:grooming.update')
+                ->post('grooming/{grooming_turno}/estado', [GroomingTurnoController::class, 'cambiarEstado'])
+                ->whereUuid('grooming_turno')
+                ->name('grooming.estado');
+            Route::middleware('permission:grooming.update')
                 ->post('grooming/{grooming_turno}/fotos', [GroomingTurnoController::class, 'storeFoto'])
                 ->whereUuid('grooming_turno')
                 ->name('grooming.fotos.store');

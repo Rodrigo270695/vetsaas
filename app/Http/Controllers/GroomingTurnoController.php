@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Grooming\GroomingCatalogoMode;
 use App\Grooming\GroomingCatalogoServicio;
+use App\Http\Requests\CambiarEstadoGroomingTurnoRequest;
 use App\Http\Requests\StoreGroomingTurnoFotoRequest;
 use App\Http\Requests\StoreGroomingTurnoRequest;
 use App\Http\Requests\UpdateGroomingTurnoRequest;
@@ -272,6 +273,108 @@ class GroomingTurnoController extends Controller
                 'search', 'per_page', 'sort', 'direction', 'grooming_desde', 'grooming_hasta',
             ]))
             ->with('success', __('grooming.flash.deleted'));
+    }
+
+    public function cambiarEstado(
+        CambiarEstadoGroomingTurnoRequest $request,
+        GroomingTurno $groomingTurno,
+        TenantManager $tenants,
+        GroomingProcesoWhatsAppSender $sender,
+    ): RedirectResponse {
+        $data = $request->validated();
+        $nuevoEstado = (string) $data['estado'];
+        $autoNotificar = in_array($nuevoEstado, [
+            GroomingTurno::ESTADO_CANCELADA,
+            GroomingTurno::ESTADO_NO_ASISTIO,
+        ], true);
+        $notificar = $autoNotificar || (($data['notificar_whatsapp'] ?? true) === true);
+
+        $groomingTurno->estado = $nuevoEstado;
+        $groomingTurno->updated_by_id = Auth::id();
+        $groomingTurno->save();
+
+        $fotosCreadas = collect();
+        $files = $request->file('fotos', []);
+        if (! is_array($files)) {
+            $files = $files !== null ? [$files] : [];
+        }
+
+        $tipoFoto = $nuevoEstado === GroomingTurno::ESTADO_COMPLETADA
+            ? GroomingTurnoFoto::TIPO_FINAL
+            : GroomingTurnoFoto::TIPO_PROCESO;
+
+        $remaining = self::MAX_FOTOS_POR_TURNO - $groomingTurno->fotos()->count();
+        $tenant = $tenants->current();
+        $slug = $tenant?->slug ?? 'shared';
+        $dir = "tenants/{$slug}/grooming/{$groomingTurno->id}";
+        $disk = Storage::disk('public');
+
+        foreach (array_slice($files, 0, max(0, $remaining)) as $file) {
+            if ($file === null || ! $file->isValid()) {
+                continue;
+            }
+            $extension = strtolower($file->getClientOriginalExtension() ?: $file->guessExtension() ?: 'jpg');
+            $filename = Str::uuid()->toString().'.'.$extension;
+            $disk->putFileAs($dir, $file, $filename, 'public');
+
+            $fotosCreadas->push(GroomingTurnoFoto::query()->create([
+                'grooming_turno_id' => $groomingTurno->id,
+                'tipo' => $tipoFoto,
+                'path' => $dir.'/'.$filename,
+                'created_by_id' => Auth::id(),
+            ]));
+        }
+
+        if (! $notificar) {
+            return back()->with('success', __('grooming.flash.estado_updated'));
+        }
+
+        $groomingTurno->load([
+            'paciente.propietario:id,nombres,apellidos,razon_social,telefono',
+            'groomingServicio:id,nombre',
+        ]);
+
+        $propietario = $groomingTurno->paciente?->propietario;
+        $phone = trim((string) ($data['telefono'] ?? '')) !== ''
+            ? (string) $data['telefono']
+            : $propietario?->telefono;
+
+        $chatId = WhatsAppChatId::fromPhone($phone);
+        if ($chatId === null) {
+            return back()->with('warning', __('grooming.flash.estado_updated_sin_whatsapp'));
+        }
+
+        $tenantId = tenant_id();
+        $tenantModel = $tenantId !== null ? Tenant::query()->find($tenantId) : null;
+        if ($tenantModel === null) {
+            return back()->with('warning', __('grooming.flash.estado_updated_sin_whatsapp'));
+        }
+
+        $ownerName = $propietario !== null
+            ? (trim($propietario->displayName()) !== '' ? $propietario->displayName() : 'cliente')
+            : 'cliente';
+
+        try {
+            $sender->notifyEstado(
+                $groomingTurno,
+                $tenantModel,
+                $chatId,
+                $ownerName,
+                ClinicSetting::current(),
+                $nuevoEstado,
+                $fotosCreadas->isNotEmpty() ? $fotosCreadas : null,
+            );
+
+            return back()->with('success', __('grooming.flash.estado_updated_whatsapp'));
+        } catch (Throwable $e) {
+            Log::warning('Grooming: estado actualizado pero WhatsApp falló', [
+                'turno_id' => $groomingTurno->id,
+                'estado' => $nuevoEstado,
+                'error' => $e->getMessage(),
+            ]);
+
+            return back()->with('warning', __('grooming.flash.estado_updated_sin_whatsapp').' '.$e->getMessage());
+        }
     }
 
     public function storeFoto(
