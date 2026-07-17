@@ -1,5 +1,16 @@
 import { useForm } from '@inertiajs/react';
-import { CheckCircle2, ImagePlus, Loader2, MessageCircle, Play, XCircle } from 'lucide-react';
+import {
+    Camera,
+    CheckCircle2,
+    ImagePlus,
+    Images,
+    Loader2,
+    MessageCircle,
+    Play,
+    RefreshCw,
+    Trash2,
+    XCircle,
+} from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
@@ -28,6 +39,14 @@ type Props = {
     onOpenChange: (open: boolean) => void;
 };
 
+type PhotoItem = {
+    id: string;
+    file: File;
+    preview: string;
+};
+
+const MAX_FOTOS = 8;
+
 function isPhotoFlow(target: GroomingEstadoTarget | null): boolean {
     return target === 'en_proceso' || target === 'completada';
 }
@@ -36,10 +55,26 @@ function isAutoWhatsApp(target: GroomingEstadoTarget | null): boolean {
     return target === 'cancelada' || target === 'no_asistio';
 }
 
+function newPhotoId(): string {
+    return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+function toPhotoItems(files: File[]): PhotoItem[] {
+    return files.map((file) => ({
+        id: newPhotoId(),
+        file,
+        preview: URL.createObjectURL(file),
+    }));
+}
+
 export function GroomingEstadoModal({ turno, target, onOpenChange }: Props) {
     const { t } = useTranslation(['grooming', 'common']);
-    const fileRef = useRef<HTMLInputElement>(null);
-    const [previews, setPreviews] = useState<string[]>([]);
+    const galleryRef = useRef<HTMLInputElement>(null);
+    const cameraRef = useRef<HTMLInputElement>(null);
+    const replaceGalleryRef = useRef<HTMLInputElement>(null);
+    const replaceCameraRef = useRef<HTMLInputElement>(null);
+    const replaceIndexRef = useRef<number | null>(null);
+    const [photos, setPhotos] = useState<PhotoItem[]>([]);
     const open = turno !== null && target !== null;
     const defaultPhone = turno?.paciente?.propietario?.telefono ?? '';
 
@@ -55,6 +90,20 @@ export function GroomingEstadoModal({ turno, target, onOpenChange }: Props) {
         fotos: [],
     });
 
+    const syncFotos = (items: PhotoItem[]) => {
+        setPhotos(items);
+        form.setData(
+            'fotos',
+            items.map((p) => p.file),
+        );
+    };
+
+    const revokeAll = (items: PhotoItem[]) => {
+        for (const item of items) {
+            URL.revokeObjectURL(item.preview);
+        }
+    };
+
     useEffect(() => {
         if (!open || !target) {
             return;
@@ -67,20 +116,26 @@ export function GroomingEstadoModal({ turno, target, onOpenChange }: Props) {
             fotos: [],
         });
         form.clearErrors();
-        setPreviews([]);
-        if (fileRef.current) {
-            fileRef.current.value = '';
+        setPhotos((prev) => {
+            revokeAll(prev);
+            return [];
+        });
+        for (const ref of [galleryRef, cameraRef, replaceGalleryRef, replaceCameraRef]) {
+            if (ref.current) {
+                ref.current.value = '';
+            }
         }
+        replaceIndexRef.current = null;
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, target, turno?.id, defaultPhone]);
 
     useEffect(() => {
         return () => {
-            for (const url of previews) {
-                URL.revokeObjectURL(url);
-            }
+            revokeAll(photos);
         };
-    }, [previews]);
+        // Only on unmount
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const title = useMemo(() => {
         if (!target) {
@@ -98,23 +153,57 @@ export function GroomingEstadoModal({ turno, target, onOpenChange }: Props) {
         return t(`estado_flow.${target}.description`);
     }, [target, t]);
 
-    const Icon = target === 'en_proceso'
-        ? Play
-        : target === 'completada'
-          ? CheckCircle2
-          : XCircle;
+    const Icon =
+        target === 'en_proceso' ? Play : target === 'completada' ? CheckCircle2 : XCircle;
 
-    const onFiles = (fileList: FileList | null) => {
+    const canAddMore = photos.length < MAX_FOTOS;
+
+    const appendFiles = (fileList: FileList | null) => {
         if (!fileList || fileList.length === 0) {
             return;
         }
 
-        const next = [...form.data.fotos, ...Array.from(fileList)].slice(0, 8);
-        for (const url of previews) {
-            URL.revokeObjectURL(url);
+        const incoming = Array.from(fileList).filter((f) => f.type.startsWith('image/'));
+        if (incoming.length === 0) {
+            return;
         }
-        setPreviews(next.map((f) => URL.createObjectURL(f)));
-        form.setData('fotos', next);
+
+        const room = MAX_FOTOS - photos.length;
+        const next = [...photos, ...toPhotoItems(incoming.slice(0, room))];
+        syncFotos(next);
+    };
+
+    const removeAt = (index: number) => {
+        const next = photos.filter((_, i) => i !== index);
+        URL.revokeObjectURL(photos[index]?.preview ?? '');
+        syncFotos(next);
+    };
+
+    const replaceAt = (index: number, file: File | null) => {
+        if (!file || !file.type.startsWith('image/')) {
+            return;
+        }
+
+        const next = photos.map((item, i) => {
+            if (i !== index) {
+                return item;
+            }
+
+            URL.revokeObjectURL(item.preview);
+
+            return {
+                id: newPhotoId(),
+                file,
+                preview: URL.createObjectURL(file),
+            };
+        });
+        syncFotos(next);
+    };
+
+    const openReplace = (index: number, mode: 'gallery' | 'camera') => {
+        replaceIndexRef.current = index;
+        const ref = mode === 'camera' ? replaceCameraRef : replaceGalleryRef;
+        ref.current?.click();
     };
 
     const submit = () => {
@@ -126,7 +215,7 @@ export function GroomingEstadoModal({ turno, target, onOpenChange }: Props) {
             estado: target,
             telefono: data.telefono,
             notificar_whatsapp: isAutoWhatsApp(target) ? true : data.notificar_whatsapp,
-            fotos: data.fotos,
+            fotos: photos.map((p) => p.file),
         }));
 
         form.post(`/servicios/grooming/${turno.id}/estado`, {
@@ -159,24 +248,144 @@ export function GroomingEstadoModal({ turno, target, onOpenChange }: Props) {
                     ) : null}
 
                     {isPhotoFlow(target) ? (
-                        <div className="space-y-2">
-                            <Label htmlFor="grooming-estado-fotos">{t('estado_flow.fotos')}</Label>
-                            <Input
-                                id="grooming-estado-fotos"
-                                ref={fileRef}
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between gap-2">
+                                <Label>{t('estado_flow.fotos')}</Label>
+                                <span className="text-[11px] text-muted-foreground">
+                                    {photos.length}/{MAX_FOTOS}
+                                </span>
+                            </div>
+
+                            <input
+                                ref={galleryRef}
                                 type="file"
-                                accept="image/jpeg,image/png,image/webp"
+                                accept="image/jpeg,image/png,image/webp,image/*"
                                 multiple
-                                className="cursor-pointer text-xs"
-                                disabled={form.processing}
-                                onChange={(e) => onFiles(e.target.files)}
+                                className="hidden"
+                                disabled={form.processing || !canAddMore}
+                                onChange={(e) => {
+                                    appendFiles(e.target.files);
+                                    e.target.value = '';
+                                }}
                             />
+                            <input
+                                ref={cameraRef}
+                                type="file"
+                                accept="image/*"
+                                capture="environment"
+                                className="hidden"
+                                disabled={form.processing || !canAddMore}
+                                onChange={(e) => {
+                                    appendFiles(e.target.files);
+                                    e.target.value = '';
+                                }}
+                            />
+                            <input
+                                ref={replaceGalleryRef}
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp,image/*"
+                                className="hidden"
+                                disabled={form.processing}
+                                onChange={(e) => {
+                                    const idx = replaceIndexRef.current;
+                                    if (idx !== null) {
+                                        replaceAt(idx, e.target.files?.[0] ?? null);
+                                    }
+                                    replaceIndexRef.current = null;
+                                    e.target.value = '';
+                                }}
+                            />
+                            <input
+                                ref={replaceCameraRef}
+                                type="file"
+                                accept="image/*"
+                                capture="environment"
+                                className="hidden"
+                                disabled={form.processing}
+                                onChange={(e) => {
+                                    const idx = replaceIndexRef.current;
+                                    if (idx !== null) {
+                                        replaceAt(idx, e.target.files?.[0] ?? null);
+                                    }
+                                    replaceIndexRef.current = null;
+                                    e.target.value = '';
+                                }}
+                            />
+
+                            <div className="flex flex-wrap gap-2">
+                                <Button
+                                    type="button"
+                                    variant="default"
+                                    size="sm"
+                                    className="gap-1.5"
+                                    disabled={form.processing || !canAddMore}
+                                    onClick={() => cameraRef.current?.click()}
+                                >
+                                    <Camera className="size-3.5" />
+                                    {t('estado_flow.take_photo')}
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="gap-1.5"
+                                    disabled={form.processing || !canAddMore}
+                                    onClick={() => galleryRef.current?.click()}
+                                >
+                                    <Images className="size-3.5" />
+                                    {t('estado_flow.from_gallery')}
+                                </Button>
+                            </div>
+
                             <p className="text-[11px] text-muted-foreground">{t('estado_flow.fotos_hint')}</p>
-                            {previews.length > 0 ? (
-                                <ul className="grid grid-cols-3 gap-2">
-                                    {previews.map((src) => (
-                                        <li key={src} className="overflow-hidden rounded-md border">
-                                            <img src={src} alt="" className="aspect-square w-full object-cover" />
+
+                            {photos.length > 0 ? (
+                                <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                                    {photos.map((photo, index) => (
+                                        <li
+                                            key={photo.id}
+                                            className="group relative overflow-hidden rounded-md border bg-muted/20"
+                                        >
+                                            <img
+                                                src={photo.preview}
+                                                alt=""
+                                                className="aspect-square w-full object-cover"
+                                            />
+                                            <div className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-1 bg-black/55 p-1">
+                                                <Button
+                                                    type="button"
+                                                    size="icon"
+                                                    variant="secondary"
+                                                    className="size-7"
+                                                    title={t('estado_flow.retake_photo')}
+                                                    disabled={form.processing}
+                                                    onClick={() => openReplace(index, 'camera')}
+                                                >
+                                                    <Camera className="size-3.5" />
+                                                </Button>
+                                                <Button
+                                                    type="button"
+                                                    size="icon"
+                                                    variant="secondary"
+                                                    className="size-7"
+                                                    title={t('estado_flow.replace_photo')}
+                                                    disabled={form.processing}
+                                                    onClick={() => openReplace(index, 'gallery')}
+                                                >
+                                                    <RefreshCw className="size-3.5" />
+                                                </Button>
+                                                <Button
+                                                    type="button"
+                                                    size="icon"
+                                                    variant="destructive"
+                                                    className="size-7"
+                                                    title={t('estado_flow.remove_photo')}
+                                                    disabled={form.processing}
+                                                    onClick={() => removeAt(index)}
+                                                >
+                                                    <Trash2 className="size-3.5" />
+                                                </Button>
+                                            </div>
                                         </li>
                                     ))}
                                 </ul>
