@@ -29,7 +29,8 @@ final class DescuentoManualLinea
 
         foreach ($lineas as $idx => $line) {
             $manualPct = self::normalizePct($lineasSolicitadas[$idx]['descuento_pct'] ?? 0);
-            if ($manualPct <= 0) {
+            $manualAmount = self::normalizeAmount($lineasSolicitadas[$idx]['descuento_monto'] ?? 0);
+            if ($manualPct <= 0 && $manualAmount <= 0) {
                 continue;
             }
 
@@ -43,21 +44,30 @@ final class DescuentoManualLinea
 
             if ($precioIncluyeIgv) {
                 $currentGross = round((float) ($line['subtotal'] ?? 0) * $divisor, 2);
-                $newGross = round($currentGross * (1 - ($manualPct / 100)), 2);
+                $appliedAmount = $manualAmount > 0
+                    ? min($manualAmount, $currentGross)
+                    : round($currentGross * ($manualPct / 100), 2);
+                $newGross = max(0, round($currentGross - $appliedAmount, 2));
                 $newSub = $divisor > 0 ? round($newGross / $divisor, 2) : $newGross;
                 $effectivePct = round((1 - ($newGross / $originalBase)) * 100, 2);
-                $discountAmount += max(0, $currentGross - $newGross);
+                $discountAmount += $appliedAmount;
             } else {
                 $currentSub = (float) ($line['subtotal'] ?? 0);
-                $newSub = round($currentSub * (1 - ($manualPct / 100)), 2);
+                $currentGross = round($currentSub * $divisor, 2);
+                $appliedAmount = $manualAmount > 0
+                    ? min($manualAmount, $currentGross)
+                    : round($currentGross * ($manualPct / 100), 2);
+                $newGross = max(0, round($currentGross - $appliedAmount, 2));
+                $newSub = $divisor > 0 ? round($newGross / $divisor, 2) : $newGross;
                 $effectivePct = round((1 - ($newSub / $originalBase)) * 100, 2);
-                $discountAmount += max(0, ($currentSub - $newSub) * $divisor);
+                $discountAmount += $appliedAmount;
             }
 
             $line['subtotal'] = max(0, $newSub);
             $line['precio_unitario'] = $qty > 0 ? round($line['subtotal'] / $qty, 4) : 0.0;
             $line['descuento_pct'] = min(100, max(0, $effectivePct));
             $line['descuento_manual_pct'] = $manualPct;
+            $line['descuento_manual_monto'] = $manualAmount;
             $lineas[$idx] = $line;
         }
 
@@ -72,5 +82,10 @@ final class DescuentoManualLinea
         $pct = round((float) (string) $value, 2);
 
         return min(100, max(0, $pct));
+    }
+
+    private static function normalizeAmount(mixed $value): float
+    {
+        return max(0, round((float) (string) $value, 2));
     }
 }

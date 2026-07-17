@@ -31,6 +31,7 @@ class PreviewPromotionRequest extends FormRequest
             'lineas.*.concepto' => ['nullable', 'string', 'max:300'],
             'lineas.*.precio_lista' => ['nullable', 'numeric', 'min:0'],
             'lineas.*.descuento_pct' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'lineas.*.descuento_monto' => ['nullable', 'numeric', 'min:0', 'max:99999999.99'],
             'lineas.*.tipo_linea' => ['nullable', 'string', Rule::in(['servicio', 'producto', 'otro'])],
             'lineas.*.cantidad' => ['required', 'numeric', 'min:0.001', 'max:999999'],
         ];

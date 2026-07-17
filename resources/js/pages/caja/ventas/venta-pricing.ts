@@ -32,6 +32,7 @@ export function lineTotalLinea(
     igvPct: number,
     precioIncluyeIgv: boolean,
     descuentoPct = 0,
+    descuentoMonto = 0,
 ): number {
     if (precioLista <= 0 || cantidad <= 0) {
         return 0;
@@ -40,14 +41,18 @@ export function lineTotalLinea(
     const factorDescuento = 1 - Math.min(100, Math.max(0, descuentoPct)) / 100;
 
     if (precioIncluyeIgv) {
-        return Math.round(precioLista * cantidad * factorDescuento * 100) / 100;
+        const gross = Math.round(precioLista * cantidad * factorDescuento * 100) / 100;
+
+        return Math.max(0, Math.round((gross - Math.max(0, descuentoMonto)) * 100) / 100);
     }
 
     const pu = precioUnitarioSinIgv(precioLista, igvPct, false);
     const base = Math.round(pu * cantidad * factorDescuento * 100) / 100;
     const igv = Math.round(base * (igvPct / 100) * 100) / 100;
 
-    return Math.round((base + igv) * 100) / 100;
+    const gross = Math.round((base + igv) * 100) / 100;
+
+    return Math.max(0, Math.round((gross - Math.max(0, descuentoMonto)) * 100) / 100);
 }
 
 /** Importe bruto de línea a partir del subtotal (sin IGV) ya descontado. */
@@ -74,6 +79,7 @@ export function calcTotalesVenta(
         precio_venta: string | null;
         cantidad: number;
         descuento_pct?: number;
+        descuento_monto?: number;
     }[],
     igvPct: number,
     precioIncluyeIgv: boolean,
@@ -89,8 +95,14 @@ export function calcTotalesVenta(
             const factor =
                 1 - Math.min(100, Math.max(0, line.descuento_pct ?? 0)) / 100;
             originalTotal += Math.round(lista * line.cantidad * 100) / 100;
-            const gross =
+            const grossBeforeAmount =
                 Math.round(lista * line.cantidad * factor * 100) / 100;
+            const gross = Math.max(
+                0,
+                Math.round(
+                    (grossBeforeAmount - Math.max(0, line.descuento_monto ?? 0)) * 100,
+                ) / 100,
+            );
             const lineBase =
                 divisor > 0 ? Math.round((gross / divisor) * 100) / 100 : gross;
             sub += lineBase;
@@ -118,7 +130,13 @@ export function calcTotalesVenta(
         const factor =
             1 - Math.min(100, Math.max(0, line.descuento_pct ?? 0)) / 100;
         originalSub += pu * line.cantidad;
-        sub += pu * line.cantidad * factor;
+        const divisor = 1 + igvPct / 100;
+        const grossBeforeAmount = pu * line.cantidad * factor * divisor;
+        const gross = Math.max(
+            0,
+            grossBeforeAmount - Math.max(0, line.descuento_monto ?? 0),
+        );
+        sub += divisor > 0 ? gross / divisor : gross;
     }
 
     sub = Math.round(sub * 100) / 100;

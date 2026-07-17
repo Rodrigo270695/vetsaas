@@ -59,7 +59,9 @@ type CartLine = {
     nombre: string;
     unidad: string;
     precio_venta: string | null;
+    descuento_tipo: 'porcentaje' | 'monto';
     descuento_pct: number;
+    descuento_monto: number;
     cantidad: number;
     stock_disponible: number;
     omitir_stock: boolean;
@@ -230,7 +232,9 @@ export default function Create({
                 nombre: ln.concepto,
                 unidad: tieneProducto ? 'und' : t('caja:ventas.desde_cargo.linea_servicio'),
                 precio_venta: ln.precio_lista,
+                descuento_tipo: 'porcentaje',
                 descuento_pct: 0,
+                descuento_monto: 0,
                 cantidad: Number(ln.cantidad) || 1,
                 stock_disponible: tieneProducto ? stock : 999999,
                 omitir_stock: !tieneProducto,
@@ -292,6 +296,7 @@ export default function Create({
                     tipo_linea: l.tipo_linea ?? (l.producto_id ? 'producto' : 'servicio'),
                     cantidad: l.cantidad,
                     descuento_pct: l.descuento_pct,
+                    descuento_monto: l.descuento_monto,
                 })),
             })
                 .then((raw) => {
@@ -432,7 +437,9 @@ export default function Create({
                         nombre: p.nombre,
                         unidad: p.unidad,
                         precio_venta: p.precio_venta,
+                        descuento_tipo: 'porcentaje',
                         descuento_pct: 0,
+                        descuento_monto: 0,
                         cantidad: 1,
                         stock_disponible: stock,
                         omitir_stock: false,
@@ -476,7 +483,9 @@ export default function Create({
                     nombre: concepto,
                     unidad: t('caja:ventas.desde_cargo.linea_servicio'),
                     precio_venta: String(precioRedondeado),
+                    descuento_tipo: 'porcentaje',
                     descuento_pct: 0,
+                    descuento_monto: 0,
                     cantidad: 1,
                     stock_disponible: 0,
                     omitir_stock: true,
@@ -534,13 +543,43 @@ export default function Create({
             return;
         }
 
-        const descuento = Math.round(Math.min(100, parsed) * 100) / 100;
         setCart((prev) =>
             prev.map((line) =>
-                line.key === lineKey ? { ...line, descuento_pct: descuento } : line,
+                line.key === lineKey
+                    ? line.descuento_tipo === 'porcentaje'
+                        ? {
+                              ...line,
+                              descuento_pct: Math.round(Math.min(100, parsed) * 100) / 100,
+                              descuento_monto: 0,
+                          }
+                        : {
+                              ...line,
+                              descuento_pct: 0,
+                              descuento_monto:
+                                  Math.round(Math.min(99999999.99, parsed) * 100) / 100,
+                          }
+                    : line,
             ),
         );
     }, []);
+
+    const setTipoDescuentoLinea = useCallback(
+        (lineKey: string, tipo: 'porcentaje' | 'monto') => {
+            setCart((prev) =>
+                prev.map((line) =>
+                    line.key === lineKey
+                        ? {
+                              ...line,
+                              descuento_tipo: tipo,
+                              descuento_pct: 0,
+                              descuento_monto: 0,
+                          }
+                        : line,
+                ),
+            );
+        },
+        [],
+    );
 
     const removeLine = useCallback((lineKey: string) => {
         setCart((prev) => prev.filter((l) => l.key !== lineKey));
@@ -583,6 +622,7 @@ export default function Create({
                 consulta_cargo_linea_id: l.consulta_cargo_linea_id ?? null,
                 cantidad: l.cantidad,
                 descuento_pct: l.descuento_pct,
+                descuento_monto: l.descuento_monto,
             })),
         };
     }, [cart, form.data, mi_sesion]);
@@ -643,6 +683,7 @@ export default function Create({
                 consulta_cargo_linea_id: l.consulta_cargo_linea_id ?? null,
                 cantidad: l.cantidad,
                 descuento_pct: l.descuento_pct,
+                descuento_monto: l.descuento_monto,
             })),
             monto_recibido: d.metodo_pago === 'efectivo' ? d.monto_recibido : null,
         }));
@@ -1145,6 +1186,7 @@ export default function Create({
                                             igvPct,
                                             precioIncluyeIgv,
                                             line.descuento_pct,
+                                            line.descuento_monto,
                                         );
                                         const previewLine = promoPreview?.lineas?.[cartIndex];
                                         const hasLinePromo = Boolean(previewLine?.promotion_id);
@@ -1172,12 +1214,19 @@ export default function Create({
                                                     <div className="min-w-0 flex-1">
                                                         <div className="flex flex-wrap items-center gap-1.5">
                                                             <p className="text-xs font-medium leading-snug">{line.nombre}</p>
-                                                            {line.descuento_pct > 0 ? (
+                                                            {line.descuento_pct > 0 || line.descuento_monto > 0 ? (
                                                                 <Badge
                                                                     variant="secondary"
                                                                     className="h-4 bg-amber-100 px-1 text-[9px] font-medium text-amber-800 dark:bg-amber-950/50 dark:text-amber-300"
                                                                 >
-                                                                    −{line.descuento_pct}%
+                                                                    {line.descuento_tipo === 'porcentaje'
+                                                                        ? `−${line.descuento_pct}%`
+                                                                        : `−${formatMoney(
+                                                                              Math.min(
+                                                                                  line.descuento_monto,
+                                                                                  lineTotalOriginal,
+                                                                              ),
+                                                                          )}`}
                                                                 </Badge>
                                                             ) : null}
                                                             {hasLinePromo ? (
@@ -1268,15 +1317,53 @@ export default function Create({
                                                             <span className="text-[10px] text-muted-foreground">
                                                                 {t('caja:ventas.create.descuento_linea_corto')}
                                                             </span>
+                                                            <ToggleGroup
+                                                                type="single"
+                                                                value={line.descuento_tipo}
+                                                                onValueChange={(value) => {
+                                                                    if (value === 'porcentaje' || value === 'monto') {
+                                                                        setTipoDescuentoLinea(line.key, value);
+                                                                    }
+                                                                }}
+                                                                className="h-7 gap-0 rounded-md border"
+                                                                disabled={!puede_vender}
+                                                            >
+                                                                <ToggleGroupItem
+                                                                    value="porcentaje"
+                                                                    className="h-6 min-w-7 rounded px-1.5 text-[10px]"
+                                                                    aria-label={t(
+                                                                        'caja:ventas.create.descuento_tipo_porcentaje',
+                                                                    )}
+                                                                >
+                                                                    %
+                                                                </ToggleGroupItem>
+                                                                <ToggleGroupItem
+                                                                    value="monto"
+                                                                    className="h-6 min-w-7 rounded px-1.5 text-[10px]"
+                                                                    aria-label={t(
+                                                                        'caja:ventas.create.descuento_tipo_monto',
+                                                                    )}
+                                                                >
+                                                                    {clinica.moneda === 'USD' ? '$' : 'S/'}
+                                                                </ToggleGroupItem>
+                                                            </ToggleGroup>
                                                             <div className="relative">
                                                                 <Input
                                                                     type="number"
                                                                     inputMode="decimal"
                                                                     min={0}
-                                                                    max={100}
+                                                                    max={
+                                                                        line.descuento_tipo === 'porcentaje'
+                                                                            ? 100
+                                                                            : lineTotalOriginal
+                                                                    }
                                                                     step={0.01}
                                                                     className="h-7 w-19 pr-6 text-right text-xs tabular-nums"
-                                                                    value={line.descuento_pct || ''}
+                                                                    value={
+                                                                        (line.descuento_tipo === 'porcentaje'
+                                                                            ? line.descuento_pct
+                                                                            : line.descuento_monto) || ''
+                                                                    }
                                                                     placeholder="0"
                                                                     onChange={(e) =>
                                                                         setDescuentoLinea(line.key, e.target.value)
@@ -1286,7 +1373,11 @@ export default function Create({
                                                                     title={t('caja:ventas.create.descuento_linea')}
                                                                 />
                                                                 <span className="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 text-[10px] text-muted-foreground">
-                                                                    %
+                                                                    {line.descuento_tipo === 'porcentaje'
+                                                                        ? '%'
+                                                                        : clinica.moneda === 'USD'
+                                                                          ? '$'
+                                                                          : 'S/'}
                                                                 </span>
                                                             </div>
                                                         </div>

@@ -73,4 +73,36 @@ class DescuentoManualLineaTest extends TestCase
         $this->assertSame(25.00, $result['lineas'][0]['descuento_pct']);
         $this->assertSame(29.50, $result['discount_amount']);
     }
+
+    public function test_aplica_monto_fijo_y_lo_limita_al_total_de_la_linea(): void
+    {
+        $line = [[
+            'cantidad' => 1,
+            'precio_lista' => 59.00,
+            'precio_unitario' => 50.00,
+            'subtotal' => 50.00,
+            'descuento_pct' => 0,
+        ]];
+
+        $result = DescuentoManualLinea::apply(
+            $line,
+            [['descuento_monto' => 10]],
+            18.0,
+            true,
+        );
+
+        $this->assertSame(41.53, $result['lineas'][0]['subtotal']);
+        $this->assertSame(16.95, $result['lineas'][0]['descuento_pct']);
+        $this->assertSame(10.00, $result['discount_amount']);
+
+        $capped = DescuentoManualLinea::apply(
+            $line,
+            [['descuento_monto' => 100]],
+            18.0,
+            true,
+        );
+
+        $this->assertEquals(0.00, $capped['lineas'][0]['subtotal']);
+        $this->assertSame(59.00, $capped['discount_amount']);
+    }
 }
