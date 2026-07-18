@@ -1,18 +1,13 @@
 import { useForm } from '@inertiajs/react';
 import { FlaskConical, Loader2, Save } from 'lucide-react';
 import type { FormEvent } from 'react';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FormField, FormModal } from '@/components/forms';
 import { Button } from '@/components/ui/button';
+import { Combobox } from '@/components/ui/combobox';
+import type { ComboboxOption } from '@/components/ui/combobox';
 import { Input } from '@/components/ui/input';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 
 export type ConsultaLabOpcion = {
@@ -28,6 +23,8 @@ type Props = {
     consultas: readonly ConsultaLabOpcion[];
 };
 
+const CONSULTA_NUEVA = '__new__';
+
 function toDateInputValue(d: Date): string {
     const pad = (n: number) => String(n).padStart(2, '0');
 
@@ -37,7 +34,7 @@ function toDateInputValue(d: Date): string {
 function defaultConsultaId(consultas: readonly ConsultaLabOpcion[]): string {
     const abierta = consultas.find((c) => c.abierta);
 
-    return abierta?.id ?? consultas[0]?.id ?? '';
+    return abierta?.id ?? consultas[0]?.id ?? CONSULTA_NUEVA;
 }
 
 export function LaboratorioRapidoModal({
@@ -56,14 +53,31 @@ export function LaboratorioRapidoModal({
             documento: null as File | null,
         });
 
+    const consultaOptions = useMemo<ComboboxOption[]>(
+        () => [
+            {
+                value: CONSULTA_NUEVA,
+                label: t('historial.lab_rapido_sin_consulta'),
+            },
+            ...consultas.map((c) => ({
+                value: c.id,
+                label: c.abierta
+                    ? `${c.label} · ${t('historial.badge_abierta')}`
+                    : c.label,
+            })),
+        ],
+        [consultas, t],
+    );
+
     useEffect(() => {
         if (!open) {
             return;
         }
 
         clearErrors();
+        const defaultId = defaultConsultaId(consultas);
         setData({
-            consulta_id: defaultConsultaId(consultas),
+            consulta_id: defaultId === CONSULTA_NUEVA ? '' : defaultId,
             nombre_examen: '',
             fecha: toDateInputValue(new Date()),
             descripcion: '',
@@ -123,44 +137,36 @@ export function LaboratorioRapidoModal({
                     <p>{t('historial.lab_rapido_hint')}</p>
                 </div>
 
-                {consultas.length > 0 ? (
-                    <FormField
+                <FormField
+                    id="lab_rapido_consulta"
+                    label={t('historial.lab_rapido_consulta')}
+                    error={errors.consulta_id}
+                >
+                    <Combobox
                         id="lab_rapido_consulta"
-                        label={t('historial.lab_rapido_consulta')}
-                        error={errors.consulta_id}
-                    >
-                        <Select
-                            value={data.consulta_id || '__none__'}
-                            onValueChange={(v) =>
-                                setData(
-                                    'consulta_id',
-                                    v === '__none__' ? '' : v,
-                                )
-                            }
-                        >
-                            <SelectTrigger id="lab_rapido_consulta" className="w-full">
-                                <SelectValue
-                                    placeholder={t(
-                                        'historial.lab_rapido_consulta_placeholder',
-                                    )}
-                                />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="__none__">
-                                    {t('historial.lab_rapido_sin_consulta')}
-                                </SelectItem>
-                                {consultas.map((c) => (
-                                    <SelectItem key={c.id} value={c.id}>
-                                        {c.label}
-                                        {c.abierta
-                                            ? ` · ${t('historial.badge_abierta')}`
-                                            : ''}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </FormField>
-                ) : null}
+                        options={consultaOptions}
+                        value={
+                            data.consulta_id === ''
+                                ? CONSULTA_NUEVA
+                                : data.consulta_id
+                        }
+                        onChange={(v) =>
+                            setData(
+                                'consulta_id',
+                                !v || v === CONSULTA_NUEVA ? '' : v,
+                            )
+                        }
+                        placeholder={t(
+                            'historial.lab_rapido_consulta_placeholder',
+                        )}
+                        searchPlaceholder={t(
+                            'historial.lab_rapido_consulta_search',
+                        )}
+                        emptyMessage={t('historial.lab_rapido_consulta_empty')}
+                        disabled={processing}
+                        aria-invalid={Boolean(errors.consulta_id)}
+                    />
+                </FormField>
 
                 <FormField
                     id="lab_rapido_nombre"

@@ -349,9 +349,39 @@ class PacienteController extends Controller
         $descripcion = isset($data['descripcion']) ? trim((string) $data['descripcion']) : '';
 
         DB::transaction(function () use ($request, $paciente, $data, $fecha, $descripcion, $tid): void {
+            $consultaId = $data['consulta_id'] ?? null;
+
+            if ($consultaId === null || $consultaId === '') {
+                $uid = Auth::id();
+                $historia = HistoriaClinica::query()->firstOrCreate(
+                    ['paciente_id' => $paciente->id],
+                    [
+                        'created_by_id' => $uid,
+                        'updated_by_id' => $uid,
+                    ],
+                );
+
+                if ($historia->wasRecentlyCreated === false) {
+                    $historia->update(['updated_by_id' => $uid]);
+                }
+
+                $examenNombre = Str::limit(trim($data['nombre_examen']), 80, '');
+                $consulta = $historia->consultas()->create([
+                    'atendido_at' => $fecha,
+                    'motivo' => 'Laboratorio: '.$examenNombre,
+                    'plan' => $descripcion !== '' ? Str::limit($descripcion, 20000, '') : null,
+                    'cerrada_at' => null,
+                    'cerrada_por_id' => null,
+                    'veterinario_id' => $uid,
+                    'created_by_id' => $uid,
+                    'updated_by_id' => $uid,
+                ]);
+                $consultaId = $consulta->id;
+            }
+
             $pedido = PedidoLaboratorio::query()->create([
                 'paciente_id' => $paciente->id,
-                'consulta_id' => $data['consulta_id'] ?? null,
+                'consulta_id' => $consultaId,
                 'veterinario_id' => Auth::id(),
                 'solicitado_at' => $fecha,
                 'estado' => PedidoLaboratorio::ESTADO_COMPLETADO,
