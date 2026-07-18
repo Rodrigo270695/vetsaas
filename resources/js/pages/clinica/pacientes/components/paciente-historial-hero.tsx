@@ -5,6 +5,7 @@ import {
     Cat,
     Dog,
     FileDown,
+    FlaskConical,
     MessageCircle,
     PawPrint,
     Plus,
@@ -12,7 +13,7 @@ import {
     Syringe,
     UserRound,
 } from 'lucide-react';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -20,6 +21,10 @@ import { calcularEdadMascota } from '@/lib/edad-desde-fecha-nacimiento';
 import { cn } from '@/lib/utils';
 import clinica from '@/routes/clinica';
 import type { Paciente } from '../../propietarios/types';
+import {
+    LaboratorioRapidoModal,
+    type ConsultaLabOpcion,
+} from './laboratorio-rapido-modal';
 
 type Props = {
     paciente: Paciente;
@@ -29,11 +34,14 @@ type Props = {
         nueva_aplicacion: string;
         historial_pdf: string | null;
         historial_whatsapp: string | null;
+        laboratorio_rapido: string | null;
     };
     permisos: {
         consultas_crear: boolean;
         vacunas_crear: boolean;
+        laboratorio_crear: boolean;
     };
+    consultasParaLab: readonly ConsultaLabOpcion[];
     timelineStats: {
         consultas: number;
         aplicaciones: number;
@@ -113,11 +121,13 @@ export function PacienteHistorialHero({
     propietarioNombre,
     links,
     permisos,
+    consultasParaLab,
     timelineStats,
     hasTimeline,
     onShareHistory,
 }: Props) {
     const { t } = useTranslation(['pacientes']);
+    const [labOpen, setLabOpen] = useState(false);
     const subline = [paciente.especie, paciente.raza].filter(Boolean).join(' · ');
     const sexo = sexoLabel(t, paciente.sexo);
     const edad = useMemo(() => calcularEdadMascota(paciente.fecha_nacimiento), [paciente.fecha_nacimiento]);
@@ -264,6 +274,18 @@ export function PacienteHistorialHero({
                             </a>
                         </Button>
                     ) : null}
+                    {permisos.laboratorio_crear && links.laboratorio_rapido ? (
+                        <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="gap-2 border-sky-500/30 text-sky-800 hover:bg-sky-500/10 dark:text-sky-200"
+                            onClick={() => setLabOpen(true)}
+                        >
+                            <FlaskConical className="size-4" strokeWidth={2.25} />
+                            {t('historial.action_laboratorio')}
+                        </Button>
+                    ) : null}
                     {links.historial_pdf && hasTimeline ? (
                         <Button type="button" size="sm" variant="outline" className="gap-2" asChild>
                             <a href={links.historial_pdf} target="_blank" rel="noopener noreferrer">
@@ -301,6 +323,15 @@ export function PacienteHistorialHero({
                     </div>
                 ) : null}
             </div>
+
+            {links.laboratorio_rapido ? (
+                <LaboratorioRapidoModal
+                    open={labOpen}
+                    onOpenChange={setLabOpen}
+                    storeUrl={links.laboratorio_rapido}
+                    consultas={consultasParaLab}
+                />
+            ) : null}
         </section>
     );
 }

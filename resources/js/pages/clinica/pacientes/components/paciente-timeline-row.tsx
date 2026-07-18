@@ -546,16 +546,114 @@ function VinculosBlock({
                 />
             ) : null}
             {vinculos.laboratorio.length > 0 ? (
-                <VinculoList
-                    title={t('historial.vinculos_sec_lab')}
-                    items={vinculos.laboratorio.map((p) => ({
-                        id: p.id,
-                        badge: t(`laboratorio:estado.${p.estado}`, { defaultValue: p.estado }),
-                        meta: t('historial.vinculos_exam', { count: p.lineas_count }),
-                        url: p.url,
-                    }))}
-                    t={t}
-                />
+                <div className="space-y-2">
+                    <p className="text-xs font-semibold text-foreground">
+                        {t('historial.vinculos_sec_lab')}
+                    </p>
+                    <ul className="m-0 list-none space-y-2 p-0">
+                        {vinculos.laboratorio.map((p) => (
+                            <li
+                                key={p.id}
+                                className="rounded-md border border-border/40 bg-background/70 px-2.5 py-2"
+                            >
+                                <div className="flex items-center justify-between gap-2">
+                                    <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                                        <Badge
+                                            variant="outline"
+                                            className="text-[0.6rem] font-normal"
+                                        >
+                                            {t(`laboratorio:estado.${p.estado}`, {
+                                                defaultValue: p.estado,
+                                            })}
+                                        </Badge>
+                                        <span className="truncate text-[0.7rem] text-muted-foreground">
+                                            {t('historial.vinculos_exam', {
+                                                count: p.lineas_count,
+                                            })}
+                                        </span>
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        variant="link"
+                                        size="sm"
+                                        className="h-6 shrink-0 px-1 text-xs"
+                                        asChild
+                                    >
+                                        <a href={p.url}>{t('historial.vinculos_abrir')}</a>
+                                    </Button>
+                                </div>
+                                {p.lineas.length > 0 ? (
+                                    <ul className="mt-2 space-y-1.5 border-t border-border/40 pt-2">
+                                        {p.lineas.map((linea) => (
+                                            <li
+                                                key={linea.id}
+                                                className="rounded-md bg-muted/30 px-2 py-1.5"
+                                            >
+                                                <div className="flex items-start justify-between gap-2">
+                                                    <div className="min-w-0">
+                                                        <p className="text-xs font-medium text-foreground">
+                                                            {linea.nombre_examen}
+                                                        </p>
+                                                        {linea.resultado_at ? (
+                                                            <p className="text-[0.65rem] text-muted-foreground">
+                                                                {t(
+                                                                    'historial.lab_examen_fecha',
+                                                                    {
+                                                                        date: linea.resultado_at,
+                                                                    },
+                                                                )}
+                                                            </p>
+                                                        ) : null}
+                                                        {linea.resultado ? (
+                                                            <p className="mt-1 whitespace-pre-wrap text-[0.7rem] text-muted-foreground">
+                                                                {linea.resultado}
+                                                            </p>
+                                                        ) : null}
+                                                    </div>
+                                                    {linea.resultado_archivo_url ? (
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="h-7 shrink-0 gap-1 px-2 text-[0.65rem]"
+                                                            asChild
+                                                        >
+                                                            <a
+                                                                href={
+                                                                    linea.resultado_archivo_url
+                                                                }
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                            >
+                                                                <FileDown className="size-3" />
+                                                                {t(
+                                                                    'historial.lab_examen_descargar',
+                                                                )}
+                                                            </a>
+                                                        </Button>
+                                                    ) : (
+                                                        <span className="shrink-0 text-[0.65rem] text-muted-foreground">
+                                                            {t(
+                                                                'historial.lab_examen_sin_archivo',
+                                                            )}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                {linea.resultado_archivo_original_name ? (
+                                                    <p className="mt-1 truncate text-[0.6rem] text-muted-foreground">
+                                                        {
+                                                            linea.resultado_archivo_original_name
+                                                        }
+                                                    </p>
+                                                ) : null}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                ) : null}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
             ) : null}
             {vinculos.cirugias.length > 0 ? (
                 <VinculoList

@@ -245,6 +245,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             Route::middleware('permission:pacientes.view')
                 ->post('pacientes/{paciente}/historial-clinico/whatsapp', [ClinicalHistoryWhatsAppController::class, 'historial'])
                 ->name('pacientes.historial-clinico-whatsapp');
+            Route::middleware('permission:laboratorio.create')
+                ->post('pacientes/{paciente}/laboratorio-rapido', [PacienteController::class, 'storeLaboratorioRapido'])
+                ->name('pacientes.laboratorio-rapido');
             Route::middleware('permission:pacientes.create')
                 ->post('pacientes', [PacienteController::class, 'store'])
                 ->name('pacientes.store');

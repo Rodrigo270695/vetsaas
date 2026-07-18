@@ -560,14 +560,25 @@ function TreeModuleNode({
                 <ul className="relative ml-3 flex flex-col border-l border-border/50 pl-3">
                     {group.permissions.map((perm) => (
                         <li key={perm.id}>
-                            <button
-                                type="button"
-                                onClick={() => onTogglePermission(perm)}
-                                disabled={disabled}
+                            <div
+                                role="button"
+                                tabIndex={disabled ? -1 : 0}
+                                onClick={() => {
+                                    if (!disabled) onTogglePermission(perm);
+                                }}
+                                onKeyDown={(e) => {
+                                    if (disabled) return;
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault();
+                                        onTogglePermission(perm);
+                                    }
+                                }}
+                                aria-disabled={disabled || undefined}
                                 className={cn(
                                     'relative flex w-full items-center gap-2 rounded-md px-1.5 py-1 text-left transition-colors',
                                     'hover:bg-muted/60',
-                                    'disabled:cursor-not-allowed disabled:opacity-50',
+                                    'cursor-pointer',
+                                    disabled && 'cursor-not-allowed opacity-50',
                                     selected.has(perm.name) && 'bg-primary/5',
                                 )}
                             >
@@ -595,7 +606,7 @@ function TreeModuleNode({
                                         {perm.name}
                                     </span>
                                 </div>
-                            </button>
+                            </div>
                         </li>
                     ))}
                 </ul>
@@ -617,7 +628,8 @@ type TreeCheckboxProps = {
  *
  * - Click → propaga al handler externo (sin stopPropagation, deja al
  *   wrapper también recibirlo si quisiera).
- * - Atajos de teclado: el botón ya es focuseable y dispara con Enter/Space.
+ * - Atajos de teclado: Enter/Space en el span focuseable.
+ * - Usa <span> (no <button>) para no anidar botones dentro de filas clickeables.
  */
 function TreeCheckbox({
     state,
@@ -627,16 +639,26 @@ function TreeCheckbox({
 }: TreeCheckboxProps) {
     const Icon = state === 'all' ? CheckSquare : state === 'some' ? Minus : Square;
 
+    // span (no button): evita <button> anidado cuando la fila también es interactiva.
     return (
-        <button
-            type="button"
+        <span
             role="checkbox"
             aria-checked={state === 'all' ? true : state === 'some' ? 'mixed' : false}
             aria-label={ariaLabel}
-            disabled={disabled}
+            aria-disabled={disabled || undefined}
+            tabIndex={disabled ? -1 : 0}
             onClick={(e) => {
                 e.stopPropagation();
+                if (disabled) return;
                 onClick();
+            }}
+            onKeyDown={(e) => {
+                if (disabled) return;
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onClick();
+                }
             }}
             className={cn(
                 'flex size-4 shrink-0 cursor-pointer items-center justify-center rounded text-muted-foreground transition-colors',
@@ -646,6 +668,6 @@ function TreeCheckbox({
             )}
         >
             <Icon className="size-3.5" strokeWidth={2.5} aria-hidden />
-        </button>
+        </span>
     );
 }

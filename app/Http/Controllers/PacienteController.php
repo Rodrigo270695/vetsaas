@@ -8,10 +8,12 @@ use App\Http\Controllers\Concerns\LogsAuditExports;
 use App\Http\Controllers\Concerns\ResolvesClinicPdfBranding;
 use App\Http\Requests\PacienteRequest;
 use App\Models\Cirugia;
+use App\Models\Consulta;
 use App\Models\HistoriaClinica;
 use App\Models\Internamiento;
 use App\Models\Paciente;
 use App\Models\PedidoLaboratorio;
+use App\Models\PedidoLaboratorioLinea;
 use App\Models\Propietario;
 use App\Models\Receta;
 use App\Models\VacunaAplicada;
@@ -25,7 +27,9 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -172,7 +176,10 @@ class PacienteController extends Controller
                     ->with([
                         'veterinario:id,name',
                         'recetas' => fn ($q) => $q->withCount('lineas')->orderByDesc('emitida_at'),
-                        'pedidosLaboratorio' => fn ($q) => $q->withCount('lineas')->orderByDesc('solicitado_at'),
+                        'pedidosLaboratorio' => fn ($q) => $q
+                            ->with(['lineas' => fn ($lq) => $lq->orderBy('orden')])
+                            ->withCount('lineas')
+                            ->orderByDesc('solicitado_at'),
                         'cirugias' => fn ($q) => $q->orderByDesc('programada_at'),
                         'internamientos' => fn ($q) => $q->orderByDesc('ingreso_at'),
                     ])
@@ -259,9 +266,34 @@ class PacienteController extends Controller
 
         usort($timeline, fn (array $a, array $b): int => strcmp((string) $b['ocurrido_at'], (string) $a['ocurrido_at']));
 
+        $consultasParaLab = [];
+        if ($canVerConsultas) {
+            $hcForLab = HistoriaClinica::query()->where('paciente_id', $paciente->id)->first();
+            if ($hcForLab !== null) {
+                $consultasParaLab = $hcForLab->consultas()
+                    ->orderByDesc('atendido_at')
+                    ->limit(30)
+                    ->get(['id', 'atendido_at', 'motivo', 'cerrada_at'])
+                    ->map(fn ($c): array => [
+                        'id' => $c->id,
+                        'label' => trim(
+                            ($c->atendido_at?->timezone($tz)->format('d/m/Y H:i') ?? '—')
+                            .' · '
+                            .(Str::limit(trim((string) ($c->motivo ?? '')), 60) ?: 'Consulta')
+                        ),
+                        'abierta' => $c->cerrada_at === null,
+                    ])
+                    ->values()
+                    ->all();
+            }
+        }
+
+        $canLabCreate = $user?->can('laboratorio.create') ?? false;
+
         return Inertia::render('clinica/pacientes/show', [
             'paciente' => $paciente,
             'timeline' => $timeline,
+            'consultas_para_lab' => $consultasParaLab,
             'links' => [
                 'nueva_consulta' => route('clinica.historias-clinicas', ['nuevo_para_paciente' => $paciente->id]),
                 'nueva_aplicacion' => route('clinica.vacunaciones.index', ['prefill_paciente_id' => $paciente->id]),
@@ -271,14 +303,83 @@ class PacienteController extends Controller
                 'historial_whatsapp' => ($canVerConsultas || $canVerVacunas)
                     ? route('clinica.pacientes.historial-clinico-whatsapp', $paciente)
                     : null,
+                'laboratorio_rapido' => $canLabCreate
+                    ? route('clinica.pacientes.laboratorio-rapido', $paciente)
+                    : null,
             ],
             'permisos' => [
                 'consultas_ver' => $canVerConsultas,
                 'consultas_crear' => $canCrearConsulta,
                 'vacunas_ver' => $canVerVacunas,
                 'vacunas_crear' => $canCrearVacuna,
+                'laboratorio_crear' => $canLabCreate,
             ],
         ]);
+    }
+
+    public function storeLaboratorioRapido(Request $request, Paciente $paciente): RedirectResponse
+    {
+        abort_unless($request->user()?->can('laboratorio.create') ?? false, 403);
+
+        $data = $request->validate([
+            'consulta_id' => ['nullable', 'uuid', 'exists:consultas,id'],
+            'nombre_examen' => ['required', 'string', 'max:500'],
+            'fecha' => ['required', 'date'],
+            'descripcion' => ['nullable', 'string', 'max:20000'],
+            'documento' => ['required', 'file', 'mimes:pdf,jpeg,jpg,png,webp', 'max:12288'],
+        ]);
+
+        if (! empty($data['consulta_id'])) {
+            $consulta = Consulta::query()
+                ->with('historiaClinica:id,paciente_id')
+                ->find($data['consulta_id']);
+
+            abort_unless(
+                $consulta !== null
+                && $consulta->historiaClinica !== null
+                && (string) $consulta->historiaClinica->paciente_id === (string) $paciente->id,
+                422,
+            );
+        }
+
+        $tid = tenant_id();
+        abort_unless($tid !== null, 403);
+
+        $fecha = Carbon::parse($data['fecha']);
+        $descripcion = isset($data['descripcion']) ? trim((string) $data['descripcion']) : '';
+
+        DB::transaction(function () use ($request, $paciente, $data, $fecha, $descripcion, $tid): void {
+            $pedido = PedidoLaboratorio::query()->create([
+                'paciente_id' => $paciente->id,
+                'consulta_id' => $data['consulta_id'] ?? null,
+                'veterinario_id' => Auth::id(),
+                'solicitado_at' => $fecha,
+                'estado' => PedidoLaboratorio::ESTADO_COMPLETADO,
+                'created_by_id' => Auth::id(),
+                'updated_by_id' => Auth::id(),
+            ]);
+
+            $file = $request->file('documento');
+            $ext = Str::lower((string) ($file->getClientOriginalExtension() ?: 'bin'));
+            $safe = Str::lower(Str::random(24)).'.'.$ext;
+            $baseDir = 'laboratorio/'.$tid.'/'.$pedido->id;
+            $archivoPath = $file->storeAs($baseDir, $safe, 'local');
+
+            PedidoLaboratorioLinea::query()->create([
+                'pedido_laboratorio_id' => $pedido->id,
+                'nombre_examen' => Str::limit(trim($data['nombre_examen']), 500, ''),
+                'indicaciones' => null,
+                'resultado' => $descripcion !== '' ? Str::limit($descripcion, 20000, '') : null,
+                'resultado_at' => $fecha,
+                'resultado_archivo_path' => $archivoPath,
+                'resultado_archivo_original_name' => $file->getClientOriginalName(),
+                'orden' => 0,
+            ]);
+        });
+
+        return redirect()
+            ->route('clinica.pacientes.show', $paciente)
+            ->with('success', __('laboratorio.flash.created'));
     }
 
     public function historialClinicoPdf(Request $request, Paciente $paciente): HttpResponse
@@ -598,7 +699,20 @@ class PacienteController extends Controller
 
     /**
      * @param  Collection<int, PedidoLaboratorio>  $pedidos
-     * @return list<array{id: string, estado: string, lineas_count: int, url: string}>
+     * @return list<array{
+     *     id: string,
+     *     estado: string,
+     *     lineas_count: int,
+     *     url: string,
+     *     lineas: list<array{
+     *         id: string,
+     *         nombre_examen: string,
+     *         resultado: string|null,
+     *         resultado_at: string|null,
+     *         resultado_archivo_url: string|null,
+     *         resultado_archivo_original_name: string|null
+     *     }>
+     * }>
      */
     private function timelineLaboratorioVinculo(?Authenticatable $user, $pedidos, string $tz): array
     {
@@ -608,11 +722,26 @@ class PacienteController extends Controller
 
         $out = [];
         foreach ($pedidos as $p) {
+            $lineas = [];
+            foreach ($p->lineas ?? [] as $linea) {
+                $lineas[] = [
+                    'id' => $linea->id,
+                    'nombre_examen' => $linea->nombre_examen,
+                    'resultado' => $linea->resultado !== null && trim((string) $linea->resultado) !== ''
+                        ? trim((string) $linea->resultado)
+                        : null,
+                    'resultado_at' => $linea->resultado_at?->timezone($tz)->toDateString(),
+                    'resultado_archivo_url' => $linea->resultado_archivo_url,
+                    'resultado_archivo_original_name' => $linea->resultado_archivo_original_name,
+                ];
+            }
+
             $out[] = [
                 'id' => $p->id,
                 'estado' => $p->estado,
-                'lineas_count' => (int) ($p->lineas_count ?? 0),
+                'lineas_count' => (int) ($p->lineas_count ?? count($lineas)),
                 'url' => $this->pedidoLaboratorioHistorialUrl($user, $p, $tz),
+                'lineas' => $lineas,
             ];
         }
 

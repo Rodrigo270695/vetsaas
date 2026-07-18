@@ -11,9 +11,24 @@ import type { ClinicalHistoryShareTarget } from './components/clinical-history-w
 import { PacienteHistorialHero } from './components/paciente-historial-hero';
 import { PacienteTimelineRow } from './components/paciente-timeline-row';
 
+export type TimelineLabLinea = {
+    id: string;
+    nombre_examen: string;
+    resultado: string | null;
+    resultado_at: string | null;
+    resultado_archivo_url: string | null;
+    resultado_archivo_original_name: string | null;
+};
+
 export type TimelineConsultaVinculos = {
     recetas: readonly { id: string; estado: string; lineas_count: number; url: string }[];
-    laboratorio: readonly { id: string; estado: string; lineas_count: number; url: string }[];
+    laboratorio: readonly {
+        id: string;
+        estado: string;
+        lineas_count: number;
+        url: string;
+        lineas: readonly TimelineLabLinea[];
+    }[];
     cirugias: readonly { id: string; estado: string; titulo: string; url: string }[];
     internamientos: readonly { id: string; estado: string; titulo: string; url: string }[];
 };
@@ -69,21 +84,30 @@ export type TimelineItem =
 type Props = {
     paciente: Paciente;
     timeline: readonly TimelineItem[];
+    consultas_para_lab?: readonly { id: string; label: string; abierta: boolean }[];
     links: {
         nueva_consulta: string;
         nueva_aplicacion: string;
         historial_pdf: string | null;
         historial_whatsapp: string | null;
+        laboratorio_rapido: string | null;
     };
     permisos: {
         consultas_ver: boolean;
         consultas_crear: boolean;
         vacunas_ver: boolean;
         vacunas_crear: boolean;
+        laboratorio_crear: boolean;
     };
 };
 
-export default function PacienteShow({ paciente, timeline, links, permisos }: Props) {
+export default function PacienteShow({
+    paciente,
+    timeline,
+    consultas_para_lab = [],
+    links,
+    permisos,
+}: Props) {
     const { t } = useTranslation(['pacientes', 'common']);
     const { locale: appLocale, timezone: appTz } = usePage().props;
     const [shareTarget, setShareTarget] = useState<ClinicalHistoryShareTarget>(null);
@@ -122,6 +146,7 @@ export default function PacienteShow({ paciente, timeline, links, permisos }: Pr
                     propietarioNombre={propietarioNombre}
                     links={links}
                     permisos={permisos}
+                    consultasParaLab={consultas_para_lab}
                     timelineStats={timelineStats}
                     hasTimeline={timeline.length > 0}
                     onShareHistory={() => {
