@@ -105,6 +105,9 @@ export function InAppAssistantPanel({ open, onOpenChange }: Props) {
         setMessages((prev) => [...prev, userMsg]);
         setSending(true);
 
+        // Mantener el foco en el campo para poder seguir escribiendo.
+        requestAnimationFrame(() => inputRef.current?.focus());
+
         try {
             const res = await fetch('/asistente/chat', {
                 method: 'POST',
@@ -144,6 +147,7 @@ export function InAppAssistantPanel({ open, onOpenChange }: Props) {
             setError(e instanceof Error ? e.message : t('panel.error'));
         } finally {
             setSending(false);
+            requestAnimationFrame(() => inputRef.current?.focus());
         }
     };
 
@@ -329,7 +333,7 @@ export function InAppAssistantPanel({ open, onOpenChange }: Props) {
                                 </Button>
                             </div>
                         )}
-                        <div className="rounded-2xl border border-border/80 bg-slate-50/70 p-2 shadow-xs dark:bg-card/40">
+                        <div className="rounded-2xl border border-border/80 bg-slate-50/70 p-2 shadow-xs transition-colors focus-within:border-sky-300/80 focus-within:bg-white dark:bg-card/40 dark:focus-within:border-sky-700/70 dark:focus-within:bg-card/60">
                             <div className="flex items-end gap-2">
                                 <Textarea
                                     ref={inputRef}
@@ -337,9 +341,15 @@ export function InAppAssistantPanel({ open, onOpenChange }: Props) {
                                     onChange={(e) => setDraft(e.target.value)}
                                     onKeyDown={onKeyDown}
                                     placeholder={t('panel.placeholder')}
-                                    disabled={!configured || sending}
+                                    disabled={!configured}
                                     rows={2}
-                                    className="min-h-17 max-h-32 resize-none border-0 bg-transparent shadow-none focus-visible:ring-0"
+                                    className={cn(
+                                        'min-h-17 max-h-32 resize-none border-0 bg-transparent shadow-none',
+                                        'outline-none focus:outline-none focus-visible:outline-none',
+                                        'focus:border-transparent focus-visible:border-transparent',
+                                        'focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0',
+                                        'focus:shadow-none focus-visible:shadow-none focus-visible:bg-transparent',
+                                    )}
                                 />
                                 <Button
                                     type="button"
