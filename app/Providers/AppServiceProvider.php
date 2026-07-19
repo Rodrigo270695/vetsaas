@@ -32,11 +32,27 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+        $this->configurePlatformSuperadminGate();
         $this->configureHistoriasClinicasPlanesPermissionAliases();
         $this->configureBotIaPermissionAliases();
         $this->registerAuditModelObservers();
 
         Event::listen(Login::class, RecordUserLoginPresence::class);
+    }
+
+    /**
+     * El superadmin de plataforma conserva todos los permisos aunque el
+     * request corra con team = tenant (p. ej. «Entrar como soporte»).
+     */
+    protected function configurePlatformSuperadminGate(): void
+    {
+        Gate::before(function ($user, string $ability): ?bool {
+            if ($user instanceof User && $user->isPlatformSuperadmin()) {
+                return true;
+            }
+
+            return null;
+        });
     }
 
   /**

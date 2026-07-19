@@ -50,7 +50,7 @@ class EnsureTenant
         /** @var User|null $user */
         $user = Auth::user();
 
-        if ($user !== null && $user->hasRole('superadmin')) {
+        if ($user !== null && $user->isPlatformSuperadmin()) {
             return Inertia::render('shared/tenant-required', [
                 'attempted_path' => '/'.ltrim($request->path(), '/'),
             ])->toResponse($request);

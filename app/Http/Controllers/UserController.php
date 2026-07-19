@@ -217,7 +217,7 @@ class UserController extends Controller
             ]);
         }
 
-        if ($user->hasRole('superadmin')) {
+        if ($user->isPlatformSuperadmin()) {
             throw ValidationException::withMessages([
                 'id' => 'No se puede eliminar un superadmin desde el panel.',
             ]);

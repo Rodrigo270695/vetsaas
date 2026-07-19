@@ -68,6 +68,30 @@ it('acepta el token y establece sesión de impersonación en el tenant', functio
     expect(ImpersonationAuditLog::query()->find($auditId)?->ended_at)->toBeNull();
 });
 
+it('permite al superadmin ver el dashboard del tenant tras entrar como soporte', function (): void {
+    $this->actingAs($this->superadmin);
+
+    $start = $this->post(
+        'http://127.0.0.1/plataforma/tenants/'.$this->testTenant->id.'/impersonate',
+        [],
+        ['X-Inertia' => 'true', 'X-Requested-With' => 'XMLHttpRequest'],
+    );
+
+    $location = (string) $start->headers->get('X-Inertia-Location');
+    parse_str((string) parse_url($location, PHP_URL_QUERY), $query);
+
+    $this->get('http://'.$this->testTenantHost.'/impersonate/accept?token='.($query['token'] ?? ''))
+        ->assertRedirect(route('dashboard'));
+
+    $dashboard = $this->get('http://'.$this->testTenantHost.'/dashboard');
+
+    $dashboard->assertOk();
+    $dashboard->assertInertia(fn ($page) => $page
+        ->component('dashboard/index')
+        ->where('auth.roles', fn ($roles) => collect($roles)->contains('superadmin'))
+    );
+});
+
 it('rechaza token expirado o reutilizado', function (): void {
     Cache::put('tenant_impersonate:fake-token-'.str_repeat('a', 48), [
         'superadmin_id' => (string) $this->superadmin->id,

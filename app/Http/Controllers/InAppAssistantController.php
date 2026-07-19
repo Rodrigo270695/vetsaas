@@ -107,7 +107,7 @@ final class InAppAssistantController extends Controller
             return true;
         }
 
-        return $user->isCentral() && $user->hasRole('superadmin');
+        return $user->isPlatformSuperadmin();
     }
 
     /**
@@ -115,7 +115,7 @@ final class InAppAssistantController extends Controller
      */
     private function resolveScope(User $user): string
     {
-        if (tenant_id() === null && $user->isCentral() && $user->hasRole('superadmin')) {
+        if (tenant_id() === null && $user->isPlatformSuperadmin()) {
             return 'platform';
         }
 

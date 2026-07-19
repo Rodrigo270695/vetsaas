@@ -34,7 +34,7 @@ class TenantImpersonationController extends Controller
     public function start(Request $request, Tenant $tenant): Response
     {
         abort_unless($request->user()?->can('plataforma-tenants.impersonate'), 403);
-        abort_unless($request->user()?->hasRole('superadmin'), 403);
+        abort_unless($request->user()?->isPlatformSuperadmin(), 403);
 
         $allowed = (array) config('tenant.allowed_states', ['active', 'trial', 'grace']);
         if (! in_array($tenant->estado, $allowed, true)) {
@@ -95,7 +95,7 @@ class TenantImpersonationController extends Controller
         /** @var User|null $superadmin */
         $superadmin = User::query()->whereKey($payload['superadmin_id'])->first();
 
-        if ($superadmin === null || ! $superadmin->hasRole('superadmin')) {
+        if ($superadmin === null || ! $superadmin->isPlatformSuperadmin()) {
             abort(403);
         }
 
@@ -142,7 +142,7 @@ class TenantImpersonationController extends Controller
             return redirect()->route('login');
         }
 
-        abort_unless($user->hasRole('superadmin'), 403);
+        abort_unless($user instanceof User && $user->isPlatformSuperadmin(), 403);
 
         $session = $request->session();
         /** @var array{tenant_id?: string, central_origin?: string|null}|null $imp */

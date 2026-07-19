@@ -164,8 +164,7 @@ class HandleInertiaRequests extends Middleware
                     $isClinic = $tenantContext !== null;
                     $isPlatform = $tenantContext === null
                         && $user instanceof User
-                        && $user->isCentral()
-                        && $user->hasRole('superadmin');
+                        && $user->isPlatformSuperadmin();
 
                     if (! $isClinic && ! $isPlatform) {
                         return null;
@@ -188,7 +187,7 @@ class HandleInertiaRequests extends Middleware
                         'enabled' => $enabled,
                         'configured' => $configured,
                         'scope' => $isPlatform ? 'platform' : 'clinic',
-                        'unlimited' => $user instanceof User && $user->hasRole('superadmin'),
+                        'unlimited' => $user instanceof User && $user->isPlatformSuperadmin(),
                         'announcement' => $announcement,
                     ];
                 },
@@ -268,6 +267,22 @@ class HandleInertiaRequests extends Middleware
         }
 
         try {
+            if ($user->isPlatformSuperadmin()) {
+                $previousTeam = getPermissionsTeamId();
+                setPermissionsTeamId(null);
+
+                try {
+                    $user->unsetRelation('roles');
+                    $user->unsetRelation('permissions');
+
+                    return $user->getAllPermissions()->pluck('name')->values()->all();
+                } finally {
+                    setPermissionsTeamId($previousTeam);
+                    $user->unsetRelation('roles');
+                    $user->unsetRelation('permissions');
+                }
+            }
+
             return $user->getAllPermissions()->pluck('name')->values()->all();
         } catch (Throwable $e) {
             report($e);
@@ -290,6 +305,10 @@ class HandleInertiaRequests extends Middleware
         }
 
         try {
+            if ($user->isPlatformSuperadmin()) {
+                return ['superadmin'];
+            }
+
             return $user->getRoleNames()->values()->all();
         } catch (Throwable $e) {
             report($e);

@@ -17,7 +17,7 @@ final class InAppAssistantUsageLimiter
 {
     public function isUnlimited(User $user): bool
     {
-        return $user->hasRole('superadmin');
+        return $user->isPlatformSuperadmin();
     }
 
     public function limit(): int

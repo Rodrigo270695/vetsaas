@@ -35,6 +35,8 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     use HasFactory, HasRoles, HasUuids, Notifiable, SoftDeletes, TwoFactorAuthenticatable, UsesPublicSchema;
 
+    private ?bool $isPlatformSuperadminMemo = null;
+
     /**
      * Get the attributes that should be cast.
      *
@@ -99,6 +101,37 @@ class User extends Authenticatable
     public function isCentral(): bool
     {
         return $this->tenant_id === null;
+    }
+
+    /**
+     * ¿Es superadmin de plataforma (rol global con tenant_id null)?
+     *
+     * Con Spatie Teams activo, `hasRole('superadmin')` falla en hosts de
+     * clínica porque el team actual es el UUID del tenant y el pivot del
+     * superadmin queda en team null. Este helper consulta siempre con team null.
+     */
+    public function isPlatformSuperadmin(): bool
+    {
+        if ($this->isPlatformSuperadminMemo !== null) {
+            return $this->isPlatformSuperadminMemo;
+        }
+
+        if (! $this->isCentral()) {
+            return $this->isPlatformSuperadminMemo = false;
+        }
+
+        $previousTeam = getPermissionsTeamId();
+        setPermissionsTeamId(null);
+
+        try {
+            // Evita reutilizar la relación `roles` cargada con otro team.
+            $this->unsetRelation('roles');
+
+            return $this->isPlatformSuperadminMemo = $this->hasRole('superadmin');
+        } finally {
+            setPermissionsTeamId($previousTeam);
+            $this->unsetRelation('roles');
+        }
     }
 
     /**

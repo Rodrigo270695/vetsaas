@@ -50,7 +50,7 @@ class MatchUserTenant
 
         if ($hostTenantId !== null
             && $userTenantId === null
-            && $user->hasRole('superadmin')) {
+            && $user->isPlatformSuperadmin()) {
             $imp = $request->session()->get('tenant_impersonation');
             if (is_array($imp)
                 && isset($imp['tenant_id'])
