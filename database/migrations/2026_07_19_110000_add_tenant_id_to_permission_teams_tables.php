@@ -63,17 +63,9 @@ return new class extends Migration
             });
         }
 
-        // Migrar datos en el mismo paso para no dejar el sistema sin permisos
-        // entre "migrate" y el comando artisan.
-        if (DB::getDriverName() === 'pgsql' && config('permission.teams')) {
-            try {
-                $result = app(\App\Services\Rbac\MigrateRolesToTeams::class)->run(dryRun: false);
-                logger()->info('migrate-roles-to-teams via migration', $result);
-            } catch (\Throwable $e) {
-                // En entornos sin tenants / seed incompleto no bloqueamos migrate.
-                logger()->warning('migrate-roles-to-teams skipped: '.$e->getMessage());
-            }
-        }
+        // La copia de roles por tenant NO va aquí: mantener el ALTER corto
+        // evita locks largos con php-fpm activo. Correr después:
+        //   php artisan vetsaas:migrate-roles-to-teams --force
     }
 
     public function down(): void
