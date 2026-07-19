@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Models\ClinicSetting;
 use App\Models\User;
+use App\Services\InAppAssistant\InAppAssistantService;
 use App\Support\Clinic\ClinicBrandingUrls;
 use App\Support\Plan\PlanLimits;
 use App\Support\Subscriptions\BotIaAccess;
@@ -158,10 +159,14 @@ class HandleInertiaRequests extends Middleware
                 : static fn () => BotIaAccess::navPayload($tenantContext->tenant),
             'in_app_assistant' => $skipHeavySharedProps || $tenantContext === null
                 ? null
-                : [
-                    'enabled' => (bool) config('in-app-assistant.enabled', true),
-                    'configured' => trim((string) config('in-app-assistant.openai_api_key', '')) !== '',
-                ],
+                : static function (): array {
+                    $assistant = app(InAppAssistantService::class);
+
+                    return [
+                        'enabled' => (bool) config('in-app-assistant.enabled', true),
+                        'configured' => $assistant->isConfigured(),
+                    ];
+                },
             'tenant_modules' => $skipHeavySharedProps || $tenantContext === null
                 ? null
                 : static fn () => TenantModuleAccess::snapshot($tenantContext->tenant),

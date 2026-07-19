@@ -26,7 +26,13 @@ final class InAppAssistantService
             return false;
         }
 
-        return trim((string) config('in-app-assistant.openai_api_key', '')) !== '';
+        $key = trim((string) config('in-app-assistant.openai_api_key', ''));
+        if ($key === '') {
+            // Fallback: misma clave usada por Bot IA / SalesBot.
+            $key = trim((string) config('bot-ia.openai_api_key', ''));
+        }
+
+        return $key !== '';
     }
 
     /**
@@ -36,6 +42,9 @@ final class InAppAssistantService
     public function chat(string $userMessage, array $history = []): array
     {
         $apiKey = trim((string) config('in-app-assistant.openai_api_key', ''));
+        if ($apiKey === '') {
+            $apiKey = trim((string) config('bot-ia.openai_api_key', ''));
+        }
         if ($apiKey === '') {
             throw new RuntimeException('OPENAI_API_KEY no está configurada.');
         }

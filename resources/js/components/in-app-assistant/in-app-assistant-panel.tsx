@@ -1,5 +1,5 @@
 import { usePage } from '@inertiajs/react';
-import { Loader2, SendHorizontal, Sparkles, Trash2 } from 'lucide-react';
+import { Bot, Loader2, SendHorizontal, Sparkles, Trash2, UserRound } from 'lucide-react';
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
@@ -33,8 +33,8 @@ function csrfToken(): string {
 export function InAppAssistantPanel({ open, onOpenChange }: Props) {
     const { t } = useTranslation('in-app-assistant');
     const { in_app_assistant } = usePage().props;
-    const configured = in_app_assistant?.configured === true;
 
+    const [configured, setConfigured] = useState(in_app_assistant?.configured === true);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [draft, setDraft] = useState('');
     const [sending, setSending] = useState(false);
@@ -43,10 +43,36 @@ export function InAppAssistantPanel({ open, onOpenChange }: Props) {
     const inputRef = useRef<HTMLTextAreaElement | null>(null);
 
     useEffect(() => {
+        setConfigured(in_app_assistant?.configured === true);
+    }, [in_app_assistant?.configured]);
+
+    useEffect(() => {
         if (!open) {
             return;
         }
+
         const timer = window.setTimeout(() => inputRef.current?.focus(), 280);
+
+        void fetch('/asistente/status', {
+            headers: {
+                Accept: 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            credentials: 'same-origin',
+        })
+            .then(async (res) => {
+                if (!res.ok) {
+                    return;
+                }
+                const body = (await res.json()) as { configured?: boolean };
+                if (typeof body.configured === 'boolean') {
+                    setConfigured(body.configured);
+                }
+            })
+            .catch(() => {
+                // Mantener el estado de Inertia si el status falla.
+            });
+
         return () => window.clearTimeout(timer);
     }, [open]);
 
@@ -132,22 +158,35 @@ export function InAppAssistantPanel({ open, onOpenChange }: Props) {
         <Sheet open={open} onOpenChange={onOpenChange}>
             <SheetContent
                 side="right"
-                overlayClassName="bg-slate-950/35 backdrop-blur-[2px] data-[state=open]:duration-500 data-[state=closed]:duration-300"
+                overlayClassName="bg-slate-950/40 backdrop-blur-[2px] data-[state=open]:duration-500 data-[state=closed]:duration-300"
                 className={cn(
-                    'gap-0 overflow-hidden border-l border-border/70 bg-background p-0 shadow-2xl sm:max-w-md',
+                    'gap-0 overflow-hidden border-l-2 border-sky-200/90 bg-background p-0 shadow-2xl sm:max-w-md',
+                    'dark:border-sky-800/80',
                     'data-[state=open]:duration-500 data-[state=closed]:duration-300',
                     'ease-[cubic-bezier(0.22,1,0.36,1)]',
                 )}
             >
-                <SheetHeader className="shrink-0 border-b border-border/60 bg-linear-to-br from-sky-50/90 via-background to-background px-5 py-4 pr-12 dark:from-sky-950/40">
+                <SheetHeader className="shrink-0 space-y-0 border-b border-border/70 bg-linear-to-br from-sky-50 via-white to-slate-50 px-5 py-4 pr-12 dark:from-sky-950/50 dark:via-background dark:to-background">
                     <div className="flex items-start gap-3">
-                        <div className="mt-0.5 flex size-9 items-center justify-center rounded-lg bg-sky-600 text-white shadow-sm shadow-sky-600/25">
+                        <div className="mt-0.5 flex size-10 items-center justify-center rounded-xl border border-sky-500/20 bg-sky-600 text-white shadow-md shadow-sky-600/20">
                             <Sparkles className="size-4" strokeWidth={2.25} />
                         </div>
-                        <div className="min-w-0 space-y-0.5">
-                            <SheetTitle className="text-base font-semibold tracking-tight">
-                                {t('panel.title')}
-                            </SheetTitle>
+                        <div className="min-w-0 flex-1 space-y-1.5">
+                            <div className="flex flex-wrap items-center gap-2">
+                                <SheetTitle className="text-base font-semibold tracking-tight">
+                                    {t('panel.title')}
+                                </SheetTitle>
+                                <span
+                                    className={cn(
+                                        'inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium tracking-wide uppercase',
+                                        configured
+                                            ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-300'
+                                            : 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200',
+                                    )}
+                                >
+                                    {configured ? t('panel.badge_ready') : t('panel.badge_offline')}
+                                </span>
+                            </div>
                             <SheetDescription className="text-xs leading-relaxed">
                                 {t('panel.subtitle')}
                             </SheetDescription>
@@ -156,26 +195,40 @@ export function InAppAssistantPanel({ open, onOpenChange }: Props) {
                 </SheetHeader>
 
                 <div className="flex min-h-0 flex-1 flex-col">
-                    <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4">
+                    <div
+                        className={cn(
+                            'min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-5',
+                            'bg-[radial-gradient(circle_at_top,rgba(14,165,233,0.06),transparent_42%),linear-gradient(180deg,rgba(248,250,252,0.9),rgba(255,255,255,1))]',
+                            'dark:bg-[radial-gradient(circle_at_top,rgba(14,165,233,0.08),transparent_42%),linear-gradient(180deg,rgba(2,6,23,0.35),rgba(2,6,23,0))]',
+                        )}
+                    >
                         {!configured ? (
-                            <p className="rounded-lg border border-amber-200/80 bg-amber-50/80 px-3 py-2.5 text-sm text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-100">
-                                {t('panel.not_configured')}
-                            </p>
+                            <div className="rounded-xl border border-amber-200/90 bg-amber-50/95 p-4 shadow-xs dark:border-amber-900/50 dark:bg-amber-950/35">
+                                <p className="text-sm leading-relaxed text-amber-950 dark:text-amber-100">
+                                    {t('panel.not_configured')}
+                                </p>
+                            </div>
                         ) : messages.length === 0 ? (
-                            <div className="space-y-4">
-                                <p className="text-sm leading-relaxed text-muted-foreground">
+                            <div className="rounded-2xl border border-border/80 bg-white/90 p-5 shadow-sm dark:bg-card/80">
+                                <div className="mb-3 flex size-11 items-center justify-center rounded-xl bg-sky-600/10 text-sky-700 dark:text-sky-300">
+                                    <Bot className="size-5" strokeWidth={2} />
+                                </div>
+                                <h3 className="text-sm font-semibold text-foreground">
+                                    {t('panel.welcome_title')}
+                                </h3>
+                                <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
                                     {t('panel.welcome')}
                                 </p>
-                                <p className="text-xs text-muted-foreground/80">
+                                <p className="mt-3 text-xs text-muted-foreground/80">
                                     {t('panel.empty_hint')}
                                 </p>
-                                <div className="flex flex-wrap gap-2">
+                                <div className="mt-4 grid gap-2">
                                     {suggestions.map((label) => (
                                         <button
                                             key={label}
                                             type="button"
                                             onClick={() => void sendMessage(label)}
-                                            className="rounded-full border border-border/80 bg-card/80 px-3 py-1.5 text-left text-xs text-foreground/90 transition-colors hover:border-sky-300 hover:bg-sky-50/80 dark:hover:border-sky-800 dark:hover:bg-sky-950/40"
+                                            className="rounded-xl border border-border/80 bg-slate-50/80 px-3.5 py-2.5 text-left text-xs font-medium text-foreground/90 transition-all hover:border-sky-300 hover:bg-sky-50 hover:text-sky-900 dark:bg-background/40 dark:hover:border-sky-800 dark:hover:bg-sky-950/40 dark:hover:text-sky-100"
                                         >
                                             {label}
                                         </button>
@@ -187,33 +240,63 @@ export function InAppAssistantPanel({ open, onOpenChange }: Props) {
                                 <div
                                     key={msg.id}
                                     className={cn(
-                                        'flex',
-                                        msg.role === 'user' ? 'justify-end' : 'justify-start',
+                                        'flex gap-2.5',
+                                        msg.role === 'user' ? 'flex-row-reverse' : 'flex-row',
                                     )}
                                 >
                                     <div
                                         className={cn(
-                                            'max-w-[92%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap shadow-xs',
+                                            'mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full border shadow-xs',
                                             msg.role === 'user'
-                                                ? 'rounded-br-md bg-sky-600 text-white'
-                                                : 'rounded-bl-md border border-border/70 bg-muted/40 text-foreground',
+                                                ? 'border-sky-500/30 bg-sky-600 text-white'
+                                                : 'border-border/80 bg-white text-sky-700 dark:bg-card dark:text-sky-300',
+                                        )}
+                                        aria-hidden
+                                    >
+                                        {msg.role === 'user' ? (
+                                            <UserRound className="size-3.5" strokeWidth={2.25} />
+                                        ) : (
+                                            <Bot className="size-3.5" strokeWidth={2.25} />
+                                        )}
+                                    </div>
+                                    <div
+                                        className={cn(
+                                            'max-w-[85%] space-y-1',
+                                            msg.role === 'user' ? 'items-end' : 'items-start',
                                         )}
                                     >
-                                        {msg.content}
+                                        <p className="px-1 text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
+                                            {msg.role === 'user' ? t('panel.you') : t('panel.assistant')}
+                                        </p>
+                                        <div
+                                            className={cn(
+                                                'rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap shadow-sm',
+                                                msg.role === 'user'
+                                                    ? 'rounded-tr-md border border-sky-500/20 bg-sky-600 text-white'
+                                                    : 'rounded-tl-md border border-border/80 bg-white text-foreground dark:bg-card',
+                                            )}
+                                        >
+                                            {msg.content}
+                                        </div>
                                     </div>
                                 </div>
                             ))
                         )}
 
                         {sending && (
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                <Loader2 className="size-3.5 animate-spin" />
-                                {t('panel.thinking')}
+                            <div className="flex items-center gap-2.5">
+                                <div className="flex size-8 items-center justify-center rounded-full border border-border/80 bg-white text-sky-700 shadow-xs dark:bg-card dark:text-sky-300">
+                                    <Bot className="size-3.5" />
+                                </div>
+                                <div className="inline-flex items-center gap-2 rounded-2xl rounded-tl-md border border-border/80 bg-white px-3.5 py-2.5 text-xs text-muted-foreground shadow-sm dark:bg-card">
+                                    <Loader2 className="size-3.5 animate-spin text-sky-600" />
+                                    {t('panel.thinking')}
+                                </div>
                             </div>
                         )}
 
                         {error && (
-                            <p className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+                            <p className="rounded-xl border border-destructive/30 bg-destructive/5 px-3.5 py-2.5 text-sm text-destructive">
                                 {error}
                             </p>
                         )}
@@ -221,9 +304,9 @@ export function InAppAssistantPanel({ open, onOpenChange }: Props) {
                         <div ref={bottomRef} />
                     </div>
 
-                    <div className="shrink-0 border-t border-border/60 bg-background/95 px-4 py-3 backdrop-blur-sm">
+                    <div className="shrink-0 border-t border-border/70 bg-white/95 px-4 py-3.5 backdrop-blur-sm dark:bg-background/95">
                         {messages.length > 0 && (
-                            <div className="mb-2 flex justify-end">
+                            <div className="mb-2.5 flex justify-end">
                                 <Button
                                     type="button"
                                     variant="ghost"
@@ -240,31 +323,33 @@ export function InAppAssistantPanel({ open, onOpenChange }: Props) {
                                 </Button>
                             </div>
                         )}
-                        <div className="flex items-end gap-2">
-                            <Textarea
-                                ref={inputRef}
-                                value={draft}
-                                onChange={(e) => setDraft(e.target.value)}
-                                onKeyDown={onKeyDown}
-                                placeholder={t('panel.placeholder')}
-                                disabled={!configured || sending}
-                                rows={2}
-                                className="min-h-17 max-h-32 resize-none"
-                            />
-                            <Button
-                                type="button"
-                                size="icon"
-                                className="size-10 shrink-0 bg-sky-600 text-white hover:bg-sky-600/90"
-                                disabled={!configured || sending || draft.trim() === ''}
-                                onClick={() => void sendMessage(draft)}
-                                aria-label={t('panel.send')}
-                            >
-                                {sending ? (
-                                    <Loader2 className="size-4 animate-spin" />
-                                ) : (
-                                    <SendHorizontal className="size-4" />
-                                )}
-                            </Button>
+                        <div className="rounded-2xl border border-border/80 bg-slate-50/70 p-2 shadow-xs dark:bg-card/40">
+                            <div className="flex items-end gap-2">
+                                <Textarea
+                                    ref={inputRef}
+                                    value={draft}
+                                    onChange={(e) => setDraft(e.target.value)}
+                                    onKeyDown={onKeyDown}
+                                    placeholder={t('panel.placeholder')}
+                                    disabled={!configured || sending}
+                                    rows={2}
+                                    className="min-h-17 max-h-32 resize-none border-0 bg-transparent shadow-none focus-visible:ring-0"
+                                />
+                                <Button
+                                    type="button"
+                                    size="icon"
+                                    className="size-10 shrink-0 rounded-xl bg-sky-600 text-white shadow-sm shadow-sky-600/20 hover:bg-sky-600/90"
+                                    disabled={!configured || sending || draft.trim() === ''}
+                                    onClick={() => void sendMessage(draft)}
+                                    aria-label={t('panel.send')}
+                                >
+                                    {sending ? (
+                                        <Loader2 className="size-4 animate-spin" />
+                                    ) : (
+                                        <SendHorizontal className="size-4" />
+                                    )}
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 </div>
