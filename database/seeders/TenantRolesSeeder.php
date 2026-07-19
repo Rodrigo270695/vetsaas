@@ -64,6 +64,7 @@ class TenantRolesSeeder extends Seeder
 
                 // Clínica
                 'pacientes.view', 'pacientes.create', 'pacientes.update', 'pacientes.delete', 'pacientes.export', 'pacientes.bulk-delete',
+                'petpass.view', 'petpass.register',
                 'propietarios.view', 'propietarios.create', 'propietarios.update', 'propietarios.delete', 'propietarios.export', 'propietarios.bulk-delete',
                 'citas.view', 'citas.create', 'citas.update', 'citas.delete', 'citas.cancel',
                 'historias-clinicas.view', 'historias-clinicas.create', 'historias-clinicas.update', 'historias-clinicas.delete',
@@ -141,6 +142,7 @@ class TenantRolesSeeder extends Seeder
 
                 // Pacientes & propietarios (puede crear si recibe walk-in)
                 'pacientes.view', 'pacientes.create', 'pacientes.update',
+                'petpass.view', 'petpass.register',
                 'propietarios.view', 'propietarios.create', 'propietarios.update',
 
                 // Agenda
@@ -214,6 +216,7 @@ class TenantRolesSeeder extends Seeder
 
                 // Clientes & pacientes (los registra al ingresar)
                 'pacientes.view', 'pacientes.create', 'pacientes.update',
+                'petpass.view', 'petpass.register',
                 'propietarios.view', 'propietarios.create', 'propietarios.update',
 
                 // Agenda completa

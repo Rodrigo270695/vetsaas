@@ -34,6 +34,7 @@ use App\Http\Controllers\MovimientoInventarioController;
 use App\Http\Controllers\NotificationQueueController;
 use App\Http\Controllers\OfflineSyncController;
 use App\Http\Controllers\PacienteController;
+use App\Http\Controllers\PacientePetPassController;
 use App\Http\Controllers\PlanController;
 use App\Http\Controllers\PlataformaImpersonationAuditController;
 use App\Http\Controllers\PlataformaOperacionesController;
@@ -252,6 +253,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             Route::middleware('permission:pacientes.view')
                 ->get('pacientes/{paciente}', [PacienteController::class, 'show'])
                 ->name('pacientes.show');
+            Route::middleware('permission:petpass.register')
+                ->get('pacientes/{paciente}/petpass/registrar', [PacientePetPassController::class, 'start'])
+                ->name('pacientes.petpass.registrar');
             Route::middleware('permission:pacientes.view')
                 ->get('pacientes/{paciente}/historial-clinico.pdf', [PacienteController::class, 'historialClinicoPdf'])
                 ->name('pacientes.historial-clinico-pdf');

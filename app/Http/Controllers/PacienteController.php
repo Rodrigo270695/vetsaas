@@ -157,7 +157,7 @@ class PacienteController extends Controller
     {
         abort_unless($request->user()?->can('pacientes.view') ?? false, 403);
 
-        $paciente->load(['propietario:id,nombres,apellidos,razon_social,telefono']);
+        $paciente->load(['propietario:id,nombres,apellidos,razon_social,telefono,tipo_documento,numero_documento,email']);
 
         $user = $request->user();
         $canVerConsultas = $user?->can('historias-clinicas.view') ?? false;
@@ -165,6 +165,10 @@ class PacienteController extends Controller
         $canVerVacunas = $user?->can('vacunaciones.view') ?? false;
         $canCrearVacuna = $user?->can('vacunaciones.create') ?? false;
         $canEditarVacuna = $user?->can('vacunaciones.update') ?? false;
+        $canPetPassRegister = ($user?->can('petpass.register') ?? false)
+            && (bool) config('petpass.enabled', false)
+            && filled(config('petpass.handoff_secret'))
+            && filled(config('petpass.base_url'));
 
         $tz = config('app.timezone');
 
@@ -307,6 +311,14 @@ class PacienteController extends Controller
                 'laboratorio_rapido' => $canLabCreate
                     ? route('clinica.pacientes.laboratorio-rapido', $paciente)
                     : null,
+                'petpass_registrar' => $canPetPassRegister
+                    && filled($paciente->microchip)
+                    && ! in_array($paciente->petpass_status, ['registered', 'lost'], true)
+                    ? route('clinica.pacientes.petpass.registrar', $paciente)
+                    : null,
+                'petpass_certificado' => filled($paciente->petpass_certificate_url)
+                    ? $paciente->petpass_certificate_url
+                    : null,
             ],
             'permisos' => [
                 'consultas_ver' => $canVerConsultas,
@@ -314,6 +326,7 @@ class PacienteController extends Controller
                 'vacunas_ver' => $canVerVacunas,
                 'vacunas_crear' => $canCrearVacuna,
                 'laboratorio_crear' => $canLabCreate,
+                'petpass_register' => $canPetPassRegister,
             ],
         ]);
     }

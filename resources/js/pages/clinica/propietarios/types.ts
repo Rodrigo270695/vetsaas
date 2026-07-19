@@ -102,6 +102,11 @@ export type Paciente = {
     fecha_nacimiento: string | null;
     peso_kg: string | null;
     microchip: string | null;
+    petpass_status?: string | null;
+    petpass_public_code?: string | null;
+    petpass_certificate_url?: string | null;
+    petpass_registered_at?: string | null;
+    petpass_lost_at?: string | null;
     color: string | null;
     esterilizado: boolean | null;
     notas: string | null;

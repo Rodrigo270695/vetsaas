@@ -23,6 +23,12 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property ?\Illuminate\Support\Carbon $fecha_nacimiento
  * @property ?string $peso_kg
  * @property ?string $microchip
+ * @property ?string $petpass_status
+ * @property ?string $petpass_registration_id
+ * @property ?string $petpass_public_code
+ * @property ?string $petpass_certificate_url
+ * @property ?\Illuminate\Support\Carbon $petpass_registered_at
+ * @property ?\Illuminate\Support\Carbon $petpass_lost_at
  * @property ?string $color
  * @property ?bool $esterilizado
  * @property ?string $notas
@@ -52,6 +58,12 @@ class Paciente extends Model
         'fecha_nacimiento',
         'peso_kg',
         'microchip',
+        'petpass_status',
+        'petpass_registration_id',
+        'petpass_public_code',
+        'petpass_certificate_url',
+        'petpass_registered_at',
+        'petpass_lost_at',
         'color',
         'esterilizado',
         'notas',
@@ -66,6 +78,8 @@ class Paciente extends Model
             'fecha_nacimiento' => 'date',
             'esterilizado' => 'boolean',
             'activo' => 'boolean',
+            'petpass_registered_at' => 'datetime',
+            'petpass_lost_at' => 'datetime',
         ];
     }
 

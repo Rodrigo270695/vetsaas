@@ -4,12 +4,14 @@ import {
     Cake,
     Cat,
     Dog,
+    ExternalLink,
     FileDown,
     FlaskConical,
     MessageCircle,
     PawPrint,
     Plus,
     Scale,
+    ShieldCheck,
     Syringe,
     UserRound,
 } from 'lucide-react';
@@ -31,11 +33,14 @@ type Props = {
         historial_pdf: string | null;
         historial_whatsapp?: string | null;
         laboratorio_rapido?: string | null;
+        petpass_registrar?: string | null;
+        petpass_certificado?: string | null;
     };
     permisos: {
         consultas_crear: boolean;
         vacunas_crear: boolean;
         laboratorio_crear: boolean;
+        petpass_register?: boolean;
     };
     timelineStats: {
         consultas: number;
@@ -184,6 +189,23 @@ export function PacienteHistorialHero({
                                 <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
                                     {paciente.nombre}
                                 </h1>
+                                {paciente.petpass_status === 'lost' ? (
+                                    <Badge className="border-red-500/30 bg-red-500/15 text-[0.7rem] font-semibold text-red-800 dark:text-red-200">
+                                        {t('historial.petpass_badge_lost')}
+                                    </Badge>
+                                ) : paciente.petpass_status === 'registered' ? (
+                                    <Badge className="border-cyan-500/30 bg-cyan-500/15 text-[0.7rem] font-semibold text-cyan-900 dark:text-cyan-100">
+                                        {t('historial.petpass_badge_registered')}
+                                    </Badge>
+                                ) : paciente.petpass_status === 'pending' ? (
+                                    <Badge variant="secondary" className="text-[0.7rem] font-medium">
+                                        {t('historial.petpass_badge_pending')}
+                                    </Badge>
+                                ) : paciente.microchip ? (
+                                    <Badge variant="outline" className="text-[0.7rem] font-medium text-muted-foreground">
+                                        {t('historial.petpass_badge_local')}
+                                    </Badge>
+                                ) : null}
                                 {timelineStats.total > 0 ? (
                                     <Badge
                                         variant="secondary"
@@ -319,6 +341,22 @@ export function PacienteHistorialHero({
                         >
                             <MessageCircle className="size-4" strokeWidth={2.25} />
                             {t('historial.action_whatsapp')}
+                        </Button>
+                    ) : null}
+                    {!isPublic && links.petpass_registrar ? (
+                        <Button type="button" size="sm" variant="outline" className="gap-2 border-cyan-500/35 text-cyan-800 hover:bg-cyan-500/10 dark:text-cyan-200" asChild>
+                            <a href={links.petpass_registrar}>
+                                <ShieldCheck className="size-4" strokeWidth={2.25} />
+                                {t('historial.action_petpass_register')}
+                            </a>
+                        </Button>
+                    ) : null}
+                    {!isPublic && links.petpass_certificado ? (
+                        <Button type="button" size="sm" variant="outline" className="gap-2" asChild>
+                            <a href={links.petpass_certificado} target="_blank" rel="noopener noreferrer">
+                                <ExternalLink className="size-4" strokeWidth={2.25} />
+                                {t('historial.action_petpass_certificate')}
+                            </a>
                         </Button>
                     ) : null}
                 </div>

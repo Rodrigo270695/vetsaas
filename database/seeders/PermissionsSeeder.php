@@ -34,6 +34,7 @@ class PermissionsSeeder extends Seeder
 
         // ───── Clínica ─────
         'pacientes' => ['view', 'create', 'update', 'delete', 'export', 'bulk-delete'],
+        'petpass' => ['view', 'register'],
         'propietarios' => ['view', 'create', 'update', 'delete', 'export', 'bulk-delete'],
         'citas' => ['view', 'create', 'update', 'delete', 'cancel'],
         'historias-clinicas' => ['view', 'create', 'update', 'delete'],

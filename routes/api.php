@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AlmaPetWebhookController;
 use App\Http\Controllers\Api\ClinicBotWebhookController;
 use App\Http\Controllers\Api\Internal\SaasProvisionController;
 use App\Http\Controllers\Api\Public\TenantShowcaseController;
@@ -42,6 +43,18 @@ Route::post('webhooks/sales-bot', [SalesBotWebhookController::class, 'handle'])
 */
 Route::post('webhooks/clinic-bot', [ClinicBotWebhookController::class, 'handle'])
     ->name('api.webhooks.clinic-bot');
+
+/*
+|--------------------------------------------------------------------------
+| AlmaPet ID — webhooks de estado (registered / lost / recovered)
+|--------------------------------------------------------------------------
+|
+| POST /api/webhooks/almapet
+| Header: X-AlmaPet-Signature = hmac_sha256(body, PETPASS_WEBHOOK_SECRET)
+|
+*/
+Route::post('webhooks/almapet', [AlmaPetWebhookController::class, 'handle'])
+    ->name('api.webhooks.almapet');
 
 /*
 |--------------------------------------------------------------------------
