@@ -2,10 +2,10 @@
 
 namespace Database\Seeders;
 
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
 
 /**
  * Crea (o re-sincroniza) el rol `superadmin` y el usuario superadmin.
@@ -29,32 +29,50 @@ class SuperadminSeeder extends Seeder
             return;
         }
 
-        $role = Role::query()->firstOrCreate(
-            ['name' => 'superadmin', 'guard_name' => 'web'],
-        );
+        $previousTeam = getPermissionsTeamId();
+        setPermissionsTeamId(null);
 
-        $allPermissions = Permission::query()
-            ->where('guard_name', 'web')
-            ->pluck('id')
-            ->all();
+        try {
+            $role = Role::query()
+                ->whereNull('tenant_id')
+                ->where('name', 'superadmin')
+                ->where('guard_name', 'web')
+                ->first();
 
-        $role->syncPermissions($allPermissions);
+            if ($role === null) {
+                $role = Role::query()->create([
+                    'name' => 'superadmin',
+                    'guard_name' => 'web',
+                    'tenant_id' => null,
+                ]);
+            }
 
-        $user = User::query()->updateOrCreate(
-            ['email' => $email],
-            [
-                'name' => config('platform.superadmin.name', 'Super Administrador'),
-                'password' => $password,
-                'email_verified_at' => now(),
-            ],
-        );
+            $allPermissions = Permission::query()
+                ->where('guard_name', 'web')
+                ->pluck('id')
+                ->all();
 
-        $user->syncRoles([$role]);
+            $role->syncPermissions($allPermissions);
+
+            $user = User::query()->updateOrCreate(
+                ['email' => $email],
+                [
+                    'name' => config('platform.superadmin.name', 'Super Administrador'),
+                    'password' => $password,
+                    'email_verified_at' => now(),
+                    'tenant_id' => null,
+                ],
+            );
+
+            $user->syncRoles([$role]);
+        } finally {
+            setPermissionsTeamId($previousTeam);
+        }
 
         $this->command?->info(sprintf(
             'Superadmin creado: %s (rol: superadmin, %d permisos)',
             $email,
-            count($allPermissions),
+            Permission::query()->where('guard_name', 'web')->count(),
         ));
     }
 }

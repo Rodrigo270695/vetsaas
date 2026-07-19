@@ -12,6 +12,7 @@ use App\Support\Audit\AuditActor;
 use App\Tenancy\TenantManager;
 use Database\Seeders\PermissionsSeeder;
 use Database\Seeders\TenantRolesSeeder;
+use Tests\Support\TenantRbac;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -34,7 +35,6 @@ beforeEach(function (): void {
     ]);
 
     $this->seed(PermissionsSeeder::class);
-    $this->seed(TenantRolesSeeder::class);
 
     $this->slug = 'audit-'.Str::lower(Str::random(4));
     $this->schema = 'vet_test_'.Str::lower(Str::random(6));
@@ -62,7 +62,7 @@ beforeEach(function (): void {
         'must_change_password' => false,
         'email_verified_at' => now(),
     ]);
-    $this->admin->assignRole('admin_clinica');
+    TenantRbac::seedAndAssign($this->admin);
 
     $this->host = $this->slug.'.vetsaas.test';
 });

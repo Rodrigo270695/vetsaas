@@ -94,7 +94,14 @@ it('no lista superadmin ni usuarios de otras clínicas en el subdominio del tena
         'is_active' => true,
         'email_verified_at' => now(),
     ]);
-    $otherTenantAdmin->assignRole('admin_clinica');
+    (new \Database\Seeders\TenantRolesSeeder)->seedForTenant((string) $this->otherTenant->id);
+    $prevTeam = getPermissionsTeamId();
+    setPermissionsTeamId((string) $this->otherTenant->id);
+    try {
+        $otherTenantAdmin->assignRole('admin_clinica');
+    } finally {
+        setPermissionsTeamId($prevTeam);
+    }
 
     $this->actingAs($this->testTenantAdmin);
 

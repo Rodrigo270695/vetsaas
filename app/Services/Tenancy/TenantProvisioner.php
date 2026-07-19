@@ -8,6 +8,7 @@ use App\Models\SubscriptionPayment;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Support\Tenancy\TenantSubdomainUrl;
+use Database\Seeders\TenantRolesSeeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -223,6 +224,8 @@ class TenantProvisioner
 
         DB::statement('SET LOCAL search_path TO public');
 
+        (new TenantRolesSeeder)->seedForTenant((string) $tenant->id);
+
         $nombre = trim(implode(' ', array_filter([
             $payload['admin_nombres'] ?? 'Administrador',
             $payload['admin_apellidos'] ?? 'Clínica',
@@ -243,8 +246,14 @@ class TenantProvisioner
             ],
         );
 
-        if ($user->roles()->where('name', 'admin_clinica')->doesntExist()) {
-            $user->assignRole('admin_clinica');
+        $previousTeam = getPermissionsTeamId();
+        setPermissionsTeamId((string) $tenant->id);
+        try {
+            if ($user->roles()->where('name', 'admin_clinica')->doesntExist()) {
+                $user->assignRole('admin_clinica');
+            }
+        } finally {
+            setPermissionsTeamId($previousTeam);
         }
     }
 }

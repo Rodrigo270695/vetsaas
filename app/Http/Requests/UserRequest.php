@@ -54,7 +54,11 @@ class UserRequest extends FormRequest
             ->where('guard_name', 'web');
 
         if (ClinicAdminScope::isClinicContext()) {
-            $roleRule = $roleRule->whereNotIn('name', ClinicAdminScope::hiddenRoleNames());
+            $roleRule = $roleRule
+                ->where('tenant_id', tenant_id())
+                ->whereNotIn('name', ClinicAdminScope::hiddenRoleNames());
+        } else {
+            $roleRule = $roleRule->whereNull('tenant_id');
         }
 
         return [

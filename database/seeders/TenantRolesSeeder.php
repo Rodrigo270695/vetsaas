@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Role;
+use App\Models\Tenant;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Schema;
 use Spatie\Permission\Models\Permission;
@@ -21,14 +22,15 @@ use Spatie\Permission\PermissionRegistrar;
  *
  * Características:
  *
- *   - **Idempotente**: `firstOrCreate` por nombre + `syncPermissions()` re-aplica
- *     el set declarado, así puedes editar este seeder y volver a correrlo para
- *     que los cambios se propaguen sin duplicar nada.
- *   - Los marca como roles protegidos vía `Role::BASE_CLINIC_ROLES` (no
- *     eliminables ni renombrables desde el panel). Sí se pueden ajustar
- *     permisos, salvo dejarlos vacíos.
- *   - `SYSTEM_ROLES` / protegidos incluyen estos + `superadmin`.
+ *   - **Por tenant**: cada clínica tiene sus propias filas de roles
+ *     (`roles.tenant_id`). Cambiar permisos en A no afecta a B.
+ *   - **Idempotente**: `firstOrCreate` por (tenant_id, name) + `syncPermissions()`.
+ *   - Roles protegidos vía `Role::BASE_CLINIC_ROLES` (no eliminables/renombrables).
  *   - Depende de `PermissionsSeeder` (los permisos deben existir antes).
+ *
+ * Uso:
+ *   - `php artisan db:seed --class=TenantRolesSeeder` → siembra todos los tenants.
+ *   - `(new TenantRolesSeeder)->seedForTenant($tenantId)` → un tenant concreto.
  */
 class TenantRolesSeeder extends Seeder
 {
@@ -270,73 +272,92 @@ class TenantRolesSeeder extends Seeder
 
     public function run(): void
     {
+        $tenantIds = Tenant::query()->pluck('id')->all();
+
+        if ($tenantIds === []) {
+            $this->command?->warn('TenantRolesSeeder: no hay tenants; nada que sembrar. Los roles se crean al provisionar cada clínica.');
+
+            return;
+        }
+
+        foreach ($tenantIds as $tenantId) {
+            $this->seedForTenant((string) $tenantId);
+        }
+    }
+
+    /**
+     * Crea/sincroniza los roles base para un tenant concreto.
+     */
+    public function seedForTenant(string $tenantId): void
+    {
         $guard = config('auth.defaults.guard', 'web');
 
-        // Defensa: si por alguna razón se corre este seeder antes de
-        // ejecutar las migraciones de Spatie, fallar con un mensaje claro
-        // ahorra mucho tiempo de debugging.
         if (! Schema::hasTable(config('permission.table_names.roles'))) {
             $this->command?->error('No existe la tabla de roles. Ejecuta `php artisan migrate` primero.');
 
             return;
         }
 
-        // Cargamos los nombres de permisos válidos UNA sola vez para
-        // poder filtrar `permissions` de cada rol contra el catálogo real
-        // sin generar N+1 queries.
-        $validPermissionNames = Permission::query()
-            ->where('guard_name', $guard)
-            ->pluck('name')
-            ->all();
-        $validPermissionSet = array_flip($validPermissionNames);
+        $previousTeam = getPermissionsTeamId();
+        setPermissionsTeamId($tenantId);
 
-        if ($validPermissionSet === []) {
-            $this->command?->warn('No hay permisos en BD. Corre primero: php artisan db:seed --class=PermissionsSeeder');
+        try {
+            $validPermissionNames = Permission::query()
+                ->where('guard_name', $guard)
+                ->pluck('name')
+                ->all();
+            $validPermissionSet = array_flip($validPermissionNames);
 
-            return;
-        }
+            if ($validPermissionSet === []) {
+                $this->command?->warn('No hay permisos en BD. Corre primero: php artisan db:seed --class=PermissionsSeeder');
 
-        foreach (self::ROLES as $name => $definition) {
-            $role = Role::query()->firstOrCreate(
-                ['name' => $name, 'guard_name' => $guard],
-                ['description' => $definition['description']],
-            );
-
-            // Mantener `description` alineada con lo declarado aquí
-            // aunque el rol ya existiera de una corrida anterior.
-            if ($role->description !== $definition['description']) {
-                $role->description = $definition['description'];
-                $role->save();
+                return;
             }
 
-            // Filtramos permisos que NO existen en BD, para no romper
-            // el seeder si el catálogo cambió.
-            $perms = array_values(array_filter(
-                $definition['permissions'],
-                fn (string $perm) => isset($validPermissionSet[$perm]),
-            ));
+            foreach (self::ROLES as $name => $definition) {
+                $role = Role::query()->firstOrCreate(
+                    [
+                        'name' => $name,
+                        'guard_name' => $guard,
+                        'tenant_id' => $tenantId,
+                    ],
+                    ['description' => $definition['description']],
+                );
 
-            $missing = array_diff($definition['permissions'], $perms);
-            if (! empty($missing)) {
-                $this->command?->warn(sprintf(
-                    "Rol `%s`: %d permisos no existen en BD y serán ignorados:\n  - %s",
+                if ($role->description !== $definition['description']) {
+                    $role->description = $definition['description'];
+                    $role->save();
+                }
+
+                $perms = array_values(array_filter(
+                    $definition['permissions'],
+                    fn (string $perm) => isset($validPermissionSet[$perm]),
+                ));
+
+                $missing = array_diff($definition['permissions'], $perms);
+                if (! empty($missing)) {
+                    $this->command?->warn(sprintf(
+                        "Rol `%s` (tenant %s): %d permisos no existen en BD y serán ignorados:\n  - %s",
+                        $name,
+                        $tenantId,
+                        count($missing),
+                        implode("\n  - ", $missing),
+                    ));
+                }
+
+                $role->syncPermissions($perms);
+
+                $this->command?->info(sprintf(
+                    'Rol `%s` listo para tenant %s (%d permisos).',
                     $name,
-                    count($missing),
-                    implode("\n  - ", $missing),
+                    $tenantId,
+                    count($perms),
                 ));
             }
 
-            $role->syncPermissions($perms);
-
-            $this->command?->info(sprintf(
-                'Rol `%s` listo (%d permisos).',
-                $name,
-                count($perms),
-            ));
+            app(PermissionRegistrar::class)->forgetCachedPermissions();
+        } finally {
+            setPermissionsTeamId($previousTeam);
         }
-
-        // Limpiamos caché interna de Spatie para que los cambios sean
-        // visibles inmediatamente en la siguiente request.
-        app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 }

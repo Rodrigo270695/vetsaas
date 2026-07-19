@@ -10,6 +10,7 @@ use App\Models\User;
 use Database\Seeders\PermissionsSeeder;
 use Database\Seeders\PlansAndFeaturesSeeder;
 use Database\Seeders\TenantRolesSeeder;
+use Tests\Support\TenantRbac;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Tests\Support\OrvaeProvisionTestHelper;
@@ -31,7 +32,6 @@ beforeEach(function (): void {
     ]);
 
     $this->seed(PermissionsSeeder::class);
-    $this->seed(TenantRolesSeeder::class);
     $this->seed(PlansAndFeaturesSeeder::class);
     $this->plan = Plan::query()->where('codigo', 'starter')->where('activo', true)->firstOrFail();
 });

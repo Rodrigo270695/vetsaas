@@ -10,6 +10,7 @@ use App\Http\Middleware\HandleClinicBrandTheme;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\MatchUserTenant;
 use App\Http\Middleware\ResolveTenant;
+use App\Http\Middleware\SetPermissionsTeam;
 use App\Tenancy\Exceptions\TenantNotFoundException;
 use App\Tenancy\Exceptions\TenantSuspendedException;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -87,6 +88,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // de que llegue cualquier query.
         $middleware->web(prepend: [
             ResolveTenant::class,
+            SetPermissionsTeam::class,
         ]);
 
         // Laravel reordena los middlewares en runtime según la lista de

@@ -79,6 +79,9 @@ class RoleController extends Controller
         // catálogo es pequeño (~120 filas) y simplifica el frontend.
         $permissionsCatalog = $this->buildPermissionsCatalog($request);
 
+        // Stats acotados al alcance actual (tenant o plataforma).
+        $statsBase = ClinicAdminScope::rolesQuery();
+
         return Inertia::render('configuracion/roles/index', [
             'roles' => $roles,
             'filters' => [
@@ -89,13 +92,13 @@ class RoleController extends Controller
                 'tipo' => $tipo,
             ],
             'stats' => [
-                'total' => Role::count(),
-                'sistema' => Role::ofType('sistema')->count(),
-                'personalizados' => Role::ofType('personalizado')->count(),
+                'total' => (clone $statsBase)->count(),
+                'sistema' => (clone $statsBase)->ofType('sistema')->count(),
+                'personalizados' => (clone $statsBase)->ofType('personalizado')->count(),
                 'coincidencias' => $roles->total(),
             ],
             'permissions_catalog' => $permissionsCatalog,
-            // Solo demo: roles Spatie son globales; bloquear mutaciones en UI.
+            // Demo: bloquear mutaciones (roles por tenant, pero demo es pública).
             'mutations_locked' => is_public_demo_tenant(),
         ]);
     }
@@ -110,6 +113,7 @@ class RoleController extends Controller
             'name' => $data['name'],
             'guard_name' => 'web',
             'description' => $data['description'] ?? null,
+            'tenant_id' => tenant_id(),
         ]);
 
         PlatformSecurityAuditLogger::log(

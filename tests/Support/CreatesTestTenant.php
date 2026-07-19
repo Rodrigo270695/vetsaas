@@ -61,21 +61,30 @@ trait CreatesTestTenant
             'estado' => 'active',
         ]);
 
-        $this->testTenantAdmin = User::factory()->create([
-            'email' => 'admin-'.$this->testTenantSlug.'@test.local',
-            'tenant_id' => $this->testTenant->id,
-            'password' => Hash::make('password'),
-            'is_active' => true,
-            'must_change_password' => false,
-            'email_verified_at' => now(),
-        ]);
-        $this->testTenantAdmin->assignRole('admin_clinica');
+        (new TenantRolesSeeder)->seedForTenant((string) $this->testTenant->id);
+
+        $previousTeam = getPermissionsTeamId();
+        setPermissionsTeamId((string) $this->testTenant->id);
+
+        try {
+            $this->testTenantAdmin = User::factory()->create([
+                'email' => 'admin-'.$this->testTenantSlug.'@test.local',
+                'tenant_id' => $this->testTenant->id,
+                'password' => Hash::make('password'),
+                'is_active' => true,
+                'must_change_password' => false,
+                'email_verified_at' => now(),
+            ]);
+            $this->testTenantAdmin->assignRole('admin_clinica');
+        } finally {
+            setPermissionsTeamId($previousTeam);
+        }
     }
 
     protected function seedPermissionsAndRoles(): void
     {
         $this->seed(PermissionsSeeder::class);
-        $this->seed(TenantRolesSeeder::class);
+        // Los roles de clínica se siembran por tenant en createTestTenantWithSchema().
     }
 
     protected function tearDownTestTenant(): void

@@ -4,6 +4,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use Database\Seeders\PermissionsSeeder;
 use Database\Seeders\TenantRolesSeeder;
+use Tests\Support\TenantRbac;
 use Tests\Support\RefreshDatabaseWithPgsqlSafety;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Artisan;
@@ -55,7 +56,6 @@ beforeEach(function (): void {
     ]);
 
     $this->seed(PermissionsSeeder::class);
-    $this->seed(TenantRolesSeeder::class);
 
     $this->slug = 'cfg-test-'.Str::lower(Str::random(4));
     $this->schema = 'vet_test_'.Str::lower(Str::random(6));
@@ -82,7 +82,7 @@ beforeEach(function (): void {
         'is_active' => true,
         'must_change_password' => false,
     ]);
-    $this->admin->assignRole('admin_clinica');
+    TenantRbac::seedAndAssign($this->admin);
 
     $this->groomer = User::factory()->create([
         'email' => 'groomer@test.local',
@@ -91,7 +91,7 @@ beforeEach(function (): void {
         'is_active' => true,
         'must_change_password' => false,
     ]);
-    $this->groomer->assignRole('groomer');
+    TenantRbac::seedAndAssign($this->groomer, 'groomer');
 
     $this->host = $this->slug.'.vetsaas.test';
 });

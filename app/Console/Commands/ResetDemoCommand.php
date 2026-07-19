@@ -81,37 +81,43 @@ final class ResetDemoCommand extends Command
             }
         }
 
-        // Roles Spatie son globales (teams=false). Si alguien vació permisos
-        // de admin_clinica desde otra clínica, el demo queda en 403 aunque
-        // tenga el rol asignado. Re-sincronizamos catálogo + rol base.
-        $this->resyncRbac();
+        // Roles Spatie van por tenant (teams). Re-sincronizamos el catálogo
+        // de permisos y los roles base SOLO del tenant demo.
+        $this->resyncRbac($tenant);
 
-        $user = User::query()
-            ->where('tenant_id', $tenant->id)
-            ->where('email', self::DEMO_EMAIL)
-            ->first();
+        $previousTeam = getPermissionsTeamId();
+        setPermissionsTeamId((string) $tenant->id);
 
-        if ($user !== null) {
-            $user->password = Hash::make(self::DEMO_PASSWORD);
-            $user->must_change_password = false;
-            $user->is_active = true;
-            $user->save();
-            $user->syncRoles(['admin_clinica']);
-            $user->forgetCachedPermissions();
-            $this->line('  → Usuario demo@vetsaas.pe: clave demo1234 + rol admin_clinica.');
-        } else {
-            $this->warn('  ⚠ Usuario demo@vetsaas.pe no encontrado — recreando…');
-            $user = User::query()->create([
-                'tenant_id' => $tenant->id,
-                'email' => self::DEMO_EMAIL,
-                'name' => 'Admin Clínica Veterinaria Demo',
-                'password' => Hash::make(self::DEMO_PASSWORD),
-                'is_active' => true,
-                'must_change_password' => false,
-                'email_verified_at' => now(),
-            ]);
-            $user->syncRoles(['admin_clinica']);
-            $user->forgetCachedPermissions();
+        try {
+            $user = User::query()
+                ->where('tenant_id', $tenant->id)
+                ->where('email', self::DEMO_EMAIL)
+                ->first();
+
+            if ($user !== null) {
+                $user->password = Hash::make(self::DEMO_PASSWORD);
+                $user->must_change_password = false;
+                $user->is_active = true;
+                $user->save();
+                $user->syncRoles(['admin_clinica']);
+                $user->forgetCachedPermissions();
+                $this->line('  → Usuario demo@vetsaas.pe: clave demo1234 + rol admin_clinica.');
+            } else {
+                $this->warn('  ⚠ Usuario demo@vetsaas.pe no encontrado — recreando…');
+                $user = User::query()->create([
+                    'tenant_id' => $tenant->id,
+                    'email' => self::DEMO_EMAIL,
+                    'name' => 'Admin Clínica Veterinaria Demo',
+                    'password' => Hash::make(self::DEMO_PASSWORD),
+                    'is_active' => true,
+                    'must_change_password' => false,
+                    'email_verified_at' => now(),
+                ]);
+                $user->syncRoles(['admin_clinica']);
+                $user->forgetCachedPermissions();
+            }
+        } finally {
+            setPermissionsTeamId($previousTeam);
         }
 
         $this->ensureDemoSede($tenant);
@@ -127,9 +133,9 @@ final class ResetDemoCommand extends Command
         return self::SUCCESS;
     }
 
-    private function resyncRbac(): void
+    private function resyncRbac(Tenant $tenant): void
     {
-        $this->line('  → Re-sincronizando permisos y rol admin_clinica…');
+        $this->line('  → Re-sincronizando permisos y roles base del demo…');
 
         $perms = new PermissionsSeeder;
         $perms->setCommand($this);
@@ -137,7 +143,7 @@ final class ResetDemoCommand extends Command
 
         $roles = new TenantRolesSeeder;
         $roles->setCommand($this);
-        $roles->run();
+        $roles->seedForTenant((string) $tenant->id);
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
         $this->line('  → Caché de permisos Spatie limpiada.');

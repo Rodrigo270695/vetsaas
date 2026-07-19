@@ -7,6 +7,7 @@ use App\Support\Venta\VentaDesdeCargoPrefill;
 use App\Tenancy\Facades\Tenant as TenantContext;
 use Database\Seeders\PermissionsSeeder;
 use Database\Seeders\TenantRolesSeeder;
+use Tests\Support\TenantRbac;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -36,7 +37,6 @@ beforeEach(function (): void {
     ]);
 
     $this->seed(PermissionsSeeder::class);
-    $this->seed(TenantRolesSeeder::class);
 
     $this->slug = 'svc-hotel-'.Str::lower(Str::random(4));
     $this->schema = 'vet_test_'.Str::lower(Str::random(6));
@@ -63,7 +63,7 @@ beforeEach(function (): void {
         'is_active' => true,
         'must_change_password' => false,
     ]);
-    $this->admin->assignRole('admin_clinica');
+    TenantRbac::seedAndAssign($this->admin);
 
     $this->host = $this->slug.'.vetsaas.test';
 

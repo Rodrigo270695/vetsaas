@@ -74,6 +74,7 @@ class Role extends SpatieRole
         'name',
         'guard_name',
         'description',
+        'tenant_id',
     ];
 
     /**

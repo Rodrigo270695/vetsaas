@@ -3,6 +3,7 @@
 use App\Models\User;
 use Database\Seeders\PermissionsSeeder;
 use Database\Seeders\TenantRolesSeeder;
+use Tests\Support\TenantRbac;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
@@ -41,7 +42,6 @@ beforeEach(function (): void {
     }
 
     $this->seed(PermissionsSeeder::class);
-    $this->seed(TenantRolesSeeder::class);
 
     // Rol superadmin con TODOS los permisos (replica el SuperadminSeeder
     // sin necesidad de variables de entorno).
@@ -65,7 +65,7 @@ beforeEach(function (): void {
         'is_active' => true,
         'must_change_password' => false,
     ]);
-    $this->admin->assignRole('admin_clinica');
+    TenantRbac::seedAndAssign($this->admin);
 });
 
 afterEach(function (): void {

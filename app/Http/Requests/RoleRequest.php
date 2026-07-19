@@ -38,6 +38,9 @@ class RoleRequest extends FormRequest
                 // No permitimos espacios al inicio/final; lo normalizamos en prepareForValidation.
                 Rule::unique(config('permission.table_names.roles'), 'name')
                     ->where('guard_name', 'web')
+                    ->where(fn ($q) => tenant_id() === null
+                        ? $q->whereNull('tenant_id')
+                        : $q->where('tenant_id', tenant_id()))
                     ->ignore($roleId),
                 Rule::notIn(Role::protectedRoleNames()),
             ],

@@ -7,6 +7,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Notifications\Auth\TenantAdminInvitationNotification;
 use App\Support\Auth\AuthNotifier;
+use Database\Seeders\TenantRolesSeeder;
 use Illuminate\Auth\Passwords\PasswordBroker;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
@@ -134,19 +135,28 @@ class TenantCreateAdminCommand extends Command
             'email_verified_at' => now(),
         ];
 
-        $result = DB::transaction(function () use ($existing, $values): array {
-            if ($existing !== null) {
-                $existing->forceFill($values)->save();
-                $existing->syncRoles(['admin_clinica']);
+        $result = DB::transaction(function () use ($existing, $values, $tenant): array {
+            (new TenantRolesSeeder)->seedForTenant((string) $tenant->id);
 
-                return ['status' => 'updated', 'user' => $existing->fresh()];
+            $previousTeam = getPermissionsTeamId();
+            setPermissionsTeamId((string) $tenant->id);
+
+            try {
+                if ($existing !== null) {
+                    $existing->forceFill($values)->save();
+                    $existing->syncRoles(['admin_clinica']);
+
+                    return ['status' => 'updated', 'user' => $existing->fresh()];
+                }
+
+                $user = new User;
+                $user->forceFill($values)->save();
+                $user->syncRoles(['admin_clinica']);
+
+                return ['status' => 'created', 'user' => $user->fresh()];
+            } finally {
+                setPermissionsTeamId($previousTeam);
             }
-
-            $user = new User;
-            $user->forceFill($values)->save();
-            $user->syncRoles(['admin_clinica']);
-
-            return ['status' => 'created', 'user' => $user->fresh()];
         });
 
         $accion = $result['status'] === 'created' ? 'creado' : 'actualizado';

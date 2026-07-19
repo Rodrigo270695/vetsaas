@@ -226,6 +226,8 @@ class DemoTenantsSeeder extends Seeder
         $email    = (string) ($config['email_override'] ?? ('admin@'.$config['slug'].'.test'));
         $password = (string) ($config['password_override'] ?? self::DEMO_PASSWORD);
 
+        (new TenantRolesSeeder)->seedForTenant((string) $tenant->id);
+
         $user = User::query()->updateOrCreate(
             ['tenant_id' => $tenant->id, 'email' => $email],
             [
@@ -237,7 +239,13 @@ class DemoTenantsSeeder extends Seeder
             ],
         );
 
-        $user->syncRoles(['admin_clinica']);
+        $previousTeam = getPermissionsTeamId();
+        setPermissionsTeamId((string) $tenant->id);
+        try {
+            $user->syncRoles(['admin_clinica']);
+        } finally {
+            setPermissionsTeamId($previousTeam);
+        }
     }
 
     /**

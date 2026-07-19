@@ -66,12 +66,16 @@ final class ClinicAdminScope
     public static function rolesQuery(): Builder
     {
         $query = Role::query()->where('guard_name', 'web');
+        $teamKey = config('permission.column_names.team_foreign_key', 'tenant_id');
 
         if (self::isClinicContext()) {
-            $query->whereNotIn('name', self::hiddenRoleNames());
+            return $query
+                ->where($teamKey, tenant_id())
+                ->whereNotIn('name', self::hiddenRoleNames());
         }
 
-        return $query;
+        // Panel central: solo roles de plataforma (tenant_id null).
+        return $query->whereNull($teamKey);
     }
 
     public static function isTenantAssignablePermission(string $permissionName): bool
@@ -173,6 +177,11 @@ final class ClinicAdminScope
         }
 
         if (in_array($role->name, self::hiddenRoleNames(), true)) {
+            abort(404);
+        }
+
+        $teamKey = config('permission.column_names.team_foreign_key', 'tenant_id');
+        if ((string) ($role->{$teamKey} ?? '') !== (string) tenant_id()) {
             abort(404);
         }
     }
