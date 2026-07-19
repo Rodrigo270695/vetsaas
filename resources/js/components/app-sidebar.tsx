@@ -470,6 +470,13 @@ function useNavConfig(): { singles: NavItem[]; groups: NavGroup[] } {
                             permission: 'plataforma-cobros.view',
                         },
                         {
+                            // Pagos confirmados (Orvae → subscription_payments estado=procesado).
+                            title: t('items.platform_pagos'),
+                            href: '/plataforma/pagos',
+                            icon: CreditCard,
+                            permission: 'plataforma-cobros.view',
+                        },
+                        {
                             // Conversaciones del bot: pausa/reactiva por lead
                             // desde el navegador (funciona en celular).
                             title: t('items.salesbot_conversations'),

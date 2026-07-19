@@ -946,7 +946,8 @@ final class InAppAssistantToolExecutor
     private function resolverNavegacionPlataforma(string $destino): array
     {
         $map = [
-            'cobros' => ['label' => 'Cobros', 'url' => '/plataforma/cobros', 'aliases' => ['pagos', 'pagos pendientes', 'pendientes de pago']],
+            'cobros' => ['label' => 'Cobros', 'url' => '/plataforma/cobros', 'aliases' => ['pagos pendientes', 'pendientes de pago', 'fallidos']],
+            'pagos' => ['label' => 'Pagos', 'url' => '/plataforma/pagos', 'aliases' => ['pagos', 'quiénes pagaron', 'quienes pagaron', 'pagados', 'procesados']],
             'clinicas' => ['label' => 'Clínicas', 'url' => '/plataforma/tenants', 'aliases' => ['tenants', 'clientes', 'veterinarias']],
             'suscripciones' => ['label' => 'Suscripciones', 'url' => '/plataforma/suscripciones', 'aliases' => ['subs', 'billing']],
             'planes' => ['label' => 'Planes', 'url' => '/plataforma/planes', 'aliases' => ['pricing', 'tarifas saas']],

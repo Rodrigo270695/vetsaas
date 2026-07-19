@@ -1,6 +1,8 @@
 {
     "title": "Cobros",
-    "description": "Suscripciones de pago (Starter, Pro, Clínica, etc.) con su último cobro webhook si existe. Excluye el plan Free.",
+    "description": "Operación de cobros SaaS: pendientes, fallidos y reembolsos. Los datos los escribe Orvae al confirmar/cobrar (no se procesan aquí).",
+    "pagos_title": "Pagos",
+    "pagos_description": "Clínicas que ya pagaron (cobros procesados vía Orvae). Es la misma data de Cobros, filtrada a estado procesado.",
     "search_placeholder": "Buscar por transaction ID, FEL, tenant, RUC…",
     "filter_label": "Filtrar por estado",
     "filter_plan_label": "Filtrar por plan",

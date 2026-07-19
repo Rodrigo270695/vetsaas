@@ -1,6 +1,8 @@
 {
     "title": "Billing",
-    "description": "Subscription payment history. Charges are processed by Orvae (via Niubiz/Culqi/MercadoPago) and registered here through webhooks. This is a SUPPORT view: read-only + human actions (manual refund, internal note, resend invoice).",
+    "description": "SaaS billing ops: pending, failed and refunds. Orvae writes the rows when a charge is confirmed (nothing is charged from this panel).",
+    "pagos_title": "Payments",
+    "pagos_description": "Clinics that already paid (processed charges from Orvae). Same data as Billing, filtered to processed status.",
     "search_placeholder": "Search by transaction ID, FEL, tenant, RUC…",
     "filter_label": "Filter by status",
     "filter_plan_label": "Filter by plan",

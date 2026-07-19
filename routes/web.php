@@ -1232,10 +1232,15 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             Route::delete('configuracion/novedades/{novedad}', [InAppAssistantAnnouncementController::class, 'destroy'])
                 ->name('configuracion.novedades.destroy');
         });
-        // ── Cobros (read-only + acciones de soporte sobre subscription_payments) ──
+        // ── Cobros / Pagos (read-only + soporte sobre subscription_payments) ──
+        // Misma data: Orvae escribe los pagos; Cobros = operación (todos/pendientes/fallidos),
+        // Pagos = quién ya pagó (estado procesado por defecto).
         Route::middleware('permission:plataforma-cobros.view')
             ->get('cobros', [SubscriptionPaymentController::class, 'index'])
             ->name('cobros.index');
+        Route::middleware('permission:plataforma-cobros.view')
+            ->get('pagos', [SubscriptionPaymentController::class, 'index'])
+            ->name('pagos.index');
         Route::middleware('permission:plataforma-cobros.export')
             ->get('cobros/export', [SubscriptionPaymentController::class, 'export'])
             ->name('cobros.export');

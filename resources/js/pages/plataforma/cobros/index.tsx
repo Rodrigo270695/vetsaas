@@ -51,6 +51,7 @@ import type {
 } from './types';
 
 type CobrosIndexProps = {
+    vista?: 'cobros' | 'pagos';
     payments: Paginated<SubscriptionPayment>;
     filters: PaymentFilters;
     stats: PaymentStats;
@@ -139,6 +140,7 @@ function renderEstadoBadge(
  * escribe Orvae vía webhook y es inmutable.
  */
 export default function Index({
+    vista = 'cobros',
     payments: paginated,
     filters,
     stats,
@@ -146,6 +148,12 @@ export default function Index({
     tenants_catalog,
 }: CobrosIndexProps) {
     const { t } = useTranslation(['cobros', 'common']);
+    const isPagosVista = vista === 'pagos';
+    const pageTitle = isPagosVista ? t('cobros:pagos_title') : t('cobros:title');
+    const pageDescription = isPagosVista
+        ? t('cobros:pagos_description')
+        : t('cobros:description');
+    const listRouteUrl = isPagosVista ? '/plataforma/pagos' : cobros.index().url;
     const { can } = usePermission();
     const canExport = can('plataforma-cobros.export');
     const canRefund = can('plataforma-cobros.refund');
@@ -166,11 +174,13 @@ export default function Index({
         plan_id: string | null;
         tenant_id: string | null;
     }>({
-        routeUrl: cobros.index().url,
+        routeUrl: listRouteUrl,
         initialFilters: filters,
-        only: ['payments', 'filters', 'stats', 'plans_catalog', 'tenants_catalog'],
+        only: ['payments', 'filters', 'stats', 'plans_catalog', 'tenants_catalog', 'vista'],
         errorMessage: t('toast.load_error'),
-        storageKey: 'vetsaas.plataforma.cobros.prefs',
+        storageKey: isPagosVista
+            ? 'vetsaas.plataforma.pagos.prefs'
+            : 'vetsaas.plataforma.cobros.prefs',
         defaults: {
             per_page: DEFAULT_PER_PAGE,
             sort: null,
@@ -483,12 +493,12 @@ export default function Index({
 
     return (
         <>
-            <Head title={t('cobros:title')} />
+            <Head title={pageTitle} />
 
             <div className="flex flex-1 flex-col gap-5 p-4 sm:p-6">
                 <PageHeader
-                    title={t('cobros:title')}
-                    description={t('cobros:description')}
+                    title={pageTitle}
+                    description={pageDescription}
                     stats={[
                         {
                             label: t('cobros:stats.total'),
@@ -693,13 +703,21 @@ export default function Index({
     );
 }
 
-Index.layout = (page: React.ReactNode) => (
-    <AppLayout
-        breadcrumbs={[
-            { title: 'Plataforma' },
-            { title: 'Cobros', href: '/plataforma/cobros' },
-        ]}
-    >
-        {page}
-    </AppLayout>
-);
+Index.layout = (page: React.ReactElement) => {
+    const vista = (page.props as CobrosIndexProps | undefined)?.vista ?? 'cobros';
+    const isPagos = vista === 'pagos';
+
+    return (
+        <AppLayout
+            breadcrumbs={[
+                { title: 'Plataforma' },
+                {
+                    title: isPagos ? 'Pagos' : 'Cobros',
+                    href: isPagos ? '/plataforma/pagos' : '/plataforma/cobros',
+                },
+            ]}
+        >
+            {page}
+        </AppLayout>
+    );
+};

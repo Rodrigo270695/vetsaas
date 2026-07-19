@@ -53,6 +53,8 @@ class SubscriptionPaymentController extends Controller
 
     public function index(Request $request): Response
     {
+        $vista = $request->routeIs('plataforma.pagos.index') ? 'pagos' : 'cobros';
+
         $search = trim((string) $request->string('search', ''));
         $perPageRequested = (int) $request->integer('per_page', 10);
         $perPage = in_array($perPageRequested, self::PER_PAGE_OPTIONS, true)
@@ -64,9 +66,10 @@ class SubscriptionPaymentController extends Controller
         $sortValid = in_array($sort, self::SORTABLE_COLUMNS, true);
         $directionValid = in_array($direction, ['asc', 'desc'], true);
 
-        $estado = (string) $request->string('estado', 'todos');
+        $estadoDefault = $vista === 'pagos' ? 'procesado' : 'todos';
+        $estado = (string) $request->string('estado', $estadoDefault);
         if (! in_array($estado, self::ESTADO_OPTIONS, true)) {
-            $estado = 'todos';
+            $estado = $estadoDefault;
         }
 
         $subscriptionId = trim((string) $request->string('subscription_id', ''));
@@ -129,6 +132,7 @@ class SubscriptionPaymentController extends Controller
             ->count();
 
         return Inertia::render('plataforma/cobros/index', [
+            'vista' => $vista,
             'payments' => $subscriptions,
             'filters' => [
                 'search' => $search,
