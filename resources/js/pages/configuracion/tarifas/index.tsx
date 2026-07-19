@@ -399,7 +399,7 @@ export default function Index({
                                 <TabsList className="h-auto w-max min-w-full justify-start gap-1 bg-background/80 p-1 sm:w-auto">
                                     <TabsTrigger
                                         value="clinica"
-                                        className="cursor-pointer gap-1.5 px-3 text-xs sm:gap-2 sm:px-4 sm:text-sm"
+                                        className="cursor-pointer gap-1.5 px-3 text-xs text-muted-foreground sm:gap-2 sm:px-4 sm:text-sm data-[state=active]:border-sky-600/25 data-[state=active]:bg-sky-500/15 data-[state=active]:font-semibold data-[state=active]:text-sky-800 data-[state=active]:shadow-none dark:data-[state=active]:bg-sky-400/15 dark:data-[state=active]:text-sky-100"
                                     >
                                         <Stethoscope className="size-3.5 shrink-0 sm:size-4" />
                                         <span className="whitespace-nowrap">{t('tabs.clinica')}</span>
@@ -407,7 +407,7 @@ export default function Index({
                                     {groomingModuleEnabled ? (
                                         <TabsTrigger
                                             value="grooming"
-                                            className="cursor-pointer gap-1.5 px-3 text-xs sm:gap-2 sm:px-4 sm:text-sm"
+                                            className="cursor-pointer gap-1.5 px-3 text-xs text-muted-foreground sm:gap-2 sm:px-4 sm:text-sm data-[state=active]:border-violet-600/25 data-[state=active]:bg-violet-500/15 data-[state=active]:font-semibold data-[state=active]:text-violet-800 data-[state=active]:shadow-none dark:data-[state=active]:bg-violet-400/15 dark:data-[state=active]:text-violet-100"
                                         >
                                             <Scissors className="size-3.5 shrink-0 sm:size-4" />
                                             <span className="whitespace-nowrap">{t('tabs.grooming')}</span>
@@ -416,7 +416,7 @@ export default function Index({
                                     {hotelModuleEnabled ? (
                                         <TabsTrigger
                                             value="hotel"
-                                            className="cursor-pointer gap-1.5 px-3 text-xs sm:gap-2 sm:px-4 sm:text-sm"
+                                            className="cursor-pointer gap-1.5 px-3 text-xs text-muted-foreground sm:gap-2 sm:px-4 sm:text-sm data-[state=active]:border-amber-600/25 data-[state=active]:bg-amber-500/15 data-[state=active]:font-semibold data-[state=active]:text-amber-900 data-[state=active]:shadow-none dark:data-[state=active]:bg-amber-400/15 dark:data-[state=active]:text-amber-100"
                                         >
                                             <BedDouble className="size-3.5 shrink-0 sm:size-4" />
                                             <span className="whitespace-nowrap">{t('tabs.hotel')}</span>
