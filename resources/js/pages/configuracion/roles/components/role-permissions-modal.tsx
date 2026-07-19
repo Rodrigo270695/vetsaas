@@ -273,6 +273,9 @@ export function RolePermissionsModal({
         <Dialog open={open} onOpenChange={handleClose}>
             <DialogContent
                 className={cn(
+                    // max-h + flex-col + overflow-hidden: el cuerpo scrollea;
+                    // sin min-h-0 en el body el flex crece con el contenido y
+                    // el modal se sale del viewport (parece “sin scroll”).
                     'flex max-h-[calc(100dvh-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-lg',
                     'shadow-2xl shadow-foreground/15 ring-1 ring-border/40',
                     'data-[state=open]:duration-400 data-[state=open]:ease-[cubic-bezier(0.16,1,0.3,1)]',
@@ -282,7 +285,7 @@ export function RolePermissionsModal({
                 onPointerDownOutside={(e) => e.preventDefault()}
                 onInteractOutside={(e) => e.preventDefault()}
             >
-                <DialogHeader className="border-b border-border/60 px-5 pt-5 pb-3">
+                <DialogHeader className="shrink-0 border-b border-border/60 px-5 pt-5 pb-3">
                     <div className="flex items-start gap-3">
                         <div
                             className={cn(
@@ -317,7 +320,7 @@ export function RolePermissionsModal({
                  * el riesgo (lockout) antes de modificar.
                  */}
                 {isSystem && (
-                    <div className="border-b border-amber-500/40 bg-amber-500/10 px-5 py-3 text-xs">
+                    <div className="shrink-0 border-b border-amber-500/40 bg-amber-500/10 px-5 py-3 text-xs">
                         <div className="flex items-start gap-2 text-amber-700 dark:text-amber-300">
                             <AlertTriangle
                                 className="mt-0.5 size-4 shrink-0"
@@ -341,7 +344,7 @@ export function RolePermissionsModal({
                 )}
 
                 {/* Toolbar: buscador + acciones rápidas */}
-                <div className="flex flex-col gap-2 border-b border-border/60 bg-muted/20 px-5 py-3">
+                <div className="flex shrink-0 flex-col gap-2 border-b border-border/60 bg-muted/20 px-5 py-3">
                     <div className="relative">
                         <Search
                             aria-hidden
@@ -415,8 +418,8 @@ export function RolePermissionsModal({
                     </div>
                 </div>
 
-                {/* Tree body — editable también para roles del sistema. */}
-                <div className="scrollbar-hidden flex-1 overflow-y-auto px-3 py-2">
+                {/* Tree body — scrollea dentro del modal (barra visible). */}
+                <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-2">
                     {filteredGroups.length === 0 ? (
                         <div className="rounded-lg border border-dashed border-border/60 bg-muted/20 px-4 py-8 text-center text-xs text-muted-foreground">
                             {t('roles:form.permissions.no_match')}
@@ -443,7 +446,7 @@ export function RolePermissionsModal({
                     )}
                 </div>
 
-                <DialogFooter className="border-t border-border/60 px-5 py-3">
+                <DialogFooter className="shrink-0 border-t border-border/60 px-5 py-3">
                     <Button
                         type="button"
                         variant="outline"
