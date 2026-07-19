@@ -5,6 +5,7 @@ import {
     ClipboardList,
     ExternalLink,
     FileDown,
+    FlaskConical,
     Heart,
     MessageCircle,
     Stethoscope,
@@ -33,9 +34,11 @@ type TimelineRowProps = {
     permisos: {
         consultas_ver: boolean;
         vacunas_ver: boolean;
+        laboratorio_crear?: boolean;
     };
     isLast: boolean;
     onShareConsulta: (item: Extract<TimelineItem, { kind: 'consulta' }>) => void;
+    onUploadLaboratorio?: (consultaId: string) => void;
 };
 
 function vinculosConsultaTieneContenido(v: TimelineConsultaVinculos): boolean {
@@ -171,6 +174,7 @@ export function PacienteTimelineRow({
     permisos,
     isLast,
     onShareConsulta,
+    onUploadLaboratorio,
 }: TimelineRowProps) {
     const { t } = useTranslation(['pacientes', 'recetas', 'laboratorio', 'cirugia', 'common']);
     const [resumenAbierto, setResumenAbierto] = useState(false);
@@ -374,6 +378,23 @@ export function PacienteTimelineRow({
                                         <span className="sr-only">{t('historial.action_whatsapp')}</span>
                                         <span aria-hidden>WhatsApp</span>
                                     </Button>
+                                    {onUploadLaboratorio ? (
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="outline"
+                                            className="h-8 gap-1.5 border-sky-500/30 px-2.5 text-xs text-sky-800 hover:bg-sky-500/10 dark:text-sky-200"
+                                            onClick={() => onUploadLaboratorio(item.id)}
+                                        >
+                                            <FlaskConical className="size-3.5" strokeWidth={2.25} />
+                                            <span className="hidden sm:inline">
+                                                {t('historial.action_lab_consulta')}
+                                            </span>
+                                            <span className="sm:hidden">
+                                                {t('historial.action_lab_consulta_corta')}
+                                            </span>
+                                        </Button>
+                                    ) : null}
                                 </>
                             ) : null}
                             {item.kind === 'aplicacion' && permisos.vacunas_ver ? (

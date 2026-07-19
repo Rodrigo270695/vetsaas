@@ -21,6 +21,8 @@ type Props = {
     onOpenChange: (open: boolean) => void;
     storeUrl: string;
     consultas: readonly ConsultaLabOpcion[];
+    /** Si viene, preselecciona y bloquea esa consulta. */
+    prefillConsultaId?: string | null;
 };
 
 const CONSULTA_NUEVA = '__new__';
@@ -42,6 +44,7 @@ export function LaboratorioRapidoModal({
     onOpenChange,
     storeUrl,
     consultas,
+    prefillConsultaId = null,
 }: Props) {
     const { t } = useTranslation(['pacientes', 'common']);
     const { data, setData, post, processing, errors, reset, clearErrors } =
@@ -52,6 +55,11 @@ export function LaboratorioRapidoModal({
             descripcion: '',
             documento: null as File | null,
         });
+
+    const lockedConsulta = Boolean(
+        prefillConsultaId &&
+            consultas.some((c) => c.id === prefillConsultaId),
+    );
 
     const consultaOptions = useMemo<ComboboxOption[]>(
         () => [
@@ -75,7 +83,12 @@ export function LaboratorioRapidoModal({
         }
 
         clearErrors();
-        const defaultId = defaultConsultaId(consultas);
+        const fromPrefill =
+            prefillConsultaId &&
+            consultas.some((c) => c.id === prefillConsultaId)
+                ? prefillConsultaId
+                : null;
+        const defaultId = fromPrefill ?? defaultConsultaId(consultas);
         setData({
             consulta_id: defaultId === CONSULTA_NUEVA ? '' : defaultId,
             nombre_examen: '',
@@ -83,7 +96,7 @@ export function LaboratorioRapidoModal({
             descripcion: '',
             documento: null,
         });
-    }, [open, consultas, clearErrors, setData]);
+    }, [open, consultas, prefillConsultaId, clearErrors, setData]);
 
     const submit = (e: FormEvent) => {
         e.preventDefault();
@@ -163,9 +176,14 @@ export function LaboratorioRapidoModal({
                             'historial.lab_rapido_consulta_search',
                         )}
                         emptyMessage={t('historial.lab_rapido_consulta_empty')}
-                        disabled={processing}
+                        disabled={processing || lockedConsulta}
                         aria-invalid={Boolean(errors.consulta_id)}
                     />
+                    {lockedConsulta ? (
+                        <p className="mt-1 text-xs text-muted-foreground">
+                            {t('historial.lab_rapido_consulta_fijada')}
+                        </p>
+                    ) : null}
                 </FormField>
 
                 <FormField

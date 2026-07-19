@@ -8,6 +8,7 @@ import clinica from '@/routes/clinica';
 import type { Paciente } from '../propietarios/types';
 import { ClinicalHistoryWhatsAppDialog } from './components/clinical-history-whatsapp-dialog';
 import type { ClinicalHistoryShareTarget } from './components/clinical-history-whatsapp-dialog';
+import { LaboratorioRapidoModal } from './components/laboratorio-rapido-modal';
 import { PacienteHistorialHero } from './components/paciente-historial-hero';
 import { PacienteTimelineRow } from './components/paciente-timeline-row';
 
@@ -111,6 +112,15 @@ export default function PacienteShow({
     const { t } = useTranslation(['pacientes', 'common']);
     const { locale: appLocale, timezone: appTz } = usePage().props;
     const [shareTarget, setShareTarget] = useState<ClinicalHistoryShareTarget>(null);
+    const [labOpen, setLabOpen] = useState(false);
+    const [labPrefillConsultaId, setLabPrefillConsultaId] = useState<string | null>(
+        null,
+    );
+
+    const openLaboratorio = (consultaId: string | null = null) => {
+        setLabPrefillConsultaId(consultaId);
+        setLabOpen(true);
+    };
 
     const title = useMemo(() => `${paciente.nombre} · ${t('historial.title_suffix')}`, [paciente.nombre, t]);
 
@@ -146,7 +156,6 @@ export default function PacienteShow({
                     propietarioNombre={propietarioNombre}
                     links={links}
                     permisos={permisos}
-                    consultasParaLab={consultas_para_lab}
                     timelineStats={timelineStats}
                     hasTimeline={timeline.length > 0}
                     onShareHistory={() => {
@@ -157,6 +166,7 @@ export default function PacienteShow({
                             });
                         }
                     }}
+                    onOpenLaboratorio={() => openLaboratorio(null)}
                 />
 
                 <section className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm ring-1 ring-black/[0.03] dark:ring-white/5">
@@ -198,6 +208,13 @@ export default function PacienteShow({
                                                 label: t('historial.document_consulta'),
                                             })
                                         }
+                                        onUploadLaboratorio={
+                                            permisos.laboratorio_crear &&
+                                            links.laboratorio_rapido
+                                                ? (consultaId) =>
+                                                      openLaboratorio(consultaId)
+                                                : undefined
+                                        }
                                     />
                                 ))}
                             </ul>
@@ -226,6 +243,21 @@ export default function PacienteShow({
                     }
                 }}
             />
+
+            {links.laboratorio_rapido ? (
+                <LaboratorioRapidoModal
+                    open={labOpen}
+                    onOpenChange={(open) => {
+                        setLabOpen(open);
+                        if (!open) {
+                            setLabPrefillConsultaId(null);
+                        }
+                    }}
+                    storeUrl={links.laboratorio_rapido}
+                    consultas={consultas_para_lab}
+                    prefillConsultaId={labPrefillConsultaId}
+                />
+            ) : null}
         </>
     );
 }
