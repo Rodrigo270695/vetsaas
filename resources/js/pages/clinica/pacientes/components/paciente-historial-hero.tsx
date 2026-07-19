@@ -34,6 +34,7 @@ type Props = {
         historial_whatsapp?: string | null;
         laboratorio_rapido?: string | null;
         petpass_registrar?: string | null;
+        petpass_propietario?: string | null;
         petpass_certificado?: string | null;
     };
     permisos: {
@@ -348,6 +349,20 @@ export function PacienteHistorialHero({
                             <a href={links.petpass_registrar}>
                                 <ShieldCheck className="size-4" strokeWidth={2.25} />
                                 {t('historial.action_petpass_register')}
+                            </a>
+                        </Button>
+                    ) : null}
+                    {!isPublic && links.petpass_propietario ? (
+                        <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="gap-2 border-amber-500/40 text-amber-900 hover:bg-amber-500/10 dark:text-amber-100"
+                            asChild
+                        >
+                            <a href={links.petpass_propietario}>
+                                <ShieldCheck className="size-4" strokeWidth={2.25} />
+                                {t('historial.action_petpass_needs_document')}
                             </a>
                         </Button>
                     ) : null}

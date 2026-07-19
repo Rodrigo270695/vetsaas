@@ -159,6 +159,7 @@
         "action_historial_pdf": "Descargar historial (PDF)",
         "action_whatsapp": "Enviar por WhatsApp",
         "action_petpass_register": "Registrar en AlmaPet ID",
+        "action_petpass_needs_document": "Completar DNI del titular",
         "action_petpass_certificate": "Ver certificado AlmaPet",
         "petpass_badge_local": "Local",
         "petpass_badge_pending": "AlmaPet pendiente",

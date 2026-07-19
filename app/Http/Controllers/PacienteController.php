@@ -170,6 +170,9 @@ class PacienteController extends Controller
             && filled(config('petpass.handoff_secret'))
             && filled(config('petpass.base_url'));
 
+        $ownerHasDocument = filled($paciente->propietario?->tipo_documento)
+            && filled(trim((string) ($paciente->propietario?->numero_documento ?? '')));
+
         $tz = config('app.timezone');
 
         $timeline = [];
@@ -312,9 +315,17 @@ class PacienteController extends Controller
                     ? route('clinica.pacientes.laboratorio-rapido', $paciente)
                     : null,
                 'petpass_registrar' => $canPetPassRegister
+                    && $ownerHasDocument
                     && filled($paciente->microchip)
                     && ! in_array($paciente->petpass_status, ['registered', 'lost'], true)
                     ? route('clinica.pacientes.petpass.registrar', $paciente)
+                    : null,
+                'petpass_propietario' => $canPetPassRegister
+                    && ! $ownerHasDocument
+                    && filled($paciente->microchip)
+                    && ! in_array($paciente->petpass_status, ['registered', 'lost'], true)
+                    && $paciente->propietario_id
+                    ? route('clinica.propietarios.show', $paciente->propietario_id)
                     : null,
                 'petpass_certificado' => filled($paciente->petpass_certificate_url)
                     ? $paciente->petpass_certificate_url

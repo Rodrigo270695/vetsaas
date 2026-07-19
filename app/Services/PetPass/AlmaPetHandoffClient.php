@@ -54,12 +54,35 @@ final class AlmaPetHandoffClient
 
         $tenantModel = Tenant::query()->find($tenant->id());
         $clinic = ClinicSetting::current();
+
         $paciente->loadMissing('propietario');
         $owner = $paciente->propietario;
 
-        $ownerName = trim((string) ($owner?->nombres ?? ''));
-        $ownerLast = trim((string) ($owner?->apellidos ?? ''));
-        $razon = trim((string) ($owner?->razon_social ?? ''));
+        if ($owner === null) {
+            throw ValidationException::withMessages([
+                'petpass' => 'El paciente no tiene titular. Asigna un propietario antes de registrar en AlmaPet ID.',
+            ]);
+        }
+
+        $docType = trim((string) ($owner->tipo_documento ?? ''));
+        $docNumber = preg_replace('/\s+/', '', (string) ($owner->numero_documento ?? '')) ?? '';
+
+        if ($docType === '' || $docNumber === '') {
+            throw ValidationException::withMessages([
+                'petpass' => 'El titular debe tener tipo y número de documento (DNI u otro) para registrar en AlmaPet ID. Complétalo en la ficha del propietario y vuelve a intentar.',
+            ]);
+        }
+
+        // DNI peruano: 8 dígitos
+        if (in_array(strtolower($docType), ['dni', '1'], true) && ! preg_match('/^\d{8}$/', $docNumber)) {
+            throw ValidationException::withMessages([
+                'petpass' => 'El DNI del titular debe tener 8 dígitos. Corrígelo en la ficha del propietario.',
+            ]);
+        }
+
+        $ownerName = trim((string) ($owner->nombres ?? ''));
+        $ownerLast = trim((string) ($owner->apellidos ?? ''));
+        $razon = trim((string) ($owner->razon_social ?? ''));
         if ($ownerName === '' && $razon !== '') {
             $ownerName = $razon;
         }
@@ -79,12 +102,12 @@ final class AlmaPetHandoffClient
                 'city' => null,
             ],
             'owner' => [
-                'document_type' => $owner?->tipo_documento,
-                'document_number' => $owner?->numero_documento,
+                'document_type' => $docType,
+                'document_number' => $docNumber,
                 'name' => $ownerName !== '' ? $ownerName : 'Titular',
                 'lastname' => $ownerLast !== '' ? $ownerLast : '—',
-                'email' => $owner?->email,
-                'phone' => $owner?->telefono,
+                'email' => $owner->email,
+                'phone' => $owner->telefono,
             ],
             'animal' => [
                 'name' => $paciente->nombre,
