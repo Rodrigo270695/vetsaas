@@ -1,0 +1,24 @@
+{
+    "button": {
+        "label": "Asistente IA",
+        "tooltip": "Ayuda y consultas"
+    },
+    "panel": {
+        "title": "Asistente VetSaaS",
+        "subtitle": "Ayuda del sistema y consultas de solo lectura",
+        "welcome": "Puedo orientarte sobre cómo usar VetSaaS o consultar datos de tu clínica (pacientes, propietarios, productos, resumen del día).",
+        "placeholder": "Ej. ¿Dónde registro una vacuna? o busca al paciente Luna…",
+        "send": "Enviar",
+        "thinking": "Pensando…",
+        "clear": "Limpiar chat",
+        "empty_hint": "Prueba: «¿Cuántas citas hay hoy?» o «¿Cómo abro una sesión de caja?»",
+        "not_configured": "El asistente aún no está configurado. Falta la clave OPENAI_API_KEY en el servidor.",
+        "error": "No pude responder ahora. Inténtalo de nuevo en unos segundos.",
+        "suggestions": {
+            "help_caja": "¿Cómo abro una sesión de caja?",
+            "help_historia": "¿Dónde está el historial clínico?",
+            "query_today": "Dame el resumen de hoy",
+            "query_stock": "¿Hay productos con stock bajo?"
+        }
+    }
+}

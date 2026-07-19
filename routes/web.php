@@ -26,6 +26,7 @@ use App\Http\Controllers\GroomingTurnoController;
 use App\Http\Controllers\HospitalizacionController;
 use App\Http\Controllers\HotelEstanciaController;
 use App\Http\Controllers\HotelTipoEstanciaController;
+use App\Http\Controllers\InAppAssistantController;
 use App\Http\Controllers\InternamientoCargoController;
 use App\Http\Controllers\LaboratorioController;
 use App\Http\Controllers\MovimientoInventarioController;
@@ -158,6 +159,15 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::get('provincias', [GeoController::class, 'provincias'])->name('provincias');
         Route::get('distritos', [GeoController::class, 'distritos'])->name('distritos');
     });
+
+    // Asistente in-app (ayuda + consulta de solo lectura).
+    Route::middleware('tenant.required')
+        ->prefix('asistente')
+        ->name('asistente.')
+        ->group(function (): void {
+            Route::get('status', [InAppAssistantController::class, 'status'])->name('status');
+            Route::post('chat', [InAppAssistantController::class, 'chat'])->name('chat');
+        });
 
     Route::post('impersonate/leave', [TenantImpersonationController::class, 'leave'])
         ->name('impersonate.leave');

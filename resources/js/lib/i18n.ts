@@ -45,6 +45,7 @@ import tarifasServiciosEn from '@/lang/en/tarifas-servicios.json';
 import stockInventarioEn from '@/lang/en/stock-inventario.json';
 import avisosRenovacionEn from '@/lang/en/avisos-renovacion.json';
 import botIaEn from '@/lang/en/bot-ia.json';
+import inAppAssistantEn from '@/lang/en/in-app-assistant.json';
 import suscripcionesEn from '@/lang/en/suscripciones.json';
 import subscriptionExpiryEn from '@/lang/en/subscription-expiry.json';
 import tenantsEn from '@/lang/en/tenants.json';
@@ -95,6 +96,7 @@ import tarifasServiciosEs from '@/lang/es/tarifas-servicios.json';
 import stockInventarioEs from '@/lang/es/stock-inventario.json';
 import avisosRenovacionEs from '@/lang/es/avisos-renovacion.json';
 import botIaEs from '@/lang/es/bot-ia.json';
+import inAppAssistantEs from '@/lang/es/in-app-assistant.json';
 import suscripcionesEs from '@/lang/es/suscripciones.json';
 import subscriptionExpiryEs from '@/lang/es/subscription-expiry.json';
 import tenantsEs from '@/lang/es/tenants.json';
@@ -143,6 +145,7 @@ const resources = {
         'config-suscripcion': configSuscripcionEs,
         comunicaciones: comunicacionesEs,
         'bot-ia': botIaEs,
+        'in-app-assistant': inAppAssistantEs,
         'plataforma-auditoria-soporte': plataformaAuditoriaSoporteEs,
         'plataforma-operaciones': plataformaOperacionesEs,
         dashboard: dashboardEs,
@@ -195,6 +198,7 @@ const resources = {
         'config-suscripcion': configSuscripcionEn,
         comunicaciones: comunicacionesEn,
         'bot-ia': botIaEn,
+        'in-app-assistant': inAppAssistantEn,
         'plataforma-auditoria-soporte': plataformaAuditoriaSoporteEn,
         'plataforma-operaciones': plataformaOperacionesEn,
         dashboard: dashboardEn,
@@ -257,6 +261,7 @@ void i18n
             'config-suscripcion',
             'comunicaciones',
             'bot-ia',
+            'in-app-assistant',
             'plataforma-auditoria-soporte',
             'plataforma-operaciones',
             'dashboard',

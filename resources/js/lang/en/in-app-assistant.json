@@ -1,0 +1,24 @@
+{
+    "button": {
+        "label": "AI assistant",
+        "tooltip": "Help and lookups"
+    },
+    "panel": {
+        "title": "VetSaaS assistant",
+        "subtitle": "Product help and read-only clinic lookups",
+        "welcome": "I can help you use VetSaaS or look up clinic data (patients, owners, products, today’s summary).",
+        "placeholder": "E.g. Where do I record a vaccine? or find patient Luna…",
+        "send": "Send",
+        "thinking": "Thinking…",
+        "clear": "Clear chat",
+        "empty_hint": "Try: “How many appointments today?” or “How do I open a cash session?”",
+        "not_configured": "The assistant is not configured yet. OPENAI_API_KEY is missing on the server.",
+        "error": "I couldn’t reply right now. Please try again in a few seconds.",
+        "suggestions": {
+            "help_caja": "How do I open a cash session?",
+            "help_historia": "Where is the clinical history?",
+            "query_today": "Give me today’s summary",
+            "query_stock": "Any low-stock products?"
+        }
+    }
+}

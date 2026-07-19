@@ -7,8 +7,8 @@ use App\Models\User;
 use App\Support\Clinic\ClinicBrandingUrls;
 use App\Support\Plan\PlanLimits;
 use App\Support\Subscriptions\BotIaAccess;
-use App\Support\Tenancy\TenantModuleAccess;
 use App\Support\Subscriptions\TenantSubscriptionSummary;
+use App\Support\Tenancy\TenantModuleAccess;
 use App\Support\Tenancy\TenantSubdomainUrl;
 use App\Tenancy\TenantManager;
 use Illuminate\Http\Request;
@@ -156,6 +156,12 @@ class HandleInertiaRequests extends Middleware
             'bot_ia_addon' => $skipHeavySharedProps || $tenantContext === null
                 ? null
                 : static fn () => BotIaAccess::navPayload($tenantContext->tenant),
+            'in_app_assistant' => $skipHeavySharedProps || $tenantContext === null
+                ? null
+                : [
+                    'enabled' => (bool) config('in-app-assistant.enabled', true),
+                    'configured' => trim((string) config('in-app-assistant.openai_api_key', '')) !== '',
+                ],
             'tenant_modules' => $skipHeavySharedProps || $tenantContext === null
                 ? null
                 : static fn () => TenantModuleAccess::snapshot($tenantContext->tenant),
