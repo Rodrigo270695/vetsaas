@@ -3,8 +3,7 @@
     "description": "Ajustes globales del SaaS que aplican a todas las clínicas.",
     "actions": {
         "save": "Guardar cambios",
-        "saved": "Guardado",
-        "republish": "Republicar novedad"
+        "saved": "Guardado"
     },
     "stats": {
         "daily_limit": "Límite chat / día",
@@ -14,7 +13,7 @@
     },
     "intro": {
         "title": "Control del asistente in-app",
-        "body": "Define el límite diario de mensajes, edita el texto del aviso y lánzalo a todas las clínicas. Al republicar, vuelve a mostrarse aunque ya lo hayan cerrado. Como superadmin no tienes límite y puedes usar el asistente en este portal (cobros, clínicas, etc.)."
+        "body": "Define el límite diario de mensajes de las clínicas y gestiona las novedades que verán al entrar. Como superadmin no tienes límite y puedes usar el asistente en este portal."
     },
     "sections": {
         "assistant": {
@@ -22,23 +21,45 @@
             "description": "Tope diario de mensajes por usuario de clínica (ayuda + consultas de solo lectura). Superadmin sin límite."
         },
         "announcement": {
-            "title": "Novedad para clínicas",
-            "description": "Modal que ven los usuarios de cada tenant al entrar, hasta pulsar Entendido. Edita aquí el contenido."
+            "title": "Novedades para clínicas",
+            "description": "Registros del modal que ven los usuarios de cada tenant. Solo una puede estar activa a la vez."
         }
     },
     "fields": {
         "daily_limit": "Límite diario de mensajes",
-        "daily_limit_hint": "Entre 1 y 1000. Se reinicia a medianoche (zona horaria de la app). Default recomendado: 40. No aplica a superadmin.",
-        "announcement_active": "Mostrar novedad del asistente",
-        "announcement_active_hint": "Si está activo, las clínicas verán el aviso (una vez por usuario y versión).",
-        "announcement_version": "Versión actual: {{version}}",
-        "announcement_title": "Título",
-        "announcement_title_hint": "Vacío = se usa el texto por defecto del sistema.",
-        "announcement_body": "Texto principal",
-        "announcement_body_hint": "Explica la novedad en 1–3 frases.",
-        "announcement_features": "Puntos destacados (hasta 4)",
-        "announcement_feature": "Punto {{n}}",
-        "announcement_feature_hint": "Opcional. Si dejas todos vacíos, se usan los puntos por defecto."
+        "daily_limit_hint": "Entre 1 y 1000. Se reinicia a medianoche (zona horaria de la app). Default recomendado: 40. No aplica a superadmin."
+    },
+    "announcements": {
+        "new": "Nueva novedad",
+        "empty": "Aún no hay novedades. Crea la primera con el botón Nueva novedad.",
+        "live": "Activa ahora",
+        "draft": "Borrador",
+        "inactive": "Inactiva",
+        "version": "v{{version}}",
+        "actions": {
+            "activate": "Activar",
+            "republish": "Republicar"
+        },
+        "form": {
+            "create_title": "Nueva novedad",
+            "edit_title": "Editar novedad",
+            "description": "Este contenido se muestra en el modal de las clínicas hasta que pulsen Entendido.",
+            "create": "Crear novedad"
+        },
+        "fields": {
+            "title": "Título",
+            "body": "Texto principal",
+            "body_hint": "Explica la novedad en 1–3 frases.",
+            "features": "Puntos destacados (hasta 4)",
+            "features_hint": "Opcional. Si los dejas vacíos, el modal usará los puntos por defecto del asistente.",
+            "feature": "Punto {{n}}",
+            "publish_now": "Publicar ahora",
+            "publish_now_hint": "Si está activo, esta novedad reemplaza a la que esté en vivo y se muestra a las clínicas."
+        },
+        "delete": {
+            "title": "Eliminar novedad",
+            "description": "¿Eliminar «{{title}}»? Esta acción no se puede deshacer."
+        }
     },
     "footer": {
         "last_updated_by": "Última edición por {{name}}",

@@ -38,6 +38,7 @@ use App\Http\Controllers\PlataformaImpersonationAuditController;
 use App\Http\Controllers\PlataformaOperacionesController;
 use App\Http\Controllers\PlatformRenewalReminderController;
 use App\Http\Controllers\PlatformSettingController;
+use App\Http\Controllers\InAppAssistantAnnouncementController;
 use App\Http\Controllers\PlatformWhatsAppController;
 use App\Http\Controllers\PresenceHeartbeatController;
 use App\Http\Controllers\ProductoInventarioController;
@@ -1219,6 +1220,18 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             ->match(['put', 'patch'], 'configuracion', [PlatformSettingController::class, 'update'])
             ->name('configuracion.update');
 
+        Route::middleware('permission:platform-settings.update')->group(function (): void {
+            Route::post('configuracion/novedades', [InAppAssistantAnnouncementController::class, 'store'])
+                ->name('configuracion.novedades.store');
+            Route::match(['put', 'patch'], 'configuracion/novedades/{novedad}', [InAppAssistantAnnouncementController::class, 'update'])
+                ->name('configuracion.novedades.update');
+            Route::post('configuracion/novedades/{novedad}/republicar', [InAppAssistantAnnouncementController::class, 'republish'])
+                ->name('configuracion.novedades.republish');
+            Route::post('configuracion/novedades/{novedad}/activar', [InAppAssistantAnnouncementController::class, 'activate'])
+                ->name('configuracion.novedades.activate');
+            Route::delete('configuracion/novedades/{novedad}', [InAppAssistantAnnouncementController::class, 'destroy'])
+                ->name('configuracion.novedades.destroy');
+        });
         // ── Cobros (read-only + acciones de soporte sobre subscription_payments) ──
         Route::middleware('permission:plataforma-cobros.view')
             ->get('cobros', [SubscriptionPaymentController::class, 'index'])

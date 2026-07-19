@@ -22,20 +22,34 @@ function storageKey(tenantId: string, userId: string): string {
     return `${STORAGE_PREFIX}.${tenantId}.${userId}`;
 }
 
-function wasDismissed(tenantId: string, userId: string, version: number): boolean {
+function dismissalToken(id: string | undefined, version: number): string {
+    return id ? `${id}:${version}` : String(version);
+}
+
+function wasDismissed(
+    tenantId: string,
+    userId: string,
+    id: string | undefined,
+    version: number,
+): boolean {
     if (typeof window === 'undefined') {
         return true;
     }
 
-    return localStorage.getItem(storageKey(tenantId, userId)) === String(version);
+    return localStorage.getItem(storageKey(tenantId, userId)) === dismissalToken(id, version);
 }
 
-function markDismissed(tenantId: string, userId: string, version: number): void {
+function markDismissed(
+    tenantId: string,
+    userId: string,
+    id: string | undefined,
+    version: number,
+): void {
     if (typeof window === 'undefined') {
         return;
     }
 
-    localStorage.setItem(storageKey(tenantId, userId), String(version));
+    localStorage.setItem(storageKey(tenantId, userId), dismissalToken(id, version));
 }
 
 export function InAppAssistantAnnouncementModal() {
@@ -45,6 +59,7 @@ export function InAppAssistantAnnouncementModal() {
     const announcement = in_app_assistant?.announcement ?? null;
     const enabled = in_app_assistant?.enabled === true && in_app_assistant?.configured === true;
     const version = announcement?.version ?? 0;
+    const announcementId = announcement?.id;
     const tenantId = tenant?.id ?? '';
     const userId = auth.user?.id ?? '';
 
@@ -80,18 +95,18 @@ export function InAppAssistantAnnouncementModal() {
             return;
         }
 
-        if (wasDismissed(tenantId, userId, version)) {
+        if (wasDismissed(tenantId, userId, announcementId, version)) {
             setOpen(false);
             return;
         }
 
         const timer = window.setTimeout(() => setOpen(true), 600);
         return () => window.clearTimeout(timer);
-    }, [enabled, announcement?.active, version, tenantId, userId]);
+    }, [enabled, announcement?.active, version, announcementId, tenantId, userId]);
 
     const dismiss = () => {
         if (tenantId && userId && version > 0) {
-            markDismissed(tenantId, userId, version);
+            markDismissed(tenantId, userId, announcementId, version);
         }
         setOpen(false);
     };

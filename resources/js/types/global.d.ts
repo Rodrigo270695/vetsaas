@@ -31,6 +31,7 @@ declare module '@inertiajs/core' {
                 announcement: {
                     active: boolean;
                     version: number;
+                    id?: string;
                     title?: string | null;
                     body?: string | null;
                     features?: string[];

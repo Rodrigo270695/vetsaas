@@ -20,11 +20,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property ?string $brevo_default_from_name
  * @property bool $brevo_configurado
  * @property int $in_app_assistant_daily_limit
- * @property bool $in_app_assistant_announcement_active
- * @property int $in_app_assistant_announcement_version
- * @property ?string $in_app_assistant_announcement_title
- * @property ?string $in_app_assistant_announcement_body
- * @property ?array $in_app_assistant_announcement_features
  * @property ?string $updated_by_id
  * @property-read ?User $actualizadoPor
  */
@@ -44,11 +39,6 @@ class PlatformSetting extends Model
         'brevo_default_from_name',
         'brevo_configurado',
         'in_app_assistant_daily_limit',
-        'in_app_assistant_announcement_active',
-        'in_app_assistant_announcement_version',
-        'in_app_assistant_announcement_title',
-        'in_app_assistant_announcement_body',
-        'in_app_assistant_announcement_features',
         'updated_by_id',
     ];
 
@@ -64,9 +54,6 @@ class PlatformSetting extends Model
             'twilio_configurado' => 'boolean',
             'brevo_configurado' => 'boolean',
             'in_app_assistant_daily_limit' => 'integer',
-            'in_app_assistant_announcement_active' => 'boolean',
-            'in_app_assistant_announcement_version' => 'integer',
-            'in_app_assistant_announcement_features' => 'array',
         ];
     }
 
@@ -91,36 +78,9 @@ class PlatformSetting extends Model
     }
 
     /**
-     * @return list<string>
-     */
-    public function assistantAnnouncementFeatures(): array
-    {
-        $raw = $this->in_app_assistant_announcement_features;
-        if (! is_array($raw)) {
-            return [];
-        }
-
-        $features = [];
-        foreach ($raw as $item) {
-            if (! is_string($item)) {
-                continue;
-            }
-            $text = trim($item);
-            if ($text === '') {
-                continue;
-            }
-            $features[] = mb_substr($text, 0, 200);
-            if (count($features) >= 4) {
-                break;
-            }
-        }
-
-        return $features;
-    }
-
-    /**
      * @return array{
      *     active: bool,
+     *     id: string,
      *     version: int,
      *     title: string|null,
      *     body: string|null,
@@ -129,24 +89,10 @@ class PlatformSetting extends Model
      */
     public function assistantAnnouncementPayload(): ?array
     {
-        if (! $this->in_app_assistant_announcement_active) {
+        try {
+            return InAppAssistantAnnouncement::tenantPayload();
+        } catch (\Throwable) {
             return null;
         }
-
-        $version = (int) $this->in_app_assistant_announcement_version;
-        if ($version < 1) {
-            return null;
-        }
-
-        $title = trim((string) ($this->in_app_assistant_announcement_title ?? ''));
-        $body = trim((string) ($this->in_app_assistant_announcement_body ?? ''));
-
-        return [
-            'active' => true,
-            'version' => $version,
-            'title' => $title !== '' ? mb_substr($title, 0, 160) : null,
-            'body' => $body !== '' ? mb_substr($body, 0, 2000) : null,
-            'features' => $this->assistantAnnouncementFeatures(),
-        ];
     }
 }
