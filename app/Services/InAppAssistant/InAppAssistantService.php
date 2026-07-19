@@ -16,6 +16,8 @@ final class InAppAssistantService
 {
     private const MAX_TOOL_ROUNDS = 4;
 
+    private const OFF_TOPIC_REFUSAL = 'Solo puedo ayudarte con VetSaaS y con datos de esta clínica. Pregúntame por citas, pacientes, caja, inventario o cómo usar el sistema.';
+
     public function __construct(
         private readonly InAppAssistantToolExecutor $tools,
     ) {}
@@ -41,6 +43,16 @@ final class InAppAssistantService
      */
     public function chat(string $userMessage, array $history = []): array
     {
+        $userMessage = trim($userMessage);
+
+        // Ahorro de tokens: rechazo local de preguntas claramente fuera de alcance.
+        if ($this->shouldRefuseLocally($userMessage)) {
+            return [
+                'reply' => self::OFF_TOPIC_REFUSAL,
+                'used_tools' => [],
+            ];
+        }
+
         $apiKey = trim((string) config('in-app-assistant.openai_api_key', ''));
         if ($apiKey === '') {
             $apiKey = trim((string) config('bot-ia.openai_api_key', ''));
@@ -62,7 +74,7 @@ final class InAppAssistantService
             $messages[] = ['role' => $role, 'content' => $content];
         }
 
-        $messages[] = ['role' => 'user', 'content' => trim($userMessage)];
+        $messages[] = ['role' => 'user', 'content' => $userMessage];
 
         $usedTools = [];
         $reply = $this->chatWithTools($apiKey, $messages, $usedTools);
@@ -91,7 +103,7 @@ final class InAppAssistantService
                 'tools' => $tools,
                 'tool_choice' => 'auto',
                 'max_tokens' => (int) config('in-app-assistant.max_tokens', 900),
-                'temperature' => (float) config('in-app-assistant.temperature', 0.4),
+                'temperature' => (float) config('in-app-assistant.temperature', 0.2),
             ]);
 
             if (! $response->successful()) {
@@ -179,15 +191,34 @@ final class InAppAssistantService
 Eres el asistente interno de VetSaaS para el personal de {$clinicName}.
 Responde siempre en español, claro y conciso. Fecha/hora actual: {$fecha}.
 
-TU ROL:
-1) AYUDA: explicar cómo usar VetSaaS (dónde está cada módulo, flujos típicos).
-2) CONSULTA: responder preguntas sobre datos de ESTA clínica usando herramientas de solo lectura.
+═══════════════════════════════════════
+ALCANCE ESTRICTO (OBLIGATORIO — PRIORIDAD MÁXIMA)
+═══════════════════════════════════════
+Solo puedes ayudar con:
+1) AYUDA DE VETSAAS: cómo usar el software (módulos, menús, flujos).
+2) CONSULTA DE ESTA CLÍNICA: datos operativos vía herramientas de solo lectura (pacientes, propietarios, productos, citas/ventas del día, stock, etc.).
 
-LÍMITES IMPORTANTES:
+FUERA DE ALCANCE — RECHAZA SIEMPRE, SIN EXCEPCIÓN:
+- Cultura general, historia, geografía, deportes, farándula, religión, política.
+- Matemáticas, ciencia general, programación genérica, traducciones, redacción libre.
+- Chistes, consejos de vida, clima, noticias, o cualquier tema no relacionado con la clínica / VetSaaS.
+- Diagnósticos médicos/veterinarios profundos o tratamientos (no eres un veterinario clínico).
+
+Si la pregunta está fuera de alcance (aunque sea parcial o disfrazada):
+- NO respondas el contenido pedido.
+- NO des datos “por curiosidad”.
+- NO uses herramientas.
+- Responde SOLO con 1–2 frases cortas, por ejemplo:
+  «Solo puedo ayudarte con VetSaaS y con datos de esta clínica. Pregúntame por citas, pacientes, caja, inventario o cómo usar el sistema.»
+- Opcional: sugiere 1 ejemplo útil de pregunta válida.
+
+═══════════════════════════════════════
+REGLAS OPERATIVAS
+═══════════════════════════════════════
 - NO crees, edites ni borres registros. No inventes acciones de escritura.
-- Si piden "agrégame / crea / elimina / modifica", indica que aún no puedes operar el sistema y orienta dónde hacerlo en la UI.
+- Si piden "agrégame / crea / elimina / modifica", indica que no puedes operar el sistema y orienta dónde hacerlo en la UI.
 - No inventes datos clínicos ni precios: usa herramientas o di que no tienes esa info.
-- No des diagnósticos veterinarios; solo orientación operativa del software.
+- Cuando consultes datos, resume en bullets cortos.
 
 MAPA RÁPIDO DE VETSAAS:
 - Clínica: Pacientes, Propietarios, Citas, Historias clínicas, Vacunaciones, Recetas, Laboratorio, Cirugías, Hospitalización.
@@ -197,8 +228,68 @@ MAPA RÁPIDO DE VETSAAS:
 - Configuración: Tarifas (servicios clínicos / grooming / hotel), usuarios, roles, sedes, horarios.
 - Comunicaciones: Bot IA WhatsApp (add-on), cola de mensajes.
 - En historial del paciente se puede compartir vista pública por WhatsApp (enlace firmado).
-
-Cuando consultes datos, resume en bullets cortos y menciona si hay pocos resultados.
 PROMPT;
+    }
+
+    /**
+     * Rechazo local (sin llamar a OpenAI) para abuso obvio / cultura general.
+     */
+    private function shouldRefuseLocally(string $message): bool
+    {
+        if ($message === '') {
+            return false;
+        }
+
+        if ($this->looksClinicRelated($message)) {
+            return false;
+        }
+
+        return $this->looksLikeGeneralKnowledge($message);
+    }
+
+    private function looksClinicRelated(string $message): bool
+    {
+        $msg = mb_strtolower($message);
+
+        $hints = [
+            'cita', 'paciente', 'mascota', 'propietario', 'dueño', 'dueno', 'titular',
+            'vacuna', 'vacunación', 'vacunacion', 'historia', 'consulta', 'receta',
+            'laboratorio', 'cirugía', 'cirugia', 'hospital', 'internamiento',
+            'caja', 'venta', 'ventas', 'boleta', 'factura', 'cobro',
+            'stock', 'producto', 'inventario', 'compra', 'sku', 'precio', 'tarifa',
+            'grooming', 'hotel', 'guardería', 'guarderia', 'baño', 'bano',
+            'sede', 'usuario', 'rol', 'horario', 'agenda', 'turno',
+            'vetsaas', 'whatsapp', 'bot ia', 'módulo', 'modulo', 'menú', 'menu',
+            'sistema', 'pantalla', 'registrar', 'abrir', 'buscar', 'busca',
+            'cómo', 'como ', 'dónde', 'donde', 'ayuda', 'resumen', 'alerta',
+            'perro', 'gato', 'microchip', 'hoy', 'mañana', 'manana',
+        ];
+
+        foreach ($hints as $hint) {
+            if (str_contains($msg, $hint)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function looksLikeGeneralKnowledge(string $message): bool
+    {
+        $msg = mb_strtolower($message);
+
+        $patterns = [
+            '/\b(qui[eé]n (fue|es|era)|qu[eé] es|cu[aá]ndo naci[oó]|en qu[eé] a[nñ]o|capital de|presidente de|cu[aá]nto es|traduce|escribe un poema|cu[eé]ntame un chiste)\b/u',
+            '/\b(crist[oó]bal|col[oó]n|messi|ronaldo|f[uú]tbol|netflix|marvel|harry potter|chatgpt|openai)\b/u',
+            '/\b(historia universal|cultura general|trivia)\b/u',
+        ];
+
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $msg) === 1) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
