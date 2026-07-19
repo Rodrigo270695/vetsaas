@@ -6,9 +6,9 @@ import { DataTable, StatBadge } from '@/components/data-page';
 import type { DataTableColumn } from '@/components/data-page';
 import { FormField, FormModal } from '@/components/forms';
 import {
-    CategoriaServicioClinicoCombobox,
-    type CategoriaServicioClinicoOption,
-} from '@/components/tarifas/categoria-servicio-clinico-combobox';
+    CategoriaTarifaCombobox,
+    type CategoriaTarifaOption,
+} from '@/components/tarifas/categoria-tarifa-combobox';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -31,7 +31,7 @@ type CatalogoClinicaPanelProps = {
     canDelete: boolean;
     /** Rutas CRUD: tarifas (configuración) o servicios (módulo operativo). */
     routesBase?: 'tarifas' | 'servicios';
-    categoriaOptions?: readonly CategoriaServicioClinicoOption[];
+    categoriaOptions?: readonly CategoriaTarifaOption[];
 };
 
 type FormState = {
@@ -134,7 +134,23 @@ export function CatalogoClinicaPanel({
     const routes = routesFor(kind, routesBase);
     const isGrooming = kind === 'grooming';
     const isClinica = kind === 'clinica';
+    const isHotel = kind === 'hotel';
     const showDuracion = isGrooming || isClinica;
+    const useCategoriaCombobox = categoriaOptionsProp.length > 0 || isClinica || isGrooming || isHotel;
+
+    const categoriaCreateUrl =
+        kind === 'grooming'
+            ? '/configuracion/tarifas/grooming/categorias'
+            : kind === 'hotel'
+              ? '/configuracion/tarifas/hotel/categorias'
+              : '/configuracion/tarifas/clinica/categorias';
+
+    const categoriaOptionsPropKey =
+        kind === 'grooming'
+            ? 'groomingCategoriaOptions'
+            : kind === 'hotel'
+              ? 'hotelCategoriaOptions'
+              : 'categoriaOptions';
 
     const openCreate = () => {
         setEditing(null);
@@ -165,13 +181,11 @@ export function CatalogoClinicaPanel({
             precio_lista: form.precio_lista,
             moneda: form.moneda,
             activo: form.activo,
+            categoria_id: form.categoria_id,
         };
 
         if (isClinica) {
-            payload.categoria_id = form.categoria_id;
             payload.duracion_minutos = form.duracion_minutos.trim() === '' ? null : Number(form.duracion_minutos);
-        } else {
-            payload.categoria = form.categoria || null;
         }
 
         if (isGrooming) {
@@ -433,18 +447,20 @@ export function CatalogoClinicaPanel({
                         />
                     </FormField>
 
-                    {isClinica ? (
+                    {useCategoriaCombobox ? (
                         <FormField
                             id="cat-categoria"
                             label={t('catalogo.form.categoria')}
                             error={errors.categoria_id ?? errors.categoria}
                         >
-                            <CategoriaServicioClinicoCombobox
+                            <CategoriaTarifaCombobox
                                 id="cat-categoria"
                                 value={form.categoria_id}
                                 onChange={(categoriaId) => setForm((f) => ({ ...f, categoria_id: categoriaId }))}
                                 options={categoriaOptions}
                                 onOptionsChange={setCategoriaOptions}
+                                createUrl={categoriaCreateUrl}
+                                optionsPropKey={categoriaOptionsPropKey}
                                 canCreate={canCreate || canUpdate}
                                 aria-invalid={Boolean(errors.categoria_id ?? errors.categoria)}
                             />

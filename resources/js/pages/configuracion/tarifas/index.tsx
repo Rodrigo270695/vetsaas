@@ -58,6 +58,8 @@ export default function Index({
     hotelTipos,
     serviciosClinicos,
     categoriaOptions,
+    groomingCategoriaOptions,
+    hotelCategoriaOptions,
     catalogoGrooming,
     catalogoHotel,
     groomingTarifas,
@@ -110,6 +112,8 @@ export default function Index({
                     'hotelTipos',
                     'serviciosClinicos',
                     'categoriaOptions',
+                    'groomingCategoriaOptions',
+                    'hotelCategoriaOptions',
                     'filters',
                     'grooming_catalogo_personalizado',
                     'hotel_catalogo_personalizado',
@@ -465,6 +469,7 @@ export default function Index({
                                             canCreate={canCreate}
                                             canUpdate={canUpdate}
                                             canDelete={canDelete}
+                                            categoriaOptions={groomingCategoriaOptions}
                                         />
                                     </>
                                 ) : groomingTarifas ? (
@@ -522,6 +527,7 @@ export default function Index({
                                             canCreate={canCreate}
                                             canUpdate={canUpdate}
                                             canDelete={canDelete}
+                                            categoriaOptions={hotelCategoriaOptions}
                                         />
                                     </>
                                 ) : hotelTarifas ? (

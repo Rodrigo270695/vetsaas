@@ -922,6 +922,12 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:tarifas.create|tarifas.update')
             ->post('tarifas/clinica/categorias', [TarifaServiciosController::class, 'storeCategoriaClinica'])
             ->name('tarifas.clinica.categorias.store');
+        Route::middleware('permission:tarifas.create|tarifas.update')
+            ->post('tarifas/grooming/categorias', [TarifaServiciosController::class, 'storeCategoriaGrooming'])
+            ->name('tarifas.grooming.categorias.store');
+        Route::middleware('permission:tarifas.create|tarifas.update')
+            ->post('tarifas/hotel/categorias', [TarifaServiciosController::class, 'storeCategoriaHotel'])
+            ->name('tarifas.hotel.categorias.store');
 
         Route::middleware('permission:tarifas.create')
             ->post('tarifas/grooming/servicios', [GroomingServicioController::class, 'store'])

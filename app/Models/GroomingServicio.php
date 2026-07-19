@@ -4,12 +4,14 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * @property string $id
  * @property string $nombre
  * @property ?string $categoria
+ * @property ?string $categoria_id
  * @property ?string $codigo_legacy
  * @property string $precio_lista
  * @property string $moneda
@@ -26,6 +28,7 @@ class GroomingServicio extends Model
     protected $fillable = [
         'nombre',
         'categoria',
+        'categoria_id',
         'codigo_legacy',
         'precio_lista',
         'moneda',
@@ -42,6 +45,11 @@ class GroomingServicio extends Model
             'activo' => 'boolean',
             'orden' => 'integer',
         ];
+    }
+
+    public function categoriaCatalogo(): BelongsTo
+    {
+        return $this->belongsTo(CategoriaGrooming::class, 'categoria_id');
     }
 
     public function turnos(): HasMany

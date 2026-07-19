@@ -22,10 +22,13 @@ export type CatalogoClinicaRow = {
     insumos_total?: string | number | null;
 };
 
-export type CategoriaServicioClinicoOption = {
+export type CategoriaTarifaOption = {
     id: string;
     nombre: string;
 };
+
+/** @deprecated Use CategoriaTarifaOption */
+export type CategoriaServicioClinicoOption = CategoriaTarifaOption;
 
 export type GroomingInsumoCatalogo = {
     id: string;
@@ -79,7 +82,9 @@ export type TarifaIndexProps = {
     groomingServicios: CatalogoClinicaRow[];
     hotelTipos: CatalogoClinicaRow[];
     serviciosClinicos: CatalogoClinicaRow[];
-    categoriaOptions: CategoriaServicioClinicoOption[];
+    categoriaOptions: CategoriaTarifaOption[];
+    groomingCategoriaOptions: CategoriaTarifaOption[];
+    hotelCategoriaOptions: CategoriaTarifaOption[];
     catalogoGrooming: CatalogoGrupo[];
     catalogoHotel: CatalogoGrupo[];
     groomingTarifas: Paginated<GroomingTarifa> | null;

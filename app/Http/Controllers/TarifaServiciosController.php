@@ -10,6 +10,8 @@ use App\Hotel\HotelCatalogoMode;
 use App\Hotel\HotelCatalogoTipoEstancia;
 use App\Http\Requests\GroomingServicioTarifaRequest;
 use App\Http\Requests\HotelEstanciaTarifaRequest;
+use App\Models\CategoriaGrooming;
+use App\Models\CategoriaHotel;
 use App\Models\CategoriaServicioClinico;
 use App\Models\GroomingServicio;
 use App\Models\GroomingServicioTarifa;
@@ -63,12 +65,19 @@ class TarifaServiciosController extends Controller
         $hotelTipos = collect();
         $serviciosClinicos = collect();
         $categoriaOptions = collect();
+        $groomingCategoriaOptions = collect();
+        $hotelCategoriaOptions = collect();
 
         if ($groomingPersonalizado) {
+            $groomingSelect = [
+                'id', 'nombre', 'categoria', 'precio_lista', 'moneda', 'duracion_minutos', 'activo', 'orden', 'codigo_legacy',
+            ];
+            if (Schema::hasColumn('grooming_servicios', 'categoria_id')) {
+                $groomingSelect[] = 'categoria_id';
+            }
+
             $groomingQuery = GroomingServicio::query()
-                ->select([
-                    'id', 'nombre', 'categoria', 'codigo_legacy', 'precio_lista', 'moneda', 'duracion_minutos', 'activo', 'orden',
-                ])
+                ->select($groomingSelect)
                 ->orderBy('orden')
                 ->orderBy('nombre');
 
@@ -89,6 +98,13 @@ class TarifaServiciosController extends Controller
         }
 
         if ($hotelPersonalizado) {
+            $hotelSelect = [
+                'id', 'nombre', 'categoria', 'codigo_legacy', 'precio_lista', 'moneda', 'activo', 'orden',
+            ];
+            if (Schema::hasColumn('hotel_tipos_estancia', 'categoria_id')) {
+                $hotelSelect[] = 'categoria_id';
+            }
+
             $hotelQuery = HotelTipoEstancia::query()->orderBy('orden')->orderBy('nombre');
             if ($hotelSearch !== '') {
                 $hotelQuery->where(function ($q) use ($hotelSearch): void {
@@ -97,9 +113,7 @@ class TarifaServiciosController extends Controller
                         ->orWhere('codigo_legacy', 'ILIKE', "%{$hotelSearch}%");
                 });
             }
-            $hotelTipos = $hotelQuery->get([
-                'id', 'nombre', 'categoria', 'codigo_legacy', 'precio_lista', 'moneda', 'activo', 'orden',
-            ]);
+            $hotelTipos = $hotelQuery->get($hotelSelect);
         }
 
         if (Schema::hasTable('servicios_clinicos')) {
@@ -140,6 +154,20 @@ class TarifaServiciosController extends Controller
                 ->get(['id', 'nombre']);
         }
 
+        if (Schema::hasTable('categorias_grooming')) {
+            $groomingCategoriaOptions = CategoriaGrooming::query()
+                ->where('activo', true)
+                ->orderBy('nombre')
+                ->get(['id', 'nombre']);
+        }
+
+        if (Schema::hasTable('categorias_hotel')) {
+            $hotelCategoriaOptions = CategoriaHotel::query()
+                ->where('activo', true)
+                ->orderBy('nombre')
+                ->get(['id', 'nombre']);
+        }
+
         $groomingTarifasQuery = GroomingServicioTarifa::query()->orderBy('servicio');
         if ($groomingSearch !== '' && ! $groomingPersonalizado) {
             $groomingTarifasQuery->where('servicio', 'ILIKE', "%{$groomingSearch}%");
@@ -158,6 +186,8 @@ class TarifaServiciosController extends Controller
             'hotelTipos' => $hotelTipos,
             'serviciosClinicos' => $serviciosClinicos,
             'categoriaOptions' => $categoriaOptions,
+            'groomingCategoriaOptions' => $groomingCategoriaOptions,
+            'hotelCategoriaOptions' => $hotelCategoriaOptions,
             'catalogoGrooming' => $groomingPersonalizado ? [] : GroomingCatalogoServicio::grupos(),
             'catalogoHotel' => $hotelPersonalizado ? [] : HotelCatalogoTipoEstancia::grupos(),
             'groomingTarifas' => $groomingPersonalizado
@@ -401,6 +431,66 @@ class TarifaServiciosController extends Controller
         return back()->with('success', __('tarifas-servicios.clinica.categoria_created'));
     }
 
+    public function storeCategoriaGrooming(Request $request): RedirectResponse
+    {
+        abort_unless(
+            $request->user()?->can('tarifas.create') || $request->user()?->can('tarifas.update'),
+            403,
+        );
+        abort_unless(
+            Schema::hasTable('categorias_grooming'),
+            503,
+            __('tarifas-servicios.grooming.missing_categorias_table'),
+        );
+
+        $data = $request->validate([
+            'nombre' => [
+                'required',
+                'string',
+                'min:2',
+                'max:80',
+                Rule::unique('categorias_grooming', 'nombre')->whereNull('deleted_at'),
+            ],
+        ]);
+
+        CategoriaGrooming::query()->create([
+            'nombre' => trim((string) $data['nombre']),
+            'activo' => true,
+        ]);
+
+        return back()->with('success', __('tarifas-servicios.grooming.categoria_created'));
+    }
+
+    public function storeCategoriaHotel(Request $request): RedirectResponse
+    {
+        abort_unless(
+            $request->user()?->can('tarifas.create') || $request->user()?->can('tarifas.update'),
+            403,
+        );
+        abort_unless(
+            Schema::hasTable('categorias_hotel'),
+            503,
+            __('tarifas-servicios.hotel.missing_categorias_table'),
+        );
+
+        $data = $request->validate([
+            'nombre' => [
+                'required',
+                'string',
+                'min:2',
+                'max:80',
+                Rule::unique('categorias_hotel', 'nombre')->whereNull('deleted_at'),
+            ],
+        ]);
+
+        CategoriaHotel::query()->create([
+            'nombre' => trim((string) $data['nombre']),
+            'activo' => true,
+        ]);
+
+        return back()->with('success', __('tarifas-servicios.hotel.categoria_created'));
+    }
+
     private function storeGroomingTarifaLegacy(GroomingServicioTarifaRequest $request): RedirectResponse
     {
         $data = $request->validated();
@@ -465,11 +555,13 @@ class TarifaServiciosController extends Controller
     {
         $data = CatalogoClinicaValidator::grooming($request);
         $maxOrden = (int) GroomingServicio::query()->max('orden');
+        $categoria = $this->resolveCategoriaGrooming($data);
 
         try {
             GroomingServicio::query()->create([
                 'nombre' => $data['nombre'],
-                'categoria' => $data['categoria'] ?? null,
+                'categoria' => $categoria['categoria'],
+                'categoria_id' => $categoria['categoria_id'],
                 'precio_lista' => $data['precio_lista'],
                 'moneda' => $data['moneda'] ?? 'PEN',
                 'duracion_minutos' => (int) ($data['duracion_minutos'] ?? 60),
@@ -490,11 +582,13 @@ class TarifaServiciosController extends Controller
     private function updateGroomingCatalogo(Request $request, GroomingServicio $servicio): RedirectResponse
     {
         $data = CatalogoClinicaValidator::grooming($request);
+        $categoria = $this->resolveCategoriaGrooming($data);
 
         try {
             $servicio->update([
                 'nombre' => $data['nombre'],
-                'categoria' => $data['categoria'] ?? null,
+                'categoria' => $categoria['categoria'],
+                'categoria_id' => $categoria['categoria_id'],
                 'precio_lista' => $data['precio_lista'],
                 'moneda' => $data['moneda'] ?? $servicio->moneda,
                 'duracion_minutos' => (int) ($data['duracion_minutos'] ?? $servicio->duracion_minutos ?? 60),
@@ -516,11 +610,13 @@ class TarifaServiciosController extends Controller
     {
         $data = CatalogoClinicaValidator::hotel($request);
         $maxOrden = (int) HotelTipoEstancia::query()->max('orden');
+        $categoria = $this->resolveCategoriaHotel($data);
 
         try {
             HotelTipoEstancia::query()->create([
                 'nombre' => $data['nombre'],
-                'categoria' => $data['categoria'] ?? null,
+                'categoria' => $categoria['categoria'],
+                'categoria_id' => $categoria['categoria_id'],
                 'precio_lista' => $data['precio_lista'],
                 'moneda' => $data['moneda'] ?? 'PEN',
                 'activo' => $data['activo'] ?? true,
@@ -540,11 +636,13 @@ class TarifaServiciosController extends Controller
     private function updateHotelCatalogo(Request $request, HotelTipoEstancia $tipo): RedirectResponse
     {
         $data = CatalogoClinicaValidator::hotel($request);
+        $categoria = $this->resolveCategoriaHotel($data);
 
         try {
             $tipo->update([
                 'nombre' => $data['nombre'],
-                'categoria' => $data['categoria'] ?? null,
+                'categoria' => $categoria['categoria'],
+                'categoria_id' => $categoria['categoria_id'],
                 'precio_lista' => $data['precio_lista'],
                 'moneda' => $data['moneda'] ?? $tipo->moneda,
                 'activo' => $data['activo'] ?? $tipo->activo,
@@ -559,6 +657,60 @@ class TarifaServiciosController extends Controller
         }
 
         return back()->with('success', __('tarifas-servicios.hotel.updated'));
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array{categoria_id: ?string, categoria: ?string}
+     */
+    private function resolveCategoriaGrooming(array $data): array
+    {
+        $categoriaId = isset($data['categoria_id']) && is_string($data['categoria_id']) && $data['categoria_id'] !== ''
+            ? $data['categoria_id']
+            : null;
+
+        if ($categoriaId !== null && Schema::hasTable('categorias_grooming')) {
+            $nombre = CategoriaGrooming::query()->whereKey($categoriaId)->value('nombre');
+
+            return [
+                'categoria_id' => $categoriaId,
+                'categoria' => is_string($nombre) ? $nombre : null,
+            ];
+        }
+
+        $legacy = isset($data['categoria']) && is_string($data['categoria']) ? trim($data['categoria']) : '';
+
+        return [
+            'categoria_id' => null,
+            'categoria' => $legacy === '' ? null : $legacy,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array{categoria_id: ?string, categoria: ?string}
+     */
+    private function resolveCategoriaHotel(array $data): array
+    {
+        $categoriaId = isset($data['categoria_id']) && is_string($data['categoria_id']) && $data['categoria_id'] !== ''
+            ? $data['categoria_id']
+            : null;
+
+        if ($categoriaId !== null && Schema::hasTable('categorias_hotel')) {
+            $nombre = CategoriaHotel::query()->whereKey($categoriaId)->value('nombre');
+
+            return [
+                'categoria_id' => $categoriaId,
+                'categoria' => is_string($nombre) ? $nombre : null,
+            ];
+        }
+
+        $legacy = isset($data['categoria']) && is_string($data['categoria']) ? trim($data['categoria']) : '';
+
+        return [
+            'categoria_id' => null,
+            'categoria' => $legacy === '' ? null : $legacy,
+        ];
     }
 
     /**
