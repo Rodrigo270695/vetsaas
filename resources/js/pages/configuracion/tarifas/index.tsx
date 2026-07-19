@@ -394,36 +394,47 @@ export default function Index({
 
                 <Tabs value={tab} onValueChange={setTab} className="gap-4">
                     <Card className="gap-0 overflow-hidden py-0 shadow-sm">
-                        <CardHeader className="gap-4 border-b border-border/60 bg-muted/20 px-4 py-4 sm:px-6">
-                            <TabsList className="h-auto w-full justify-start gap-1 bg-background/80 p-1 sm:w-auto">
-                                <TabsTrigger value="clinica" className="cursor-pointer gap-2 px-4">
-                                    <Stethoscope className="size-4" />
-                                    {t('tabs.clinica')}
-                                </TabsTrigger>
-                                {groomingModuleEnabled ? (
-                                    <TabsTrigger value="grooming" className="cursor-pointer gap-2 px-4">
-                                        <Scissors className="size-4" />
-                                        {t('tabs.grooming')}
+                        <CardHeader className="gap-3 border-b border-border/60 bg-muted/20 px-3 py-3 sm:gap-4 sm:px-6 sm:py-4">
+                            <div className="-mx-1 overflow-x-auto px-1 scrollbar-none">
+                                <TabsList className="h-auto w-max min-w-full justify-start gap-1 bg-background/80 p-1 sm:w-auto">
+                                    <TabsTrigger
+                                        value="clinica"
+                                        className="cursor-pointer gap-1.5 px-3 text-xs sm:gap-2 sm:px-4 sm:text-sm"
+                                    >
+                                        <Stethoscope className="size-3.5 shrink-0 sm:size-4" />
+                                        <span className="whitespace-nowrap">{t('tabs.clinica')}</span>
                                     </TabsTrigger>
-                                ) : null}
-                                {hotelModuleEnabled ? (
-                                    <TabsTrigger value="hotel" className="cursor-pointer gap-2 px-4">
-                                        <BedDouble className="size-4" />
-                                        {t('tabs.hotel')}
-                                    </TabsTrigger>
-                                ) : null}
-                            </TabsList>
+                                    {groomingModuleEnabled ? (
+                                        <TabsTrigger
+                                            value="grooming"
+                                            className="cursor-pointer gap-1.5 px-3 text-xs sm:gap-2 sm:px-4 sm:text-sm"
+                                        >
+                                            <Scissors className="size-3.5 shrink-0 sm:size-4" />
+                                            <span className="whitespace-nowrap">{t('tabs.grooming')}</span>
+                                        </TabsTrigger>
+                                    ) : null}
+                                    {hotelModuleEnabled ? (
+                                        <TabsTrigger
+                                            value="hotel"
+                                            className="cursor-pointer gap-1.5 px-3 text-xs sm:gap-2 sm:px-4 sm:text-sm"
+                                        >
+                                            <BedDouble className="size-3.5 shrink-0 sm:size-4" />
+                                            <span className="whitespace-nowrap">{t('tabs.hotel')}</span>
+                                        </TabsTrigger>
+                                    ) : null}
+                                </TabsList>
+                            </div>
                         </CardHeader>
 
                         <CardContent className="p-0">
                             <TabsContent value="clinica" className="mt-0">
-                                <div className="border-b border-border/60 px-4 py-3 sm:px-6">
+                                <div className="border-b border-border/60 px-3 py-3 sm:px-6">
                                     <DataToolbar
                                         search={clinicaSearch}
                                         onSearchChange={setClinicaSearch}
                                         isSearching={tab === 'clinica' && isSearching}
                                         placeholder={t('search.clinica')}
-                                        searchWrapperClassName="sm:max-w-md"
+                                        searchWrapperClassName="w-full sm:max-w-md"
                                     />
                                 </div>
                                 <CatalogoClinicaPanel

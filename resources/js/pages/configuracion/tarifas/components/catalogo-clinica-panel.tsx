@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/react';
-import { Loader2, Package, Plus } from 'lucide-react';
+import { Loader2, Package, Plus, Stethoscope } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DataTable, StatBadge } from '@/components/data-page';
@@ -14,7 +14,9 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
 import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
 import { GroomingInsumosModal } from './grooming-insumos-modal';
+import { ServiciosClinicosList } from './servicios-clinicos-list';
 import { TarifaDeleteDialog } from './tarifa-delete-dialog';
 import { TarifaRowActions } from './tarifa-row-actions';
 import type { CatalogoClinicaRow } from '../types';
@@ -344,14 +346,30 @@ export function CatalogoClinicaPanel({
 
     return (
         <>
-            <div className="flex flex-col gap-4 border-b border-border/60 px-4 py-4 sm:px-6">
+            <div
+                className={cn(
+                    'flex flex-col gap-4 border-b border-border/60 px-4 py-4 sm:px-6',
+                    isClinica && 'bg-linear-to-br from-sky-500/[0.07] via-transparent to-transparent',
+                )}
+            >
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="space-y-1">
-                        <h2 className="text-base font-semibold text-foreground">{t(titleKey)}</h2>
-                        <p className="max-w-2xl text-sm text-muted-foreground">{t(descriptionKey)}</p>
+                    <div className="flex gap-3">
+                        {isClinica ? (
+                            <div className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl bg-sky-500/12 text-sky-700 dark:text-sky-300">
+                                <Stethoscope className="size-5" strokeWidth={1.75} />
+                            </div>
+                        ) : null}
+                        <div className="min-w-0 space-y-1">
+                            <h2 className="text-base font-semibold text-foreground">{t(titleKey)}</h2>
+                            <p className="max-w-2xl text-sm text-muted-foreground">{t(descriptionKey)}</p>
+                        </div>
                     </div>
                     {canCreate ? (
-                        <Button type="button" className="cursor-pointer gap-2 self-start" onClick={openCreate}>
+                        <Button
+                            type="button"
+                            className="h-10 w-full cursor-pointer gap-2 sm:h-9 sm:w-auto sm:self-start"
+                            onClick={openCreate}
+                        >
                             <Plus className="size-4" strokeWidth={2.5} />
                             {t(addKey)}
                         </Button>
@@ -359,7 +377,17 @@ export function CatalogoClinicaPanel({
                 </div>
             </div>
 
-            {rows.length === 0 ? (
+            {isClinica ? (
+                <ServiciosClinicosList
+                    rows={rows}
+                    canCreate={canCreate}
+                    canUpdate={canUpdate}
+                    canDelete={canDelete}
+                    onCreate={openCreate}
+                    onEdit={openEdit}
+                    onDelete={setDeleteRow}
+                />
+            ) : rows.length === 0 ? (
                 <p className="px-4 py-10 text-center text-sm text-muted-foreground sm:px-6">{t(emptyKey)}</p>
             ) : (
                 <DataTable
