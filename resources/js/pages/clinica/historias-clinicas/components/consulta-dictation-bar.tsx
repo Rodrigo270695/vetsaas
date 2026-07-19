@@ -53,6 +53,13 @@ function getSpeechRecognitionCtor(): (new () => SpeechRecognitionLike) | null {
     return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
 }
 
+function isLikelyMobile(): boolean {
+    if (typeof navigator === 'undefined') {
+        return false;
+    }
+    return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+}
+
 export function ConsultaDictationBar({ disabled = false, onFields }: Props) {
     const { t } = useTranslation('historias-clinicas');
     const [listening, setListening] = useState(false);
@@ -66,11 +73,21 @@ export function ConsultaDictationBar({ disabled = false, onFields }: Props) {
     const mediaChunksRef = useRef<Blob[]>([]);
     const mediaStreamRef = useRef<MediaStream | null>(null);
     const finalTranscriptRef = useRef('');
+    const liveTextRef = useRef('');
     const stopRequestedRef = useRef(false);
+    const listeningIntentRef = useRef(false);
+    const disposingRef = useRef(false);
+    const restartCountRef = useRef(0);
+    const processTranscriptRef = useRef<(transcript: string) => Promise<void>>(async () => {});
+
+    const capturedText = () =>
+        (finalTranscriptRef.current.trim() || liveTextRef.current.trim()).trim();
 
     useEffect(() => {
+        disposingRef.current = false;
         return () => {
-            stopAll();
+            disposingRef.current = true;
+            stopAll(false);
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -80,8 +97,9 @@ export function ConsultaDictationBar({ disabled = false, onFields }: Props) {
         mediaStreamRef.current = null;
     };
 
-    const stopAll = () => {
+    const stopAll = (processAfter = false) => {
         stopRequestedRef.current = true;
+        listeningIntentRef.current = false;
         try {
             recognitionRef.current?.abort();
         } catch {
@@ -99,6 +117,9 @@ export function ConsultaDictationBar({ disabled = false, onFields }: Props) {
         mediaRecorderRef.current = null;
         stopMediaTracks();
         setListening(false);
+        if (processAfter) {
+            void processTranscriptRef.current(capturedText());
+        }
     };
 
     const processTranscript = async (transcript: string) => {
@@ -134,7 +155,8 @@ export function ConsultaDictationBar({ disabled = false, onFields }: Props) {
                 throw new Error(t('dictation.error'));
             }
             onFields(body.fields, body.transcript ?? text);
-            setLiveText('');
+            setLiveText(body.transcript ?? text);
+            liveTextRef.current = body.transcript ?? text;
             finalTranscriptRef.current = '';
         } catch (e) {
             setError(e instanceof Error ? e.message : t('dictation.error'));
@@ -142,6 +164,7 @@ export function ConsultaDictationBar({ disabled = false, onFields }: Props) {
             setProcessing(false);
         }
     };
+    processTranscriptRef.current = processTranscript;
 
     const processAudio = async (blob: Blob) => {
         if (blob.size < 500) {
@@ -177,6 +200,7 @@ export function ConsultaDictationBar({ disabled = false, onFields }: Props) {
             }
             onFields(body.fields, body.transcript ?? '');
             setLiveText(body.transcript ?? '');
+            liveTextRef.current = body.transcript ?? '';
             finalTranscriptRef.current = '';
         } catch (e) {
             setError(e instanceof Error ? e.message : t('dictation.error'));
@@ -185,20 +209,7 @@ export function ConsultaDictationBar({ disabled = false, onFields }: Props) {
         }
     };
 
-    const startSpeech = () => {
-        const Ctor = getSpeechRecognitionCtor();
-        if (!Ctor) {
-            return false;
-        }
-
-        const recognition = new Ctor();
-        recognition.lang = 'es-PE';
-        recognition.continuous = true;
-        recognition.interimResults = true;
-        finalTranscriptRef.current = '';
-        setLiveText('');
-        stopRequestedRef.current = false;
-
+    const bindSpeechHandlers = (recognition: SpeechRecognitionLike, Ctor: new () => SpeechRecognitionLike) => {
         recognition.onresult = (event) => {
             let interim = '';
             let finalChunk = finalTranscriptRef.current;
@@ -211,25 +222,87 @@ export function ConsultaDictationBar({ disabled = false, onFields }: Props) {
                 }
             }
             finalTranscriptRef.current = finalChunk;
-            setLiveText(`${finalChunk}${interim ? ` ${interim}` : ''}`.trim());
+            const display = `${finalChunk}${interim ? ` ${interim}` : ''}`.trim();
+            liveTextRef.current = display;
+            setLiveText(display);
         };
 
         recognition.onerror = (event) => {
-            if (event.error === 'aborted' || event.error === 'no-speech') {
+            if (event.error === 'aborted') {
                 return;
             }
+            // En móvil "no-speech" suele cerrar la sesión: no es error fatal.
+            if (event.error === 'no-speech') {
+                return;
+            }
+            listeningIntentRef.current = false;
             setError(t('dictation.mic_error'));
             setListening(false);
         };
 
         recognition.onend = () => {
             recognitionRef.current = null;
-            setListening(false);
-            if (stopRequestedRef.current) {
-                void processTranscript(finalTranscriptRef.current);
+            if (disposingRef.current) {
+                return;
             }
-        };
 
+            // Usuario pulsó detener (o cleanup con process).
+            if (stopRequestedRef.current || !listeningIntentRef.current) {
+                setListening(false);
+                listeningIntentRef.current = false;
+                if (!disposingRef.current) {
+                    void processTranscript(capturedText());
+                }
+                return;
+            }
+
+            // Chrome móvil corta solo tras un silencio: reintentar escuchar.
+            if (restartCountRef.current < 10) {
+                restartCountRef.current += 1;
+                try {
+                    const next = new Ctor();
+                    next.lang = 'es-PE';
+                    next.continuous = true;
+                    next.interimResults = true;
+                    bindSpeechHandlers(next, Ctor);
+                    recognitionRef.current = next;
+                    next.start();
+                    return;
+                } catch {
+                    // caer a procesar
+                }
+            }
+
+            listeningIntentRef.current = false;
+            setListening(false);
+            void processTranscript(capturedText());
+        };
+    };
+
+    const startSpeech = () => {
+        const Ctor = getSpeechRecognitionCtor();
+        if (!Ctor) {
+            return false;
+        }
+
+        // En móvil el Web Speech se corta solo y a menudo no marca "final":
+        // preferimos grabar audio + Whisper (más fiable para rellenar campos).
+        if (isLikelyMobile()) {
+            return false;
+        }
+
+        const recognition = new Ctor();
+        recognition.lang = 'es-PE';
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        finalTranscriptRef.current = '';
+        liveTextRef.current = '';
+        setLiveText('');
+        stopRequestedRef.current = false;
+        listeningIntentRef.current = true;
+        restartCountRef.current = 0;
+
+        bindSpeechHandlers(recognition, Ctor);
         recognitionRef.current = recognition;
         recognition.start();
         setMode('speech');
@@ -255,6 +328,7 @@ export function ConsultaDictationBar({ disabled = false, onFields }: Props) {
         const recorder = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
         mediaRecorderRef.current = recorder;
         stopRequestedRef.current = false;
+        listeningIntentRef.current = true;
 
         recorder.ondataavailable = (e) => {
             if (e.data.size > 0) {
@@ -267,6 +341,11 @@ export function ConsultaDictationBar({ disabled = false, onFields }: Props) {
             stopMediaTracks();
             mediaRecorderRef.current = null;
             setListening(false);
+            listeningIntentRef.current = false;
+            if (disposingRef.current) {
+                return;
+            }
+            // En media siempre procesamos al parar (manual).
             if (stopRequestedRef.current) {
                 void processAudio(blob);
             }
@@ -276,6 +355,7 @@ export function ConsultaDictationBar({ disabled = false, onFields }: Props) {
         setMode('media');
         setListening(true);
         setLiveText(t('dictation.recording'));
+        liveTextRef.current = '';
         setError(null);
     };
 
@@ -300,12 +380,13 @@ export function ConsultaDictationBar({ disabled = false, onFields }: Props) {
             return;
         }
         stopRequestedRef.current = true;
+        listeningIntentRef.current = false;
         if (mode === 'speech' && recognitionRef.current) {
             try {
                 recognitionRef.current.stop();
             } catch {
                 setListening(false);
-                void processTranscript(finalTranscriptRef.current);
+                void processTranscript(capturedText());
             }
             return;
         }
