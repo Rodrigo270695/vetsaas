@@ -7,6 +7,7 @@ namespace App\Console\Commands;
 use App\Models\SalesConversation;
 use App\Services\Sales\SalesBotService;
 use Illuminate\Console\Command;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -47,23 +48,21 @@ final class ReactivateColdLeadsCommand extends Command
 
     public function handle(): int
     {
-        $dryRun      = (bool) $this->option('dry-run');
+        $dryRun = (bool) $this->option('dry-run');
         $inactiveDays = (int) $this->option('days');
-        $limit        = min((int) $this->option('limit'), 20); // nunca más de 20 por corrida
-        $delay        = max((int) $this->option('delay'), 10); // nunca menos de 10s entre mensajes
+        $limit = min((int) $this->option('limit'), 20); // nunca más de 20 por corrida
+        $delay = max((int) $this->option('delay'), 10); // nunca menos de 10s entre mensajes
 
         $this->info("🔍 Buscando leads fríos (inactivos +{$inactiveDays} días, máx {$limit})...");
 
         // ── Paso 0: cerrar automáticamente leads que agotaron sus 2 intentos ──
-        // Si ya se enviaron 2 mensajes de reactivación y han pasado 3+ días sin
-        // respuesta, se marcan como "perdidos" y no se vuelven a contactar.
         if (! $dryRun) {
             $exhausted = SalesConversation::query()
                 ->where('converted', false)
                 ->whereNull('lost_at')
                 ->where('reactivation_count', '>=', 2)
                 ->whereNotNull('last_reactivation_at')
-                ->whereRaw("EXTRACT(EPOCH FROM (NOW() - last_reactivation_at))/86400 >= 3")
+                ->whereRaw('EXTRACT(EPOCH FROM (NOW() - last_reactivation_at))/86400 >= 3')
                 ->where(function ($q): void {
                     $q->where('turn_count', '>', 0)
                         ->orWhere('activation_trigger', 'like', 'manual:%');
@@ -75,58 +74,62 @@ final class ReactivateColdLeadsCommand extends Command
                 foreach ($exhausted as $lead) {
                     /** @var SalesConversation $lead */
                     $lead->markLost();
-                    $this->line("  ⛔ [{$lead->phone}] " . ($lead->prospect_name ?? 'Sin nombre') . " — marcado como perdido");
+                    $this->line('  ⛔ ['.$lead->phone.'] '.($lead->prospect_name ?? 'Sin nombre').' — marcado como perdido');
                 }
             }
         }
 
-        // Consulta base: conversaciones que tuvieron actividad con el bot
-        // pero llevan días sin escribir y aún no convirtieron ni se perdieron.
-        $candidates = SalesConversation::query()
-            ->where('converted', false)
-            ->whereNull('lost_at')
-            ->where('reactivation_count', '<', 2)
-            // Elegible si tuvo al menos 1 turno con el bot O fue importado manualmente.
-            ->where(function ($q): void {
-                $q->where('turn_count', '>', 0)
-                    ->orWhere('activation_trigger', 'like', 'manual:%');
-            })
-            ->where(function ($q) use ($inactiveDays): void {
-                $q->whereNull('last_reactivation_at')
-                    ->orWhereRaw('EXTRACT(EPOCH FROM (NOW() - last_reactivation_at))/86400 >= 3');
-            })
-            ->whereRaw("EXTRACT(EPOCH FROM (NOW() - COALESCE(last_message_at, created_at)))/86400 >= ?", [$inactiveDays])
-            ->orderBy('last_message_at', 'asc')
-            ->limit($limit)
+        // Sobre-muestrear y filtrar en PHP para no llenar el cupo con pausados
+        // (antes: limit=N tomaba los más viejos pausados → 0 envíos silenciosos).
+        $pool = $this->coldLeadsQuery($inactiveDays)
+            ->orderBy('last_message_at')
+            ->limit(max($limit * 5, 50))
             ->get();
 
+        $candidates = $pool
+            ->filter(fn (SalesConversation $c): bool => $c->isEligibleForReactivation($inactiveDays))
+            ->take($limit)
+            ->values();
+
         if ($candidates->isEmpty()) {
-            $this->info('✅ No hay leads fríos para reactivar hoy.');
+            $pausedInPool = $pool->filter(fn (SalesConversation $c): bool => $c->isManuallyPaused())->count();
+            $this->info('✅ No hay leads fríos elegibles para reactivar hoy.');
+            if ($pausedInPool > 0) {
+                $this->warn("   ({$pausedInPool} en el pool están pausados manualmente y se omitieron)");
+            }
+
             return self::SUCCESS;
         }
 
-        $this->info("📋 Leads encontrados: {$candidates->count()}");
+        $this->info("📋 Leads elegibles: {$candidates->count()}");
 
         if ($dryRun) {
             $this->table(
-                ['Phone', 'Nombre', 'Último mensaje', 'Intentos reactivación'],
-                $candidates->map(fn ($c) => [
+                ['Phone', 'Nombre', 'Último mensaje', 'Intentos reactivación', 'Pausado'],
+                $candidates->map(fn (SalesConversation $c): array => [
                     $c->phone,
                     $c->prospect_name ?? '(sin nombre)',
                     $c->last_message_at?->diffForHumans() ?? 'nunca',
                     $c->reactivation_count,
+                    $c->isManuallyPaused() ? 'sí' : 'no',
                 ])->toArray(),
             );
             $this->warn('⚠️  Modo dry-run: no se envió ningún mensaje.');
+
             return self::SUCCESS;
         }
 
-        $sent   = 0;
+        $sent = 0;
         $failed = 0;
+        $skipped = 0;
 
         foreach ($candidates as $conversation) {
             /** @var SalesConversation $conversation */
             if (! $conversation->isEligibleForReactivation($inactiveDays)) {
+                $reason = $conversation->isManuallyPaused() ? 'pausado manual' : 'no elegible';
+                $this->line("  ⏭️  [{$conversation->phone}] omitido ({$reason})");
+                $skipped++;
+
                 continue;
             }
 
@@ -140,35 +143,64 @@ final class ReactivateColdLeadsCommand extends Command
                 );
 
                 Log::info('ReactivateColdLeads: mensaje enviado', [
-                    'phone'   => $conversation->phone,
-                    'name'    => $name,
+                    'phone' => $conversation->phone,
+                    'name' => $name,
                     'attempt' => $conversation->reactivation_count,
                     'message' => substr($message, 0, 80),
                 ]);
 
                 $sent++;
 
-                // Pausa aleatoria entre envíos para simular comportamiento humano.
-                // Nunca menos de $delay segundos. WhatsApp detecta ráfagas uniformes.
                 $sleepSecs = $delay + rand(0, 8);
                 $this->line("    ⏳ Esperando {$sleepSecs}s antes del próximo envío...");
                 sleep($sleepSecs);
-
             } catch (\Throwable $e) {
                 $this->error("  ❌ [{$conversation->phone}] {$name} — {$e->getMessage()}");
 
                 Log::error('ReactivateColdLeads: fallo al enviar', [
-                    'phone'   => $conversation->phone,
-                    'error'   => $e->getMessage(),
+                    'phone' => $conversation->phone,
+                    'error' => $e->getMessage(),
                 ]);
+
+                // Evita que un número con OpenWA 500 bloquee la cola todos los días.
+                // Rota 3 días sin gastar el cupo de reactivación.
+                $conversation->last_reactivation_at = now();
+                $conversation->save();
 
                 $failed++;
             }
         }
 
         $this->newLine();
-        $this->info("📊 Resumen: {$sent} enviados, {$failed} fallidos.");
+        $this->info("📊 Resumen: {$sent} enviados, {$failed} fallidos, {$skipped} omitidos.");
 
         return self::SUCCESS;
+    }
+
+    /**
+     * @return Builder<SalesConversation>
+     */
+    private function coldLeadsQuery(int $inactiveDays): Builder
+    {
+        return SalesConversation::query()
+            ->where('converted', false)
+            ->whereNull('lost_at')
+            ->where('reactivation_count', '<', 2)
+            ->where(function ($q): void {
+                $q->where('bot_paused_manually', false)
+                    ->orWhereNull('bot_paused_manually');
+            })
+            ->where(function ($q): void {
+                $q->where('turn_count', '>', 0)
+                    ->orWhere('activation_trigger', 'like', 'manual:%');
+            })
+            ->where(function ($q): void {
+                $q->whereNull('last_reactivation_at')
+                    ->orWhereRaw('EXTRACT(EPOCH FROM (NOW() - last_reactivation_at))/86400 >= 3');
+            })
+            ->whereRaw(
+                'EXTRACT(EPOCH FROM (NOW() - COALESCE(last_message_at, created_at)))/86400 >= ?',
+                [$inactiveDays],
+            );
     }
 }
