@@ -158,15 +158,21 @@ export function InAppAssistantPanel({ open, onOpenChange }: Props) {
         <Sheet open={open} onOpenChange={onOpenChange}>
             <SheetContent
                 side="right"
-                overlayClassName="bg-slate-950/40 backdrop-blur-[2px] data-[state=open]:duration-500 data-[state=closed]:duration-300"
+                floating
+                overlayClassName={cn(
+                    'bg-slate-950/30 backdrop-blur-[3px]',
+                    'data-[state=open]:duration-500 data-[state=closed]:duration-300',
+                    'data-[state=open]:ease-[cubic-bezier(0.22,1,0.36,1)]',
+                )}
                 className={cn(
-                    'gap-0 overflow-hidden border-l-2 border-sky-200/90 bg-background p-0 shadow-2xl sm:max-w-md',
-                    'dark:border-sky-800/80',
+                    'gap-0 overflow-hidden border-sky-200/80 bg-background/95 p-0 ring-1 ring-black/5',
+                    'shadow-[0_18px_50px_-12px_rgba(15,23,42,0.35)]',
+                    'dark:border-sky-800/70 dark:bg-background/95 dark:ring-white/10',
                     'data-[state=open]:duration-500 data-[state=closed]:duration-300',
                     'ease-[cubic-bezier(0.22,1,0.36,1)]',
                 )}
             >
-                <SheetHeader className="shrink-0 space-y-0 border-b border-border/70 bg-linear-to-br from-sky-50 via-white to-slate-50 px-5 py-4 pr-12 dark:from-sky-950/50 dark:via-background dark:to-background">
+                <SheetHeader className="shrink-0 space-y-0 rounded-t-2xl border-b border-border/70 bg-linear-to-br from-sky-50 via-white to-slate-50 px-5 py-4 pr-12 dark:from-sky-950/50 dark:via-background dark:to-background">
                     <div className="flex items-start gap-3">
                         <div className="mt-0.5 flex size-10 items-center justify-center rounded-xl border border-sky-500/20 bg-sky-600 text-white shadow-md shadow-sky-600/20">
                             <Sparkles className="size-4" strokeWidth={2.25} />
@@ -304,7 +310,7 @@ export function InAppAssistantPanel({ open, onOpenChange }: Props) {
                         <div ref={bottomRef} />
                     </div>
 
-                    <div className="shrink-0 border-t border-border/70 bg-white/95 px-4 py-3.5 backdrop-blur-sm dark:bg-background/95">
+                    <div className="shrink-0 rounded-b-2xl border-t border-border/70 bg-white/95 px-4 py-3.5 backdrop-blur-sm dark:bg-background/95">
                         {messages.length > 0 && (
                             <div className="mb-2.5 flex justify-end">
                                 <Button
