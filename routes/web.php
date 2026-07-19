@@ -14,6 +14,7 @@ use App\Http\Controllers\ClinicSettingController;
 use App\Http\Controllers\ClinicSubscriptionController;
 use App\Http\Controllers\CompraInventarioController;
 use App\Http\Controllers\ConsultaCargoController;
+use App\Http\Controllers\ConsultaDictationController;
 use App\Http\Controllers\ConsultaHistoriaController;
 use App\Http\Controllers\ConsultaPlanTratamientoController;
 use App\Http\Controllers\DashboardController;
@@ -287,6 +288,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             Route::middleware('permission:historias-clinicas.create')
                 ->post('historias-clinicas/consultas', [ConsultaHistoriaController::class, 'store'])
                 ->name('historias-clinicas.consultas.store');
+            Route::middleware('permission:historias-clinicas.create|historias-clinicas.update')
+                ->post('historias-clinicas/consultas/dictar', ConsultaDictationController::class)
+                ->name('historias-clinicas.consultas.dictar');
             Route::middleware('permission:historias-clinicas.update')
                 ->post('historias-clinicas/consultas/cerrar-abiertas', [ConsultaHistoriaController::class, 'cerrarAbiertas'])
                 ->name('historias-clinicas.consultas.cerrar-abiertas');

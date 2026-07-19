@@ -99,6 +99,18 @@
         "plan_tratamiento_add_linea": "Añadir línea",
         "plan_tratamiento_remove_linea": "Quitar línea"
     },
+    "dictation": {
+        "start": "Dictar consulta",
+        "stop": "Detener y rellenar",
+        "processing": "Procesando…",
+        "hint": "Habla el motivo, vitales y SOAP. Al detener, se rellenan los campos vacíos (o se añade texto a los ya escritos).",
+        "recording": "Grabando audio…",
+        "empty": "No capturé suficiente audio. Intenta de nuevo.",
+        "error": "No pude procesar el dictado. Inténtalo otra vez.",
+        "mic_error": "No pude usar el micrófono. Revisa permisos del navegador.",
+        "unsupported": "Tu navegador no soporta dictado por voz.",
+        "applied": "Campos actualizados desde el dictado."
+    },
     "delete": {
         "title": "¿Eliminar esta consulta?",
         "description": "El registro dejará de mostrarse en el listado."

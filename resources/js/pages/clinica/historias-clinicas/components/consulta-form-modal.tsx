@@ -12,6 +12,10 @@ import { enqueueIfOffline } from '@/lib/offline/enqueue-if-offline';
 import { useOfflineSync } from '@/hooks/use-offline-sync';
 import clinica from '@/routes/clinica';
 import type { ConsultaHistoriaRow, PacienteHistoriaOpcion } from '../types';
+import {
+    ConsultaDictationBar,
+    type ConsultaDictationFields,
+} from './consulta-dictation-bar';
 import { ConsultaCerrarPromptDialog } from './consulta-cerrar-prompt-dialog';
 import { ConsultaEstadoBadge } from './consulta-estado-badge';
 
@@ -279,6 +283,36 @@ export function ConsultaFormModal({
             : '';
 
     const fieldDisabled = isCerrada || processing;
+
+    const applyDictationFields = (fields: ConsultaDictationFields) => {
+        const mergeText = (current: string, incoming: string | null): string => {
+            const next = (incoming ?? '').trim();
+            if (next === '') {
+                return current;
+            }
+            const cur = current.trim();
+            if (cur === '') {
+                return next;
+            }
+            return `${cur}\n${next}`;
+        };
+
+        setData((prev) => ({
+            ...prev,
+            motivo: mergeText(prev.motivo, fields.motivo),
+            subjetivo: mergeText(prev.subjetivo, fields.subjetivo),
+            objetivo: mergeText(prev.objetivo, fields.objetivo),
+            analisis: mergeText(prev.analisis, fields.analisis),
+            plan: mergeText(prev.plan, fields.plan),
+            peso_kg: prev.peso_kg.trim() === '' && fields.peso_kg ? fields.peso_kg : prev.peso_kg,
+            temperatura_c:
+                prev.temperatura_c.trim() === '' && fields.temperatura_c
+                    ? fields.temperatura_c
+                    : prev.temperatura_c,
+            fc_lpm: prev.fc_lpm.trim() === '' && fields.fc_lpm ? fields.fc_lpm : prev.fc_lpm,
+            fr_rpm: prev.fr_rpm.trim() === '' && fields.fr_rpm ? fields.fr_rpm : prev.fr_rpm,
+        }));
+    };
     const cierreBusy = cierreProcessing || processing;
 
     const onCerrar = () => {
@@ -389,6 +423,12 @@ export function ConsultaFormModal({
                         <ConsultaEstadoBadge cerradaAt={consulta.cerrada_at} />
                         <span className="text-muted-foreground">{t('form.cerrada_hint')}</span>
                     </div>
+                ) : null}
+                {!isCerrada ? (
+                    <ConsultaDictationBar
+                        disabled={fieldDisabled}
+                        onFields={(fields) => applyDictationFields(fields)}
+                    />
                 ) : null}
                 <FormSection
                     index={0}
