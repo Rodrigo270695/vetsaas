@@ -38,8 +38,7 @@ type Snapshot = {
     };
     credentials: {
         openwa: boolean;
-        twilio: boolean;
-        brevo: boolean;
+        assistant_daily_limit: number;
     };
     tenants: {
         total: number;
@@ -190,8 +189,6 @@ export default function Index({ snapshot, can_manage }: Props) {
         let n = 0;
         if (!snapshot.health.ok) n += 1;
         if (!snapshot.credentials.openwa) n += 1;
-        if (!snapshot.credentials.twilio) n += 1;
-        if (!snapshot.credentials.brevo) n += 1;
         n += snapshot.whatsapp.tenants_with_error;
         n += snapshot.subscriptions.grace;
         n += snapshot.cobros.fallidos_7d;
@@ -322,18 +319,17 @@ export default function Index({ snapshot, can_manage }: Props) {
                                 okLabel={t('credentials.configured')}
                                 missingLabel={t('credentials.missing')}
                             />
-                            <CredentialPill
-                                ok={snapshot.credentials.twilio}
-                                label={t('credentials.twilio')}
-                                okLabel={t('credentials.configured')}
-                                missingLabel={t('credentials.missing')}
-                            />
-                            <CredentialPill
-                                ok={snapshot.credentials.brevo}
-                                label={t('credentials.brevo')}
-                                okLabel={t('credentials.configured')}
-                                missingLabel={t('credentials.missing')}
-                            />
+                            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/50 bg-muted/30 px-3 py-2.5">
+                                <span className="text-sm font-medium text-foreground">
+                                    {t('credentials.assistant_limit')}
+                                </span>
+                                <StatBadge
+                                    label={t('credentials.messages_per_day')}
+                                    value={String(snapshot.credentials.assistant_daily_limit)}
+                                    variant="info"
+                                    className="max-w-full"
+                                />
+                            </div>
                         </div>
                     </SectionCard>
 

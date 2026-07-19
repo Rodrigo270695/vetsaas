@@ -42,8 +42,7 @@ final class OperacionesSnapshotService
             'health' => $this->health(),
             'credentials' => [
                 'openwa' => $this->openWa->isConfigured(),
-                'twilio' => (bool) $setting->twilio_configurado,
-                'brevo' => (bool) $setting->brevo_configurado,
+                'assistant_daily_limit' => $setting->assistantDailyLimit(),
             ],
             'tenants' => $this->tenantsByEstado(),
             'whatsapp' => $this->whatsappRadar(),

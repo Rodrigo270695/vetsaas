@@ -1,47 +1,26 @@
 {
     "title": "Platform settings",
-    "description": "Global SaaS credentials: WhatsApp and email providers shared by every clinic.",
+    "description": "Global SaaS settings that apply to every clinic.",
     "actions": {
         "save": "Save changes",
         "saved": "Saved"
     },
     "stats": {
-        "twilio": "WhatsApp (Twilio)",
-        "brevo": "Email (Brevo)"
+        "daily_limit": "Chat limit / day"
     },
     "intro": {
-        "title": "These keys are used by the platform, not by clinics",
-        "body": "Twilio and Brevo credentials are loaded HERE once and reused to send WhatsApp and transactional emails on behalf of every clinic. End clients never see this screen and don't need to open accounts with these providers."
+        "title": "In-app assistant control",
+        "body": "Set how many messages each user can send to the AI assistant per day. This protects OpenAI token usage across all clinics."
     },
     "sections": {
-        "twilio": {
-            "title": "Twilio · WhatsApp Cloud",
-            "description": "Twilio project credentials used by the platform to send WhatsApp reminders and notifications."
-        },
-        "brevo": {
-            "title": "Brevo · Transactional email",
-            "description": "Brevo API key used for platform emails: invites, password reset, alerts."
+        "assistant": {
+            "title": "In-app AI assistant",
+            "description": "Daily message cap per user (help + read-only lookups)."
         }
     },
     "fields": {
-        "twilio_sid": "Twilio Account SID",
-        "twilio_sid_hint": "Twilio account identifier (starts with AC...).",
-        "twilio_token": "Twilio Auth Token",
-        "twilio_token_hint": "Authentication token. Find it in the Twilio console.",
-        "twilio_token_hint_stored": "A token is already stored (encrypted). Enter a new one only to replace it.",
-        "twilio_default_from": "Default WhatsApp number",
-        "twilio_default_from_hint": "Meta-approved number used to send messages. International format, e.g. +14155238886 (sandbox).",
-        "brevo_api_key": "Brevo API key",
-        "brevo_api_key_hint": "Brevo project service key. Encrypted before being stored.",
-        "brevo_api_key_hint_stored": "A key is already stored (encrypted). Enter a new one only to replace it.",
-        "brevo_default_from_email": "Default sender email",
-        "brevo_default_from_email_hint": "Brevo-verified address used as the email sender (e.g. no-reply@vetsaas.com).",
-        "brevo_default_from_name": "Default sender name",
-        "brevo_default_from_name_hint": "Name shown to recipients. Clinics may override it for their own messages."
-    },
-    "integrations": {
-        "clear_credentials": "Clear credentials",
-        "keep_credentials": "Keep credentials"
+        "daily_limit": "Daily message limit",
+        "daily_limit_hint": "Between 1 and 1000. Resets at midnight (app timezone). Recommended default: 40."
     },
     "footer": {
         "last_updated_by": "Last edited by {{name}}",

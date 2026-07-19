@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Services\InAppAssistant;
 
+use App\Models\PlatformSetting;
 use App\Models\User;
 use Illuminate\Support\Facades\RateLimiter;
+use Throwable;
 
 /**
  * Tope diario de mensajes del asistente in-app (por usuario + tenant).
@@ -14,7 +16,11 @@ final class InAppAssistantUsageLimiter
 {
     public function limit(): int
     {
-        return max(1, (int) config('in-app-assistant.daily_message_limit', 40));
+        try {
+            return PlatformSetting::current()->assistantDailyLimit();
+        } catch (Throwable) {
+            return max(1, min(1000, (int) config('in-app-assistant.daily_message_limit', 40)));
+        }
     }
 
     public function keyFor(User $user): string

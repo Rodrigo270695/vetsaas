@@ -15,8 +15,8 @@
         "title": "Credenciales globales",
         "description": "Integraciones compartidas por todas las clínicas.",
         "openwa": "OpenWA",
-        "twilio": "Twilio",
-        "brevo": "Brevo",
+        "assistant_limit": "Asistente IA",
+        "messages_per_day": "msgs/día",
         "configured": "Configurado",
         "missing": "Falta configurar",
         "cta_settings": "Ir a Configuración"

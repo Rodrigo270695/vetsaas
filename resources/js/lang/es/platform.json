@@ -1,47 +1,26 @@
 {
     "title": "Configuración de plataforma",
-    "description": "Credenciales globales del SaaS: proveedores de WhatsApp y correo que comparten todas las clínicas.",
+    "description": "Ajustes globales del SaaS que aplican a todas las clínicas.",
     "actions": {
         "save": "Guardar cambios",
         "saved": "Guardado"
     },
     "stats": {
-        "twilio": "WhatsApp (Twilio)",
-        "brevo": "Correo (Brevo)"
+        "daily_limit": "Límite chat / día"
     },
     "intro": {
-        "title": "Estas claves las usa la plataforma, no las clínicas",
-        "body": "Las credenciales de Twilio y Brevo se cargan UNA sola vez aquí y se reutilizan para enviar WhatsApp y correos transaccionales en nombre de todas las clínicas. Los clientes finales nunca ven esta pantalla ni tienen que abrir cuentas con estos proveedores."
+        "title": "Control del asistente in-app",
+        "body": "Define cuántos mensajes puede enviar cada usuario al asistente de IA por día. Así proteges el consumo de tokens OpenAI en todas las clínicas."
     },
     "sections": {
-        "twilio": {
-            "title": "Twilio · WhatsApp Cloud",
-            "description": "Credenciales del proyecto de Twilio desde el que la plataforma envía recordatorios y notificaciones de WhatsApp."
-        },
-        "brevo": {
-            "title": "Brevo · Correo transaccional",
-            "description": "API key del proyecto de Brevo usado para correos de la plataforma: invitaciones, reset de contraseña, alertas."
+        "assistant": {
+            "title": "Asistente IA in-app",
+            "description": "Tope diario de mensajes por usuario (ayuda + consultas de solo lectura)."
         }
     },
     "fields": {
-        "twilio_sid": "Twilio Account SID",
-        "twilio_sid_hint": "Identificador de la cuenta de Twilio (empieza con AC...).",
-        "twilio_token": "Twilio Auth Token",
-        "twilio_token_hint": "Token de autenticación. Lo encuentras en la consola de Twilio.",
-        "twilio_token_hint_stored": "Ya hay un token guardado (cifrado). Escribe uno nuevo solo si quieres reemplazarlo.",
-        "twilio_default_from": "Número WhatsApp por defecto",
-        "twilio_default_from_hint": "Número aprobado por Meta desde el cual la plataforma envía los mensajes. Formato internacional, ej: +14155238886 (sandbox).",
-        "brevo_api_key": "API key de Brevo",
-        "brevo_api_key_hint": "Clave de servicio del proyecto de Brevo. Se cifra antes de guardarse.",
-        "brevo_api_key_hint_stored": "Ya hay una clave guardada (cifrada). Escribe una nueva solo si quieres reemplazarla.",
-        "brevo_default_from_email": "Correo remitente por defecto",
-        "brevo_default_from_email_hint": "Dirección verificada en Brevo desde la cual salen los correos (ej: no-reply@vetsaas.com).",
-        "brevo_default_from_name": "Nombre del remitente por defecto",
-        "brevo_default_from_name_hint": "Nombre que verá el destinatario. Las clínicas pueden personalizarlo por encima de este valor."
-    },
-    "integrations": {
-        "clear_credentials": "Borrar credenciales",
-        "keep_credentials": "Conservar credenciales"
+        "daily_limit": "Límite diario de mensajes",
+        "daily_limit_hint": "Entre 1 y 1000. Se reinicia a medianoche (zona horaria de la app). Default recomendado: 40."
     },
     "footer": {
         "last_updated_by": "Última edición por {{name}}",

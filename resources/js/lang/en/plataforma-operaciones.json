@@ -15,8 +15,8 @@
         "title": "Global credentials",
         "description": "Integrations shared by every clinic.",
         "openwa": "OpenWA",
-        "twilio": "Twilio",
-        "brevo": "Brevo",
+        "assistant_limit": "AI assistant",
+        "messages_per_day": "msgs/day",
         "configured": "Configured",
         "missing": "Not configured",
         "cta_settings": "Open Settings"
