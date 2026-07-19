@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\ClinicSetting;
+use App\Models\PlatformSetting;
 use App\Models\User;
 use App\Services\InAppAssistant\InAppAssistantService;
 use App\Support\Clinic\ClinicBrandingUrls;
@@ -161,10 +162,22 @@ class HandleInertiaRequests extends Middleware
                 ? null
                 : static function (): array {
                     $assistant = app(InAppAssistantService::class);
+                    $enabled = (bool) config('in-app-assistant.enabled', true);
+                    $configured = $assistant->isConfigured();
+
+                    $announcement = null;
+                    if ($enabled && $configured) {
+                        try {
+                            $announcement = PlatformSetting::current()->assistantAnnouncementPayload();
+                        } catch (Throwable) {
+                            $announcement = null;
+                        }
+                    }
 
                     return [
-                        'enabled' => (bool) config('in-app-assistant.enabled', true),
-                        'configured' => $assistant->isConfigured(),
+                        'enabled' => $enabled,
+                        'configured' => $configured,
+                        'announcement' => $announcement,
                     ];
                 },
             'tenant_modules' => $skipHeavySharedProps || $tenantContext === null

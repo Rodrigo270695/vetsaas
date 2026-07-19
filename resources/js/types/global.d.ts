@@ -23,7 +23,11 @@ declare module '@inertiajs/core' {
             plan_limits: PlanLimitsSnapshot | null;
             subscription_renewal_alert: import('@/components/subscription-renewal-reminder-modal').SubscriptionRenewalAlert | null;
             bot_ia_addon: { activo: boolean; precio_mensual: string | null } | null;
-            in_app_assistant: { enabled: boolean; configured: boolean } | null;
+            in_app_assistant: {
+                enabled: boolean;
+                configured: boolean;
+                announcement: { active: boolean; version: number } | null;
+            } | null;
             tenant_modules: import('@/types/tenant-modules').TenantModulesSnapshot | null;
             tenant_impersonation: SharedTenantImpersonation | null;
             [key: string]: unknown;

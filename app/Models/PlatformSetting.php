@@ -20,6 +20,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property ?string $brevo_default_from_name
  * @property bool $brevo_configurado
  * @property int $in_app_assistant_daily_limit
+ * @property bool $in_app_assistant_announcement_active
+ * @property int $in_app_assistant_announcement_version
  * @property ?string $updated_by_id
  * @property-read ?User $actualizadoPor
  */
@@ -39,6 +41,8 @@ class PlatformSetting extends Model
         'brevo_default_from_name',
         'brevo_configurado',
         'in_app_assistant_daily_limit',
+        'in_app_assistant_announcement_active',
+        'in_app_assistant_announcement_version',
         'updated_by_id',
     ];
 
@@ -54,6 +58,8 @@ class PlatformSetting extends Model
             'twilio_configurado' => 'boolean',
             'brevo_configurado' => 'boolean',
             'in_app_assistant_daily_limit' => 'integer',
+            'in_app_assistant_announcement_active' => 'boolean',
+            'in_app_assistant_announcement_version' => 'integer',
         ];
     }
 
@@ -75,5 +81,25 @@ class PlatformSetting extends Model
         }
 
         return max(1, min(1000, $limit));
+    }
+
+    /**
+     * @return array{active: bool, version: int}|null
+     */
+    public function assistantAnnouncementPayload(): ?array
+    {
+        if (! $this->in_app_assistant_announcement_active) {
+            return null;
+        }
+
+        $version = (int) $this->in_app_assistant_announcement_version;
+        if ($version < 1) {
+            return null;
+        }
+
+        return [
+            'active' => true,
+            'version' => $version,
+        ];
     }
 }

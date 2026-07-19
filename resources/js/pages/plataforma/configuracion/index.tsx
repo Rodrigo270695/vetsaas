@@ -1,5 +1,13 @@
 import { Head, router } from '@inertiajs/react';
-import { CheckCircle2, Info, Loader2, MessageSquareText, Save, ShieldCheck } from 'lucide-react';
+import {
+    CheckCircle2,
+    Info,
+    Loader2,
+    Megaphone,
+    MessageSquareText,
+    Save,
+    ShieldCheck,
+} from 'lucide-react';
 import {
     useCallback,
     useEffect,
@@ -13,6 +21,7 @@ import { PageHeader } from '@/components/data-page';
 import { FormField, FormSection } from '@/components/forms';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { usePermission } from '@/hooks/use-permission';
 import AppLayout from '@/layouts/app-layout';
 import configuracion from '@/routes/plataforma/configuracion';
@@ -27,6 +36,8 @@ type AuditUser = {
 type PlatformSetting = {
     id: string;
     in_app_assistant_daily_limit: number;
+    in_app_assistant_announcement_active: boolean;
+    in_app_assistant_announcement_version: number;
     updated_at: string | null;
     actualizado_por: AuditUser;
 };
@@ -37,10 +48,12 @@ type PageProps = {
 
 type FormState = {
     in_app_assistant_daily_limit: string;
+    in_app_assistant_announcement_active: boolean;
 };
 
 const buildInitialState = (setting: PlatformSetting): FormState => ({
     in_app_assistant_daily_limit: String(setting.in_app_assistant_daily_limit ?? 40),
+    in_app_assistant_announcement_active: setting.in_app_assistant_announcement_active === true,
 });
 
 export default function Index({ setting }: PageProps) {
@@ -71,13 +84,14 @@ export default function Index({ setting }: PageProps) {
         setDataInternal((current) => ({ ...current, [key]: value }));
     }, []);
 
-    const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
+    const submit = (republish: boolean) => {
         setProcessing(true);
         router.put(
             configuracion.update().url,
             {
                 in_app_assistant_daily_limit: Number(data.in_app_assistant_daily_limit),
+                in_app_assistant_announcement_active: data.in_app_assistant_announcement_active,
+                republish_announcement: republish,
             },
             {
                 preserveScroll: true,
@@ -95,6 +109,11 @@ export default function Index({ setting }: PageProps) {
                 onFinish: () => setProcessing(false),
             },
         );
+    };
+
+    const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        submit(false);
     };
 
     return (
@@ -116,6 +135,16 @@ export default function Index({ setting }: PageProps) {
                             variant: 'info',
                             icon: MessageSquareText,
                         },
+                        {
+                            label: t('stats.announcement'),
+                            value: setting.in_app_assistant_announcement_active
+                                ? t('stats.announcement_on')
+                                : t('stats.announcement_off'),
+                            variant: setting.in_app_assistant_announcement_active
+                                ? 'success'
+                                : 'muted',
+                            icon: Megaphone,
+                        },
                     ]}
                     action={
                         canUpdate ? (
@@ -135,7 +164,10 @@ export default function Index({ setting }: PageProps) {
                                     {recentlySuccessful ? t('actions.saved') : t('actions.save')}
                                 </Button>
                                 <span className="flex max-w-56 items-center gap-1 text-[11px] text-muted-foreground">
-                                    <ShieldCheck className="size-3 shrink-0 text-primary/70" strokeWidth={2.25} />
+                                    <ShieldCheck
+                                        className="size-3 shrink-0 text-primary/70"
+                                        strokeWidth={2.25}
+                                    />
                                     <span className="truncate">
                                         {setting.actualizado_por
                                             ? t('footer.last_updated_by', {
@@ -188,6 +220,58 @@ export default function Index({ setting }: PageProps) {
                                 className="tabular-nums"
                             />
                         </FormField>
+                    </FormSection>
+                </SectionCard>
+
+                <SectionCard
+                    icon={Megaphone}
+                    title={t('sections.announcement.title')}
+                    description={t('sections.announcement.description')}
+                >
+                    <FormSection index={1} title="" columns={1} className="gap-0">
+                        <div className="flex flex-col gap-4 sm:max-w-xl">
+                            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border/70 bg-muted/20 px-3.5 py-3">
+                                <input
+                                    type="checkbox"
+                                    className="mt-1 size-4 rounded border-input"
+                                    checked={data.in_app_assistant_announcement_active}
+                                    onChange={(e) =>
+                                        setData(
+                                            'in_app_assistant_announcement_active',
+                                            e.target.checked,
+                                        )
+                                    }
+                                    disabled={!canUpdate}
+                                />
+                                <span className="min-w-0 space-y-0.5">
+                                    <Label className="cursor-pointer text-sm font-medium">
+                                        {t('fields.announcement_active')}
+                                    </Label>
+                                    <p className="text-xs leading-relaxed text-muted-foreground">
+                                        {t('fields.announcement_active_hint')}
+                                    </p>
+                                </span>
+                            </label>
+
+                            <p className="text-xs text-muted-foreground">
+                                {t('fields.announcement_version', {
+                                    version: setting.in_app_assistant_announcement_version || 0,
+                                })}
+                            </p>
+
+                            {canUpdate && (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    disabled={processing}
+                                    className="w-fit gap-2"
+                                    onClick={() => submit(true)}
+                                >
+                                    <Megaphone className="size-4" />
+                                    {t('actions.republish')}
+                                </Button>
+                            )}
+                        </div>
                     </FormSection>
                 </SectionCard>
             </form>

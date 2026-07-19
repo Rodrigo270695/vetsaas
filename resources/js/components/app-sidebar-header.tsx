@@ -1,8 +1,9 @@
 import { usePage } from '@inertiajs/react';
 import { Sparkles } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Breadcrumbs } from '@/components/breadcrumbs';
+import { OPEN_IN_APP_ASSISTANT_EVENT } from '@/components/in-app-assistant/in-app-assistant-announcement-modal';
 import { InAppAssistantPanel } from '@/components/in-app-assistant/in-app-assistant-panel';
 import { Button } from '@/components/ui/button';
 import { SidebarTrigger } from '@/components/ui/sidebar';
@@ -26,6 +27,16 @@ export function AppSidebarHeader({
         in_app_assistant !== null &&
         in_app_assistant !== undefined &&
         in_app_assistant.enabled === true;
+
+    useEffect(() => {
+        if (!showAssistant) {
+            return;
+        }
+
+        const onOpen = () => setAssistantOpen(true);
+        window.addEventListener(OPEN_IN_APP_ASSISTANT_EVENT, onOpen);
+        return () => window.removeEventListener(OPEN_IN_APP_ASSISTANT_EVENT, onOpen);
+    }, [showAssistant]);
 
     return (
         <>

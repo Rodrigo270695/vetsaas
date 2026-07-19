@@ -34,5 +34,18 @@
         "go_to": "Ir a {{label}}",
         "usage": "{{remaining}}/{{limit}} hoy",
         "limit_reached": "Llegaste al límite diario del asistente. Vuelve mañana."
+    },
+    "announcement": {
+        "badge": "Novedad",
+        "title": "Nuevo Asistente IA en VetSaaS",
+        "body": "Ahora tienes ayuda y consultas de tu clínica sin salir del sistema. Está arriba a la derecha, junto a los breadcrumbs.",
+        "dismiss": "Entendido",
+        "try": "Probar ahora",
+        "features": {
+            "help": "Te orienta dónde está cada módulo y cómo usarlo",
+            "lookup": "Consulta pacientes, stock, alertas y más (solo lectura)",
+            "agenda": "Revisa citas de hoy o mañana por veterinario o sede",
+            "nav": "Di «llévame a vacunaciones» y te lleva ahí"
+        }
     }
 }

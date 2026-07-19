@@ -3,24 +3,35 @@
     "description": "Ajustes globales del SaaS que aplican a todas las clínicas.",
     "actions": {
         "save": "Guardar cambios",
-        "saved": "Guardado"
+        "saved": "Guardado",
+        "republish": "Republicar novedad"
     },
     "stats": {
-        "daily_limit": "Límite chat / día"
+        "daily_limit": "Límite chat / día",
+        "announcement": "Novedad",
+        "announcement_on": "Activa",
+        "announcement_off": "Inactiva"
     },
     "intro": {
         "title": "Control del asistente in-app",
-        "body": "Define cuántos mensajes puede enviar cada usuario al asistente de IA por día. Así proteges el consumo de tokens OpenAI en todas las clínicas."
+        "body": "Define el límite diario de mensajes y lanza el aviso de novedad a todas las clínicas. Al republicar, vuelve a mostrarse aunque ya lo hayan cerrado."
     },
     "sections": {
         "assistant": {
             "title": "Asistente IA in-app",
             "description": "Tope diario de mensajes por usuario (ayuda + consultas de solo lectura)."
+        },
+        "announcement": {
+            "title": "Novedad para clínicas",
+            "description": "Modal que ven los usuarios de cada tenant al entrar, hasta pulsar Entendido."
         }
     },
     "fields": {
         "daily_limit": "Límite diario de mensajes",
-        "daily_limit_hint": "Entre 1 y 1000. Se reinicia a medianoche (zona horaria de la app). Default recomendado: 40."
+        "daily_limit_hint": "Entre 1 y 1000. Se reinicia a medianoche (zona horaria de la app). Default recomendado: 40.",
+        "announcement_active": "Mostrar novedad del asistente",
+        "announcement_active_hint": "Si está activo, las clínicas verán el aviso (una vez por usuario y versión).",
+        "announcement_version": "Versión actual: {{version}}"
     },
     "footer": {
         "last_updated_by": "Última edición por {{name}}",

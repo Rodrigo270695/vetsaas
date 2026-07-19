@@ -28,10 +28,23 @@ class PlatformSettingController extends Controller
         $setting = PlatformSetting::current();
         $data = $request->validated();
 
+        $active = (bool) ($data['in_app_assistant_announcement_active'] ?? false);
+        $republish = (bool) ($data['republish_announcement'] ?? false);
+
         $setting->fill([
             'in_app_assistant_daily_limit' => (int) $data['in_app_assistant_daily_limit'],
+            'in_app_assistant_announcement_active' => $active,
             'updated_by_id' => Auth::id(),
         ]);
+
+        if ($republish) {
+            $setting->in_app_assistant_announcement_active = true;
+            $setting->in_app_assistant_announcement_version = ((int) $setting->in_app_assistant_announcement_version) + 1;
+        } elseif ($active && (int) $setting->in_app_assistant_announcement_version < 1) {
+            // Primera publicación: arranca en versión 1.
+            $setting->in_app_assistant_announcement_version = 1;
+        }
+
         $setting->save();
 
         return back()->with('success', 'Configuración global actualizada correctamente.');
@@ -45,6 +58,8 @@ class PlatformSettingController extends Controller
         return [
             'id' => $setting->id,
             'in_app_assistant_daily_limit' => $setting->assistantDailyLimit(),
+            'in_app_assistant_announcement_active' => (bool) $setting->in_app_assistant_announcement_active,
+            'in_app_assistant_announcement_version' => (int) $setting->in_app_assistant_announcement_version,
             'updated_at' => $setting->updated_at?->toIso8601String(),
             'actualizado_por' => $setting->actualizadoPor ? [
                 'id' => $setting->actualizadoPor->id,

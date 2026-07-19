@@ -2,6 +2,7 @@ import { AppContent } from '@/components/app-content';
 import { AppShell } from '@/components/app-shell';
 import { AppSidebar } from '@/components/app-sidebar';
 import { AppSidebarHeader } from '@/components/app-sidebar-header';
+import { InAppAssistantAnnouncementModal } from '@/components/in-app-assistant/in-app-assistant-announcement-modal';
 import { OfflineStatusBanner } from '@/components/offline-status-banner';
 import { SubscriptionRenewalReminderModal } from '@/components/subscription-renewal-reminder-modal';
 import { TenantImpersonationBanner } from '@/components/tenant-impersonation-banner';
@@ -32,6 +33,7 @@ export default function AppSidebarLayout({
                 <TenantImpersonationBanner />
                 <OfflineStatusBanner />
                 <SubscriptionRenewalReminderModal />
+                <InAppAssistantAnnouncementModal />
                 <AppSidebarHeader breadcrumbs={breadcrumbs} />
                 <div className="flex-1 overflow-y-auto overflow-x-hidden">
                     {children}

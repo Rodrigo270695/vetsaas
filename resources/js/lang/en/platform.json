@@ -3,24 +3,35 @@
     "description": "Global SaaS settings that apply to every clinic.",
     "actions": {
         "save": "Save changes",
-        "saved": "Saved"
+        "saved": "Saved",
+        "republish": "Republish announcement"
     },
     "stats": {
-        "daily_limit": "Chat limit / day"
+        "daily_limit": "Chat limit / day",
+        "announcement": "Announcement",
+        "announcement_on": "On",
+        "announcement_off": "Off"
     },
     "intro": {
         "title": "In-app assistant control",
-        "body": "Set how many messages each user can send to the AI assistant per day. This protects OpenAI token usage across all clinics."
+        "body": "Set the daily message limit and launch the announcement to every clinic. Republishing shows it again even if users already dismissed it."
     },
     "sections": {
         "assistant": {
             "title": "In-app AI assistant",
             "description": "Daily message cap per user (help + read-only lookups)."
+        },
+        "announcement": {
+            "title": "Clinic announcement",
+            "description": "Modal tenants see on login until they tap Got it."
         }
     },
     "fields": {
         "daily_limit": "Daily message limit",
-        "daily_limit_hint": "Between 1 and 1000. Resets at midnight (app timezone). Recommended default: 40."
+        "daily_limit_hint": "Between 1 and 1000. Resets at midnight (app timezone). Recommended default: 40.",
+        "announcement_active": "Show assistant announcement",
+        "announcement_active_hint": "When enabled, clinics see the notice once per user and version.",
+        "announcement_version": "Current version: {{version}}"
     },
     "footer": {
         "last_updated_by": "Last edited by {{name}}",
