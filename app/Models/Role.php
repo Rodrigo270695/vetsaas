@@ -77,6 +77,16 @@ class Role extends SpatieRole
     ];
 
     /**
+     * Accesor `is_system`: hay que appendearlo para que Inertia/JSON
+     * lo envíe al front (badge Sistema, ocultar Editar/Eliminar).
+     *
+     * @var list<string>
+     */
+    protected $appends = [
+        'is_system',
+    ];
+
+    /**
      * @return list<string>
      */
     public static function protectedRoleNames(): array
