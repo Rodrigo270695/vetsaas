@@ -104,6 +104,43 @@ final class InAppAssistantTools
                     ],
                 ],
             ],
+            [
+                'type' => 'function',
+                'function' => [
+                    'name' => 'resolver_navegacion',
+                    'description' => 'Resuelve a qué pantalla de VetSaaS llevar al usuario (citas, vacunaciones, caja, stock, etc.). Devuelve URL interna. Solo lectura.',
+                    'parameters' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'destino' => [
+                                'type' => 'string',
+                                'description' => 'Nombre del módulo o pantalla (ej. vacunaciones, caja, stock, pacientes).',
+                            ],
+                        ],
+                        'required' => ['destino'],
+                    ],
+                ],
+            ],
+            [
+                'type' => 'function',
+                'function' => [
+                    'name' => 'resumen_historia_paciente',
+                    'description' => 'Resumen corto del historial clínico: últimas consultas, vacunas/aplicaciones y pedidos de laboratorio. Usa paciente_id o el paciente en pantalla. Solo lectura.',
+                    'parameters' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'paciente_id' => [
+                                'type' => 'string',
+                                'description' => 'UUID del paciente. Si se omite, usa el paciente de la pantalla actual.',
+                            ],
+                            'limite' => [
+                                'type' => 'integer',
+                                'description' => 'Cantidad de eventos por tipo (default 5, máx 10).',
+                            ],
+                        ],
+                    ],
+                ],
+            ],
         ];
     }
 }

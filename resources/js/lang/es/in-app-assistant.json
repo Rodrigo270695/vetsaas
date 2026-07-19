@@ -26,7 +26,10 @@
             "query_today": "Dame el resumen de hoy",
             "query_stock": "¿Hay productos con stock bajo?",
             "query_alerts": "¿Qué alertas hay hoy?",
-            "query_this_patient": "Resúmeme este paciente"
-        }
+            "query_this_patient": "Resúmeme este paciente",
+            "nav_vacunas": "Llévame a vacunaciones",
+            "nav_caja": "Llévame a caja"
+        },
+        "go_to": "Ir a {{label}}"
     }
 }

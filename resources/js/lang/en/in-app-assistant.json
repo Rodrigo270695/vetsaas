@@ -26,7 +26,10 @@
             "query_today": "Give me today’s summary",
             "query_stock": "Any low-stock products?",
             "query_alerts": "What alerts are there today?",
-            "query_this_patient": "Summarize this patient"
-        }
+            "query_this_patient": "Summarize this patient",
+            "nav_vacunas": "Take me to vaccinations",
+            "nav_caja": "Take me to cash register"
+        },
+        "go_to": "Go to {{label}}"
     }
 }

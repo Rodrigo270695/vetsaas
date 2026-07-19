@@ -1,5 +1,5 @@
-import { usePage } from '@inertiajs/react';
-import { Bot, Loader2, SendHorizontal, Sparkles, Trash2, UserRound } from 'lucide-react';
+import { router, usePage } from '@inertiajs/react';
+import { ArrowUpRight, Bot, Loader2, SendHorizontal, Sparkles, Trash2, UserRound } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { resolveAssistantPageContext } from '@/components/in-app-assistant/resolve-page-context';
@@ -16,10 +16,17 @@ import { cn } from '@/lib/utils';
 
 type ChatRole = 'user' | 'assistant';
 
+type UiAction = {
+    type: 'navigate';
+    url: string;
+    label: string;
+};
+
 type ChatMessage = {
     id: string;
     role: ChatRole;
     content: string;
+    actions?: UiAction[];
 };
 
 type Props = {
@@ -29,6 +36,27 @@ type Props = {
 
 function csrfToken(): string {
     return document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? '';
+}
+
+function AssistantRichText({ text }: { text: string }) {
+    const parts = text.split(/(\*\*[^*]+\*\*)/g);
+
+    return (
+        <>
+            {parts.map((part, index) => {
+                const bold = part.match(/^\*\*([^*]+)\*\*$/);
+                if (bold) {
+                    return (
+                        <strong key={index} className="font-semibold">
+                            {bold[1]}
+                        </strong>
+                    );
+                }
+
+                return <span key={index}>{part}</span>;
+            })}
+        </>
+    );
 }
 
 export function InAppAssistantPanel({ open, onOpenChange }: Props) {
@@ -88,16 +116,25 @@ export function InAppAssistantPanel({ open, onOpenChange }: Props) {
     }, [messages, sending, open]);
 
     const suggestions = useMemo(() => {
-        const base = [
+        if (pageContext.paciente_id) {
+            return [
+                t('panel.suggestions.query_this_patient'),
+                t('panel.suggestions.query_alerts'),
+                t('panel.suggestions.nav_vacunas'),
+            ];
+        }
+        return [
+            t('panel.suggestions.nav_vacunas'),
+            t('panel.suggestions.nav_caja'),
             t('panel.suggestions.query_alerts'),
             t('panel.suggestions.query_today'),
-            t('panel.suggestions.help_caja'),
         ];
-        if (pageContext.paciente_id) {
-            return [t('panel.suggestions.query_this_patient'), ...base];
-        }
-        return [...base, t('panel.suggestions.help_historia')];
     }, [t, pageContext.paciente_id]);
+
+    const goTo = (url: string) => {
+        onOpenChange(false);
+        router.visit(url);
+    };
 
     const sendMessage = async (raw: string) => {
         const message = raw.trim();
@@ -136,6 +173,7 @@ export function InAppAssistantPanel({ open, onOpenChange }: Props) {
             const body = (await res.json()) as {
                 reply?: string;
                 message?: string;
+                actions?: UiAction[];
             };
 
             if (!res.ok) {
@@ -147,12 +185,24 @@ export function InAppAssistantPanel({ open, onOpenChange }: Props) {
                 throw new Error(t('panel.error'));
             }
 
+            const actions = Array.isArray(body.actions)
+                ? body.actions.filter(
+                      (a): a is UiAction =>
+                          a != null &&
+                          a.type === 'navigate' &&
+                          typeof a.url === 'string' &&
+                          a.url !== '' &&
+                          typeof a.label === 'string',
+                  )
+                : [];
+
             setMessages((prev) => [
                 ...prev,
                 {
                     id: `a-${Date.now()}`,
                     role: 'assistant',
                     content: reply,
+                    actions: actions.length > 0 ? actions : undefined,
                 },
             ]);
         } catch (e) {
@@ -300,8 +350,31 @@ export function InAppAssistantPanel({ open, onOpenChange }: Props) {
                                                     : 'rounded-tl-md border border-border/80 bg-white text-foreground dark:bg-card',
                                             )}
                                         >
-                                            {msg.content}
+                                            {msg.role === 'assistant' ? (
+                                                <AssistantRichText text={msg.content} />
+                                            ) : (
+                                                msg.content
+                                            )}
                                         </div>
+                                        {msg.role === 'assistant' &&
+                                            msg.actions &&
+                                            msg.actions.length > 0 && (
+                                                <div className="flex flex-wrap gap-2 pt-1">
+                                                    {msg.actions.map((action) => (
+                                                        <Button
+                                                            key={`${action.url}-${action.label}`}
+                                                            type="button"
+                                                            size="sm"
+                                                            variant="outline"
+                                                            className="h-8 gap-1.5 rounded-full border-sky-200 bg-sky-50/80 text-xs text-sky-800 hover:bg-sky-100 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-200"
+                                                            onClick={() => goTo(action.url)}
+                                                        >
+                                                            {t('panel.go_to', { label: action.label })}
+                                                            <ArrowUpRight className="size-3.5" />
+                                                        </Button>
+                                                    ))}
+                                                </div>
+                                            )}
                                     </div>
                                 </div>
                             ))

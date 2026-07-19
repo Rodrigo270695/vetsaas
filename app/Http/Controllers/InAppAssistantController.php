@@ -58,6 +58,7 @@ final class InAppAssistantController extends Controller
             return response()->json([
                 'reply' => $result['reply'],
                 'used_tools' => $result['used_tools'],
+                'actions' => $result['actions'] ?? [],
             ]);
         } catch (Throwable $e) {
             report($e);

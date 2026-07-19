@@ -6,8 +6,11 @@ namespace App\Services\InAppAssistant;
 
 use App\Models\CajaSesion;
 use App\Models\Cita;
+use App\Models\Consulta;
 use App\Models\ExistenciaSede;
+use App\Models\HistoriaClinica;
 use App\Models\Paciente;
+use App\Models\PedidoLaboratorio;
 use App\Models\Producto;
 use App\Models\Propietario;
 use App\Models\Sede;
@@ -22,12 +25,27 @@ final class InAppAssistantToolExecutor
     /** @var array{url?: string, component?: string, paciente_id?: string}|null */
     private ?array $pageContext = null;
 
+    /** @var list<array{type: string, url: string, label: string}> */
+    private array $pendingUiActions = [];
+
     /**
      * @param  array{url?: string, component?: string, paciente_id?: string}|null  $pageContext
      */
     public function setPageContext(?array $pageContext): void
     {
         $this->pageContext = $pageContext;
+        $this->pendingUiActions = [];
+    }
+
+    /**
+     * @return list<array{type: string, url: string, label: string}>
+     */
+    public function pullUiActions(): array
+    {
+        $actions = $this->pendingUiActions;
+        $this->pendingUiActions = [];
+
+        return $actions;
     }
 
     /**
@@ -42,6 +60,11 @@ final class InAppAssistantToolExecutor
             'resumen_operativo' => $this->resumenOperativo(),
             'alertas_operativas' => $this->alertasOperativas((int) ($args['dias'] ?? 14)),
             'paciente_en_contexto' => $this->pacienteEnContexto(),
+            'resolver_navegacion' => $this->resolverNavegacion((string) ($args['destino'] ?? '')),
+            'resumen_historia_paciente' => $this->resumenHistoriaPaciente(
+                isset($args['paciente_id']) ? (string) $args['paciente_id'] : null,
+                (int) ($args['limite'] ?? 5),
+            ),
             default => ['ok' => false, 'error' => 'Herramienta no disponible.'],
         };
 
@@ -401,6 +424,145 @@ final class InAppAssistantToolExecutor
                 'url' => '/clinica/pacientes/'.$p->id,
             ],
             'vacunas_proximas' => $vacunasProximas,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function resolverNavegacion(string $destino): array
+    {
+        $resolved = InAppAssistantNavigation::resolve($destino);
+        if ($resolved === null) {
+            $opciones = array_map(
+                static fn (array $d): string => $d['label'],
+                InAppAssistantNavigation::destinations(),
+            );
+
+            return [
+                'ok' => false,
+                'error' => 'No reconocí ese destino.',
+                'opciones' => array_values($opciones),
+            ];
+        }
+
+        $this->pendingUiActions[] = [
+            'type' => 'navigate',
+            'url' => $resolved['url'],
+            'label' => $resolved['label'],
+        ];
+
+        return [
+            'ok' => true,
+            'destino' => $resolved['id'],
+            'label' => $resolved['label'],
+            'url' => $resolved['url'],
+            'instruccion' => 'Confirma al usuario y ofrece el botón para ir a '.$resolved['label'].'.',
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function resumenHistoriaPaciente(?string $pacienteId, int $limite): array
+    {
+        $limite = max(1, min(10, $limite));
+        $pacienteId = trim((string) ($pacienteId ?: ($this->pageContext['paciente_id'] ?? '')));
+
+        if ($pacienteId === '') {
+            return [
+                'ok' => false,
+                'error' => 'Indica un paciente o abre su historial en pantalla.',
+            ];
+        }
+
+        if (! Schema::hasTable('pacientes')) {
+            return ['ok' => false, 'error' => 'Módulo de pacientes no disponible.'];
+        }
+
+        $p = Paciente::query()
+            ->with('propietario:id,nombres,apellidos,razon_social')
+            ->find($pacienteId, ['id', 'nombre', 'especie', 'raza', 'activo', 'propietario_id']);
+
+        if ($p === null) {
+            return ['ok' => false, 'error' => 'No encontré ese paciente.'];
+        }
+
+        $titular = $p->propietario?->razon_social
+            ?: trim(implode(' ', array_filter([(string) $p->propietario?->nombres, (string) $p->propietario?->apellidos])));
+
+        $consultas = [];
+        if (Schema::hasTable('historias_clinicas') && Schema::hasTable('consultas')) {
+            $hc = HistoriaClinica::query()->where('paciente_id', $p->id)->first(['id']);
+            if ($hc !== null) {
+                $consultas = Consulta::query()
+                    ->where('historia_clinica_id', $hc->id)
+                    ->orderByDesc('atendido_at')
+                    ->limit($limite)
+                    ->get(['id', 'atendido_at', 'motivo', 'analisis', 'cerrada_at'])
+                    ->map(static fn (Consulta $c): array => [
+                        'fecha' => optional($c->atendido_at)?->toDateTimeString(),
+                        'motivo' => $c->motivo,
+                        'analisis' => $c->analisis !== null ? mb_substr((string) $c->analisis, 0, 180) : null,
+                        'cerrada' => $c->cerrada_at !== null,
+                    ])
+                    ->all();
+            }
+        }
+
+        $aplicaciones = [];
+        if (Schema::hasTable('vacunas_aplicadas')) {
+            $aplicaciones = VacunaAplicada::query()
+                ->where('paciente_id', $p->id)
+                ->orderByDesc('aplicada_at')
+                ->limit($limite)
+                ->get(['nombre_vacuna', 'aplicada_at', 'categoria_registro', 'numero_dosis', 'fecha_proxima_sugerida'])
+                ->map(static fn (VacunaAplicada $v): array => [
+                    'fecha' => optional($v->aplicada_at)?->toDateTimeString(),
+                    'nombre' => $v->nombre_vacuna,
+                    'categoria' => $v->categoria_registro,
+                    'dosis' => $v->numero_dosis,
+                    'proxima' => optional($v->fecha_proxima_sugerida)?->toDateString(),
+                ])
+                ->all();
+        }
+
+        $labs = [];
+        if (Schema::hasTable('pedidos_laboratorio')) {
+            $labs = PedidoLaboratorio::query()
+                ->where('paciente_id', $p->id)
+                ->with(['lineas' => static fn ($q) => $q->limit(4)])
+                ->orderByDesc('solicitado_at')
+                ->limit($limite)
+                ->get(['id', 'solicitado_at', 'estado', 'observaciones'])
+                ->map(static function (PedidoLaboratorio $lab): array {
+                    $examenes = $lab->relationLoaded('lineas')
+                        ? $lab->lineas->pluck('nombre_examen')->filter()->values()->all()
+                        : [];
+
+                    return [
+                        'fecha' => optional($lab->solicitado_at)?->toDateTimeString(),
+                        'estado' => $lab->estado,
+                        'examenes' => $examenes,
+                    ];
+                })
+                ->all();
+        }
+
+        return [
+            'ok' => true,
+            'paciente' => [
+                'id' => $p->id,
+                'nombre' => $p->nombre,
+                'especie' => $p->especie,
+                'raza' => $p->raza,
+                'activo' => $p->activo,
+                'titular' => $titular !== '' ? $titular : null,
+                'url' => '/clinica/pacientes/'.$p->id,
+            ],
+            'consultas' => $consultas,
+            'aplicaciones' => $aplicaciones,
+            'laboratorio' => $labs,
         ];
     }
 }

@@ -40,7 +40,7 @@ final class InAppAssistantService
     /**
      * @param  list<array{role: string, content: string}>  $history
      * @param  array{url?: string, component?: string, paciente_id?: string}|null  $pageContext
-     * @return array{reply: string, used_tools: list<string>}
+     * @return array{reply: string, used_tools: list<string>, actions: list<array{type: string, url: string, label: string}>}
      */
     public function chat(string $userMessage, array $history = [], ?array $pageContext = null): array
     {
@@ -51,7 +51,32 @@ final class InAppAssistantService
             return [
                 'reply' => self::OFF_TOPIC_REFUSAL,
                 'used_tools' => [],
+                'actions' => [],
             ];
+        }
+
+        $this->tools->setPageContext($pageContext);
+
+        // Navegación directa sin OpenAI (ahorra tokens).
+        if (InAppAssistantNavigation::looksLikeNavigationRequest($userMessage)) {
+            $resolved = InAppAssistantNavigation::resolve($userMessage);
+            if ($resolved !== null) {
+                return [
+                    'reply' => "Listo. Puedes ir a «{$resolved['label']}» con el botón de abajo.",
+                    'used_tools' => ['resolver_navegacion'],
+                    'actions' => [[
+                        'type' => 'navigate',
+                        'url' => $resolved['url'],
+                        'label' => $resolved['label'],
+                    ]],
+                ];
+            }
+        }
+
+        // Resumen de historia del paciente en pantalla, sin OpenAI si el pedido es claro.
+        $historyLocal = $this->tryLocalHistorySummary($userMessage, $pageContext);
+        if ($historyLocal !== null) {
+            return $historyLocal;
         }
 
         $apiKey = trim((string) config('in-app-assistant.openai_api_key', ''));
@@ -61,8 +86,6 @@ final class InAppAssistantService
         if ($apiKey === '') {
             throw new RuntimeException('OPENAI_API_KEY no está configurada.');
         }
-
-        $this->tools->setPageContext($pageContext);
 
         $messages = [
             ['role' => 'system', 'content' => $this->systemPrompt($pageContext)],
@@ -85,6 +108,7 @@ final class InAppAssistantService
         return [
             'reply' => $reply,
             'used_tools' => array_values(array_unique($usedTools)),
+            'actions' => $this->tools->pullUiActions(),
         ];
     }
 
@@ -225,7 +249,9 @@ CONTEXTO DE PANTALLA ACTUAL
 {$contextoPantalla}
 
 Si hay un paciente en contexto y el usuario dice «este paciente», «esta mascota», «su dueño», etc., usa la herramienta paciente_en_contexto.
+Para resumen de historial (consultas, vacunas, labs), usa resumen_historia_paciente.
 Para alertas del día (vacunas por vencer, stock bajo, caja), usa alertas_operativas.
+Si piden ir a un módulo («llévame a vacunaciones», «abre caja»), usa resolver_navegacion y menciona la URL/botón.
 
 ═══════════════════════════════════════
 REGLAS OPERATIVAS
@@ -305,6 +331,7 @@ PROMPT;
             'cómo', 'como ', 'dónde', 'donde', 'ayuda', 'resumen', 'alerta',
             'perro', 'gato', 'microchip', 'hoy', 'mañana', 'manana',
             'próxima', 'proxima', 'vencer', 'vencen', 'refuerzo',
+            'llévame', 'llevame', 'abre', 'abrir', 'historial',
         ];
 
         foreach ($hints as $hint) {
@@ -333,5 +360,121 @@ PROMPT;
         }
 
         return false;
+    }
+
+    /**
+     * @param  array{url?: string, component?: string, paciente_id?: string}|null  $pageContext
+     * @return array{reply: string, used_tools: list<string>, actions: list<array{type: string, url: string, label: string}>}|null
+     */
+    private function tryLocalHistorySummary(string $message, ?array $pageContext): ?array
+    {
+        $msg = mb_strtolower($message);
+        $wantsSummary = (bool) preg_match(
+            '/\b(res[uú]me|resumen|historia|historial)\b/u',
+            $msg,
+        ) && (bool) preg_match(
+            '/\b(paciente|mascota|historial|historia|este|esta)\b/u',
+            $msg,
+        );
+
+        if (! $wantsSummary) {
+            return null;
+        }
+
+        $pacienteId = trim((string) ($pageContext['paciente_id'] ?? ''));
+        if ($pacienteId === '') {
+            return null;
+        }
+
+        $raw = $this->tools->execute('resumen_historia_paciente', [
+            'paciente_id' => $pacienteId,
+            'limite' => 5,
+        ]);
+        $data = json_decode($raw, true);
+        if (! is_array($data) || ($data['ok'] ?? false) !== true) {
+            return null;
+        }
+
+        return [
+            'reply' => $this->formatHistorySummaryReply($data),
+            'used_tools' => ['resumen_historia_paciente'],
+            'actions' => [[
+                'type' => 'navigate',
+                'url' => (string) ($data['paciente']['url'] ?? '/clinica/pacientes/'.$pacienteId),
+                'label' => 'Ver historial',
+            ]],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function formatHistorySummaryReply(array $data): string
+    {
+        $p = is_array($data['paciente'] ?? null) ? $data['paciente'] : [];
+        $nombre = (string) ($p['nombre'] ?? 'Paciente');
+        $especie = trim((string) ($p['especie'] ?? ''));
+        $titular = trim((string) ($p['titular'] ?? ''));
+
+        $lines = ["**{$nombre}**".($especie !== '' ? " ({$especie})" : '')];
+        if ($titular !== '') {
+            $lines[] = "Titular: {$titular}";
+        }
+
+        $consultas = is_array($data['consultas'] ?? null) ? $data['consultas'] : [];
+        $lines[] = '';
+        $lines[] = 'Consultas recientes:';
+        if ($consultas === []) {
+            $lines[] = '• Sin consultas registradas.';
+        } else {
+            foreach ($consultas as $c) {
+                if (! is_array($c)) {
+                    continue;
+                }
+                $fecha = (string) ($c['fecha'] ?? '—');
+                $motivo = trim((string) ($c['motivo'] ?? 'Sin motivo')) ?: 'Sin motivo';
+                $lines[] = "• {$fecha}: {$motivo}";
+            }
+        }
+
+        $apps = is_array($data['aplicaciones'] ?? null) ? $data['aplicaciones'] : [];
+        $lines[] = '';
+        $lines[] = 'Vacunas / aplicaciones:';
+        if ($apps === []) {
+            $lines[] = '• Sin aplicaciones registradas.';
+        } else {
+            foreach ($apps as $a) {
+                if (! is_array($a)) {
+                    continue;
+                }
+                $fecha = (string) ($a['fecha'] ?? '—');
+                $vac = (string) ($a['nombre'] ?? 'Aplicación');
+                $prox = trim((string) ($a['proxima'] ?? ''));
+                $extra = $prox !== '' ? " (próx. {$prox})" : '';
+                $lines[] = "• {$fecha}: {$vac}{$extra}";
+            }
+        }
+
+        $labs = is_array($data['laboratorio'] ?? null) ? $data['laboratorio'] : [];
+        $lines[] = '';
+        $lines[] = 'Laboratorio:';
+        if ($labs === []) {
+            $lines[] = '• Sin pedidos registrados.';
+        } else {
+            foreach ($labs as $lab) {
+                if (! is_array($lab)) {
+                    continue;
+                }
+                $fecha = (string) ($lab['fecha'] ?? '—');
+                $estado = (string) ($lab['estado'] ?? '');
+                $examenes = is_array($lab['examenes'] ?? null)
+                    ? implode(', ', array_map('strval', $lab['examenes']))
+                    : '';
+                $detail = $examenes !== '' ? $examenes : 'Pedido';
+                $lines[] = "• {$fecha}: {$detail}".($estado !== '' ? " [{$estado}]" : '');
+            }
+        }
+
+        return implode("\n", $lines);
     }
 }
