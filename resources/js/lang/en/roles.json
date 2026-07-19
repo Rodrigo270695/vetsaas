@@ -91,7 +91,7 @@
         "save": "Save permissions",
         "saving": "Saving...",
         "system_banner_title": "You are editing a protected role",
-        "system_banner_body": "These roles are shared by all clinics. You can adjust permissions, but you cannot leave them empty or delete the role. Removing essential permissions may lock users out.",
+        "system_banner_body": "This is a base clinic role (it cannot be renamed or deleted). You can adjust permissions, but you cannot leave them empty. Removing essential permissions may lock users out.",
         "system_confirm": "You are about to modify the permissions of protected role \"{{role}}\". If you remove essential permissions you might lock users out. Continue?",
         "empty_protected": "You cannot leave a protected role without permissions."
     },

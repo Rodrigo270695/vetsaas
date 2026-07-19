@@ -217,6 +217,7 @@ it('omite roles base al intentar borrado masivo', function (): void {
         'name' => 'custom_scope_'.Str::lower(Str::random(4)),
         'guard_name' => 'web',
         'description' => 'Temporal',
+        'tenant_id' => $this->testTenant->id,
     ]);
     $admin = Role::query()->where('name', 'admin_clinica')->firstOrFail();
 
@@ -227,4 +228,48 @@ it('omite roles base al intentar borrado masivo', function (): void {
     $response->assertRedirect();
     expect(Role::query()->whereKey($custom->id)->exists())->toBeFalse();
     expect(Role::query()->where('name', 'admin_clinica')->exists())->toBeTrue();
+});
+
+it('mantiene en el catálogo un permiso quitado de admin_clinica para poder reasignarlo', function (): void {
+    $this->actingAs($this->testTenantAdmin);
+
+    $role = Role::query()
+        ->where('tenant_id', $this->testTenant->id)
+        ->where('name', 'admin_clinica')
+        ->firstOrFail();
+
+    $removed = 'pacientes.export';
+    expect($role->hasPermissionTo($removed))->toBeTrue();
+
+    $keep = $role->permissions()
+        ->pluck('name')
+        ->reject(fn (string $name): bool => $name === $removed)
+        ->values()
+        ->all();
+
+    $this->put(
+        'http://'.$this->testTenantHost.'/configuracion/roles/'.$role->id.'/permissions',
+        ['permissions' => $keep],
+    )->assertRedirect();
+
+    expect($role->fresh()->hasPermissionTo($removed))->toBeFalse();
+
+    $index = $this->get('http://'.$this->testTenantHost.'/configuracion/roles');
+    $index->assertOk();
+    $index->assertInertia(fn ($page) => $page
+        ->where('permissions_catalog', function ($catalog) use ($removed): bool {
+            $allNames = collect($catalog)
+                ->flatMap(fn ($g) => collect($g['permissions'])->pluck('name'))
+                ->all();
+
+            return in_array($removed, $allNames, true);
+        })
+    );
+
+    $this->put(
+        'http://'.$this->testTenantHost.'/configuracion/roles/'.$role->id.'/permissions',
+        ['permissions' => [...$keep, $removed]],
+    )->assertRedirect();
+
+    expect($role->fresh()->hasPermissionTo($removed))->toBeTrue();
 });

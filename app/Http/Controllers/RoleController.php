@@ -225,7 +225,7 @@ class RoleController extends Controller
         // el acceso de todas las clínicas que lo usan).
         if ($role->isBaseClinicRole() && $permissions === []) {
             throw ValidationException::withMessages([
-                'permissions' => 'No puedes dejar sin permisos un rol base de clínica ('.$role->name.'). Eso afectaría a todas las clínicas.',
+                'permissions' => 'No puedes dejar sin permisos un rol base de clínica ('.$role->name.').',
             ]);
         }
 

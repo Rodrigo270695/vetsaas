@@ -91,7 +91,7 @@
         "save": "Guardar permisos",
         "saving": "Guardando...",
         "system_banner_title": "Estás editando un rol protegido",
-        "system_banner_body": "Estos roles son compartidos por todas las clínicas. Puedes ajustar permisos, pero no dejarlos vacíos ni eliminar el rol. Quitar permisos esenciales puede dejar usuarios sin acceso.",
+        "system_banner_body": "Este rol es base de la clínica (no se puede renombrar ni eliminar). Puedes ajustar permisos, pero no dejarlos vacíos. Quitar permisos esenciales puede dejar usuarios sin acceso.",
         "system_confirm": "Vas a modificar los permisos del rol protegido \"{{role}}\". Si retiras permisos esenciales podrías dejar usuarios sin acceso. ¿Quieres continuar?",
         "empty_protected": "No puedes dejar sin permisos un rol protegido."
     },

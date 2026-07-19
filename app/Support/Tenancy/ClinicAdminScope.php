@@ -94,7 +94,15 @@ final class ClinicAdminScope
     }
 
     /**
-     * Permisos que el usuario autenticado puede ver/asignar en roles (clínica).
+     * Permisos que se pueden ver/asignar al gestionar roles.
+     *
+     * En clínica: catálogo completo de permisos operativos del tenant
+     * (sin plataforma). NO se limita a `getAllPermissions()` del editor:
+     * si el admin quita un permiso de su propio `admin_clinica`, ese
+     * permiso seguiría existiendo en BD y debe poder volver a marcarse.
+     * La autorización real es el middleware `roles.update`.
+     *
+     * En panel central: se limita a lo que el editor ya tiene (superadmin).
      *
      * @return list<string>
      */
@@ -104,16 +112,17 @@ final class ClinicAdminScope
             return [];
         }
 
-        $names = $editor->getAllPermissions()->pluck('name')->all();
-
         if (! self::isClinicContext()) {
-            return $names;
+            return $editor->getAllPermissions()->pluck('name')->all();
         }
 
-        return array_values(array_filter(
-            $names,
-            static fn (string $name): bool => self::isTenantAssignablePermission($name),
-        ));
+        return Permission::query()
+            ->where('guard_name', 'web')
+            ->orderBy('name')
+            ->pluck('name')
+            ->filter(static fn (string $name): bool => self::isTenantAssignablePermission($name))
+            ->values()
+            ->all();
     }
 
     /**
