@@ -103,7 +103,7 @@ export default function Index({ setting }: PageProps) {
 
             <form
                 onSubmit={handleSubmit}
-                className="flex flex-1 flex-col gap-5 p-4 pb-24 sm:p-6 sm:pb-24"
+                className="flex flex-1 flex-col gap-5 p-4 sm:p-6"
                 noValidate
             >
                 <PageHeader
@@ -117,6 +117,36 @@ export default function Index({ setting }: PageProps) {
                             icon: MessageSquareText,
                         },
                     ]}
+                    action={
+                        canUpdate ? (
+                            <div className="flex flex-col items-stretch gap-1.5 sm:items-end">
+                                <Button
+                                    type="submit"
+                                    disabled={processing}
+                                    className="cursor-pointer gap-2 disabled:cursor-not-allowed"
+                                >
+                                    {processing ? (
+                                        <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                                    ) : recentlySuccessful ? (
+                                        <CheckCircle2 className="size-4" strokeWidth={2.5} />
+                                    ) : (
+                                        <Save className="size-4" strokeWidth={2.5} />
+                                    )}
+                                    {recentlySuccessful ? t('actions.saved') : t('actions.save')}
+                                </Button>
+                                <span className="flex max-w-56 items-center gap-1 text-[11px] text-muted-foreground">
+                                    <ShieldCheck className="size-3 shrink-0 text-primary/70" strokeWidth={2.25} />
+                                    <span className="truncate">
+                                        {setting.actualizado_por
+                                            ? t('footer.last_updated_by', {
+                                                  name: setting.actualizado_por.name,
+                                              })
+                                            : t('footer.never_updated')}
+                                    </span>
+                                </span>
+                            </div>
+                        ) : undefined
+                    }
                 />
 
                 <div className="flex items-start gap-3 rounded-lg border border-primary/20 bg-primary/5 p-4 text-sm">
@@ -160,41 +190,6 @@ export default function Index({ setting }: PageProps) {
                         </FormField>
                     </FormSection>
                 </SectionCard>
-
-                {canUpdate && (
-                    <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border/60 bg-card/95 px-4 py-3 backdrop-blur-md sm:px-6">
-                        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
-                            <div className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
-                                <ShieldCheck
-                                    className="size-4 shrink-0 text-primary/70"
-                                    strokeWidth={2.25}
-                                />
-                                <span className="truncate">
-                                    {setting.actualizado_por
-                                        ? t('footer.last_updated_by', {
-                                              name: setting.actualizado_por.name,
-                                          })
-                                        : t('footer.never_updated')}
-                                </span>
-                            </div>
-
-                            <Button
-                                type="submit"
-                                disabled={processing}
-                                className="cursor-pointer gap-2 disabled:cursor-not-allowed"
-                            >
-                                {processing ? (
-                                    <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-                                ) : recentlySuccessful ? (
-                                    <CheckCircle2 className="size-4" strokeWidth={2.5} />
-                                ) : (
-                                    <Save className="size-4" strokeWidth={2.5} />
-                                )}
-                                {recentlySuccessful ? t('actions.saved') : t('actions.save')}
-                            </Button>
-                        </div>
-                    </div>
-                )}
             </form>
         </>
     );
