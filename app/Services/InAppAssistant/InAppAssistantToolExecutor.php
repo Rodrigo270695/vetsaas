@@ -12,7 +12,9 @@ use App\Models\HistoriaClinica;
 use App\Models\Paciente;
 use App\Models\PedidoLaboratorio;
 use App\Models\Producto;
+use App\Models\ProductoLote;
 use App\Models\Propietario;
+use App\Models\SalesConversation;
 use App\Models\Sede;
 use App\Models\Subscription;
 use App\Models\SubscriptionPayment;
@@ -20,6 +22,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Models\VacunaAplicada;
 use App\Models\Venta;
+use App\Services\Platform\OperacionesSnapshotService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
@@ -77,6 +80,14 @@ final class InAppAssistantToolExecutor
                 'resumen_plataforma' => $this->resumenPlataforma(),
                 'buscar_clinicas' => $this->buscarClinicas((string) ($args['q'] ?? '')),
                 'resolver_navegacion_plataforma' => $this->resolverNavegacionPlataforma((string) ($args['destino'] ?? '')),
+                'tenants_por_vencer' => $this->tenantsPorVencer((int) ($args['dias'] ?? 7)),
+                'uso_bot_ia' => $this->usoBotIa((int) ($args['limite'] ?? 20)),
+                'estado_whatsapp_openwa' => $this->estadoWhatsappOpenwa(),
+                'leads_frios' => $this->leadsFrios(
+                    (int) ($args['dias_inactividad'] ?? 3),
+                    (int) ($args['limite'] ?? 10),
+                ),
+                'explicar_pantalla' => $this->explicarPantalla(),
                 default => ['ok' => false, 'error' => 'Herramienta no disponible en el portal de plataforma.'],
             };
 
@@ -100,6 +111,14 @@ final class InAppAssistantToolExecutor
                 isset($args['veterinario']) ? (string) $args['veterinario'] : null,
                 isset($args['sede']) ? (string) $args['sede'] : null,
             ),
+            'caducidades_proximas' => $this->caducidadesProximas(
+                (int) ($args['dias'] ?? 30),
+                (int) ($args['limite'] ?? 15),
+            ),
+            'caja_del_dia' => $this->cajaDelDia(),
+            'buscar_venta' => $this->buscarVenta((string) ($args['q'] ?? '')),
+            'quien_atiende_hoy' => $this->quienAtiendeHoy(isset($args['fecha']) ? (string) $args['fecha'] : 'hoy'),
+            'explicar_pantalla' => $this->explicarPantalla(),
             default => ['ok' => false, 'error' => 'Herramienta no disponible.'],
         };
 
@@ -388,6 +407,16 @@ final class InAppAssistantToolExecutor
                     'es_mia' => (string) $s->opened_by_id === (string) $userId,
                 ])->all(),
                 'url' => '/caja/sesiones',
+            ];
+        }
+
+        $caducidades = $this->caducidadesProximas(30, 8);
+        if (($caducidades['ok'] ?? false) === true) {
+            $out['caducidades'] = [
+                'vencidos_count' => $caducidades['vencidos_count'] ?? 0,
+                'por_vencer_count' => $caducidades['por_vencer_count'] ?? 0,
+                'items' => $caducidades['items'] ?? [],
+                'url' => '/inventario/alertas?modo=lotes',
             ];
         }
 
@@ -982,6 +1011,526 @@ final class InAppAssistantToolExecutor
         return [
             'ok' => false,
             'error' => 'No encontré ese módulo. Prueba: cobros, clínicas, suscripciones, planes, configuración, operaciones.',
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function explicarPantalla(): array
+    {
+        return InAppAssistantScreenGuide::explain($this->pageContext, $this->scope);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function caducidadesProximas(int $dias, int $limite): array
+    {
+        $dias = max(1, min(90, $dias > 0 ? $dias : 30));
+        $limite = max(1, min(30, $limite > 0 ? $limite : 15));
+
+        if (! Schema::hasTable('producto_lotes') || ! Schema::hasTable('productos')) {
+            return ['ok' => false, 'error' => 'Módulo de lotes no disponible.'];
+        }
+
+        $tz = (string) config('app.timezone', 'America/Lima');
+        $hoy = Carbon::now($tz)->startOfDay();
+        $hasta = $hoy->copy()->addDays($dias);
+
+        $base = ProductoLote::query()
+            ->with(['producto:id,nombre,sku'])
+            ->where('cantidad', '>', 0)
+            ->whereNotNull('fecha_vencimiento')
+            ->whereHas('producto', static fn ($q) => $q->where('activo', true));
+
+        $vencidosCount = (clone $base)
+            ->whereDate('fecha_vencimiento', '<', $hoy->toDateString())
+            ->count();
+
+        $porVencerCount = (clone $base)
+            ->whereDate('fecha_vencimiento', '>=', $hoy->toDateString())
+            ->whereDate('fecha_vencimiento', '<=', $hasta->toDateString())
+            ->count();
+
+        $items = (clone $base)
+            ->whereDate('fecha_vencimiento', '<=', $hasta->toDateString())
+            ->orderBy('fecha_vencimiento')
+            ->limit($limite)
+            ->get(['id', 'producto_id', 'sede_id', 'numero_lote', 'fecha_vencimiento', 'cantidad']);
+
+        $sedeIds = $items->pluck('sede_id')->filter()->unique()->values()->all();
+        $sedes = Schema::hasTable('sedes') && $sedeIds !== []
+            ? Sede::query()->whereIn('id', $sedeIds)->pluck('nombre', 'id')
+            : collect();
+
+        $this->pendingUiActions[] = [
+            'type' => 'navigate',
+            'url' => '/inventario/alertas?modo=lotes',
+            'label' => 'Alertas de caducidad',
+        ];
+
+        return [
+            'ok' => true,
+            'ventana_dias' => $dias,
+            'vencidos_count' => $vencidosCount,
+            'por_vencer_count' => $porVencerCount,
+            'url' => '/inventario/alertas?modo=lotes',
+            'items' => $items->map(static function (ProductoLote $lote) use ($hoy, $sedes): array {
+                $fecha = $lote->fecha_vencimiento;
+                $diasRestantes = $fecha !== null ? $hoy->diffInDays($fecha, false) : null;
+
+                return [
+                    'producto' => $lote->producto?->nombre,
+                    'sku' => $lote->producto?->sku,
+                    'lote' => $lote->numero_lote,
+                    'sede' => $sedes[$lote->sede_id] ?? null,
+                    'cantidad' => (string) $lote->cantidad,
+                    'vence' => optional($fecha)?->toDateString(),
+                    'dias_restantes' => $diasRestantes,
+                    'estado' => ($diasRestantes !== null && $diasRestantes < 0) ? 'vencido' : 'por_vencer',
+                ];
+            })->all(),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function cajaDelDia(): array
+    {
+        if (! Schema::hasTable('caja_sesiones')) {
+            return ['ok' => false, 'error' => 'Módulo de caja no disponible.'];
+        }
+
+        $tz = (string) config('app.timezone', 'America/Lima');
+        $hoy = Carbon::now($tz)->toDateString();
+        $userId = Auth::id();
+
+        $abiertas = CajaSesion::query()
+            ->where('estado', CajaSesion::ESTADO_ABIERTA)
+            ->orderByDesc('opened_at')
+            ->limit(10)
+            ->get(['id', 'sede_id', 'opened_at', 'opened_by_id', 'moneda', 'saldo_apertura']);
+
+        $miSesion = $abiertas->first(static fn (CajaSesion $s): bool => (string) $s->opened_by_id === (string) $userId);
+
+        $cerradasHoy = CajaSesion::query()
+            ->where('estado', CajaSesion::ESTADO_CERRADA)
+            ->whereDate('closed_at', $hoy)
+            ->orderByDesc('closed_at')
+            ->limit(8)
+            ->get(['id', 'sede_id', 'opened_at', 'closed_at', 'saldo_apertura', 'saldo_cierre_efectivo', 'moneda', 'opened_by_id', 'closed_by_id']);
+
+        $sedeIds = $abiertas->pluck('sede_id')
+            ->merge($cerradasHoy->pluck('sede_id'))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+        $sedes = Schema::hasTable('sedes') && $sedeIds !== []
+            ? Sede::query()->whereIn('id', $sedeIds)->pluck('nombre', 'id')
+            : collect();
+
+        $ventasHoy = null;
+        if (Schema::hasTable('ventas')) {
+            $query = Venta::query()
+                ->where(function ($q) use ($hoy): void {
+                    $q->whereDate('fecha_pago', $hoy)
+                        ->orWhere(function ($inner) use ($hoy): void {
+                            $inner->whereNull('fecha_pago')->whereDate('created_at', $hoy);
+                        });
+                })
+                ->whereNull('anulado_at');
+
+            $ventasHoy = [
+                'cantidad' => (clone $query)->count(),
+                'total' => (string) ((clone $query)->sum('total') ?? 0),
+            ];
+        }
+
+        $ventasMiSesion = null;
+        if ($miSesion !== null && Schema::hasTable('ventas')) {
+            $ventasMiSesion = [
+                'cantidad' => Venta::query()->where('caja_sesion_id', $miSesion->id)->whereNull('anulado_at')->count(),
+                'total' => (string) (Venta::query()->where('caja_sesion_id', $miSesion->id)->whereNull('anulado_at')->sum('total') ?? 0),
+            ];
+        }
+
+        $this->pendingUiActions[] = [
+            'type' => 'navigate',
+            'url' => '/caja/sesiones',
+            'label' => 'Sesiones de caja',
+        ];
+
+        return [
+            'ok' => true,
+            'fecha' => $hoy,
+            'abiertas_count' => $abiertas->count(),
+            'mi_sesion' => $miSesion === null ? null : [
+                'id' => $miSesion->id,
+                'sede' => $sedes[$miSesion->sede_id] ?? null,
+                'opened_at' => optional($miSesion->opened_at)?->toDateTimeString(),
+                'saldo_apertura' => (string) $miSesion->saldo_apertura,
+                'moneda' => $miSesion->moneda,
+                'ventas' => $ventasMiSesion,
+            ],
+            'sesiones_abiertas' => $abiertas->map(static fn (CajaSesion $s): array => [
+                'sede' => $sedes[$s->sede_id] ?? null,
+                'opened_at' => optional($s->opened_at)?->toDateTimeString(),
+                'saldo_apertura' => (string) $s->saldo_apertura,
+                'es_mia' => (string) $s->opened_by_id === (string) $userId,
+            ])->all(),
+            'cierres_hoy' => $cerradasHoy->map(static fn (CajaSesion $s): array => [
+                'sede' => $sedes[$s->sede_id] ?? null,
+                'opened_at' => optional($s->opened_at)?->toDateTimeString(),
+                'closed_at' => optional($s->closed_at)?->toDateTimeString(),
+                'saldo_apertura' => (string) $s->saldo_apertura,
+                'saldo_cierre_efectivo' => (string) ($s->saldo_cierre_efectivo ?? ''),
+                'moneda' => $s->moneda,
+            ])->all(),
+            'ventas_hoy' => $ventasHoy,
+            'url' => '/caja/sesiones',
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function buscarVenta(string $q): array
+    {
+        $q = trim($q);
+        if ($q === '' || mb_strlen($q) < 2) {
+            return ['ok' => false, 'error' => 'Indica al menos 2 caracteres del número de venta o boleta.'];
+        }
+
+        if (! Schema::hasTable('ventas')) {
+            return ['ok' => false, 'error' => 'Módulo de ventas no disponible.'];
+        }
+
+        $like = '%'.addcslashes($q, '%_\\').'%';
+        $query = Venta::query()
+            ->with([
+                'propietario:id,nombres,apellidos,razon_social',
+                'felDocument:id,numero_completo,serie,correlativo,estado,url_pdf',
+            ])
+            ->where(function ($inner) use ($like, $q): void {
+                $inner->where('numero', 'ILIKE', $like);
+                if (Schema::hasTable('fel_documents')) {
+                    $inner->orWhereHas('felDocument', static function ($fq) use ($like): void {
+                        $fq->where('numero_completo', 'ILIKE', $like)
+                            ->orWhere('serie', 'ILIKE', $like);
+                    });
+                }
+                if (preg_match('/^[0-9a-fA-F-]{36}$/', $q) === 1) {
+                    $inner->orWhere('id', $q);
+                }
+            })
+            ->orderByDesc('created_at')
+            ->limit(12);
+
+        $rows = $query->get();
+
+        $this->pendingUiActions[] = [
+            'type' => 'navigate',
+            'url' => '/caja/ventas?search='.rawurlencode($q),
+            'label' => 'Ventas',
+        ];
+
+        return [
+            'ok' => true,
+            'count' => $rows->count(),
+            'url' => '/caja/ventas?search='.rawurlencode($q),
+            'items' => $rows->map(static function (Venta $v): array {
+                $titular = $v->propietario?->razon_social
+                    ?: trim(implode(' ', array_filter([
+                        (string) $v->propietario?->nombres,
+                        (string) $v->propietario?->apellidos,
+                    ])));
+                $numeroDisplay = $v->felDocument?->numero_completo ?: $v->numero;
+
+                return [
+                    'id' => $v->id,
+                    'numero' => $v->numero,
+                    'numero_display' => $numeroDisplay,
+                    'total' => (string) $v->total,
+                    'estado_fel' => $v->fel_estado ?? $v->felDocument?->estado,
+                    'anulado' => $v->anulado_at !== null,
+                    'fecha' => optional($v->fecha_pago ?? $v->created_at)?->toDateTimeString(),
+                    'titular' => $titular !== '' ? $titular : null,
+                    'url' => '/caja/ventas/'.$v->id,
+                    'pdf' => $v->felDocument?->url_pdf,
+                ];
+            })->all(),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function quienAtiendeHoy(string $fechaRaw): array
+    {
+        if (! Schema::hasTable('citas')) {
+            return ['ok' => false, 'error' => 'Módulo de citas no disponible.'];
+        }
+
+        $fecha = $this->resolveAgendaFecha($fechaRaw);
+        $rows = Cita::query()
+            ->with(['veterinario:id,name', 'sede:id,nombre'])
+            ->whereDate('inicio_at', $fecha)
+            ->where('estado', '!=', Cita::ESTADO_CANCELADA)
+            ->whereNotNull('veterinario_id')
+            ->orderBy('inicio_at')
+            ->get(['id', 'veterinario_id', 'sede_id', 'estado', 'inicio_at', 'paciente_id']);
+
+        $byVet = $rows->groupBy('veterinario_id');
+        $items = [];
+        foreach ($byVet as $vetId => $citas) {
+            /** @var \Illuminate\Support\Collection<int, Cita> $citas */
+            $first = $citas->first();
+            $items[] = [
+                'veterinario_id' => (string) $vetId,
+                'veterinario' => $first?->veterinario?->name ?? 'Sin nombre',
+                'citas_count' => $citas->count(),
+                'por_estado' => $citas->groupBy('estado')->map->count()->all(),
+                'sedes' => $citas->map(static fn (Cita $c): ?string => $c->sede?->nombre)
+                    ->filter()
+                    ->unique()
+                    ->values()
+                    ->all(),
+                'proxima_hora' => optional($citas->sortBy('inicio_at')->first()?->inicio_at)?->format('H:i'),
+            ];
+        }
+
+        usort($items, static fn (array $a, array $b): int => ($b['citas_count'] <=> $a['citas_count']));
+
+        $sinAsignar = Cita::query()
+            ->whereDate('inicio_at', $fecha)
+            ->where('estado', '!=', Cita::ESTADO_CANCELADA)
+            ->whereNull('veterinario_id')
+            ->count();
+
+        $this->pendingUiActions[] = [
+            'type' => 'navigate',
+            'url' => '/clinica/citas',
+            'label' => 'Agenda',
+        ];
+
+        return [
+            'ok' => true,
+            'fecha' => $fecha,
+            'veterinarios_count' => count($items),
+            'citas_con_vet' => $rows->count(),
+            'citas_sin_veterinario' => $sinAsignar,
+            'items' => $items,
+            'url' => '/clinica/citas',
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function tenantsPorVencer(int $dias): array
+    {
+        $dias = max(1, min(60, $dias > 0 ? $dias : 7));
+        $now = now();
+        $until = $now->copy()->addDays($dias)->endOfDay();
+
+        $with = ['tenant:id,slug,nombre_comercial,razon_social', 'plan:id,nombre,codigo'];
+
+        $rows = Subscription::query()
+            ->with($with)
+            ->billable()
+            ->where(function ($q) use ($now, $until): void {
+                $q->where(function ($inner) use ($now, $until): void {
+                    $inner->whereNotNull('proximo_cobro_at')
+                        ->whereBetween('proximo_cobro_at', [$now->copy()->startOfDay(), $until]);
+                })->orWhere(function ($inner) use ($now, $until): void {
+                    $inner->whereNull('proximo_cobro_at')
+                        ->whereNotNull('current_period_end')
+                        ->whereBetween('current_period_end', [$now->copy()->startOfDay(), $until]);
+                });
+            })
+            ->orderByRaw('COALESCE(proximo_cobro_at, current_period_end) ASC')
+            ->limit(40)
+            ->get();
+
+        $this->pendingUiActions[] = [
+            'type' => 'navigate',
+            'url' => '/plataforma/suscripciones',
+            'label' => 'Suscripciones',
+        ];
+
+        return [
+            'ok' => true,
+            'dias' => $dias,
+            'count' => $rows->count(),
+            'url' => '/plataforma/suscripciones',
+            'items' => $rows->map(static function (Subscription $s): array {
+                $tenant = $s->tenant;
+                $vence = $s->proximo_cobro_at ?? $s->current_period_end;
+
+                return [
+                    'clinica' => $tenant?->nombre_comercial ?: $tenant?->razon_social ?: $tenant?->slug,
+                    'slug' => $tenant?->slug,
+                    'estado' => $s->estado,
+                    'plan' => $s->plan?->nombre,
+                    'vence_at' => optional($vence)?->toIso8601String(),
+                    'proximo_cobro_at' => optional($s->proximo_cobro_at)?->toIso8601String(),
+                    'current_period_end' => optional($s->current_period_end)?->toIso8601String(),
+                    'bot_ia_activo' => (bool) $s->bot_ia_activo,
+                ];
+            })->all(),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function usoBotIa(int $limite): array
+    {
+        $limite = max(1, min(40, $limite > 0 ? $limite : 20));
+        $with = ['tenant:id,slug,nombre_comercial,razon_social', 'plan:id,nombre,codigo'];
+
+        $activos = Subscription::query()
+            ->with($with)
+            ->billable()
+            ->where('bot_ia_activo', true)
+            ->orderByDesc('bot_ia_activado_at')
+            ->limit($limite)
+            ->get();
+
+        $inactivos = Subscription::query()
+            ->with($with)
+            ->billable()
+            ->where(function ($q): void {
+                $q->where('bot_ia_activo', false)->orWhereNull('bot_ia_activo');
+            })
+            ->orderBy('updated_at')
+            ->limit($limite)
+            ->get();
+
+        $map = static function (Subscription $s): array {
+            $tenant = $s->tenant;
+
+            return [
+                'clinica' => $tenant?->nombre_comercial ?: $tenant?->razon_social ?: $tenant?->slug,
+                'slug' => $tenant?->slug,
+                'estado' => $s->estado,
+                'plan' => $s->plan?->nombre,
+                'bot_ia_activo' => (bool) $s->bot_ia_activo,
+                'activado_at' => optional($s->bot_ia_activado_at)?->toIso8601String(),
+                'precio_mensual' => $s->bot_ia_precio_mensual,
+            ];
+        };
+
+        $this->pendingUiActions[] = [
+            'type' => 'navigate',
+            'url' => '/plataforma/suscripciones',
+            'label' => 'Suscripciones',
+        ];
+
+        return [
+            'ok' => true,
+            'activos_count' => Subscription::query()->billable()->where('bot_ia_activo', true)->count(),
+            'inactivos_count' => Subscription::query()->billable()->where(function ($q): void {
+                $q->where('bot_ia_activo', false)->orWhereNull('bot_ia_activo');
+            })->count(),
+            'activos' => $activos->map($map)->all(),
+            'inactivos_muestra' => $inactivos->map($map)->all(),
+            'url' => '/plataforma/suscripciones',
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function estadoWhatsappOpenwa(): array
+    {
+        $snapshot = app(OperacionesSnapshotService::class)->build();
+        $whatsapp = is_array($snapshot['whatsapp'] ?? null) ? $snapshot['whatsapp'] : [];
+        $failed = is_array($snapshot['failed_jobs'] ?? null) ? $snapshot['failed_jobs'] : [];
+
+        $this->pendingUiActions[] = [
+            'type' => 'navigate',
+            'url' => '/plataforma/operaciones',
+            'label' => 'Operaciones',
+        ];
+
+        return [
+            'ok' => true,
+            'openwa_configured' => (bool) ($whatsapp['openwa_configured'] ?? false),
+            'platform' => $whatsapp['platform'] ?? null,
+            'tenants_ready' => (int) ($whatsapp['tenants_ready'] ?? 0),
+            'tenants_not_ready' => (int) ($whatsapp['tenants_not_ready'] ?? 0),
+            'tenants_with_error' => (int) ($whatsapp['tenants_with_error'] ?? 0),
+            'broken' => array_slice(is_array($whatsapp['broken'] ?? null) ? $whatsapp['broken'] : [], 0, 10),
+            'failed_jobs_total' => (int) ($failed['total'] ?? 0),
+            'failed_jobs_recent' => array_slice(is_array($failed['recent'] ?? null) ? $failed['recent'] : [], 0, 8),
+            'url' => '/plataforma/operaciones',
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function leadsFrios(int $inactiveDays, int $limite): array
+    {
+        $inactiveDays = max(1, min(30, $inactiveDays > 0 ? $inactiveDays : 3));
+        $limite = max(1, min(25, $limite > 0 ? $limite : 10));
+
+        if (! Schema::hasTable('sales_conversations')) {
+            return ['ok' => false, 'error' => 'Tabla de conversaciones de ventas no disponible.'];
+        }
+
+        $pool = SalesConversation::query()
+            ->where('converted', false)
+            ->whereNull('lost_at')
+            ->where('reactivation_count', '<', 2)
+            ->where(function ($q): void {
+                $q->where('bot_paused_manually', false)
+                    ->orWhereNull('bot_paused_manually');
+            })
+            ->where(function ($q): void {
+                $q->where('turn_count', '>', 0)
+                    ->orWhere('activation_trigger', 'like', 'manual:%');
+            })
+            ->where(function ($q): void {
+                $q->whereNull('last_reactivation_at')
+                    ->orWhereRaw('EXTRACT(EPOCH FROM (NOW() - last_reactivation_at))/86400 >= 3');
+            })
+            ->whereRaw(
+                'EXTRACT(EPOCH FROM (NOW() - COALESCE(last_message_at, created_at)))/86400 >= ?',
+                [$inactiveDays],
+            )
+            ->orderByRaw('COALESCE(last_message_at, created_at) ASC')
+            ->limit(80)
+            ->get();
+
+        $eligible = $pool->filter(
+            static fn (SalesConversation $c): bool => $c->isEligibleForReactivation($inactiveDays, 2),
+        )->values();
+
+        $sample = $eligible->take($limite)->map(static function (SalesConversation $c): array {
+            return [
+                'id' => $c->id,
+                'phone' => $c->phone,
+                'name' => $c->prospect_name,
+                'product' => $c->product,
+                'turn_count' => $c->turn_count,
+                'reactivation_count' => $c->reactivation_count,
+                'last_message_at' => optional($c->last_message_at)?->toIso8601String(),
+                'last_reactivation_at' => optional($c->last_reactivation_at)?->toIso8601String(),
+            ];
+        })->all();
+
+        return [
+            'ok' => true,
+            'dias_inactividad' => $inactiveDays,
+            'elegibles_hoy' => $eligible->count(),
+            'pool_bruto' => $pool->count(),
+            'muestra' => $sample,
+            'nota' => 'Elegibles según la misma regla del comando vetsaas:reactivate-cold-leads (10:00 y 15:00).',
         ];
     }
 }

@@ -175,6 +175,81 @@ final class InAppAssistantTools
                     ],
                 ],
             ],
+            [
+                'type' => 'function',
+                'function' => [
+                    'name' => 'caducidades_proximas',
+                    'description' => 'Lotes de inventario vencidos o por vencer (caducidades). Solo lectura.',
+                    'parameters' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'dias' => [
+                                'type' => 'integer',
+                                'description' => 'Ventana de días hacia adelante para por vencer (default 30, máx 90).',
+                            ],
+                            'limite' => [
+                                'type' => 'integer',
+                                'description' => 'Máximo de lotes a listar (default 15, máx 30).',
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+            [
+                'type' => 'function',
+                'function' => [
+                    'name' => 'caja_del_dia',
+                    'description' => 'Caja del día: sesiones abiertas, mi sesión, ventas de hoy y último cierre. Solo lectura.',
+                    'parameters' => [
+                        'type' => 'object',
+                        'properties' => (object) [],
+                    ],
+                ],
+            ],
+            [
+                'type' => 'function',
+                'function' => [
+                    'name' => 'buscar_venta',
+                    'description' => 'Busca una venta/boleta/factura por número interno o número FEL (serie-correlativo). Solo lectura.',
+                    'parameters' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'q' => [
+                                'type' => 'string',
+                                'description' => 'Número de venta, boleta FEL o parte del número.',
+                            ],
+                        ],
+                        'required' => ['q'],
+                    ],
+                ],
+            ],
+            [
+                'type' => 'function',
+                'function' => [
+                    'name' => 'quien_atiende_hoy',
+                    'description' => 'Veterinarios que tienen citas hoy (quién atiende), con conteo por estado. Solo lectura.',
+                    'parameters' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'fecha' => [
+                                'type' => 'string',
+                                'description' => 'hoy | mañana | YYYY-MM-DD. Default: hoy.',
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+            [
+                'type' => 'function',
+                'function' => [
+                    'name' => 'explicar_pantalla',
+                    'description' => 'Explica qué hace la pantalla actual del usuario (según URL/componente) y acciones típicas. Solo lectura.',
+                    'parameters' => [
+                        'type' => 'object',
+                        'properties' => (object) [],
+                    ],
+                ],
+            ],
         ];
     }
 
@@ -280,6 +355,80 @@ final class InAppAssistantTools
                             ],
                         ],
                         'required' => ['destino'],
+                    ],
+                ],
+            ],
+            [
+                'type' => 'function',
+                'function' => [
+                    'name' => 'tenants_por_vencer',
+                    'description' => 'Clínicas/suscripciones cuyo próximo cobro o fin de periodo cae en los próximos X días. Solo lectura.',
+                    'parameters' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'dias' => [
+                                'type' => 'integer',
+                                'description' => 'Días hacia adelante (default 7, máx 60).',
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+            [
+                'type' => 'function',
+                'function' => [
+                    'name' => 'uso_bot_ia',
+                    'description' => 'Resumen de clínicas con Bot IA activo vs inactivo (add-on). Solo lectura.',
+                    'parameters' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'limite' => [
+                                'type' => 'integer',
+                                'description' => 'Máximo de clínicas a listar por grupo (default 20, máx 40).',
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+            [
+                'type' => 'function',
+                'function' => [
+                    'name' => 'estado_whatsapp_openwa',
+                    'description' => 'Estado de OpenWA (sesión plataforma), sesiones de tenants con error y jobs fallidos recientes. Solo lectura.',
+                    'parameters' => [
+                        'type' => 'object',
+                        'properties' => (object) [],
+                    ],
+                ],
+            ],
+            [
+                'type' => 'function',
+                'function' => [
+                    'name' => 'leads_frios',
+                    'description' => 'Conteo y muestra de leads fríos elegibles para reactivación del SalesBot. Solo lectura.',
+                    'parameters' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'dias_inactividad' => [
+                                'type' => 'integer',
+                                'description' => 'Días sin mensaje para considerar frío (default 3, máx 30).',
+                            ],
+                            'limite' => [
+                                'type' => 'integer',
+                                'description' => 'Muestra de leads (default 10, máx 25).',
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+            [
+                'type' => 'function',
+                'function' => [
+                    'name' => 'explicar_pantalla',
+                    'description' => 'Explica qué hace la pantalla actual del panel central (según URL/componente). Solo lectura.',
+                    'parameters' => [
+                        'type' => 'object',
+                        'properties' => (object) [],
                     ],
                 ],
             ],

@@ -31,7 +31,7 @@ final class InAppAssistantNavigation
             ['id' => 'productos', 'label' => 'Productos', 'url' => '/inventario/productos', 'aliases' => ['inventario', 'catálogo', 'catalogo']],
             ['id' => 'stock', 'label' => 'Stock', 'url' => '/inventario/stock', 'aliases' => ['existencias', 'almacén', 'almacen']],
             ['id' => 'compras', 'label' => 'Compras', 'url' => '/inventario/compras', 'aliases' => ['compra', 'proveedores compra']],
-            ['id' => 'alertas-stock', 'label' => 'Alertas de stock', 'url' => '/inventario/alertas', 'aliases' => ['alertas inventario']],
+            ['id' => 'alertas-stock', 'label' => 'Alertas de stock', 'url' => '/inventario/alertas', 'aliases' => ['alertas inventario', 'caducidades', 'vencimientos', 'lotes por vencer']],
             ['id' => 'tarifas', 'label' => 'Tarifas', 'url' => '/configuracion/tarifas', 'aliases' => ['precios', 'servicios clínicos', 'servicios clinicos']],
             ['id' => 'sedes', 'label' => 'Sedes', 'url' => '/configuracion/sedes', 'aliases' => ['sucursales']],
             ['id' => 'usuarios', 'label' => 'Usuarios', 'url' => '/configuracion/usuarios', 'aliases' => ['personal', 'empleados']],

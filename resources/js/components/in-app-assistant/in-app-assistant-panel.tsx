@@ -12,6 +12,7 @@ import {
     SheetTitle,
 } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
+import { usePermission } from '@/hooks/use-permission';
 import { cn } from '@/lib/utils';
 
 type ChatRole = 'user' | 'assistant';
@@ -28,6 +29,61 @@ type ChatMessage = {
     content: string;
     actions?: UiAction[];
 };
+
+type SuggestionDef = {
+    key: string;
+    permission?: string | string[];
+};
+
+const HISTORY_LIMIT = 12;
+
+function historyStorageKey(scope: string): string {
+    return `vetsaas.in-app-assistant.history.${scope}`;
+}
+
+function loadHistory(scope: string): ChatMessage[] {
+    try {
+        const raw = sessionStorage.getItem(historyStorageKey(scope));
+        if (!raw) {
+            return [];
+        }
+        const parsed = JSON.parse(raw) as unknown;
+        if (!Array.isArray(parsed)) {
+            return [];
+        }
+        return parsed
+            .filter(
+                (item): item is ChatMessage =>
+                    item != null &&
+                    typeof item === 'object' &&
+                    typeof (item as ChatMessage).id === 'string' &&
+                    ((item as ChatMessage).role === 'user' || (item as ChatMessage).role === 'assistant') &&
+                    typeof (item as ChatMessage).content === 'string',
+            )
+            .slice(-HISTORY_LIMIT)
+            .map((item) => ({
+                id: item.id,
+                role: item.role,
+                content: item.content,
+                // No restauramos actions de navegación (pueden quedar stale).
+            }));
+    } catch {
+        return [];
+    }
+}
+
+function saveHistory(scope: string, messages: ChatMessage[]): void {
+    try {
+        const slim = messages.slice(-HISTORY_LIMIT).map(({ id, role, content }) => ({
+            id,
+            role,
+            content,
+        }));
+        sessionStorage.setItem(historyStorageKey(scope), JSON.stringify(slim));
+    } catch {
+        // sessionStorage lleno / privado: ignorar.
+    }
+}
 
 type Props = {
     open: boolean;
@@ -62,6 +118,7 @@ function AssistantRichText({ text }: { text: string }) {
 export function InAppAssistantPanel({ open, onOpenChange }: Props) {
     const { t } = useTranslation('in-app-assistant');
     const page = usePage();
+    const { can } = usePermission();
     const { in_app_assistant } = page.props;
     const scope = in_app_assistant?.scope === 'platform' ? 'platform' : 'clinic';
     const isUnlimited =
@@ -79,16 +136,30 @@ export function InAppAssistantPanel({ open, onOpenChange }: Props) {
         remaining: number | null;
         unlimited: boolean;
     } | null>(isUnlimited ? { limit: null, used: 0, remaining: null, unlimited: true } : null);
-    const [messages, setMessages] = useState<ChatMessage[]>([]);
+    const [messages, setMessages] = useState<ChatMessage[]>(() => loadHistory(scope));
     const [draft, setDraft] = useState('');
     const [sending, setSending] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const bottomRef = useRef<HTMLDivElement | null>(null);
     const inputRef = useRef<HTMLTextAreaElement | null>(null);
+    const historyHydrated = useRef(false);
 
     useEffect(() => {
         setConfigured(in_app_assistant?.configured === true);
     }, [in_app_assistant?.configured]);
+
+    useEffect(() => {
+        // Al cambiar de clínica ↔ plataforma, recargar historial corto de ese scope.
+        setMessages(loadHistory(scope));
+        historyHydrated.current = true;
+    }, [scope]);
+
+    useEffect(() => {
+        if (!historyHydrated.current) {
+            return;
+        }
+        saveHistory(scope, messages);
+    }, [messages, scope]);
 
     useEffect(() => {
         if (!open) {
@@ -142,28 +213,66 @@ export function InAppAssistantPanel({ open, onOpenChange }: Props) {
     }, [messages, sending, open]);
 
     const suggestions = useMemo(() => {
+        const pick = (defs: SuggestionDef[], max = 5): string[] => {
+            const out: string[] = [];
+            for (const def of defs) {
+                if (def.permission && !can(def.permission)) {
+                    continue;
+                }
+                out.push(t(`panel.suggestions.${def.key}`));
+                if (out.length >= max) {
+                    break;
+                }
+            }
+            return out;
+        };
+
         if (scope === 'platform') {
-            return [
-                t('panel.suggestions.platform_pending'),
-                t('panel.suggestions.platform_risk'),
-                t('panel.suggestions.platform_summary'),
-                t('panel.suggestions.platform_failed'),
-            ];
+            return pick([
+                { key: 'explain_screen' },
+                { key: 'platform_pending' },
+                { key: 'platform_risk' },
+                { key: 'platform_expiring' },
+                { key: 'platform_bot_ia' },
+                { key: 'platform_openwa' },
+                { key: 'platform_cold_leads' },
+                { key: 'platform_summary' },
+            ]);
         }
+
         if (pageContext.paciente_id) {
-            return [
-                t('panel.suggestions.query_this_patient'),
-                t('panel.suggestions.query_alerts'),
-                t('panel.suggestions.nav_vacunas'),
-            ];
+            return pick([
+                { key: 'explain_screen' },
+                { key: 'query_this_patient', permission: 'pacientes.view' },
+                { key: 'query_alerts', permission: ['alertas-stock.view', 'stock.view', 'citas.view'] },
+                { key: 'nav_vacunas', permission: 'pacientes.view' },
+                { key: 'query_who_attends', permission: 'citas.view' },
+            ]);
         }
-        return [
-            t('panel.suggestions.query_agenda'),
-            t('panel.suggestions.nav_vacunas'),
-            t('panel.suggestions.query_alerts'),
-            t('panel.suggestions.nav_caja'),
-        ];
-    }, [t, pageContext.paciente_id, scope]);
+
+        return pick([
+            { key: 'explain_screen' },
+            { key: 'query_agenda', permission: 'citas.view' },
+            { key: 'query_who_attends', permission: 'citas.view' },
+            { key: 'query_caja_today', permission: 'caja-sesiones.view' },
+            { key: 'query_expiry', permission: 'alertas-stock.view' },
+            { key: 'query_alerts', permission: ['alertas-stock.view', 'stock.view'] },
+            { key: 'query_stock', permission: 'stock.view' },
+            { key: 'nav_caja', permission: 'caja-sesiones.view' },
+            { key: 'nav_vacunas', permission: 'pacientes.view' },
+            { key: 'query_today' },
+        ]);
+    }, [t, pageContext.paciente_id, scope, can]);
+
+    const clearConversation = () => {
+        setMessages([]);
+        setError(null);
+        try {
+            sessionStorage.removeItem(historyStorageKey(scope));
+        } catch {
+            // ignore
+        }
+    };
 
     const limitReached =
         !isUnlimited &&
@@ -491,10 +600,7 @@ export function InAppAssistantPanel({ open, onOpenChange }: Props) {
                                     size="sm"
                                     className="h-7 gap-1.5 px-2 text-xs text-muted-foreground"
                                     disabled={sending}
-                                    onClick={() => {
-                                        setMessages([]);
-                                        setError(null);
-                                    }}
+                                    onClick={clearConversation}
                                 >
                                     <Trash2 className="size-3.5" />
                                     {t('panel.clear')}
