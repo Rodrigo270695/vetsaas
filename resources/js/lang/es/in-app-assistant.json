@@ -28,8 +28,11 @@
             "query_alerts": "¿Qué alertas hay hoy?",
             "query_this_patient": "Resúmeme este paciente",
             "nav_vacunas": "Llévame a vacunaciones",
-            "nav_caja": "Llévame a caja"
+            "nav_caja": "Llévame a caja",
+            "query_agenda": "¿Qué citas hay mañana?"
         },
-        "go_to": "Ir a {{label}}"
+        "go_to": "Ir a {{label}}",
+        "usage": "{{remaining}}/{{limit}} hoy",
+        "limit_reached": "Llegaste al límite diario del asistente. Vuelve mañana."
     }
 }

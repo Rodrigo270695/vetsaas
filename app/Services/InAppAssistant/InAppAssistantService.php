@@ -79,6 +79,12 @@ final class InAppAssistantService
             return $historyLocal;
         }
 
+        // Agenda de citas (hoy/mañana + vet/sede) sin OpenAI cuando el pedido es claro.
+        $agendaLocal = $this->tryLocalAgenda($userMessage);
+        if ($agendaLocal !== null) {
+            return $agendaLocal;
+        }
+
         $apiKey = trim((string) config('in-app-assistant.openai_api_key', ''));
         if ($apiKey === '') {
             $apiKey = trim((string) config('bot-ia.openai_api_key', ''));
@@ -251,6 +257,7 @@ CONTEXTO DE PANTALLA ACTUAL
 Si hay un paciente en contexto y el usuario dice «este paciente», «esta mascota», «su dueño», etc., usa la herramienta paciente_en_contexto.
 Para resumen de historial (consultas, vacunas, labs), usa resumen_historia_paciente.
 Para alertas del día (vacunas por vencer, stock bajo, caja), usa alertas_operativas.
+Para agenda («citas de hoy», «citas de María mañana», «citas de la sede Centro»), usa agenda_citas.
 Si piden ir a un módulo («llévame a vacunaciones», «abre caja»), usa resolver_navegacion y menciona la URL/botón.
 
 ═══════════════════════════════════════
@@ -332,6 +339,7 @@ PROMPT;
             'perro', 'gato', 'microchip', 'hoy', 'mañana', 'manana',
             'próxima', 'proxima', 'vencer', 'vencen', 'refuerzo',
             'llévame', 'llevame', 'abre', 'abrir', 'historial',
+            'agenda', 'veterinario', 'vet ',
         ];
 
         foreach ($hints as $hint) {
@@ -473,6 +481,116 @@ PROMPT;
                 $detail = $examenes !== '' ? $examenes : 'Pedido';
                 $lines[] = "• {$fecha}: {$detail}".($estado !== '' ? " [{$estado}]" : '');
             }
+        }
+
+        return implode("\n", $lines);
+    }
+
+    /**
+     * @return array{reply: string, used_tools: list<string>, actions: list<array{type: string, url: string, label: string}>}|null
+     */
+    private function tryLocalAgenda(string $message): ?array
+    {
+        $msg = mb_strtolower(trim($message));
+        if (! preg_match('/\bcitas?\b/u', $msg)) {
+            return null;
+        }
+
+        // Evitar capturar "dónde están citas" (navegación) — eso lo resuelve navegación.
+        if (InAppAssistantNavigation::looksLikeNavigationRequest($message)) {
+            return null;
+        }
+
+        $fecha = 'hoy';
+        if (preg_match('/\b(mañana|manana|tomorrow)\b/u', $msg) === 1) {
+            $fecha = 'mañana';
+        } elseif (preg_match('/\b(\d{4}-\d{2}-\d{2})\b/u', $msg, $m) === 1) {
+            $fecha = $m[1];
+        }
+
+        $veterinario = null;
+        if (preg_match('/\b(?:de|del|dra?\.?)\s+([a-záéíóúñü][\wáéíóúñü\.\s]{1,40}?)(?:\s+(?:mañana|manana|hoy|tomorrow|en|de la|sede)\b|$)/ui', $msg, $m) === 1) {
+            $candidate = trim($m[1]);
+            $skip = ['hoy', 'mañana', 'manana', 'la', 'las', 'el', 'los', 'sede', 'esta', 'este'];
+            if ($candidate !== '' && ! in_array(mb_strtolower($candidate), $skip, true)) {
+                $veterinario = $candidate;
+            }
+        }
+
+        $sede = null;
+        if (preg_match('/\bsede\s+([a-záéíóúñü][\wáéíóúñü\.\s-]{1,40})$/ui', $msg, $m) === 1
+            || preg_match('/\bsede\s+([a-záéíóúñü][\wáéíóúñü\.\s-]{1,40})\b/ui', $msg, $m) === 1) {
+            $sede = trim($m[1]);
+        }
+
+        $raw = $this->tools->execute('agenda_citas', array_filter([
+            'fecha' => $fecha,
+            'veterinario' => $veterinario,
+            'sede' => $sede,
+        ], static fn ($v) => $v !== null && $v !== ''));
+
+        $data = json_decode($raw, true);
+        if (! is_array($data)) {
+            return null;
+        }
+
+        if (($data['ok'] ?? false) !== true) {
+            return [
+                'reply' => (string) ($data['error'] ?? 'No pude consultar la agenda.'),
+                'used_tools' => ['agenda_citas'],
+                'actions' => [[
+                    'type' => 'navigate',
+                    'url' => '/clinica/citas',
+                    'label' => 'Citas',
+                ]],
+            ];
+        }
+
+        return [
+            'reply' => $this->formatAgendaReply($data),
+            'used_tools' => ['agenda_citas'],
+            'actions' => $this->tools->pullUiActions(),
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function formatAgendaReply(array $data): string
+    {
+        $fecha = (string) ($data['fecha'] ?? '');
+        $vet = trim((string) ($data['veterinario'] ?? ''));
+        $sede = trim((string) ($data['sede'] ?? ''));
+        $count = (int) ($data['count'] ?? 0);
+
+        $header = "**Agenda {$fecha}**";
+        if ($vet !== '') {
+            $header .= " · {$vet}";
+        }
+        if ($sede !== '') {
+            $header .= " · sede {$sede}";
+        }
+
+        $lines = [$header, ''];
+        if ($count === 0) {
+            $lines[] = 'No hay citas para ese filtro.';
+
+            return implode("\n", $lines);
+        }
+
+        $lines[] = "{$count} cita(s):";
+        $citas = is_array($data['citas'] ?? null) ? $data['citas'] : [];
+        foreach ($citas as $c) {
+            if (! is_array($c)) {
+                continue;
+            }
+            $hora = (string) ($c['hora'] ?? '—');
+            $pac = (string) ($c['paciente'] ?? 'Paciente');
+            $v = trim((string) ($c['veterinario'] ?? ''));
+            $s = trim((string) ($c['sede'] ?? ''));
+            $estado = (string) ($c['estado'] ?? '');
+            $extra = trim(($v !== '' ? $v : '').($s !== '' ? ($v !== '' ? ' · ' : '').$s : ''));
+            $lines[] = "• {$hora} — {$pac}".($extra !== '' ? " ({$extra})" : '').($estado !== '' ? " [{$estado}]" : '');
         }
 
         return implode("\n", $lines);

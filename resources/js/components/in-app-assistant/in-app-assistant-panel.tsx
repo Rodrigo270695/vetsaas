@@ -70,6 +70,7 @@ export function InAppAssistantPanel({ open, onOpenChange }: Props) {
     );
 
     const [configured, setConfigured] = useState(in_app_assistant?.configured === true);
+    const [usage, setUsage] = useState<{ limit: number; used: number; remaining: number } | null>(null);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [draft, setDraft] = useState('');
     const [sending, setSending] = useState(false);
@@ -99,9 +100,19 @@ export function InAppAssistantPanel({ open, onOpenChange }: Props) {
                 if (!res.ok) {
                     return;
                 }
-                const body = (await res.json()) as { configured?: boolean };
+                const body = (await res.json()) as {
+                    configured?: boolean;
+                    usage?: { limit?: number; used?: number; remaining?: number };
+                };
                 if (typeof body.configured === 'boolean') {
                     setConfigured(body.configured);
+                }
+                if (body.usage && typeof body.usage.limit === 'number') {
+                    setUsage({
+                        limit: body.usage.limit,
+                        used: Number(body.usage.used ?? 0),
+                        remaining: Number(body.usage.remaining ?? 0),
+                    });
                 }
             })
             .catch(() => {
@@ -124,12 +135,14 @@ export function InAppAssistantPanel({ open, onOpenChange }: Props) {
             ];
         }
         return [
+            t('panel.suggestions.query_agenda'),
             t('panel.suggestions.nav_vacunas'),
-            t('panel.suggestions.nav_caja'),
             t('panel.suggestions.query_alerts'),
-            t('panel.suggestions.query_today'),
+            t('panel.suggestions.nav_caja'),
         ];
     }, [t, pageContext.paciente_id]);
+
+    const limitReached = usage !== null && usage.remaining <= 0;
 
     const goTo = (url: string) => {
         onOpenChange(false);
@@ -138,7 +151,7 @@ export function InAppAssistantPanel({ open, onOpenChange }: Props) {
 
     const sendMessage = async (raw: string) => {
         const message = raw.trim();
-        if (message === '' || sending || !configured) {
+        if (message === '' || sending || !configured || limitReached) {
             return;
         }
 
@@ -174,7 +187,20 @@ export function InAppAssistantPanel({ open, onOpenChange }: Props) {
                 reply?: string;
                 message?: string;
                 actions?: UiAction[];
+                usage?: { limit?: number; used?: number; remaining?: number };
             };
+
+            if (body.usage && typeof body.usage.limit === 'number') {
+                setUsage({
+                    limit: body.usage.limit,
+                    used: Number(body.usage.used ?? 0),
+                    remaining: Number(body.usage.remaining ?? 0),
+                });
+            }
+
+            if (res.status === 429) {
+                throw new Error(body.message || t('panel.limit_reached'));
+            }
 
             if (!res.ok) {
                 throw new Error(body.message || t('panel.error'));
@@ -258,6 +284,14 @@ export function InAppAssistantPanel({ open, onOpenChange }: Props) {
                                 >
                                     {configured ? t('panel.badge_ready') : t('panel.badge_offline')}
                                 </span>
+                                {usage && configured && (
+                                    <span className="inline-flex items-center rounded-full border border-border/70 bg-white/80 px-2 py-0.5 text-[10px] font-medium text-muted-foreground dark:bg-card/60">
+                                        {t('panel.usage', {
+                                            remaining: usage.remaining,
+                                            limit: usage.limit,
+                                        })}
+                                    </span>
+                                )}
                             </div>
                             <SheetDescription className="text-xs leading-relaxed">
                                 {pageContext.paciente_id
@@ -280,6 +314,12 @@ export function InAppAssistantPanel({ open, onOpenChange }: Props) {
                             <div className="rounded-xl border border-amber-200/90 bg-amber-50/95 p-4 shadow-xs dark:border-amber-900/50 dark:bg-amber-950/35">
                                 <p className="text-sm leading-relaxed text-amber-950 dark:text-amber-100">
                                     {t('panel.not_configured')}
+                                </p>
+                            </div>
+                        ) : limitReached ? (
+                            <div className="rounded-xl border border-amber-200/90 bg-amber-50/95 p-4 shadow-xs dark:border-amber-900/50 dark:bg-amber-950/35">
+                                <p className="text-sm leading-relaxed text-amber-950 dark:text-amber-100">
+                                    {t('panel.limit_reached')}
                                 </p>
                             </div>
                         ) : messages.length === 0 ? (
@@ -428,7 +468,7 @@ export function InAppAssistantPanel({ open, onOpenChange }: Props) {
                                     onChange={(e) => setDraft(e.target.value)}
                                     onKeyDown={onKeyDown}
                                     placeholder={t('panel.placeholder')}
-                                    disabled={!configured}
+                                    disabled={!configured || limitReached}
                                     rows={2}
                                     className={cn(
                                         'min-h-17 max-h-32 resize-none border-0 bg-transparent shadow-none',
@@ -442,7 +482,12 @@ export function InAppAssistantPanel({ open, onOpenChange }: Props) {
                                     type="button"
                                     size="icon"
                                     className="size-10 shrink-0 rounded-xl bg-sky-600 text-white shadow-sm shadow-sky-600/20 hover:bg-sky-600/90"
-                                    disabled={!configured || sending || draft.trim() === ''}
+                                    disabled={
+                                        !configured ||
+                                        limitReached ||
+                                        sending ||
+                                        draft.trim() === ''
+                                    }
                                     onClick={() => void sendMessage(draft)}
                                     aria-label={t('panel.send')}
                                 >

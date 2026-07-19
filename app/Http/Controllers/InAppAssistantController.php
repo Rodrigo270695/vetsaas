@@ -5,25 +5,46 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Services\InAppAssistant\InAppAssistantService;
+use App\Services\InAppAssistant\InAppAssistantUsageLimiter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Throwable;
 
 final class InAppAssistantController extends Controller
 {
-    public function status(InAppAssistantService $assistant): JsonResponse
-    {
+    public function status(
+        Request $request,
+        InAppAssistantService $assistant,
+        InAppAssistantUsageLimiter $limiter,
+    ): JsonResponse {
+        $user = $request->user();
+        $usage = $user !== null ? $limiter->snapshot($user) : null;
+
         return response()->json([
             'enabled' => (bool) config('in-app-assistant.enabled', true),
             'configured' => $assistant->isConfigured(),
+            'usage' => $usage,
         ]);
     }
 
-    public function chat(Request $request, InAppAssistantService $assistant): JsonResponse
-    {
-        abort_unless($request->user() !== null, 401);
+    public function chat(
+        Request $request,
+        InAppAssistantService $assistant,
+        InAppAssistantUsageLimiter $limiter,
+    ): JsonResponse {
+        $user = $request->user();
+        abort_unless($user !== null, 401);
         abort_unless((bool) config('in-app-assistant.enabled', true), 503);
         abort_unless($assistant->isConfigured(), 503, 'Asistente no configurado (falta OPENAI_API_KEY).');
+
+        if ($limiter->tooManyAttempts($user)) {
+            $usage = $limiter->snapshot($user);
+
+            return response()->json([
+                'message' => 'Alcanzaste el límite diario del asistente ('.$usage['limit'].' mensajes). Vuelve mañana.',
+                'usage' => $usage,
+            ], 429);
+        }
 
         $data = $request->validate([
             'message' => ['required', 'string', 'min:2', 'max:4000'],
@@ -55,10 +76,14 @@ final class InAppAssistantController extends Controller
                 $pageContext,
             );
 
+            $limiter->hit($user);
+            $usage = $limiter->snapshot($user);
+
             return response()->json([
                 'reply' => $result['reply'],
                 'used_tools' => $result['used_tools'],
                 'actions' => $result['actions'] ?? [],
+                'usage' => $usage,
             ]);
         } catch (Throwable $e) {
             report($e);

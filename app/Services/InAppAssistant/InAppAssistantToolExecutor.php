@@ -14,6 +14,7 @@ use App\Models\PedidoLaboratorio;
 use App\Models\Producto;
 use App\Models\Propietario;
 use App\Models\Sede;
+use App\Models\User;
 use App\Models\VacunaAplicada;
 use App\Models\Venta;
 use Illuminate\Support\Carbon;
@@ -64,6 +65,11 @@ final class InAppAssistantToolExecutor
             'resumen_historia_paciente' => $this->resumenHistoriaPaciente(
                 isset($args['paciente_id']) ? (string) $args['paciente_id'] : null,
                 (int) ($args['limite'] ?? 5),
+            ),
+            'agenda_citas' => $this->agendaCitas(
+                isset($args['fecha']) ? (string) $args['fecha'] : 'hoy',
+                isset($args['veterinario']) ? (string) $args['veterinario'] : null,
+                isset($args['sede']) ? (string) $args['sede'] : null,
             ),
             default => ['ok' => false, 'error' => 'Herramienta no disponible.'],
         };
@@ -564,5 +570,107 @@ final class InAppAssistantToolExecutor
             'aplicaciones' => $aplicaciones,
             'laboratorio' => $labs,
         ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function agendaCitas(?string $fecha, ?string $veterinario, ?string $sede): array
+    {
+        if (! Schema::hasTable('citas')) {
+            return ['ok' => false, 'error' => 'Módulo de citas no disponible.'];
+        }
+
+        $tz = (string) config('app.timezone', 'America/Lima');
+        $day = $this->resolveAgendaDate($fecha, $tz);
+
+        $query = Cita::query()
+            ->with([
+                'paciente:id,nombre',
+                'veterinario:id,name',
+                'sede:id,nombre',
+            ])
+            ->whereDate('inicio_at', $day)
+            ->whereNotIn('estado', [Cita::ESTADO_CANCELADA])
+            ->orderBy('inicio_at')
+            ->limit(25);
+
+        $vetLabel = null;
+        $vet = trim((string) $veterinario);
+        if ($vet !== '') {
+            $vetUser = User::query()
+                ->where('name', 'ILIKE', '%'.addcslashes($vet, '%_\\').'%')
+                ->orderBy('name')
+                ->first(['id', 'name']);
+            if ($vetUser === null) {
+                return [
+                    'ok' => false,
+                    'error' => "No encontré un veterinario que coincida con «{$vet}».",
+                    'fecha' => $day,
+                ];
+            }
+            $query->where('veterinario_id', $vetUser->id);
+            $vetLabel = $vetUser->name;
+        }
+
+        $sedeLabel = null;
+        $sedeQ = trim((string) $sede);
+        if ($sedeQ !== '' && Schema::hasTable('sedes')) {
+            $sedeRow = Sede::query()
+                ->where('nombre', 'ILIKE', '%'.addcslashes($sedeQ, '%_\\').'%')
+                ->orderBy('nombre')
+                ->first(['id', 'nombre']);
+            if ($sedeRow === null) {
+                return [
+                    'ok' => false,
+                    'error' => "No encontré una sede que coincida con «{$sedeQ}».",
+                    'fecha' => $day,
+                ];
+            }
+            $query->where('sede_id', $sedeRow->id);
+            $sedeLabel = $sedeRow->nombre;
+        }
+
+        $rows = $query->get([
+            'id', 'paciente_id', 'veterinario_id', 'sede_id', 'inicio_at', 'duracion_minutos', 'estado', 'motivo',
+        ]);
+
+        $this->pendingUiActions[] = [
+            'type' => 'navigate',
+            'url' => '/clinica/citas',
+            'label' => 'Citas',
+        ];
+
+        return [
+            'ok' => true,
+            'fecha' => $day,
+            'veterinario' => $vetLabel,
+            'sede' => $sedeLabel,
+            'count' => $rows->count(),
+            'citas' => $rows->map(static fn (Cita $c): array => [
+                'hora' => optional($c->inicio_at)?->timezone($tz)->format('H:i'),
+                'paciente' => $c->paciente?->nombre,
+                'paciente_id' => $c->paciente_id,
+                'veterinario' => $c->veterinario?->name,
+                'sede' => $c->sede?->nombre,
+                'estado' => $c->estado,
+                'motivo' => $c->motivo,
+                'duracion_min' => $c->duracion_minutos,
+            ])->all(),
+            'url' => '/clinica/citas',
+        ];
+    }
+
+    private function resolveAgendaDate(?string $fecha, string $tz): string
+    {
+        $raw = mb_strtolower(trim((string) $fecha));
+        $now = Carbon::now($tz);
+
+        return match (true) {
+            $raw === '' || $raw === 'hoy' || $raw === 'today' => $now->toDateString(),
+            in_array($raw, ['mañana', 'manana', 'tomorrow'], true) => $now->copy()->addDay()->toDateString(),
+            (bool) preg_match('/^\d{4}-\d{2}-\d{2}$/', $raw) => $raw,
+            default => $now->toDateString(),
+        };
     }
 }

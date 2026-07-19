@@ -141,6 +141,30 @@ final class InAppAssistantTools
                     ],
                 ],
             ],
+            [
+                'type' => 'function',
+                'function' => [
+                    'name' => 'agenda_citas',
+                    'description' => 'Lista citas por fecha (hoy/mañana/YYYY-MM-DD), opcionalmente filtradas por nombre de veterinario y/o sede. Solo lectura.',
+                    'parameters' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'fecha' => [
+                                'type' => 'string',
+                                'description' => 'hoy | mañana | YYYY-MM-DD. Default: hoy.',
+                            ],
+                            'veterinario' => [
+                                'type' => 'string',
+                                'description' => 'Nombre (o parte) del veterinario.',
+                            ],
+                            'sede' => [
+                                'type' => 'string',
+                                'description' => 'Nombre (o parte) de la sede.',
+                            ],
+                        ],
+                    ],
+                ],
+            ],
         ];
     }
 }

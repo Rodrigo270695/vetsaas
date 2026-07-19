@@ -28,8 +28,11 @@
             "query_alerts": "What alerts are there today?",
             "query_this_patient": "Summarize this patient",
             "nav_vacunas": "Take me to vaccinations",
-            "nav_caja": "Take me to cash register"
+            "nav_caja": "Take me to cash register",
+            "query_agenda": "What appointments are tomorrow?"
         },
-        "go_to": "Go to {{label}}"
+        "go_to": "Go to {{label}}",
+        "usage": "{{remaining}}/{{limit}} today",
+        "limit_reached": "You’ve reached today’s assistant limit. Try again tomorrow."
     }
 }
