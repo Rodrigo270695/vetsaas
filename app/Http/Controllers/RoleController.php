@@ -124,7 +124,7 @@ class RoleController extends Controller
         // controller (no solo en el front) protege contra requests crafteados.
         if ($role->is_system) {
             throw ValidationException::withMessages([
-                'name' => 'No se puede modificar un rol del sistema.',
+                'name' => 'No se puede renombrar un rol protegido ('.$role->name.').',
             ]);
         }
 
@@ -156,14 +156,11 @@ class RoleController extends Controller
         ClinicAdminScope::assertRoleAccessible($role);
 
         // Nota de diseño:
-        // Mantenemos bloqueada la edición de METADATA y la eliminación de
-        // roles del sistema (`update`/`destroy`) porque romperían contratos
-        // del código (ej: el bypass de `superadmin` en `usePermission`
-        // depende del NOMBRE exacto). Sin embargo SÍ permitimos editar el
-        // set de permisos del superadmin: si el dueño quiere probar
-        // restricciones temporales, debe poder hacerlo desde la UI sin
-        // tener que ejecutar comandos artisan. El frontend muestra un
-        // banner de advertencia cuando se edita un rol del sistema.
+        // Bloqueamos metadata y eliminación de roles protegidos (`update`/`destroy`)
+        // porque los nombres son contratos del código y porque borrar un rol
+        // base de clínica CASCADE-vacía `model_has_roles` de TODAS las clínicas.
+        // Sí permitimos ajustar permisos, con banner de advertencia en UI,
+        // pero no dejar roles base/plataforma sin ningún permiso.
 
         $assignable = ClinicAdminScope::assignablePermissionNamesFor($request->user());
 
@@ -183,6 +180,20 @@ class RoleController extends Controller
                 $permissions,
                 static fn (string $name): bool => ClinicAdminScope::isTenantAssignablePermission($name),
             ));
+        }
+
+        // Evitar dejar un rol base de clínica sin permisos (volvería a tumbar
+        // el acceso de todas las clínicas que lo usan).
+        if ($role->isBaseClinicRole() && $permissions === []) {
+            throw ValidationException::withMessages([
+                'permissions' => 'No puedes dejar sin permisos un rol base de clínica ('.$role->name.'). Eso afectaría a todas las clínicas.',
+            ]);
+        }
+
+        if ($role->isPlatformRole() && $permissions === []) {
+            throw ValidationException::withMessages([
+                'permissions' => 'No puedes dejar sin permisos el rol de plataforma '.$role->name.'.',
+            ]);
         }
 
         $role->syncPermissions($permissions);
@@ -205,7 +216,7 @@ class RoleController extends Controller
 
         if ($role->is_system) {
             throw ValidationException::withMessages([
-                'name' => 'No se puede eliminar un rol del sistema.',
+                'name' => 'No se puede eliminar un rol protegido ('.$role->name.'). Afectaría a todas las clínicas.',
             ]);
         }
 
@@ -230,7 +241,7 @@ class RoleController extends Controller
 
         $deletableIds = ClinicAdminScope::rolesQuery()
             ->whereIn('id', $data['ids'])
-            ->whereNotIn('name', Role::SYSTEM_ROLES)
+            ->whereNotIn('name', Role::protectedRoleNames())
             ->pluck('id')
             ->all();
 

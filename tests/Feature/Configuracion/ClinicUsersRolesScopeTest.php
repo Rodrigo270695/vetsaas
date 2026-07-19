@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\Plan;
+use App\Models\Role;
 use App\Models\Subscription;
 use App\Models\Tenant;
 use App\Models\User;
@@ -159,4 +160,64 @@ it('filtra permisos de plataforma del catálogo de roles en clínica', function 
             return count($allNames) > 0;
         })
     );
+});
+
+it('marca admin_clinica como rol protegido y lo mantiene visible en clínica', function (): void {
+    $this->actingAs($this->testTenantAdmin);
+
+    $response = $this->get('http://'.$this->testTenantHost.'/configuracion/roles');
+
+    $response->assertOk();
+    $response->assertInertia(fn ($page) => $page
+        ->where('roles.data', function ($roles): bool {
+            $admin = collect($roles)->firstWhere('name', 'admin_clinica');
+
+            return $admin !== null && ($admin['is_system'] ?? false) === true;
+        })
+    );
+});
+
+it('rechaza eliminar un rol base de clínica', function (): void {
+    $this->actingAs($this->testTenantAdmin);
+
+    $role = Role::query()->where('name', 'admin_clinica')->firstOrFail();
+
+    $response = $this->delete('http://'.$this->testTenantHost.'/configuracion/roles/'.$role->id);
+
+    $response->assertSessionHasErrors('name');
+    expect(Role::query()->where('name', 'admin_clinica')->exists())->toBeTrue();
+});
+
+it('rechaza vaciar permisos de un rol base de clínica', function (): void {
+    $this->actingAs($this->testTenantAdmin);
+
+    $role = Role::query()->where('name', 'admin_clinica')->firstOrFail();
+    expect($role->permissions()->count())->toBeGreaterThan(0);
+
+    $response = $this->put(
+        'http://'.$this->testTenantHost.'/configuracion/roles/'.$role->id.'/permissions',
+        ['permissions' => []],
+    );
+
+    $response->assertSessionHasErrors('permissions');
+    expect($role->fresh()->permissions()->count())->toBeGreaterThan(0);
+});
+
+it('omite roles base al intentar borrado masivo', function (): void {
+    $this->actingAs($this->testTenantAdmin);
+
+    $custom = Role::query()->create([
+        'name' => 'custom_scope_'.Str::lower(Str::random(4)),
+        'guard_name' => 'web',
+        'description' => 'Temporal',
+    ]);
+    $admin = Role::query()->where('name', 'admin_clinica')->firstOrFail();
+
+    $response = $this->delete('http://'.$this->testTenantHost.'/configuracion/roles/bulk', [
+        'ids' => [$custom->id, $admin->id],
+    ]);
+
+    $response->assertRedirect();
+    expect(Role::query()->whereKey($custom->id)->exists())->toBeFalse();
+    expect(Role::query()->where('name', 'admin_clinica')->exists())->toBeTrue();
 });

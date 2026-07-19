@@ -14,10 +14,10 @@ use Spatie\Permission\Models\Role as SpatieRole;
  * caché interno, sincronización con `model_has_roles`) y solo agregamos:
  *
  *   - Columna `description` (UI/UX): explicación humana del propósito del rol.
- *   - Concept "rol del sistema": roles protegidos que NO se pueden editar
- *     ni eliminar desde el panel (ej. `superadmin`). Esto evita que un
- *     usuario con permisos `roles.update/delete` se quede sin acceso por
- *     accidente.
+ *   - Roles protegidos: no se pueden renombrar ni eliminar desde el panel.
+ *     Incluye `superadmin` (plataforma) y los roles base de clínica.
+ *     Esto evita un CASCADE global en `model_has_roles` si alguien borra
+ *     `admin_clinica` desde cualquier tenant (los roles Spatie son globales).
  *
  * @property int $id
  * @property string $name
@@ -30,11 +30,40 @@ class Role extends SpatieRole
     use UsesPublicSchema;
 
     /**
-     * Nombres de roles reservados por la plataforma. NO son editables ni
-     * eliminables desde el panel. Si en el futuro agregas más (admin_clinica,
-     * veterinario, etc.) listalos aquí o muévelo a config para no tocar código.
+     * Solo panel central. Ocultos en el UI de clínica (no asignables allí).
+     *
+     * @var list<string>
      */
-    public const SYSTEM_ROLES = ['superadmin'];
+    public const PLATFORM_ROLES = ['superadmin'];
+
+    /**
+     * Roles operativos compartidos por todas las clínicas.
+     * No eliminables / no renombrables (sí se pueden ajustar permisos).
+     *
+     * @var list<string>
+     */
+    public const BASE_CLINIC_ROLES = [
+        'admin_clinica',
+        'veterinario',
+        'asistente_vet',
+        'recepcionista',
+        'groomer',
+    ];
+
+    /**
+     * Alias histórico: todos los roles protegidos (plataforma + clínica base).
+     * Preferir `protectedRoleNames()` / `PLATFORM_ROLES` / `BASE_CLINIC_ROLES`.
+     *
+     * @var list<string>
+     */
+    public const SYSTEM_ROLES = [
+        'superadmin',
+        'admin_clinica',
+        'veterinario',
+        'asistente_vet',
+        'recepcionista',
+        'groomer',
+    ];
 
     /**
      * Spatie usa `$guarded = []` (todo es mass-assignable), así que la
@@ -48,15 +77,40 @@ class Role extends SpatieRole
     ];
 
     /**
-     * Indica si el rol es del sistema (protegido).
+     * @return list<string>
+     */
+    public static function protectedRoleNames(): array
+    {
+        return self::SYSTEM_ROLES;
+    }
+
+    /**
+     * Roles que la clínica no debe ver/asignar (solo plataforma).
      *
-     * Se calcula a partir del nombre, lo que evita persistir el flag y
-     * permite versionar el listado en código sin tocar BD.
+     * @return list<string>
+     */
+    public static function platformOnlyRoleNames(): array
+    {
+        return self::PLATFORM_ROLES;
+    }
+
+    public function isBaseClinicRole(): bool
+    {
+        return in_array($this->name, self::BASE_CLINIC_ROLES, true);
+    }
+
+    public function isPlatformRole(): bool
+    {
+        return in_array($this->name, self::PLATFORM_ROLES, true);
+    }
+
+    /**
+     * Indica si el rol es protegido (no renombrable / no eliminable).
      */
     protected function isSystem(): Attribute
     {
         return Attribute::make(
-            get: fn () => in_array($this->name, self::SYSTEM_ROLES, true),
+            get: fn () => in_array($this->name, self::protectedRoleNames(), true),
         );
     }
 
@@ -64,16 +118,16 @@ class Role extends SpatieRole
      * Scope para filtrar por tipo desde el listado:
      *   - 'todos'        → sin filtro
      *   - 'sistema'      → roles reservados
-     *   - 'personalizado'→ roles creados por el cliente
+     *   - 'personalizados'→ roles creados por el cliente
      */
     public function scopeOfType(Builder $query, string $type): Builder
     {
         if ($type === 'sistema') {
-            return $query->whereIn('name', self::SYSTEM_ROLES);
+            return $query->whereIn('name', self::protectedRoleNames());
         }
 
         if ($type === 'personalizado') {
-            return $query->whereNotIn('name', self::SYSTEM_ROLES);
+            return $query->whereNotIn('name', self::protectedRoleNames());
         }
 
         return $query;

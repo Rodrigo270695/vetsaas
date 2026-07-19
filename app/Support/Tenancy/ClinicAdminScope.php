@@ -37,7 +37,9 @@ final class ClinicAdminScope
      */
     public static function hiddenRoleNames(): array
     {
-        return Role::SYSTEM_ROLES;
+        // Solo plataforma: los roles base de clínica deben seguir visibles
+        // y asignables en el tenant. La protección anti-borrado va en Role::is_system.
+        return Role::platformOnlyRoleNames();
     }
 
     /**

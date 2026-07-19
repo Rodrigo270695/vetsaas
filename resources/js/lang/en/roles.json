@@ -1,6 +1,6 @@
 {
     "title": "Roles & permissions",
-    "description": "Define what each type of user can do on the platform. System roles are protected and cannot be modified.",
+    "description": "Define what each type of user can do. Base roles (admin, veterinarian, etc.) are protected: they cannot be deleted or renamed.",
     "demo_locked": {
         "description": "Demo clinic: you can view roles, but cannot create or change permissions (that would affect other clinics)."
     },
@@ -42,7 +42,7 @@
         "actions_for": "Actions for {{name}}",
         "type_system": "System",
         "type_custom": "Custom",
-        "system_locked": "This role is part of the system and cannot be modified."
+        "system_locked": "Protected role: cannot be renamed or deleted (you can still adjust permissions)."
     },
     "empty": {
         "no_records_title": "No custom roles yet",
@@ -90,22 +90,23 @@
         "toggle_module": "Toggle {{module}} permissions",
         "save": "Save permissions",
         "saving": "Saving...",
-        "system_banner_title": "You are editing a system role",
-        "system_banner_body": "Editing superadmin permissions can lock the platform owner out of critical areas. Removing permissions like roles.update or sedes.view is only recommended for controlled tests. To restore the original set run: php artisan db:seed --class=SuperadminSeeder.",
-        "system_confirm": "You are about to modify the permissions of system role \"{{role}}\". If you remove essential permissions you might lose access to parts of the app. Continue?"
+        "system_banner_title": "You are editing a protected role",
+        "system_banner_body": "These roles are shared by all clinics. You can adjust permissions, but you cannot leave them empty or delete the role. Removing essential permissions may lock users out.",
+        "system_confirm": "You are about to modify the permissions of protected role \"{{role}}\". If you remove essential permissions you might lock users out. Continue?",
+        "empty_protected": "You cannot leave a protected role without permissions."
     },
     "delete": {
         "title": "Delete role",
         "description": "You're about to delete role <strong>{{name}}</strong>. Users assigned to this role will lose it immediately. This action cannot be undone.",
         "confirm": "Yes, delete role",
         "loading": "Deleting...",
-        "system_blocked": "This role belongs to the system and cannot be deleted."
+        "system_blocked": "This role is protected and cannot be deleted."
     },
     "bulk": {
         "selected_singular": "role selected",
         "selected_plural": "roles selected",
         "delete_title": "Delete {{count}} roles",
-        "delete_description": "You're about to delete {{count}} selected roles. Users assigned to these roles will lose them immediately. System roles will be skipped.",
+        "delete_description": "You're about to delete {{count}} selected roles. Users assigned to these roles will lose them immediately. Protected roles will be skipped.",
         "delete_confirm_singular": "Yes, delete role",
         "delete_confirm_plural": "Yes, delete {{count}} roles"
     },

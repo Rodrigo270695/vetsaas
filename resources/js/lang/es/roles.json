@@ -1,6 +1,6 @@
 {
     "title": "Roles y permisos",
-    "description": "Define qué puede hacer cada tipo de usuario en la plataforma. Los roles del sistema están protegidos y no se pueden modificar.",
+    "description": "Define qué puede hacer cada tipo de usuario. Los roles base (admin, veterinario, etc.) están protegidos: no se pueden eliminar ni renombrar.",
     "demo_locked": {
         "description": "Clínica demo: puedes consultar roles, pero no crearlos ni cambiar permisos (afectarían a otras clínicas)."
     },
@@ -42,7 +42,7 @@
         "actions_for": "Acciones para {{name}}",
         "type_system": "Sistema",
         "type_custom": "Personalizado",
-        "system_locked": "Este rol es del sistema y no puede modificarse."
+        "system_locked": "Rol protegido: no se puede renombrar ni eliminar (sí puedes ajustar permisos)."
     },
     "empty": {
         "no_records_title": "Aún no hay roles personalizados",
@@ -90,22 +90,23 @@
         "toggle_module": "Alternar permisos de {{module}}",
         "save": "Guardar permisos",
         "saving": "Guardando...",
-        "system_banner_title": "Estás editando un rol del sistema",
-        "system_banner_body": "Modificar los permisos del superadmin puede dejar al dueño de la plataforma sin acceso a partes críticas. Quitar permisos como roles.update o sedes.view solo se recomienda para pruebas controladas. Para restaurar el set original ejecuta: php artisan db:seed --class=SuperadminSeeder.",
-        "system_confirm": "Vas a modificar los permisos del rol del sistema \"{{role}}\". Si retiras permisos esenciales podrías quedar sin acceso a partes de la app. ¿Quieres continuar?"
+        "system_banner_title": "Estás editando un rol protegido",
+        "system_banner_body": "Estos roles son compartidos por todas las clínicas. Puedes ajustar permisos, pero no dejarlos vacíos ni eliminar el rol. Quitar permisos esenciales puede dejar usuarios sin acceso.",
+        "system_confirm": "Vas a modificar los permisos del rol protegido \"{{role}}\". Si retiras permisos esenciales podrías dejar usuarios sin acceso. ¿Quieres continuar?",
+        "empty_protected": "No puedes dejar sin permisos un rol protegido."
     },
     "delete": {
         "title": "Eliminar rol",
         "description": "Vas a eliminar el rol <strong>{{name}}</strong>. Los usuarios que lo tengan asignado lo perderán inmediatamente. Esta acción no se puede deshacer.",
         "confirm": "Sí, eliminar rol",
         "loading": "Eliminando...",
-        "system_blocked": "Este rol es del sistema y no se puede eliminar."
+        "system_blocked": "Este rol está protegido y no se puede eliminar."
     },
     "bulk": {
         "selected_singular": "rol seleccionado",
         "selected_plural": "roles seleccionados",
         "delete_title": "Eliminar {{count}} roles",
-        "delete_description": "Vas a eliminar {{count}} roles seleccionados. Los usuarios que los tengan asignados los perderán inmediatamente. Los roles del sistema serán omitidos.",
+        "delete_description": "Vas a eliminar {{count}} roles seleccionados. Los usuarios que los tengan asignados los perderán inmediatamente. Los roles protegidos serán omitidos.",
         "delete_confirm_singular": "Sí, eliminar rol",
         "delete_confirm_plural": "Sí, eliminar {{count}} roles"
     },

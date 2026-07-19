@@ -128,7 +128,7 @@ class UserRequest extends FormRequest
             }
 
             $role = (string) $this->input('role', '');
-            if (in_array($role, Role::SYSTEM_ROLES, true)) {
+            if (in_array($role, Role::platformOnlyRoleNames(), true)) {
                 $v->errors()->add('role', __('validation.in', ['attribute' => 'rol']));
             }
         });

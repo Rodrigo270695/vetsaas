@@ -227,9 +227,15 @@ export function RolePermissionsModal({
     const onSave = () => {
         if (!role) return;
 
-        // Para roles del sistema pedimos un confirm explícito: editar
-        // su set de permisos puede dejar al dueño de la plataforma sin
-        // acceso a partes críticas si se desmarca, p.ej. `roles.update`.
+        if (isSystem && selected.size === 0) {
+            toastManager.error({
+                title: t('roles:permissions_modal.empty_protected'),
+            });
+            return;
+        }
+
+        // Para roles protegidos pedimos un confirm explícito: editar
+        // su set de permisos puede dejar usuarios sin acceso a partes críticas.
         if (isSystem) {
             const ok = window.confirm(
                 t('roles:permissions_modal.system_confirm', {

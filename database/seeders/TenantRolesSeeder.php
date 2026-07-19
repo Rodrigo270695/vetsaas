@@ -24,10 +24,11 @@ use Spatie\Permission\PermissionRegistrar;
  *   - **Idempotente**: `firstOrCreate` por nombre + `syncPermissions()` re-aplica
  *     el set declarado, así puedes editar este seeder y volver a correrlo para
  *     que los cambios se propaguen sin duplicar nada.
- *   - **No los marca como sistema** (a propósito): `SYSTEM_ROLES` solo contiene
- *     `superadmin`. Esto deja que el `admin_clinica` ajuste los permisos
- *     de su clínica a su gusto desde el panel.
- *   - **Depende** de `PermissionsSeeder` (los permisos deben existir antes).
+ *   - Los marca como roles protegidos vía `Role::BASE_CLINIC_ROLES` (no
+ *     eliminables ni renombrables desde el panel). Sí se pueden ajustar
+ *     permisos, salvo dejarlos vacíos.
+ *   - `SYSTEM_ROLES` / protegidos incluyen estos + `superadmin`.
+ *   - Depende de `PermissionsSeeder` (los permisos deben existir antes).
  */
 class TenantRolesSeeder extends Seeder
 {
