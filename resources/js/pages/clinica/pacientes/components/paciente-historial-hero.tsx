@@ -26,11 +26,11 @@ type Props = {
     paciente: Paciente;
     propietarioNombre: string;
     links: {
-        nueva_consulta: string;
-        nueva_aplicacion: string;
+        nueva_consulta?: string;
+        nueva_aplicacion?: string;
         historial_pdf: string | null;
-        historial_whatsapp: string | null;
-        laboratorio_rapido: string | null;
+        historial_whatsapp?: string | null;
+        laboratorio_rapido?: string | null;
     };
     permisos: {
         consultas_crear: boolean;
@@ -43,8 +43,12 @@ type Props = {
         total: number;
     };
     hasTimeline: boolean;
-    onShareHistory: () => void;
+    onShareHistory?: () => void;
     onOpenLaboratorio?: () => void;
+    /** Vista pública para el titular: sin CTAs de administración. */
+    variant?: 'admin' | 'public';
+    clinicName?: string;
+    expiresAt?: string | null;
 };
 
 function sexoLabel(t: (k: string) => string, sexo: string | null): string | null {
@@ -121,8 +125,12 @@ export function PacienteHistorialHero({
     hasTimeline,
     onShareHistory,
     onOpenLaboratorio,
+    variant = 'admin',
+    clinicName,
+    expiresAt,
 }: Props) {
     const { t } = useTranslation(['pacientes']);
+    const isPublic = variant === 'public';
     const subline = [paciente.especie, paciente.raza].filter(Boolean).join(' · ');
     const sexo = sexoLabel(t, paciente.sexo);
     const edad = useMemo(() => calcularEdadMascota(paciente.fecha_nacimiento), [paciente.fecha_nacimiento]);
@@ -236,18 +244,30 @@ export function PacienteHistorialHero({
                         </div>
                     </div>
 
-                    <Button type="button" variant="outline" size="sm" className="shrink-0 gap-2 self-start" asChild>
-                        <Link href={clinica.pacientes.index().url} prefetch>
-                            <ArrowLeft className="size-4" strokeWidth={2.25} />
-                            {t('historial.back_list')}
-                        </Link>
-                    </Button>
+                    {!isPublic ? (
+                        <Button type="button" variant="outline" size="sm" className="shrink-0 gap-2 self-start" asChild>
+                            <Link href={clinica.pacientes.index().url} prefetch>
+                                <ArrowLeft className="size-4" strokeWidth={2.25} />
+                                {t('historial.back_list')}
+                            </Link>
+                        </Button>
+                    ) : clinicName ? (
+                        <div className="shrink-0 rounded-xl border border-border/60 bg-background/80 px-3 py-2 text-right shadow-sm">
+                            <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                                {t('historial.public_clinic_label')}
+                            </p>
+                            <p className="text-sm font-semibold text-foreground">{clinicName}</p>
+                        </div>
+                    ) : null}
                 </div>
+                {isPublic && expiresAt ? (
+                    <p className="mt-3 text-xs text-muted-foreground">{t('historial.public_expires_hint')}</p>
+                ) : null}
             </div>
 
             <div className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:px-6">
                 <div className="flex flex-wrap gap-2">
-                    {permisos.consultas_crear ? (
+                    {!isPublic && permisos.consultas_crear && links.nueva_consulta ? (
                         <Button type="button" size="sm" className="gap-2 shadow-sm" asChild>
                             <a href={links.nueva_consulta}>
                                 <Plus className="size-4" strokeWidth={2.25} />
@@ -255,7 +275,7 @@ export function PacienteHistorialHero({
                             </a>
                         </Button>
                     ) : null}
-                    {permisos.vacunas_crear ? (
+                    {!isPublic && permisos.vacunas_crear && links.nueva_aplicacion ? (
                         <Button
                             type="button"
                             size="sm"
@@ -269,7 +289,7 @@ export function PacienteHistorialHero({
                             </a>
                         </Button>
                     ) : null}
-                    {permisos.laboratorio_crear && links.laboratorio_rapido ? (
+                    {!isPublic && permisos.laboratorio_crear && links.laboratorio_rapido ? (
                         <Button
                             type="button"
                             size="sm"
@@ -281,7 +301,7 @@ export function PacienteHistorialHero({
                             {t('historial.action_laboratorio')}
                         </Button>
                     ) : null}
-                    {links.historial_pdf && hasTimeline ? (
+                    {links.historial_pdf && (isPublic || hasTimeline) ? (
                         <Button type="button" size="sm" variant="outline" className="gap-2" asChild>
                             <a href={links.historial_pdf} target="_blank" rel="noopener noreferrer">
                                 <FileDown className="size-4" strokeWidth={2.25} />
@@ -289,7 +309,7 @@ export function PacienteHistorialHero({
                             </a>
                         </Button>
                     ) : null}
-                    {links.historial_whatsapp && hasTimeline ? (
+                    {!isPublic && links.historial_whatsapp && hasTimeline && onShareHistory ? (
                         <Button
                             type="button"
                             size="sm"

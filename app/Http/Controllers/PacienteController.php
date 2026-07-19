@@ -18,6 +18,7 @@ use App\Models\Propietario;
 use App\Models\Receta;
 use App\Models\VacunaAplicada;
 use App\Services\Clinica\PacienteImportService;
+use App\Support\Clinica\PublicClinicalHistoryPayload;
 use App\Support\Pacientes\PacienteEspecieRazaCatalogo;
 use App\Support\Pdf\HistorialClinicoPdfBuilder;
 use App\Tenancy\TenantManager;
@@ -432,6 +433,14 @@ class PacienteController extends Controller
     public function publicHistorialClinicoPdf(Request $request, Paciente $paciente): HttpResponse
     {
         return $this->renderHistorialClinicoPdf($request, $paciente, true, true, false);
+    }
+
+    public function publicHistorialView(Paciente $paciente): Response
+    {
+        return Inertia::render(
+            'public/historial-clinico',
+            PublicClinicalHistoryPayload::forPaciente($paciente),
+        );
     }
 
     private function renderHistorialClinicoPdf(

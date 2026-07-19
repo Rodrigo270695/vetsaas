@@ -277,6 +277,16 @@ class LaboratorioController extends Controller
     {
         abort_unless($request->user()?->can('laboratorio.view') ?? false, 403);
 
+        return $this->streamResultadoArchivo($linea);
+    }
+
+    public function publicDownloadResultadoArchivo(PedidoLaboratorioLinea $linea): BinaryFileResponse
+    {
+        return $this->streamResultadoArchivo($linea);
+    }
+
+    private function streamResultadoArchivo(PedidoLaboratorioLinea $linea): BinaryFileResponse
+    {
         $tid = tenant_id();
         if ($tid === null || $linea->resultado_archivo_path === null) {
             abort(404);

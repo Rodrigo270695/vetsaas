@@ -7,6 +7,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { initializeTheme } from '@/hooks/use-appearance';
 import AppLayout from '@/layouts/app-layout';
 import AuthLayout from '@/layouts/auth-layout';
+import PublicDocumentLayout from '@/layouts/public-document-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import { applyInitialClinicThemeFromDocument } from '@/lib/apply-initial-clinic-theme';
 import '@/lib/i18n';
@@ -25,6 +26,8 @@ createInertiaApp({
                 return AuthLayout;
             case name.startsWith('settings/'):
                 return [AppLayout, SettingsLayout];
+            case name.startsWith('public/'):
+                return PublicDocumentLayout;
             case name.startsWith('errors/'):
             case name.startsWith('tenant/errors/'):
             case name === 'tenant/welcome':

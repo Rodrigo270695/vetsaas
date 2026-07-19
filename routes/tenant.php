@@ -1,8 +1,10 @@
 <?php
 
 use App\Http\Controllers\ConsultaHistoriaController;
+use App\Http\Controllers\LaboratorioController;
 use App\Http\Controllers\PacienteController;
 use App\Http\Controllers\Tenant\TenantDashboardController;
+use App\Http\Controllers\VacunacionController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -33,10 +35,16 @@ Route::middleware(['tenant.required'])->group(function (): void {
         ->prefix('documentos-publicos')
         ->name('tenant.public.clinical-history.')
         ->group(function (): void {
+            Route::get('pacientes/{paciente}/historial', [PacienteController::class, 'publicHistorialView'])
+                ->name('historial.view');
             Route::get('consultas/{consulta}.pdf', [ConsultaHistoriaController::class, 'publicPdf'])
                 ->name('consulta');
             Route::get('pacientes/{paciente}/historial-clinico.pdf', [PacienteController::class, 'publicHistorialClinicoPdf'])
                 ->name('historial');
+            Route::get('vacunas/{vacuna_aplicada}/aplicacion.pdf', [VacunacionController::class, 'publicAplicacionPdf'])
+                ->name('aplicacion');
+            Route::get('laboratorio/lineas/{linea}/archivo', [LaboratorioController::class, 'publicDownloadResultadoArchivo'])
+                ->name('laboratorio-archivo');
         });
 
     Route::get('/', [TenantDashboardController::class, 'welcome'])

@@ -13,13 +13,14 @@ use App\Models\Producto;
 use App\Models\Sede;
 use App\Models\User;
 use App\Models\VacunaAplicada;
+use App\Support\Pdf\HistorialClinicoPdfBuilder;
 use App\Support\Vacunas\VacunaAplicadaStockSync;
 use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Support\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -347,6 +348,16 @@ class VacunacionController extends Controller
     {
         abort_unless($request->user()?->can('vacunaciones.view') ?? false, 403);
 
+        return $this->renderAplicacionPdf($request, $vacuna_aplicada);
+    }
+
+    public function publicAplicacionPdf(Request $request, VacunaAplicada $vacuna_aplicada): Response
+    {
+        return $this->renderAplicacionPdf($request, $vacuna_aplicada);
+    }
+
+    private function renderAplicacionPdf(Request $request, VacunaAplicada $vacuna_aplicada): Response
+    {
         $vacuna_aplicada->load([
             'paciente.propietario:id,nombres,apellidos,razon_social',
             'veterinario:id,name',

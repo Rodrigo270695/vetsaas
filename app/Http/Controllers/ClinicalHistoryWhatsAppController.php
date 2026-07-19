@@ -61,7 +61,7 @@ final class ClinicalHistoryWhatsAppController extends Controller
             request: $request,
             paciente: $paciente,
             sender: $sender,
-            routeName: 'tenant.public.clinical-history.historial',
+            routeName: 'tenant.public.clinical-history.historial.view',
             routeParameters: ['paciente' => (string) $paciente->getKey()],
             documentLabel: 'el historial clínico completo',
             logContext: ['paciente_id' => (string) $paciente->getKey()],
@@ -118,15 +118,24 @@ final class ClinicalHistoryWhatsAppController extends Controller
         $ownerName = $paciente->propietario?->displayName() ?: 'cliente';
         $expiresDays = max(1, (int) ceil($ttlMinutes / 1440));
 
-        $message = "Hola {$ownerName} 👋\n\n"
-            ."{$clinicName} comparte contigo {$documentLabel} de {$paciente->nombre}.\n\n"
-            ."Puedes verla en línea y descargarla desde este enlace:\n{$url}\n\n"
-            ."🔒 Por seguridad, el enlace estará disponible por {$expiresDays} día(s).";
+        $isHistorialView = $routeName === 'tenant.public.clinical-history.historial.view';
+
+        $message = $isHistorialView
+            ? "Hola {$ownerName} 👋\n\n"
+                ."{$clinicName} comparte contigo {$documentLabel} de {$paciente->nombre}.\n\n"
+                ."Ábrelo en tu celular para ver el historial, resúmenes y descargar PDFs o exámenes:\n{$url}\n\n"
+                ."🔒 Por seguridad, el enlace estará disponible por {$expiresDays} día(s)."
+            : "Hola {$ownerName} 👋\n\n"
+                ."{$clinicName} comparte contigo {$documentLabel} de {$paciente->nombre}.\n\n"
+                ."Puedes verla en línea y descargarla desde este enlace:\n{$url}\n\n"
+                ."🔒 Por seguridad, el enlace estará disponible por {$expiresDays} día(s).";
 
         try {
             $sender->send($tenant, $chatId, $message);
 
-            return back()->with('success', 'El enlace del documento fue enviado por WhatsApp.');
+            return back()->with('success', $isHistorialView
+                ? 'El enlace del historial fue enviado por WhatsApp.'
+                : 'El enlace del documento fue enviado por WhatsApp.');
         } catch (Throwable $e) {
             Log::warning('No se pudo enviar historial clínico por WhatsApp', [
                 ...$logContext,
