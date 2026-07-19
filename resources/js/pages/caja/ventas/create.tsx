@@ -1070,7 +1070,7 @@ export default function Create({
                                         <ul className="max-h-32 overflow-auto rounded-md border border-border/50 bg-muted/10 text-sm">
                                             {hitsServicio.map((s) => (
                                                 <li
-                                                    key={`${s.nombre}:${s.precio_lista}`}
+                                                    key={`${s.origen ?? 'svc'}:${s.nombre}:${s.precio_lista}`}
                                                     className="border-b border-border/30 last:border-0"
                                                 >
                                                     <button
@@ -1079,7 +1079,14 @@ export default function Create({
                                                         className="flex w-full cursor-pointer items-center justify-between gap-2 px-2.5 py-2 text-left text-xs transition-colors hover:bg-muted/40 focus-visible:bg-muted/40 focus-visible:outline-none"
                                                         onClick={() => addServicioFromTarifa(s)}
                                                     >
-                                                        <span className="min-w-0 truncate font-medium">{s.nombre}</span>
+                                                        <span className="min-w-0 truncate">
+                                                            <span className="font-medium">{s.nombre}</span>
+                                                            {s.categoria ? (
+                                                                <span className="mt-0.5 block truncate text-[10px] text-muted-foreground">
+                                                                    {s.categoria}
+                                                                </span>
+                                                            ) : null}
+                                                        </span>
                                                         <span className="shrink-0 tabular-nums text-[10px] text-muted-foreground">
                                                             {formatMoney(Number(s.precio_lista))}
                                                         </span>

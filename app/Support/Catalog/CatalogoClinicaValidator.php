@@ -10,7 +10,8 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Validación de payloads del catálogo editable por clínica (grooming_servicios / hotel_tipos_estancia).
+ * Validación de payloads del catálogo editable por clínica
+ * (grooming_servicios / hotel_tipos_estancia / servicios_clinicos).
  * Usado desde TarifaServiciosController; los permisos los aplican las rutas (tarifas.*).
  */
 final class CatalogoClinicaValidator
@@ -49,6 +50,26 @@ final class CatalogoClinicaValidator
             'categoria' => ['nullable', 'string', 'max:80'],
             'precio_lista' => ['required', 'numeric', 'min:0', 'max:999999.99'],
             'moneda' => ['nullable', 'string', Rule::in(['PEN', 'USD'])],
+            'activo' => ['sometimes', 'boolean'],
+            'orden' => ['sometimes', 'integer', 'min:0', 'max:9999'],
+        ])->validate();
+    }
+
+    /**
+     * @return array<string, mixed>
+     *
+     * @throws ValidationException
+     */
+    public static function clinica(Request $request): array
+    {
+        $payload = self::normalizeClinicaInput($request);
+
+        return Validator::make($payload, [
+            'nombre' => ['required', 'string', 'min:2', 'max:200'],
+            'categoria_id' => ['nullable', 'uuid', Rule::exists('categorias_servicio_clinico', 'id')],
+            'precio_lista' => ['required', 'numeric', 'min:0', 'max:999999.99'],
+            'moneda' => ['nullable', 'string', Rule::in(['PEN', 'USD'])],
+            'duracion_minutos' => ['nullable', 'integer', 'min:5', 'max:480'],
             'activo' => ['sometimes', 'boolean'],
             'orden' => ['sometimes', 'integer', 'min:0', 'max:9999'],
         ])->validate();
@@ -101,6 +122,35 @@ final class CatalogoClinicaValidator
 
         if ($request->has('activo')) {
             $payload['activo'] = $request->boolean('activo');
+        }
+
+        return $payload;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function normalizeClinicaInput(Request $request): array
+    {
+        $payload = $request->all();
+
+        if (is_string($payload['nombre'] ?? null)) {
+            $payload['nombre'] = trim($payload['nombre']);
+        }
+
+        $categoriaId = $payload['categoria_id'] ?? null;
+        if (! is_string($categoriaId) || trim($categoriaId) === '') {
+            $payload['categoria_id'] = null;
+        }
+
+        if ($request->has('activo')) {
+            $payload['activo'] = $request->boolean('activo');
+        }
+
+        if ($request->filled('duracion_minutos')) {
+            $payload['duracion_minutos'] = (int) $request->input('duracion_minutos');
+        } elseif (array_key_exists('duracion_minutos', $payload) && blank($payload['duracion_minutos'])) {
+            $payload['duracion_minutos'] = null;
         }
 
         return $payload;

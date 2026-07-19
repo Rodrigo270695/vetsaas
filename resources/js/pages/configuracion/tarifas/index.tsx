@@ -7,6 +7,7 @@ import {
     Plus,
     Scissors,
     ShieldCheck,
+    Stethoscope,
     Tags,
 } from 'lucide-react';
 import type { LucideIcon, ReactNode } from 'react';
@@ -55,6 +56,8 @@ export default function Index({
     hotel_catalogo_personalizado,
     groomingServicios,
     hotelTipos,
+    serviciosClinicos,
+    categoriaOptions,
     catalogoGrooming,
     catalogoHotel,
     groomingTarifas,
@@ -73,6 +76,7 @@ export default function Index({
     const [isSearching, setIsSearching] = useState(false);
     const [groomingSearch, setGroomingSearch] = useState(filters.grooming_search);
     const [hotelSearch, setHotelSearch] = useState(filters.hotel_search);
+    const [clinicaSearch, setClinicaSearch] = useState(filters.clinica_search);
 
     const closeModal = useCallback(() => setModal({ type: 'idle' }), []);
 
@@ -93,6 +97,7 @@ export default function Index({
                 tab: value,
                 grooming_search: filters.grooming_search || undefined,
                 hotel_search: filters.hotel_search || undefined,
+                clinica_search: filters.clinica_search || undefined,
             },
             {
                 preserveState: true,
@@ -103,23 +108,32 @@ export default function Index({
                     'hotelTarifas',
                     'groomingServicios',
                     'hotelTipos',
+                    'serviciosClinicos',
+                    'categoriaOptions',
                     'filters',
                     'grooming_catalogo_personalizado',
                     'hotel_catalogo_personalizado',
                 ],
             },
         );
-    }, [filters.grooming_search, filters.hotel_search]);
+    }, [filters.grooming_search, filters.hotel_search, filters.clinica_search]);
 
     useEffect(() => {
         setGroomingSearch(filters.grooming_search);
         setHotelSearch(filters.hotel_search);
+        setClinicaSearch(filters.clinica_search);
         setIsSearching(false);
-    }, [filters.grooming_search, filters.hotel_search]);
+    }, [filters.grooming_search, filters.hotel_search, filters.clinica_search]);
 
     useEffect(() => {
-        const query = tab === 'grooming' ? groomingSearch : hotelSearch;
-        const serverQuery = tab === 'grooming' ? filters.grooming_search : filters.hotel_search;
+        const query =
+            tab === 'grooming' ? groomingSearch : tab === 'hotel' ? hotelSearch : clinicaSearch;
+        const serverQuery =
+            tab === 'grooming'
+                ? filters.grooming_search
+                : tab === 'hotel'
+                  ? filters.hotel_search
+                  : filters.clinica_search;
 
         if (query === serverQuery) {
             return;
@@ -131,34 +145,55 @@ export default function Index({
                 '/configuracion/tarifas',
                 {
                     tab,
-                    grooming_search: tab === 'grooming' ? query || undefined : filters.grooming_search || undefined,
+                    grooming_search:
+                        tab === 'grooming' ? query || undefined : filters.grooming_search || undefined,
                     hotel_search: tab === 'hotel' ? query || undefined : filters.hotel_search || undefined,
+                    clinica_search:
+                        tab === 'clinica' ? query || undefined : filters.clinica_search || undefined,
                 },
                 {
                     preserveState: true,
                     preserveScroll: true,
-                    only: ['groomingTarifas', 'hotelTarifas', 'groomingServicios', 'hotelTipos', 'filters'],
+                    only: [
+                        'groomingTarifas',
+                        'hotelTarifas',
+                        'groomingServicios',
+                        'hotelTipos',
+                        'serviciosClinicos',
+                        'filters',
+                    ],
                     onFinish: () => setIsSearching(false),
                 },
             );
         }, SEARCH_DEBOUNCE_MS);
 
         return () => window.clearTimeout(timer);
-    }, [groomingSearch, hotelSearch, tab, filters.grooming_search, filters.hotel_search]);
+    }, [
+        groomingSearch,
+        hotelSearch,
+        clinicaSearch,
+        tab,
+        filters.grooming_search,
+        filters.hotel_search,
+        filters.clinica_search,
+    ]);
 
     const groomingPersonalizado = grooming_catalogo_personalizado;
     const hotelPersonalizado = hotel_catalogo_personalizado;
-    const isPersonalizedTab = tab === 'grooming' ? groomingPersonalizado : hotelPersonalizado;
+    const isPersonalizedTab =
+        tab === 'clinica' ? true : tab === 'grooming' ? groomingPersonalizado : hotelPersonalizado;
 
-    const activeCatalogRows = tab === 'grooming' ? groomingServicios : hotelTipos;
-    const activePaginated = tab === 'grooming' ? groomingTarifas : hotelTarifas;
+    const activeCatalogRows =
+        tab === 'grooming' ? groomingServicios : tab === 'hotel' ? hotelTipos : serviciosClinicos;
+    const activePaginated = tab === 'grooming' ? groomingTarifas : tab === 'hotel' ? hotelTarifas : null;
     const activeRows = isPersonalizedTab ? activeCatalogRows : (activePaginated?.data ?? []);
     const activeTotal = isPersonalizedTab ? activeCatalogRows.length : (activePaginated?.total ?? 0);
     const activeOnScreen = activeRows.length;
     const activeCount = activeRows.filter((row) => row.activo).length;
     const inactiveCount = activeRows.filter((row) => !row.activo).length;
 
-    const showLegacyCreate = tab === 'grooming' ? !groomingPersonalizado : !hotelPersonalizado;
+    const showLegacyCreate =
+        tab === 'clinica' ? false : tab === 'grooming' ? !groomingPersonalizado : !hotelPersonalizado;
 
     const headerStats = useMemo(
         () => [
@@ -361,6 +396,10 @@ export default function Index({
                     <Card className="gap-0 overflow-hidden py-0 shadow-sm">
                         <CardHeader className="gap-4 border-b border-border/60 bg-muted/20 px-4 py-4 sm:px-6">
                             <TabsList className="h-auto w-full justify-start gap-1 bg-background/80 p-1 sm:w-auto">
+                                <TabsTrigger value="clinica" className="cursor-pointer gap-2 px-4">
+                                    <Stethoscope className="size-4" />
+                                    {t('tabs.clinica')}
+                                </TabsTrigger>
                                 {groomingModuleEnabled ? (
                                     <TabsTrigger value="grooming" className="cursor-pointer gap-2 px-4">
                                         <Scissors className="size-4" />
@@ -377,6 +416,26 @@ export default function Index({
                         </CardHeader>
 
                         <CardContent className="p-0">
+                            <TabsContent value="clinica" className="mt-0">
+                                <div className="border-b border-border/60 px-4 py-3 sm:px-6">
+                                    <DataToolbar
+                                        search={clinicaSearch}
+                                        onSearchChange={setClinicaSearch}
+                                        isSearching={tab === 'clinica' && isSearching}
+                                        placeholder={t('search.clinica')}
+                                        searchWrapperClassName="sm:max-w-md"
+                                    />
+                                </div>
+                                <CatalogoClinicaPanel
+                                    kind="clinica"
+                                    rows={serviciosClinicos}
+                                    canCreate={canCreate}
+                                    canUpdate={canUpdate}
+                                    canDelete={canDelete}
+                                    categoriaOptions={categoriaOptions}
+                                />
+                            </TabsContent>
+
                             <TabsContent value="grooming" className="mt-0">
                                 {groomingPersonalizado ? (
                                     <>
@@ -496,9 +555,10 @@ export default function Index({
             </div>
 
             {(modal.type === 'create' || modal.type === 'edit') &&
+            modal.kind !== 'clinica' &&
             (modal.kind === 'grooming' ? !groomingPersonalizado : !hotelPersonalizado) ? (
                 <TarifaFormModal
-                    kind={modal.type === 'create' || modal.type === 'edit' ? modal.kind : tab}
+                    kind={modal.type === 'create' || modal.type === 'edit' ? modal.kind : tab === 'clinica' ? 'grooming' : tab}
                     open={modal.type === 'create' || modal.type === 'edit'}
                     onOpenChange={(open) => {
                         if (!open) closeModal();
@@ -517,6 +577,7 @@ export default function Index({
             ) : null}
 
             {modal.type === 'delete' &&
+            modal.kind !== 'clinica' &&
             (modal.kind === 'grooming' ? !groomingPersonalizado : !hotelPersonalizado) ? (
                 <TarifaDeleteDialog
                     open={modal.type === 'delete'}

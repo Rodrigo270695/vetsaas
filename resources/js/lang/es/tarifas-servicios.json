@@ -1,7 +1,8 @@
-{
+﻿{
     "title": "Tarifas de servicios",
     "description": "Administra los tipos de servicio y estancia de tu clínica con precio lista sugerido al cobrar en caja.",
     "tabs": {
+        "clinica": "Servicios clínicos",
         "grooming": "Grooming",
         "hotel": "Hotel / guardería"
     },
@@ -12,6 +13,7 @@
         "on_screen": "En pantalla"
     },
     "search": {
+        "clinica": "Buscar por servicio clínico o categoría…",
         "grooming": "Buscar por código o servicio de grooming…",
         "hotel": "Buscar por código o tipo de estancia…"
     },
@@ -66,19 +68,25 @@
     "catalogo": {
         "grooming_title": "Tipos de servicio de grooming",
         "hotel_title": "Tipos de estancia de hotel / guardería",
+        "clinica_title": "Servicios clínicos",
         "grooming_description": "Cada clínica define sus propios servicios. Puedes desactivar o eliminar los sugeridos e incorporar los tuyos con precio y duración.",
         "hotel_description": "Cada clínica define sus propios tipos de estancia. Puedes desactivar o eliminar los sugeridos e incorporar los tuyos con precio por noche.",
+        "clinica_description": "Catálogo de tratamientos y procedimientos de tu clínica. Elige categoría del listado (o créala al vuelo) y úsalos al cobrar en caja.",
         "add_grooming": "Nuevo servicio",
         "add_hotel": "Nuevo tipo de estancia",
+        "add_clinica": "Nuevo servicio clínico",
         "create_grooming": "Nuevo servicio de grooming",
         "create_hotel": "Nuevo tipo de estancia",
+        "create_clinica": "Nuevo servicio clínico",
         "edit_title": "Editar tipo",
         "empty_grooming": "Aún no hay servicios. Crea uno o espera a que se carguen las sugerencias iniciales.",
         "empty_hotel": "Aún no hay tipos de estancia. Crea uno o espera a que se carguen las sugerencias iniciales.",
+        "empty_clinica": "Aún no hay servicios clínicos. Crea tratamientos, consultas u otros con su precio lista.",
         "count": "{{count}} tipos",
         "badge_plantilla": "Sugerido",
         "form_description_grooming": "Nombre, categoría, precio lista y duración para agendar turnos y cobrar en caja.",
         "form_description_hotel": "Nombre, categoría y precio lista por noche para estancias y cobro en caja.",
+        "form_description_clinica": "Nombre, categoría reutilizable y precio lista para cobrar en caja sin escribir el servicio cada vez.",
         "columns": {
             "duracion": "Duración"
         },
@@ -86,7 +94,12 @@
             "nombre": "Nombre",
             "categoria": "Categoría",
             "categoria_placeholder": "Ej.: Baños, Combos, Guardería…",
+            "categoria_select_placeholder": "Selecciona o crea una categoría…",
+            "categoria_search": "Buscar categoría…",
+            "categoria_empty": "No hay categorías. Escribe para crear una.",
+            "categoria_create": "Crear «{{nombre}}»",
             "duracion": "Duración (minutos)",
+            "duracion_optional": "Opcional",
             "activo": "Activo (disponible al agendar y cobrar)"
         }
     },

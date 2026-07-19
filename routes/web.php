@@ -909,6 +909,21 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             ->name('tarifas.hotel.destroy');
 
         Route::middleware('permission:tarifas.create')
+            ->post('tarifas/clinica', [TarifaServiciosController::class, 'storeClinica'])
+            ->name('tarifas.clinica.store');
+        Route::middleware('permission:tarifas.update')
+            ->put('tarifas/clinica/{servicioClinico}', [TarifaServiciosController::class, 'updateClinica'])
+            ->whereUuid('servicioClinico')
+            ->name('tarifas.clinica.update');
+        Route::middleware('permission:tarifas.delete')
+            ->delete('tarifas/clinica/{servicioClinico}', [TarifaServiciosController::class, 'destroyClinica'])
+            ->whereUuid('servicioClinico')
+            ->name('tarifas.clinica.destroy');
+        Route::middleware('permission:tarifas.create|tarifas.update')
+            ->post('tarifas/clinica/categorias', [TarifaServiciosController::class, 'storeCategoriaClinica'])
+            ->name('tarifas.clinica.categorias.store');
+
+        Route::middleware('permission:tarifas.create')
             ->post('tarifas/grooming/servicios', [GroomingServicioController::class, 'store'])
             ->name('tarifas.grooming.servicios.store');
         Route::middleware('permission:tarifas.update')

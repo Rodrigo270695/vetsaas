@@ -222,6 +222,8 @@ export type VentaShowProps = {
 export type ServicioTarifaBusqueda = {
     nombre: string;
     precio_lista: string;
+    origen?: 'clinica' | 'grooming';
+    categoria?: string | null;
 };
 
 export type ProductoBusqueda = {

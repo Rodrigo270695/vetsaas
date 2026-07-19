@@ -9,16 +9,22 @@ export type CatalogoClinicaRow = {
     id: string;
     nombre: string;
     categoria: string | null;
+    categoria_id?: string | null;
     codigo_legacy: string | null;
     precio_lista: string;
     moneda: string;
-    duracion_minutos?: number;
+    duracion_minutos?: number | null;
     activo: boolean;
     orden: number;
     /** Cantidad de insumos asignados (solo grooming personalizado). */
     insumos_count?: number;
     /** Suma del precio de los insumos asignados. */
     insumos_total?: string | number | null;
+};
+
+export type CategoriaServicioClinicoOption = {
+    id: string;
+    nombre: string;
 };
 
 export type GroomingInsumoCatalogo = {
@@ -58,11 +64,12 @@ export type HotelTarifa = {
     updated_at: string;
 };
 
-export type TarifaTab = 'grooming' | 'hotel';
+export type TarifaTab = 'grooming' | 'hotel' | 'clinica';
 
 export type TarifaFilters = {
     grooming_search: string;
     hotel_search: string;
+    clinica_search: string;
 };
 
 export type TarifaIndexProps = {
@@ -71,6 +78,8 @@ export type TarifaIndexProps = {
     hotel_catalogo_personalizado: boolean;
     groomingServicios: CatalogoClinicaRow[];
     hotelTipos: CatalogoClinicaRow[];
+    serviciosClinicos: CatalogoClinicaRow[];
+    categoriaOptions: CategoriaServicioClinicoOption[];
     catalogoGrooming: CatalogoGrupo[];
     catalogoHotel: CatalogoGrupo[];
     groomingTarifas: Paginated<GroomingTarifa> | null;

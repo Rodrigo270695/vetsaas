@@ -2,6 +2,7 @@
     "title": "Service rates",
     "description": "Suggested list prices for grooming and boarding at checkout.",
     "tabs": {
+        "clinica": "Clinical services",
         "grooming": "Grooming",
         "hotel": "Boarding / hotel"
     },
@@ -12,6 +13,7 @@
         "on_screen": "On screen"
     },
     "search": {
+        "clinica": "Search clinical service or category…",
         "grooming": "Search grooming service or code…",
         "hotel": "Search stay type or code…"
     },
@@ -62,6 +64,44 @@
         "hotel_title": "No hotel rates",
         "grooming": "Create a rate to suggest prices when charging grooming appointments.",
         "hotel": "Create a rate to suggest nightly prices when charging stays."
+    },
+    "catalogo": {
+        "grooming_title": "Grooming service types",
+        "hotel_title": "Boarding / hotel stay types",
+        "clinica_title": "Clinical services",
+        "grooming_description": "Each clinic defines its own services with list price and duration.",
+        "hotel_description": "Each clinic defines its own stay types with nightly list price.",
+        "clinica_description": "Catalog of treatments and procedures. Pick a reusable category (or create one on the fly) and use them at checkout.",
+        "add_grooming": "New service",
+        "add_hotel": "New stay type",
+        "add_clinica": "New clinical service",
+        "create_grooming": "New grooming service",
+        "create_hotel": "New stay type",
+        "create_clinica": "New clinical service",
+        "edit_title": "Edit type",
+        "empty_grooming": "No services yet. Create one or wait for initial suggestions.",
+        "empty_hotel": "No stay types yet. Create one or wait for initial suggestions.",
+        "empty_clinica": "No clinical services yet. Create treatments, consults, or other items with a list price.",
+        "count": "{{count}} types",
+        "badge_plantilla": "Suggested",
+        "form_description_grooming": "Name, category, list price and duration for scheduling and checkout.",
+        "form_description_hotel": "Name, category and nightly list price for stays and checkout.",
+        "form_description_clinica": "Name, reusable category and list price for checkout without retyping each time.",
+        "columns": {
+            "duracion": "Duration"
+        },
+        "form": {
+            "nombre": "Name",
+            "categoria": "Category",
+            "categoria_placeholder": "E.g. Baths, Combos, Boarding…",
+            "categoria_select_placeholder": "Select or create a category…",
+            "categoria_search": "Search category…",
+            "categoria_empty": "No categories. Type to create one.",
+            "categoria_create": "Create «{{nombre}}»",
+            "duracion": "Duration (minutes)",
+            "duracion_optional": "Optional",
+            "activo": "Active (available when scheduling and charging)"
+        }
     },
     "insumos": {
         "column": "Supplies",

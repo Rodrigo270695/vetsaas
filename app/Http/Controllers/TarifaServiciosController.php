@@ -10,18 +10,21 @@ use App\Hotel\HotelCatalogoMode;
 use App\Hotel\HotelCatalogoTipoEstancia;
 use App\Http\Requests\GroomingServicioTarifaRequest;
 use App\Http\Requests\HotelEstanciaTarifaRequest;
+use App\Models\CategoriaServicioClinico;
 use App\Models\GroomingServicio;
 use App\Models\GroomingServicioTarifa;
 use App\Models\HotelEstanciaTarifa;
 use App\Models\HotelTipoEstancia;
+use App\Models\ServicioClinico;
 use App\Models\Tenant;
-use App\Support\Tenancy\TenantModuleAccess;
 use App\Support\Catalog\CatalogoClinicaValidator;
+use App\Support\Tenancy\TenantModuleAccess;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -29,18 +32,24 @@ class TarifaServiciosController extends Controller
 {
     private const PER_PAGE = 15;
 
-    private const TABS = ['grooming', 'hotel'];
+    private const TABS = ['grooming', 'hotel', 'clinica'];
 
     public function index(Request $request): Response
     {
-        $tab = (string) $request->string('tab', 'grooming');
+        $tab = (string) $request->string('tab', 'clinica');
         if (! in_array($tab, self::TABS, true)) {
-            $tab = 'grooming';
+            $tab = 'clinica';
         }
 
         $tenant = tenant_id() !== null ? Tenant::query()->find(tenant_id()) : null;
         if (! TenantModuleAccess::isTarifasTabEnabled($tenant, $tab)) {
-            $tab = TenantModuleAccess::isTarifasTabEnabled($tenant, 'grooming') ? 'grooming' : 'hotel';
+            if (TenantModuleAccess::isTarifasTabEnabled($tenant, 'grooming')) {
+                $tab = 'grooming';
+            } elseif (TenantModuleAccess::isTarifasTabEnabled($tenant, 'hotel')) {
+                $tab = 'hotel';
+            } else {
+                $tab = 'clinica';
+            }
         }
 
         $groomingPersonalizado = GroomingCatalogoMode::usaCatalogoPersonalizado();
@@ -48,9 +57,12 @@ class TarifaServiciosController extends Controller
 
         $groomingSearch = trim((string) $request->string('grooming_search', ''));
         $hotelSearch = trim((string) $request->string('hotel_search', ''));
+        $clinicaSearch = trim((string) $request->string('clinica_search', ''));
 
         $groomingServicios = collect();
         $hotelTipos = collect();
+        $serviciosClinicos = collect();
+        $categoriaOptions = collect();
 
         if ($groomingPersonalizado) {
             $groomingQuery = GroomingServicio::query()
@@ -90,6 +102,44 @@ class TarifaServiciosController extends Controller
             ]);
         }
 
+        if (Schema::hasTable('servicios_clinicos')) {
+            $clinicaQuery = ServicioClinico::query()
+                ->with('categoria:id,nombre')
+                ->orderBy('orden')
+                ->orderBy('nombre');
+
+            if ($clinicaSearch !== '') {
+                $clinicaQuery->where(function ($q) use ($clinicaSearch): void {
+                    $q->where('nombre', 'ILIKE', "%{$clinicaSearch}%")
+                        ->orWhereHas('categoria', function ($cat) use ($clinicaSearch): void {
+                            $cat->where('nombre', 'ILIKE', "%{$clinicaSearch}%");
+                        });
+                });
+            }
+
+            $serviciosClinicos = $clinicaQuery->get()->map(static function (ServicioClinico $row): array {
+                return [
+                    'id' => $row->id,
+                    'nombre' => $row->nombre,
+                    'categoria' => $row->categoria?->nombre,
+                    'categoria_id' => $row->categoria_id,
+                    'codigo_legacy' => null,
+                    'precio_lista' => (string) $row->precio_lista,
+                    'moneda' => $row->moneda,
+                    'duracion_minutos' => $row->duracion_minutos,
+                    'activo' => $row->activo,
+                    'orden' => $row->orden,
+                ];
+            });
+        }
+
+        if (Schema::hasTable('categorias_servicio_clinico')) {
+            $categoriaOptions = CategoriaServicioClinico::query()
+                ->where('activo', true)
+                ->orderBy('nombre')
+                ->get(['id', 'nombre']);
+        }
+
         $groomingTarifasQuery = GroomingServicioTarifa::query()->orderBy('servicio');
         if ($groomingSearch !== '' && ! $groomingPersonalizado) {
             $groomingTarifasQuery->where('servicio', 'ILIKE', "%{$groomingSearch}%");
@@ -106,6 +156,8 @@ class TarifaServiciosController extends Controller
             'hotel_catalogo_personalizado' => $hotelPersonalizado,
             'groomingServicios' => $groomingServicios,
             'hotelTipos' => $hotelTipos,
+            'serviciosClinicos' => $serviciosClinicos,
+            'categoriaOptions' => $categoriaOptions,
             'catalogoGrooming' => $groomingPersonalizado ? [] : GroomingCatalogoServicio::grupos(),
             'catalogoHotel' => $hotelPersonalizado ? [] : HotelCatalogoTipoEstancia::grupos(),
             'groomingTarifas' => $groomingPersonalizado
@@ -117,6 +169,7 @@ class TarifaServiciosController extends Controller
             'filters' => [
                 'grooming_search' => $groomingSearch,
                 'hotel_search' => $hotelSearch,
+                'clinica_search' => $clinicaSearch,
             ],
         ]);
     }
@@ -243,6 +296,109 @@ class TarifaServiciosController extends Controller
         HotelEstanciaTarifa::query()->findOrFail($hotel_tarifa)->delete();
 
         return back()->with('success', __('tarifas-servicios.hotel.deleted'));
+    }
+
+    public function storeClinica(Request $request): RedirectResponse
+    {
+        abort_unless($request->user()?->can('tarifas.create'), 403);
+        abort_unless(
+            Schema::hasTable('servicios_clinicos'),
+            503,
+            __('tarifas-servicios.clinica.missing_table'),
+        );
+
+        $data = CatalogoClinicaValidator::clinica($request);
+        $maxOrden = (int) ServicioClinico::query()->max('orden');
+
+        try {
+            ServicioClinico::query()->create([
+                'nombre' => $data['nombre'],
+                'categoria_id' => $data['categoria_id'] ?? null,
+                'precio_lista' => $data['precio_lista'],
+                'moneda' => $data['moneda'] ?? 'PEN',
+                'duracion_minutos' => $data['duracion_minutos'] ?? null,
+                'activo' => $data['activo'] ?? true,
+                'orden' => isset($data['orden']) ? (int) $data['orden'] : ($maxOrden + 1),
+            ]);
+        } catch (QueryException $exception) {
+            report($exception);
+
+            return back()
+                ->withInput()
+                ->withErrors(['nombre' => __('tarifas-servicios.clinica.save_failed')]);
+        }
+
+        return back()->with('success', __('tarifas-servicios.clinica.created'));
+    }
+
+    public function updateClinica(Request $request, ServicioClinico $servicioClinico): RedirectResponse
+    {
+        abort_unless($request->user()?->can('tarifas.update'), 403);
+
+        $data = CatalogoClinicaValidator::clinica($request);
+
+        try {
+            $servicioClinico->update([
+                'nombre' => $data['nombre'],
+                'categoria_id' => $data['categoria_id'] ?? null,
+                'precio_lista' => $data['precio_lista'],
+                'moneda' => $data['moneda'] ?? $servicioClinico->moneda,
+                'duracion_minutos' => array_key_exists('duracion_minutos', $data)
+                    ? $data['duracion_minutos']
+                    : $servicioClinico->duracion_minutos,
+                'activo' => $data['activo'] ?? $servicioClinico->activo,
+                'orden' => isset($data['orden']) ? (int) $data['orden'] : $servicioClinico->orden,
+            ]);
+        } catch (QueryException $exception) {
+            report($exception);
+
+            return back()
+                ->withInput()
+                ->withErrors(['nombre' => __('tarifas-servicios.clinica.save_failed')]);
+        }
+
+        return back()->with('success', __('tarifas-servicios.clinica.updated'));
+    }
+
+    public function destroyClinica(Request $request, ServicioClinico $servicioClinico): RedirectResponse
+    {
+        abort_unless($request->user()?->can('tarifas.delete'), 403);
+
+        $servicioClinico->delete();
+
+        return back()->with('success', __('tarifas-servicios.clinica.deleted'));
+    }
+
+    public function storeCategoriaClinica(Request $request): RedirectResponse
+    {
+        abort_unless(
+            $request->user()?->can('tarifas.create') || $request->user()?->can('tarifas.update'),
+            403,
+        );
+        abort_unless(
+            Schema::hasTable('categorias_servicio_clinico'),
+            503,
+            __('tarifas-servicios.clinica.missing_categorias_table'),
+        );
+
+        $data = $request->validate([
+            'nombre' => [
+                'required',
+                'string',
+                'min:2',
+                'max:80',
+                Rule::unique('categorias_servicio_clinico', 'nombre')->whereNull('deleted_at'),
+            ],
+        ]);
+
+        $nombre = trim((string) $data['nombre']);
+
+        CategoriaServicioClinico::query()->create([
+            'nombre' => $nombre,
+            'activo' => true,
+        ]);
+
+        return back()->with('success', __('tarifas-servicios.clinica.categoria_created'));
     }
 
     private function storeGroomingTarifaLegacy(GroomingServicioTarifaRequest $request): RedirectResponse

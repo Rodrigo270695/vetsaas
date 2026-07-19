@@ -1,10 +1,14 @@
 import { router } from '@inertiajs/react';
 import { Loader2, Package, Plus } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DataTable, StatBadge } from '@/components/data-page';
 import type { DataTableColumn } from '@/components/data-page';
 import { FormField, FormModal } from '@/components/forms';
+import {
+    CategoriaServicioClinicoCombobox,
+    type CategoriaServicioClinicoOption,
+} from '@/components/tarifas/categoria-servicio-clinico-combobox';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -15,7 +19,7 @@ import { TarifaDeleteDialog } from './tarifa-delete-dialog';
 import { TarifaRowActions } from './tarifa-row-actions';
 import type { CatalogoClinicaRow } from '../types';
 
-type CatalogoKind = 'grooming' | 'hotel';
+type CatalogoKind = 'grooming' | 'hotel' | 'clinica';
 
 type CatalogoClinicaPanelProps = {
     kind: CatalogoKind;
@@ -25,11 +29,13 @@ type CatalogoClinicaPanelProps = {
     canDelete: boolean;
     /** Rutas CRUD: tarifas (configuración) o servicios (módulo operativo). */
     routesBase?: 'tarifas' | 'servicios';
+    categoriaOptions?: readonly CategoriaServicioClinicoOption[];
 };
 
 type FormState = {
     nombre: string;
     categoria: string;
+    categoria_id: string | null;
     precio_lista: string;
     moneda: string;
     duracion_minutos: string;
@@ -44,9 +50,10 @@ const MONEDA_OPTIONS: ComboboxOption[] = [
 const emptyForm = (kind: CatalogoKind): FormState => ({
     nombre: '',
     categoria: '',
+    categoria_id: null,
     precio_lista: '',
     moneda: 'PEN',
-    duracion_minutos: kind === 'grooming' ? '60' : '0',
+    duracion_minutos: kind === 'grooming' ? '60' : '',
     activo: true,
 });
 
@@ -84,6 +91,14 @@ function routesFor(kind: CatalogoKind, base: 'tarifas' | 'servicios') {
         };
     }
 
+    if (kind === 'clinica') {
+        return {
+            store: '/configuracion/tarifas/clinica',
+            update: (id: string) => `/configuracion/tarifas/clinica/${id}`,
+            destroy: (id: string) => `/configuracion/tarifas/clinica/${id}`,
+        };
+    }
+
     return {
         store: '/configuracion/tarifas/hotel',
         update: (id: string) => `/configuracion/tarifas/hotel/${id}`,
@@ -98,6 +113,7 @@ export function CatalogoClinicaPanel({
     canUpdate,
     canDelete,
     routesBase = 'tarifas',
+    categoriaOptions: categoriaOptionsProp = [],
 }: CatalogoClinicaPanelProps) {
     const { t } = useTranslation(['tarifas-servicios', 'common']);
     const [open, setOpen] = useState(false);
@@ -107,9 +123,16 @@ export function CatalogoClinicaPanel({
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [submitting, setSubmitting] = useState(false);
     const [insumosServicio, setInsumosServicio] = useState<CatalogoClinicaRow | null>(null);
+    const [categoriaOptions, setCategoriaOptions] = useState(categoriaOptionsProp);
+
+    useEffect(() => {
+        setCategoriaOptions(categoriaOptionsProp);
+    }, [categoriaOptionsProp]);
 
     const routes = routesFor(kind, routesBase);
     const isGrooming = kind === 'grooming';
+    const isClinica = kind === 'clinica';
+    const showDuracion = isGrooming || isClinica;
 
     const openCreate = () => {
         setEditing(null);
@@ -123,9 +146,10 @@ export function CatalogoClinicaPanel({
         setForm({
             nombre: row.nombre,
             categoria: row.categoria ?? '',
+            categoria_id: row.categoria_id ?? null,
             precio_lista: row.precio_lista,
             moneda: row.moneda,
-            duracion_minutos: String(row.duracion_minutos ?? 60),
+            duracion_minutos: row.duracion_minutos != null ? String(row.duracion_minutos) : '',
             activo: row.activo,
         });
         setErrors({});
@@ -136,11 +160,17 @@ export function CatalogoClinicaPanel({
         setSubmitting(true);
         const payload: Record<string, unknown> = {
             nombre: form.nombre,
-            categoria: form.categoria || null,
             precio_lista: form.precio_lista,
             moneda: form.moneda,
             activo: form.activo,
         };
+
+        if (isClinica) {
+            payload.categoria_id = form.categoria_id;
+            payload.duracion_minutos = form.duracion_minutos.trim() === '' ? null : Number(form.duracion_minutos);
+        } else {
+            payload.categoria = form.categoria || null;
+        }
 
         if (isGrooming) {
             payload.duracion_minutos = Number(form.duracion_minutos) || 60;
@@ -174,6 +204,37 @@ export function CatalogoClinicaPanel({
         });
     };
 
+    const titleKey = isGrooming
+        ? 'catalogo.grooming_title'
+        : isClinica
+          ? 'catalogo.clinica_title'
+          : 'catalogo.hotel_title';
+    const descriptionKey = isGrooming
+        ? 'catalogo.grooming_description'
+        : isClinica
+          ? 'catalogo.clinica_description'
+          : 'catalogo.hotel_description';
+    const addKey = isGrooming
+        ? 'catalogo.add_grooming'
+        : isClinica
+          ? 'catalogo.add_clinica'
+          : 'catalogo.add_hotel';
+    const emptyKey = isGrooming
+        ? 'catalogo.empty_grooming'
+        : isClinica
+          ? 'catalogo.empty_clinica'
+          : 'catalogo.empty_hotel';
+    const createTitleKey = isGrooming
+        ? 'catalogo.create_grooming'
+        : isClinica
+          ? 'catalogo.create_clinica'
+          : 'catalogo.create_hotel';
+    const formDescKey = isGrooming
+        ? 'catalogo.form_description_grooming'
+        : isClinica
+          ? 'catalogo.form_description_clinica'
+          : 'catalogo.form_description_hotel';
+
     const columns = useMemo<DataTableColumn<CatalogoClinicaRow>[]>(() => {
         const base: DataTableColumn<CatalogoClinicaRow>[] = [
             {
@@ -189,7 +250,7 @@ export function CatalogoClinicaPanel({
             },
             {
                 key: 'nombre',
-                header: isGrooming ? t('columns.servicio') : t('columns.tipo'),
+                header: kind === 'hotel' ? t('columns.tipo') : t('columns.servicio'),
                 cell: (row) => (
                     <div className="flex min-w-0 flex-col gap-1">
                         <div className="flex flex-wrap items-center gap-2">
@@ -216,14 +277,16 @@ export function CatalogoClinicaPanel({
             },
         ];
 
-        if (isGrooming) {
+        if (showDuracion) {
             base.push({
                 key: 'duracion',
                 header: t('catalogo.columns.duracion'),
                 className: 'w-28',
-                cell: (row) => `${row.duracion_minutos ?? 60} min`,
+                cell: (row) => (row.duracion_minutos != null ? `${row.duracion_minutos} min` : '—'),
             });
+        }
 
+        if (isGrooming) {
             base.push({
                 key: 'insumos',
                 header: t('insumos.column'),
@@ -242,9 +305,7 @@ export function CatalogoClinicaPanel({
                         >
                             <Package className="size-4 text-muted-foreground" />
                             <span className="flex flex-col items-start leading-tight">
-                                <span className="text-xs font-medium">
-                                    {t('insumos.count', { count })}
-                                </span>
+                                <span className="text-xs font-medium">{t('insumos.count', { count })}</span>
                                 {count > 0 ? (
                                     <span className="text-[0.7rem] tabular-nums text-muted-foreground">
                                         {formatPrecio(String(total), row.moneda)}
@@ -279,33 +340,27 @@ export function CatalogoClinicaPanel({
         }
 
         return base;
-    }, [t, isGrooming, canUpdate, canDelete]);
+    }, [t, kind, showDuracion, isGrooming, canUpdate, canDelete]);
 
     return (
         <>
             <div className="flex flex-col gap-4 border-b border-border/60 px-4 py-4 sm:px-6">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div className="space-y-1">
-                        <h2 className="text-base font-semibold text-foreground">
-                            {isGrooming ? t('catalogo.grooming_title') : t('catalogo.hotel_title')}
-                        </h2>
-                        <p className="max-w-2xl text-sm text-muted-foreground">
-                            {isGrooming ? t('catalogo.grooming_description') : t('catalogo.hotel_description')}
-                        </p>
+                        <h2 className="text-base font-semibold text-foreground">{t(titleKey)}</h2>
+                        <p className="max-w-2xl text-sm text-muted-foreground">{t(descriptionKey)}</p>
                     </div>
                     {canCreate ? (
                         <Button type="button" className="cursor-pointer gap-2 self-start" onClick={openCreate}>
-                                <Plus className="size-4" strokeWidth={2.5} />
-                                {isGrooming ? t('catalogo.add_grooming') : t('catalogo.add_hotel')}
+                            <Plus className="size-4" strokeWidth={2.5} />
+                            {t(addKey)}
                         </Button>
                     ) : null}
                 </div>
             </div>
 
             {rows.length === 0 ? (
-                <p className="px-4 py-10 text-center text-sm text-muted-foreground sm:px-6">
-                    {isGrooming ? t('catalogo.empty_grooming') : t('catalogo.empty_hotel')}
-                </p>
+                <p className="px-4 py-10 text-center text-sm text-muted-foreground sm:px-6">{t(emptyKey)}</p>
             ) : (
                 <DataTable
                     columns={columns}
@@ -319,8 +374,8 @@ export function CatalogoClinicaPanel({
                 open={open}
                 onOpenChange={setOpen}
                 size="md"
-                title={editing ? t('catalogo.edit_title') : isGrooming ? t('catalogo.create_grooming') : t('catalogo.create_hotel')}
-                description={isGrooming ? t('catalogo.form_description_grooming') : t('catalogo.form_description_hotel')}
+                title={editing ? t('catalogo.edit_title') : t(createTitleKey)}
+                description={t(formDescKey)}
                 onSubmit={(e) => {
                     e.preventDefault();
                     submit();
@@ -350,14 +405,32 @@ export function CatalogoClinicaPanel({
                         />
                     </FormField>
 
-                    <FormField id="cat-categoria" label={t('catalogo.form.categoria')} error={errors.categoria}>
-                        <Input
+                    {isClinica ? (
+                        <FormField
                             id="cat-categoria"
-                            value={form.categoria}
-                            onChange={(e) => setForm((f) => ({ ...f, categoria: e.target.value }))}
-                            placeholder={t('catalogo.form.categoria_placeholder')}
-                        />
-                    </FormField>
+                            label={t('catalogo.form.categoria')}
+                            error={errors.categoria_id ?? errors.categoria}
+                        >
+                            <CategoriaServicioClinicoCombobox
+                                id="cat-categoria"
+                                value={form.categoria_id}
+                                onChange={(categoriaId) => setForm((f) => ({ ...f, categoria_id: categoriaId }))}
+                                options={categoriaOptions}
+                                onOptionsChange={setCategoriaOptions}
+                                canCreate={canCreate || canUpdate}
+                                aria-invalid={Boolean(errors.categoria_id ?? errors.categoria)}
+                            />
+                        </FormField>
+                    ) : (
+                        <FormField id="cat-categoria" label={t('catalogo.form.categoria')} error={errors.categoria}>
+                            <Input
+                                id="cat-categoria"
+                                value={form.categoria}
+                                onChange={(e) => setForm((f) => ({ ...f, categoria: e.target.value }))}
+                                placeholder={t('catalogo.form.categoria_placeholder')}
+                            />
+                        </FormField>
+                    )}
 
                     <div className="grid gap-5 sm:grid-cols-2">
                         <FormField id="cat-precio" label={t('form.precio_lista')} error={errors.precio_lista} required>
@@ -383,12 +456,12 @@ export function CatalogoClinicaPanel({
                         </FormField>
                     </div>
 
-                    {isGrooming ? (
+                    {showDuracion ? (
                         <FormField
                             id="cat-duracion"
                             label={t('catalogo.form.duracion')}
                             error={errors.duracion_minutos}
-                            required
+                            required={isGrooming}
                         >
                             <Input
                                 id="cat-duracion"
@@ -397,6 +470,7 @@ export function CatalogoClinicaPanel({
                                 max={480}
                                 value={form.duracion_minutos}
                                 onChange={(e) => setForm((f) => ({ ...f, duracion_minutos: e.target.value }))}
+                                placeholder={isClinica ? t('catalogo.form.duracion_optional') : undefined}
                             />
                         </FormField>
                     ) : null}
@@ -419,7 +493,7 @@ export function CatalogoClinicaPanel({
 
             <TarifaDeleteDialog
                 open={deleteRow !== null}
-                onOpenChange={(open) => !open && setDeleteRow(null)}
+                onOpenChange={(openDialog) => !openDialog && setDeleteRow(null)}
                 kind={kind}
                 tarifa={null}
                 nombre={deleteRow?.nombre ?? ''}
@@ -429,7 +503,7 @@ export function CatalogoClinicaPanel({
             {isGrooming ? (
                 <GroomingInsumosModal
                     open={insumosServicio !== null}
-                    onOpenChange={(open) => !open && setInsumosServicio(null)}
+                    onOpenChange={(openModal) => !openModal && setInsumosServicio(null)}
                     servicio={
                         insumosServicio
                             ? {
