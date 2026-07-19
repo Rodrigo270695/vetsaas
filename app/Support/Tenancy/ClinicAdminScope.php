@@ -27,6 +27,16 @@ final class ClinicAdminScope
         'platform-settings',
     ];
 
+    /**
+     * Módulos de plataforma (permiso = `modulo` o `modulo.accion`).
+     *
+     * @var list<string>
+     */
+    private const PLATFORM_PERMISSION_MODULES = [
+        'salesbot-knowledge',
+        'bot-ia-announcements',
+    ];
+
     public static function isClinicContext(): bool
     {
         return tenant_id() !== null;
@@ -86,6 +96,12 @@ final class ClinicAdminScope
 
         foreach (self::PLATFORM_PERMISSION_PREFIXES as $prefix) {
             if (str_starts_with($permissionName, $prefix)) {
+                return false;
+            }
+        }
+
+        foreach (self::PLATFORM_PERMISSION_MODULES as $module) {
+            if ($permissionName === $module || str_starts_with($permissionName, $module.'.')) {
                 return false;
             }
         }

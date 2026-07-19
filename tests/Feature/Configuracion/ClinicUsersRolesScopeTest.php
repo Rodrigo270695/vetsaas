@@ -164,6 +164,19 @@ it('filtra permisos de plataforma del catálogo de roles en clínica', function 
                 }
             }
 
+            $forbidden = [
+                'salesbot-knowledge.view',
+                'bot-ia-announcements.view',
+                'plataforma-tenants.view',
+                'audit-trail.view',
+            ];
+
+            foreach ($forbidden as $name) {
+                if (in_array($name, $allNames, true)) {
+                    return false;
+                }
+            }
+
             return count($allNames) > 0;
         })
     );
