@@ -63,6 +63,7 @@
         "tokens": "Tokens",
         "operaciones": "Operations",
         "auditoria_soporte": "Support audit",
+        "auditoria_seguridad": "Security audit",
         "tenants": "Tenants",
         "planes": "Plans",
         "suscripciones": "Subscriptions",

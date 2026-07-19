@@ -6,6 +6,7 @@ use App\Exports\UsersXlsxExport;
 use App\Http\Requests\UserRequest;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\Audit\PlatformSecurityAuditLogger;
 use App\Support\Tenancy\ClinicAdminScope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -126,6 +127,22 @@ class UserController extends Controller
 
         $user->syncRoles([$data['role']]);
 
+        PlatformSecurityAuditLogger::log(
+            action: 'users.created',
+            modulo: 'usuarios',
+            summary: 'Creó el usuario '.$user->email.' con rol '.$data['role'],
+            metadata: [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'name' => $user->name,
+                'role' => $data['role'],
+                'is_active' => (bool) $user->is_active,
+            ],
+            subjectType: 'user',
+            subjectId: (string) $user->id,
+            subjectLabel: $user->email,
+        );
+
         return back()->with('success', 'Usuario creado correctamente.');
     }
 
@@ -154,8 +171,38 @@ class UserController extends Controller
             $payload['password'] = $data['password'];
         }
 
+        $before = [
+            'name' => $user->name,
+            'email' => $user->email,
+            'phone' => $user->phone,
+            'is_active' => (bool) $user->is_active,
+            'roles' => $user->getRoleNames()->values()->all(),
+        ];
+
         $user->update($payload);
         $user->syncRoles([$data['role']]);
+
+        PlatformSecurityAuditLogger::log(
+            action: 'users.updated',
+            modulo: 'usuarios',
+            summary: 'Actualizó el usuario '.$user->email
+                .(isset($payload['password']) ? ' (incluye cambio de contraseña)' : ''),
+            metadata: [
+                'user_id' => $user->id,
+                'before' => $before,
+                'after' => [
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'phone' => $user->phone,
+                    'is_active' => (bool) $user->is_active,
+                    'roles' => [$data['role']],
+                    'password_changed' => isset($payload['password']),
+                ],
+            ],
+            subjectType: 'user',
+            subjectId: (string) $user->id,
+            subjectLabel: $user->email,
+        );
 
         return back()->with('success', 'Usuario actualizado correctamente.');
     }
@@ -176,7 +223,24 @@ class UserController extends Controller
             ]);
         }
 
+        $snapshot = [
+            'user_id' => $user->id,
+            'email' => $user->email,
+            'name' => $user->name,
+            'roles' => $user->getRoleNames()->values()->all(),
+        ];
+
         $user->delete();
+
+        PlatformSecurityAuditLogger::log(
+            action: 'users.deleted',
+            modulo: 'usuarios',
+            summary: 'Eliminó el usuario '.$snapshot['email'],
+            metadata: $snapshot,
+            subjectType: 'user',
+            subjectId: (string) $snapshot['user_id'],
+            subjectLabel: $snapshot['email'],
+        );
 
         return back()->with('success', 'Usuario eliminado correctamente.');
     }
@@ -207,8 +271,26 @@ class UserController extends Controller
             );
         }
 
+        $deletedUsers = User::query()
+            ->whereIn('id', $deletableIds)
+            ->get(['id', 'name', 'email']);
+
         $count = User::whereIn('id', $deletableIds)->delete();
         $skipped = count($data['ids']) - $count;
+
+        PlatformSecurityAuditLogger::log(
+            action: 'users.bulk_deleted',
+            modulo: 'usuarios',
+            summary: 'Borrado masivo de '.$count.' usuario(s)',
+            metadata: [
+                'deleted_ids' => $deletableIds,
+                'deleted_emails' => $deletedUsers->pluck('email')->all(),
+                'requested_count' => count($data['ids']),
+                'deleted_count' => $count,
+            ],
+            subjectType: 'user',
+            subjectLabel: $deletedUsers->pluck('email')->implode(', '),
+        );
 
         $message = $count === 1
             ? '1 usuario eliminado correctamente.'

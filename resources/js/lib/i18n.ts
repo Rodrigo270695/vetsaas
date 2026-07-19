@@ -18,6 +18,7 @@ import cobrosEn from '@/lang/en/cobros.json';
 import configSuscripcionEn from '@/lang/en/config-suscripcion.json';
 import comunicacionesEn from '@/lang/en/comunicaciones.json';
 import plataformaAuditoriaSoporteEn from '@/lang/en/plataforma-auditoria-soporte.json';
+import plataformaAuditoriaSeguridadEn from '@/lang/en/plataforma-auditoria-seguridad.json';
 import plataformaOperacionesEn from '@/lang/en/plataforma-operaciones.json';
 import dashboardEn from '@/lang/en/dashboard.json';
 import onboardingEn from '@/lang/en/onboarding.json';
@@ -69,6 +70,7 @@ import cobrosEs from '@/lang/es/cobros.json';
 import configSuscripcionEs from '@/lang/es/config-suscripcion.json';
 import comunicacionesEs from '@/lang/es/comunicaciones.json';
 import plataformaAuditoriaSoporteEs from '@/lang/es/plataforma-auditoria-soporte.json';
+import plataformaAuditoriaSeguridadEs from '@/lang/es/plataforma-auditoria-seguridad.json';
 import plataformaOperacionesEs from '@/lang/es/plataforma-operaciones.json';
 import dashboardEs from '@/lang/es/dashboard.json';
 import onboardingEs from '@/lang/es/onboarding.json';
@@ -147,6 +149,7 @@ const resources = {
         'bot-ia': botIaEs,
         'in-app-assistant': inAppAssistantEs,
         'plataforma-auditoria-soporte': plataformaAuditoriaSoporteEs,
+        'plataforma-auditoria-seguridad': plataformaAuditoriaSeguridadEs,
         'plataforma-operaciones': plataformaOperacionesEs,
         dashboard: dashboardEs,
         onboarding: onboardingEs,
@@ -200,6 +203,7 @@ const resources = {
         'bot-ia': botIaEn,
         'in-app-assistant': inAppAssistantEn,
         'plataforma-auditoria-soporte': plataformaAuditoriaSoporteEn,
+        'plataforma-auditoria-seguridad': plataformaAuditoriaSeguridadEn,
         'plataforma-operaciones': plataformaOperacionesEn,
         dashboard: dashboardEn,
         onboarding: onboardingEn,
@@ -263,6 +267,7 @@ void i18n
             'bot-ia',
             'in-app-assistant',
             'plataforma-auditoria-soporte',
+            'plataforma-auditoria-seguridad',
             'plataforma-operaciones',
             'dashboard',
             'onboarding',

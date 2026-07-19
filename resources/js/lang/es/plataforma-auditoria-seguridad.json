@@ -1,0 +1,49 @@
+{
+    "title": "Auditoría de seguridad",
+    "description": "Quién cambió roles, permisos o usuarios en cualquier clínica. Registro central para superadmin.",
+    "search_placeholder": "Buscar por usuario, clínica, acción, IP...",
+    "filter_label": "Filtrar por módulo",
+    "columns": {
+        "created_at": "Cuándo",
+        "actor": "Quién",
+        "tenant": "Clínica",
+        "action": "Acción",
+        "summary": "Detalle",
+        "ip": "IP"
+    },
+    "filters": {
+        "all": "Todos",
+        "roles": "Roles",
+        "usuarios": "Usuarios"
+    },
+    "actions": {
+        "roles.created": "Rol creado",
+        "roles.updated": "Rol actualizado",
+        "roles.deleted": "Rol eliminado",
+        "roles.bulk_deleted": "Roles borrados (masivo)",
+        "roles.bulk_deleted_blocked": "Borrado masivo bloqueado",
+        "roles.permissions_updated": "Permisos de rol",
+        "users.created": "Usuario creado",
+        "users.updated": "Usuario actualizado",
+        "users.deleted": "Usuario eliminado",
+        "users.bulk_deleted": "Usuarios borrados (masivo)"
+    },
+    "stats": {
+        "total": "Total",
+        "hoy": "Hoy",
+        "roles": "Roles",
+        "usuarios": "Usuarios",
+        "matches": "Coincidencias"
+    },
+    "empty": {
+        "title": "Sin eventos todavía",
+        "description": "Aquí verás altas, bajas y cambios de roles/permisos/usuarios hechos desde cualquier clínica."
+    },
+    "central": "Central",
+    "aria": {
+        "results_count": "{{count}} eventos encontrados"
+    },
+    "toast": {
+        "load_error": "Error al cargar la auditoría de seguridad"
+    }
+}

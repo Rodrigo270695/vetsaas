@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Exports\RolesXlsxExport;
 use App\Http\Requests\RoleRequest;
 use App\Models\Role;
+use App\Services\Audit\PlatformSecurityAuditLogger;
 use App\Support\Tenancy\ClinicAdminScope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -105,11 +106,25 @@ class RoleController extends Controller
 
         $data = $request->validated();
 
-        Role::create([
+        $role = Role::create([
             'name' => $data['name'],
             'guard_name' => 'web',
             'description' => $data['description'] ?? null,
         ]);
+
+        PlatformSecurityAuditLogger::log(
+            action: 'roles.created',
+            modulo: 'roles',
+            summary: 'Creó el rol '.$role->name,
+            metadata: [
+                'role_id' => $role->id,
+                'role_name' => $role->name,
+                'description' => $role->description,
+            ],
+            subjectType: 'role',
+            subjectId: (string) $role->id,
+            subjectLabel: $role->name,
+        );
 
         return back()->with('success', 'Rol creado correctamente.');
     }
@@ -129,11 +144,31 @@ class RoleController extends Controller
         }
 
         $data = $request->validated();
+        $before = [
+            'name' => $role->name,
+            'description' => $role->description,
+        ];
 
         $role->update([
             'name' => $data['name'],
             'description' => $data['description'] ?? null,
         ]);
+
+        PlatformSecurityAuditLogger::log(
+            action: 'roles.updated',
+            modulo: 'roles',
+            summary: 'Actualizó el rol '.$before['name'].($before['name'] !== $role->name ? ' → '.$role->name : ''),
+            metadata: [
+                'before' => $before,
+                'after' => [
+                    'name' => $role->name,
+                    'description' => $role->description,
+                ],
+            ],
+            subjectType: 'role',
+            subjectId: (string) $role->id,
+            subjectLabel: $role->name,
+        );
 
         return back()->with('success', 'Rol actualizado correctamente.');
     }
@@ -196,7 +231,27 @@ class RoleController extends Controller
             ]);
         }
 
+        $beforeNames = $role->permissions()->pluck('name')->sort()->values()->all();
         $role->syncPermissions($permissions);
+        $afterNames = collect($permissions)->sort()->values()->all();
+
+        PlatformSecurityAuditLogger::log(
+            action: 'roles.permissions_updated',
+            modulo: 'roles',
+            summary: 'Cambió permisos del rol '.$role->name.' ('.count($beforeNames).' → '.count($afterNames).')',
+            metadata: [
+                'role_id' => $role->id,
+                'role_name' => $role->name,
+                'is_protected' => $role->is_system,
+                'before_count' => count($beforeNames),
+                'after_count' => count($afterNames),
+                'added' => array_values(array_diff($afterNames, $beforeNames)),
+                'removed' => array_values(array_diff($beforeNames, $afterNames)),
+            ],
+            subjectType: 'role',
+            subjectId: (string) $role->id,
+            subjectLabel: $role->name,
+        );
 
         $count = count($permissions);
         $message = $count === 0
@@ -220,7 +275,23 @@ class RoleController extends Controller
             ]);
         }
 
+        $snapshot = [
+            'role_id' => $role->id,
+            'role_name' => $role->name,
+            'permissions_count' => $role->permissions()->count(),
+        ];
+
         $role->delete();
+
+        PlatformSecurityAuditLogger::log(
+            action: 'roles.deleted',
+            modulo: 'roles',
+            summary: 'Eliminó el rol '.$snapshot['role_name'],
+            metadata: $snapshot,
+            subjectType: 'role',
+            subjectId: (string) $snapshot['role_id'],
+            subjectLabel: $snapshot['role_name'],
+        );
 
         return back()->with('success', 'Rol eliminado correctamente.');
     }
@@ -239,18 +310,52 @@ class RoleController extends Controller
             'ids.*' => ['integer'],
         ]);
 
-        $deletableIds = ClinicAdminScope::rolesQuery()
-            ->whereIn('id', $data['ids'])
-            ->whereNotIn('name', Role::protectedRoleNames())
-            ->pluck('id')
+        $requestedIds = $data['ids'];
+        $protectedSkipped = ClinicAdminScope::rolesQuery()
+            ->whereIn('id', $requestedIds)
+            ->whereIn('name', Role::protectedRoleNames())
+            ->pluck('name')
             ->all();
 
+        $deletable = ClinicAdminScope::rolesQuery()
+            ->whereIn('id', $requestedIds)
+            ->whereNotIn('name', Role::protectedRoleNames())
+            ->get(['id', 'name']);
+
+        $deletableIds = $deletable->pluck('id')->all();
+        $deletedNames = $deletable->pluck('name')->all();
+
         if (empty($deletableIds)) {
+            PlatformSecurityAuditLogger::log(
+                action: 'roles.bulk_deleted_blocked',
+                modulo: 'roles',
+                summary: 'Intentó borrado masivo de roles: solo roles protegidos (omitidos)',
+                metadata: [
+                    'requested_ids' => $requestedIds,
+                    'protected_skipped' => $protectedSkipped,
+                ],
+            );
+
             return back()->with('info', 'No se eliminaron roles: la selección solo incluía roles del sistema.');
         }
 
         $count = Role::whereIn('id', $deletableIds)->delete();
-        $skipped = count($data['ids']) - $count;
+        $skipped = count($requestedIds) - $count;
+
+        PlatformSecurityAuditLogger::log(
+            action: 'roles.bulk_deleted',
+            modulo: 'roles',
+            summary: 'Borrado masivo de '.$count.' rol(es): '.implode(', ', $deletedNames),
+            metadata: [
+                'deleted_ids' => $deletableIds,
+                'deleted_names' => $deletedNames,
+                'protected_skipped' => $protectedSkipped,
+                'requested_count' => count($requestedIds),
+                'deleted_count' => $count,
+            ],
+            subjectType: 'role',
+            subjectLabel: implode(', ', $deletedNames),
+        );
 
         $message = $count === 1
             ? '1 rol eliminado correctamente.'

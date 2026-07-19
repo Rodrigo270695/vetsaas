@@ -42,6 +42,7 @@ import {
     ScrollText,
     Send,
     Server,
+    ShieldAlert,
     ShieldCheck,
     ShoppingCart,
     Slice,
@@ -443,6 +444,12 @@ function useNavConfig(): { singles: NavItem[]; groups: NavGroup[] } {
                             title: t('items.auditoria_soporte'),
                             href: '/plataforma/auditoria-soporte',
                             icon: Headset,
+                            permission: 'plataforma-tenants.view',
+                        },
+                        {
+                            title: t('items.auditoria_seguridad'),
+                            href: '/plataforma/auditoria-seguridad',
+                            icon: ShieldAlert,
                             permission: 'plataforma-tenants.view',
                         },
                         {

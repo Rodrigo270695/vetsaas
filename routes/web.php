@@ -37,6 +37,7 @@ use App\Http\Controllers\PacienteController;
 use App\Http\Controllers\PlanController;
 use App\Http\Controllers\PlataformaImpersonationAuditController;
 use App\Http\Controllers\PlataformaOperacionesController;
+use App\Http\Controllers\PlataformaSecurityAuditController;
 use App\Http\Controllers\PlatformRenewalReminderController;
 use App\Http\Controllers\PlatformSettingController;
 use App\Http\Controllers\InAppAssistantAnnouncementController;
@@ -1070,6 +1071,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:plataforma-tenants.view')
             ->get('auditoria-soporte', [PlataformaImpersonationAuditController::class, 'index'])
             ->name('auditoria-soporte.index');
+        Route::middleware('permission:plataforma-tenants.view')
+            ->get('auditoria-seguridad', [PlataformaSecurityAuditController::class, 'index'])
+            ->name('auditoria-seguridad.index');
         Route::middleware('permission:plataforma-tenants.update')
             ->get('tenants/{tenant}/modulos', [TenantModuleController::class, 'edit'])
             ->name('tenants.modules.edit');

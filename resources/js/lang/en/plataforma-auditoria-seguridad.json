@@ -1,0 +1,49 @@
+{
+    "title": "Security audit",
+    "description": "Who changed roles, permissions, or users in any clinic. Central log for superadmin.",
+    "search_placeholder": "Search by user, clinic, action, IP...",
+    "filter_label": "Filter by module",
+    "columns": {
+        "created_at": "When",
+        "actor": "Who",
+        "tenant": "Clinic",
+        "action": "Action",
+        "summary": "Detail",
+        "ip": "IP"
+    },
+    "filters": {
+        "all": "All",
+        "roles": "Roles",
+        "usuarios": "Users"
+    },
+    "actions": {
+        "roles.created": "Role created",
+        "roles.updated": "Role updated",
+        "roles.deleted": "Role deleted",
+        "roles.bulk_deleted": "Roles bulk deleted",
+        "roles.bulk_deleted_blocked": "Bulk delete blocked",
+        "roles.permissions_updated": "Role permissions",
+        "users.created": "User created",
+        "users.updated": "User updated",
+        "users.deleted": "User deleted",
+        "users.bulk_deleted": "Users bulk deleted"
+    },
+    "stats": {
+        "total": "Total",
+        "hoy": "Today",
+        "roles": "Roles",
+        "usuarios": "Users",
+        "matches": "Matches"
+    },
+    "empty": {
+        "title": "No events yet",
+        "description": "Creates, deletes, and changes to roles/permissions/users from any clinic will appear here."
+    },
+    "central": "Central",
+    "aria": {
+        "results_count": "{{count}} events found"
+    },
+    "toast": {
+        "load_error": "Failed to load security audit"
+    }
+}
