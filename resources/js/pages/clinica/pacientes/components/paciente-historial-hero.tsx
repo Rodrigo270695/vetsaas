@@ -346,7 +346,15 @@ export function PacienteHistorialHero({
                     ) : null}
                     {!isPublic && links.petpass_registrar ? (
                         <Button type="button" size="sm" variant="outline" className="gap-2 border-cyan-500/35 text-cyan-800 hover:bg-cyan-500/10 dark:text-cyan-200" asChild>
-                            <a href={links.petpass_registrar}>
+                            <a
+                                href={links.petpass_registrar}
+                                onClick={(e) => {
+                                    // Navegación completa: el handoff responde con redirect externo a AlmaPet.
+                                    // Si Inertia intercepta el <a>, el navegador solo recarga el historial.
+                                    e.preventDefault();
+                                    window.location.assign(links.petpass_registrar!);
+                                }}
+                            >
                                 <ShieldCheck className="size-4" strokeWidth={2.25} />
                                 {t('historial.action_petpass_register')}
                             </a>

@@ -10,6 +10,7 @@ use App\Models\Tenant;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\ValidationException;
 use RuntimeException;
+use Throwable;
 
 /**
  * Cliente HTTP hacia AlmaPet ID (creación de handoff one-time).
@@ -122,17 +123,31 @@ final class AlmaPetHandoffClient
 
         $url = rtrim((string) config('petpass.base_url'), '/').(string) config('petpass.handoff_path');
 
-        $response = Http::timeout((int) config('petpass.timeout_seconds', 15))
-            ->withHeaders([
-                'Accept' => 'application/json',
-                'X-AlmaPet-Handoff-Secret' => (string) config('petpass.handoff_secret'),
-            ])
-            ->post($url, $payload);
+        try {
+            $response = Http::timeout((int) config('petpass.timeout_seconds', 15))
+                ->withHeaders([
+                    'Accept' => 'application/json',
+                    'X-AlmaPet-Handoff-Secret' => (string) config('petpass.handoff_secret'),
+                ])
+                ->post($url, $payload);
+        } catch (Throwable $e) {
+            report($e);
+
+            throw ValidationException::withMessages([
+                'petpass' => 'No se pudo conectar con AlmaPet ID ('.$url.'). Verifica PETPASS_BASE_URL y que el servicio esté en línea.',
+            ]);
+        }
 
         if (! $response->successful()) {
             $message = $response->json('message')
                 ?? $response->json('errors.microchip.0')
-                ?? 'No se pudo iniciar el registro en AlmaPet ID.';
+                ?? $response->json('errors.petpass.0')
+                ?? match ($response->status()) {
+                    401, 403 => 'AlmaPet ID rechazó la clave de handoff (PETPASS_HANDOFF_SECRET).',
+                    404 => 'Endpoint de handoff no encontrado en AlmaPet ID. Revisa PETPASS_BASE_URL.',
+                    422 => 'AlmaPet ID rechazó los datos del paciente (revisa microchip y documento del titular).',
+                    default => 'No se pudo iniciar el registro en AlmaPet ID (HTTP '.$response->status().').',
+                };
 
             throw ValidationException::withMessages([
                 'petpass' => is_string($message) ? $message : 'No se pudo iniciar el registro en AlmaPet ID.',
