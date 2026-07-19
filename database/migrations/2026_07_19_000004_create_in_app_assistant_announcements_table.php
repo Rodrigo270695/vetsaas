@@ -34,12 +34,12 @@ return new class extends Migration
             $active = true;
             $version = 1;
             $title = 'Nuevo Asistente IA en VetSaaS';
-            $body = 'Ahora tienes ayuda y consultas de tu clínica sin salir del sistema. Está arriba a la derecha, junto a los breadcrumbs.';
+            $body = 'Ahora tienes ayuda y consultas de tu clínica sin salir del sistema. Ábrelo arriba a la derecha: es una ventana flotante que puedes mover y redimensionar.';
             $features = [
                 'Te orienta dónde está cada módulo y cómo usarlo',
                 'Consulta pacientes, stock, alertas y más (solo lectura)',
                 'Revisa citas de hoy o mañana por veterinario o sede',
-                'Di «llévame a vacunaciones» y te lleva ahí',
+                'Ventana flotante: muévela y agrándala sin bloquear la pantalla',
             ];
 
             if (Schema::hasTable('platform_settings')) {

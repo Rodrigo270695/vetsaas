@@ -56,14 +56,14 @@
     "announcement": {
         "badge": "New",
         "title": "New AI assistant in VetSaaS",
-        "body": "You now get product help and clinic lookups without leaving the app. It’s at the top right, next to the breadcrumbs.",
+        "body": "You now get product help and clinic lookups without leaving the app. Open it at the top right: it’s a floating window you can move and resize.",
         "dismiss": "Got it",
         "try": "Try it now",
         "features": {
             "help": "Guides you to each module and how to use it",
             "lookup": "Looks up patients, stock, alerts and more (read-only)",
             "agenda": "Checks today’s or tomorrow’s appointments by vet or branch",
-            "nav": "Say “take me to vaccinations” and it opens the page"
+            "nav": "Floating window: drag and resize it without blocking the screen"
         }
     }
 }
