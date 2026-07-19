@@ -14,24 +14,31 @@
     },
     "intro": {
         "title": "In-app assistant control",
-        "body": "Set the daily message limit and launch the announcement to every clinic. Republishing shows it again even if users already dismissed it."
+        "body": "Set the daily message limit, edit the announcement copy, and launch it to every clinic. Republishing shows it again even if users already dismissed it. As superadmin you have no limit and can use the assistant in this portal (billing, clinics, etc.)."
     },
     "sections": {
         "assistant": {
             "title": "In-app AI assistant",
-            "description": "Daily message cap per user (help + read-only lookups)."
+            "description": "Daily message cap per clinic user (help + read-only lookups). Superadmin is unlimited."
         },
         "announcement": {
             "title": "Clinic announcement",
-            "description": "Modal tenants see on login until they tap Got it."
+            "description": "Modal tenants see on login until they tap Got it. Edit the content here."
         }
     },
     "fields": {
         "daily_limit": "Daily message limit",
-        "daily_limit_hint": "Between 1 and 1000. Resets at midnight (app timezone). Recommended default: 40.",
+        "daily_limit_hint": "Between 1 and 1000. Resets at midnight (app timezone). Recommended default: 40. Does not apply to superadmin.",
         "announcement_active": "Show assistant announcement",
         "announcement_active_hint": "When enabled, clinics see the notice once per user and version.",
-        "announcement_version": "Current version: {{version}}"
+        "announcement_version": "Current version: {{version}}",
+        "announcement_title": "Title",
+        "announcement_title_hint": "Leave empty to use the built-in default text.",
+        "announcement_body": "Body",
+        "announcement_body_hint": "Explain the announcement in 1–3 sentences.",
+        "announcement_features": "Highlights (up to 4)",
+        "announcement_feature": "Highlight {{n}}",
+        "announcement_feature_hint": "Optional. If all are empty, default highlights are used."
     },
     "footer": {
         "last_updated_by": "Last edited by {{name}}",

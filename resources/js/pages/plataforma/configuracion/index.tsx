@@ -22,6 +22,7 @@ import { FormField, FormSection } from '@/components/forms';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { usePermission } from '@/hooks/use-permission';
 import AppLayout from '@/layouts/app-layout';
 import configuracion from '@/routes/plataforma/configuracion';
@@ -38,6 +39,9 @@ type PlatformSetting = {
     in_app_assistant_daily_limit: number;
     in_app_assistant_announcement_active: boolean;
     in_app_assistant_announcement_version: number;
+    in_app_assistant_announcement_title: string;
+    in_app_assistant_announcement_body: string;
+    in_app_assistant_announcement_features: string[];
     updated_at: string | null;
     actualizado_por: AuditUser;
 };
@@ -49,11 +53,27 @@ type PageProps = {
 type FormState = {
     in_app_assistant_daily_limit: string;
     in_app_assistant_announcement_active: boolean;
+    in_app_assistant_announcement_title: string;
+    in_app_assistant_announcement_body: string;
+    in_app_assistant_announcement_features: [string, string, string, string];
+};
+
+const padFeatures = (features: string[] | undefined): [string, string, string, string] => {
+    const next = [...(features ?? [])].slice(0, 4);
+    while (next.length < 4) {
+        next.push('');
+    }
+    return [next[0] ?? '', next[1] ?? '', next[2] ?? '', next[3] ?? ''];
 };
 
 const buildInitialState = (setting: PlatformSetting): FormState => ({
     in_app_assistant_daily_limit: String(setting.in_app_assistant_daily_limit ?? 40),
     in_app_assistant_announcement_active: setting.in_app_assistant_announcement_active === true,
+    in_app_assistant_announcement_title: setting.in_app_assistant_announcement_title ?? '',
+    in_app_assistant_announcement_body: setting.in_app_assistant_announcement_body ?? '',
+    in_app_assistant_announcement_features: padFeatures(
+        setting.in_app_assistant_announcement_features,
+    ),
 });
 
 export default function Index({ setting }: PageProps) {
@@ -84,6 +104,19 @@ export default function Index({ setting }: PageProps) {
         setDataInternal((current) => ({ ...current, [key]: value }));
     }, []);
 
+    const setFeature = useCallback((index: number, value: string) => {
+        setDataInternal((current) => {
+            const features = [...current.in_app_assistant_announcement_features] as [
+                string,
+                string,
+                string,
+                string,
+            ];
+            features[index] = value;
+            return { ...current, in_app_assistant_announcement_features: features };
+        });
+    }, []);
+
     const submit = (republish: boolean) => {
         setProcessing(true);
         router.put(
@@ -91,6 +124,9 @@ export default function Index({ setting }: PageProps) {
             {
                 in_app_assistant_daily_limit: Number(data.in_app_assistant_daily_limit),
                 in_app_assistant_announcement_active: data.in_app_assistant_announcement_active,
+                in_app_assistant_announcement_title: data.in_app_assistant_announcement_title,
+                in_app_assistant_announcement_body: data.in_app_assistant_announcement_body,
+                in_app_assistant_announcement_features: data.in_app_assistant_announcement_features,
                 republish_announcement: republish,
             },
             {
@@ -228,50 +264,115 @@ export default function Index({ setting }: PageProps) {
                     title={t('sections.announcement.title')}
                     description={t('sections.announcement.description')}
                 >
-                    <FormSection index={1} title="" columns={1} className="gap-0">
-                        <div className="flex flex-col gap-4 sm:max-w-xl">
-                            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border/70 bg-muted/20 px-3.5 py-3">
-                                <input
-                                    type="checkbox"
-                                    className="mt-1 size-4 rounded border-input"
-                                    checked={data.in_app_assistant_announcement_active}
-                                    onChange={(e) =>
-                                        setData(
-                                            'in_app_assistant_announcement_active',
-                                            e.target.checked,
-                                        )
+                    <FormSection index={1} title="" columns={1} className="gap-4">
+                        <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border/70 bg-muted/20 px-3.5 py-3 sm:max-w-xl">
+                            <input
+                                type="checkbox"
+                                className="mt-1 size-4 rounded border-input"
+                                checked={data.in_app_assistant_announcement_active}
+                                onChange={(e) =>
+                                    setData(
+                                        'in_app_assistant_announcement_active',
+                                        e.target.checked,
+                                    )
+                                }
+                                disabled={!canUpdate}
+                            />
+                            <span className="min-w-0 space-y-0.5">
+                                <Label className="cursor-pointer text-sm font-medium">
+                                    {t('fields.announcement_active')}
+                                </Label>
+                                <p className="text-xs leading-relaxed text-muted-foreground">
+                                    {t('fields.announcement_active_hint')}
+                                </p>
+                            </span>
+                        </label>
+
+                        <FormField
+                            id="platform-announcement-title"
+                            label={t('fields.announcement_title')}
+                            error={errors.in_app_assistant_announcement_title}
+                            hint={t('fields.announcement_title_hint')}
+                            className="sm:max-w-xl"
+                        >
+                            <Input
+                                id="platform-announcement-title"
+                                value={data.in_app_assistant_announcement_title}
+                                onChange={(e) =>
+                                    setData('in_app_assistant_announcement_title', e.target.value)
+                                }
+                                disabled={!canUpdate}
+                                maxLength={160}
+                            />
+                        </FormField>
+
+                        <FormField
+                            id="platform-announcement-body"
+                            label={t('fields.announcement_body')}
+                            error={errors.in_app_assistant_announcement_body}
+                            hint={t('fields.announcement_body_hint')}
+                            className="sm:max-w-xl"
+                        >
+                            <Textarea
+                                id="platform-announcement-body"
+                                value={data.in_app_assistant_announcement_body}
+                                onChange={(e) =>
+                                    setData('in_app_assistant_announcement_body', e.target.value)
+                                }
+                                disabled={!canUpdate}
+                                rows={4}
+                                maxLength={2000}
+                                className="min-h-24 resize-y"
+                            />
+                        </FormField>
+
+                        <div className="space-y-3 sm:max-w-xl">
+                            <div className="space-y-1">
+                                <Label className="text-sm font-medium">
+                                    {t('fields.announcement_features')}
+                                </Label>
+                                <p className="text-xs text-muted-foreground">
+                                    {t('fields.announcement_feature_hint')}
+                                </p>
+                            </div>
+                            {data.in_app_assistant_announcement_features.map((feature, index) => (
+                                <FormField
+                                    key={`feature-${index}`}
+                                    id={`platform-announcement-feature-${index}`}
+                                    label={t('fields.announcement_feature', { n: index + 1 })}
+                                    error={
+                                        errors[`in_app_assistant_announcement_features.${index}`]
                                     }
-                                    disabled={!canUpdate}
-                                />
-                                <span className="min-w-0 space-y-0.5">
-                                    <Label className="cursor-pointer text-sm font-medium">
-                                        {t('fields.announcement_active')}
-                                    </Label>
-                                    <p className="text-xs leading-relaxed text-muted-foreground">
-                                        {t('fields.announcement_active_hint')}
-                                    </p>
-                                </span>
-                            </label>
-
-                            <p className="text-xs text-muted-foreground">
-                                {t('fields.announcement_version', {
-                                    version: setting.in_app_assistant_announcement_version || 0,
-                                })}
-                            </p>
-
-                            {canUpdate && (
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    disabled={processing}
-                                    className="w-fit gap-2"
-                                    onClick={() => submit(true)}
                                 >
-                                    <Megaphone className="size-4" />
-                                    {t('actions.republish')}
-                                </Button>
-                            )}
+                                    <Input
+                                        id={`platform-announcement-feature-${index}`}
+                                        value={feature}
+                                        onChange={(e) => setFeature(index, e.target.value)}
+                                        disabled={!canUpdate}
+                                        maxLength={200}
+                                    />
+                                </FormField>
+                            ))}
                         </div>
+
+                        <p className="text-xs text-muted-foreground">
+                            {t('fields.announcement_version', {
+                                version: setting.in_app_assistant_announcement_version || 0,
+                            })}
+                        </p>
+
+                        {canUpdate && (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                disabled={processing}
+                                className="w-fit gap-2"
+                                onClick={() => submit(true)}
+                            >
+                                <Megaphone className="size-4" />
+                                {t('actions.republish')}
+                            </Button>
+                        )}
                     </FormSection>
                 </SectionCard>
             </form>

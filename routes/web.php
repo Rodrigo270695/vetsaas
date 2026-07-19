@@ -161,8 +161,8 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
     });
 
     // Asistente in-app (ayuda + consulta de solo lectura).
-    Route::middleware('tenant.required')
-        ->prefix('asistente')
+    // Clínica (tenant) o portal central (superadmin).
+    Route::prefix('asistente')
         ->name('asistente.')
         ->group(function (): void {
             Route::get('status', [InAppAssistantController::class, 'status'])->name('status');

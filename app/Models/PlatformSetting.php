@@ -22,6 +22,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $in_app_assistant_daily_limit
  * @property bool $in_app_assistant_announcement_active
  * @property int $in_app_assistant_announcement_version
+ * @property ?string $in_app_assistant_announcement_title
+ * @property ?string $in_app_assistant_announcement_body
+ * @property ?array $in_app_assistant_announcement_features
  * @property ?string $updated_by_id
  * @property-read ?User $actualizadoPor
  */
@@ -43,6 +46,9 @@ class PlatformSetting extends Model
         'in_app_assistant_daily_limit',
         'in_app_assistant_announcement_active',
         'in_app_assistant_announcement_version',
+        'in_app_assistant_announcement_title',
+        'in_app_assistant_announcement_body',
+        'in_app_assistant_announcement_features',
         'updated_by_id',
     ];
 
@@ -60,6 +66,7 @@ class PlatformSetting extends Model
             'in_app_assistant_daily_limit' => 'integer',
             'in_app_assistant_announcement_active' => 'boolean',
             'in_app_assistant_announcement_version' => 'integer',
+            'in_app_assistant_announcement_features' => 'array',
         ];
     }
 
@@ -84,7 +91,41 @@ class PlatformSetting extends Model
     }
 
     /**
-     * @return array{active: bool, version: int}|null
+     * @return list<string>
+     */
+    public function assistantAnnouncementFeatures(): array
+    {
+        $raw = $this->in_app_assistant_announcement_features;
+        if (! is_array($raw)) {
+            return [];
+        }
+
+        $features = [];
+        foreach ($raw as $item) {
+            if (! is_string($item)) {
+                continue;
+            }
+            $text = trim($item);
+            if ($text === '') {
+                continue;
+            }
+            $features[] = mb_substr($text, 0, 200);
+            if (count($features) >= 4) {
+                break;
+            }
+        }
+
+        return $features;
+    }
+
+    /**
+     * @return array{
+     *     active: bool,
+     *     version: int,
+     *     title: string|null,
+     *     body: string|null,
+     *     features: list<string>
+     * }|null
      */
     public function assistantAnnouncementPayload(): ?array
     {
@@ -97,9 +138,15 @@ class PlatformSetting extends Model
             return null;
         }
 
+        $title = trim((string) ($this->in_app_assistant_announcement_title ?? ''));
+        $body = trim((string) ($this->in_app_assistant_announcement_body ?? ''));
+
         return [
             'active' => true,
             'version' => $version,
+            'title' => $title !== '' ? mb_substr($title, 0, 160) : null,
+            'body' => $body !== '' ? mb_substr($body, 0, 2000) : null,
+            'features' => $this->assistantAnnouncementFeatures(),
         ];
     }
 }

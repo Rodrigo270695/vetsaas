@@ -1,6 +1,6 @@
 import { usePage } from '@inertiajs/react';
 import { Bot, CalendarDays, MessageSquareText, Sparkles, Zap } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import {
@@ -15,6 +15,8 @@ import {
 export const OPEN_IN_APP_ASSISTANT_EVENT = 'vetsaas:open-in-app-assistant';
 
 const STORAGE_PREFIX = 'vetsaas.in-app-assistant.announcement';
+
+const FEATURE_ICONS = [MessageSquareText, Bot, CalendarDays, Zap] as const;
 
 function storageKey(tenantId: string, userId: string): string {
     return `${STORAGE_PREFIX}.${tenantId}.${userId}`;
@@ -48,6 +50,30 @@ export function InAppAssistantAnnouncementModal() {
 
     const [open, setOpen] = useState(false);
 
+    const title = announcement?.title?.trim() || t('announcement.title');
+    const body = announcement?.body?.trim() || t('announcement.body');
+
+    const features = useMemo(() => {
+        const custom = (announcement?.features ?? [])
+            .map((item) => (typeof item === 'string' ? item.trim() : ''))
+            .filter((item) => item !== '')
+            .slice(0, 4);
+
+        if (custom.length > 0) {
+            return custom.map((text, index) => ({
+                icon: FEATURE_ICONS[index] ?? MessageSquareText,
+                text,
+            }));
+        }
+
+        return [
+            { icon: MessageSquareText, text: t('announcement.features.help') },
+            { icon: Bot, text: t('announcement.features.lookup') },
+            { icon: CalendarDays, text: t('announcement.features.agenda') },
+            { icon: Zap, text: t('announcement.features.nav') },
+        ];
+    }, [announcement?.features, t]);
+
     useEffect(() => {
         if (!enabled || !announcement?.active || version < 1 || !tenantId || !userId) {
             setOpen(false);
@@ -75,13 +101,6 @@ export function InAppAssistantAnnouncementModal() {
         window.dispatchEvent(new CustomEvent(OPEN_IN_APP_ASSISTANT_EVENT));
     };
 
-    const features = [
-        { icon: MessageSquareText, text: t('announcement.features.help') },
-        { icon: Bot, text: t('announcement.features.lookup') },
-        { icon: CalendarDays, text: t('announcement.features.agenda') },
-        { icon: Zap, text: t('announcement.features.nav') },
-    ] as const;
-
     return (
         <Dialog
             open={open}
@@ -102,10 +121,10 @@ export function InAppAssistantAnnouncementModal() {
                                 {t('announcement.badge')}
                             </p>
                             <DialogTitle className="text-xl font-semibold tracking-tight">
-                                {t('announcement.title')}
+                                {title}
                             </DialogTitle>
                             <DialogDescription className="text-sm leading-relaxed">
-                                {t('announcement.body')}
+                                {body}
                             </DialogDescription>
                         </div>
                     </DialogHeader>

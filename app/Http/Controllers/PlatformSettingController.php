@@ -30,10 +30,25 @@ class PlatformSettingController extends Controller
 
         $active = (bool) ($data['in_app_assistant_announcement_active'] ?? false);
         $republish = (bool) ($data['republish_announcement'] ?? false);
+        $features = is_array($data['in_app_assistant_announcement_features'] ?? null)
+            ? array_values(array_filter(
+                array_map(
+                    static fn ($item) => is_string($item) ? trim($item) : '',
+                    $data['in_app_assistant_announcement_features'],
+                ),
+                static fn (string $item) => $item !== '',
+            ))
+            : [];
+
+        $title = trim((string) ($data['in_app_assistant_announcement_title'] ?? ''));
+        $body = trim((string) ($data['in_app_assistant_announcement_body'] ?? ''));
 
         $setting->fill([
             'in_app_assistant_daily_limit' => (int) $data['in_app_assistant_daily_limit'],
             'in_app_assistant_announcement_active' => $active,
+            'in_app_assistant_announcement_title' => $title !== '' ? $title : null,
+            'in_app_assistant_announcement_body' => $body !== '' ? $body : null,
+            'in_app_assistant_announcement_features' => $features !== [] ? $features : null,
             'updated_by_id' => Auth::id(),
         ]);
 
@@ -55,11 +70,19 @@ class PlatformSettingController extends Controller
      */
     private function presentSetting(PlatformSetting $setting): array
     {
+        $features = $setting->assistantAnnouncementFeatures();
+        while (count($features) < 4) {
+            $features[] = '';
+        }
+
         return [
             'id' => $setting->id,
             'in_app_assistant_daily_limit' => $setting->assistantDailyLimit(),
             'in_app_assistant_announcement_active' => (bool) $setting->in_app_assistant_announcement_active,
             'in_app_assistant_announcement_version' => (int) $setting->in_app_assistant_announcement_version,
+            'in_app_assistant_announcement_title' => (string) ($setting->in_app_assistant_announcement_title ?? ''),
+            'in_app_assistant_announcement_body' => (string) ($setting->in_app_assistant_announcement_body ?? ''),
+            'in_app_assistant_announcement_features' => array_slice($features, 0, 4),
             'updated_at' => $setting->updated_at?->toIso8601String(),
             'actualizado_por' => $setting->actualizadoPor ? [
                 'id' => $setting->actualizadoPor->id,

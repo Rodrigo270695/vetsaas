@@ -11,9 +11,15 @@ use Throwable;
 
 /**
  * Tope diario de mensajes del asistente in-app (por usuario + tenant).
+ * Superadmin (portal central) no tiene límite.
  */
 final class InAppAssistantUsageLimiter
 {
+    public function isUnlimited(User $user): bool
+    {
+        return $user->hasRole('superadmin');
+    }
+
     public function limit(): int
     {
         try {
@@ -31,10 +37,20 @@ final class InAppAssistantUsageLimiter
     }
 
     /**
-     * @return array{limit: int, used: int, remaining: int, resets_in: int}
+     * @return array{limit: int|null, used: int, remaining: int|null, resets_in: int, unlimited: bool}
      */
     public function snapshot(User $user): array
     {
+        if ($this->isUnlimited($user)) {
+            return [
+                'limit' => null,
+                'used' => 0,
+                'remaining' => null,
+                'resets_in' => 0,
+                'unlimited' => true,
+            ];
+        }
+
         $limit = $this->limit();
         $key = $this->keyFor($user);
         $used = RateLimiter::attempts($key);
@@ -44,16 +60,25 @@ final class InAppAssistantUsageLimiter
             'used' => $used,
             'remaining' => max(0, $limit - $used),
             'resets_in' => RateLimiter::availableIn($key),
+            'unlimited' => false,
         ];
     }
 
     public function tooManyAttempts(User $user): bool
     {
+        if ($this->isUnlimited($user)) {
+            return false;
+        }
+
         return RateLimiter::tooManyAttempts($this->keyFor($user), $this->limit());
     }
 
     public function hit(User $user): void
     {
+        if ($this->isUnlimited($user)) {
+            return;
+        }
+
         RateLimiter::hit($this->keyFor($user), $this->decaySeconds());
     }
 

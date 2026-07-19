@@ -12,7 +12,17 @@ final class InAppAssistantTools
     /**
      * @return list<array<string, mixed>>
      */
-    public static function definitions(): array
+    public static function definitions(string $scope = 'clinic'): array
+    {
+        return $scope === 'platform'
+            ? self::platformDefinitions()
+            : self::clinicDefinitions();
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public static function clinicDefinitions(): array
     {
         return [
             [
@@ -162,6 +172,114 @@ final class InAppAssistantTools
                                 'description' => 'Nombre (o parte) de la sede.',
                             ],
                         ],
+                    ],
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * Tools del portal central (superadmin): cobros, suscripciones, clínicas.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public static function platformDefinitions(): array
+    {
+        return [
+            [
+                'type' => 'function',
+                'function' => [
+                    'name' => 'cobros_pendientes',
+                    'description' => 'Lista cobros/pagos de suscripción en estado pendiente (quién debe pagar). Solo lectura.',
+                    'parameters' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'limite' => [
+                                'type' => 'integer',
+                                'description' => 'Máximo de filas (default 20, máx 40).',
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+            [
+                'type' => 'function',
+                'function' => [
+                    'name' => 'cobros_fallidos',
+                    'description' => 'Lista cobros fallidos recientes (pasarela rechazó). Solo lectura.',
+                    'parameters' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'dias' => [
+                                'type' => 'integer',
+                                'description' => 'Ventana en días (default 14, máx 60).',
+                            ],
+                            'limite' => [
+                                'type' => 'integer',
+                                'description' => 'Máximo de filas (default 20, máx 40).',
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+            [
+                'type' => 'function',
+                'function' => [
+                    'name' => 'suscripciones_en_riesgo',
+                    'description' => 'Clínicas en grace, suspended o con próximo cobro en los próximos días. Solo lectura.',
+                    'parameters' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'dias_proximo_cobro' => [
+                                'type' => 'integer',
+                                'description' => 'Días hacia adelante para próximo cobro (default 7, máx 30).',
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+            [
+                'type' => 'function',
+                'function' => [
+                    'name' => 'resumen_plataforma',
+                    'description' => 'Resumen operativo del SaaS: conteos de cobros pendientes/fallidos, suscripciones en grace/suspended, próximo cobro. Solo lectura.',
+                    'parameters' => [
+                        'type' => 'object',
+                        'properties' => (object) [],
+                    ],
+                ],
+            ],
+            [
+                'type' => 'function',
+                'function' => [
+                    'name' => 'buscar_clinicas',
+                    'description' => 'Busca clínicas (tenants) por nombre comercial, razón social o slug. Solo lectura.',
+                    'parameters' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'q' => [
+                                'type' => 'string',
+                                'description' => 'Texto a buscar.',
+                            ],
+                        ],
+                        'required' => ['q'],
+                    ],
+                ],
+            ],
+            [
+                'type' => 'function',
+                'function' => [
+                    'name' => 'resolver_navegacion_plataforma',
+                    'description' => 'Resuelve a qué pantalla del panel central llevar al superadmin (cobros, clínicas, planes, etc.). Solo lectura.',
+                    'parameters' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'destino' => [
+                                'type' => 'string',
+                                'description' => 'Nombre del módulo (cobros, clínicas, planes, configuración, operaciones).',
+                            ],
+                        ],
+                        'required' => ['destino'],
                     ],
                 ],
             ],

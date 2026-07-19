@@ -14,6 +14,9 @@ use App\Models\PedidoLaboratorio;
 use App\Models\Producto;
 use App\Models\Propietario;
 use App\Models\Sede;
+use App\Models\Subscription;
+use App\Models\SubscriptionPayment;
+use App\Models\Tenant;
 use App\Models\User;
 use App\Models\VacunaAplicada;
 use App\Models\Venta;
@@ -23,19 +26,28 @@ use Illuminate\Support\Facades\Schema;
 
 final class InAppAssistantToolExecutor
 {
-    /** @var array{url?: string, component?: string, paciente_id?: string}|null */
+    /** @var array{url?: string, component?: string, paciente_id?: string, scope?: string}|null */
     private ?array $pageContext = null;
+
+    private string $scope = 'clinic';
 
     /** @var list<array{type: string, url: string, label: string}> */
     private array $pendingUiActions = [];
 
     /**
-     * @param  array{url?: string, component?: string, paciente_id?: string}|null  $pageContext
+     * @param  array{url?: string, component?: string, paciente_id?: string, scope?: string}|null  $pageContext
      */
     public function setPageContext(?array $pageContext): void
     {
         $this->pageContext = $pageContext;
         $this->pendingUiActions = [];
+        $scope = is_string($pageContext['scope'] ?? null) ? (string) $pageContext['scope'] : 'clinic';
+        $this->scope = $scope === 'platform' ? 'platform' : 'clinic';
+    }
+
+    public function scope(): string
+    {
+        return $this->scope;
     }
 
     /**
@@ -54,6 +66,23 @@ final class InAppAssistantToolExecutor
      */
     public function execute(string $name, array $args): string
     {
+        if ($this->scope === 'platform') {
+            $result = match ($name) {
+                'cobros_pendientes' => $this->cobrosPendientes((int) ($args['limite'] ?? 20)),
+                'cobros_fallidos' => $this->cobrosFallidos(
+                    (int) ($args['dias'] ?? 14),
+                    (int) ($args['limite'] ?? 20),
+                ),
+                'suscripciones_en_riesgo' => $this->suscripcionesEnRiesgo((int) ($args['dias_proximo_cobro'] ?? 7)),
+                'resumen_plataforma' => $this->resumenPlataforma(),
+                'buscar_clinicas' => $this->buscarClinicas((string) ($args['q'] ?? '')),
+                'resolver_navegacion_plataforma' => $this->resolverNavegacionPlataforma((string) ($args['destino'] ?? '')),
+                default => ['ok' => false, 'error' => 'Herramienta no disponible en el portal de plataforma.'],
+            };
+
+            return (string) json_encode($result, JSON_UNESCAPED_UNICODE);
+        }
+
         $result = match ($name) {
             'buscar_pacientes' => $this->buscarPacientes((string) ($args['q'] ?? '')),
             'buscar_propietarios' => $this->buscarPropietarios((string) ($args['q'] ?? '')),
@@ -672,5 +701,286 @@ final class InAppAssistantToolExecutor
             (bool) preg_match('/^\d{4}-\d{2}-\d{2}$/', $raw) => $raw,
             default => $now->toDateString(),
         };
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function cobrosPendientes(int $limite): array
+    {
+        $limite = max(1, min(40, $limite > 0 ? $limite : 20));
+
+        $rows = SubscriptionPayment::query()
+            ->with([
+                'tenant:id,slug,nombre_comercial,razon_social',
+                'plan:id,nombre,codigo',
+            ])
+            ->where('estado', 'pendiente')
+            ->orderByDesc('created_at')
+            ->limit($limite)
+            ->get();
+
+        $this->pendingUiActions[] = [
+            'type' => 'navigate',
+            'url' => '/plataforma/cobros?estado=pendiente',
+            'label' => 'Cobros pendientes',
+        ];
+
+        return [
+            'ok' => true,
+            'count' => $rows->count(),
+            'url' => '/plataforma/cobros?estado=pendiente',
+            'items' => $rows->map(static function (SubscriptionPayment $p): array {
+                $tenant = $p->tenant;
+
+                return [
+                    'id' => $p->id,
+                    'clinica' => $tenant?->nombre_comercial ?: $tenant?->razon_social ?: $tenant?->slug,
+                    'slug' => $tenant?->slug,
+                    'plan' => $p->plan?->nombre,
+                    'total' => $p->total,
+                    'moneda' => $p->moneda,
+                    'pasarela' => $p->pasarela,
+                    'periodo_inicio' => optional($p->periodo_inicio)?->toDateString(),
+                    'periodo_fin' => optional($p->periodo_fin)?->toDateString(),
+                    'creado' => optional($p->created_at)?->toIso8601String(),
+                ];
+            })->all(),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function cobrosFallidos(int $dias, int $limite): array
+    {
+        $dias = max(1, min(60, $dias > 0 ? $dias : 14));
+        $limite = max(1, min(40, $limite > 0 ? $limite : 20));
+        $since = now()->subDays($dias);
+
+        $rows = SubscriptionPayment::query()
+            ->with([
+                'tenant:id,slug,nombre_comercial,razon_social',
+                'plan:id,nombre,codigo',
+            ])
+            ->where('estado', 'fallido')
+            ->where('created_at', '>=', $since)
+            ->orderByDesc('created_at')
+            ->limit($limite)
+            ->get();
+
+        $this->pendingUiActions[] = [
+            'type' => 'navigate',
+            'url' => '/plataforma/cobros?estado=fallido',
+            'label' => 'Cobros fallidos',
+        ];
+
+        return [
+            'ok' => true,
+            'dias' => $dias,
+            'count' => $rows->count(),
+            'url' => '/plataforma/cobros?estado=fallido',
+            'items' => $rows->map(static function (SubscriptionPayment $p): array {
+                $tenant = $p->tenant;
+
+                return [
+                    'id' => $p->id,
+                    'clinica' => $tenant?->nombre_comercial ?: $tenant?->razon_social ?: $tenant?->slug,
+                    'slug' => $tenant?->slug,
+                    'plan' => $p->plan?->nombre,
+                    'total' => $p->total,
+                    'moneda' => $p->moneda,
+                    'error' => $p->error_mensaje,
+                    'pasarela' => $p->pasarela,
+                    'creado' => optional($p->created_at)?->toIso8601String(),
+                ];
+            })->all(),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function suscripcionesEnRiesgo(int $diasProximoCobro): array
+    {
+        $diasProximoCobro = max(1, min(30, $diasProximoCobro > 0 ? $diasProximoCobro : 7));
+        $now = now();
+        $until = $now->copy()->addDays($diasProximoCobro)->endOfDay();
+
+        $mapRow = static function (Subscription $s): array {
+            $tenant = $s->tenant;
+
+            return [
+                'clinica' => $tenant?->nombre_comercial ?: $tenant?->razon_social ?: $tenant?->slug,
+                'slug' => $tenant?->slug,
+                'estado' => $s->estado,
+                'plan' => $s->plan?->nombre,
+                'proximo_cobro_at' => optional($s->proximo_cobro_at)?->toIso8601String(),
+                'grace_ends_at' => optional($s->grace_ends_at)?->toIso8601String(),
+            ];
+        };
+
+        $with = ['tenant:id,slug,nombre_comercial,razon_social', 'plan:id,nombre,codigo'];
+
+        $grace = Subscription::query()
+            ->with($with)
+            ->where('estado', 'grace')
+            ->orderBy('grace_ends_at')
+            ->limit(25)
+            ->get()
+            ->map($mapRow)
+            ->all();
+
+        $suspended = Subscription::query()
+            ->with($with)
+            ->where('estado', 'suspended')
+            ->orderByDesc('updated_at')
+            ->limit(25)
+            ->get()
+            ->map($mapRow)
+            ->all();
+
+        $proximoCobro = Subscription::query()
+            ->with($with)
+            ->billable()
+            ->whereNotNull('proximo_cobro_at')
+            ->whereBetween('proximo_cobro_at', [$now->copy()->startOfDay(), $until])
+            ->orderBy('proximo_cobro_at')
+            ->limit(25)
+            ->get()
+            ->map($mapRow)
+            ->all();
+
+        $this->pendingUiActions[] = [
+            'type' => 'navigate',
+            'url' => '/plataforma/tenants',
+            'label' => 'Clínicas',
+        ];
+
+        return [
+            'ok' => true,
+            'dias_proximo_cobro' => $diasProximoCobro,
+            'grace' => $grace,
+            'suspended' => $suspended,
+            'proximo_cobro' => $proximoCobro,
+            'url' => '/plataforma/tenants',
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function resumenPlataforma(): array
+    {
+        $now = now();
+
+        return [
+            'ok' => true,
+            'cobros' => [
+                'pendientes' => SubscriptionPayment::query()->where('estado', 'pendiente')->count(),
+                'fallidos_7d' => SubscriptionPayment::query()
+                    ->where('estado', 'fallido')
+                    ->where('created_at', '>=', $now->copy()->subDays(7))
+                    ->count(),
+            ],
+            'suscripciones' => [
+                'grace' => Subscription::query()->where('estado', 'grace')->count(),
+                'suspended' => Subscription::query()->where('estado', 'suspended')->count(),
+                'proximo_cobro_7d' => Subscription::query()
+                    ->billable()
+                    ->whereNotNull('proximo_cobro_at')
+                    ->whereBetween('proximo_cobro_at', [
+                        $now->copy()->startOfDay(),
+                        $now->copy()->addDays(7)->endOfDay(),
+                    ])
+                    ->count(),
+            ],
+            'clinicas_activas' => Tenant::query()->where('estado', 'active')->count(),
+            'urls' => [
+                'cobros' => '/plataforma/cobros',
+                'clinicas' => '/plataforma/tenants',
+                'suscripciones' => '/plataforma/suscripciones',
+                'operaciones' => '/plataforma/operaciones',
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function buscarClinicas(string $q): array
+    {
+        $q = trim($q);
+        if ($q === '' || mb_strlen($q) < 2) {
+            return ['ok' => false, 'error' => 'Indica al menos 2 caracteres para buscar.'];
+        }
+
+        $like = '%'.addcslashes($q, '%_\\').'%';
+        $rows = Tenant::query()
+            ->where(function ($query) use ($like): void {
+                $query->where('nombre_comercial', 'ILIKE', $like)
+                    ->orWhere('razon_social', 'ILIKE', $like)
+                    ->orWhere('slug', 'ILIKE', $like);
+            })
+            ->orderBy('nombre_comercial')
+            ->limit(15)
+            ->get(['id', 'slug', 'nombre_comercial', 'razon_social', 'estado']);
+
+        return [
+            'ok' => true,
+            'count' => $rows->count(),
+            'items' => $rows->map(static fn (Tenant $t): array => [
+                'id' => $t->id,
+                'slug' => $t->slug,
+                'nombre' => $t->nombre_comercial ?: $t->razon_social,
+                'razon_social' => $t->razon_social,
+                'estado' => $t->estado,
+                'url' => '/plataforma/tenants',
+            ])->all(),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function resolverNavegacionPlataforma(string $destino): array
+    {
+        $map = [
+            'cobros' => ['label' => 'Cobros', 'url' => '/plataforma/cobros', 'aliases' => ['pagos', 'pagos pendientes', 'pendientes de pago']],
+            'clinicas' => ['label' => 'Clínicas', 'url' => '/plataforma/tenants', 'aliases' => ['tenants', 'clientes', 'veterinarias']],
+            'suscripciones' => ['label' => 'Suscripciones', 'url' => '/plataforma/suscripciones', 'aliases' => ['subs', 'billing']],
+            'planes' => ['label' => 'Planes', 'url' => '/plataforma/planes', 'aliases' => ['pricing', 'tarifas saas']],
+            'configuracion' => ['label' => 'Configuración de plataforma', 'url' => '/plataforma/configuracion', 'aliases' => ['settings', 'ajustes', 'asistente']],
+            'operaciones' => ['label' => 'Operaciones', 'url' => '/plataforma/operaciones', 'aliases' => ['ops', 'salud', 'monitoreo']],
+        ];
+
+        $q = mb_strtolower(trim($destino));
+        $q = preg_replace('/\s+/u', ' ', $q) ?? $q;
+
+        foreach ($map as $id => $dest) {
+            $candidates = array_merge([$id, mb_strtolower($dest['label'])], $dest['aliases']);
+            foreach ($candidates as $alias) {
+                $alias = mb_strtolower(trim((string) $alias));
+                if ($alias !== '' && (str_contains($q, $alias) || str_contains($alias, $q))) {
+                    $this->pendingUiActions[] = [
+                        'type' => 'navigate',
+                        'url' => $dest['url'],
+                        'label' => $dest['label'],
+                    ];
+
+                    return [
+                        'ok' => true,
+                        'id' => $id,
+                        'label' => $dest['label'],
+                        'url' => $dest['url'],
+                    ];
+                }
+            }
+        }
+
+        return [
+            'ok' => false,
+            'error' => 'No encontré ese módulo. Prueba: cobros, clínicas, suscripciones, planes, configuración, operaciones.',
+        ];
     }
 }

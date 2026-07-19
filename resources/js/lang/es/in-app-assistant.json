@@ -11,6 +11,8 @@
         "badge_offline": "Sin configurar",
         "welcome_title": "¿En qué te ayudo?",
         "welcome": "Puedo explicarte cómo usar VetSaaS o consultar datos de tu clínica: pacientes, propietarios, productos, alertas y el resumen del día.",
+        "welcome_platform": "Puedo ayudarte con operaciones del SaaS: cobros pendientes, suscripciones en riesgo, clínicas y navegación del panel.",
+        "subtitle_platform": "Portal central · cobros y clínicas · sin límite",
         "placeholder": "Escribe tu pregunta…",
         "send": "Enviar",
         "thinking": "Consultando…",
@@ -29,10 +31,15 @@
             "query_this_patient": "Resúmeme este paciente",
             "nav_vacunas": "Llévame a vacunaciones",
             "nav_caja": "Llévame a caja",
-            "query_agenda": "¿Qué citas hay mañana?"
+            "query_agenda": "¿Qué citas hay mañana?",
+            "platform_pending": "¿Quiénes están pendientes de pago?",
+            "platform_risk": "¿Qué clínicas están en grace o suspended?",
+            "platform_summary": "Dame el resumen de la plataforma",
+            "platform_failed": "¿Hay cobros fallidos recientes?"
         },
         "go_to": "Ir a {{label}}",
         "usage": "{{remaining}}/{{limit}} hoy",
+        "usage_unlimited": "Sin límite",
         "limit_reached": "Llegaste al límite diario del asistente. Vuelve mañana."
     },
     "announcement": {

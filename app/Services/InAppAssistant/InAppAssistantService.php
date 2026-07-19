@@ -18,6 +18,8 @@ final class InAppAssistantService
 
     private const OFF_TOPIC_REFUSAL = 'Solo puedo ayudarte con VetSaaS y con datos de esta clínica. Pregúntame por citas, pacientes, caja, inventario o cómo usar el sistema.';
 
+    private const OFF_TOPIC_REFUSAL_PLATFORM = 'Solo puedo ayudarte con operaciones del SaaS VetSaaS: cobros, suscripciones, clínicas y el panel de plataforma.';
+
     public function __construct(
         private readonly InAppAssistantToolExecutor $tools,
     ) {}
@@ -39,17 +41,18 @@ final class InAppAssistantService
 
     /**
      * @param  list<array{role: string, content: string}>  $history
-     * @param  array{url?: string, component?: string, paciente_id?: string}|null  $pageContext
+     * @param  array{url?: string, component?: string, paciente_id?: string, scope?: string}|null  $pageContext
      * @return array{reply: string, used_tools: list<string>, actions: list<array{type: string, url: string, label: string}>}
      */
     public function chat(string $userMessage, array $history = [], ?array $pageContext = null): array
     {
         $userMessage = trim($userMessage);
+        $scope = ($pageContext['scope'] ?? null) === 'platform' ? 'platform' : 'clinic';
 
         // Ahorro de tokens: rechazo local de preguntas claramente fuera de alcance.
-        if ($this->shouldRefuseLocally($userMessage)) {
+        if ($this->shouldRefuseLocally($userMessage, $scope)) {
             return [
-                'reply' => self::OFF_TOPIC_REFUSAL,
+                'reply' => $scope === 'platform' ? self::OFF_TOPIC_REFUSAL_PLATFORM : self::OFF_TOPIC_REFUSAL,
                 'used_tools' => [],
                 'actions' => [],
             ];
@@ -57,32 +60,40 @@ final class InAppAssistantService
 
         $this->tools->setPageContext($pageContext);
 
-        // Navegación directa sin OpenAI (ahorra tokens).
-        if (InAppAssistantNavigation::looksLikeNavigationRequest($userMessage)) {
-            $resolved = InAppAssistantNavigation::resolve($userMessage);
-            if ($resolved !== null) {
-                return [
-                    'reply' => "Listo. Puedes ir a «{$resolved['label']}» con el botón de abajo.",
-                    'used_tools' => ['resolver_navegacion'],
-                    'actions' => [[
-                        'type' => 'navigate',
-                        'url' => $resolved['url'],
-                        'label' => $resolved['label'],
-                    ]],
-                ];
+        if ($scope === 'clinic') {
+            // Navegación directa sin OpenAI (ahorra tokens).
+            if (InAppAssistantNavigation::looksLikeNavigationRequest($userMessage)) {
+                $resolved = InAppAssistantNavigation::resolve($userMessage);
+                if ($resolved !== null) {
+                    return [
+                        'reply' => "Listo. Puedes ir a «{$resolved['label']}» con el botón de abajo.",
+                        'used_tools' => ['resolver_navegacion'],
+                        'actions' => [[
+                            'type' => 'navigate',
+                            'url' => $resolved['url'],
+                            'label' => $resolved['label'],
+                        ]],
+                    ];
+                }
             }
-        }
 
-        // Resumen de historia del paciente en pantalla, sin OpenAI si el pedido es claro.
-        $historyLocal = $this->tryLocalHistorySummary($userMessage, $pageContext);
-        if ($historyLocal !== null) {
-            return $historyLocal;
-        }
+            // Resumen de historia del paciente en pantalla, sin OpenAI si el pedido es claro.
+            $historyLocal = $this->tryLocalHistorySummary($userMessage, $pageContext);
+            if ($historyLocal !== null) {
+                return $historyLocal;
+            }
 
-        // Agenda de citas (hoy/mañana + vet/sede) sin OpenAI cuando el pedido es claro.
-        $agendaLocal = $this->tryLocalAgenda($userMessage);
-        if ($agendaLocal !== null) {
-            return $agendaLocal;
+            // Agenda de citas (hoy/mañana + vet/sede) sin OpenAI cuando el pedido es claro.
+            $agendaLocal = $this->tryLocalAgenda($userMessage);
+            if ($agendaLocal !== null) {
+                return $agendaLocal;
+            }
+        } else {
+            // Atajo local: pendientes de pago / cobros.
+            $platformLocal = $this->tryLocalPlatformQuery($userMessage);
+            if ($platformLocal !== null) {
+                return $platformLocal;
+            }
         }
 
         $apiKey = trim((string) config('in-app-assistant.openai_api_key', ''));
@@ -94,7 +105,7 @@ final class InAppAssistantService
         }
 
         $messages = [
-            ['role' => 'system', 'content' => $this->systemPrompt($pageContext)],
+            ['role' => 'system', 'content' => $this->systemPrompt($pageContext, $scope)],
         ];
 
         foreach ($history as $item) {
@@ -109,7 +120,7 @@ final class InAppAssistantService
         $messages[] = ['role' => 'user', 'content' => $userMessage];
 
         $usedTools = [];
-        $reply = $this->chatWithTools($apiKey, $messages, $usedTools);
+        $reply = $this->chatWithTools($apiKey, $messages, $usedTools, $scope);
 
         return [
             'reply' => $reply,
@@ -122,9 +133,9 @@ final class InAppAssistantService
      * @param  array<int, array<string, mixed>>  $messages
      * @param  list<string>  $usedTools
      */
-    private function chatWithTools(string $apiKey, array $messages, array &$usedTools): string
+    private function chatWithTools(string $apiKey, array $messages, array &$usedTools, string $scope = 'clinic'): string
     {
-        $tools = InAppAssistantTools::definitions();
+        $tools = InAppAssistantTools::definitions($scope);
 
         for ($round = 0; $round < self::MAX_TOOL_ROUNDS; $round++) {
             $response = Http::withHeaders([
@@ -211,10 +222,14 @@ final class InAppAssistantService
     }
 
     /**
-     * @param  array{url?: string, component?: string, paciente_id?: string}|null  $pageContext
+     * @param  array{url?: string, component?: string, paciente_id?: string, scope?: string}|null  $pageContext
      */
-    private function systemPrompt(?array $pageContext = null): string
+    private function systemPrompt(?array $pageContext = null, string $scope = 'clinic'): string
     {
+        if ($scope === 'platform') {
+            return $this->platformSystemPrompt($pageContext);
+        }
+
         $clinic = ClinicSetting::query()->first();
         $clinicName = trim((string) ($clinic?->nombre_comercial ?? $clinic?->razon_social ?? ''));
         if ($clinicName === '') {
@@ -279,6 +294,112 @@ PROMPT;
     }
 
     /**
+     * @param  array{url?: string, component?: string, scope?: string}|null  $pageContext
+     */
+    private function platformSystemPrompt(?array $pageContext = null): string
+    {
+        $fecha = now(config('app.timezone', 'America/Lima'))->format('d/m/Y H:i');
+        $contextoPantalla = $this->formatPageContext($pageContext);
+
+        return <<<PROMPT
+Eres el asistente operativo del panel central de VetSaaS (superadmin).
+Responde siempre en español, claro y conciso. Fecha/hora actual: {$fecha}.
+
+═══════════════════════════════════════
+ALCANCE
+═══════════════════════════════════════
+Solo ayudas con operaciones del SaaS:
+1) Cobros/pagos de suscripción (pendientes, fallidos).
+2) Suscripciones en riesgo (grace, suspended, próximo cobro).
+3) Búsqueda de clínicas (tenants) y navegación del panel plataforma.
+4) Resumen operativo de la plataforma.
+
+FUERA DE ALCANCE: cultura general, datos clínicos de una clínica concreta (pacientes/citas), o acciones de escritura.
+Si está fuera de alcance, rechaza en 1–2 frases.
+
+═══════════════════════════════════════
+CONTEXTO DE PANTALLA
+═══════════════════════════════════════
+{$contextoPantalla}
+
+Herramientas clave:
+- «quiénes están pendientes de pago» → cobros_pendientes
+- cobros fallidos → cobros_fallidos
+- clínicas en grace / suspended / próximo cobro → suscripciones_en_riesgo
+- panorama general → resumen_plataforma
+- buscar clínica por nombre → buscar_clinicas
+- ir a un módulo → resolver_navegacion_plataforma
+
+REGLAS:
+- Solo lectura. No marques reembolsos, no cambies estados, no escribas datos.
+- Resume en bullets. Incluye nombres de clínicas y montos cuando existan.
+- Menciona la URL / botón «Ir a…» cuando la herramienta lo aporte.
+PROMPT;
+    }
+
+    /**
+     * Atajos locales (sin OpenAI) para preguntas típicas de plataforma.
+     *
+     * @return array{reply: string, used_tools: list<string>, actions: list<array{type: string, url: string, label: string}>}|null
+     */
+    private function tryLocalPlatformQuery(string $message): ?array
+    {
+        $q = mb_strtolower(trim($message));
+        if ($q === '') {
+            return null;
+        }
+
+        $asksPending = (bool) preg_match(
+            '/pendiente(s)?\s+de\s+pago|cobros?\s+pendiente|quién(es)?\s+(está|estan|están)\s+pendiente|quien(es)?\s+debe(n)?\s+pagar|pagos?\s+pendiente/u',
+            $q,
+        );
+
+        if (! $asksPending) {
+            return null;
+        }
+
+        $json = $this->tools->execute('cobros_pendientes', ['limite' => 20]);
+        $data = json_decode($json, true);
+        if (! is_array($data) || ($data['ok'] ?? false) !== true) {
+            return null;
+        }
+
+        $items = is_array($data['items'] ?? null) ? $data['items'] : [];
+        $count = (int) ($data['count'] ?? count($items));
+
+        if ($count === 0) {
+            return [
+                'reply' => 'No hay cobros en estado pendiente ahora mismo.',
+                'used_tools' => ['cobros_pendientes'],
+                'actions' => $this->tools->pullUiActions(),
+            ];
+        }
+
+        $lines = ["Hay **{$count}** cobro(s) pendiente(s):"];
+        foreach (array_slice($items, 0, 12) as $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+            $clinica = (string) ($item['clinica'] ?? 'Clínica');
+            $total = $item['total'] ?? null;
+            $moneda = (string) ($item['moneda'] ?? 'PEN');
+            $plan = (string) ($item['plan'] ?? '');
+            $monto = $total !== null ? " — {$moneda} {$total}" : '';
+            $planBit = $plan !== '' ? " ({$plan})" : '';
+            $lines[] = "- {$clinica}{$planBit}{$monto}";
+        }
+        if ($count > 12) {
+            $lines[] = '- …y más. Abre Cobros para ver el listado completo.';
+        }
+
+        return [
+            'reply' => implode("\n", $lines),
+            'used_tools' => ['cobros_pendientes'],
+            'actions' => $this->tools->pullUiActions(),
+        ];
+    }
+
+    /**
      * @param  array{url?: string, component?: string, paciente_id?: string}|null  $pageContext
      */
     private function formatPageContext(?array $pageContext): string
@@ -308,13 +429,17 @@ PROMPT;
     /**
      * Rechazo local (sin llamar a OpenAI) para abuso obvio / cultura general.
      */
-    private function shouldRefuseLocally(string $message): bool
+    private function shouldRefuseLocally(string $message, string $scope = 'clinic'): bool
     {
         if ($message === '') {
             return false;
         }
 
-        if ($this->looksClinicRelated($message)) {
+        if ($scope === 'platform') {
+            if ($this->looksPlatformRelated($message)) {
+                return false;
+            }
+        } elseif ($this->looksClinicRelated($message)) {
             return false;
         }
 
@@ -340,6 +465,29 @@ PROMPT;
             'próxima', 'proxima', 'vencer', 'vencen', 'refuerzo',
             'llévame', 'llevame', 'abre', 'abrir', 'historial',
             'agenda', 'veterinario', 'vet ',
+        ];
+
+        foreach ($hints as $hint) {
+            if (str_contains($msg, $hint)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function looksPlatformRelated(string $message): bool
+    {
+        $msg = mb_strtolower($message);
+
+        $hints = [
+            'cobro', 'pago', 'pendiente', 'fallido', 'reembolso', 'factura',
+            'suscripci', 'grace', 'suspended', 'suspendid', 'plan', 'tenant',
+            'clínica', 'clinica', 'veterinaria', 'próximo cobro', 'proximo cobro',
+            'plataforma', 'operaciones', 'saas', 'vetsaas', 'tenant',
+            'quién', 'quien', 'cuánt', 'cuant', 'resumen', 'alerta',
+            'llévame', 'llevame', 'abre', 'abrir', 'buscar', 'busca',
+            'cómo', 'como ', 'dónde', 'donde', 'ayuda',
         ];
 
         foreach ($hints as $hint) {

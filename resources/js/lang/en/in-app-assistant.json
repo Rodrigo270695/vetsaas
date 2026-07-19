@@ -11,6 +11,8 @@
         "badge_offline": "Not configured",
         "welcome_title": "How can I help?",
         "welcome": "I can explain how to use VetSaaS or look up clinic data: patients, owners, products, alerts, and today’s summary.",
+        "welcome_platform": "I can help with SaaS operations: pending payments, at-risk subscriptions, clinics, and panel navigation.",
+        "subtitle_platform": "Central portal · billing & clinics · unlimited",
         "placeholder": "Type your question…",
         "send": "Send",
         "thinking": "Working…",
@@ -29,10 +31,15 @@
             "query_this_patient": "Summarize this patient",
             "nav_vacunas": "Take me to vaccinations",
             "nav_caja": "Take me to cash register",
-            "query_agenda": "What appointments are tomorrow?"
+            "query_agenda": "What appointments are tomorrow?",
+            "platform_pending": "Who has pending payments?",
+            "platform_risk": "Which clinics are in grace or suspended?",
+            "platform_summary": "Give me the platform summary",
+            "platform_failed": "Any recent failed charges?"
         },
         "go_to": "Go to {{label}}",
         "usage": "{{remaining}}/{{limit}} today",
+        "usage_unlimited": "Unlimited",
         "limit_reached": "You’ve reached today’s assistant limit. Try again tomorrow."
     },
     "announcement": {

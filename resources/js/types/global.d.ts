@@ -26,7 +26,15 @@ declare module '@inertiajs/core' {
             in_app_assistant: {
                 enabled: boolean;
                 configured: boolean;
-                announcement: { active: boolean; version: number } | null;
+                scope?: 'clinic' | 'platform';
+                unlimited?: boolean;
+                announcement: {
+                    active: boolean;
+                    version: number;
+                    title?: string | null;
+                    body?: string | null;
+                    features?: string[];
+                } | null;
             } | null;
             tenant_modules: import('@/types/tenant-modules').TenantModulesSnapshot | null;
             tenant_impersonation: SharedTenantImpersonation | null;

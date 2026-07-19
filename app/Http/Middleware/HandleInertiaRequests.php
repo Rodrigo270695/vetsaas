@@ -158,15 +158,25 @@ class HandleInertiaRequests extends Middleware
             'bot_ia_addon' => $skipHeavySharedProps || $tenantContext === null
                 ? null
                 : static fn () => BotIaAccess::navPayload($tenantContext->tenant),
-            'in_app_assistant' => $skipHeavySharedProps || $tenantContext === null
+            'in_app_assistant' => $skipHeavySharedProps
                 ? null
-                : static function (): array {
+                : static function () use ($tenantContext, $user): ?array {
+                    $isClinic = $tenantContext !== null;
+                    $isPlatform = $tenantContext === null
+                        && $user instanceof User
+                        && $user->isCentral()
+                        && $user->hasRole('superadmin');
+
+                    if (! $isClinic && ! $isPlatform) {
+                        return null;
+                    }
+
                     $assistant = app(InAppAssistantService::class);
                     $enabled = (bool) config('in-app-assistant.enabled', true);
                     $configured = $assistant->isConfigured();
 
                     $announcement = null;
-                    if ($enabled && $configured) {
+                    if ($isClinic && $enabled && $configured) {
                         try {
                             $announcement = PlatformSetting::current()->assistantAnnouncementPayload();
                         } catch (Throwable) {
@@ -177,6 +187,8 @@ class HandleInertiaRequests extends Middleware
                     return [
                         'enabled' => $enabled,
                         'configured' => $configured,
+                        'scope' => $isPlatform ? 'platform' : 'clinic',
+                        'unlimited' => $user instanceof User && $user->hasRole('superadmin'),
                         'announcement' => $announcement,
                     ];
                 },

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use App\Services\InAppAssistant\InAppAssistantService;
 use App\Services\InAppAssistant\InAppAssistantUsageLimiter;
 use Illuminate\Http\JsonResponse;
@@ -18,11 +19,14 @@ final class InAppAssistantController extends Controller
         InAppAssistantUsageLimiter $limiter,
     ): JsonResponse {
         $user = $request->user();
-        $usage = $user !== null ? $limiter->snapshot($user) : null;
+        abort_unless($user instanceof User && $this->canUseAssistant($user), 403);
+
+        $usage = $limiter->snapshot($user);
 
         return response()->json([
             'enabled' => (bool) config('in-app-assistant.enabled', true),
             'configured' => $assistant->isConfigured(),
+            'scope' => $this->resolveScope($user),
             'usage' => $usage,
         ]);
     }
@@ -33,7 +37,8 @@ final class InAppAssistantController extends Controller
         InAppAssistantUsageLimiter $limiter,
     ): JsonResponse {
         $user = $request->user();
-        abort_unless($user !== null, 401);
+        abort_unless($user instanceof User, 401);
+        abort_unless($this->canUseAssistant($user), 403);
         abort_unless((bool) config('in-app-assistant.enabled', true), 503);
         abort_unless($assistant->isConfigured(), 503, 'Asistente no configurado (falta OPENAI_API_KEY).');
 
@@ -57,15 +62,16 @@ final class InAppAssistantController extends Controller
             'context.paciente_id' => ['nullable', 'string', 'max:64'],
         ]);
 
-        $pageContext = null;
+        $scope = $this->resolveScope($user);
+
+        $pageContext = [
+            'scope' => $scope,
+        ];
         if (is_array($data['context'] ?? null)) {
-            $pageContext = array_filter([
-                'url' => isset($data['context']['url']) ? (string) $data['context']['url'] : null,
-                'component' => isset($data['context']['component']) ? (string) $data['context']['component'] : null,
-                'paciente_id' => isset($data['context']['paciente_id']) ? (string) $data['context']['paciente_id'] : null,
-            ], static fn ($v) => is_string($v) && $v !== '');
-            if ($pageContext === []) {
-                $pageContext = null;
+            foreach (['url', 'component', 'paciente_id'] as $key) {
+                if (isset($data['context'][$key]) && is_string($data['context'][$key]) && $data['context'][$key] !== '') {
+                    $pageContext[$key] = (string) $data['context'][$key];
+                }
             }
         }
 
@@ -83,6 +89,7 @@ final class InAppAssistantController extends Controller
                 'reply' => $result['reply'],
                 'used_tools' => $result['used_tools'],
                 'actions' => $result['actions'] ?? [],
+                'scope' => $scope,
                 'usage' => $usage,
             ]);
         } catch (Throwable $e) {
@@ -92,5 +99,26 @@ final class InAppAssistantController extends Controller
                 'message' => 'No pude responder ahora. Inténtalo de nuevo en unos segundos.',
             ], 422);
         }
+    }
+
+    private function canUseAssistant(User $user): bool
+    {
+        if (tenant_id() !== null) {
+            return true;
+        }
+
+        return $user->isCentral() && $user->hasRole('superadmin');
+    }
+
+    /**
+     * @return 'platform'|'clinic'
+     */
+    private function resolveScope(User $user): string
+    {
+        if (tenant_id() === null && $user->isCentral() && $user->hasRole('superadmin')) {
+            return 'platform';
+        }
+
+        return 'clinic';
     }
 }
