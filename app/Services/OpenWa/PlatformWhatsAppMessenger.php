@@ -46,13 +46,19 @@ final class PlatformWhatsAppMessenger
     }
 
     /**
+     * Envía texto por la sesión de plataforma.
+     *
+     * Usa fallback de entrega: OpenWA a veces manda el WhatsApp y luego
+     * responde HTTP 5xx/timeout; tratarlo como fallo reenvía duplicados
+     * y no registra el intento de reactivación.
+     *
      * @return array<string, mixed>
      */
     public function sendText(string $chatId, string $text): array
     {
         $sessionId = $this->resolveReadySessionId();
 
-        return $this->client->sendText($sessionId, $chatId, $text);
+        return $this->client->sendTextWithDeliveryFallback($sessionId, $chatId, $text);
     }
 
     private function resolveReadySessionId(): string
