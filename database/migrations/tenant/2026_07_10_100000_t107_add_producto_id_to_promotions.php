@@ -9,6 +9,10 @@ return new class extends TenantMigration
     public function up(): void
     {
         $this->runInTenant(function (): void {
+            if (! Schema::hasTable('promotions') || Schema::hasColumn('promotions', 'producto_id')) {
+                return;
+            }
+
             Schema::table('promotions', function (Blueprint $table): void {
                 $table->foreignUuid('producto_id')
                     ->nullable()
@@ -22,6 +26,10 @@ return new class extends TenantMigration
     public function down(): void
     {
         $this->runInTenant(function (): void {
+            if (! Schema::hasTable('promotions') || ! Schema::hasColumn('promotions', 'producto_id')) {
+                return;
+            }
+
             Schema::table('promotions', function (Blueprint $table): void {
                 $table->dropConstrainedForeignId('producto_id');
             });
