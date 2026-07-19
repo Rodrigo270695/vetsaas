@@ -30,12 +30,29 @@ final class InAppAssistantController extends Controller
             'history' => ['nullable', 'array', 'max:20'],
             'history.*.role' => ['required_with:history', 'string', 'in:user,assistant'],
             'history.*.content' => ['required_with:history', 'string', 'max:4000'],
+            'context' => ['nullable', 'array'],
+            'context.url' => ['nullable', 'string', 'max:500'],
+            'context.component' => ['nullable', 'string', 'max:200'],
+            'context.paciente_id' => ['nullable', 'string', 'max:64'],
         ]);
+
+        $pageContext = null;
+        if (is_array($data['context'] ?? null)) {
+            $pageContext = array_filter([
+                'url' => isset($data['context']['url']) ? (string) $data['context']['url'] : null,
+                'component' => isset($data['context']['component']) ? (string) $data['context']['component'] : null,
+                'paciente_id' => isset($data['context']['paciente_id']) ? (string) $data['context']['paciente_id'] : null,
+            ], static fn ($v) => is_string($v) && $v !== '');
+            if ($pageContext === []) {
+                $pageContext = null;
+            }
+        }
 
         try {
             $result = $assistant->chat(
                 (string) $data['message'],
                 is_array($data['history'] ?? null) ? $data['history'] : [],
+                $pageContext,
             );
 
             return response()->json([

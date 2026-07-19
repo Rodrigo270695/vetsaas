@@ -1,7 +1,8 @@
 import { usePage } from '@inertiajs/react';
 import { Bot, Loader2, SendHorizontal, Sparkles, Trash2, UserRound } from 'lucide-react';
-import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { resolveAssistantPageContext } from '@/components/in-app-assistant/resolve-page-context';
 import { Button } from '@/components/ui/button';
 import {
     Sheet,
@@ -32,7 +33,13 @@ function csrfToken(): string {
 
 export function InAppAssistantPanel({ open, onOpenChange }: Props) {
     const { t } = useTranslation('in-app-assistant');
-    const { in_app_assistant } = usePage().props;
+    const page = usePage();
+    const { in_app_assistant } = page.props;
+    const pacientePropId = (page.props as { paciente?: { id?: string } }).paciente?.id;
+    const pageContext = useMemo(
+        () => resolveAssistantPageContext(page),
+        [page.url, page.component, pacientePropId],
+    );
 
     const [configured, setConfigured] = useState(in_app_assistant?.configured === true);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -80,12 +87,17 @@ export function InAppAssistantPanel({ open, onOpenChange }: Props) {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
     }, [messages, sending, open]);
 
-    const suggestions = [
-        t('panel.suggestions.help_caja'),
-        t('panel.suggestions.help_historia'),
-        t('panel.suggestions.query_today'),
-        t('panel.suggestions.query_stock'),
-    ] as const;
+    const suggestions = useMemo(() => {
+        const base = [
+            t('panel.suggestions.query_alerts'),
+            t('panel.suggestions.query_today'),
+            t('panel.suggestions.help_caja'),
+        ];
+        if (pageContext.paciente_id) {
+            return [t('panel.suggestions.query_this_patient'), ...base];
+        }
+        return [...base, t('panel.suggestions.help_historia')];
+    }, [t, pageContext.paciente_id]);
 
     const sendMessage = async (raw: string) => {
         const message = raw.trim();
@@ -118,7 +130,7 @@ export function InAppAssistantPanel({ open, onOpenChange }: Props) {
                     'X-CSRF-TOKEN': csrfToken(),
                 },
                 credentials: 'same-origin',
-                body: JSON.stringify({ message, history }),
+                body: JSON.stringify({ message, history, context: pageContext }),
             });
 
             const body = (await res.json()) as {
@@ -198,7 +210,9 @@ export function InAppAssistantPanel({ open, onOpenChange }: Props) {
                                 </span>
                             </div>
                             <SheetDescription className="text-xs leading-relaxed">
-                                {t('panel.subtitle')}
+                                {pageContext.paciente_id
+                                    ? t('panel.subtitle_with_patient')
+                                    : t('panel.subtitle')}
                             </SheetDescription>
                         </div>
                     </div>

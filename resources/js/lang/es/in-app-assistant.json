@@ -6,10 +6,11 @@
     "panel": {
         "title": "Asistente VetSaaS",
         "subtitle": "Ayuda del sistema · consultas de solo lectura",
+        "subtitle_with_patient": "Contexto: historial del paciente abierto",
         "badge_ready": "Listo",
         "badge_offline": "Sin configurar",
         "welcome_title": "¿En qué te ayudo?",
-        "welcome": "Puedo explicarte cómo usar VetSaaS o consultar datos de tu clínica: pacientes, propietarios, productos y el resumen del día.",
+        "welcome": "Puedo explicarte cómo usar VetSaaS o consultar datos de tu clínica: pacientes, propietarios, productos, alertas y el resumen del día.",
         "placeholder": "Escribe tu pregunta…",
         "send": "Enviar",
         "thinking": "Consultando…",
@@ -23,7 +24,9 @@
             "help_caja": "¿Cómo abro una sesión de caja?",
             "help_historia": "¿Dónde está el historial clínico?",
             "query_today": "Dame el resumen de hoy",
-            "query_stock": "¿Hay productos con stock bajo?"
+            "query_stock": "¿Hay productos con stock bajo?",
+            "query_alerts": "¿Qué alertas hay hoy?",
+            "query_this_patient": "Resúmeme este paciente"
         }
     }
 }

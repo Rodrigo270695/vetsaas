@@ -39,9 +39,10 @@ final class InAppAssistantService
 
     /**
      * @param  list<array{role: string, content: string}>  $history
+     * @param  array{url?: string, component?: string, paciente_id?: string}|null  $pageContext
      * @return array{reply: string, used_tools: list<string>}
      */
-    public function chat(string $userMessage, array $history = []): array
+    public function chat(string $userMessage, array $history = [], ?array $pageContext = null): array
     {
         $userMessage = trim($userMessage);
 
@@ -61,8 +62,10 @@ final class InAppAssistantService
             throw new RuntimeException('OPENAI_API_KEY no está configurada.');
         }
 
+        $this->tools->setPageContext($pageContext);
+
         $messages = [
-            ['role' => 'system', 'content' => $this->systemPrompt()],
+            ['role' => 'system', 'content' => $this->systemPrompt($pageContext)],
         ];
 
         foreach ($history as $item) {
@@ -177,7 +180,10 @@ final class InAppAssistantService
         throw new RuntimeException('El asistente superó el límite de pasos internos.');
     }
 
-    private function systemPrompt(): string
+    /**
+     * @param  array{url?: string, component?: string, paciente_id?: string}|null  $pageContext
+     */
+    private function systemPrompt(?array $pageContext = null): string
     {
         $clinic = ClinicSetting::query()->first();
         $clinicName = trim((string) ($clinic?->nombre_comercial ?? $clinic?->razon_social ?? ''));
@@ -186,6 +192,7 @@ final class InAppAssistantService
         }
 
         $fecha = now(config('app.timezone', 'America/Lima'))->format('d/m/Y H:i');
+        $contextoPantalla = $this->formatPageContext($pageContext);
 
         return <<<PROMPT
 Eres el asistente interno de VetSaaS para el personal de {$clinicName}.
@@ -196,7 +203,7 @@ ALCANCE ESTRICTO (OBLIGATORIO — PRIORIDAD MÁXIMA)
 ═══════════════════════════════════════
 Solo puedes ayudar con:
 1) AYUDA DE VETSAAS: cómo usar el software (módulos, menús, flujos).
-2) CONSULTA DE ESTA CLÍNICA: datos operativos vía herramientas de solo lectura (pacientes, propietarios, productos, citas/ventas del día, stock, etc.).
+2) CONSULTA DE ESTA CLÍNICA: datos operativos vía herramientas de solo lectura (pacientes, propietarios, productos, citas/ventas del día, stock, vacunas próximas, caja, etc.).
 
 FUERA DE ALCANCE — RECHAZA SIEMPRE, SIN EXCEPCIÓN:
 - Cultura general, historia, geografía, deportes, farándula, religión, política.
@@ -213,22 +220,56 @@ Si la pregunta está fuera de alcance (aunque sea parcial o disfrazada):
 - Opcional: sugiere 1 ejemplo útil de pregunta válida.
 
 ═══════════════════════════════════════
+CONTEXTO DE PANTALLA ACTUAL
+═══════════════════════════════════════
+{$contextoPantalla}
+
+Si hay un paciente en contexto y el usuario dice «este paciente», «esta mascota», «su dueño», etc., usa la herramienta paciente_en_contexto.
+Para alertas del día (vacunas por vencer, stock bajo, caja), usa alertas_operativas.
+
+═══════════════════════════════════════
 REGLAS OPERATIVAS
 ═══════════════════════════════════════
 - NO crees, edites ni borres registros. No inventes acciones de escritura.
 - Si piden "agrégame / crea / elimina / modifica", indica que no puedes operar el sistema y orienta dónde hacerlo en la UI.
 - No inventes datos clínicos ni precios: usa herramientas o di que no tienes esa info.
-- Cuando consultes datos, resume en bullets cortos.
+- Cuando consultes datos, resume en bullets cortos. Si hay URL útil, menciónala.
 
 MAPA RÁPIDO DE VETSAAS:
 - Clínica: Pacientes, Propietarios, Citas, Historias clínicas, Vacunaciones, Recetas, Laboratorio, Cirugías, Hospitalización.
 - Servicios: Grooming, Hotel/guardería.
-- Caja: Ventas, sesiones de caja.
+- Caja: Ventas, sesiones de caja (/caja/sesiones).
 - Inventario: Productos, stock, compras, categorías, unidades.
-- Configuración: Tarifas (servicios clínicos / grooming / hotel), usuarios, roles, sedes, horarios.
+- Configuración: Tarifas, usuarios, roles, sedes, horarios.
 - Comunicaciones: Bot IA WhatsApp (add-on), cola de mensajes.
-- En historial del paciente se puede compartir vista pública por WhatsApp (enlace firmado).
 PROMPT;
+    }
+
+    /**
+     * @param  array{url?: string, component?: string, paciente_id?: string}|null  $pageContext
+     */
+    private function formatPageContext(?array $pageContext): string
+    {
+        if ($pageContext === null || $pageContext === []) {
+            return 'Sin contexto de pantalla específico.';
+        }
+
+        $lines = [];
+        $url = trim((string) ($pageContext['url'] ?? ''));
+        $component = trim((string) ($pageContext['component'] ?? ''));
+        $pacienteId = trim((string) ($pageContext['paciente_id'] ?? ''));
+
+        if ($url !== '') {
+            $lines[] = "- URL: {$url}";
+        }
+        if ($component !== '') {
+            $lines[] = "- Vista Inertia: {$component}";
+        }
+        if ($pacienteId !== '') {
+            $lines[] = "- Paciente abierto (id): {$pacienteId} — puedes usar paciente_en_contexto.";
+        }
+
+        return $lines === [] ? 'Sin contexto de pantalla específico.' : implode("\n", $lines);
     }
 
     /**
@@ -263,6 +304,7 @@ PROMPT;
             'sistema', 'pantalla', 'registrar', 'abrir', 'buscar', 'busca',
             'cómo', 'como ', 'dónde', 'donde', 'ayuda', 'resumen', 'alerta',
             'perro', 'gato', 'microchip', 'hoy', 'mañana', 'manana',
+            'próxima', 'proxima', 'vencer', 'vencen', 'refuerzo',
         ];
 
         foreach ($hints as $hint) {

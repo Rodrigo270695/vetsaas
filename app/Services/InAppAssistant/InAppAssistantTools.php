@@ -70,7 +70,34 @@ final class InAppAssistantTools
                 'type' => 'function',
                 'function' => [
                     'name' => 'resumen_operativo',
-                    'description' => 'Devuelve un resumen rápido: citas de hoy, ventas del día, alertas de stock bajo y pacientes recientes. Solo lectura.',
+                    'description' => 'Resumen rápido: citas/ventas de hoy, stock bajo, caja abierta y vacunas próximas. Solo lectura.',
+                    'parameters' => [
+                        'type' => 'object',
+                        'properties' => (object) [],
+                    ],
+                ],
+            ],
+            [
+                'type' => 'function',
+                'function' => [
+                    'name' => 'alertas_operativas',
+                    'description' => 'Alertas del día: vacunas/desparasitaciones por vencer, stock bajo y estado de sesiones de caja. Solo lectura.',
+                    'parameters' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'dias' => [
+                                'type' => 'integer',
+                                'description' => 'Ventana de días para vacunas próximas (default 14, máx 60).',
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+            [
+                'type' => 'function',
+                'function' => [
+                    'name' => 'paciente_en_contexto',
+                    'description' => 'Detalle del paciente que el usuario está viendo ahora (si hay paciente_id en el contexto de pantalla). Solo lectura.',
                     'parameters' => [
                         'type' => 'object',
                         'properties' => (object) [],

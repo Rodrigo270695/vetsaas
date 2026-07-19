@@ -4,17 +4,32 @@ declare(strict_types=1);
 
 namespace App\Services\InAppAssistant;
 
+use App\Models\CajaSesion;
 use App\Models\Cita;
 use App\Models\ExistenciaSede;
 use App\Models\Paciente;
 use App\Models\Producto;
 use App\Models\Propietario;
+use App\Models\Sede;
+use App\Models\VacunaAplicada;
 use App\Models\Venta;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
 
 final class InAppAssistantToolExecutor
 {
+    /** @var array{url?: string, component?: string, paciente_id?: string}|null */
+    private ?array $pageContext = null;
+
+    /**
+     * @param  array{url?: string, component?: string, paciente_id?: string}|null  $pageContext
+     */
+    public function setPageContext(?array $pageContext): void
+    {
+        $this->pageContext = $pageContext;
+    }
+
     /**
      * @param  array<string, mixed>  $args
      */
@@ -25,6 +40,8 @@ final class InAppAssistantToolExecutor
             'buscar_propietarios' => $this->buscarPropietarios((string) ($args['q'] ?? '')),
             'buscar_productos' => $this->buscarProductos((string) ($args['q'] ?? '')),
             'resumen_operativo' => $this->resumenOperativo(),
+            'alertas_operativas' => $this->alertasOperativas((int) ($args['dias'] ?? 14)),
+            'paciente_en_contexto' => $this->pacienteEnContexto(),
             default => ['ok' => false, 'error' => 'Herramienta no disponible.'],
         };
 
@@ -70,12 +87,14 @@ final class InAppAssistantToolExecutor
                     ?: trim(implode(' ', array_filter([(string) $p->propietario?->nombres, (string) $p->propietario?->apellidos])));
 
                 return [
+                    'id' => $p->id,
                     'nombre' => $p->nombre,
                     'especie' => $p->especie,
                     'raza' => $p->raza,
                     'activo' => $p->activo,
                     'titular' => $titular !== '' ? $titular : null,
                     'telefono_titular' => $p->propietario?->telefono,
+                    'url' => '/clinica/pacientes/'.$p->id,
                 ];
             })->all(),
         ];
@@ -113,10 +132,12 @@ final class InAppAssistantToolExecutor
             'ok' => true,
             'count' => $rows->count(),
             'propietarios' => $rows->map(static fn (Propietario $p): array => [
+                'id' => $p->id,
                 'nombre' => $p->razon_social
                     ?: trim(implode(' ', array_filter([(string) $p->nombres, (string) $p->apellidos]))),
                 'telefono' => $p->telefono,
                 'documento' => $p->documento,
+                'url' => '/clinica/propietarios/'.$p->id,
             ])->all(),
         ];
     }
@@ -150,6 +171,7 @@ final class InAppAssistantToolExecutor
             'ok' => true,
             'count' => $rows->count(),
             'productos' => $rows->map(static fn (Producto $p): array => [
+                'id' => $p->id,
                 'nombre' => $p->nombre,
                 'sku' => $p->sku,
                 'precio_venta' => $p->precio_venta !== null ? (string) $p->precio_venta : null,
@@ -194,6 +216,64 @@ final class InAppAssistantToolExecutor
             ];
         }
 
+        $alertas = $this->alertasOperativas(14);
+        if (($alertas['ok'] ?? false) === true) {
+            $out['alertas'] = [
+                'stock_bajo_count' => $alertas['stock_bajo']['count'] ?? 0,
+                'vacunas_proximas_count' => $alertas['vacunas_proximas']['count'] ?? 0,
+                'cajas_abiertas_count' => $alertas['caja']['abiertas_count'] ?? 0,
+                'usuario_tiene_caja_abierta' => $alertas['caja']['usuario_tiene_abierta'] ?? false,
+            ];
+        }
+
+        if (Schema::hasTable('pacientes')) {
+            $out['pacientes_activos'] = Paciente::query()->where('activo', true)->count();
+        }
+
+        return $out;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function alertasOperativas(int $dias): array
+    {
+        $dias = max(1, min(60, $dias));
+        $tz = (string) config('app.timezone', 'America/Lima');
+        $hoy = Carbon::now($tz)->startOfDay();
+        $hasta = $hoy->copy()->addDays($dias);
+
+        $out = [
+            'ok' => true,
+            'ventana_dias' => $dias,
+            'desde' => $hoy->toDateString(),
+            'hasta' => $hasta->toDateString(),
+        ];
+
+        if (Schema::hasTable('vacunas_aplicadas')) {
+            $rows = VacunaAplicada::query()
+                ->with('paciente:id,nombre')
+                ->whereNotNull('fecha_proxima_sugerida')
+                ->whereDate('fecha_proxima_sugerida', '>=', $hoy->toDateString())
+                ->whereDate('fecha_proxima_sugerida', '<=', $hasta->toDateString())
+                ->orderBy('fecha_proxima_sugerida')
+                ->limit(12)
+                ->get(['id', 'paciente_id', 'nombre_vacuna', 'categoria_registro', 'fecha_proxima_sugerida', 'numero_dosis']);
+
+            $out['vacunas_proximas'] = [
+                'count' => $rows->count(),
+                'items' => $rows->map(static fn (VacunaAplicada $v): array => [
+                    'paciente' => $v->paciente?->nombre,
+                    'paciente_id' => $v->paciente_id,
+                    'vacuna' => $v->nombre_vacuna,
+                    'categoria' => $v->categoria_registro,
+                    'proxima' => optional($v->fecha_proxima_sugerida)?->toDateString(),
+                    'dosis' => $v->numero_dosis,
+                    'url' => $v->paciente_id ? '/clinica/pacientes/'.$v->paciente_id : null,
+                ])->all(),
+            ];
+        }
+
         if (Schema::hasTable('existencias_sede') && Schema::hasTable('productos')) {
             $alertas = ExistenciaSede::query()
                 ->with('producto:id,nombre,sku,stock_minimo')
@@ -220,10 +300,107 @@ final class InAppAssistantToolExecutor
             ];
         }
 
-        if (Schema::hasTable('pacientes')) {
-            $out['pacientes_activos'] = Paciente::query()->where('activo', true)->count();
+        if (Schema::hasTable('caja_sesiones')) {
+            $abiertas = CajaSesion::query()
+                ->where('estado', CajaSesion::ESTADO_ABIERTA)
+                ->orderByDesc('opened_at')
+                ->limit(8)
+                ->get(['id', 'sede_id', 'opened_at', 'opened_by_id', 'moneda', 'saldo_apertura']);
+
+            $sedeIds = $abiertas->pluck('sede_id')->filter()->unique()->values()->all();
+            $sedes = Schema::hasTable('sedes') && $sedeIds !== []
+                ? Sede::query()->whereIn('id', $sedeIds)->pluck('nombre', 'id')
+                : collect();
+
+            $userId = Auth::id();
+            $mias = $abiertas->first(static fn (CajaSesion $s): bool => (string) $s->opened_by_id === (string) $userId);
+
+            $out['caja'] = [
+                'abiertas_count' => $abiertas->count(),
+                'usuario_tiene_abierta' => $mias !== null,
+                'mi_sesion' => $mias === null ? null : [
+                    'sede' => $sedes[$mias->sede_id] ?? null,
+                    'opened_at' => optional($mias->opened_at)?->toDateTimeString(),
+                    'saldo_apertura' => (string) $mias->saldo_apertura,
+                    'moneda' => $mias->moneda,
+                ],
+                'sesiones' => $abiertas->map(static fn (CajaSesion $s): array => [
+                    'sede' => $sedes[$s->sede_id] ?? null,
+                    'opened_at' => optional($s->opened_at)?->toDateTimeString(),
+                    'es_mia' => (string) $s->opened_by_id === (string) $userId,
+                ])->all(),
+                'url' => '/caja/sesiones',
+            ];
         }
 
         return $out;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function pacienteEnContexto(): array
+    {
+        $pacienteId = trim((string) ($this->pageContext['paciente_id'] ?? ''));
+        if ($pacienteId === '') {
+            return [
+                'ok' => false,
+                'error' => 'No hay un paciente en la pantalla actual. Abre el historial de un paciente o indícame el nombre.',
+            ];
+        }
+
+        if (! Schema::hasTable('pacientes')) {
+            return ['ok' => false, 'error' => 'Módulo de pacientes no disponible.'];
+        }
+
+        $p = Paciente::query()
+            ->with('propietario:id,nombres,apellidos,razon_social,telefono,documento')
+            ->find($pacienteId, ['id', 'nombre', 'especie', 'raza', 'sexo', 'activo', 'microchip', 'propietario_id', 'fecha_nacimiento']);
+
+        if ($p === null) {
+            return ['ok' => false, 'error' => 'No encontré ese paciente.'];
+        }
+
+        $titular = $p->propietario?->razon_social
+            ?: trim(implode(' ', array_filter([(string) $p->propietario?->nombres, (string) $p->propietario?->apellidos])));
+
+        $vacunasProximas = [];
+        if (Schema::hasTable('vacunas_aplicadas')) {
+            $tz = (string) config('app.timezone', 'America/Lima');
+            $hoy = Carbon::now($tz)->toDateString();
+            $vacunasProximas = VacunaAplicada::query()
+                ->where('paciente_id', $p->id)
+                ->whereNotNull('fecha_proxima_sugerida')
+                ->whereDate('fecha_proxima_sugerida', '>=', $hoy)
+                ->orderBy('fecha_proxima_sugerida')
+                ->limit(5)
+                ->get(['nombre_vacuna', 'fecha_proxima_sugerida', 'categoria_registro', 'numero_dosis'])
+                ->map(static fn (VacunaAplicada $v): array => [
+                    'vacuna' => $v->nombre_vacuna,
+                    'proxima' => optional($v->fecha_proxima_sugerida)?->toDateString(),
+                    'categoria' => $v->categoria_registro,
+                    'dosis' => $v->numero_dosis,
+                ])
+                ->all();
+        }
+
+        return [
+            'ok' => true,
+            'paciente' => [
+                'id' => $p->id,
+                'nombre' => $p->nombre,
+                'especie' => $p->especie,
+                'raza' => $p->raza,
+                'sexo' => $p->sexo ?? null,
+                'activo' => $p->activo,
+                'microchip' => $p->microchip,
+                'fecha_nacimiento' => optional($p->fecha_nacimiento)?->toDateString(),
+                'titular' => $titular !== '' ? $titular : null,
+                'telefono_titular' => $p->propietario?->telefono,
+                'documento_titular' => $p->propietario?->documento,
+                'url' => '/clinica/pacientes/'.$p->id,
+            ],
+            'vacunas_proximas' => $vacunasProximas,
+        ];
     }
 }

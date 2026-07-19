@@ -6,10 +6,11 @@
     "panel": {
         "title": "VetSaaS assistant",
         "subtitle": "Product help · read-only clinic lookups",
+        "subtitle_with_patient": "Context: open patient history",
         "badge_ready": "Ready",
         "badge_offline": "Not configured",
         "welcome_title": "How can I help?",
-        "welcome": "I can explain how to use VetSaaS or look up clinic data: patients, owners, products, and today’s summary.",
+        "welcome": "I can explain how to use VetSaaS or look up clinic data: patients, owners, products, alerts, and today’s summary.",
         "placeholder": "Type your question…",
         "send": "Send",
         "thinking": "Working…",
@@ -23,7 +24,9 @@
             "help_caja": "How do I open a cash session?",
             "help_historia": "Where is the clinical history?",
             "query_today": "Give me today’s summary",
-            "query_stock": "Any low-stock products?"
+            "query_stock": "Any low-stock products?",
+            "query_alerts": "What alerts are there today?",
+            "query_this_patient": "Summarize this patient"
         }
     }
 }
