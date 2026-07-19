@@ -6,6 +6,7 @@ import {
     FileCheck,
     FileX,
     Hash,
+    History,
     Receipt,
     Sparkles,
     StickyNote,
@@ -166,6 +167,81 @@ export function PaymentDetailModal({
                                 value={payment.tenant?.slug ?? '—'}
                                 mono
                             />
+                            {(payment.pagos_count ?? 0) > 0 ? (
+                                <>
+                                    <DetailRow
+                                        label={t('cobros:detail.fields.pagos_count')}
+                                        value={t('cobros:row.pagos_count', {
+                                            count: payment.pagos_count,
+                                        })}
+                                    />
+                                    <DetailRow
+                                        label={t('cobros:detail.fields.pagado_acumulado')}
+                                        value={formatPrice(
+                                            payment.pagado_acumulado ?? null,
+                                            payment.moneda,
+                                        )}
+                                    />
+                                </>
+                            ) : null}
+                        </DetailSection>
+
+                        <DetailSection
+                            icon={History}
+                            title={t('cobros:detail.section_historial')}
+                        >
+                            {(payment.pagos_count ?? 0) > 0 ? (
+                                <p className="mb-3 text-xs text-muted-foreground">
+                                    {t('cobros:detail.historial_summary', {
+                                        count: payment.pagos_count,
+                                        total: formatPrice(
+                                            payment.pagado_acumulado ?? null,
+                                            payment.moneda,
+                                        ),
+                                    })}
+                                </p>
+                            ) : (
+                                <p className="text-xs text-muted-foreground">
+                                    {t('cobros:detail.historial_empty')}
+                                </p>
+                            )}
+                            {(payment.payment_history?.length ?? 0) > 0 ? (
+                                <ul className="divide-y divide-border/60 overflow-hidden rounded-lg border border-border/70">
+                                    {payment.payment_history!.map((item, index) => {
+                                        const ordinal =
+                                            (payment.pagos_count ??
+                                                payment.payment_history!.length) - index;
+                                        return (
+                                            <li
+                                                key={item.id}
+                                                className="flex items-start justify-between gap-3 px-3 py-2.5"
+                                            >
+                                                <div className="min-w-0 space-y-0.5">
+                                                    <p className="text-xs font-medium text-foreground">
+                                                        {t('cobros:row.pago_n', {
+                                                            n: ordinal,
+                                                        })}
+                                                        {item.plan?.nombre
+                                                            ? ` · ${item.plan.nombre}`
+                                                            : ''}
+                                                    </p>
+                                                    <p className="text-[11px] text-muted-foreground">
+                                                        {formatDateTime(
+                                                            item.pagado_at ?? item.created_at,
+                                                        )}
+                                                        {item.pasarela
+                                                            ? ` · ${item.pasarela}`
+                                                            : ''}
+                                                    </p>
+                                                </div>
+                                                <span className="shrink-0 font-mono text-sm font-semibold tabular-nums">
+                                                    {formatPrice(item.total, item.moneda)}
+                                                </span>
+                                            </li>
+                                        );
+                                    })}
+                                </ul>
+                            ) : null}
                         </DetailSection>
 
                         <DetailSection

@@ -100,9 +100,7 @@ class SubscriptionPaymentController extends Controller
             ->withQueryString();
 
         $subscriptions->setCollection(
-            $subscriptions->getCollection()->map(
-                fn (Subscription $subscription) => CobrosListPresenter::fromSubscription($subscription),
-            ),
+            CobrosListPresenter::mapPage($subscriptions->getCollection()),
         );
 
         $plansCatalog = Plan::query()
@@ -269,13 +267,14 @@ class SubscriptionPaymentController extends Controller
             $query->orderByDesc('created_at');
         }
 
-        $subscriptions = $query
-            ->with([
-                'tenant:id,slug,razon_social',
-                'plan:id,codigo,nombre',
-            ])
-            ->get()
-            ->map(fn (Subscription $subscription) => CobrosListPresenter::fromSubscription($subscription));
+        $subscriptions = CobrosListPresenter::mapPage(
+            $query
+                ->with([
+                    'tenant:id,slug,razon_social',
+                    'plan:id,codigo,nombre',
+                ])
+                ->get(),
+        );
 
         $filename = 'cobros-'.now()->format('Ymd-His').'.xlsx';
         $exporter = new SubscriptionPaymentsXlsxExport();

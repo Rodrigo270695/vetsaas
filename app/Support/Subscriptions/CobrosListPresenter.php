@@ -6,6 +6,7 @@ namespace App\Support\Subscriptions;
 
 use App\Models\Subscription;
 use App\Models\SubscriptionPayment;
+use Illuminate\Support\Collection;
 
 /**
  * Convierte una suscripción de pago en fila del listado Plataforma → Cobros.
@@ -13,6 +14,35 @@ use App\Models\SubscriptionPayment;
  */
 final class CobrosListPresenter
 {
+    /**
+     * @param  Collection<int, Subscription>  $subscriptions
+     * @return Collection<int, array<string, mixed>>
+     */
+    public static function mapPage(Collection $subscriptions): Collection
+    {
+        $tenantIds = $subscriptions
+            ->pluck('tenant_id')
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        $aggregates = self::aggregatesByTenant($tenantIds);
+        $histories = self::historiesByTenant($tenantIds);
+
+        return $subscriptions->map(function (Subscription $subscription) use ($aggregates, $histories): array {
+            $row = self::fromSubscription($subscription);
+            $tenantId = (string) ($subscription->tenant_id ?? '');
+            $stats = $aggregates[$tenantId] ?? ['pagos_count' => 0, 'pagado_acumulado' => 0.0];
+
+            $row['pagos_count'] = (int) $stats['pagos_count'];
+            $row['pagado_acumulado'] = number_format((float) $stats['pagado_acumulado'], 2, '.', '');
+            $row['payment_history'] = $histories[$tenantId] ?? [];
+
+            return $row;
+        });
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -30,6 +60,92 @@ final class CobrosListPresenter
         }
 
         return self::syntheticFromSubscription($subscription);
+    }
+
+    /**
+     * @param  list<string>  $tenantIds
+     * @return array<string, array{pagos_count: int, pagado_acumulado: float}>
+     */
+    private static function aggregatesByTenant(array $tenantIds): array
+    {
+        if ($tenantIds === []) {
+            return [];
+        }
+
+        return SubscriptionPayment::query()
+            ->forBillableOrGateway()
+            ->where('estado', 'procesado')
+            ->whereIn('tenant_id', $tenantIds)
+            ->selectRaw('tenant_id, COUNT(*) as pagos_count, COALESCE(SUM(total), 0) as pagado_acumulado')
+            ->groupBy('tenant_id')
+            ->get()
+            ->mapWithKeys(static fn ($row): array => [
+                (string) $row->tenant_id => [
+                    'pagos_count' => (int) $row->pagos_count,
+                    'pagado_acumulado' => (float) $row->pagado_acumulado,
+                ],
+            ])
+            ->all();
+    }
+
+    /**
+     * Historial de cobros procesados por tenant (más reciente primero).
+     *
+     * @param  list<string>  $tenantIds
+     * @return array<string, list<array<string, mixed>>>
+     */
+    private static function historiesByTenant(array $tenantIds): array
+    {
+        if ($tenantIds === []) {
+            return [];
+        }
+
+        $rows = SubscriptionPayment::query()
+            ->forBillableOrGateway()
+            ->with('plan:id,codigo,nombre')
+            ->where('estado', 'procesado')
+            ->whereIn('tenant_id', $tenantIds)
+            ->orderByDesc('pagado_at')
+            ->orderByDesc('created_at')
+            ->get([
+                'id',
+                'tenant_id',
+                'plan_id',
+                'total',
+                'moneda',
+                'pasarela',
+                'pasarela_transaction_id',
+                'periodo_inicio',
+                'periodo_fin',
+                'pagado_at',
+                'created_at',
+            ]);
+
+        $grouped = [];
+        foreach ($rows as $payment) {
+            $tenantId = (string) $payment->tenant_id;
+            if (! isset($grouped[$tenantId])) {
+                $grouped[$tenantId] = [];
+            }
+            if (count($grouped[$tenantId]) >= 12) {
+                continue;
+            }
+
+            $grouped[$tenantId][] = [
+                'id' => $payment->id,
+                'total' => (string) $payment->total,
+                'moneda' => (string) ($payment->moneda ?: 'PEN'),
+                'pasarela' => $payment->pasarela,
+                'pasarela_transaction_id' => $payment->pasarela_transaction_id,
+                'plan' => $payment->plan?->only(['id', 'codigo', 'nombre']),
+                'periodo_inicio' => optional($payment->periodo_inicio)?->toIso8601String(),
+                'periodo_fin' => optional($payment->periodo_fin)?->toIso8601String(),
+                'pagado_at' => optional($payment->pagado_at)?->toIso8601String(),
+                'created_at' => optional($payment->created_at)?->toIso8601String(),
+            ];
+        }
+
+        return $grouped;
     }
 
     private static function resolvePayment(Subscription $subscription): ?SubscriptionPayment

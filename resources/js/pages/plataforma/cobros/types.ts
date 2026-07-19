@@ -58,6 +58,19 @@ export type PaymentRefundedByRef = {
     email: string;
 };
 
+export type PaymentHistoryItem = {
+    id: string;
+    total: string;
+    moneda: string;
+    pasarela: string | null;
+    pasarela_transaction_id: string | null;
+    plan: { id: string; codigo: string; nombre: string } | null;
+    periodo_inicio: string | null;
+    periodo_fin: string | null;
+    pagado_at: string | null;
+    created_at: string | null;
+};
+
 export type SubscriptionPayment = {
     /** UUID. */
     id: string;
@@ -93,6 +106,12 @@ export type SubscriptionPayment = {
     refundedBy: PaymentRefundedByRef | null;
     /** false cuando la fila viene de la suscripción sin webhook de pago. */
     has_payment_record?: boolean;
+    /** Cantidad de cobros procesados del tenant (histórico Orvae). */
+    pagos_count?: number;
+    /** Suma de totales procesados del tenant. */
+    pagado_acumulado?: string;
+    /** Últimos cobros procesados del tenant (más reciente primero). */
+    payment_history?: PaymentHistoryItem[];
 };
 
 export type PaymentStats = {

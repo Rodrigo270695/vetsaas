@@ -396,6 +396,46 @@ export default function Index({
                 ),
             },
             {
+                key: 'pagos_count',
+                header: t('cobros:columns.pagos_count'),
+                cell: (p) => {
+                    const count = p.pagos_count ?? 0;
+                    if (count < 1) {
+                        return (
+                            <span className="text-xs text-muted-foreground">—</span>
+                        );
+                    }
+                    return (
+                        <div className="flex flex-col leading-tight">
+                            <span className="text-sm font-semibold tabular-nums">
+                                {t('cobros:row.pagos_count', { count })}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground">
+                                {t('cobros:row.pago_n', { n: count })}
+                            </span>
+                        </div>
+                    );
+                },
+            },
+            {
+                key: 'pagado_acumulado',
+                header: t('cobros:columns.pagado_acumulado'),
+                align: 'right',
+                cell: (p) => {
+                    const count = p.pagos_count ?? 0;
+                    if (count < 1 || !p.pagado_acumulado) {
+                        return (
+                            <span className="text-xs text-muted-foreground">—</span>
+                        );
+                    }
+                    return (
+                        <span className="font-mono text-sm font-semibold tabular-nums text-emerald-700 dark:text-emerald-400">
+                            {formatPrice(p.pagado_acumulado)}
+                        </span>
+                    );
+                },
+            },
+            {
                 key: 'total',
                 header: t('cobros:columns.total'),
                 sortable: true,
@@ -404,6 +444,9 @@ export default function Index({
                     <div className="flex flex-col items-end leading-tight">
                         <span className="font-mono text-sm font-semibold tabular-nums">
                             {formatPrice(p.total)}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">
+                            {t('cobros:columns.total_hint')}
                         </span>
                         {Number(p.descuento_monto) > 0 && (
                             <span className="font-mono text-[10px] text-emerald-600 dark:text-emerald-400">
