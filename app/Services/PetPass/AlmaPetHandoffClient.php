@@ -167,31 +167,67 @@ final class AlmaPetHandoffClient
             ]);
         }
 
-        $data = $response->json();
-        if (! is_array($data)) {
-            $preview = Str::limit(trim(strip_tags($response->body())), 160);
+        $data = $this->decodeJsonBody($response);
+        if ($data === null) {
+            $preview = Str::limit(trim(preg_replace('/\s+/', ' ', $response->body()) ?? ''), 160);
 
             throw ValidationException::withMessages([
                 'petpass' => 'AlmaPet ID no devolvió JSON en '.$url.' (HTTP '.$response->status().'). '.$preview,
             ]);
         }
 
-        $handoffUrl = $data['url'] ?? $data['data']['url'] ?? null;
+        $handoffUrl = $data['url'] ?? (is_array($data['data'] ?? null) ? ($data['data']['url'] ?? null) : null);
         if (! is_string($handoffUrl) || blank($handoffUrl)) {
             throw ValidationException::withMessages([
                 'petpass' => 'Respuesta inválida de AlmaPet ID (sin url). Keys: '.implode(', ', array_keys($data)).'. HTTP '.$response->status(),
             ]);
         }
 
+        $nested = is_array($data['data'] ?? null) ? $data['data'] : [];
+
         $paciente->forceFill([
             'petpass_status' => 'pending',
         ])->save();
 
         return [
-            'token' => (string) ($data['token'] ?? $data['data']['token'] ?? ''),
+            'token' => (string) ($data['token'] ?? $nested['token'] ?? ''),
             'url' => $handoffUrl,
-            'expires_at' => (string) ($data['expires_at'] ?? $data['data']['expires_at'] ?? ''),
+            'expires_at' => (string) ($data['expires_at'] ?? $nested['expires_at'] ?? ''),
         ];
+    }
+
+    /**
+     * Decodifica el body aunque Content-Type / BOM confundan a Http::json().
+     *
+     * @return array<string, mixed>|null
+     */
+    private function decodeJsonBody(\Illuminate\Http\Client\Response $response): ?array
+    {
+        $fromClient = $response->json();
+        if (is_array($fromClient)) {
+            return $fromClient;
+        }
+
+        $raw = $response->body();
+        if ($raw === '') {
+            return null;
+        }
+
+        // UTF-8 BOM u otros bytes antes del JSON rompen json_decode.
+        $raw = preg_replace('/^\xEF\xBB\xBF/', '', $raw) ?? $raw;
+        $raw = trim($raw);
+
+        // Si hubo notice/warning pegado al body, quédate con el objeto JSON.
+        if ($raw !== '' && ($raw[0] ?? '') !== '{') {
+            $pos = strpos($raw, '{');
+            if ($pos !== false) {
+                $raw = substr($raw, $pos);
+            }
+        }
+
+        $decoded = json_decode($raw, true);
+
+        return is_array($decoded) ? $decoded : null;
     }
 
     /**
@@ -199,12 +235,13 @@ final class AlmaPetHandoffClient
      */
     private function extractErrorMessage(\Illuminate\Http\Client\Response $response): ?string
     {
-        $message = $response->json('message');
+        $payload = $this->decodeJsonBody($response);
+        $message = is_array($payload) ? ($payload['message'] ?? null) : null;
         if (is_string($message) && $message !== '' && $message !== 'The given data was invalid.') {
             return $message;
         }
 
-        $errors = $response->json('errors');
+        $errors = is_array($payload) ? ($payload['errors'] ?? null) : null;
         if (! is_array($errors)) {
             return is_string($message) && $message !== '' ? $message : null;
         }
