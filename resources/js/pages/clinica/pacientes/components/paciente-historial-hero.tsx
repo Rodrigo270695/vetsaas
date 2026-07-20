@@ -15,11 +15,12 @@ import {
     Syringe,
     UserRound,
 } from 'lucide-react';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { calcularEdadMascota } from '@/lib/edad-desde-fecha-nacimiento';
+import { toastManager } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import clinica from '@/routes/clinica';
 import type { Paciente } from '../../propietarios/types';
@@ -137,6 +138,7 @@ export function PacienteHistorialHero({
 }: Props) {
     const { t } = useTranslation(['pacientes']);
     const isPublic = variant === 'public';
+    const [petpassBusy, setPetpassBusy] = useState(false);
     const subline = [paciente.especie, paciente.raza].filter(Boolean).join(' · ');
     const sexo = sexoLabel(t, paciente.sexo);
     const edad = useMemo(() => calcularEdadMascota(paciente.fecha_nacimiento), [paciente.fecha_nacimiento]);
@@ -146,6 +148,53 @@ export function PacienteHistorialHero({
             ? Number.parseFloat(String(paciente.peso_kg))
             : null;
     const pesoOk = pesoNum != null && !Number.isNaN(pesoNum);
+
+    const startPetPassRegistration = async () => {
+        const url = links.petpass_registrar;
+        if (!url || petpassBusy) {
+            return;
+        }
+
+        setPetpassBusy(true);
+        try {
+            const res = await fetch(url, {
+                method: 'GET',
+                credentials: 'same-origin',
+                headers: {
+                    Accept: 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            });
+
+            const data = (await res.json().catch(() => ({}))) as { message?: string; url?: string };
+
+            if (!res.ok) {
+                toastManager.error({
+                    title: data.message || t('historial.petpass_start_error'),
+                    duration: 8000,
+                });
+                return;
+            }
+
+            if (!data.url) {
+                toastManager.error({
+                    title: t('historial.petpass_start_error'),
+                    duration: 8000,
+                });
+                return;
+            }
+
+            window.location.assign(data.url);
+        } catch {
+            toastManager.error({
+                title: t('historial.petpass_start_error'),
+                duration: 8000,
+            });
+        } finally {
+            setPetpassBusy(false);
+        }
+    };
+
 
     return (
         <section className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm ring-1 ring-black/[0.03] dark:ring-white/5">
@@ -345,19 +394,18 @@ export function PacienteHistorialHero({
                         </Button>
                     ) : null}
                     {!isPublic && links.petpass_registrar ? (
-                        <Button type="button" size="sm" variant="outline" className="gap-2 border-cyan-500/35 text-cyan-800 hover:bg-cyan-500/10 dark:text-cyan-200" asChild>
-                            <a
-                                href={links.petpass_registrar}
-                                onClick={(e) => {
-                                    // Navegación completa: el handoff responde con redirect externo a AlmaPet.
-                                    // Si Inertia intercepta el <a>, el navegador solo recarga el historial.
-                                    e.preventDefault();
-                                    window.location.assign(links.petpass_registrar!);
-                                }}
-                            >
-                                <ShieldCheck className="size-4" strokeWidth={2.25} />
-                                {t('historial.action_petpass_register')}
-                            </a>
+                        <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="gap-2 border-cyan-500/35 text-cyan-800 hover:bg-cyan-500/10 dark:text-cyan-200"
+                            disabled={petpassBusy}
+                            onClick={() => void startPetPassRegistration()}
+                        >
+                            <ShieldCheck className="size-4" strokeWidth={2.25} />
+                            {petpassBusy
+                                ? t('historial.action_petpass_registering')
+                                : t('historial.action_petpass_register')}
                         </Button>
                     ) : null}
                     {!isPublic && links.petpass_propietario ? (
