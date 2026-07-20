@@ -3,8 +3,10 @@
 namespace App\Http\Requests;
 
 use App\Http\Requests\Concerns\AssignsAuthenticatedVeterinario;
+use App\Support\Citas\CitaInicioValidator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class StoreCitaRequest extends FormRequest
 {
@@ -68,20 +70,24 @@ class StoreCitaRequest extends FormRequest
                     fn ($q) => $q->where('tenant_id', $tenantId)->where('activa', true),
                 ),
             ],
-            'inicio_at' => ['required', 'date', 'after:now'],
+            'inicio_at' => ['required', 'date'],
             'duracion_minutos' => ['required', 'integer', 'min:5', 'max:480'],
             'motivo' => ['nullable', 'string', 'max:2000'],
             'notas' => ['nullable', 'string', 'max:20000'],
         ];
     }
 
-    /**
-     * @return array<string, string>
-     */
-    public function messages(): array
+    public function withValidator(Validator $validator): void
     {
-        return [
-            'inicio_at.after' => __('citas.validation.inicio_pasado'),
-        ];
+        $validator->after(function (Validator $validator): void {
+            $raw = $this->input('inicio_at');
+            if (! is_string($raw)) {
+                return;
+            }
+
+            if (CitaInicioValidator::isPast($raw)) {
+                $validator->errors()->add('inicio_at', __('citas.validation.inicio_pasado'));
+            }
+        });
     }
 }

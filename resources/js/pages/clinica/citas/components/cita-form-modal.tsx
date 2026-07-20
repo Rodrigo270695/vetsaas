@@ -57,8 +57,16 @@ function isDatetimeLocalPast(value: string): boolean {
     }
 
     const d = new Date(value);
+    if (Number.isNaN(d.getTime())) {
+        return false;
+    }
 
-    return !Number.isNaN(d.getTime()) && d.getTime() <= Date.now();
+    const now = new Date();
+    const floorMin = (x: Date) =>
+        new Date(x.getFullYear(), x.getMonth(), x.getDate(), x.getHours(), x.getMinutes()).getTime();
+
+    // Comparar al minuto: el minuto actual sigue siendo válido.
+    return floorMin(d) < floorMin(now);
 }
 
 function isHoraPastOnDate(fecha: string, hora: string): boolean {

@@ -235,11 +235,8 @@ export function CitasCalendar({
             return;
         }
 
+        // Solo selecciona el día para la agenda lateral; el "+" abre el modal.
         setSelectedDay(dateKey);
-
-        if (canCreate && !isDateFullyPast(dateKey, timeZone)) {
-            onScheduleDay(dateKey);
-        }
     };
 
     const resolveDragCita = (e: DragEvent): CitaRow | null => {
@@ -506,10 +503,19 @@ export function CitasCalendar({
                                         ) : null}
                                     </div>
 
-                                    {inMonth && canCreate ? (
-                                        <span className="pointer-events-none absolute bottom-1 right-1 opacity-0 transition-opacity group-hover:opacity-100">
-                                            <Plus className="size-3.5 text-primary" />
-                                        </span>
+                                    {inMonth && canCreate && !isDateFullyPast(dateKey, timeZone) ? (
+                                        <button
+                                            type="button"
+                                            aria-label={t('calendar.schedule_day')}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setSelectedDay(dateKey);
+                                                onScheduleDay(dateKey);
+                                            }}
+                                            className="absolute bottom-1 right-1 flex size-6 cursor-pointer items-center justify-center rounded-md bg-primary/10 text-primary opacity-0 transition-opacity hover:bg-primary/20 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                        >
+                                            <Plus className="size-3.5" />
+                                        </button>
                                     ) : null}
                                 </div>
                             );

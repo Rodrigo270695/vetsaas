@@ -28,7 +28,7 @@
         "prev_week": "Semana anterior",
         "next_week": "Semana siguiente",
         "more": "más",
-        "click_day_hint": "Haz clic en un día para agendar (elige la hora) o usa un horario en la agenda lateral.",
+        "click_day_hint": "Haz clic en un día para ver su agenda. Usa el + del día o un horario en la barra derecha para crear una cita.",
         "drag_hint": "Arrastra una cita programada o confirmada a otro día u horario para reprogramarla.",
         "pick_month": "Ir a un mes",
         "pick_year": "Ir a un año",
@@ -49,7 +49,8 @@
         }
     },
     "detail": {
-        "edit": "Editar cita"
+        "edit": "Editar cita",
+        "open_consulta": "Aperturar cita"
     },
     "columns": {
         "inicio_at": "Inicio",
@@ -82,10 +83,10 @@
     },
     "toast": {
         "load_error": "No se pudo cargar el listado.",
-        "inicio_pasado": "No puedes agendar ni reprogramar en una fecha u hora ya pasada."
+        "inicio_pasado": "La hora no puede ser anterior al minuto actual."
     },
     "validation": {
-        "inicio_pasado": "No puedes agendar ni reprogramar una cita en una fecha u hora ya pasada."
+        "inicio_pasado": "La fecha y hora de la cita no puede ser anterior al minuto actual."
     },
     "form": {
         "title_create": "Nueva cita",

@@ -1,4 +1,4 @@
-import { usePage } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
 import { Clock, MapPin, Pencil, Stethoscope, Trash2, User, XCircle } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -12,7 +12,9 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { usePermission } from '@/hooks/use-permission';
 import { cn } from '@/lib/utils';
+import clinica from '@/routes/clinica';
 import { formatAtendidoInAppTimezone } from '../../historias-clinicas/format-atendido';
 import type { CitaRow } from '../types';
 import { displayPacienteCita, displayPropietarioCita } from './citas-calendar';
@@ -82,6 +84,7 @@ export function CitaDetailModal({
 }: Props) {
     const { t } = useTranslation(['citas', 'common']);
     const { locale: appLocale, timezone: appTz } = usePage().props;
+    const { can } = usePermission();
 
     if (!cita) {
         return null;
@@ -89,6 +92,24 @@ export function CitaDetailModal({
 
     const canCancelCita =
         canCancel && !['cancelada', 'completada'].includes(cita.estado);
+
+    const canAperturar =
+        can('historias-clinicas.create') &&
+        Boolean(cita.paciente_id) &&
+        ['programada', 'confirmada'].includes(cita.estado);
+
+    const aperturarConsulta = () => {
+        const query: Record<string, string> = {
+            nuevo_para_paciente: cita.paciente_id,
+        };
+        const motivo = cita.motivo?.trim();
+        if (motivo) {
+            query.motivo = motivo;
+        }
+
+        onOpenChange(false);
+        router.visit(clinica.historiasClinicas.url({ query }));
+    };
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -166,9 +187,20 @@ export function CitaDetailModal({
 
                 <DialogFooter className="flex-col gap-2 border-t border-border/60 bg-muted/20 px-6 py-4 sm:flex-row sm:justify-between">
                     <div className="flex flex-wrap gap-2">
+                        {canAperturar ? (
+                            <Button
+                                type="button"
+                                className="cursor-pointer gap-2"
+                                onClick={aperturarConsulta}
+                            >
+                                <Stethoscope className="size-4" />
+                                {t('citas:detail.open_consulta')}
+                            </Button>
+                        ) : null}
                         {canUpdate ? (
                             <Button
                                 type="button"
+                                variant={canAperturar ? 'outline' : 'default'}
                                 className="cursor-pointer gap-2"
                                 onClick={() => {
                                     onOpenChange(false);

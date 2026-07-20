@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\Cita;
+use App\Support\Citas\CitaInicioValidator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
@@ -19,17 +20,7 @@ class RescheduleCitaRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'inicio_at' => ['required', 'date', 'after:now'],
-        ];
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    public function messages(): array
-    {
-        return [
-            'inicio_at.after' => __('citas.validation.inicio_pasado'),
+            'inicio_at' => ['required', 'date'],
         ];
     }
 
@@ -44,6 +35,17 @@ class RescheduleCitaRequest extends FormRequest
 
             if (! in_array($cita->estado, [Cita::ESTADO_PROGRAMADA, Cita::ESTADO_CONFIRMADA], true)) {
                 $validator->errors()->add('inicio_at', __('citas.reschedule.estado_bloqueado'));
+
+                return;
+            }
+
+            $raw = $this->input('inicio_at');
+            if (! is_string($raw)) {
+                return;
+            }
+
+            if (CitaInicioValidator::isPast($raw)) {
+                $validator->errors()->add('inicio_at', __('citas.validation.inicio_pasado'));
             }
         });
     }

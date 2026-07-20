@@ -28,7 +28,7 @@
         "prev_week": "Previous week",
         "next_week": "Next week",
         "more": "more",
-        "click_day_hint": "Click a day to schedule (pick the time) or use a time slot in the side agenda.",
+        "click_day_hint": "Click a day to view its agenda. Use the day’s + or a time slot on the right to create an appointment.",
         "drag_hint": "Drag a scheduled or confirmed appointment to another day or time slot to reschedule it.",
         "pick_month": "Jump to month",
         "pick_year": "Jump to year",
@@ -49,7 +49,8 @@
         }
     },
     "detail": {
-        "edit": "Edit appointment"
+        "edit": "Edit appointment",
+        "open_consulta": "Start consultation"
     },
     "columns": {
         "inicio_at": "Start",
@@ -82,10 +83,10 @@
     },
     "toast": {
         "load_error": "Could not load the list.",
-        "inicio_pasado": "You cannot schedule or reschedule in the past."
+        "inicio_pasado": "The time cannot be before the current minute."
     },
     "validation": {
-        "inicio_pasado": "You cannot schedule or reschedule an appointment in the past."
+        "inicio_pasado": "The appointment date and time cannot be before the current minute."
     },
     "form": {
         "title_create": "New appointment",

@@ -24,8 +24,10 @@ export type ConsultaFormModalProps = {
     onOpenChange: (open: boolean) => void;
     consulta: ConsultaHistoriaRow | null;
     pacientesOpciones: readonly PacienteHistoriaOpcion[];
-    /** Desde `?nuevo_para_paciente=` en la URL (ficha del paciente). */
+    /** Desde `?nuevo_para_paciente=` en la URL (ficha del paciente / aperturar cita). */
     pacienteIdPrefillNueva?: string | null;
+    /** Motivo opcional desde `?motivo=` (p. ej. al aperturar una cita). */
+    motivoPrefillNueva?: string | null;
     puedeCerrarConsulta?: boolean;
 };
 
@@ -98,6 +100,7 @@ export function ConsultaFormModal({
     consulta,
     pacientesOpciones,
     pacienteIdPrefillNueva = null,
+    motivoPrefillNueva = null,
     puedeCerrarConsulta = false,
 }: ConsultaFormModalProps) {
     const { t } = useTranslation(['historias-clinicas', 'common', 'offline']);
@@ -169,6 +172,7 @@ export function ConsultaFormModal({
             setData({
                 ...emptyForm,
                 paciente_id: pre,
+                motivo: motivoPrefillNueva?.trim() ? motivoPrefillNueva.trim() : '',
                 atendido_at: defaultAtendidoLocal(),
             });
             if (pre && prefillIdRef.current !== pre) {
@@ -180,7 +184,7 @@ export function ConsultaFormModal({
         setShowClosePrompt(false);
         clearErrors();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [open, consulta?.id, pacienteIdPrefillNueva]);
+    }, [open, consulta?.id, pacienteIdPrefillNueva, motivoPrefillNueva]);
 
     const pacienteComboboxOptions = useMemo<readonly ComboboxOption[]>(
         () =>

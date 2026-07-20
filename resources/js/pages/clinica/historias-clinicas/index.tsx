@@ -49,6 +49,7 @@ type Props = {
             apellidos: string | null;
             razon_social: string | null;
         } | null;
+        motivo?: string | null;
     } | null;
     pacientes_opciones: readonly PacienteHistoriaOpcion[];
     filters: ConsultaHistoriaFilters;
@@ -281,6 +282,7 @@ export default function Index({
 
         if (url.searchParams.has('nuevo_para_paciente')) {
             url.searchParams.delete('nuevo_para_paciente');
+            url.searchParams.delete('motivo');
             window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
         }
     }, [paciente_prefill_nueva_consulta, canCreate]);
@@ -616,6 +618,7 @@ export default function Index({
                 consulta={modal.type === 'edit' ? modal.consulta : null}
                 pacientesOpciones={pacientes_opciones}
                 pacienteIdPrefillNueva={paciente_prefill_nueva_consulta?.id ?? null}
+                motivoPrefillNueva={paciente_prefill_nueva_consulta?.motivo ?? null}
                 puedeCerrarConsulta={canUpdate}
             />
 

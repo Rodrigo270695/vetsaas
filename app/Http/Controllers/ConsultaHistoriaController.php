@@ -265,7 +265,7 @@ class ConsultaHistoriaController extends Controller
     }
 
     /**
-     * @return array{id: string, nombre: string, propietario: array<string, mixed>}|null
+     * @return array{id: string, nombre: string, propietario: array<string, mixed>|null, motivo: ?string}|null
      */
     private function pacientePrefillNuevaConsultaDesdeQuery(Request $request): ?array
     {
@@ -289,6 +289,11 @@ class ConsultaHistoriaController extends Controller
         }
 
         $prop = $paciente->propietario;
+        $motivoRaw = $request->query('motivo');
+        $motivo = is_string($motivoRaw) ? trim($motivoRaw) : '';
+        if (mb_strlen($motivo) > 2000) {
+            $motivo = mb_substr($motivo, 0, 2000);
+        }
 
         return [
             'id' => $paciente->id,
@@ -299,6 +304,7 @@ class ConsultaHistoriaController extends Controller
                 'apellidos' => $prop->apellidos,
                 'razon_social' => $prop->razon_social,
             ] : null,
+            'motivo' => $motivo !== '' ? $motivo : null,
         ];
     }
 

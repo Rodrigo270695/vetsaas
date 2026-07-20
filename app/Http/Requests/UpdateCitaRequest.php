@@ -4,8 +4,8 @@ namespace App\Http\Requests;
 
 use App\Http\Requests\Concerns\AssignsAuthenticatedVeterinario;
 use App\Models\Cita;
+use App\Support\Citas\CitaInicioValidator;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
@@ -85,13 +85,7 @@ class UpdateCitaRequest extends FormRequest
                 return;
             }
 
-            try {
-                $inicio = Carbon::parse($raw, config('app.timezone'));
-            } catch (\Throwable) {
-                return;
-            }
-
-            if ($inicio->lte(now())) {
+            if (CitaInicioValidator::isPast($raw)) {
                 $validator->errors()->add('inicio_at', __('citas.validation.inicio_pasado'));
             }
         });
