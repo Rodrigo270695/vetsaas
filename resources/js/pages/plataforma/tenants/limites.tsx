@@ -325,6 +325,7 @@ export default function TenantLimites({ tenant, plan, features }: Props) {
                                         >
                                             {isPaid
                                                 ? t('tenants:limits.badge_paid', {
+                                                      count: extraNum || 1,
                                                       amount: precioNum.toFixed(2),
                                                   })
                                                 : overrideNum !== null
@@ -381,9 +382,6 @@ export default function TenantLimites({ tenant, plan, features }: Props) {
                                                 })
                                             }
                                         />
-                                        <p className="text-[11px] text-muted-foreground">
-                                            {t('tenants:limits.precio_hint')}
-                                        </p>
                                     </div>
                                     <div className="grid gap-1.5">
                                         <Label

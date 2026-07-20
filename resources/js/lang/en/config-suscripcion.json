@@ -101,7 +101,7 @@
         "usage_unlimited": "{{used}} registered (unlimited)",
         "remaining": "{{count}} left",
         "includes_extra": "Includes +{{count}} courtesy",
-        "includes_paid": "Includes +{{count}} (+S/. {{amount}} / month)",
+        "includes_paid": "Includes +{{count}} add-on (+S/. {{amount}} / month)",
         "unlimited_hint": "No cap on this plan.",
         "features": {
             "max_sedes": "Sites",

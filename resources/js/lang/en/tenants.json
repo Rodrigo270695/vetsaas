@@ -184,7 +184,6 @@
         "extra": "Extra (+)",
         "precio_mensual": "Price / month (S/.)",
         "precio_placeholder": "0 = courtesy",
-        "precio_hint": "If set, it is added to renewal billing (like AI assistant).",
         "override": "Fixed cap",
         "override_placeholder": "Empty = plan + extra",
         "expires_at": "Expires",
@@ -194,7 +193,7 @@
         "unsaved": "Unsaved changes",
         "active_extras": "{{count}} with extra/cap",
         "badge_extra": "+{{count}} courtesy",
-        "badge_paid": "+S/. {{amount}}/mo",
+        "badge_paid": "+{{count}} add-on · S/. {{amount}}/mo",
         "badge_override": "Fixed cap",
         "features": {
             "max_sedes": "Sites",

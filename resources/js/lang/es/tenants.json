@@ -184,7 +184,6 @@
         "extra": "Extra (+)",
         "precio_mensual": "Precio / mes (S/.)",
         "precio_placeholder": "0 = cortesía",
-        "precio_hint": "Si tiene monto, se suma al cobro de renovación (como Asistente IA).",
         "override": "Tope fijo",
         "override_placeholder": "Vacío = usar plan + extra",
         "expires_at": "Vence",
@@ -194,7 +193,7 @@
         "unsaved": "Cambios sin guardar",
         "active_extras": "{{count}} con extra/tope",
         "badge_extra": "+{{count}} cortesía",
-        "badge_paid": "+S/. {{amount}}/mes",
+        "badge_paid": "+{{count}} adicional · S/. {{amount}}/mes",
         "badge_override": "Tope fijo",
         "features": {
             "max_sedes": "Sedes",
