@@ -1,4 +1,4 @@
-import { Head, usePage } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import { AlertTriangle, FileText, Filter, Lock, Plus, Stethoscope } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -168,6 +168,27 @@ export default function Index({
             direction: null,
         },
     });
+
+    const isLoadingRef = useRef(isLoading);
+
+    useEffect(() => {
+        isLoadingRef.current = isLoading;
+    }, [isLoading]);
+
+    useEffect(() => {
+        const interval = window.setInterval(() => {
+            if (document.visibilityState !== 'visible' || isLoadingRef.current) {
+                return;
+            }
+
+            router.reload({
+                only: ['consultas', 'stats'],
+                preserveScroll: true,
+            });
+        }, 15_000);
+
+        return () => window.clearInterval(interval);
+    }, []);
 
     const [modal, setModal] = useState<ModalState>({ type: 'idle' });
     const [cerrarTodasOpen, setCerrarTodasOpen] = useState(false);

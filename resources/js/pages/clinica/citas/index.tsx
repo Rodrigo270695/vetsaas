@@ -143,6 +143,27 @@ export default function Index({
         },
     });
 
+    const isLoadingRef = useRef(isLoading);
+
+    useEffect(() => {
+        isLoadingRef.current = isLoading;
+    }, [isLoading]);
+
+    useEffect(() => {
+        const interval = window.setInterval(() => {
+            if (document.visibilityState !== 'visible' || isLoadingRef.current) {
+                return;
+            }
+
+            router.reload({
+                only: ['citas', 'citas_agenda', 'stats'],
+                preserveScroll: true,
+            });
+        }, 15_000);
+
+        return () => window.clearInterval(interval);
+    }, []);
+
     const [modal, setModal] = useState<ModalState>({ type: 'idle' });
     const closeModal = useCallback(() => setModal({ type: 'idle' }), []);
     const openCreate = useCallback(() => setModal({ type: 'create' }), []);
