@@ -155,6 +155,27 @@ export function PacienteHistorialHero({
             return;
         }
 
+        // Abrir en el mismo gesto del click (si no, Chrome bloquea el popup tras el fetch async).
+        // No usar "noopener" en features: en varios navegadores window.open() devolvería null.
+        const popup = window.open('about:blank', '_blank');
+        if (!popup) {
+            toastManager.warning({
+                title: t('historial.petpass_popup_blocked'),
+                description: t('historial.petpass_popup_blocked_hint'),
+                duration: 10000,
+            });
+            return;
+        }
+
+        try {
+            popup.document.write(
+                '<!doctype html><title>AlmaPet ID</title><p style="font-family:system-ui;padding:2rem">Conectando con AlmaPet ID…</p>',
+            );
+            popup.document.close();
+        } catch {
+            // ignore cross-origin / closed
+        }
+
         setPetpassBusy(true);
         try {
             const res = await fetch(url, {
@@ -168,7 +189,12 @@ export function PacienteHistorialHero({
 
             const data = (await res.json().catch(() => ({}))) as { message?: string; url?: string };
 
-            if (!res.ok) {
+            if (!res.ok || !data.url) {
+                try {
+                    popup.close();
+                } catch {
+                    // ignore
+                }
                 toastManager.error({
                     title: data.message || t('historial.petpass_start_error'),
                     duration: 8000,
@@ -176,22 +202,11 @@ export function PacienteHistorialHero({
                 return;
             }
 
-            if (!data.url) {
-                toastManager.error({
-                    title: t('historial.petpass_start_error'),
-                    duration: 8000,
-                });
-                return;
-            }
-
-            const popup = window.open(data.url, '_blank', 'noopener,noreferrer');
-            if (!popup) {
-                toastManager.warning({
-                    title: t('historial.petpass_popup_blocked'),
-                    description: t('historial.petpass_popup_blocked_hint'),
-                    duration: 10000,
-                });
-                return;
+            popup.location.href = data.url;
+            try {
+                popup.opener = null;
+            } catch {
+                // ignore
             }
 
             toastManager.success({
@@ -199,6 +214,11 @@ export function PacienteHistorialHero({
                 duration: 5000,
             });
         } catch {
+            try {
+                popup.close();
+            } catch {
+                // ignore
+            }
             toastManager.error({
                 title: t('historial.petpass_start_error'),
                 duration: 8000,
