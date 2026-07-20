@@ -8,8 +8,8 @@ type AuthHeaderProps = {
     brandName: string;
     logoUrl?: string | null;
     logoKey?: string;
-    /** Email de contacto comercial. Si se omite, se oculta el CTA. */
-    contactEmail?: string;
+    /** Celular WhatsApp (solo dígitos, con o sin código de país). Si se omite, se oculta el CTA. */
+    contactWhatsApp?: string | null;
     contactLabel?: string;
 };
 
@@ -20,9 +20,17 @@ export default function AuthHeader({
     brandName,
     logoUrl,
     logoKey,
-    contactEmail = 'contacto@vetsaas.pe',
+    contactWhatsApp = '51976809804',
     contactLabel = '¿Sin cuenta? Hablemos',
 }: AuthHeaderProps) {
+    const waDigits = contactWhatsApp
+        ? contactWhatsApp.replace(/\D+/g, '')
+        : '';
+    const waHref =
+        waDigits !== ''
+            ? `https://wa.me/${waDigits.length === 9 && waDigits.startsWith('9') ? `51${waDigits}` : waDigits}`
+            : null;
+
     return (
         <header className="relative z-20 flex items-center justify-between px-5 py-5 sm:px-8 sm:py-6 lg:px-12">
             <Link
@@ -40,9 +48,11 @@ export default function AuthHeader({
             </Link>
 
             <div className="flex items-center gap-2 sm:gap-3">
-                {contactEmail && (
+                {waHref && (
                     <a
-                        href={`mailto:${contactEmail}`}
+                        href={waHref}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         className="group hidden cursor-pointer items-center gap-1.5 rounded-full border border-border/70 bg-card/70 px-3.5 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur transition-colors hover:border-primary/40 hover:text-foreground sm:inline-flex"
                     >
                         {contactLabel}
