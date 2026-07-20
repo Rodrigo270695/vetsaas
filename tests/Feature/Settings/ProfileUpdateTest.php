@@ -21,7 +21,7 @@ test('profile information can be updated', function () {
         ->actingAs($user)
         ->patch(route('profile.update'), [
             'name' => 'Test User',
-            'email' => 'test@example.com',
+            'email' => $user->email,
         ]);
 
     $response
@@ -31,7 +31,29 @@ test('profile information can be updated', function () {
     $user->refresh();
 
     expect($user->name)->toBe('Test User');
-    expect($user->email)->toBe('test@example.com');
+});
+
+test('changing email logs the user out and redirects to login', function () {
+    $user = User::factory()->create([
+        'email' => 'old@example.com',
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->patch(route('profile.update'), [
+            'name' => $user->name,
+            'email' => 'new@example.com',
+        ]);
+
+    $response
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('login'));
+
+    $this->assertGuest();
+
+    $user->refresh();
+
+    expect($user->email)->toBe('new@example.com');
     expect($user->email_verified_at)->toBeNull();
 });
 
