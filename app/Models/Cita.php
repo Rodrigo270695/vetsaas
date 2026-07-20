@@ -32,6 +32,9 @@ class Cita extends Model
 
     public const ESTADO_CONFIRMADA = 'confirmada';
 
+    /** Paciente con el doctor / consulta abierta. */
+    public const ESTADO_EN_ATENCION = 'en_atencion';
+
     public const ESTADO_COMPLETADA = 'completada';
 
     public const ESTADO_CANCELADA = 'cancelada';
@@ -42,10 +45,22 @@ class Cita extends Model
     public const ESTADOS = [
         self::ESTADO_PROGRAMADA,
         self::ESTADO_CONFIRMADA,
+        self::ESTADO_EN_ATENCION,
         self::ESTADO_COMPLETADA,
         self::ESTADO_CANCELADA,
         self::ESTADO_NO_ASISTIO,
     ];
+
+    /** Estados en cola (aún no atendidos). */
+    public const ESTADOS_EN_ESPERA = [
+        self::ESTADO_PROGRAMADA,
+        self::ESTADO_CONFIRMADA,
+    ];
+
+    public function puedeAperturarse(): bool
+    {
+        return in_array($this->estado, self::ESTADOS_EN_ESPERA, true);
+    }
 
     protected $table = 'citas';
 

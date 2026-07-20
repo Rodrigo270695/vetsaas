@@ -459,6 +459,39 @@ class CitaController extends Controller
             ->with('success', __('citas.flash.cancelled'));
     }
 
+    /**
+     * Marca la cita en atención y abre Historia clínica con paciente/motivo precargados.
+     */
+    public function aperturar(Cita $cita): RedirectResponse
+    {
+        abort_unless(auth()->user()?->can('citas.aperturar') ?? false, 403);
+        abort_unless(auth()->user()?->can('historias-clinicas.create') ?? false, 403);
+
+        if (! $cita->puedeAperturarse()) {
+            return redirect()
+                ->route('clinica.citas.index')
+                ->with('error', __('citas.flash.aperturar_estado_invalido'));
+        }
+
+        $cita->forceFill([
+            'estado' => Cita::ESTADO_EN_ATENCION,
+            'updated_by_id' => Auth::id(),
+        ])->save();
+
+        $query = [
+            'nuevo_para_paciente' => $cita->paciente_id,
+            'cita_id' => $cita->id,
+        ];
+        $motivo = trim((string) ($cita->motivo ?? ''));
+        if ($motivo !== '') {
+            $query['motivo'] = $motivo;
+        }
+
+        return redirect()
+            ->route('clinica.historias-clinicas', $query)
+            ->with('success', __('citas.flash.aperturada'));
+    }
+
     private function parseDateParam(mixed $value): ?string
     {
         if (! is_string($value) || preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) !== 1) {

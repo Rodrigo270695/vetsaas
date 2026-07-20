@@ -36,7 +36,7 @@ class PermissionsSeeder extends Seeder
         'pacientes' => ['view', 'create', 'update', 'delete', 'export', 'bulk-delete'],
         'petpass' => ['view', 'register'],
         'propietarios' => ['view', 'create', 'update', 'delete', 'export', 'bulk-delete'],
-        'citas' => ['view', 'create', 'update', 'delete', 'cancel'],
+        'citas' => ['view', 'create', 'update', 'delete', 'cancel', 'aperturar'],
         'historias-clinicas' => ['view', 'create', 'update', 'delete'],
         'historias-clinicas-planes' => ['view', 'manage'],
         'vacunaciones' => ['view', 'create', 'update', 'delete'],

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Concerns\ResolvesClinicPdfBranding;
 use App\Http\Requests\StoreConsultaHistoriaRequest;
 use App\Http\Requests\UpdateConsultaHistoriaRequest;
+use App\Models\Cita;
 use App\Models\Consulta;
 use App\Models\HistoriaClinica;
 use App\Models\Paciente;
@@ -265,7 +266,7 @@ class ConsultaHistoriaController extends Controller
     }
 
     /**
-     * @return array{id: string, nombre: string, propietario: array<string, mixed>|null, motivo: ?string}|null
+     * @return array{id: string, nombre: string, propietario: array<string, mixed>|null, motivo: ?string, cita_id: ?string}|null
      */
     private function pacientePrefillNuevaConsultaDesdeQuery(Request $request): ?array
     {
@@ -295,6 +296,9 @@ class ConsultaHistoriaController extends Controller
             $motivo = mb_substr($motivo, 0, 2000);
         }
 
+        $citaIdRaw = $request->query('cita_id');
+        $citaId = is_string($citaIdRaw) && Str::isUuid($citaIdRaw) ? $citaIdRaw : null;
+
         return [
             'id' => $paciente->id,
             'nombre' => $paciente->nombre,
@@ -305,6 +309,7 @@ class ConsultaHistoriaController extends Controller
                 'razon_social' => $prop->razon_social,
             ] : null,
             'motivo' => $motivo !== '' ? $motivo : null,
+            'cita_id' => $citaId,
         ];
     }
 
@@ -332,7 +337,10 @@ class ConsultaHistoriaController extends Controller
             $temp = $validated['temperatura_c'] ?? null;
             $fc = $validated['fc_lpm'] ?? null;
             $fr = $validated['fr_rpm'] ?? null;
+            $citaId = $validated['cita_id'] ?? null;
+
             $consultaCreada = $historia->consultas()->create([
+                'cita_id' => $citaId,
                 'atendido_at' => $validated['atendido_at'],
                 'motivo' => $validated['motivo'] ?? null,
                 'subjetivo' => $validated['subjetivo'] ?? null,
@@ -350,6 +358,16 @@ class ConsultaHistoriaController extends Controller
                 'updated_by_id' => $uid,
             ]);
 
+            if (is_string($citaId) && $citaId !== '') {
+                Cita::query()
+                    ->whereKey($citaId)
+                    ->where('paciente_id', $validated['paciente_id'])
+                    ->whereIn('estado', [...Cita::ESTADOS_EN_ESPERA, Cita::ESTADO_EN_ATENCION])
+                    ->update([
+                        'estado' => Cita::ESTADO_EN_ATENCION,
+                        'updated_by_id' => $uid,
+                    ]);
+            }
         });
 
         if ($consultaCreada !== null && ($request->user()?->can('historias-clinicas-planes.view') ?? false)) {
@@ -419,6 +437,8 @@ class ConsultaHistoriaController extends Controller
             'updated_by_id' => $uid,
         ]);
 
+        $this->marcarCitaCompletadaSiCorresponde($consulta, $uid);
+
         return redirect()
             ->route('clinica.historias-clinicas')
             ->with('success', __('historias-clinicas.flash.cerrada'));
@@ -431,6 +451,10 @@ class ConsultaHistoriaController extends Controller
         $uid = Auth::id();
         $now = now();
 
+        $abiertas = Consulta::query()
+            ->whereNull('cerrada_at')
+            ->get(['id', 'cita_id']);
+
         $count = Consulta::query()
             ->whereNull('cerrada_at')
             ->update([
@@ -439,6 +463,23 @@ class ConsultaHistoriaController extends Controller
                 'updated_by_id' => $uid,
                 'updated_at' => $now,
             ]);
+
+        $citaIds = $abiertas
+            ->pluck('cita_id')
+            ->filter(fn ($id) => is_string($id) && $id !== '')
+            ->unique()
+            ->values()
+            ->all();
+
+        if ($citaIds !== []) {
+            Cita::query()
+                ->whereIn('id', $citaIds)
+                ->where('estado', Cita::ESTADO_EN_ATENCION)
+                ->update([
+                    'estado' => Cita::ESTADO_COMPLETADA,
+                    'updated_by_id' => $uid,
+                ]);
+        }
 
         if ($count === 0) {
             return redirect()
@@ -468,6 +509,16 @@ class ConsultaHistoriaController extends Controller
             'updated_by_id' => $uid,
         ]);
 
+        if (is_string($consulta->cita_id) && $consulta->cita_id !== '') {
+            Cita::query()
+                ->whereKey($consulta->cita_id)
+                ->where('estado', Cita::ESTADO_COMPLETADA)
+                ->update([
+                    'estado' => Cita::ESTADO_EN_ATENCION,
+                    'updated_by_id' => $uid,
+                ]);
+        }
+
         return redirect()
             ->route('clinica.historias-clinicas')
             ->with('success', __('historias-clinicas.flash.reabierta'));
@@ -480,6 +531,21 @@ class ConsultaHistoriaController extends Controller
         return redirect()
             ->route('clinica.historias-clinicas')
             ->with('success', __('historias-clinicas.flash.deleted'));
+    }
+
+    private function marcarCitaCompletadaSiCorresponde(Consulta $consulta, ?string $uid): void
+    {
+        if (! is_string($consulta->cita_id) || $consulta->cita_id === '') {
+            return;
+        }
+
+        Cita::query()
+            ->whereKey($consulta->cita_id)
+            ->where('estado', Cita::ESTADO_EN_ATENCION)
+            ->update([
+                'estado' => Cita::ESTADO_COMPLETADA,
+                'updated_by_id' => $uid,
+            ]);
     }
 
     public function pdf(Request $request, Consulta $consulta): HttpResponse

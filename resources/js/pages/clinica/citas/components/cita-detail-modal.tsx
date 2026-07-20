@@ -14,7 +14,6 @@ import {
 } from '@/components/ui/dialog';
 import { usePermission } from '@/hooks/use-permission';
 import { cn } from '@/lib/utils';
-import clinica from '@/routes/clinica';
 import { formatAtendidoInAppTimezone } from '../../historias-clinicas/format-atendido';
 import type { CitaRow } from '../types';
 import { displayPacienteCita, displayPropietarioCita } from './citas-calendar';
@@ -31,20 +30,20 @@ type Props = {
     canCancel: boolean;
 };
 
-function estadoBadgeVariant(estado: string): 'default' | 'secondary' | 'destructive' | 'outline' {
-    if (estado === 'completada' || estado === 'confirmada') {
-        return 'default';
+function estadoBadgeClass(estado: string): string {
+    switch (estado) {
+        case 'en_atencion':
+            return 'border-sky-300 bg-sky-100 text-sky-900 dark:bg-sky-950 dark:text-sky-100';
+        case 'completada':
+            return 'border-emerald-300 bg-emerald-100 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-100';
+        case 'cancelada':
+        case 'no_asistio':
+            return 'border-rose-300 bg-rose-100 text-rose-900 dark:bg-rose-950 dark:text-rose-100';
+        case 'programada':
+        case 'confirmada':
+        default:
+            return 'border-amber-300 bg-amber-100 text-amber-950 dark:bg-amber-950 dark:text-amber-100';
     }
-
-    if (estado === 'cancelada') {
-        return 'secondary';
-    }
-
-    if (estado === 'no_asistio') {
-        return 'destructive';
-    }
-
-    return 'outline';
 }
 
 function DetailRow({
@@ -94,21 +93,14 @@ export function CitaDetailModal({
         canCancel && !['cancelada', 'completada'].includes(cita.estado);
 
     const canAperturar =
+        can('citas.aperturar') &&
         can('historias-clinicas.create') &&
         Boolean(cita.paciente_id) &&
         ['programada', 'confirmada'].includes(cita.estado);
 
     const aperturarConsulta = () => {
-        const query: Record<string, string> = {
-            nuevo_para_paciente: cita.paciente_id,
-        };
-        const motivo = cita.motivo?.trim();
-        if (motivo) {
-            query.motivo = motivo;
-        }
-
         onOpenChange(false);
-        router.visit(clinica.historiasClinicas.url({ query }));
+        router.post(`/clinica/citas/${cita.id}/aperturar`);
     };
 
     return (
@@ -120,7 +112,10 @@ export function CitaDetailModal({
                             <DialogTitle className="text-xl font-semibold tracking-tight">
                                 {displayPacienteCita(cita.paciente)}
                             </DialogTitle>
-                            <Badge variant={estadoBadgeVariant(cita.estado)} className="shrink-0 font-normal">
+                            <Badge
+                                variant="outline"
+                                className={cn('shrink-0 font-normal', estadoBadgeClass(cita.estado))}
+                            >
                                 {t(`citas:estado.${cita.estado}`, { defaultValue: cita.estado })}
                             </Badge>
                         </div>

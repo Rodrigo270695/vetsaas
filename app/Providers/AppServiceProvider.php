@@ -70,19 +70,15 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
-     * Compatibilidad: los permisos `historias-clinicas-planes.*` se añadieron después
-     * de `historias-clinicas.*`. Quien ya podía ver/editar consultas conserva acceso
-     * al plan y al seguimiento sin tener que re-sincronizar roles manualmente.
+     * Compatibilidad: `historias-clinicas-planes.manage` se concede a quien
+     * crea/edita consultas. El `.view` del plan ya NO se infiere de
+     * `historias-clinicas.view` (recepción puede ver HC para cargos sin ver el plan).
      */
     protected function configureHistoriasClinicasPlanesPermissionAliases(): void
     {
         Gate::before(function ($user, string $ability): ?bool {
             if (! $user instanceof User) {
                 return null;
-            }
-
-            if ($ability === 'historias-clinicas-planes.view' && $user->can('historias-clinicas.view')) {
-                return true;
             }
 
             if ($ability === 'historias-clinicas-planes.manage'

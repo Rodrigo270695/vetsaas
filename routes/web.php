@@ -380,6 +380,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             Route::middleware('permission:citas.cancel')
                 ->post('citas/{cita}/cancelar', [CitaController::class, 'cancelar'])
                 ->name('citas.cancelar');
+            Route::middleware('permission:citas.aperturar')
+                ->post('citas/{cita}/aperturar', [CitaController::class, 'aperturar'])
+                ->name('citas.aperturar');
 
             Route::middleware('permission:recetas.view')
                 ->get('recetas/productos-medicamento', [RecetaController::class, 'productosMedicamento'])

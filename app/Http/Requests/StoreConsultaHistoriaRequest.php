@@ -19,6 +19,11 @@ class StoreConsultaHistoriaRequest extends FormRequest
     {
         return [
             'paciente_id' => ['required', 'uuid', Rule::exists('pacientes', 'id')->whereNull('deleted_at')],
+            'cita_id' => [
+                'nullable',
+                'uuid',
+                Rule::exists('citas', 'id')->whereNull('deleted_at'),
+            ],
             'atendido_at' => ['required', 'date'],
             'motivo' => ['nullable', 'string', 'max:5000'],
             'subjetivo' => ['nullable', 'string', 'max:20000'],

@@ -7,6 +7,8 @@ return [
         'rescheduled' => 'Cita reprogramada correctamente.',
         'deleted' => 'Cita eliminada correctamente.',
         'cancelled' => 'Cita cancelada correctamente.',
+        'aperturada' => 'Cita en atención. Completa la consulta.',
+        'aperturar_estado_invalido' => 'Solo se pueden aperturar citas en espera (programadas o confirmadas).',
         'whatsapp_queued' => 'WhatsApp de confirmación enviado al propietario.',
         'whatsapp_no_phone' => 'La cita se guardó, pero el propietario no tiene un número de WhatsApp registrado.',
         'whatsapp_queue_failed' => 'La cita se guardó, pero no se pudo enviar el WhatsApp.',

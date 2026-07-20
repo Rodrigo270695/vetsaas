@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 /**
  * @property string $id
  * @property string $historia_clinica_id
+ * @property ?string $cita_id
  * @property \Illuminate\Support\Carbon $atendido_at
  * @property ?string $motivo
  * @property ?string $subjetivo
@@ -39,6 +40,7 @@ class Consulta extends Model
 
     protected $fillable = [
         'historia_clinica_id',
+        'cita_id',
         'atendido_at',
         'motivo',
         'subjetivo',
@@ -83,6 +85,11 @@ class Consulta extends Model
     public function historiaClinica(): BelongsTo
     {
         return $this->belongsTo(HistoriaClinica::class, 'historia_clinica_id');
+    }
+
+    public function cita(): BelongsTo
+    {
+        return $this->belongsTo(Cita::class, 'cita_id');
     }
 
     public function veterinario(): BelongsTo

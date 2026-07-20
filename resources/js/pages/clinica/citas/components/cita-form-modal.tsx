@@ -26,7 +26,14 @@ import { formatDateOnlyLabel } from '../../historias-clinicas/format-atendido';
 
 const controlClass = 'h-10 w-full min-w-0';
 
-const CITA_ESTADOS = ['programada', 'confirmada', 'completada', 'cancelada', 'no_asistio'] as const;
+const CITA_ESTADOS = [
+    'programada',
+    'confirmada',
+    'en_atencion',
+    'completada',
+    'cancelada',
+    'no_asistio',
+] as const;
 
 const QUICK_TIMES = [
     '08:00',

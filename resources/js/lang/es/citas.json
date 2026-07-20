@@ -64,9 +64,10 @@
         "acciones": "Acciones"
     },
     "estado": {
-        "programada": "Programada",
+        "programada": "En espera",
         "confirmada": "Confirmada",
-        "completada": "Completada",
+        "en_atencion": "En atención",
+        "completada": "Atendida",
         "cancelada": "Cancelada",
         "no_asistio": "No asistió"
     },

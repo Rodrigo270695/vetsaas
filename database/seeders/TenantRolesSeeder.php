@@ -66,7 +66,7 @@ class TenantRolesSeeder extends Seeder
                 'pacientes.view', 'pacientes.create', 'pacientes.update', 'pacientes.delete', 'pacientes.export', 'pacientes.bulk-delete',
                 'petpass.view', 'petpass.register',
                 'propietarios.view', 'propietarios.create', 'propietarios.update', 'propietarios.delete', 'propietarios.export', 'propietarios.bulk-delete',
-                'citas.view', 'citas.create', 'citas.update', 'citas.delete', 'citas.cancel',
+                'citas.view', 'citas.create', 'citas.update', 'citas.delete', 'citas.cancel', 'citas.aperturar',
                 'historias-clinicas.view', 'historias-clinicas.create', 'historias-clinicas.update', 'historias-clinicas.delete',
                 'historias-clinicas-planes.view', 'historias-clinicas-planes.manage',
                 'vacunaciones.view', 'vacunaciones.create', 'vacunaciones.update', 'vacunaciones.delete',
@@ -145,8 +145,8 @@ class TenantRolesSeeder extends Seeder
                 'petpass.view', 'petpass.register',
                 'propietarios.view', 'propietarios.create', 'propietarios.update',
 
-                // Agenda
-                'citas.view', 'citas.create', 'citas.update', 'citas.cancel',
+                // Agenda: atiende (apertura); no crea citas (eso es recepción)
+                'citas.view', 'citas.aperturar', 'citas.cancel',
 
                 // Núcleo clínico
                 'historias-clinicas.view', 'historias-clinicas.create', 'historias-clinicas.update',
@@ -210,7 +210,7 @@ class TenantRolesSeeder extends Seeder
          | comprobantes. No tiene acceso al expediente clínico.
          ──────────────────────────────────────────────────────────────── */
         'recepcionista' => [
-            'description' => 'Recepción y front-desk. Agenda citas, atiende clientes, cobra y emite comprobantes. Sin acceso al expediente clínico.',
+            'description' => 'Recepción y front-desk. Agenda citas, atiende clientes, cobra y emite comprobantes. Ve HC solo para cargos/pre-cuenta; no aperturar ni plan clínico.',
             'permissions' => [
                 'dashboard.view',
 
@@ -219,8 +219,11 @@ class TenantRolesSeeder extends Seeder
                 'petpass.view', 'petpass.register',
                 'propietarios.view', 'propietarios.create', 'propietarios.update',
 
-                // Agenda completa
+                // Agenda completa (sin aperturar: eso lo hace el veterinario)
                 'citas.view', 'citas.create', 'citas.update', 'citas.cancel',
+
+                // Lista HC solo para cobro (cargos); sin plan clínico ni crear/editar consultas
+                'historias-clinicas.view',
 
                 // Pre-cuenta por consulta (cobro en recepción)
                 'consulta-cargos.view', 'consulta-cargos.manage', 'consulta-cargos.cobrar',

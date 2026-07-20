@@ -64,9 +64,10 @@
         "acciones": "Actions"
     },
     "estado": {
-        "programada": "Scheduled",
+        "programada": "Waiting",
         "confirmada": "Confirmed",
-        "completada": "Completed",
+        "en_atencion": "In progress",
+        "completada": "Attended",
         "cancelada": "Cancelled",
         "no_asistio": "No-show"
     },

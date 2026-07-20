@@ -50,6 +50,7 @@ type Props = {
             razon_social: string | null;
         } | null;
         motivo?: string | null;
+        cita_id?: string | null;
     } | null;
     pacientes_opciones: readonly PacienteHistoriaOpcion[];
     filters: ConsultaHistoriaFilters;
@@ -129,7 +130,7 @@ export default function Index({
     const canPlanView = can('historias-clinicas-planes.view');
     const canPlanManage = can('historias-clinicas-planes.manage');
     const canVacunasCreate = can('vacunaciones.create');
-    const canCargosView = can('consulta-cargos.view') || can('historias-clinicas.view');
+    const canCargosView = can('consulta-cargos.view');
     const canSeeAudit = can('audit-trail.view');
     const showRowActions =
         canUpdate ||
@@ -283,6 +284,7 @@ export default function Index({
         if (url.searchParams.has('nuevo_para_paciente')) {
             url.searchParams.delete('nuevo_para_paciente');
             url.searchParams.delete('motivo');
+            url.searchParams.delete('cita_id');
             window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
         }
     }, [paciente_prefill_nueva_consulta, canCreate]);
@@ -619,6 +621,7 @@ export default function Index({
                 pacientesOpciones={pacientes_opciones}
                 pacienteIdPrefillNueva={paciente_prefill_nueva_consulta?.id ?? null}
                 motivoPrefillNueva={paciente_prefill_nueva_consulta?.motivo ?? null}
+                citaIdPrefillNueva={paciente_prefill_nueva_consulta?.cita_id ?? null}
                 puedeCerrarConsulta={canUpdate}
             />
 

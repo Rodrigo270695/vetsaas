@@ -30,8 +30,9 @@ export type UsePermissionReturn = {
  * navegaciones de Inertia (porque depende de `usePage()`).
  *
  * Equivalencias (alineadas con `AppServiceProvider::configureHistoriasClinicasPlanesPermissionAliases`):
- *   - `historias-clinicas-planes.view` si tiene `historias-clinicas.view`
  *   - `historias-clinicas-planes.manage` si tiene `historias-clinicas.update` o `historias-clinicas.create`
+ *   - `historias-clinicas-planes.view` NO se infiere de `historias-clinicas.view`
+ *     (recepción puede ver HC para cargos sin ver el plan)
  *
  * El rol `superadmin` recibe trato especial: cualquier `can()` devuelve `true`,
  * incluso si el permiso no existe en BD todavía. Esto te deja construir el
@@ -59,12 +60,6 @@ export function usePermission(): UsePermissionReturn {
         const list = Array.isArray(input) ? input : [input];
         return list.some((p) => {
             if (permissionSet.has(p)) {
-                return true;
-            }
-            if (
-                p === 'historias-clinicas-planes.view' &&
-                permissionSet.has('historias-clinicas.view')
-            ) {
                 return true;
             }
             if (

@@ -28,11 +28,14 @@ export type ConsultaFormModalProps = {
     pacienteIdPrefillNueva?: string | null;
     /** Motivo opcional desde `?motivo=` (p. ej. al aperturar una cita). */
     motivoPrefillNueva?: string | null;
+    /** Cita vinculada desde `?cita_id=` al aperturar. */
+    citaIdPrefillNueva?: string | null;
     puedeCerrarConsulta?: boolean;
 };
 
 type FormData = {
     paciente_id: string;
+    cita_id: string;
     atendido_at: string;
     motivo: string;
     subjetivo: string;
@@ -73,6 +76,7 @@ function defaultAtendidoLocal(): string {
 
 const emptyForm: FormData = {
     paciente_id: '',
+    cita_id: '',
     atendido_at: '',
     motivo: '',
     subjetivo: '',
@@ -101,6 +105,7 @@ export function ConsultaFormModal({
     pacientesOpciones,
     pacienteIdPrefillNueva = null,
     motivoPrefillNueva = null,
+    citaIdPrefillNueva = null,
     puedeCerrarConsulta = false,
 }: ConsultaFormModalProps) {
     const { t } = useTranslation(['historias-clinicas', 'common', 'offline']);
@@ -137,6 +142,9 @@ export function ConsultaFormModal({
             if (!isEditRef.current && raw.paciente_id) {
                 next.paciente_id = raw.paciente_id;
             }
+            if (!isEditRef.current && raw.cita_id) {
+                next.cita_id = raw.cita_id;
+            }
 
             return next;
         });
@@ -150,6 +158,7 @@ export function ConsultaFormModal({
         if (consulta) {
             setData({
                 paciente_id: consulta.historia_clinica.paciente?.id ?? '',
+                cita_id: '',
                 atendido_at: toDatetimeLocalValue(consulta.atendido_at),
                 motivo: consulta.motivo ?? '',
                 subjetivo: consulta.subjetivo ?? '',
@@ -172,6 +181,7 @@ export function ConsultaFormModal({
             setData({
                 ...emptyForm,
                 paciente_id: pre,
+                cita_id: citaIdPrefillNueva?.trim() ? citaIdPrefillNueva.trim() : '',
                 motivo: motivoPrefillNueva?.trim() ? motivoPrefillNueva.trim() : '',
                 atendido_at: defaultAtendidoLocal(),
             });
@@ -184,7 +194,7 @@ export function ConsultaFormModal({
         setShowClosePrompt(false);
         clearErrors();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [open, consulta?.id, pacienteIdPrefillNueva, motivoPrefillNueva]);
+    }, [open, consulta?.id, pacienteIdPrefillNueva, motivoPrefillNueva, citaIdPrefillNueva]);
 
     const pacienteComboboxOptions = useMemo<readonly ComboboxOption[]>(
         () =>
@@ -218,6 +228,9 @@ export function ConsultaFormModal({
         next.fr_rpm = numOrNull(raw.fr_rpm);
         if (raw.paciente_id) {
             next.paciente_id = raw.paciente_id;
+        }
+        if (raw.cita_id) {
+            next.cita_id = raw.cita_id;
         }
 
         return next;
