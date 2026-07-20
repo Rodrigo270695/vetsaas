@@ -124,6 +124,7 @@ final class TenantSubscriptionSummary
                 'currency' => 'PEN',
                 'plan_amount' => 0,
                 'bot_ia_amount' => 0,
+                'limit_extras_amount' => 0,
                 'comprobantes_overage_amount' => 0,
                 'total_amount' => 0,
                 'addons' => [],

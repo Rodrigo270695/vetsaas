@@ -14,6 +14,7 @@ use Illuminate\Support\Carbon;
  * Extra / override de límite de plan para un tenant concreto.
  *
  * - `extra`: se suma al límite del plan (ej. +1 usuario, +50 pacientes).
+ * - `precio_mensual`: si > 0, se suma al cobro de renovación (como Bot IA).
  * - `override`: si no es null, reemplaza el límite del plan (-1 = ilimitado).
  * - `expires_at`: si pasó, el override deja de aplicar.
  *
@@ -21,6 +22,7 @@ use Illuminate\Support\Carbon;
  * @property string $tenant_id
  * @property string $feature
  * @property int $extra
+ * @property ?string $precio_mensual
  * @property ?int $override
  * @property ?string $motivo
  * @property ?Carbon $expires_at
@@ -36,6 +38,7 @@ class TenantPlanOverride extends Model
         'tenant_id',
         'feature',
         'extra',
+        'precio_mensual',
         'override',
         'motivo',
         'expires_at',
@@ -46,6 +49,7 @@ class TenantPlanOverride extends Model
     {
         return [
             'extra' => 'integer',
+            'precio_mensual' => 'decimal:2',
             'override' => 'integer',
             'expires_at' => 'datetime',
         ];
@@ -73,6 +77,11 @@ class TenantPlanOverride extends Model
     public function isActive(?Carbon $now = null): bool
     {
         return ! $this->isExpired($now);
+    }
+
+    public function isPaid(): bool
+    {
+        return $this->precio_mensual !== null && (float) $this->precio_mensual > 0;
     }
 
     /**

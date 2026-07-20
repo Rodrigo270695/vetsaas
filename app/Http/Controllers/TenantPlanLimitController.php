@@ -35,6 +35,9 @@ class TenantPlanLimitController extends Controller
                 'feature' => $feature,
                 'base' => $base,
                 'extra' => $active ? (int) $row->extra : 0,
+                'precio_mensual' => $active && $row->isPaid()
+                    ? (float) $row->precio_mensual
+                    : null,
                 'override' => $active ? $row->override : null,
                 'motivo' => $active ? $row->motivo : null,
                 'expires_at' => $active && $row->expires_at !== null
@@ -70,6 +73,7 @@ class TenantPlanLimitController extends Controller
             foreach ($rows as $row) {
                 $shouldKeep = $row['override'] !== null
                     || $row['extra'] > 0
+                    || $row['precio_mensual'] !== null
                     || filled($row['motivo'])
                     || filled($row['expires_at']);
 
@@ -89,6 +93,7 @@ class TenantPlanLimitController extends Controller
                     ],
                     [
                         'extra' => $row['override'] !== null ? 0 : $row['extra'],
+                        'precio_mensual' => $row['precio_mensual'],
                         'override' => $row['override'],
                         'motivo' => $row['motivo'],
                         'expires_at' => $row['expires_at'],

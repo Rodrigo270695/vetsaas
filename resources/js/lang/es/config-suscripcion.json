@@ -100,7 +100,8 @@
         "usage": "{{used}} de {{limit}}",
         "usage_unlimited": "{{used}} registrados (ilimitado)",
         "remaining": "Quedan {{count}}",
-        "includes_extra": "Incluye +{{count}} de cortesía / extra",
+        "includes_extra": "Incluye +{{count}} de cortesía",
+        "includes_paid": "Incluye +{{count}} (+S/. {{amount}} / mes)",
         "unlimited_hint": "Sin tope en este plan.",
         "features": {
             "max_sedes": "Sedes",

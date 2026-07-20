@@ -219,10 +219,24 @@ export function PlanUsageSection() {
                                         />
                                     </div>
                                     {entry.extra && entry.extra > 0 ? (
-                                        <p className="text-[11px] text-emerald-700 dark:text-emerald-400">
-                                            {t('usage.includes_extra', {
-                                                count: entry.extra,
-                                            })}
+                                        <p
+                                            className={cn(
+                                                'text-[11px]',
+                                                entry.is_paid_extra
+                                                    ? 'text-sky-700 dark:text-sky-400'
+                                                    : 'text-emerald-700 dark:text-emerald-400',
+                                            )}
+                                        >
+                                            {entry.is_paid_extra
+                                                ? t('usage.includes_paid', {
+                                                      count: entry.extra,
+                                                      amount: Number(
+                                                          entry.precio_mensual ?? 0,
+                                                      ).toFixed(2),
+                                                  })
+                                                : t('usage.includes_extra', {
+                                                      count: entry.extra,
+                                                  })}
                                         </p>
                                     ) : null}
                                 </div>

@@ -13,6 +13,8 @@ export type PlanLimitEntry = {
     unlimited: boolean;
     base?: number | null;
     extra?: number;
+    precio_mensual?: number;
+    is_paid_extra?: boolean;
     semaphore?: 'unlimited' | 'ok' | 'caution' | 'warning' | 'over';
     usage_pct?: number | null;
 };

@@ -7,10 +7,11 @@ namespace App\Support\Subscriptions;
 use App\Models\Subscription;
 use App\Models\Tenant;
 use App\Support\Plan\ComprobantesQuota;
+use App\Support\Plan\TenantPlanLimitBilling;
 
 /**
  * Importe a cobrar en una renovación: precio pactado del plan + add-ons activos
- * + excedente de comprobantes del período (planes mensuales).
+ * + extras de límite pagados + excedente de comprobantes del período (planes mensuales).
  */
 final class SubscriptionRenewalBilling
 {
@@ -43,6 +44,11 @@ final class SubscriptionRenewalBilling
         return round((float) ($overage['overage_cost'] ?? 0), 2);
     }
 
+    public static function limitExtrasAmount(?Tenant $tenant): float
+    {
+        return TenantPlanLimitBilling::totalAmount($tenant);
+    }
+
     public static function totalAmount(Subscription $subscription, ?Tenant $tenant = null): float
     {
         $tenant = self::resolveTenant($subscription, $tenant);
@@ -50,6 +56,7 @@ final class SubscriptionRenewalBilling
         return round(
             self::planAmount($subscription)
             + self::botIaAmount($subscription)
+            + self::limitExtrasAmount($tenant)
             + self::comprobantesOverageAmount($tenant),
             2,
         );
@@ -90,9 +97,11 @@ final class SubscriptionRenewalBilling
 
         $planAmount = self::planAmount($subscription);
         $botIaAmount = self::botIaAmount($subscription);
+        $limitExtras = TenantPlanLimitBilling::addons($tenant);
+        $limitExtrasAmount = round(array_sum(array_column($limitExtras, 'amount')), 2);
         $comprobantesOverage = ComprobantesQuota::renewalOverage($tenant);
         $comprobantesAmount = self::comprobantesOverageAmount($tenant);
-        $total = round($planAmount + $botIaAmount + $comprobantesAmount, 2);
+        $total = round($planAmount + $botIaAmount + $limitExtrasAmount + $comprobantesAmount, 2);
 
         $addons = [];
         if ($botIaAmount > 0) {
@@ -100,6 +109,13 @@ final class SubscriptionRenewalBilling
                 'key' => 'bot_ia',
                 'label' => 'Asistente IA WhatsApp (renovación del plan)',
                 'amount' => $botIaAmount,
+            ];
+        }
+        foreach ($limitExtras as $extra) {
+            $addons[] = [
+                'key' => $extra['key'],
+                'label' => $extra['label'],
+                'amount' => $extra['amount'],
             ];
         }
         if ($comprobantesAmount > 0) {
@@ -119,6 +135,8 @@ final class SubscriptionRenewalBilling
             'plan_amount' => $planAmount,
             'bot_ia_active' => SubscriptionBotIaAddon::isActive($subscription),
             'bot_ia_amount' => $botIaAmount,
+            'limit_extras_amount' => $limitExtrasAmount,
+            'limit_extras' => $limitExtras,
             'comprobantes_overage_amount' => $comprobantesAmount,
             'comprobantes_overage' => $comprobantesOverage,
             'total_amount' => $total,

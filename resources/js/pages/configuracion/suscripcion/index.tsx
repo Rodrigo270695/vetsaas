@@ -62,6 +62,7 @@ type SubscriptionSummary = {
         plan_amount: number;
         bot_ia_amount: number;
         comprobantes_overage_amount: number;
+        limit_extras_amount?: number;
         total_amount: number;
         addons: Array<{ key: string; label: string; amount: number }>;
     };
@@ -258,6 +259,20 @@ export default function Index({ subscription, comprobantes }: SuscripcionIndexPr
                 label: t('renewal_billing.breakdown_bot_ia'),
                 amount: billing.bot_ia_amount,
             });
+        }
+        for (const addon of billing.addons ?? []) {
+            if (
+                addon.key === 'bot_ia' ||
+                addon.key === 'comprobantes_overage'
+            ) {
+                continue;
+            }
+            if ((addon.amount ?? 0) > 0) {
+                lines.push({
+                    label: addon.label,
+                    amount: addon.amount,
+                });
+            }
         }
         if ((billing.comprobantes_overage_amount ?? 0) > 0) {
             lines.push({

@@ -100,7 +100,8 @@
         "usage": "{{used}} of {{limit}}",
         "usage_unlimited": "{{used}} registered (unlimited)",
         "remaining": "{{count}} left",
-        "includes_extra": "Includes +{{count}} courtesy / extra",
+        "includes_extra": "Includes +{{count}} courtesy",
+        "includes_paid": "Includes +{{count}} (+S/. {{amount}} / month)",
         "unlimited_hint": "No cap on this plan.",
         "features": {
             "max_sedes": "Sites",

@@ -28,6 +28,7 @@ class TenantPlanLimitsRequest extends FormRequest
                 Rule::in(PlanLimits::OVERRIDABLE_FEATURES),
             ],
             'overrides.*.extra' => ['nullable', 'integer', 'min:0', 'max:100000'],
+            'overrides.*.precio_mensual' => ['nullable', 'numeric', 'min:0', 'max:999999'],
             'overrides.*.override' => ['nullable', 'integer', 'min:-1', 'max:1000000'],
             'overrides.*.motivo' => ['nullable', 'string', 'max:255'],
             'overrides.*.expires_at' => ['nullable', 'date'],
@@ -38,6 +39,7 @@ class TenantPlanLimitsRequest extends FormRequest
      * @return list<array{
      *     feature: string,
      *     extra: int,
+     *     precio_mensual: float|null,
      *     override: int|null,
      *     motivo: string|null,
      *     expires_at: string|null
@@ -59,12 +61,19 @@ class TenantPlanLimitsRequest extends FormRequest
             $override = array_key_exists('override', $row) && $row['override'] !== null && $row['override'] !== ''
                 ? (int) $row['override']
                 : null;
+            $precio = array_key_exists('precio_mensual', $row) && $row['precio_mensual'] !== null && $row['precio_mensual'] !== ''
+                ? round(max(0, (float) $row['precio_mensual']), 2)
+                : null;
+            if ($precio !== null && $precio <= 0) {
+                $precio = null;
+            }
             $motivo = filled($row['motivo'] ?? null) ? trim((string) $row['motivo']) : null;
             $expires = filled($row['expires_at'] ?? null) ? (string) $row['expires_at'] : null;
 
             $out[] = [
                 'feature' => $feature,
                 'extra' => $extra,
+                'precio_mensual' => $precio,
                 'override' => $override,
                 'motivo' => $motivo,
                 'expires_at' => $expires,

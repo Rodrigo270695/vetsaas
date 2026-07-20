@@ -247,7 +247,11 @@ final class PlanLimits
 
             foreach (self::INT_LIMIT_FEATURES as $feature) {
                 $base = self::planBaseLimit($tenant, $feature);
+                $row = self::activeOverride($tenant, $feature);
                 $extra = self::extra($tenant, $feature);
+                $precio = $row !== null && $row->isPaid()
+                    ? round((float) $row->precio_mensual, 2)
+                    : 0.0;
                 $limit = self::intLimit($tenant, $feature);
                 $used = self::currentCount($feature);
                 $unlimited = $limit === null;
@@ -263,6 +267,8 @@ final class PlanLimits
                     'unlimited' => $unlimited,
                     'base' => $base,
                     'extra' => $extra,
+                    'precio_mensual' => $precio,
+                    'is_paid_extra' => $precio > 0,
                     'semaphore' => ComprobantesQuota::semaphore($used, $limit, $unlimited),
                     'usage_pct' => $usagePct,
                 ];

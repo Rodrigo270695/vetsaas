@@ -38,6 +38,7 @@ type FeatureRow = {
     feature: string;
     base: number | null;
     extra: number;
+    precio_mensual: number | null;
     override: number | null;
     motivo: string | null;
     expires_at: string | null;
@@ -54,6 +55,7 @@ type Props = {
 type DraftRow = {
     feature: string;
     extra: string;
+    precio_mensual: string;
     override: string;
     motivo: string;
     expires_at: string;
@@ -75,6 +77,10 @@ function toDraft(rows: FeatureRow[]): DraftRow[] {
     return rows.map((r) => ({
         feature: r.feature,
         extra: String(r.extra ?? 0),
+        precio_mensual:
+            r.precio_mensual === null || r.precio_mensual === undefined
+                ? ''
+                : String(r.precio_mensual),
         override:
             r.override === null || r.override === undefined
                 ? ''
@@ -113,6 +119,7 @@ export default function TenantLimites({ tenant, plan, features }: Props) {
 
             return (
                 row.extra !== base.extra ||
+                row.precio_mensual !== base.precio_mensual ||
                 row.override !== base.override ||
                 row.motivo !== base.motivo ||
                 row.expires_at !== base.expires_at
@@ -145,6 +152,10 @@ export default function TenantLimites({ tenant, plan, features }: Props) {
                 overrides: draft.map((row) => ({
                     feature: row.feature,
                     extra: Number.parseInt(row.extra || '0', 10) || 0,
+                    precio_mensual:
+                        row.precio_mensual.trim() === ''
+                            ? null
+                            : Number.parseFloat(row.precio_mensual),
                     override:
                         row.override.trim() === ''
                             ? null
@@ -232,6 +243,10 @@ export default function TenantLimites({ tenant, plan, features }: Props) {
                         const Icon = FEATURE_ICONS[feature.feature] ?? Gauge;
                         const extraNum =
                             Number.parseInt(row.extra || '0', 10) || 0;
+                        const precioNum =
+                            row.precio_mensual.trim() === ''
+                                ? 0
+                                : Number.parseFloat(row.precio_mensual) || 0;
                         const overrideNum =
                             row.override.trim() === ''
                                 ? null
@@ -247,6 +262,7 @@ export default function TenantLimites({ tenant, plan, features }: Props) {
                         const hasBoost =
                             extraNum > 0 ||
                             (overrideNum !== null && !Number.isNaN(overrideNum));
+                        const isPaid = precioNum > 0;
 
                         return (
                             <div
@@ -299,12 +315,23 @@ export default function TenantLimites({ tenant, plan, features }: Props) {
                                         </div>
                                     </div>
                                     {hasBoost ? (
-                                        <Badge className="shrink-0 bg-emerald-500/15 text-emerald-800 dark:text-emerald-300">
-                                            {overrideNum !== null
-                                                ? t('tenants:limits.badge_override')
-                                                : t('tenants:limits.badge_extra', {
-                                                      count: extraNum,
-                                                  })}
+                                        <Badge
+                                            className={cn(
+                                                'shrink-0',
+                                                isPaid
+                                                    ? 'bg-sky-500/15 text-sky-800 dark:text-sky-300'
+                                                    : 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300',
+                                            )}
+                                        >
+                                            {isPaid
+                                                ? t('tenants:limits.badge_paid', {
+                                                      amount: precioNum.toFixed(2),
+                                                  })
+                                                : overrideNum !== null
+                                                  ? t('tenants:limits.badge_override')
+                                                  : t('tenants:limits.badge_extra', {
+                                                        count: extraNum,
+                                                    })}
                                         </Badge>
                                     ) : null}
                                 </div>
@@ -330,6 +357,33 @@ export default function TenantLimites({ tenant, plan, features }: Props) {
                                                 })
                                             }
                                         />
+                                    </div>
+                                    <div className="grid gap-1.5">
+                                        <Label
+                                            htmlFor={`${feature.feature}-precio`}
+                                        >
+                                            {t('tenants:limits.precio_mensual')}
+                                        </Label>
+                                        <Input
+                                            id={`${feature.feature}-precio`}
+                                            type="number"
+                                            min={0}
+                                            step="0.01"
+                                            inputMode="decimal"
+                                            className="h-9"
+                                            placeholder={t(
+                                                'tenants:limits.precio_placeholder',
+                                            )}
+                                            value={row.precio_mensual}
+                                            onChange={(e) =>
+                                                updateRow(feature.feature, {
+                                                    precio_mensual: e.target.value,
+                                                })
+                                            }
+                                        />
+                                        <p className="text-[11px] text-muted-foreground">
+                                            {t('tenants:limits.precio_hint')}
+                                        </p>
                                     </div>
                                     <div className="grid gap-1.5">
                                         <Label
@@ -372,7 +426,7 @@ export default function TenantLimites({ tenant, plan, features }: Props) {
                                             }
                                         />
                                     </div>
-                                    <div className="grid gap-1.5">
+                                    <div className="grid gap-1.5 sm:col-span-2">
                                         <Label
                                             htmlFor={`${feature.feature}-motivo`}
                                         >
