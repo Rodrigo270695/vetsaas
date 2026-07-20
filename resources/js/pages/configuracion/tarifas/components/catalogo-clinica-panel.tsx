@@ -39,6 +39,7 @@ type FormState = {
     categoria: string;
     categoria_id: string | null;
     precio_lista: string;
+    precio_costo: string;
     moneda: string;
     duracion_minutos: string;
     activo: boolean;
@@ -54,6 +55,7 @@ const emptyForm = (kind: CatalogoKind): FormState => ({
     categoria: '',
     categoria_id: null,
     precio_lista: '',
+    precio_costo: '',
     moneda: 'PEN',
     duracion_minutos: kind === 'grooming' ? '60' : '',
     activo: true,
@@ -166,6 +168,7 @@ export function CatalogoClinicaPanel({
             categoria: row.categoria ?? '',
             categoria_id: row.categoria_id ?? null,
             precio_lista: row.precio_lista,
+            precio_costo: row.precio_costo ?? '',
             moneda: row.moneda,
             duracion_minutos: row.duracion_minutos != null ? String(row.duracion_minutos) : '',
             activo: row.activo,
@@ -186,6 +189,7 @@ export function CatalogoClinicaPanel({
 
         if (isClinica) {
             payload.duracion_minutos = form.duracion_minutos.trim() === '' ? null : Number(form.duracion_minutos);
+            payload.precio_costo = form.precio_costo.trim() === '' ? null : form.precio_costo;
         }
 
         if (isGrooming) {
@@ -488,6 +492,25 @@ export function CatalogoClinicaPanel({
                                 className="tabular-nums"
                             />
                         </FormField>
+
+                        {isClinica ? (
+                            <FormField
+                                id="cat-precio-costo"
+                                label={t('form.precio_costo')}
+                                error={errors.precio_costo}
+                            >
+                                <Input
+                                    id="cat-precio-costo"
+                                    type="number"
+                                    min={0}
+                                    step="0.01"
+                                    value={form.precio_costo}
+                                    onChange={(e) => setForm((f) => ({ ...f, precio_costo: e.target.value }))}
+                                    className="tabular-nums"
+                                    placeholder="0.00"
+                                />
+                            </FormField>
+                        ) : null}
 
                         <FormField id="cat-moneda" label={t('form.moneda')} error={errors.moneda} required>
                             <Combobox

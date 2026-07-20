@@ -151,6 +151,34 @@
         "empty": "No hay ventas de grooming con insumos registrados en este periodo.",
         "loading": "Calculando…"
     },
+    "rentabilidad_clinica": {
+        "title": "Rentabilidad de tratamientos",
+        "subtitle": "Ganancia estimada por servicio clínico: precio lista menos precio de costo.",
+        "periodo": {
+            "semana": "Esta semana",
+            "mes_actual": "Mes actual",
+            "mes_pasado": "Mes pasado"
+        },
+        "ingresos": "Precio de servicios",
+        "costo": "Costo de servicios",
+        "ganancia": "Ganancia bruta",
+        "margen": "Margen",
+        "unidades": "servicios",
+        "composicion": "Composición del precio",
+        "costo_label": "Costo",
+        "ganancia_label": "Ganancia",
+        "top_title": "Tratamientos más rentables",
+        "col_servicio": "Servicio",
+        "col_uds": "Cant.",
+        "col_ganancia": "Ganancia",
+        "ver_mas": "Ver más ({{count}})",
+        "ver_menos": "Ver menos",
+        "sin_costo_aviso": "{{count}} servicio(s) clínico(s) vendido(s) sin precio de costo.",
+        "sin_costo_cta": "Registra el precio de costo en Configuración → Tarifas para calcular su margen.",
+        "nota": "Basado en ventas pagadas del periodo. El precio es el del catálogo clínico y el costo es el precio de costo del servicio.",
+        "empty": "No hay ventas de tratamientos con costo registrado en este periodo.",
+        "loading": "Calculando…"
+    },
     "proximas_citas": {
         "title": "Próximas citas",
         "empty": "No hay citas programadas próximamente.",

@@ -223,6 +223,9 @@ final class DashboardStatsService
             'rentabilidad_grooming' => ($capabilities['grooming'] ?? false)
                 ? $this->rentabilidadGrooming('mes_actual')
                 : null,
+            'rentabilidad_clinica' => ($capabilities['ventas'] ?? false)
+                ? $this->rentabilidadClinica('mes_actual')
+                : null,
             'fel_estado_mes' => ($capabilities['ventas'] ?? false)
                 ? $this->felEstadoMes($monthStart, $monthEnd)
                 : [],
@@ -274,6 +277,7 @@ final class DashboardStatsService
             'top_productos_mes' => [],
             'rentabilidad' => null,
             'rentabilidad_grooming' => null,
+            'rentabilidad_clinica' => null,
             'fel_estado_mes' => [],
             'vacunaciones_por_dia' => [],
             'nuevos_clientes_mensuales' => [],
@@ -816,6 +820,168 @@ final class DashboardStatsService
     }
 
     /**
+     * Rentabilidad de servicios clínicos (precio lista menos precio de costo).
+     *
+     * @param  array{boleta?: bool, factura?: bool, ticket?: bool}|null  $comprobantes
+     * @return array{
+     *     periodo: string,
+     *     desde: string,
+     *     hasta: string,
+     *     filtros: array{boleta: bool, factura: bool, ticket: bool},
+     *     ingresos: float,
+     *     costo: float,
+     *     ganancia: float,
+     *     margen_pct: ?float,
+     *     unidades: float,
+     *     servicios_sin_costo: int,
+     *     por_comprobante: array{boleta: array, factura: array, ticket: array},
+     *     items: list<array{nombre: string, ingreso: float, costo: float, ganancia: float, cantidad: float, margen_pct: ?float}>
+     * }
+     */
+    public function rentabilidadClinica(string $periodo = 'mes_actual', ?array $comprobantes = null): array
+    {
+        $tz = (string) config('app.timezone');
+        [$periodo, $start, $end] = $this->resolveRentabilidadRange($periodo, now($tz));
+        $filtros = $this->resolveRentabilidadComprobantes($comprobantes);
+
+        $empty = [
+            'periodo' => $periodo,
+            'desde' => $start->toDateString(),
+            'hasta' => $end->toDateString(),
+            'filtros' => $filtros,
+            'ingresos' => 0.0,
+            'costo' => 0.0,
+            'ganancia' => 0.0,
+            'margen_pct' => null,
+            'unidades' => 0.0,
+            'servicios_sin_costo' => 0,
+            'por_comprobante' => $this->emptyRentabilidadPorComprobante(),
+            'items' => [],
+        ];
+
+        if (! Schema::hasTable('servicios_clinicos') || ! Schema::hasTable('venta_lineas')) {
+            return $empty;
+        }
+
+        if (! Schema::hasColumn('servicios_clinicos', 'precio_costo')) {
+            return $empty;
+        }
+
+        /** @var Collection<int, object{id: string, nombre: string, precio_lista: string, precio_costo: ?string}> $servicios */
+        $servicios = DB::table('servicios_clinicos')->get(['id', 'nombre', 'precio_lista', 'precio_costo']);
+
+        if ($servicios->isEmpty()) {
+            return $empty;
+        }
+
+        $porNombre = [];
+        foreach ($servicios as $servicio) {
+            $porNombre[$this->normalizeCatalogName((string) $servicio->nombre)] = [
+                'id' => (string) $servicio->id,
+                'nombre' => (string) $servicio->nombre,
+                'precio' => (float) $servicio->precio_lista,
+                'costo_unit' => $servicio->precio_costo !== null && $servicio->precio_costo !== ''
+                    ? (float) $servicio->precio_costo
+                    : null,
+            ];
+        }
+
+        $lineas = DB::table('venta_lineas as vl')
+            ->join('ventas as v', 'v.id', '=', 'vl.venta_id')
+            ->whereNull('vl.producto_id');
+
+        $this->applyVentasRentabilidadFilter($lineas, $start, $end, 'v');
+        $this->applyComprobanteTipoFilter($lineas, $filtros, 'v');
+
+        $lineas = $lineas
+            ->select('vl.descripcion_snapshot as descripcion', 'vl.subtotal', 'vl.cantidad', 'v.tipo_comprobante_sunat')
+            ->get();
+
+        $acumulado = [];
+        $sinCosto = [];
+
+        foreach ($lineas as $linea) {
+            $descripcion = (string) $linea->descripcion;
+            // Evitar mezclar ventas de grooming (prefijo habitual "Grooming ·").
+            if (preg_match('/^\s*grooming\s*[·\-:]/iu', $descripcion) === 1) {
+                continue;
+            }
+
+            $key = $this->normalizeCatalogName($descripcion);
+            if (! isset($porNombre[$key])) {
+                continue;
+            }
+
+            $servicio = $porNombre[$key];
+
+            if ($servicio['costo_unit'] === null) {
+                $sinCosto[$servicio['id']] = true;
+
+                continue;
+            }
+
+            $id = $servicio['id'];
+            $acumulado[$id] ??= [
+                'nombre' => $servicio['nombre'],
+                'ingreso' => 0.0,
+                'costo' => 0.0,
+                'cantidad' => 0.0,
+            ];
+
+            $cantidad = (float) $linea->cantidad;
+            $acumulado[$id]['ingreso'] += $cantidad * $servicio['precio'];
+            $acumulado[$id]['costo'] += $cantidad * $servicio['costo_unit'];
+            $acumulado[$id]['cantidad'] += $cantidad;
+        }
+
+        $ingresos = 0.0;
+        $costo = 0.0;
+        $unidades = 0.0;
+        $items = [];
+
+        foreach ($acumulado as $row) {
+            $ingresoItem = round($row['ingreso'], 2);
+            $costoItem = round($row['costo'], 2);
+            $gananciaItem = round($ingresoItem - $costoItem, 2);
+
+            $ingresos += $ingresoItem;
+            $costo += $costoItem;
+            $unidades += $row['cantidad'];
+
+            $items[] = [
+                'nombre' => $row['nombre'],
+                'ingreso' => $ingresoItem,
+                'costo' => $costoItem,
+                'ganancia' => $gananciaItem,
+                'cantidad' => round($row['cantidad'], 2),
+                'margen_pct' => $this->calcMargenPct($ingresoItem, $gananciaItem),
+            ];
+        }
+
+        usort($items, static fn (array $a, array $b): int => $b['ganancia'] <=> $a['ganancia']);
+        $items = array_slice($items, 0, 20);
+
+        $ingresos = round($ingresos, 2);
+        $costo = round($costo, 2);
+        $ganancia = round($ingresos - $costo, 2);
+
+        return [
+            'periodo' => $periodo,
+            'desde' => $start->toDateString(),
+            'hasta' => $end->toDateString(),
+            'filtros' => $filtros,
+            'ingresos' => $ingresos,
+            'costo' => $costo,
+            'ganancia' => $ganancia,
+            'margen_pct' => $this->calcMargenPct($ingresos, $ganancia),
+            'unidades' => round($unidades, 2),
+            'servicios_sin_costo' => count($sinCosto),
+            'por_comprobante' => $this->rentabilidadClinicaPorComprobante($start, $end, $porNombre),
+            'items' => $items,
+        ];
+    }
+
+    /**
      * @param  array{boleta?: bool, factura?: bool, ticket?: bool}|null  $comprobantes
      * @return array{boleta: bool, factura: bool, ticket: bool}
      */
@@ -1033,6 +1199,65 @@ final class DashboardStatsService
     }
 
     /**
+     * @param  array<string, array{id: string, nombre: string, precio: float, costo_unit: ?float}>  $porNombre
+     * @return array{boleta: array, factura: array, ticket: array}
+     */
+    private function rentabilidadClinicaPorComprobante(CarbonInterface $start, CarbonInterface $end, array $porNombre): array
+    {
+        $result = $this->emptyRentabilidadPorComprobante();
+
+        foreach (['boleta', 'factura', 'ticket'] as $key) {
+            $filtros = ['boleta' => false, 'factura' => false, 'ticket' => false];
+            $filtros[$key] = true;
+
+            $lineas = DB::table('venta_lineas as vl')
+                ->join('ventas as v', 'v.id', '=', 'vl.venta_id')
+                ->whereNull('vl.producto_id');
+
+            $this->applyVentasRentabilidadFilter($lineas, $start, $end, 'v');
+            $this->applyComprobanteTipoFilter($lineas, $filtros, 'v');
+
+            $lineas = $lineas
+                ->select('vl.descripcion_snapshot as descripcion', 'vl.subtotal', 'vl.cantidad')
+                ->get();
+
+            $ingresos = 0.0;
+            $costo = 0.0;
+            $unidades = 0.0;
+
+            foreach ($lineas as $linea) {
+                $descripcion = (string) $linea->descripcion;
+                if (preg_match('/^\s*grooming\s*[·\-:]/iu', $descripcion) === 1) {
+                    continue;
+                }
+
+                $servicioKey = $this->normalizeCatalogName($descripcion);
+                if (! isset($porNombre[$servicioKey])) {
+                    continue;
+                }
+
+                $servicio = $porNombre[$servicioKey];
+                if ($servicio['costo_unit'] === null) {
+                    continue;
+                }
+
+                $cantidad = (float) $linea->cantidad;
+                $ingresos += $cantidad * $servicio['precio'];
+                $costo += $cantidad * $servicio['costo_unit'];
+                $unidades += $cantidad;
+            }
+
+            $result[$key] = $this->formatRentabilidadSlice((object) [
+                'ingresos' => $ingresos,
+                'costo' => $costo,
+                'unidades' => $unidades,
+            ]);
+        }
+
+        return $result;
+    }
+
+    /**
      * @param  object{ingreso: string, costo: string, cantidad: string, nombre: string}  $row
      * @return array{nombre: string, ingreso: float, costo: float, ganancia: float, cantidad: float, margen_pct: ?float}
      */
@@ -1071,7 +1296,13 @@ final class DashboardStatsService
     private function normalizeGroomingName(string $name): string
     {
         $clean = preg_replace('/^\s*grooming\s*[·\-:]\s*/iu', '', trim($name)) ?? $name;
-        $clean = preg_replace('/\s+/u', ' ', $clean) ?? $clean;
+
+        return $this->normalizeCatalogName($clean);
+    }
+
+    private function normalizeCatalogName(string $name): string
+    {
+        $clean = preg_replace('/\s+/u', ' ', trim($name)) ?? $name;
 
         return mb_strtolower(trim($clean));
     }

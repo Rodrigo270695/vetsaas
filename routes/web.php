@@ -136,6 +136,8 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             ->name('dashboard.rentabilidad');
         Route::get('dashboard/rentabilidad-grooming', [DashboardController::class, 'rentabilidadGrooming'])
             ->name('dashboard.rentabilidad-grooming');
+        Route::get('dashboard/rentabilidad-clinica', [DashboardController::class, 'rentabilidadClinica'])
+            ->name('dashboard.rentabilidad-clinica');
     });
 
 /*

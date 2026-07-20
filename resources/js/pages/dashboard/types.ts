@@ -192,3 +192,18 @@ export type RentabilidadGroomingResumen = {
     por_comprobante: RentabilidadPorComprobante;
     items: RentabilidadItemRow[];
 };
+
+export type RentabilidadClinicaResumen = {
+    periodo: RentabilidadPeriodo;
+    desde: string;
+    hasta: string;
+    filtros: RentabilidadComprobanteFiltros;
+    ingresos: number;
+    costo: number;
+    ganancia: number;
+    margen_pct: number | null;
+    unidades: number;
+    servicios_sin_costo: number;
+    por_comprobante: RentabilidadPorComprobante;
+    items: RentabilidadItemRow[];
+};

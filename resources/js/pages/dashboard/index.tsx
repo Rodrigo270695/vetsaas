@@ -41,6 +41,7 @@ import { DashboardMonthlyRevenueChart } from '@/components/dashboard/dashboard-m
 import { DashboardOnboardingCard } from '@/components/dashboard/dashboard-onboarding-card';
 import { DashboardRentabilidadCard } from '@/components/dashboard/dashboard-rentabilidad-card';
 import { DashboardRentabilidadGroomingCard } from '@/components/dashboard/dashboard-rentabilidad-grooming-card';
+import { DashboardRentabilidadClinicaCard } from '@/components/dashboard/dashboard-rentabilidad-clinica-card';
 import { DashboardSalesChart } from '@/components/dashboard/dashboard-sales-chart';
 import { DashboardSectionTitle } from '@/components/dashboard/dashboard-section-title';
 import { DashboardTopProductsChart } from '@/components/dashboard/dashboard-top-products-chart';
@@ -60,6 +61,7 @@ import type {
     NuevosClientesMensualRow,
     OnboardingSnapshot,
     ProximaCitaRow,
+    RentabilidadClinicaResumen,
     RentabilidadGroomingResumen,
     RentabilidadResumen,
     TopProductoRow,
@@ -85,6 +87,7 @@ type Props = {
     top_productos_mes: TopProductoRow[];
     rentabilidad: RentabilidadResumen | null;
     rentabilidad_grooming: RentabilidadGroomingResumen | null;
+    rentabilidad_clinica: RentabilidadClinicaResumen | null;
     fel_estado_mes: FelEstadoRow[];
     vacunaciones_por_dia: VacunacionesPorDiaRow[];
     nuevos_clientes_mensuales: NuevosClientesMensualRow[];
@@ -125,6 +128,7 @@ export default function DashboardIndex({
     top_productos_mes,
     rentabilidad,
     rentabilidad_grooming,
+    rentabilidad_clinica,
     fel_estado_mes,
     vacunaciones_por_dia,
     nuevos_clientes_mensuales,
@@ -438,7 +442,8 @@ export default function DashboardIndex({
                             accent="emerald"
                         />
                         {(capabilities.productos && rentabilidad) ||
-                        (capabilities.grooming && rentabilidad_grooming) ? (
+                        (capabilities.grooming && rentabilidad_grooming) ||
+                        rentabilidad_clinica ? (
                             <div className="grid min-w-0 items-start gap-4 lg:grid-cols-2">
                                 {capabilities.productos && rentabilidad && (
                                     <DashboardRentabilidadCard
@@ -450,6 +455,13 @@ export default function DashboardIndex({
                                 {capabilities.grooming && rentabilidad_grooming && (
                                     <DashboardRentabilidadGroomingCard
                                         initial={rentabilidad_grooming}
+                                        moneda={moneda}
+                                        locale={locale}
+                                    />
+                                )}
+                                {rentabilidad_clinica && (
+                                    <DashboardRentabilidadClinicaCard
+                                        initial={rentabilidad_clinica}
                                         moneda={moneda}
                                         locale={locale}
                                     />
@@ -507,7 +519,8 @@ export default function DashboardIndex({
                     </section>
                 )}
 
-                {!hasFinancialCharts && capabilities.grooming && rentabilidad_grooming && (
+                {!hasFinancialCharts &&
+                    ((capabilities.grooming && rentabilidad_grooming) || rentabilidad_clinica) && (
                     <section className="space-y-4">
                         <DashboardSectionTitle
                             title={t('sections.financial')}
@@ -515,11 +528,22 @@ export default function DashboardIndex({
                             icon={Wallet}
                             accent="emerald"
                         />
-                        <DashboardRentabilidadGroomingCard
-                            initial={rentabilidad_grooming}
-                            moneda={moneda}
-                            locale={locale}
-                        />
+                        <div className="grid min-w-0 items-start gap-4 lg:grid-cols-2">
+                            {capabilities.grooming && rentabilidad_grooming && (
+                                <DashboardRentabilidadGroomingCard
+                                    initial={rentabilidad_grooming}
+                                    moneda={moneda}
+                                    locale={locale}
+                                />
+                            )}
+                            {rentabilidad_clinica && (
+                                <DashboardRentabilidadClinicaCard
+                                    initial={rentabilidad_clinica}
+                                    moneda={moneda}
+                                    locale={locale}
+                                />
+                            )}
+                        </div>
                     </section>
                 )}
 

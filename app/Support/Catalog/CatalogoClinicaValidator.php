@@ -79,10 +79,15 @@ final class CatalogoClinicaValidator
     {
         $payload = self::normalizeCatalogInput($request, withDuracion: true, defaultDuracion: null, duracionNullable: true);
 
+        if (array_key_exists('precio_costo', $payload) && blank($payload['precio_costo'])) {
+            $payload['precio_costo'] = null;
+        }
+
         return Validator::make($payload, [
             'nombre' => ['required', 'string', 'min:2', 'max:200'],
             'categoria_id' => ['nullable', 'uuid', Rule::exists('categorias_servicio_clinico', 'id')],
             'precio_lista' => ['required', 'numeric', 'min:0', 'max:999999.99'],
+            'precio_costo' => ['nullable', 'numeric', 'min:0', 'max:999999.99'],
             'moneda' => ['nullable', 'string', Rule::in(['PEN', 'USD'])],
             'duracion_minutos' => ['nullable', 'integer', 'min:5', 'max:480'],
             'activo' => ['sometimes', 'boolean'],

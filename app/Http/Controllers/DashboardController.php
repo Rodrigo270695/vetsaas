@@ -125,6 +125,33 @@ class DashboardController extends Controller
         return response()->json($this->stats->rentabilidadGrooming($periodo, $comprobantes));
     }
 
+    /**
+     * Rentabilidad de servicios clínicos (precio lista menos precio de costo).
+     */
+    public function rentabilidadClinica(Request $request): JsonResponse
+    {
+        abort_unless($this->tenantManager->check(), 404);
+
+        /** @var User $user */
+        $user = $request->user();
+
+        abort_unless($this->userCan($user, 'ventas.view'), 403);
+
+        $periodo = (string) $request->query('periodo', 'mes_actual');
+
+        if (! in_array($periodo, ['semana', 'mes_actual', 'mes_pasado'], true)) {
+            $periodo = 'mes_actual';
+        }
+
+        $comprobantes = DashboardStatsService::resolveRentabilidadComprobantes([
+            'boleta' => $request->has('boleta') ? $request->boolean('boleta') : true,
+            'factura' => $request->has('factura') ? $request->boolean('factura') : true,
+            'ticket' => $request->has('ticket') ? $request->boolean('ticket') : true,
+        ]);
+
+        return response()->json($this->stats->rentabilidadClinica($periodo, $comprobantes));
+    }
+
     private function userCan(User $user, string $ability): bool
     {
         try {

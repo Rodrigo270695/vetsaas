@@ -139,6 +139,7 @@ class TarifaServiciosController extends Controller
                     'categoria_id' => $row->categoria_id,
                     'codigo_legacy' => null,
                     'precio_lista' => (string) $row->precio_lista,
+                    'precio_costo' => $row->precio_costo !== null ? (string) $row->precio_costo : null,
                     'moneda' => $row->moneda,
                     'duracion_minutos' => $row->duracion_minutos,
                     'activo' => $row->activo,
@@ -345,6 +346,7 @@ class TarifaServiciosController extends Controller
                 'nombre' => $data['nombre'],
                 'categoria_id' => $data['categoria_id'] ?? null,
                 'precio_lista' => $data['precio_lista'],
+                'precio_costo' => $data['precio_costo'] ?? null,
                 'moneda' => $data['moneda'] ?? 'PEN',
                 'duracion_minutos' => $data['duracion_minutos'] ?? null,
                 'activo' => $data['activo'] ?? true,
@@ -372,6 +374,9 @@ class TarifaServiciosController extends Controller
                 'nombre' => $data['nombre'],
                 'categoria_id' => $data['categoria_id'] ?? null,
                 'precio_lista' => $data['precio_lista'],
+                'precio_costo' => array_key_exists('precio_costo', $data)
+                    ? $data['precio_costo']
+                    : $servicioClinico->precio_costo,
                 'moneda' => $data['moneda'] ?? $servicioClinico->moneda,
                 'duracion_minutos' => array_key_exists('duracion_minutos', $data)
                     ? $data['duracion_minutos']

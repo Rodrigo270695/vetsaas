@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $nombre
  * @property ?string $categoria_id
  * @property string $precio_lista
+ * @property ?string $precio_costo
  * @property string $moneda
  * @property ?int $duracion_minutos
  * @property bool $activo
@@ -26,6 +27,7 @@ class ServicioClinico extends Model
         'nombre',
         'categoria_id',
         'precio_lista',
+        'precio_costo',
         'moneda',
         'duracion_minutos',
         'activo',
@@ -36,6 +38,7 @@ class ServicioClinico extends Model
     {
         return [
             'precio_lista' => 'decimal:2',
+            'precio_costo' => 'decimal:2',
             'duracion_minutos' => 'integer',
             'activo' => 'boolean',
             'orden' => 'integer',

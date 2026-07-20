@@ -151,6 +151,34 @@
         "empty": "No grooming sales with recorded supplies in this period.",
         "loading": "Calculating…"
     },
+    "rentabilidad_clinica": {
+        "title": "Treatment profitability",
+        "subtitle": "Estimated profit per clinical service: list price minus cost price.",
+        "periodo": {
+            "semana": "This week",
+            "mes_actual": "This month",
+            "mes_pasado": "Last month"
+        },
+        "ingresos": "Service price",
+        "costo": "Service cost",
+        "ganancia": "Gross profit",
+        "margen": "Margin",
+        "unidades": "services",
+        "composicion": "Price breakdown",
+        "costo_label": "Cost",
+        "ganancia_label": "Profit",
+        "top_title": "Most profitable treatments",
+        "col_servicio": "Service",
+        "col_uds": "Qty",
+        "col_ganancia": "Profit",
+        "ver_mas": "Show more ({{count}})",
+        "ver_menos": "Show less",
+        "sin_costo_aviso": "{{count}} sold clinical service(s) have no cost price set.",
+        "sin_costo_cta": "Set the cost price in Settings → Rates to compute their margin.",
+        "nota": "Based on paid sales in the period. Price is the clinical catalog rate and cost is the service cost price.",
+        "empty": "No treatment sales with a recorded cost in this period.",
+        "loading": "Calculating…"
+    },
     "proximas_citas": {
         "title": "Upcoming appointments",
         "empty": "No upcoming scheduled appointments.",

@@ -12,6 +12,8 @@ export type CatalogoClinicaRow = {
     categoria_id?: string | null;
     codigo_legacy: string | null;
     precio_lista: string;
+    /** Solo servicios clínicos. */
+    precio_costo?: string | null;
     moneda: string;
     duracion_minutos?: number | null;
     activo: boolean;

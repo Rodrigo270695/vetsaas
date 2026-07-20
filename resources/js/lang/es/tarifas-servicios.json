@@ -21,6 +21,8 @@
         "servicio": "Servicio",
         "tipo": "Tipo de estancia",
         "precio": "Precio lista",
+        "precio_costo": "Precio costo",
+        "margen": "Margen",
         "moneda": "Moneda",
         "activo": "Estado",
         "acciones": "Acciones"
@@ -41,6 +43,7 @@
         "servicio": "Tipo de servicio",
         "tipo_estancia": "Tipo de estancia",
         "precio_lista": "Precio lista",
+        "precio_costo": "Precio de costo",
         "moneda": "Moneda",
         "estado": "Estado",
         "activo": "Tarifa activa (visible al cobrar)",
@@ -90,7 +93,7 @@
         "badge_plantilla": "Sugerido",
         "form_description_grooming": "Nombre, categoría, precio lista y duración para agendar turnos y cobrar en caja.",
         "form_description_hotel": "Nombre, categoría y precio lista por noche para estancias y cobro en caja.",
-        "form_description_clinica": "Nombre, categoría reutilizable y precio lista para cobrar en caja sin escribir el servicio cada vez.",
+        "form_description_clinica": "Nombre, categoría, precio lista y precio de costo para cobrar en caja y ver el margen.",
         "columns": {
             "duracion": "Duración"
         },

@@ -150,33 +150,58 @@ export function ServiciosClinicosList({
                                 )}
                             </div>
 
-                            <div className="mt-auto flex flex-wrap items-end justify-between gap-2 border-t border-border/50 pt-3">
-                                <div>
-                                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                                        {t('columns.precio')}
-                                    </p>
-                                    <p className="text-base font-semibold tabular-nums text-foreground">
-                                        {formatPrecio(row.precio_lista, row.moneda)}
-                                    </p>
-                                </div>
-                                <div className="flex flex-col items-end gap-1.5">
-                                    {row.duracion_minutos != null ? (
-                                        <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
-                                            <Clock3 className="size-3" />
-                                            {row.duracion_minutos} min
+                            <div className="mt-auto space-y-2 border-t border-border/50 pt-3">
+                                <div className="flex flex-wrap items-end justify-between gap-2">
+                                    <div>
+                                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                                            {t('columns.precio')}
+                                        </p>
+                                        <p className="text-base font-semibold tabular-nums text-foreground">
+                                            {formatPrecio(row.precio_lista, row.moneda)}
+                                        </p>
+                                    </div>
+                                    <div className="flex flex-col items-end gap-1.5">
+                                        {row.duracion_minutos != null ? (
+                                            <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                                                <Clock3 className="size-3" />
+                                                {row.duracion_minutos} min
+                                            </span>
+                                        ) : null}
+                                        <span
+                                            className={cn(
+                                                'inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium',
+                                                row.activo
+                                                    ? 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-400'
+                                                    : 'bg-muted text-muted-foreground',
+                                            )}
+                                        >
+                                            {row.activo ? t('common:filters.active') : t('common:filters.inactive')}
                                         </span>
-                                    ) : null}
-                                    <span
-                                        className={cn(
-                                            'inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium',
-                                            row.activo
-                                                ? 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-400'
-                                                : 'bg-muted text-muted-foreground',
-                                        )}
-                                    >
-                                        {row.activo ? t('common:filters.active') : t('common:filters.inactive')}
-                                    </span>
+                                    </div>
                                 </div>
+                                {row.precio_costo != null && row.precio_costo !== '' ? (
+                                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                                        <span className="text-muted-foreground">
+                                            {t('columns.precio_costo')}:{' '}
+                                            <span className="font-medium tabular-nums text-foreground">
+                                                {formatPrecio(row.precio_costo, row.moneda)}
+                                            </span>
+                                        </span>
+                                        {(() => {
+                                            const lista = Number(row.precio_lista);
+                                            const costo = Number(row.precio_costo);
+                                            if (!Number.isFinite(lista) || lista <= 0 || !Number.isFinite(costo)) {
+                                                return null;
+                                            }
+                                            const margen = ((lista - costo) / lista) * 100;
+                                            return (
+                                                <span className="font-semibold tabular-nums text-emerald-700 dark:text-emerald-400">
+                                                    {t('columns.margen')}: {margen.toFixed(1)}%
+                                                </span>
+                                            );
+                                        })()}
+                                    </div>
+                                ) : null}
                             </div>
 
                             {/* Touch-friendly primary action on small screens */}

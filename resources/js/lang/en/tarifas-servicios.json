@@ -21,6 +21,8 @@
         "servicio": "Service",
         "tipo": "Stay type",
         "precio": "List price",
+        "precio_costo": "Cost price",
+        "margen": "Margin",
         "moneda": "Currency",
         "activo": "Status",
         "acciones": "Actions"
@@ -41,6 +43,7 @@
         "servicio": "Service type",
         "tipo_estancia": "Stay type",
         "precio_lista": "List price",
+        "precio_costo": "Cost price",
         "moneda": "Currency",
         "estado": "Status",
         "activo": "Active rate (shown at checkout)",
@@ -90,7 +93,7 @@
         "badge_plantilla": "Suggested",
         "form_description_grooming": "Name, category, list price and duration for scheduling and checkout.",
         "form_description_hotel": "Name, category and nightly list price for stays and checkout.",
-        "form_description_clinica": "Name, reusable category and list price for checkout without retyping each time.",
+        "form_description_clinica": "Name, category, list price and cost price for checkout and margin tracking.",
         "columns": {
             "duracion": "Duration"
         },
