@@ -62,10 +62,10 @@ export function PedidoRowActions({
                 ) : null}
                 {showWhatsApp ? (
                     <DropdownMenuItem
-                        className="cursor-pointer gap-2"
+                        className="cursor-pointer gap-2 text-emerald-600 focus:text-emerald-600 dark:text-emerald-400 dark:focus:text-emerald-400"
                         onClick={() => onWhatsApp(pedido)}
                     >
-                        <MessageCircle className="size-4" strokeWidth={2.25} />
+                        <MessageCircle className="size-4 text-emerald-600 dark:text-emerald-400" strokeWidth={2.25} />
                         {t('actions.send_whatsapp')}
                     </DropdownMenuItem>
                 ) : null}
