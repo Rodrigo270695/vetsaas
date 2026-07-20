@@ -368,6 +368,8 @@ export default function ConsultaCargos({ consulta, cargo, cobro, clinic_billing 
                 atendidoLabel={atendidoLabel}
                 cargo={cargo}
                 consulta={consulta}
+                productosBuscarUrl={`/clinica/historias-clinicas/consultas/${consulta.id}/cargos/productos-buscar`}
+                serviciosBuscarUrl={`/clinica/historias-clinicas/consultas/${consulta.id}/cargos/servicios-buscar`}
                 clinic_billing={clinic_billing}
                 cobro={cobro}
                 esBorrador={esBorrador}

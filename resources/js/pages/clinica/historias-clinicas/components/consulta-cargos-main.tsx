@@ -32,6 +32,7 @@ import { cn } from '@/lib/utils';
 import { PosPanel } from '@/pages/caja/ventas/components/pos-panel';
 import caja from '@/routes/caja';
 import { CargoProductoPicker } from './cargo-producto-picker';
+import { CargoServicioPicker } from './cargo-servicio-picker';
 
 type LineaForm = {
     tipo_linea: string;
@@ -76,6 +77,7 @@ export type ConsultaCargosMainProps = {
         veterinario: { name: string } | null;
     };
     productosBuscarUrl?: string;
+    serviciosBuscarUrl?: string;
     onSugerirDiasEstadia?: () => void;
     clinic_billing: {
         igv_porcentaje: number;
@@ -289,6 +291,7 @@ export function ConsultaCargosMain({
     cargo,
     consulta,
     productosBuscarUrl,
+    serviciosBuscarUrl,
     onSugerirDiasEstadia,
     clinic_billing,
     cobro,
@@ -532,6 +535,16 @@ export function ConsultaCargosMain({
                                                                         v === 'producto'
                                                                             ? linea.producto_label
                                                                             : null,
+                                                                    concepto:
+                                                                        v === 'producto' ||
+                                                                        v === 'servicio'
+                                                                            ? ''
+                                                                            : linea.concepto,
+                                                                    precio_unitario:
+                                                                        v === 'producto' ||
+                                                                        v === 'servicio'
+                                                                            ? '0.00'
+                                                                            : linea.precio_unitario,
                                                                 });
                                                             }}
                                                         >
@@ -558,15 +571,81 @@ export function ConsultaCargosMain({
                                                         className="gap-1"
                                                         error={errors[`lineas.${idx}.concepto`]}
                                                     >
-                                                        <Input
-                                                            value={linea.concepto}
-                                                            onChange={(e) =>
-                                                                updateLinea(idx, {
-                                                                    concepto: e.target.value,
-                                                                })
-                                                            }
-                                                            className="h-8 text-sm"
-                                                        />
+                                                        {linea.tipo_linea === 'producto' ? (
+                                                            <CargoProductoPicker
+                                                                consultaId={consulta.id}
+                                                                productosBuscarUrl={productosBuscarUrl}
+                                                                value={linea.producto_id}
+                                                                labelResolved={
+                                                                    linea.producto_label ??
+                                                                    (linea.concepto.trim() !== ''
+                                                                        ? linea.concepto
+                                                                        : null)
+                                                                }
+                                                                onSelect={(opt) => {
+                                                                    if (opt === null) {
+                                                                        updateLinea(idx, {
+                                                                            producto_id: null,
+                                                                            producto_label: null,
+                                                                            concepto: '',
+                                                                        });
+                                                                        return;
+                                                                    }
+                                                                    const precio =
+                                                                        opt.precio_venta != null &&
+                                                                        String(opt.precio_venta).trim() !==
+                                                                            ''
+                                                                            ? formatDecimal2(
+                                                                                  opt.precio_venta,
+                                                                              )
+                                                                            : linea.precio_unitario;
+                                                                    updateLinea(idx, {
+                                                                        producto_id: opt.id,
+                                                                        producto_label: opt.nombre,
+                                                                        concepto: opt.nombre,
+                                                                        precio_unitario: precio,
+                                                                    });
+                                                                }}
+                                                            />
+                                                        ) : linea.tipo_linea === 'servicio' ? (
+                                                            <CargoServicioPicker
+                                                                serviciosBuscarUrl={
+                                                                    serviciosBuscarUrl ??
+                                                                    `/clinica/historias-clinicas/consultas/${consulta.id}/cargos/servicios-buscar`
+                                                                }
+                                                                valueLabel={
+                                                                    linea.concepto.trim() !== ''
+                                                                        ? linea.concepto
+                                                                        : null
+                                                                }
+                                                                onSelect={(opt) => {
+                                                                    if (opt === null) {
+                                                                        updateLinea(idx, {
+                                                                            concepto: '',
+                                                                        });
+                                                                        return;
+                                                                    }
+                                                                    updateLinea(idx, {
+                                                                        concepto: opt.nombre,
+                                                                        precio_unitario: formatDecimal2(
+                                                                            opt.precio_lista,
+                                                                        ),
+                                                                        producto_id: null,
+                                                                        producto_label: null,
+                                                                    });
+                                                                }}
+                                                            />
+                                                        ) : (
+                                                            <Input
+                                                                value={linea.concepto}
+                                                                onChange={(e) =>
+                                                                    updateLinea(idx, {
+                                                                        concepto: e.target.value,
+                                                                    })
+                                                                }
+                                                                className="h-8 text-sm"
+                                                            />
+                                                        )}
                                                     </FormField>
                                                 </div>
                                                 <div className="grid grid-cols-3 gap-2">
@@ -652,37 +731,6 @@ export function ConsultaCargosMain({
                                                         />
                                                     </FormField>
                                                 </div>
-                                                {linea.tipo_linea === 'producto' ? (
-                                                    <CargoProductoPicker
-                                                        consultaId={consulta.id}
-                                                        productosBuscarUrl={productosBuscarUrl}
-                                                        value={linea.producto_id}
-                                                        labelResolved={linea.producto_label}
-                                                        onSelect={(opt) => {
-                                                            if (opt === null) {
-                                                                updateLinea(idx, {
-                                                                    producto_id: null,
-                                                                    producto_label: null,
-                                                                });
-                                                                return;
-                                                            }
-                                                            const precio =
-                                                                opt.precio_venta != null &&
-                                                                String(opt.precio_venta).trim() !== ''
-                                                                    ? formatDecimal2(opt.precio_venta)
-                                                                    : linea.precio_unitario;
-                                                            updateLinea(idx, {
-                                                                producto_id: opt.id,
-                                                                producto_label: opt.nombre,
-                                                                concepto:
-                                                                    linea.concepto.trim() === ''
-                                                                        ? opt.nombre
-                                                                        : linea.concepto,
-                                                                precio_unitario: precio,
-                                                            });
-                                                        }}
-                                                    />
-                                                ) : null}
                                             </div>
                                         </div>
                                     ))

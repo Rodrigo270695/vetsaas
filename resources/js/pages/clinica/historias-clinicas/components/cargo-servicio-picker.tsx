@@ -1,4 +1,4 @@
-import { Check, ChevronsUpDown, Loader2, Package, X } from 'lucide-react';
+import { Check, ChevronsUpDown, Loader2, Stethoscope, X } from 'lucide-react';
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
@@ -16,33 +16,26 @@ import {
     PopoverTrigger,
 } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import clinica from '@/routes/clinica';
 
-export type CargoProductoOption = {
-    id: string;
+export type CargoServicioOption = {
     nombre: string;
-    sku: string | null;
-    unidad: string | null;
-    /** Precio de venta del catálogo (para prellenar P. unit. en cargos). */
-    precio_venta: string | number | null;
+    precio_lista: string;
+    origen: string;
+    categoria: string | null;
 };
 
 type Props = {
-    consultaId?: string;
-    productosBuscarUrl?: string;
-    value: string | null;
-    labelResolved: string | null;
-    onSelect: (row: CargoProductoOption | null) => void;
+    serviciosBuscarUrl: string;
+    valueLabel: string | null;
+    onSelect: (row: CargoServicioOption | null) => void;
     disabled?: boolean;
     id?: string;
     'aria-invalid'?: boolean;
 };
 
-export function CargoProductoPicker({
-    consultaId,
-    productosBuscarUrl,
-    value,
-    labelResolved,
+export function CargoServicioPicker({
+    serviciosBuscarUrl,
+    valueLabel,
     onSelect,
     disabled = false,
     id,
@@ -52,20 +45,15 @@ export function CargoProductoPicker({
     const [open, setOpen] = React.useState(false);
     const [search, setSearch] = React.useState('');
     const [loading, setLoading] = React.useState(false);
-    const [options, setOptions] = React.useState<CargoProductoOption[]>([]);
+    const [options, setOptions] = React.useState<CargoServicioOption[]>([]);
 
     const fetchUrl = React.useCallback(
         (q: string) => {
-            const base =
-                productosBuscarUrl ??
-                (consultaId
-                    ? clinica.historiasClinicas.consultas.cargos.productosBuscar.url(consultaId)
-                    : '');
-            const sep = base.includes('?') ? '&' : '?';
+            const sep = serviciosBuscarUrl.includes('?') ? '&' : '?';
 
-            return `${base}${sep}q=${encodeURIComponent(q.trim())}`;
+            return `${serviciosBuscarUrl}${sep}q=${encodeURIComponent(q.trim())}`;
         },
-        [consultaId, productosBuscarUrl],
+        [serviciosBuscarUrl],
     );
 
     React.useEffect(() => {
@@ -82,7 +70,7 @@ export function CargoProductoPicker({
                 credentials: 'same-origin',
             })
                 .then(async (res) => {
-                    const body = (await res.json()) as { data?: CargoProductoOption[] };
+                    const body = (await res.json()) as { data?: CargoServicioOption[] };
 
                     if (!res.ok || !Array.isArray(body.data)) {
                         setOptions([]);
@@ -100,9 +88,7 @@ export function CargoProductoPicker({
     }, [open, search, fetchUrl]);
 
     const selectedLabel =
-        value != null && value !== '' && labelResolved != null && labelResolved.trim() !== ''
-            ? labelResolved
-            : null;
+        valueLabel != null && valueLabel.trim() !== '' ? valueLabel.trim() : null;
 
     return (
         <Popover open={open} onOpenChange={setOpen} modal>
@@ -121,16 +107,16 @@ export function CargoProductoPicker({
                     )}
                 >
                     <span className="inline-flex min-w-0 flex-1 items-center gap-2 truncate">
-                        <Package className="size-3.5 shrink-0 opacity-60" aria-hidden />
+                        <Stethoscope className="size-3.5 shrink-0 opacity-60" aria-hidden />
                         <span className="truncate">
-                            {selectedLabel ?? t('producto_picker.placeholder')}
+                            {selectedLabel ?? t('servicio_picker.placeholder')}
                         </span>
                     </span>
                     <span className="flex shrink-0 items-center gap-1">
                         {selectedLabel && !disabled && (
                             <span
                                 role="button"
-                                aria-label={t('producto_picker.clear_aria')}
+                                aria-label={t('servicio_picker.clear_aria')}
                                 tabIndex={-1}
                                 className="inline-flex cursor-pointer rounded-sm p-0.5 opacity-60 hover:opacity-100"
                                 onPointerDown={(e) => {
@@ -149,7 +135,7 @@ export function CargoProductoPicker({
             <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
                 <Command shouldFilter={false}>
                     <CommandInput
-                        placeholder={t('producto_picker.search_placeholder')}
+                        placeholder={t('servicio_picker.search_placeholder')}
                         value={search}
                         onValueChange={setSearch}
                     />
@@ -157,40 +143,48 @@ export function CargoProductoPicker({
                         {loading ? (
                             <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
                                 <Loader2 className="size-4 animate-spin" />
-                                {t('producto_picker.loading')}
+                                {t('servicio_picker.loading')}
                             </div>
                         ) : (
                             <>
-                                <CommandEmpty>{t('producto_picker.empty')}</CommandEmpty>
+                                <CommandEmpty>{t('servicio_picker.empty')}</CommandEmpty>
                                 <CommandGroup>
-                                    {options.map((opt) => (
-                                        <CommandItem
-                                            key={opt.id}
-                                            value={opt.id}
-                                            onSelect={() => {
-                                                onSelect(opt);
-                                                setOpen(false);
-                                            }}
-                                        >
-                                            <Check
-                                                className={cn(
-                                                    'mr-2 size-4 shrink-0',
-                                                    value === opt.id ? 'opacity-100' : 'opacity-0',
-                                                )}
-                                            />
-                                            <span className="min-w-0 flex-1 truncate">{opt.nombre}</span>
-                                            {opt.sku ? (
-                                                <span className="ml-2 shrink-0 text-xs text-muted-foreground">
-                                                    {opt.sku}
+                                    {options.map((opt, i) => {
+                                        const key = `${opt.origen}:${opt.nombre}:${i}`;
+
+                                        return (
+                                            <CommandItem
+                                                key={key}
+                                                value={key}
+                                                onSelect={() => {
+                                                    onSelect(opt);
+                                                    setOpen(false);
+                                                }}
+                                            >
+                                                <Check
+                                                    className={cn(
+                                                        'mr-2 size-4 shrink-0',
+                                                        selectedLabel === opt.nombre
+                                                            ? 'opacity-100'
+                                                            : 'opacity-0',
+                                                    )}
+                                                />
+                                                <span className="min-w-0 flex-1 truncate">
+                                                    {opt.nombre}
                                                 </span>
-                                            ) : null}
-                                            {opt.precio_venta != null && opt.precio_venta !== '' ? (
-                                                <span className="ml-2 shrink-0 text-xs tabular-nums text-muted-foreground">
-                                                    {String(opt.precio_venta)}
-                                                </span>
-                                            ) : null}
-                                        </CommandItem>
-                                    ))}
+                                                {opt.categoria ? (
+                                                    <span className="ml-2 shrink-0 text-xs text-muted-foreground">
+                                                        {opt.categoria}
+                                                    </span>
+                                                ) : null}
+                                                {opt.precio_lista ? (
+                                                    <span className="ml-2 shrink-0 text-xs tabular-nums text-muted-foreground">
+                                                        {opt.precio_lista}
+                                                    </span>
+                                                ) : null}
+                                            </CommandItem>
+                                        );
+                                    })}
                                 </CommandGroup>
                             </>
                         )}

@@ -333,6 +333,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             Route::middleware('permission:consulta-cargos.view|consulta-cargos.manage|productos.view')
                 ->get('historias-clinicas/consultas/{consulta}/cargos/productos-buscar', [ConsultaCargoController::class, 'productosBuscar'])
                 ->name('historias-clinicas.consultas.cargos.productos-buscar');
+            Route::middleware('permission:consulta-cargos.view|consulta-cargos.manage|productos.view')
+                ->get('historias-clinicas/consultas/{consulta}/cargos/servicios-buscar', [ConsultaCargoController::class, 'serviciosBuscar'])
+                ->name('historias-clinicas.consultas.cargos.servicios-buscar');
             Route::middleware('permission:consulta-cargos.manage|historias-clinicas.update')
                 ->match(['put', 'patch'], 'historias-clinicas/consultas/{consulta}/cargos', [ConsultaCargoController::class, 'update'])
                 ->name('historias-clinicas.consultas.cargos.update');
@@ -466,6 +469,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             Route::middleware('permission:consulta-cargos.view|consulta-cargos.manage|productos.view|hospitalizacion.view')
                 ->get('hospitalizacion/{internamiento}/cargos/productos-buscar', [InternamientoCargoController::class, 'productosBuscar'])
                 ->name('hospitalizacion.cargos.productos-buscar');
+            Route::middleware('permission:consulta-cargos.view|consulta-cargos.manage|productos.view|hospitalizacion.view')
+                ->get('hospitalizacion/{internamiento}/cargos/servicios-buscar', [InternamientoCargoController::class, 'serviciosBuscar'])
+                ->name('hospitalizacion.cargos.servicios-buscar');
             Route::middleware('permission:consulta-cargos.view|historias-clinicas.view')
                 ->get('hospitalizacion/{internamiento}/cargos/ticket', [InternamientoCargoController::class, 'ticket'])
                 ->name('hospitalizacion.cargos.ticket');

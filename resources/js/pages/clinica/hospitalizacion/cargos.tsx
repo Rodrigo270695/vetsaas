@@ -189,6 +189,7 @@ export default function InternamientoCargos({
     const { can } = usePermission();
     const puedeEditarCargos = can('consulta-cargos.manage') || can('hospitalizacion.update');
     const productosBuscarUrl = `/clinica/hospitalizacion/${internamiento.id}/cargos/productos-buscar`;
+    const serviciosBuscarUrl = `/clinica/hospitalizacion/${internamiento.id}/cargos/servicios-buscar`;
     const showUrl = `${LIST_URL}/${internamiento.id}`;
     const cargosBaseUrl = `${LIST_URL}/${internamiento.id}/cargos`;
     const esBorrador = cargo.estado === 'borrador';
@@ -362,6 +363,7 @@ export default function InternamientoCargos({
                 cargo={cargo}
                 consulta={consultaStub}
                 productosBuscarUrl={productosBuscarUrl}
+                serviciosBuscarUrl={serviciosBuscarUrl}
                 onSugerirDiasEstadia={puedeEditar ? sugerirDiasEstadia : undefined}
                 clinic_billing={clinic_billing}
                 cobro={cobro}

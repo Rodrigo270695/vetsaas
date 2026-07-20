@@ -128,10 +128,16 @@ class ConsultaHistoriaController extends Controller
             if ($sort !== 'atendido_at') {
                 $query->orderByDesc('consultas.atendido_at');
             }
-        } elseif ($filtrarAbiertas && ! $sortValid) {
+        } elseif ($filtrarAbiertas) {
             $query->orderBy('consultas.atendido_at', 'asc');
-        } else {
+        } elseif ($filtrarCerradas) {
             $query->orderByDesc('consultas.atendido_at');
+        } else {
+            // Todas: abiertas primero (fecha ASC), luego cerradas (fecha DESC).
+            $query
+                ->orderByRaw('CASE WHEN consultas.cerrada_at IS NULL THEN 0 ELSE 1 END ASC')
+                ->orderByRaw('CASE WHEN consultas.cerrada_at IS NULL THEN consultas.atendido_at END ASC')
+                ->orderByRaw('CASE WHEN consultas.cerrada_at IS NOT NULL THEN consultas.atendido_at END DESC');
         }
 
         if ($search !== '') {

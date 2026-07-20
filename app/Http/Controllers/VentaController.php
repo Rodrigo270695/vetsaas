@@ -15,7 +15,6 @@ use App\Models\Consulta;
 use App\Models\Departamento;
 use App\Models\Distrito;
 use App\Models\GroomingServicio;
-use App\Models\GroomingServicioTarifa;
 use App\Models\GroomingTurno;
 use App\Models\HotelEstancia;
 use App\Models\Internamiento;
@@ -23,7 +22,6 @@ use App\Models\Paciente;
 use App\Models\Producto;
 use App\Models\Propietario;
 use App\Models\Sede;
-use App\Models\ServicioClinico;
 use App\Models\Tenant;
 use App\Models\Venta;
 use App\Services\Fel\FelEmisionVentaService;
@@ -51,7 +49,6 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -1182,91 +1179,14 @@ class VentaController extends Controller
     }
 
     /**
-     * Tarifas de servicios (grooming) para sugerir precio en POS libre.
+     * Tarifas de servicios (clínicos + grooming) para sugerir precio en POS.
      */
     public function buscarServiciosTarifa(Request $request): JsonResponse
     {
         $q = trim((string) $request->string('q', ''));
-        $like = $q !== '' ? '%'.addcslashes($q, '%_\\').'%' : null;
-        $results = collect();
-
-        if (Schema::hasTable('servicios_clinicos')) {
-            $clinicaQuery = ServicioClinico::query()
-                ->with('categoria:id,nombre')
-                ->where('activo', true);
-
-            if ($like !== null) {
-                $clinicaQuery->where(function ($sub) use ($like): void {
-                    $sub->where('nombre', 'ILIKE', $like)
-                        ->orWhereHas('categoria', function ($cat) use ($like): void {
-                            $cat->where('nombre', 'ILIKE', $like);
-                        });
-                });
-            }
-
-            $results = $results->concat(
-                $clinicaQuery
-                    ->orderBy('orden')
-                    ->orderBy('nombre')
-                    ->limit(30)
-                    ->get()
-                    ->map(static fn (ServicioClinico $row): array => [
-                        'nombre' => $row->nombre,
-                        'precio_lista' => (string) $row->precio_lista,
-                        'origen' => 'clinica',
-                        'categoria' => $row->categoria?->nombre,
-                    ]),
-            );
-        }
-
-        $remaining = max(0, 30 - $results->count());
-
-        if ($remaining > 0 && GroomingCatalogoMode::usaCatalogoPersonalizado()) {
-            $query = GroomingServicio::query()->where('activo', true);
-
-            if ($like !== null) {
-                $query->where(function ($sub) use ($like): void {
-                    $sub->where('nombre', 'ILIKE', $like)
-                        ->orWhere('categoria', 'ILIKE', $like);
-                });
-            }
-
-            $results = $results->concat(
-                $query
-                    ->orderBy('orden')
-                    ->orderBy('nombre')
-                    ->limit($remaining)
-                    ->get(['nombre', 'precio_lista', 'categoria'])
-                    ->map(static fn (GroomingServicio $row): array => [
-                        'nombre' => $row->nombre,
-                        'precio_lista' => (string) $row->precio_lista,
-                        'origen' => 'grooming',
-                        'categoria' => $row->categoria,
-                    ]),
-            );
-        } elseif ($remaining > 0) {
-            $query = GroomingServicioTarifa::query()->where('activo', true);
-
-            if ($like !== null) {
-                $query->where('servicio', 'ILIKE', $like);
-            }
-
-            $results = $results->concat(
-                $query
-                    ->orderBy('servicio')
-                    ->limit($remaining)
-                    ->get(['servicio', 'precio_lista'])
-                    ->map(static fn (GroomingServicioTarifa $row): array => [
-                        'nombre' => $row->servicio,
-                        'precio_lista' => (string) $row->precio_lista,
-                        'origen' => 'grooming',
-                        'categoria' => null,
-                    ]),
-            );
-        }
 
         return response()->json([
-            'data' => $results->values()->take(30),
+            'data' => \App\Support\Servicios\ServicioTarifaSearch::search($q),
         ]);
     }
 

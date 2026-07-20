@@ -185,6 +185,17 @@ class ConsultaCargoController extends Controller
         return response()->json(['data' => $items]);
     }
 
+    public function serviciosBuscar(Request $request): JsonResponse
+    {
+        $this->ensurePuedeBuscarProductos($request);
+
+        $q = trim((string) $request->query('q', ''));
+
+        return response()->json([
+            'data' => \App\Support\Servicios\ServicioTarifaSearch::search($q),
+        ]);
+    }
+
     public function update(UpsertConsultaCargoRequest $request, Consulta $consulta): RedirectResponse
     {
         $this->ensurePuedeVerConsulta($request, $consulta);

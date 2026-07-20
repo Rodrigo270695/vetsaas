@@ -45,7 +45,7 @@
     "col_concepto": "Description",
     "col_importe": "Amount",
     "lineas_title": "Lines",
-    "lineas_subtitle": "Services and products for this visit.",
+    "lineas_subtitle": "Pick services and products from the catalog (like sales). Type «Other» allows a free-text concept.",
     "add_linea": "Add line",
     "sin_lineas": "No lines yet. Add at least one to record charges.",
     "field_tipo": "Type",
@@ -73,5 +73,12 @@
         "loading": "Searching…",
         "empty": "No results.",
         "clear_aria": "Clear product"
+    },
+    "servicio_picker": {
+        "placeholder": "Search service…",
+        "search_placeholder": "Name or category…",
+        "loading": "Searching…",
+        "empty": "No results.",
+        "clear_aria": "Clear service"
     }
 }

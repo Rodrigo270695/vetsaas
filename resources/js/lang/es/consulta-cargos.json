@@ -45,7 +45,7 @@
     "col_concepto": "Concepto",
     "col_importe": "Importe",
     "lineas_title": "Líneas",
-    "lineas_subtitle": "Servicios y productos de esta atención.",
+    "lineas_subtitle": "Elige servicios y productos del catálogo (como en ventas). Tipo «Otro» permite un concepto libre.",
     "add_linea": "Añadir línea",
     "sin_lineas": "No hay líneas. Añade al menos una para registrar cargos.",
     "field_tipo": "Tipo",
@@ -73,5 +73,12 @@
         "loading": "Buscando…",
         "empty": "Sin resultados.",
         "clear_aria": "Quitar producto"
+    },
+    "servicio_picker": {
+        "placeholder": "Buscar servicio…",
+        "search_placeholder": "Nombre o categoría…",
+        "loading": "Buscando…",
+        "empty": "Sin resultados.",
+        "clear_aria": "Quitar servicio"
     }
 }
