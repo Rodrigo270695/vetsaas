@@ -25,7 +25,7 @@ class TenantPlanLimitsRequest extends FormRequest
             'overrides.*.feature' => [
                 'required',
                 'string',
-                Rule::in(PlanLimits::INT_LIMIT_FEATURES),
+                Rule::in(PlanLimits::OVERRIDABLE_FEATURES),
             ],
             'overrides.*.extra' => ['nullable', 'integer', 'min:0', 'max:100000'],
             'overrides.*.override' => ['nullable', 'integer', 'min:-1', 'max:1000000'],

@@ -189,12 +189,19 @@
         "motivo_placeholder": "Ej. cortesía / cliente especial",
         "unlimited": "Ilimitado",
         "unsaved": "Cambios sin guardar",
+        "active_extras": "{{count}} con extra/tope",
+        "badge_extra": "+{{count}}",
+        "badge_override": "Tope fijo",
         "features": {
             "max_sedes": "Sedes",
             "max_usuarios": "Usuarios",
             "max_pacientes": "Pacientes",
             "max_propietarios": "Propietarios",
-            "max_productos": "Productos"
+            "max_productos": "Productos",
+            "max_comprobantes_mes": "Comprobantes / mes"
+        },
+        "features_hint": {
+            "max_comprobantes_mes": "Cupo mensual incluido. El uso se mide en el período de facturación de la clínica."
         }
     }
 }

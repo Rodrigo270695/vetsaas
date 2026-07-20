@@ -94,6 +94,29 @@
             "over": "Over quota"
         }
     },
+    "usage": {
+        "title": "Plan usage",
+        "description": "Current usage against your subscription limits (includes extras if Orvae assigned any).",
+        "usage": "{{used}} of {{limit}}",
+        "usage_unlimited": "{{used}} registered (unlimited)",
+        "remaining": "{{count}} left",
+        "includes_extra": "Includes +{{count}} courtesy / extra",
+        "unlimited_hint": "No cap on this plan.",
+        "features": {
+            "max_sedes": "Sites",
+            "max_usuarios": "Users",
+            "max_pacientes": "Patients",
+            "max_propietarios": "Owners",
+            "max_productos": "Products"
+        },
+        "semaphore": {
+            "unlimited": "Unlimited",
+            "ok": "Normal",
+            "caution": "Attention",
+            "warning": "Near limit",
+            "over": "Limit reached"
+        }
+    },
     "bot_ia": {
         "active": "Active",
         "inactive": "Not subscribed",

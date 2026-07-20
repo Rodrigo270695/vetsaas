@@ -25,7 +25,7 @@ class TenantPlanLimitController extends Controller
 
         $features = [];
 
-        foreach (PlanLimits::INT_LIMIT_FEATURES as $feature) {
+        foreach (PlanLimits::OVERRIDABLE_FEATURES as $feature) {
             $base = PlanLimits::planBaseLimit($tenant, $feature);
             /** @var TenantPlanOverride|null $row */
             $row = $overrides->get($feature);

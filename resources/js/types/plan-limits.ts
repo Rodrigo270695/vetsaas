@@ -13,6 +13,8 @@ export type PlanLimitEntry = {
     unlimited: boolean;
     base?: number | null;
     extra?: number;
+    semaphore?: 'unlimited' | 'ok' | 'caution' | 'warning' | 'over';
+    usage_pct?: number | null;
 };
 
 export type PlanLimitsSnapshot = Record<PlanLimitFeature, PlanLimitEntry>;

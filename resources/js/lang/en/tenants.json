@@ -189,12 +189,19 @@
         "motivo_placeholder": "E.g. courtesy / special client",
         "unlimited": "Unlimited",
         "unsaved": "Unsaved changes",
+        "active_extras": "{{count}} with extra/cap",
+        "badge_extra": "+{{count}}",
+        "badge_override": "Fixed cap",
         "features": {
             "max_sedes": "Sites",
             "max_usuarios": "Users",
             "max_pacientes": "Patients",
             "max_propietarios": "Owners",
-            "max_productos": "Products"
+            "max_productos": "Products",
+            "max_comprobantes_mes": "Vouchers / month"
+        },
+        "features_hint": {
+            "max_comprobantes_mes": "Monthly included quota. Usage is measured in the clinic billing period."
         }
     }
 }

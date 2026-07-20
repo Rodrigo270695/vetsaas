@@ -94,6 +94,29 @@
             "over": "Sobre el cupo"
         }
     },
+    "usage": {
+        "title": "Uso de tu plan",
+        "description": "Consumo actual frente a los límites de tu suscripción (incluye extras si Orvae te los asignó).",
+        "usage": "{{used}} de {{limit}}",
+        "usage_unlimited": "{{used}} registrados (ilimitado)",
+        "remaining": "Quedan {{count}}",
+        "includes_extra": "Incluye +{{count}} de cortesía / extra",
+        "unlimited_hint": "Sin tope en este plan.",
+        "features": {
+            "max_sedes": "Sedes",
+            "max_usuarios": "Usuarios",
+            "max_pacientes": "Pacientes",
+            "max_propietarios": "Propietarios",
+            "max_productos": "Productos"
+        },
+        "semaphore": {
+            "unlimited": "Ilimitado",
+            "ok": "Normal",
+            "caution": "Atención",
+            "warning": "Cerca del límite",
+            "over": "Límite alcanzado"
+        }
+    },
     "bot_ia": {
         "active": "Activo",
         "inactive": "No contratado",

@@ -33,6 +33,20 @@ final class PlanLimits
         'max_productos',
     ];
 
+    /**
+     * Features que admiten extra/override por tenant (incluye cupo CPE mensual).
+     *
+     * @var list<string>
+     */
+    public const OVERRIDABLE_FEATURES = [
+        'max_sedes',
+        'max_usuarios',
+        'max_pacientes',
+        'max_propietarios',
+        'max_productos',
+        'max_comprobantes_mes',
+    ];
+
     /** @var array<string, class-string> */
     private const FEATURE_MODELS = [
         'max_sedes' => Sede::class,
@@ -122,7 +136,7 @@ final class PlanLimits
             return null;
         }
 
-        if (! in_array($feature, self::INT_LIMIT_FEATURES, true)) {
+        if (! in_array($feature, self::OVERRIDABLE_FEATURES, true)) {
             return null;
         }
 
@@ -218,7 +232,7 @@ final class PlanLimits
     /**
      * Consumo vs límite para Inertia (botones deshabilitados, barras, etc.).
      *
-     * @return array<string, array{limit: int|null, used: int, remaining: int|null, reached: bool, unlimited: bool, base: int|null, extra: int}>|null
+     * @return array<string, array{limit: int|null, used: int, remaining: int|null, reached: bool, unlimited: bool, base: int|null, extra: int, semaphore: string, usage_pct: float|null}>|null
      */
     public static function snapshot(?Tenant $tenant = null): ?array
     {
@@ -237,6 +251,9 @@ final class PlanLimits
                 $limit = self::intLimit($tenant, $feature);
                 $used = self::currentCount($feature);
                 $unlimited = $limit === null;
+                $usagePct = (! $unlimited && $limit > 0)
+                    ? round(min(999.9, ($used / $limit) * 100), 1)
+                    : null;
 
                 $out[$feature] = [
                     'limit' => $limit,
@@ -246,6 +263,8 @@ final class PlanLimits
                     'unlimited' => $unlimited,
                     'base' => $base,
                     'extra' => $extra,
+                    'semaphore' => ComprobantesQuota::semaphore($used, $limit, $unlimited),
+                    'usage_pct' => $usagePct,
                 ];
             }
 

@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
 import { ComprobantesQuotaCard, type ComprobantesQuota } from './components/comprobantes-quota-card';
+import { PlanUsageSection } from './components/plan-usage-section';
 
 type SubscriptionPlan = {
     nombre: string;
@@ -536,6 +537,8 @@ export default function Index({ subscription, comprobantes }: SuscripcionIndexPr
                         />
                     ) : null}
                 </div>
+
+                <PlanUsageSection />
             </div>
         </>
     );
