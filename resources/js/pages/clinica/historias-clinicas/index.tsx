@@ -183,7 +183,6 @@ export default function Index({
 
             router.reload({
                 only: ['consultas', 'stats'],
-                preserveScroll: true,
             });
         }, 15_000);
 

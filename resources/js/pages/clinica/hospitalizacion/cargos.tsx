@@ -1,4 +1,4 @@
-import { Head, resetLayoutProps, router, setLayoutProps, useForm, usePage } from '@inertiajs/react';
+import { Head, resetLayoutProps, setLayoutProps, useForm, usePage } from '@inertiajs/react';
 import { Loader2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -185,6 +185,7 @@ export default function InternamientoCargos({
 }: Props) {
     const { t, i18n } = useTranslation(['consulta-cargos', 'hospitalizacion', 'nav', 'caja']);
     const [ticketModalOpen, setTicketModalOpen] = useState(false);
+    const [editandoConfirmada, setEditandoConfirmada] = useState(false);
     const { locale: appLocale, timezone: appTz } = usePage().props;
     const { can } = usePermission();
     const puedeEditarCargos = can('consulta-cargos.manage') || can('hospitalizacion.update');
@@ -193,7 +194,11 @@ export default function InternamientoCargos({
     const showUrl = `${LIST_URL}/${internamiento.id}`;
     const cargosBaseUrl = `${LIST_URL}/${internamiento.id}/cargos`;
     const esBorrador = cargo.estado === 'borrador';
-    const puedeEditar = esBorrador && puedeEditarCargos;
+    const yaCobrada = cobro.venta_id !== null;
+    const puedeEditar =
+        puedeEditarCargos && !yaCobrada && (esBorrador || editandoConfirmada);
+    const puedeSolicitarEditar =
+        puedeEditarCargos && !esBorrador && !yaCobrada && !editandoConfirmada;
 
     const initial = useMemo<FormState>(
         () => ({
@@ -204,7 +209,7 @@ export default function InternamientoCargos({
         [cargo, puedeEditar],
     );
 
-    const { data, setData, put, processing, errors, clearErrors } = useForm<FormState>(initial);
+    const { data, setData, post, processing, errors, clearErrors } = useForm<FormState>(initial);
 
     const title = useMemo(
         () =>
@@ -242,9 +247,12 @@ export default function InternamientoCargos({
         if (!puedeEditar) {
             return;
         }
-        put(cargosBaseUrl, {
+        post(`${cargosBaseUrl}/confirmar`, {
             preserveScroll: true,
-            onSuccess: () => clearErrors(),
+            onSuccess: () => {
+                clearErrors();
+                setEditandoConfirmada(false);
+            },
         });
     };
 
@@ -264,15 +272,6 @@ export default function InternamientoCargos({
             'lineas',
             data.lineas.map((row, i) => (i === idx ? { ...row, ...patch } : row)),
         );
-    };
-
-    const onConfirmar = () => {
-        if (!puedeEditar) {
-            return;
-        }
-        router.post(`${cargosBaseUrl}/confirmar`, undefined, {
-            preserveScroll: true,
-        });
     };
 
     const hayLineasGuardadas = cargo.lineas.length > 0;
@@ -369,6 +368,7 @@ export default function InternamientoCargos({
                 cobro={cobro}
                 esBorrador={esBorrador}
                 puedeEditar={puedeEditar}
+                puedeSolicitarEditar={puedeSolicitarEditar}
                 puedeEditarCargos={puedeEditarCargos}
                 hayLineasGuardadas={hayLineasGuardadas}
                 lineasSoloLectura={lineasSoloLectura}
@@ -376,7 +376,7 @@ export default function InternamientoCargos({
                 errors={errors}
                 processing={processing}
                 onSubmit={onSubmit}
-                onConfirmar={onConfirmar}
+                onEditar={() => setEditandoConfirmada(true)}
                 addLinea={addLinea}
                 removeLinea={removeLinea}
                 updateLinea={updateLinea}

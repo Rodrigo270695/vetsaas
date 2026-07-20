@@ -13,7 +13,11 @@ class UpsertConsultaCargoRequest extends FormRequest
         $u = $this->user();
 
         return $u !== null
-            && ($u->can('consulta-cargos.manage') || $u->can('historias-clinicas.update'));
+            && (
+                $u->can('consulta-cargos.manage')
+                || $u->can('historias-clinicas.update')
+                || $u->can('hospitalizacion.update')
+            );
     }
 
     protected function prepareForValidation(): void

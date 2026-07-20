@@ -5,6 +5,7 @@ return [
         'guardado' => 'Consultation charges saved.',
         'confirmado' => 'Pre-invoice confirmed. Linked product stock was deducted.',
         'solo_borrador' => 'You can only edit while the status is draft.',
+        'ya_cobrado_no_editable' => 'This pre-invoice was already paid at checkout and cannot be edited.',
         'sin_lineas' => 'Add at least one line before confirming.',
         'sin_sede_stock' => 'No active branch available to deduct inventory.',
         'stock_insuficiente' => 'Insufficient stock to confirm consultation products.',

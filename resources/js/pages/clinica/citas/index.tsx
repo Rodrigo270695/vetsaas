@@ -157,7 +157,6 @@ export default function Index({
 
             router.reload({
                 only: ['citas', 'citas_agenda', 'stats'],
-                preserveScroll: true,
             });
         }, 15_000);
 

@@ -6,6 +6,7 @@ import {
     CheckCircle2,
     Info,
     Loader2,
+    Pencil,
     Plus,
     Printer,
     Receipt,
@@ -94,6 +95,7 @@ export type ConsultaCargosMainProps = {
     };
     esBorrador: boolean;
     puedeEditar: boolean;
+    puedeSolicitarEditar?: boolean;
     puedeEditarCargos: boolean;
     puedeCerrarConsulta?: boolean;
     onSolicitarCerrarConsulta?: () => void;
@@ -103,7 +105,7 @@ export type ConsultaCargosMainProps = {
     errors: Record<string, string>;
     processing: boolean;
     onSubmit: (e: FormEvent) => void;
-    onConfirmar: () => void;
+    onEditar?: () => void;
     addLinea: () => void;
     removeLinea: (idx: number) => void;
     updateLinea: (idx: number, patch: Partial<LineaForm>) => void;
@@ -297,6 +299,7 @@ export function ConsultaCargosMain({
     cobro,
     esBorrador,
     puedeEditar,
+    puedeSolicitarEditar = false,
     puedeEditarCargos,
     puedeCerrarConsulta = false,
     onSolicitarCerrarConsulta,
@@ -306,7 +309,7 @@ export function ConsultaCargosMain({
     errors,
     processing,
     onSubmit,
-    onConfirmar,
+    onEditar,
     addLinea,
     removeLinea,
     updateLinea,
@@ -328,8 +331,8 @@ export function ConsultaCargosMain({
     const notasVisibles = puedeEditar || Boolean(data.notas?.trim());
 
     const totalesPanel = (
-        <aside className="rounded-xl border border-border/50 bg-card/80 p-4 shadow-sm lg:sticky lg:top-4">
-            <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        <aside className="rounded-xl border border-sky-200/70 bg-linear-to-br from-sky-50 via-card to-emerald-50/60 p-4 shadow-sm dark:border-sky-800/50 dark:from-sky-950/30 dark:via-card dark:to-emerald-950/20 lg:sticky lg:top-4">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-sky-700 dark:text-sky-300">
                 {t('totales.resumen_title')}
             </p>
             <dl className="space-y-1.5 text-sm">
@@ -352,20 +355,28 @@ export function ConsultaCargosMain({
             </dl>
             <p className="mt-2.5 text-[0.7rem] leading-snug text-muted-foreground">{t('totales.hint_refresh')}</p>
             {puedeEditar ? (
-                <div className="mt-4 flex flex-col gap-2">
-                    <Button type="submit" disabled={processing} className="w-full gap-2" size="sm">
+                <div className="mt-4">
+                    <Button
+                        type="submit"
+                        disabled={processing}
+                        className="w-full gap-2 bg-emerald-600 text-white hover:bg-emerald-700"
+                        size="sm"
+                    >
                         {processing ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
-                        {t('save_draft')}
+                        {t('confirmar')}
                     </Button>
+                </div>
+            ) : puedeSolicitarEditar && onEditar ? (
+                <div className="mt-4">
                     <Button
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="w-full"
-                        disabled={processing}
-                        onClick={onConfirmar}
+                        className="w-full gap-2 border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-200"
+                        onClick={onEditar}
                     >
-                        {t('confirmar')}
+                        <Pencil className="size-3.5" aria-hidden />
+                        {t('editar_precuenta')}
                     </Button>
                 </div>
             ) : null}
@@ -407,8 +418,13 @@ export function ConsultaCargosMain({
                     </>
                 ) : null}
                 <Badge
-                    variant={esBorrador ? 'secondary' : 'default'}
-                    className="ml-auto h-5 px-2 text-[0.65rem] font-medium sm:ml-0"
+                    variant="outline"
+                    className={cn(
+                        'ml-auto h-5 px-2 text-[0.65rem] font-semibold sm:ml-0',
+                        esBorrador
+                            ? 'border-amber-300 bg-amber-100 text-amber-800 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200'
+                            : 'border-emerald-300 bg-emerald-100 text-emerald-800 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200',
+                    )}
                 >
                     {esBorrador ? t('estado.borrador') : t('estado.confirmado')}
                 </Badge>
@@ -453,7 +469,10 @@ export function ConsultaCargosMain({
                         icon={Receipt}
                         badge={
                             cargo.lineas.length > 0 ? (
-                                <Badge variant="outline" className="h-5 px-1.5 text-[0.65rem] tabular-nums">
+                                <Badge
+                                    variant="outline"
+                                    className="h-5 border-sky-300 bg-sky-100 px-1.5 text-[0.65rem] font-semibold text-sky-800 tabular-nums dark:border-sky-700 dark:bg-sky-950/40 dark:text-sky-200"
+                                >
                                     {cargo.lineas.length}
                                 </Badge>
                             ) : null
@@ -738,7 +757,7 @@ export function ConsultaCargosMain({
                             </div>
                         ) : lineasSoloLectura ? (
                             <div className="overflow-x-auto">
-                                <table className="w-full min-w-[520px] border-collapse text-sm">
+                                <table className="w-full min-w-130 border-collapse text-sm">
                                     <thead>
                                         <tr className="border-b border-border/40 bg-muted/20">
                                             <th className="px-3 py-2 text-left text-[0.65rem] font-medium uppercase tracking-wide text-muted-foreground">

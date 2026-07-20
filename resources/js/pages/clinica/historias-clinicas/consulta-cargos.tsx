@@ -1,4 +1,4 @@
-import { Head, resetLayoutProps, router, setLayoutProps, useForm, usePage } from '@inertiajs/react';
+import { Head, resetLayoutProps, setLayoutProps, useForm, usePage } from '@inertiajs/react';
 import { Loader2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -193,13 +193,18 @@ export default function ConsultaCargos({ consulta, cargo, cobro, clinic_billing 
     const { t, i18n } = useTranslation(['consulta-cargos', 'nav', 'caja']);
     const [ticketModalOpen, setTicketModalOpen] = useState(false);
     const [showClosePrompt, setShowClosePrompt] = useState(false);
+    const [editandoConfirmada, setEditandoConfirmada] = useState(false);
     const promptedAfterCobroRef = useRef(false);
     const { locale: appLocale, timezone: appTz } = usePage().props;
     const { can } = usePermission();
     const puedeEditarCargos = can('consulta-cargos.manage') || can('historias-clinicas.update');
     const puedeCerrarConsulta = can('historias-clinicas.update');
     const esBorrador = cargo.estado === 'borrador';
-    const puedeEditar = esBorrador && puedeEditarCargos;
+    const yaCobrada = cobro.venta_id !== null;
+    const puedeEditar =
+        puedeEditarCargos && !yaCobrada && (esBorrador || editandoConfirmada);
+    const puedeSolicitarEditar =
+        puedeEditarCargos && !esBorrador && !yaCobrada && !editandoConfirmada;
 
     const initial = useMemo<FormState>(
         () => ({
@@ -210,7 +215,7 @@ export default function ConsultaCargos({ consulta, cargo, cobro, clinic_billing 
         [cargo, puedeEditar],
     );
 
-    const { data, setData, put, processing, errors, clearErrors } = useForm<FormState>(initial);
+    const { data, setData, post, processing, errors, clearErrors } = useForm<FormState>(initial);
 
     const title = useMemo(
         () => t('page_title', { paciente: consulta.historia_clinica.paciente.nombre }),
@@ -270,9 +275,13 @@ export default function ConsultaCargos({ consulta, cargo, cobro, clinic_billing 
         if (!puedeEditar) {
             return;
         }
-        put(clinica.historiasClinicas.consultas.cargos.update.url(consulta.id), {
+
+        post(clinica.historiasClinicas.consultas.cargos.confirmar.url(consulta.id), {
             preserveScroll: true,
-            onSuccess: () => clearErrors(),
+            onSuccess: () => {
+                clearErrors();
+                setEditandoConfirmada(false);
+            },
         });
     };
 
@@ -292,15 +301,6 @@ export default function ConsultaCargos({ consulta, cargo, cobro, clinic_billing 
             'lineas',
             data.lineas.map((row, i) => (i === idx ? { ...row, ...patch } : row)),
         );
-    };
-
-    const onConfirmar = () => {
-        if (!puedeEditar) {
-            return;
-        }
-        router.post(clinica.historiasClinicas.consultas.cargos.confirmar.url(consulta.id), undefined, {
-            preserveScroll: true,
-        });
     };
 
     const hayLineasGuardadas = cargo.lineas.length > 0;
@@ -374,6 +374,7 @@ export default function ConsultaCargos({ consulta, cargo, cobro, clinic_billing 
                 cobro={cobro}
                 esBorrador={esBorrador}
                 puedeEditar={puedeEditar}
+                puedeSolicitarEditar={puedeSolicitarEditar}
                 puedeEditarCargos={puedeEditarCargos}
                 puedeCerrarConsulta={puedeCerrarConsulta}
                 onSolicitarCerrarConsulta={solicitarCerrarConsulta}
@@ -383,7 +384,7 @@ export default function ConsultaCargos({ consulta, cargo, cobro, clinic_billing 
                 errors={errors}
                 processing={processing}
                 onSubmit={onSubmit}
-                onConfirmar={onConfirmar}
+                onEditar={() => setEditandoConfirmada(true)}
                 addLinea={addLinea}
                 removeLinea={removeLinea}
                 updateLinea={updateLinea}

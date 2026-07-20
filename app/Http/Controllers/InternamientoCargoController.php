@@ -260,29 +260,46 @@ class InternamientoCargoController extends Controller
             ->with('success', __('consulta-cargos.flash.guardado'));
     }
 
-    public function confirmar(Request $request, Internamiento $internamiento): RedirectResponse
+    public function confirmar(UpsertConsultaCargoRequest $request, Internamiento $internamiento): RedirectResponse
     {
         $user = $request->user();
-        abort_unless(
-            $user instanceof User
-            && ($user->can('consulta-cargos.manage') || $user->can('hospitalizacion.update')),
-            403,
-        );
-
         $this->ensurePuedeVer($request);
 
         $cargo = ConsultaCargo::query()->where('internamiento_id', $internamiento->id)->first();
-        if ($cargo === null || ! $cargo->esBorrador()) {
+        if ($cargo === null || $cargo->venta_id !== null) {
             return redirect()
                 ->route('clinica.hospitalizacion.cargos.show', $internamiento)
-                ->with('error', __('consulta-cargos.flash.solo_borrador'));
+                ->with('error', __('consulta-cargos.flash.ya_cobrado_no_editable'));
         }
 
-        if ($cargo->lineas()->count() === 0) {
+        $cfg = ClinicSetting::query()->first();
+        if ($cfg === null) {
+            abort(503);
+        }
+
+        $validated = $request->validated();
+        $notas = $request->has('notas') ? ($validated['notas'] ?? null) : $cargo->notas;
+        $lineasIn = $request->has('lineas')
+            ? ($validated['lineas'] ?? [])
+            : $cargo->lineas()->get()->map(static fn (ConsultaCargoLinea $linea): array => [
+                'tipo_linea' => $linea->tipo_linea,
+                'producto_id' => $linea->producto_id,
+                'concepto' => $linea->concepto,
+                'cantidad' => $linea->cantidad,
+                'precio_unitario' => $linea->precio_unitario,
+                'descuento_importe' => $linea->descuento_importe,
+            ])->all();
+        if ($lineasIn === []) {
             return redirect()
                 ->route('clinica.hospitalizacion.cargos.show', $internamiento)
                 ->with('error', __('consulta-cargos.flash.sin_lineas'));
         }
+
+        $totales = ConsultaCargoTotales::fromLineas(
+            $lineasIn,
+            (bool) $cfg->precio_incluye_igv,
+            (float) $cfg->igv_porcentaje,
+        );
 
         $sedeId = (string) ($internamiento->sede_id ?? '');
         if ($sedeId === '') {
@@ -292,7 +309,40 @@ class InternamientoCargoController extends Controller
         }
 
         try {
-            DB::transaction(function () use ($cargo, $sedeId, $user): void {
+            DB::transaction(function () use ($cargo, $sedeId, $user, $notas, $lineasIn, $totales): void {
+                $cargo->load('lineas');
+
+                foreach ($cargo->lineas as $lineaAnterior) {
+                    $this->cargoStock->revertirLinea(
+                        $lineaAnterior,
+                        (string) $user->getAuthIdentifier(),
+                    );
+                }
+
+                $cargo->lineas()->delete();
+
+                foreach (array_values($lineasIn) as $i => $row) {
+                    ConsultaCargoLinea::query()->create([
+                        'consulta_cargo_id' => $cargo->id,
+                        'tipo_linea' => $row['tipo_linea'],
+                        'producto_id' => $row['producto_id'] ?? null,
+                        'concepto' => $row['concepto'],
+                        'cantidad' => $row['cantidad'],
+                        'precio_unitario' => $row['precio_unitario'],
+                        'descuento_importe' => $row['descuento_importe'] ?? 0,
+                        'orden' => $i,
+                    ]);
+                }
+
+                $cargo->update([
+                    'notas' => $notas,
+                    'subtotal_sin_igv' => $totales['subtotal_sin_igv'],
+                    'igv_importe' => $totales['igv_importe'],
+                    'total' => $totales['total'],
+                    'estado' => ConsultaCargo::ESTADO_CONFIRMADO,
+                    'updated_by_id' => $user->getAuthIdentifier(),
+                ]);
+
                 $cargo->load(['lineas.producto:id,nombre']);
 
                 foreach ($cargo->lineas as $linea) {
@@ -310,11 +360,6 @@ class InternamientoCargoController extends Controller
                         $linea->update(['movimiento_inventario_id' => $primerMov->id]);
                     }
                 }
-
-                $cargo->update([
-                    'estado' => ConsultaCargo::ESTADO_CONFIRMADO,
-                    'updated_by_id' => Auth::id(),
-                ]);
             });
         } catch (ValidationException $e) {
             $msg = $e->errors()['cantidad'][0] ?? __('consulta-cargos.flash.stock_insuficiente');

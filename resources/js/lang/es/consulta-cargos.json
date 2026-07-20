@@ -3,7 +3,7 @@
     "page_description": "Pre-cuenta de la consulta (servicios y productos). Los importes usan la configuración de IGV de la clínica.",
     "back_list": "Volver al listado de historias",
     "solo_lectura_sin_permiso": "Tu usuario puede abrir esta pantalla pero no tiene permiso para cargar importes. Pide a un administrador que active «Cargos de consulta → gestionar» (consulta-cargos.manage) o que vuelva a sincronizar roles: php artisan db:seed --class=TenantRolesSeeder",
-    "estado_confirmado_aviso": "Esta pre-cuenta ya está confirmada; no se puede editar aquí.",
+    "estado_confirmado_aviso": "Pre-cuenta confirmada. Puedes editarla mientras no haya sido cobrada en caja.",
     "consulta_abierta": {
         "banner": "La consulta clínica sigue abierta. Ciérrala cuando termines la atención.",
         "cobrada_hint": "Los cargos ya se cobraron en caja. ¿Cerrar la consulta clínica?",
@@ -65,8 +65,8 @@
         "total": "Total:",
         "hint_refresh": "Los totales se actualizan al guardar."
     },
-    "save_draft": "Guardar borrador",
     "confirmar": "Confirmar pre-cuenta",
+    "editar_precuenta": "Editar pre-cuenta",
     "producto_picker": {
         "placeholder": "Buscar producto…",
         "search_placeholder": "Nombre o SKU…",
