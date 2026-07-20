@@ -184,7 +184,20 @@ export function PacienteHistorialHero({
                 return;
             }
 
-            window.location.assign(data.url);
+            const popup = window.open(data.url, '_blank', 'noopener,noreferrer');
+            if (!popup) {
+                toastManager.warning({
+                    title: t('historial.petpass_popup_blocked'),
+                    description: t('historial.petpass_popup_blocked_hint'),
+                    duration: 10000,
+                });
+                return;
+            }
+
+            toastManager.success({
+                title: t('historial.petpass_opened_tab'),
+                duration: 5000,
+            });
         } catch {
             toastManager.error({
                 title: t('historial.petpass_start_error'),
