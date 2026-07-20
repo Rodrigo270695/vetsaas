@@ -37,7 +37,19 @@
         "create_first": "Create first order",
         "add_line": "Add exam",
         "ver_documento": "View document",
-        "ver_documento_aria": "View document for exam {{examen}}"
+        "ver_documento_aria": "View document for exam {{examen}}",
+        "send_whatsapp": "Send via WhatsApp"
+    },
+    "whatsapp": {
+        "title": "Send results via WhatsApp",
+        "description_with_phone": "{{count}} document(s) for {{paciente}} will be sent to {{propietario}} ({{telefono}}). You can change the number if needed.",
+        "description_no_phone": "{{count}} document(s) for {{paciente}} will be sent to {{propietario}}. Enter a WhatsApp number.",
+        "phone_label": "WhatsApp number",
+        "phone_placeholder": "987654321",
+        "phone_hint": "Include country code if outside Peru (e.g. 51987654321).",
+        "cancel": "Cancel",
+        "submit": "Send",
+        "sending": "Sending…"
     },
     "columns": {
         "solicitado_at": "Date",

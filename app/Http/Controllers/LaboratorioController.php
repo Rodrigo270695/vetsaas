@@ -4,23 +4,29 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StorePedidoLaboratorioRequest;
 use App\Http\Requests\UpdatePedidoLaboratorioRequest;
+use App\Models\ClinicSetting;
 use App\Models\Consulta;
 use App\Models\Paciente;
 use App\Models\PedidoLaboratorio;
 use App\Models\PedidoLaboratorioLinea;
 use App\Models\Sede;
+use App\Models\Tenant;
 use App\Models\User;
+use App\Services\Laboratorio\PedidoLaboratorioWhatsAppSender;
+use App\Support\WhatsApp\WhatsAppChatId;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Throwable;
 
 class LaboratorioController extends Controller
 {
@@ -73,7 +79,7 @@ class LaboratorioController extends Controller
             $qEdit = PedidoLaboratorio::query()
                 ->withCount('lineas')
                 ->with([
-                    'paciente.propietario:id,nombres,apellidos,razon_social',
+                    'paciente.propietario:id,nombres,apellidos,razon_social,telefono',
                     'consulta:id,atendido_at,cerrada_at,historia_clinica_id',
                     'consulta.historiaClinica:id,paciente_id',
                     'veterinario:id,name',
@@ -121,7 +127,7 @@ class LaboratorioController extends Controller
         $query
             ->withCount('lineas')
             ->with([
-                'paciente.propietario:id,nombres,apellidos,razon_social',
+                'paciente.propietario:id,nombres,apellidos,razon_social,telefono',
                 'consulta:id,atendido_at,historia_clinica_id',
                 'consulta.historiaClinica:id,paciente_id',
                 'veterinario:id,name',
@@ -278,6 +284,69 @@ class LaboratorioController extends Controller
         abort_unless($request->user()?->can('laboratorio.view') ?? false, 403);
 
         return $this->streamResultadoArchivo($linea);
+    }
+
+    public function enviarWhatsApp(
+        Request $request,
+        PedidoLaboratorio $pedidoLaboratorio,
+        PedidoLaboratorioWhatsAppSender $sender,
+    ): RedirectResponse {
+        abort_unless($request->user()?->can('laboratorio.view') ?? false, 403);
+
+        $data = $request->validate([
+            'telefono' => ['nullable', 'string', 'max:20'],
+        ]);
+
+        $pedidoLaboratorio->loadMissing([
+            'paciente:id,nombre,propietario_id',
+            'paciente.propietario:id,nombres,apellidos,razon_social,telefono,telefono_alt',
+            'lineas',
+        ]);
+
+        $propietario = $pedidoLaboratorio->paciente?->propietario;
+        $phone = trim((string) ($data['telefono'] ?? '')) !== ''
+            ? (string) $data['telefono']
+            : ($propietario?->telefono ?: $propietario?->telefono_alt);
+
+        $chatId = WhatsAppChatId::fromPhone($phone);
+        if ($chatId === null) {
+            return back()->with('warning', __('laboratorio.flash.whatsapp_no_phone'));
+        }
+
+        $tenantId = tenant_id();
+        $tenant = $tenantId !== null ? Tenant::query()->find($tenantId) : null;
+        if ($tenant === null) {
+            return back()->with('warning', __('laboratorio.flash.whatsapp_fallo'));
+        }
+
+        $ownerName = $propietario !== null
+            ? (trim($propietario->displayName()) !== '' ? $propietario->displayName() : 'propietario')
+            : 'propietario';
+
+        try {
+            $sender->send(
+                $pedidoLaboratorio,
+                $tenant,
+                $chatId,
+                $ownerName,
+                ClinicSetting::current(),
+            );
+
+            return back()->with('success', __('laboratorio.flash.whatsapp_enviado'));
+        } catch (Throwable $e) {
+            Log::warning('No se pudo enviar resultados WhatsApp de laboratorio', [
+                'pedido_laboratorio_id' => $pedidoLaboratorio->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            $msg = __('laboratorio.flash.whatsapp_fallo');
+            $detail = trim($e->getMessage());
+            if ($detail !== '') {
+                $msg .= ' '.$detail;
+            }
+
+            return back()->with('warning', $msg);
+        }
     }
 
     public function publicDownloadResultadoArchivo(PedidoLaboratorioLinea $linea): BinaryFileResponse

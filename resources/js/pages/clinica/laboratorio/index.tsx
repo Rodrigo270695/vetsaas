@@ -24,6 +24,7 @@ import { formatAtendidoInAppTimezone } from '../historias-clinicas/format-atendi
 import { PedidoDeleteDialog } from './components/pedido-delete-dialog';
 import { PedidoFormModal } from './components/pedido-form-modal';
 import { PedidoRowActions } from './components/pedido-row-actions';
+import { PedidoWhatsAppModal } from './components/pedido-whatsapp-modal';
 import type {
     ConsultaLaboratorioOpcion,
     PacienteLaboratorioOpcion,
@@ -119,8 +120,9 @@ export default function Index({
     const canCreate = can('laboratorio.create');
     const canUpdate = can('laboratorio.update');
     const canDelete = can('laboratorio.delete');
+    const canWhatsApp = can('laboratorio.view');
     const canSeeAudit = can('audit-trail.view');
-    const showRowActions = canUpdate || canDelete;
+    const showRowActions = canUpdate || canDelete || canWhatsApp;
 
     const estadoOptions = useMemo<readonly FilterChip<string>[]>(
         () => [
@@ -169,10 +171,13 @@ export default function Index({
     });
 
     const [modal, setModal] = useState<ModalState>({ type: 'idle' });
+    const [whatsappPedido, setWhatsappPedido] =
+        useState<PedidoLaboratorioRow | null>(null);
     const closeModal = useCallback(() => setModal({ type: 'idle' }), []);
     const openCreate = useCallback(() => setModal({ type: 'create' }), []);
     const openEdit = useCallback((p: PedidoLaboratorioRow) => setModal({ type: 'edit', pedido: p }), []);
     const openDelete = useCallback((p: PedidoLaboratorioRow) => setModal({ type: 'delete', pedido: p }), []);
+    const openWhatsApp = useCallback((p: PedidoLaboratorioRow) => setWhatsappPedido(p), []);
 
     const openedPedidoEditarRef = useRef<string | null>(null);
     useEffect(() => {
@@ -418,8 +423,10 @@ export default function Index({
                             pedido={row}
                             onEdit={openEdit}
                             onDelete={openDelete}
+                            onWhatsApp={openWhatsApp}
                             canUpdate={canUpdate}
                             canDelete={canDelete}
+                            canWhatsApp={canWhatsApp}
                         />
                     </div>
                 ),
@@ -436,8 +443,10 @@ export default function Index({
         showRowActions,
         canUpdate,
         canDelete,
+        canWhatsApp,
         openEdit,
         openDelete,
+        openWhatsApp,
     ]);
 
     return (
@@ -582,6 +591,16 @@ export default function Index({
                     }
                 }}
                 pedido={modal.type === 'delete' ? modal.pedido : null}
+            />
+
+            <PedidoWhatsAppModal
+                open={whatsappPedido !== null}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setWhatsappPedido(null);
+                    }
+                }}
+                pedido={whatsappPedido}
             />
         </>
     );

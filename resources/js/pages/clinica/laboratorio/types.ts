@@ -83,6 +83,7 @@ export type PedidoLaboratorioRow = {
             nombres: string;
             apellidos: string | null;
             razon_social: string | null;
+            telefono?: string | null;
         };
     };
     consulta: {
@@ -100,3 +101,24 @@ export type PedidoLaboratorioRow = {
     creado_por?: AuditUser | null;
     actualizado_por?: AuditUser | null;
 };
+
+export function pedidoDocumentCount(pedido: PedidoLaboratorioRow): number {
+    return (pedido.lineas ?? []).filter(
+        (l) =>
+            Boolean(l.resultado_archivo_url) ||
+            Boolean(l.resultado_archivo_path),
+    ).length;
+}
+
+export function propietarioDisplayName(pedido: PedidoLaboratorioRow): string {
+    const p = pedido.paciente.propietario;
+    if (!p) {
+        return '—';
+    }
+
+    if (p.razon_social?.trim()) {
+        return p.razon_social.trim();
+    }
+
+    return [p.nombres, p.apellidos].filter(Boolean).join(' ').trim() || '—';
+}

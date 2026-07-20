@@ -410,6 +410,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
                 ->delete('laboratorio/{pedido_laboratorio}', [LaboratorioController::class, 'destroy'])
                 ->name('laboratorio.destroy');
             Route::middleware('permission:laboratorio.view')
+                ->post('laboratorio/{pedido_laboratorio}/enviar-whatsapp', [LaboratorioController::class, 'enviarWhatsApp'])
+                ->name('laboratorio.enviar-whatsapp');
+            Route::middleware('permission:laboratorio.view')
                 ->get('laboratorio/lineas/{linea}/resultado-archivo', [LaboratorioController::class, 'downloadResultadoArchivo'])
                 ->name('laboratorio.lineas.resultado-archivo');
 

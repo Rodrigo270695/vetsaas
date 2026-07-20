@@ -163,6 +163,37 @@ final class ReminderMessageBuilder
         return implode("\n", $lines);
     }
 
+    /**
+     * @param  list<string>  $examenes
+     */
+    public function laboratorioResultados(
+        string $clinicName,
+        string $recipientName,
+        string $petName,
+        array $examenes,
+        string $fechaDisplay,
+    ): string {
+        $examenesLabel = $examenes !== []
+            ? implode(', ', array_slice($examenes, 0, 5))
+            : 'análisis de laboratorio';
+
+        if (count($examenes) > 5) {
+            $examenesLabel .= '…';
+        }
+
+        return implode("\n", [
+            "Hola {$recipientName} 👋",
+            '',
+            "🧪 Resultados de laboratorio de *{$petName}*",
+            "📋 {$examenesLabel}",
+            "📅 {$fechaDisplay}",
+            '',
+            'Te compartimos el(los) documento(s) adjunto(s).',
+            '',
+            "— {$clinicName}",
+        ]);
+    }
+
     public function groomingProcesoFoto(
         string $clinicName,
         string $ownerName,

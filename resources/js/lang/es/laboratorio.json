@@ -37,7 +37,19 @@
         "create_first": "Crear primer pedido",
         "add_line": "Añadir examen",
         "ver_documento": "Ver documento",
-        "ver_documento_aria": "Ver documento del examen {{examen}}"
+        "ver_documento_aria": "Ver documento del examen {{examen}}",
+        "send_whatsapp": "Enviar por WhatsApp"
+    },
+    "whatsapp": {
+        "title": "Enviar resultados por WhatsApp",
+        "description_with_phone": "Se enviarán {{count}} documento(s) de {{paciente}} a {{propietario}} ({{telefono}}). Puedes cambiar el número si hace falta.",
+        "description_no_phone": "Se enviarán {{count}} documento(s) de {{paciente}} a {{propietario}}. Indica un número de WhatsApp.",
+        "phone_label": "Número de WhatsApp",
+        "phone_placeholder": "987654321",
+        "phone_hint": "Incluye código de país si no es Perú (ej. 51987654321).",
+        "cancel": "Cancelar",
+        "submit": "Enviar",
+        "sending": "Enviando…"
     },
     "columns": {
         "solicitado_at": "Fecha",
