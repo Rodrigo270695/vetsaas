@@ -8,6 +8,7 @@ use App\Models\ClinicSetting;
 use App\Models\Paciente;
 use App\Models\Tenant;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use RuntimeException;
 use Throwable;
@@ -88,6 +89,11 @@ final class AlmaPetHandoffClient
             $ownerName = $razon;
         }
 
+        $clinicName = trim((string) ($clinic->nombre_comercial ?: $clinic->razon_social ?: $tenant->razonSocial()));
+        if ($clinicName === '') {
+            $clinicName = (string) ($tenant->slug ?: 'Clínica VetSaaS');
+        }
+
         $payload = [
             'vetsaas_tenant_id' => (string) $tenant->id(),
             'vetsaas_slug' => (string) $tenant->slug,
@@ -95,9 +101,9 @@ final class AlmaPetHandoffClient
             'microchip' => $microchip,
             'country_code' => 'PE',
             'clinic' => [
-                'name' => (string) ($clinic->nombre_comercial ?: $clinic->razon_social ?: $tenant->razonSocial()),
+                'name' => $clinicName,
                 'ruc' => $tenantModel?->ruc,
-                'email' => $clinic->email_institucional ?? $tenantModel?->email_admin,
+                'email' => $this->nullableEmail($clinic->email_institucional ?? $tenantModel?->email_admin),
                 'phone' => $clinic->telefono_principal ?? $tenantModel?->telefono,
                 'address' => $clinic->direccion_fiscal ?? $tenantModel?->direccion,
                 'city' => null,
@@ -107,7 +113,7 @@ final class AlmaPetHandoffClient
                 'document_number' => $docNumber,
                 'name' => $ownerName !== '' ? $ownerName : 'Titular',
                 'lastname' => $ownerLast !== '' ? $ownerLast : '—',
-                'email' => $owner->email,
+                'email' => $this->nullableEmail($owner->email),
                 'phone' => $owner->telefono,
             ],
             'animal' => [
@@ -125,10 +131,12 @@ final class AlmaPetHandoffClient
 
         try {
             $response = Http::timeout((int) config('petpass.timeout_seconds', 15))
+                ->acceptJson()
+                ->asJson()
                 ->withHeaders([
-                    'Accept' => 'application/json',
                     'X-AlmaPet-Handoff-Secret' => (string) config('petpass.handoff_secret'),
                 ])
+                ->withOptions(['allow_redirects' => false])
                 ->post($url, $payload);
         } catch (Throwable $e) {
             report($e);
@@ -138,26 +146,40 @@ final class AlmaPetHandoffClient
             ]);
         }
 
+        if ($response->redirect()) {
+            throw ValidationException::withMessages([
+                'petpass' => 'AlmaPet ID redirigió el handoff (HTTP '.$response->status().' → '.($response->header('Location') ?: 'sin Location').'). Revisa PETPASS_BASE_URL='.$url,
+            ]);
+        }
+
         if (! $response->successful()) {
-            $message = $response->json('message')
-                ?? $response->json('errors.microchip.0')
-                ?? $response->json('errors.petpass.0')
+            $message = $this->extractErrorMessage($response)
                 ?? match ($response->status()) {
-                    401, 403 => 'AlmaPet ID rechazó la clave de handoff (PETPASS_HANDOFF_SECRET).',
-                    404 => 'Endpoint de handoff no encontrado en AlmaPet ID. Revisa PETPASS_BASE_URL.',
-                    422 => 'AlmaPet ID rechazó los datos del paciente (revisa microchip y documento del titular).',
+                    401, 403 => 'AlmaPet ID rechazó la clave de handoff (PETPASS_HANDOFF_SECRET no coincide con ALMAPET_HANDOFF_SECRET).',
+                    404 => 'Endpoint de handoff no encontrado. Debe ser POST '.$url,
+                    422 => 'AlmaPet ID rechazó los datos del paciente (revisa microchip, email y documento del titular).',
+                    503 => 'Handoff no configurado en AlmaPet (ALMAPET_HANDOFF_SECRET vacío en el VPS).',
                     default => 'No se pudo iniciar el registro en AlmaPet ID (HTTP '.$response->status().').',
                 };
 
             throw ValidationException::withMessages([
-                'petpass' => is_string($message) ? $message : 'No se pudo iniciar el registro en AlmaPet ID.',
+                'petpass' => $message,
             ]);
         }
 
         $data = $response->json();
-        if (! is_array($data) || blank($data['url'] ?? null)) {
+        if (! is_array($data)) {
+            $preview = Str::limit(trim(strip_tags($response->body())), 160);
+
             throw ValidationException::withMessages([
-                'petpass' => 'Respuesta inválida de AlmaPet ID.',
+                'petpass' => 'AlmaPet ID no devolvió JSON en '.$url.' (HTTP '.$response->status().'). '.$preview,
+            ]);
+        }
+
+        $handoffUrl = $data['url'] ?? $data['data']['url'] ?? null;
+        if (! is_string($handoffUrl) || blank($handoffUrl)) {
+            throw ValidationException::withMessages([
+                'petpass' => 'Respuesta inválida de AlmaPet ID (sin url). Keys: '.implode(', ', array_keys($data)).'. HTTP '.$response->status(),
             ]);
         }
 
@@ -166,9 +188,46 @@ final class AlmaPetHandoffClient
         ])->save();
 
         return [
-            'token' => (string) ($data['token'] ?? ''),
-            'url' => (string) $data['url'],
-            'expires_at' => (string) ($data['expires_at'] ?? ''),
+            'token' => (string) ($data['token'] ?? $data['data']['token'] ?? ''),
+            'url' => $handoffUrl,
+            'expires_at' => (string) ($data['expires_at'] ?? $data['data']['expires_at'] ?? ''),
         ];
+    }
+
+    /**
+     * @return string|null
+     */
+    private function extractErrorMessage(\Illuminate\Http\Client\Response $response): ?string
+    {
+        $message = $response->json('message');
+        if (is_string($message) && $message !== '' && $message !== 'The given data was invalid.') {
+            return $message;
+        }
+
+        $errors = $response->json('errors');
+        if (! is_array($errors)) {
+            return is_string($message) && $message !== '' ? $message : null;
+        }
+
+        foreach ($errors as $field => $messages) {
+            if (is_string($messages) && $messages !== '') {
+                return $field.': '.$messages;
+            }
+            if (is_array($messages) && isset($messages[0]) && is_string($messages[0])) {
+                return $field.': '.$messages[0];
+            }
+        }
+
+        return is_string($message) && $message !== '' ? $message : null;
+    }
+
+    private function nullableEmail(mixed $value): ?string
+    {
+        $email = trim((string) ($value ?? ''));
+        if ($email === '' || ! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return null;
+        }
+
+        return $email;
     }
 }

@@ -179,7 +179,7 @@ export default function PacienteShow({
                                 <h2 className="text-base font-semibold text-foreground">{t('historial.timeline_title')}</h2>
                                 <p className="text-xs text-muted-foreground">{t('historial.timeline_hint')}</p>
                             </div>
-                        </div>
+                </div>
                     </header>
 
                     <div className="p-4 sm:p-5">

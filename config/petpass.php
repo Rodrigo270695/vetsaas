@@ -12,7 +12,12 @@ return [
 
     'base_url' => rtrim((string) env('PETPASS_BASE_URL', env('ALMAPET_BASE_URL', 'https://almapetid.com')), '/'),
 
-    'handoff_path' => (string) env('PETPASS_HANDOFF_PATH', '/api/v1/handoff'),
+    // Si el .env deja PETPASS_HANDOFF_PATH vacío, env() NO usa el default de Laravel.
+    'handoff_path' => (static function (): string {
+        $path = trim((string) env('PETPASS_HANDOFF_PATH', '/api/v1/handoff'));
+
+        return $path !== '' ? $path : '/api/v1/handoff';
+    })(),
 
     'handoff_secret' => (string) env('PETPASS_HANDOFF_SECRET', env('ALMAPET_HANDOFF_SECRET', '')),
 
