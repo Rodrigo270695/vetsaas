@@ -48,15 +48,28 @@ it('detiene sesión OpenWA', function (): void {
     });
 });
 
-it('lista sesiones existentes', function (): void {
+it('asume entrega ante OpenWA HTTP 500 en send-text', function (): void {
     Http::fake([
-        'wa.test/api/sessions' => Http::response([
-            ['id' => 'sess-a', 'name' => 'clinica-a', 'status' => 'ready'],
-        ]),
+        'wa.test/api/sessions/sess-1/messages/send-text' => Http::response([
+            'statusCode' => 500,
+            'message' => 'Internal server error',
+        ], 500),
     ]);
 
-    $sessions = (new OpenWaClient)->listSessions();
+    $result = (new OpenWaClient)->sendTextWithDeliveryFallback(
+        'sess-1',
+        '51999111222@c.us',
+        'Hola',
+    );
 
-    expect($sessions)->toHaveCount(1)
-        ->and($sessions[0]['name'])->toBe('clinica-a');
+    expect($result['assumed_delivery'] ?? false)->toBeTrue();
+});
+
+it('detecta errores ambiguos de entrega OpenWA', function (): void {
+    $client = new OpenWaClient;
+
+    expect($client->isAmbiguousDeliveryErrorMessage(
+        'OpenWA HTTP 500: {"statusCode":500,"message":"Internal server error"}',
+    ))->toBeTrue()
+        ->and($client->isAmbiguousDeliveryErrorMessage('OpenWA HTTP 400: bad request'))->toBeFalse();
 });

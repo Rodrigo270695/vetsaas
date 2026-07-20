@@ -10,6 +10,7 @@ use App\Models\TenantWhatsAppSession;
 use App\Services\OpenWa\OpenWaClient;
 use App\Services\OpenWa\TenantWhatsAppSessionSync;
 use Carbon\CarbonInterface;
+use Illuminate\Support\Facades\Log;
 
 final class WhatsAppNotificationDispatcher
 {
@@ -73,8 +74,60 @@ final class WhatsAppNotificationDispatcher
             && $this->deliverItem($item, $session);
     }
 
+    /**
+     * Corrige ítems que ya salieron por WhatsApp pero quedaron pendiente/fallido
+     * por un 5xx/timeout ambiguo de OpenWA (sin reenviar).
+     */
+    public function healAmbiguousStuck(int $limit = 100): int
+    {
+        $items = NotificationQueue::query()
+            ->whereIn('estado', [
+                NotificationQueue::ESTADO_PENDIENTE,
+                NotificationQueue::ESTADO_FALLIDO,
+            ])
+            ->where('canal', NotificationQueue::CANAL_WHATSAPP)
+            ->where('intentos', '>', 0)
+            ->whereNotNull('error_mensaje')
+            ->orderBy('enviar_at')
+            ->limit($limit)
+            ->get();
+
+        $healed = 0;
+
+        foreach ($items as $item) {
+            if (! $this->client->isAmbiguousDeliveryErrorMessage((string) $item->error_mensaje)) {
+                continue;
+            }
+
+            $item->forceFill([
+                'estado' => NotificationQueue::ESTADO_ENVIADO,
+                'error_mensaje' => null,
+            ])->save();
+            $healed++;
+        }
+
+        return $healed;
+    }
+
     private function deliverItem(NotificationQueue $item, TenantWhatsAppSession $session): bool
     {
+        // Reintento tras 5xx: el mensaje casi seguro ya salió; no reenviar (evita duplicados).
+        if ($item->intentos > 0
+            && $this->client->isAmbiguousDeliveryErrorMessage((string) $item->error_mensaje)) {
+            Log::warning('Cola WhatsApp: intento previo con error ambiguo; se marca enviado sin reenviar', [
+                'notification_id' => $item->id,
+                'tipo' => $item->tipo,
+                'error' => $item->error_mensaje,
+            ]);
+
+            $item->forceFill([
+                'estado' => NotificationQueue::ESTADO_ENVIADO,
+                'error_mensaje' => null,
+            ])->save();
+
+            return true;
+        }
+
         $item->forceFill([
             'estado' => NotificationQueue::ESTADO_PROCESANDO,
             'intentos' => $item->intentos + 1,
@@ -82,7 +135,8 @@ final class WhatsAppNotificationDispatcher
         ])->save();
 
         try {
-            $result = $this->client->sendText(
+            // OpenWA a veces responde 5xx/timeout aunque el mensaje ya salió.
+            $result = $this->client->sendTextWithDeliveryFallback(
                 $session->openwa_session_id,
                 $item->destinatario,
                 $item->cuerpo,
@@ -96,6 +150,22 @@ final class WhatsAppNotificationDispatcher
 
             return true;
         } catch (\Throwable $e) {
+            // Cinturón: si el fallback no atrapó el 5xx, igual no dejar pendiente/falso fallo.
+            if ($this->client->isAmbiguousDeliveryError($e)) {
+                Log::warning('Cola WhatsApp: error ambiguo en dispatch; se asume enviado', [
+                    'notification_id' => $item->id,
+                    'error' => $e->getMessage(),
+                ]);
+
+                $item->forceFill([
+                    'estado' => NotificationQueue::ESTADO_ENVIADO,
+                    'error_mensaje' => null,
+                    'proveedor_msg_id' => null,
+                ])->save();
+
+                return true;
+            }
+
             $estado = $item->intentos >= $item->max_intentos
                 ? NotificationQueue::ESTADO_FALLIDO
                 : NotificationQueue::ESTADO_PENDIENTE;

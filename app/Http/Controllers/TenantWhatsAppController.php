@@ -145,6 +145,23 @@ class TenantWhatsAppController extends Controller
                 ->withInput();
         }
 
+        $session = TenantWhatsAppSession::query()
+            ->where('tenant_id', $tenant->id)
+            ->first();
+
+        if ($session !== null && ! $session->isReady()) {
+            $session = app(TenantWhatsAppSessionSync::class)->refresh($session);
+        }
+
+        $sessionChatId = WhatsAppChatId::fromPhone($session?->phone);
+        if ($sessionChatId !== null && $sessionChatId === $chatId) {
+            return back()
+                ->withErrors([
+                    'destinatario' => 'Usa otro número: no se puede enviar la prueba al mismo WhatsApp vinculado a la clínica.',
+                ])
+                ->withInput();
+        }
+
         $item = $queue->enqueue(
             tipo: 'prueba',
             destinatario: $chatId,

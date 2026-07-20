@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\NotificationQueue;
+use App\Services\Notifications\WhatsAppNotificationDispatcher;
 use App\Support\OpenWa\TenantWhatsAppPresenter;
 use App\Tenancy\TenantManager;
 use Illuminate\Http\RedirectResponse;
@@ -20,8 +21,15 @@ class NotificationQueueController extends Controller
         NotificationQueue::ESTADO_FALLIDO,
     ];
 
-    public function cola(Request $request, TenantManager $tenants, TenantWhatsAppPresenter $whatsapp): Response
-    {
+    public function cola(
+        Request $request,
+        TenantManager $tenants,
+        TenantWhatsAppPresenter $whatsapp,
+        WhatsAppNotificationDispatcher $dispatcher,
+    ): Response {
+        // OpenWA a veces deja la cola en pendiente aunque el WA ya llegó.
+        $dispatcher->healAmbiguousStuck();
+
         return $this->renderIndex(
             $request,
             $tenants,

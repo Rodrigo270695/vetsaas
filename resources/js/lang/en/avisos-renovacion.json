@@ -43,7 +43,7 @@
         "test_title": "Test message",
         "test_description": "Verify the platform session can send WhatsApp.",
         "test_phone": "Destination phone",
-        "test_phone_hint": "Country code or 9-digit Peruvian mobile.",
+        "test_phone_hint": "A different mobile than the connected WhatsApp. Country code or 9-digit Peruvian number.",
         "test_default_message": "Hello, this is a test from VetSaaS (Orvae platform). Renewal notices are working.",
         "scan_qr": "Scan with WhatsApp on your phone"
     }

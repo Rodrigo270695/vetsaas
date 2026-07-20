@@ -249,7 +249,6 @@ export function WhatsAppConnectCard({
             <WhatsAppTestMessageDialog
                 open={testOpen}
                 onOpenChange={setTestOpen}
-                defaultPhone={session?.phone ?? null}
                 testUrl={apiRoutes.test}
                 translationNs={translationNs}
             />

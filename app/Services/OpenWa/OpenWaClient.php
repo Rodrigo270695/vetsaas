@@ -127,8 +127,8 @@ final class OpenWaClient
     {
         try {
             return $this->sendText($sessionId, $chatId, $text);
-        } catch (RuntimeException $error) {
-            if ($this->shouldAssumeDelivered($error)) {
+        } catch (\Throwable $error) {
+            if ($this->isAmbiguousDeliveryError($error)) {
                 Log::warning('OpenWA send-text: respuesta ambigua; se asume envío OK', [
                     'error' => $error->getMessage(),
                     'chat_id' => $chatId,
@@ -139,6 +139,31 @@ final class OpenWaClient
 
             throw $error;
         }
+    }
+
+    /**
+     * OpenWA a veces responde timeout / 5xx aunque el mensaje ya llegó a WhatsApp.
+     */
+    public function isAmbiguousDeliveryError(\Throwable $error): bool
+    {
+        return $this->isAmbiguousDeliveryErrorMessage($error->getMessage());
+    }
+
+    public function isAmbiguousDeliveryErrorMessage(string $message): bool
+    {
+        if ($message === '') {
+            return false;
+        }
+
+        if (str_contains($message, 'Error de red con OpenWA')
+            || str_contains($message, 'timed out')
+            || str_contains($message, 'cURL error 28')
+            || str_contains($message, 'Internal server error')
+            || str_contains($message, '"statusCode":500')) {
+            return true;
+        }
+
+        return (bool) preg_match('/OpenWA HTTP 5\d{2}/', $message);
     }
 
     /**
@@ -454,21 +479,9 @@ final class OpenWaClient
         }
     }
 
-    /**
-     * OpenWA a veces tarda en responder (timeout / 5xx tardío) aunque el
-     * mensaje o documento ya llegó a WhatsApp.
-     */
     private function shouldAssumeDelivered(RuntimeException $error): bool
     {
-        $message = $error->getMessage();
-
-        if (str_contains($message, 'Error de red con OpenWA')
-            || str_contains($message, 'timed out')
-            || str_contains($message, 'cURL error 28')) {
-            return true;
-        }
-
-        return (bool) preg_match('/OpenWA HTTP 5\d{2}/', $message);
+        return $this->isAmbiguousDeliveryError($error);
     }
 
     /**
