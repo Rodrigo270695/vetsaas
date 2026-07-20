@@ -10,6 +10,7 @@ use App\Models\Producto;
 use App\Models\Propietario;
 use App\Models\Sede;
 use App\Models\Tenant;
+use App\Models\TenantPlanOverride;
 use App\Models\User;
 use App\Tenancy\TenantManager;
 use Illuminate\Support\Facades\DB;
@@ -72,6 +73,30 @@ final class PlanLimits
      */
     public static function intLimit(?Tenant $tenant, string $feature): ?int
     {
+        $tenant ??= self::tenant();
+        $base = self::planBaseLimit($tenant, $feature);
+        $row = self::activeOverride($tenant, $feature);
+
+        if ($row !== null && $row->override !== null) {
+            return $row->override < 0 ? null : $row->override;
+        }
+
+        if ($base === null) {
+            return null;
+        }
+
+        $extra = $row !== null ? max(0, (int) $row->extra) : 0;
+
+        return $base + $extra;
+    }
+
+    /**
+     * Límite del plan sin extras del tenant.
+     *
+     * @return int|null null = ilimitado / sin plan
+     */
+    public static function planBaseLimit(?Tenant $tenant, string $feature): ?int
+    {
         $plan = self::activePlan($tenant);
 
         if ($plan === null) {
@@ -89,6 +114,33 @@ final class PlanLimits
         }
 
         return $value;
+    }
+
+    public static function activeOverride(?Tenant $tenant, string $feature): ?TenantPlanOverride
+    {
+        if ($tenant === null || $tenant->id === null) {
+            return null;
+        }
+
+        if (! in_array($feature, self::INT_LIMIT_FEATURES, true)) {
+            return null;
+        }
+
+        return TenantPlanOverride::forTenantFeature((string) $tenant->id, $feature);
+    }
+
+    /**
+     * Extra activo para un feature (0 si no hay).
+     */
+    public static function extra(?Tenant $tenant, string $feature): int
+    {
+        $row = self::activeOverride($tenant, $feature);
+
+        if ($row === null || $row->override !== null) {
+            return 0;
+        }
+
+        return max(0, (int) $row->extra);
     }
 
     public static function currentCount(string $feature): int
@@ -166,7 +218,7 @@ final class PlanLimits
     /**
      * Consumo vs límite para Inertia (botones deshabilitados, barras, etc.).
      *
-     * @return array<string, array{limit: int|null, used: int, remaining: int|null, reached: bool, unlimited: bool}>|null
+     * @return array<string, array{limit: int|null, used: int, remaining: int|null, reached: bool, unlimited: bool, base: int|null, extra: int}>|null
      */
     public static function snapshot(?Tenant $tenant = null): ?array
     {
@@ -180,6 +232,8 @@ final class PlanLimits
             $out = [];
 
             foreach (self::INT_LIMIT_FEATURES as $feature) {
+                $base = self::planBaseLimit($tenant, $feature);
+                $extra = self::extra($tenant, $feature);
                 $limit = self::intLimit($tenant, $feature);
                 $used = self::currentCount($feature);
                 $unlimited = $limit === null;
@@ -190,6 +244,8 @@ final class PlanLimits
                     'remaining' => $unlimited ? null : max(0, $limit - $used),
                     'reached' => ! $unlimited && $used >= $limit,
                     'unlimited' => $unlimited,
+                    'base' => $base,
+                    'extra' => $extra,
                 ];
             }
 

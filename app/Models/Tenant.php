@@ -88,4 +88,9 @@ class Tenant extends Model
     {
         return $this->hasOne(TenantWhatsAppSession::class);
     }
+
+    public function planOverrides(): HasMany
+    {
+        return $this->hasMany(TenantPlanOverride::class, 'tenant_id');
+    }
 }

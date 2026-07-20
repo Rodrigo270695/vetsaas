@@ -60,6 +60,7 @@ use App\Http\Controllers\TarifaServiciosController;
 use App\Http\Controllers\TenantController;
 use App\Http\Controllers\TenantImpersonationController;
 use App\Http\Controllers\TenantModuleController;
+use App\Http\Controllers\TenantPlanLimitController;
 use App\Http\Controllers\TenantWhatsAppController;
 use App\Http\Controllers\TenantWhatsAppPlatformController;
 use App\Http\Controllers\UnidadMedidaInventarioController;
@@ -1087,6 +1088,12 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:plataforma-tenants.update')
             ->put('tenants/{tenant}/modulos', [TenantModuleController::class, 'update'])
             ->name('tenants.modules.update');
+        Route::middleware('permission:plataforma-tenants.update')
+            ->get('tenants/{tenant}/limites', [TenantPlanLimitController::class, 'edit'])
+            ->name('tenants.limits.edit');
+        Route::middleware('permission:plataforma-tenants.update')
+            ->put('tenants/{tenant}/limites', [TenantPlanLimitController::class, 'update'])
+            ->name('tenants.limits.update');
         Route::middleware('permission:plataforma-tenants.update')
             ->match(['put', 'patch'], 'tenants/{tenant}', [TenantController::class, 'update'])
             ->name('tenants.update');

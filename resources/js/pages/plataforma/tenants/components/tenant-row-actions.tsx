@@ -2,6 +2,7 @@ import { router } from '@inertiajs/react';
 import {
     Copy,
     ExternalLink,
+    Gauge,
     Globe,
     LayoutGrid,
     Lock,
@@ -219,6 +220,16 @@ export function TenantRowActions({
                     >
                         <LayoutGrid className="size-4" strokeWidth={2.25} />
                         {t('tenants:row.modules')}
+                    </DropdownMenuItem>
+                )}
+
+                {canUpdate && !isCancelled && (
+                    <DropdownMenuItem
+                        onSelect={() => router.visit(`/plataforma/tenants/${tenant.id}/limites`)}
+                        className="cursor-pointer gap-2"
+                    >
+                        <Gauge className="size-4" strokeWidth={2.25} />
+                        {t('tenants:row.limits')}
                     </DropdownMenuItem>
                 )}
 

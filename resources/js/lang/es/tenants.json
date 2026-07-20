@@ -42,6 +42,7 @@
         "copy_slug": "Copiar slug",
         "change_slug": "Cambiar subdominio",
         "modules": "Módulos visibles",
+        "limits": "Límites extras",
         "open_subdomain": "Abrir subdominio",
         "enter_support": "Entrar como soporte",
         "whatsapp_restart": "Reiniciar WhatsApp",
@@ -170,5 +171,30 @@
         "disabled_summary": "{{count}} módulo(s) oculto(s) en el subdominio.",
         "unsaved": "Cambios sin guardar",
         "saved": "Módulos actualizados para este tenant."
+    },
+    "limits": {
+        "page_title": "Límites — {{name}}",
+        "page_description": "Extras o tope fijo solo para esta clínica, sin cambiar el plan del catálogo.",
+        "back": "Volver a tenants",
+        "hint": "Usa «Extra» para sumar al plan (ej. +1 usuario). «Tope fijo» reemplaza el límite del plan (-1 = ilimitado). Vacío = sin override.",
+        "plan_label": "Plan activo",
+        "plan_none": "Sin plan / free",
+        "base": "Plan",
+        "effective": "Efectivo",
+        "extra": "Extra (+)",
+        "override": "Tope fijo",
+        "override_placeholder": "Vacío = usar plan + extra",
+        "expires_at": "Vence",
+        "motivo": "Motivo",
+        "motivo_placeholder": "Ej. cortesía / cliente especial",
+        "unlimited": "Ilimitado",
+        "unsaved": "Cambios sin guardar",
+        "features": {
+            "max_sedes": "Sedes",
+            "max_usuarios": "Usuarios",
+            "max_pacientes": "Pacientes",
+            "max_propietarios": "Propietarios",
+            "max_productos": "Productos"
+        }
     }
 }

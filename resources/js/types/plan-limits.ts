@@ -11,6 +11,8 @@ export type PlanLimitEntry = {
     remaining: number | null;
     reached: boolean;
     unlimited: boolean;
+    base?: number | null;
+    extra?: number;
 };
 
 export type PlanLimitsSnapshot = Record<PlanLimitFeature, PlanLimitEntry>;

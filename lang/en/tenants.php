@@ -9,4 +9,10 @@ return [
         'invalid_state' => 'Support login is not available for clinics in this state.',
         'invalid_slug' => 'This tenant does not have a valid subdomain slug.',
     ],
+    'modules' => [
+        'saved' => 'Modules updated for this tenant.',
+    ],
+    'limits' => [
+        'saved' => 'Limit extras updated for this tenant.',
+    ],
 ];

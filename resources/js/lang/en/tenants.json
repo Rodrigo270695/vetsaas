@@ -42,6 +42,7 @@
         "copy_slug": "Copy slug",
         "change_slug": "Change subdomain",
         "modules": "Visible modules",
+        "limits": "Limit extras",
         "open_subdomain": "Open subdomain",
         "enter_support": "Enter as support",
         "whatsapp_restart": "Restart WhatsApp",
@@ -170,5 +171,30 @@
         "disabled_summary": "{{count}} module(s) hidden on the subdomain.",
         "unsaved": "Unsaved changes",
         "saved": "Modules updated for this tenant."
+    },
+    "limits": {
+        "page_title": "Limits — {{name}}",
+        "page_description": "Extras or a fixed cap for this clinic only, without changing the catalog plan.",
+        "back": "Back to tenants",
+        "hint": "Use «Extra» to add to the plan (e.g. +1 user). «Fixed cap» replaces the plan limit (-1 = unlimited). Empty = no override.",
+        "plan_label": "Active plan",
+        "plan_none": "No plan / free",
+        "base": "Plan",
+        "effective": "Effective",
+        "extra": "Extra (+)",
+        "override": "Fixed cap",
+        "override_placeholder": "Empty = plan + extra",
+        "expires_at": "Expires",
+        "motivo": "Reason",
+        "motivo_placeholder": "E.g. courtesy / special client",
+        "unlimited": "Unlimited",
+        "unsaved": "Unsaved changes",
+        "features": {
+            "max_sedes": "Sites",
+            "max_usuarios": "Users",
+            "max_pacientes": "Patients",
+            "max_propietarios": "Owners",
+            "max_productos": "Products"
+        }
     }
 }

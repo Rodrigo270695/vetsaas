@@ -12,4 +12,7 @@ return [
     'modules' => [
         'saved' => 'Módulos actualizados para este tenant.',
     ],
+    'limits' => [
+        'saved' => 'Límites extras actualizados para este tenant.',
+    ],
 ];
