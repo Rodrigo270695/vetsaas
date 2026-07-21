@@ -88,6 +88,7 @@ export type ClinicSetting = {
     notificar_hotel_bitacora_whatsapp_activo: boolean;
     recordatorio_vacuna_activo: boolean;
     recordatorio_vacuna_dias_antes: number;
+    recordatorio_vacuna_dias_antes_opciones: number[];
     recordatorio_cumple_activo: boolean;
     // Facturación
     moneda: 'PEN' | 'USD';

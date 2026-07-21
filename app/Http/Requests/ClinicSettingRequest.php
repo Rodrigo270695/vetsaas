@@ -82,7 +82,13 @@ class ClinicSettingRequest extends FormRequest
             'notificar_hotel_no_presento_whatsapp_activo' => ['required', 'boolean'],
             'notificar_hotel_bitacora_whatsapp_activo' => ['required', 'boolean'],
             'recordatorio_vacuna_activo' => ['required', 'boolean'],
-            'recordatorio_vacuna_dias_antes' => ['required', 'integer', 'min:1', 'max:90'],
+            'recordatorio_vacuna_dias_antes' => ['nullable', 'integer', 'min:1', 'max:90'],
+            'recordatorio_vacuna_dias_antes_opciones' => ['required', 'array', 'min:1'],
+            'recordatorio_vacuna_dias_antes_opciones.*' => [
+                'integer',
+                'distinct',
+                Rule::in(ClinicSetting::VACCINE_REMINDER_DAY_OPTIONS),
+            ],
             'recordatorio_cumple_activo' => ['required', 'boolean'],
 
             // Facturación
@@ -144,6 +150,8 @@ class ClinicSettingRequest extends FormRequest
             'notificar_hotel_bitacora_whatsapp_activo' => 'notificación de bitácora del hotel',
             'recordatorio_vacuna_activo' => 'recordatorio de vacuna',
             'recordatorio_vacuna_dias_antes' => 'días previos al vencimiento',
+            'recordatorio_vacuna_dias_antes_opciones' => 'momentos de recordatorio de vacuna',
+            'recordatorio_vacuna_dias_antes_opciones.*' => 'momento de recordatorio de vacuna',
             'recordatorio_cumple_activo' => 'recordatorio de cumpleaños',
             'moneda' => 'moneda',
             'igv_porcentaje' => 'porcentaje de IGV',

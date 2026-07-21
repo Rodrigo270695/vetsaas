@@ -62,6 +62,8 @@ type GeneralTab =
     | 'facturacion'
     | 'comunicaciones';
 
+const VACCINE_REMINDER_OPTIONS = [1, 2, 3, 7, 30] as const;
+
 /**
  * Shape del formulario de configuración (campos no-archivo).
  *
@@ -115,7 +117,7 @@ type FormState = {
     notificar_hotel_no_presento_whatsapp_activo: boolean;
     notificar_hotel_bitacora_whatsapp_activo: boolean;
     recordatorio_vacuna_activo: boolean;
-    recordatorio_vacuna_dias_antes: number;
+    recordatorio_vacuna_dias_antes_opciones: number[];
     recordatorio_cumple_activo: boolean;
     // Facturación
     moneda: 'PEN' | 'USD';
@@ -178,7 +180,12 @@ const buildInitialState = (setting: ClinicSetting): FormState => ({
     notificar_hotel_bitacora_whatsapp_activo:
         setting.notificar_hotel_bitacora_whatsapp_activo ?? true,
     recordatorio_vacuna_activo: setting.recordatorio_vacuna_activo,
-    recordatorio_vacuna_dias_antes: setting.recordatorio_vacuna_dias_antes,
+    recordatorio_vacuna_dias_antes_opciones:
+        setting.recordatorio_vacuna_dias_antes_opciones?.filter((days) =>
+            VACCINE_REMINDER_OPTIONS.includes(
+                days as (typeof VACCINE_REMINDER_OPTIONS)[number],
+            ),
+        ) ?? [7],
     recordatorio_cumple_activo: setting.recordatorio_cumple_activo,
     moneda: setting.moneda,
     igv_porcentaje: setting.igv_porcentaje,
@@ -404,6 +411,8 @@ export default function Index({
             notificar_hotel_bitacora_whatsapp_activo:
                 data.notificar_hotel_bitacora_whatsapp_activo ? 1 : 0,
             recordatorio_vacuna_activo: data.recordatorio_vacuna_activo ? 1 : 0,
+            recordatorio_vacuna_dias_antes_opciones:
+                data.recordatorio_vacuna_dias_antes_opciones,
             recordatorio_cumple_activo: data.recordatorio_cumple_activo ? 1 : 0,
             precio_incluye_igv: data.precio_incluye_igv ? 1 : 0,
             emite_comprobantes_sunat: data.emite_comprobantes_sunat ? 1 : 0,
@@ -1226,40 +1235,98 @@ export default function Index({
                                     disabled={!canUpdate}
                                 />
                                 {data.recordatorio_vacuna_activo && (
-                                    <div className="mt-1 ml-12">
-                                        <FormField
-                                            id="general-recordatorio-vacuna-dias"
-                                            label={t(
-                                                'fields.recordatorio_vacuna_dias_antes',
+                                    <div className="mt-2 ml-12 space-y-2">
+                                        <div>
+                                            <p className="text-sm font-medium">
+                                                {t(
+                                                    'fields.recordatorio_vacuna_dias_antes',
+                                                )}
+                                            </p>
+                                            <p className="text-xs text-muted-foreground">
+                                                {t(
+                                                    'fields.recordatorio_vacuna_dias_antes_hint',
+                                                )}
+                                            </p>
+                                        </div>
+                                        <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-5">
+                                            {VACCINE_REMINDER_OPTIONS.map(
+                                                (days) => {
+                                                    const selected =
+                                                        data.recordatorio_vacuna_dias_antes_opciones.includes(
+                                                            days,
+                                                        );
+                                                    const id = `general-recordatorio-vacuna-${days}`;
+
+                                                    return (
+                                                        <label
+                                                            key={days}
+                                                            htmlFor={id}
+                                                            className="flex cursor-pointer items-center gap-2 rounded-lg border border-border/70 bg-background px-3 py-2 text-sm transition-colors hover:bg-muted/50"
+                                                        >
+                                                            <Checkbox
+                                                                id={id}
+                                                                checked={
+                                                                    selected
+                                                                }
+                                                                disabled={
+                                                                    !canUpdate ||
+                                                                    (selected &&
+                                                                        data
+                                                                            .recordatorio_vacuna_dias_antes_opciones
+                                                                            .length ===
+                                                                            1)
+                                                                }
+                                                                onCheckedChange={(
+                                                                    checked,
+                                                                ) => {
+                                                                    const next =
+                                                                        checked
+                                                                            ? [
+                                                                                  ...data.recordatorio_vacuna_dias_antes_opciones,
+                                                                                  days,
+                                                                              ]
+                                                                            : data.recordatorio_vacuna_dias_antes_opciones.filter(
+                                                                                  (
+                                                                                      value,
+                                                                                  ) =>
+                                                                                      value !==
+                                                                                      days,
+                                                                              );
+
+                                                                    setData(
+                                                                        'recordatorio_vacuna_dias_antes_opciones',
+                                                                        [
+                                                                            ...new Set(
+                                                                                next,
+                                                                            ),
+                                                                        ].sort(
+                                                                            (
+                                                                                a,
+                                                                                b,
+                                                                            ) =>
+                                                                                a -
+                                                                                b,
+                                                                        ),
+                                                                    );
+                                                                }}
+                                                            />
+                                                            <span>
+                                                                {t(
+                                                                    `fields.recordatorio_vacuna_opcion_${days}`,
+                                                                )}
+                                                            </span>
+                                                        </label>
+                                                    );
+                                                },
                                             )}
-                                            error={
-                                                errors.recordatorio_vacuna_dias_antes
-                                            }
-                                            hint={t(
-                                                'fields.recordatorio_vacuna_dias_antes_hint',
-                                            )}
-                                            className="max-w-xs"
-                                        >
-                                            <Input
-                                                id="general-recordatorio-vacuna-dias"
-                                                type="number"
-                                                value={
-                                                    data.recordatorio_vacuna_dias_antes
+                                        </div>
+                                        {errors.recordatorio_vacuna_dias_antes_opciones ? (
+                                            <p className="text-xs text-destructive">
+                                                {
+                                                    errors.recordatorio_vacuna_dias_antes_opciones
                                                 }
-                                                onChange={(e) =>
-                                                    setData(
-                                                        'recordatorio_vacuna_dias_antes',
-                                                        Number(
-                                                            e.target.value,
-                                                        ) || 0,
-                                                    )
-                                                }
-                                                min={1}
-                                                max={90}
-                                                className="tabular-nums"
-                                                disabled={!canUpdate}
-                                            />
-                                        </FormField>
+                                            </p>
+                                        ) : null}
                                     </div>
                                 )}
                                 <ToggleRow

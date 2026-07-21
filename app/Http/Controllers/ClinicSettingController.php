@@ -129,7 +129,7 @@ class ClinicSettingController extends Controller
             'notificar_hotel_no_presento_whatsapp_activo' => $data['notificar_hotel_no_presento_whatsapp_activo'],
             'notificar_hotel_bitacora_whatsapp_activo' => $data['notificar_hotel_bitacora_whatsapp_activo'],
             'recordatorio_vacuna_activo' => $data['recordatorio_vacuna_activo'],
-            'recordatorio_vacuna_dias_antes' => $data['recordatorio_vacuna_dias_antes'],
+            'recordatorio_vacuna_dias_antes_opciones' => $data['recordatorio_vacuna_dias_antes_opciones'],
             'recordatorio_cumple_activo' => $data['recordatorio_cumple_activo'],
             'moneda' => $data['moneda'],
             'igv_porcentaje' => $data['igv_porcentaje'],
@@ -311,6 +311,7 @@ class ClinicSettingController extends Controller
             'notificar_hotel_bitacora_whatsapp_activo' => $setting->notificarHotelWhatsAppActivo('bitacora'),
             'recordatorio_vacuna_activo' => $setting->recordatorio_vacuna_activo,
             'recordatorio_vacuna_dias_antes' => $setting->recordatorio_vacuna_dias_antes,
+            'recordatorio_vacuna_dias_antes_opciones' => $setting->recordatorioVacunaDiasAntesOpciones(),
             'recordatorio_cumple_activo' => $setting->recordatorio_cumple_activo,
             // Facturación
             'moneda' => $setting->moneda,

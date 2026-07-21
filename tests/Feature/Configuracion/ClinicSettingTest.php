@@ -138,6 +138,7 @@ it('autoprovisiona la fila de configuración al primer acceso del admin', functi
     expect($row->duracion_cita_default_min)->toBe(30);
     expect((bool) $row->notificar_cita_whatsapp_activo)->toBeTrue();
     expect((bool) $row->notificar_hotel_bitacora_whatsapp_activo)->toBeTrue();
+    expect(json_decode($row->recordatorio_vacuna_dias_antes_opciones, true))->toBe([7]);
     expect((bool) $row->emite_comprobantes_sunat)->toBeFalse();
 });
 
@@ -217,6 +218,7 @@ it('admin_clinica puede actualizar la configuración con datos válidos', functi
     expect((bool) $row->recordatorio_48h_activo)->toBeTrue();
     expect((bool) $row->notificar_cita_whatsapp_activo)->toBeTrue();
     expect((bool) $row->notificar_hotel_creado_whatsapp_activo)->toBeTrue();
+    expect(json_decode($row->recordatorio_vacuna_dias_antes_opciones, true))->toBe([1, 3, 7]);
     expect((bool) $row->precio_incluye_igv)->toBeFalse();
     expect($row->moneda)->toBe('USD');
 });
@@ -561,6 +563,7 @@ function validPayload(): array
         'notificar_hotel_bitacora_whatsapp_activo' => true,
         'recordatorio_vacuna_activo' => true,
         'recordatorio_vacuna_dias_antes' => 7,
+        'recordatorio_vacuna_dias_antes_opciones' => [1, 3, 7],
         'recordatorio_cumple_activo' => false,
         'moneda' => 'USD',
         'igv_porcentaje' => 18.00,

@@ -65,6 +65,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property bool $notificar_hotel_bitacora_whatsapp_activo
  * @property bool $recordatorio_vacuna_activo
  * @property int $recordatorio_vacuna_dias_antes
+ * @property array<int, int> $recordatorio_vacuna_dias_antes_opciones
  * @property bool $recordatorio_cumple_activo
  * @property bool $bot_ia_respuestas_activo El tenant puede apagar respuestas automáticas del asistente IA.
  * @property ?string $nubefact_token_enc
@@ -92,6 +93,9 @@ class ClinicSetting extends Model
     public const DEFAULT_AGENDA_HORA_INICIO = '07:00';
 
     public const DEFAULT_AGENDA_HORA_FIN = '20:00';
+
+    /** @var list<int> */
+    public const VACCINE_REMINDER_DAY_OPTIONS = [1, 2, 3, 7, 30];
 
     protected $table = 'cfg_clinic_settings';
 
@@ -126,6 +130,7 @@ class ClinicSetting extends Model
         'notificar_hotel_bitacora_whatsapp_activo',
         'recordatorio_vacuna_activo',
         'recordatorio_vacuna_dias_antes',
+        'recordatorio_vacuna_dias_antes_opciones',
         'recordatorio_cumple_activo',
         'bot_ia_respuestas_activo',
         'apisunat_token_enc',
@@ -187,6 +192,7 @@ class ClinicSetting extends Model
             'notificar_hotel_bitacora_whatsapp_activo' => 'boolean',
             'recordatorio_vacuna_activo' => 'boolean',
             'recordatorio_vacuna_dias_antes' => 'integer',
+            'recordatorio_vacuna_dias_antes_opciones' => 'array',
             'recordatorio_cumple_activo' => 'boolean',
             'bot_ia_respuestas_activo' => 'boolean',
             'nubefact_configurado' => 'boolean',
@@ -316,6 +322,25 @@ class ClinicSetting extends Model
         $value = $this->getAttribute($attribute);
 
         return $value === null ? true : (bool) $value;
+    }
+
+    /**
+     * @return list<int>
+     */
+    public function recordatorioVacunaDiasAntesOpciones(): array
+    {
+        $values = $this->getAttribute('recordatorio_vacuna_dias_antes_opciones');
+        if (! is_array($values)) {
+            $values = [(int) ($this->recordatorio_vacuna_dias_antes ?? 7)];
+        }
+
+        $normalized = array_values(array_unique(array_filter(
+            array_map(static fn (mixed $value): int => (int) $value, $values),
+            static fn (int $value): bool => in_array($value, self::VACCINE_REMINDER_DAY_OPTIONS, true),
+        )));
+        sort($normalized);
+
+        return $normalized !== [] ? $normalized : [7];
     }
 
     private function agendaHour(string $key, string $fallback): string
