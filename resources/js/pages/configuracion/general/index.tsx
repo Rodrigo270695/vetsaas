@@ -19,13 +19,7 @@ import {
     Trash2,
     XCircle,
 } from 'lucide-react';
-import {
-    useCallback,
-    useEffect,
-    useMemo,
-    useRef,
-    useState,
-} from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -45,15 +39,11 @@ import {
 } from '@/components/ui/select';
 import { usePermission } from '@/hooks/use-permission';
 import AppLayout from '@/layouts/app-layout';
+import { toastManager } from '@/lib/toast';
 import general from '@/routes/configuracion/general';
 import { LogoUploader } from './components/logo-uploader';
-import { toastManager } from '@/lib/toast';
 import { SectionCard } from './components/section-card';
-import type {
-    ClinicHeaderSnapshot,
-    ClinicSetting,
-    GeoOption,
-} from './types';
+import type { ClinicHeaderSnapshot, ClinicSetting, GeoOption } from './types';
 
 type ConfiguracionGeneralProps = {
     setting: ClinicSetting;
@@ -94,6 +84,8 @@ type FormState = {
     // Operación
     duracion_cita_default_min: number;
     intervalo_agenda_min: number;
+    agenda_hora_inicio: string;
+    agenda_hora_fin: string;
     dias_anticipacion_cita: number;
     horas_min_cancelacion: number;
     // Recordatorios
@@ -130,6 +122,8 @@ const buildInitialState = (setting: ClinicSetting): FormState => ({
     web_url: setting.web_url ?? '',
     duracion_cita_default_min: setting.duracion_cita_default_min,
     intervalo_agenda_min: setting.intervalo_agenda_min,
+    agenda_hora_inicio: setting.agenda_hora_inicio ?? '07:00',
+    agenda_hora_fin: setting.agenda_hora_fin ?? '20:00',
     dias_anticipacion_cita: setting.dias_anticipacion_cita,
     horas_min_cancelacion: setting.horas_min_cancelacion,
     recordatorio_48h_activo: setting.recordatorio_48h_activo,
@@ -196,16 +190,22 @@ export default function Index({
     const { can } = usePermission();
     const canUpdate = can('config-general.update');
 
-    const [data, setDataInternal] = useState<FormState>(() => buildInitialState(setting));
+    const [data, setDataInternal] = useState<FormState>(() =>
+        buildInitialState(setting),
+    );
     const [logoFile, setLogoFile] = useState<File | null>(null);
     const [clearLogo, setClearLogo] = useState(false);
     const [clearApisunat, setClearApisunat] = useState(false);
     const [showApisunatToken, setShowApisunatToken] = useState(false);
-    const [geo, setGeo] = useState<GeoCascadeValue>(() => buildInitialGeo(setting));
+    const [geo, setGeo] = useState<GeoCascadeValue>(() =>
+        buildInitialGeo(setting),
+    );
     const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
     const [processing, setProcessing] = useState(false);
     const [recentlySuccessful, setRecentlySuccessful] = useState(false);
-    const recentSuccessTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const recentSuccessTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+        null,
+    );
 
     /*
      * Re-hidrata el form cuando el controller emite un nuevo snapshot
@@ -273,7 +273,9 @@ export default function Index({
             emite_comprobantes_sunat: data.emite_comprobantes_sunat ? 1 : 0,
             clear_logo: clearLogo ? 1 : 0,
             clear_apisunat: clearApisunat ? 1 : 0,
-            ...(data.apisunat_token ? { apisunat_token: data.apisunat_token } : {}),
+            ...(data.apisunat_token
+                ? { apisunat_token: data.apisunat_token }
+                : {}),
             apisunat_mode: data.apisunat_mode,
         };
 
@@ -334,9 +336,9 @@ export default function Index({
     const stats = useMemo(() => {
         const identidadCompleta = Boolean(
             setting.ruc &&
-                setting.razon_social &&
-                setting.direccion_fiscal &&
-                setting.distrito_id,
+            setting.razon_social &&
+            setting.direccion_fiscal &&
+            setting.distrito_id,
         );
 
         const contactoCompleto = Boolean(
@@ -355,7 +357,8 @@ export default function Index({
         };
     }, [setting]);
 
-    const headerTitle = clinic_header?.nombre_comercial ?? clinic_header?.razon_social ?? '';
+    const headerTitle =
+        clinic_header?.nombre_comercial ?? clinic_header?.razon_social ?? '';
     const headerDescription = headerTitle
         ? t('description_for', { name: headerTitle })
         : t('description');
@@ -379,7 +382,9 @@ export default function Index({
                             value: stats.identidadCompleta
                                 ? t('common:state.complete')
                                 : t('common:state.incomplete'),
-                            variant: stats.identidadCompleta ? 'success' : 'warning',
+                            variant: stats.identidadCompleta
+                                ? 'success'
+                                : 'warning',
                             icon: Building2,
                         },
                         {
@@ -387,7 +392,9 @@ export default function Index({
                             value: stats.contactoCompleto
                                 ? t('common:state.complete')
                                 : t('common:state.incomplete'),
-                            variant: stats.contactoCompleto ? 'success' : 'warning',
+                            variant: stats.contactoCompleto
+                                ? 'success'
+                                : 'warning',
                             icon: Phone,
                         },
                         {
@@ -395,7 +402,9 @@ export default function Index({
                             value: stats.brandingCompleto
                                 ? t('common:state.complete')
                                 : t('common:state.incomplete'),
-                            variant: stats.brandingCompleto ? 'success' : 'muted',
+                            variant: stats.brandingCompleto
+                                ? 'success'
+                                : 'muted',
                             icon: Palette,
                         },
                         {
@@ -406,7 +415,9 @@ export default function Index({
                             variant: stats.facturacionConfigurada
                                 ? 'success'
                                 : 'muted',
-                            icon: stats.facturacionConfigurada ? CheckCircle2 : XCircle,
+                            icon: stats.facturacionConfigurada
+                                ? CheckCircle2
+                                : XCircle,
                         },
                     ]}
                 />
@@ -450,7 +461,9 @@ export default function Index({
                                 onChange={(e) =>
                                     setData(
                                         'ruc',
-                                        e.target.value.replace(/\D/g, '').slice(0, 11),
+                                        e.target.value
+                                            .replace(/\D/g, '')
+                                            .slice(0, 11),
                                     )
                                 }
                                 placeholder="20123456789"
@@ -551,7 +564,10 @@ export default function Index({
                                 type="email"
                                 value={data.email_institucional}
                                 onChange={(e) =>
-                                    setData('email_institucional', e.target.value)
+                                    setData(
+                                        'email_institucional',
+                                        e.target.value,
+                                    )
                                 }
                                 placeholder="contacto@miclinica.pe"
                                 autoComplete="email"
@@ -568,7 +584,10 @@ export default function Index({
                                 id="general-telefono-principal"
                                 value={data.telefono_principal}
                                 onChange={(e) =>
-                                    setData('telefono_principal', e.target.value)
+                                    setData(
+                                        'telefono_principal',
+                                        e.target.value,
+                                    )
                                 }
                                 placeholder="+51 1 555-0101"
                                 autoComplete="tel"
@@ -586,7 +605,9 @@ export default function Index({
                                 id="general-web-url"
                                 type="url"
                                 value={data.web_url}
-                                onChange={(e) => setData('web_url', e.target.value)}
+                                onChange={(e) =>
+                                    setData('web_url', e.target.value)
+                                }
                                 placeholder="https://miclinica.pe"
                                 autoComplete="url"
                                 disabled={!canUpdate}
@@ -622,7 +643,9 @@ export default function Index({
                                 canUpdate={canUpdate}
                                 onSelect={handleLogoSelect}
                                 onClearSelection={handleLogoClearSelection}
-                                onTogglePendingRemoval={handleLogoTogglePendingRemoval}
+                                onTogglePendingRemoval={
+                                    handleLogoTogglePendingRemoval
+                                }
                             />
                         </FormField>
 
@@ -637,7 +660,10 @@ export default function Index({
                                     aria-label={t('fields.color_primario')}
                                     value={data.color_primario || '#1f6f43'}
                                     onChange={(e) =>
-                                        setData('color_primario', e.target.value)
+                                        setData(
+                                            'color_primario',
+                                            e.target.value,
+                                        )
                                     }
                                     disabled={!canUpdate}
                                     className="h-9 w-12 cursor-pointer rounded-md border border-border/60 bg-transparent disabled:cursor-not-allowed disabled:opacity-50"
@@ -670,7 +696,10 @@ export default function Index({
                                     aria-label={t('fields.color_secundario')}
                                     value={data.color_secundario || '#94c7a8'}
                                     onChange={(e) =>
-                                        setData('color_secundario', e.target.value)
+                                        setData(
+                                            'color_secundario',
+                                            e.target.value,
+                                        )
                                     }
                                     disabled={!canUpdate}
                                     className="h-9 w-12 cursor-pointer rounded-md border border-border/60 bg-transparent disabled:cursor-not-allowed disabled:opacity-50"
@@ -755,6 +784,51 @@ export default function Index({
                         </FormField>
 
                         <FormField
+                            id="general-agenda-hora-inicio"
+                            label={t('fields.agenda_hora_inicio')}
+                            error={errors.agenda_hora_inicio}
+                            hint={t('fields.agenda_hora_inicio_hint')}
+                            required
+                        >
+                            <Input
+                                id="general-agenda-hora-inicio"
+                                type="time"
+                                step={3600}
+                                value={data.agenda_hora_inicio}
+                                onChange={(e) =>
+                                    setData(
+                                        'agenda_hora_inicio',
+                                        e.target.value,
+                                    )
+                                }
+                                max={data.agenda_hora_fin}
+                                className="tabular-nums"
+                                disabled={!canUpdate}
+                            />
+                        </FormField>
+
+                        <FormField
+                            id="general-agenda-hora-fin"
+                            label={t('fields.agenda_hora_fin')}
+                            error={errors.agenda_hora_fin}
+                            hint={t('fields.agenda_hora_fin_hint')}
+                            required
+                        >
+                            <Input
+                                id="general-agenda-hora-fin"
+                                type="time"
+                                step={3600}
+                                value={data.agenda_hora_fin}
+                                onChange={(e) =>
+                                    setData('agenda_hora_fin', e.target.value)
+                                }
+                                min={data.agenda_hora_inicio}
+                                className="tabular-nums"
+                                disabled={!canUpdate}
+                            />
+                        </FormField>
+
+                        <FormField
                             id="general-dias-anticipacion"
                             label={t('fields.dias_anticipacion_cita')}
                             error={errors.dias_anticipacion_cita}
@@ -821,7 +895,9 @@ export default function Index({
                             label={t('fields.recordatorio_48h_activo')}
                             hint={t('fields.recordatorio_48h_activo_hint')}
                             checked={data.recordatorio_48h_activo}
-                            onChange={(v) => setData('recordatorio_48h_activo', v)}
+                            onChange={(v) =>
+                                setData('recordatorio_48h_activo', v)
+                            }
                             disabled={!canUpdate}
                         />
                         <ToggleRow
@@ -829,7 +905,9 @@ export default function Index({
                             label={t('fields.recordatorio_2h_activo')}
                             hint={t('fields.recordatorio_2h_activo_hint')}
                             checked={data.recordatorio_2h_activo}
-                            onChange={(v) => setData('recordatorio_2h_activo', v)}
+                            onChange={(v) =>
+                                setData('recordatorio_2h_activo', v)
+                            }
                             disabled={!canUpdate}
                         />
                         <ToggleRow
@@ -837,15 +915,21 @@ export default function Index({
                             label={t('fields.recordatorio_vacuna_activo')}
                             hint={t('fields.recordatorio_vacuna_activo_hint')}
                             checked={data.recordatorio_vacuna_activo}
-                            onChange={(v) => setData('recordatorio_vacuna_activo', v)}
+                            onChange={(v) =>
+                                setData('recordatorio_vacuna_activo', v)
+                            }
                             disabled={!canUpdate}
                         />
                         {data.recordatorio_vacuna_activo && (
-                            <div className="ml-12 mt-1">
+                            <div className="mt-1 ml-12">
                                 <FormField
                                     id="general-recordatorio-vacuna-dias"
-                                    label={t('fields.recordatorio_vacuna_dias_antes')}
-                                    error={errors.recordatorio_vacuna_dias_antes}
+                                    label={t(
+                                        'fields.recordatorio_vacuna_dias_antes',
+                                    )}
+                                    error={
+                                        errors.recordatorio_vacuna_dias_antes
+                                    }
                                     hint={t(
                                         'fields.recordatorio_vacuna_dias_antes_hint',
                                     )}
@@ -854,7 +938,9 @@ export default function Index({
                                     <Input
                                         id="general-recordatorio-vacuna-dias"
                                         type="number"
-                                        value={data.recordatorio_vacuna_dias_antes}
+                                        value={
+                                            data.recordatorio_vacuna_dias_antes
+                                        }
                                         onChange={(e) =>
                                             setData(
                                                 'recordatorio_vacuna_dias_antes',
@@ -874,7 +960,9 @@ export default function Index({
                             label={t('fields.recordatorio_cumple_activo')}
                             hint={t('fields.recordatorio_cumple_activo_hint')}
                             checked={data.recordatorio_cumple_activo}
-                            onChange={(v) => setData('recordatorio_cumple_activo', v)}
+                            onChange={(v) =>
+                                setData('recordatorio_cumple_activo', v)
+                            }
                             disabled={!canUpdate}
                         />
                     </FormSection>
@@ -887,15 +975,23 @@ export default function Index({
                     description={t('sections.facturacion.description')}
                     badge={
                         <StatBadge
-                                label=""
-                                value={
-                                    setting.emite_comprobantes_sunat
-                                        ? t('common:state.configured')
-                                        : t('common:state.not_configured')
-                                }
-                                variant={setting.emite_comprobantes_sunat ? 'success' : 'muted'}
-                                icon={setting.emite_comprobantes_sunat ? CheckCircle2 : XCircle}
-                            />
+                            label=""
+                            value={
+                                setting.emite_comprobantes_sunat
+                                    ? t('common:state.configured')
+                                    : t('common:state.not_configured')
+                            }
+                            variant={
+                                setting.emite_comprobantes_sunat
+                                    ? 'success'
+                                    : 'muted'
+                            }
+                            icon={
+                                setting.emite_comprobantes_sunat
+                                    ? CheckCircle2
+                                    : XCircle
+                            }
+                        />
                     }
                 >
                     <FormSection
@@ -959,7 +1055,9 @@ export default function Index({
                                 label={t('fields.precio_incluye_igv')}
                                 hint={t('fields.precio_incluye_igv_hint')}
                                 checked={data.precio_incluye_igv}
-                                onChange={(v) => setData('precio_incluye_igv', v)}
+                                onChange={(v) =>
+                                    setData('precio_incluye_igv', v)
+                                }
                                 disabled={!canUpdate}
                             />
                         </div>
@@ -1001,12 +1099,21 @@ export default function Index({
                         <div className="flex flex-col gap-3 sm:col-span-2">
                             {!plan_permite_factura_electronica ? (
                                 <div className="flex gap-2 rounded-lg border border-border/70 bg-muted/30 p-3 text-sm text-muted-foreground">
-                                    <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
+                                    <Info
+                                        className="mt-0.5 size-4 shrink-0"
+                                        aria-hidden
+                                    />
                                     <div className="flex flex-col gap-1">
                                         <span className="font-medium text-foreground">
-                                            {t('plan_sin_facturacion_electronica.title')}
+                                            {t(
+                                                'plan_sin_facturacion_electronica.title',
+                                            )}
                                         </span>
-                                        <span>{t('plan_sin_facturacion_electronica.body')}</span>
+                                        <span>
+                                            {t(
+                                                'plan_sin_facturacion_electronica.body',
+                                            )}
+                                        </span>
                                     </div>
                                 </div>
                             ) : null}
@@ -1015,11 +1122,19 @@ export default function Index({
                                 label={t('fields.emite_comprobantes_sunat')}
                                 hint={t('fields.emite_comprobantes_sunat_hint')}
                                 checked={data.emite_comprobantes_sunat}
-                                onChange={(v) => setData('emite_comprobantes_sunat', v)}
-                                disabled={!canUpdate || !plan_permite_factura_electronica}
+                                onChange={(v) =>
+                                    setData('emite_comprobantes_sunat', v)
+                                }
+                                disabled={
+                                    !canUpdate ||
+                                    !plan_permite_factura_electronica
+                                }
                             />
                             {errors.emite_comprobantes_sunat ? (
-                                <p className="text-xs text-destructive" role="alert">
+                                <p
+                                    className="text-xs text-destructive"
+                                    role="alert"
+                                >
                                     {errors.emite_comprobantes_sunat}
                                 </p>
                             ) : null}
@@ -1031,12 +1146,19 @@ export default function Index({
                                 <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
                                     <div className="mb-3 flex items-center gap-2">
                                         <span className="flex size-7 items-center justify-center rounded-md bg-primary/10 text-primary ring-1 ring-primary/20">
-                                            <KeyRound className="size-4" strokeWidth={2} />
+                                            <KeyRound
+                                                className="size-4"
+                                                strokeWidth={2}
+                                            />
                                         </span>
                                         <div>
-                                            <p className="text-sm font-semibold">Integración APISUNAT</p>
+                                            <p className="text-sm font-semibold">
+                                                Integración APISUNAT
+                                            </p>
                                             <p className="text-xs text-muted-foreground">
-                                                Configura el token de tu cuenta APISUNAT para emitir comprobantes electrónicos.
+                                                Configura el token de tu cuenta
+                                                APISUNAT para emitir
+                                                comprobantes electrónicos.
                                             </p>
                                         </div>
                                         {setting.apisunat_configurado && (
@@ -1057,7 +1179,12 @@ export default function Index({
                                             <Select
                                                 value={data.apisunat_mode}
                                                 onValueChange={(v) =>
-                                                    setData('apisunat_mode', v as 'sandbox' | 'produccion')
+                                                    setData(
+                                                        'apisunat_mode',
+                                                        v as
+                                                            | 'sandbox'
+                                                            | 'produccion',
+                                                    )
                                                 }
                                                 disabled={!canUpdate}
                                             >
@@ -1066,10 +1193,12 @@ export default function Index({
                                                 </SelectTrigger>
                                                 <SelectContent>
                                                     <SelectItem value="sandbox">
-                                                        Sandbox — pruebas (beta SUNAT)
+                                                        Sandbox — pruebas (beta
+                                                        SUNAT)
                                                     </SelectItem>
                                                     <SelectItem value="produccion">
-                                                        Producción — emite comprobantes reales
+                                                        Producción — emite
+                                                        comprobantes reales
                                                     </SelectItem>
                                                 </SelectContent>
                                             </Select>
@@ -1089,10 +1218,17 @@ export default function Index({
                                             <div className="relative">
                                                 <Input
                                                     id="apisunat-token"
-                                                    type={showApisunatToken ? 'text' : 'password'}
+                                                    type={
+                                                        showApisunatToken
+                                                            ? 'text'
+                                                            : 'password'
+                                                    }
                                                     value={data.apisunat_token}
                                                     onChange={(e) =>
-                                                        setData('apisunat_token', e.target.value)
+                                                        setData(
+                                                            'apisunat_token',
+                                                            e.target.value,
+                                                        )
                                                     }
                                                     placeholder={
                                                         setting.apisunat_configurado
@@ -1100,44 +1236,62 @@ export default function Index({
                                                             : 'eyJhbGciOiJIUzI1NiIs...'
                                                     }
                                                     className="pr-10 font-mono text-xs"
-                                                    disabled={!canUpdate || clearApisunat}
+                                                    disabled={
+                                                        !canUpdate ||
+                                                        clearApisunat
+                                                    }
                                                     autoComplete="off"
                                                 />
                                                 <button
                                                     type="button"
-                                                    onClick={() => setShowApisunatToken((v) => !v)}
+                                                    onClick={() =>
+                                                        setShowApisunatToken(
+                                                            (v) => !v,
+                                                        )
+                                                    }
                                                     className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground hover:text-foreground"
                                                     tabIndex={-1}
-                                                    aria-label={showApisunatToken ? 'Ocultar token' : 'Mostrar token'}
-                                                >
-                                                    {showApisunatToken
-                                                        ? <EyeOff className="size-4" />
-                                                        : <Eye className="size-4" />
+                                                    aria-label={
+                                                        showApisunatToken
+                                                            ? 'Ocultar token'
+                                                            : 'Mostrar token'
                                                     }
+                                                >
+                                                    {showApisunatToken ? (
+                                                        <EyeOff className="size-4" />
+                                                    ) : (
+                                                        <Eye className="size-4" />
+                                                    )}
                                                 </button>
                                             </div>
                                         </FormField>
 
                                         {/* Borrar credencial */}
-                                        {setting.apisunat_configurado && canUpdate && (
-                                            <button
-                                                type="button"
-                                                onClick={() => setClearApisunat((v) => !v)}
-                                                className={`inline-flex items-center gap-1.5 self-start rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-                                                    clearApisunat
-                                                        ? 'bg-destructive/10 text-destructive ring-1 ring-destructive/30 hover:bg-destructive/20'
-                                                        : 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-destructive'
-                                                }`}
-                                            >
-                                                <Trash2 className="size-3.5" />
-                                                {clearApisunat ? 'Cancelar borrado' : 'Borrar token guardado'}
-                                            </button>
-                                        )}
+                                        {setting.apisunat_configurado &&
+                                            canUpdate && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        setClearApisunat(
+                                                            (v) => !v,
+                                                        )
+                                                    }
+                                                    className={`inline-flex items-center gap-1.5 self-start rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                                                        clearApisunat
+                                                            ? 'bg-destructive/10 text-destructive ring-1 ring-destructive/30 hover:bg-destructive/20'
+                                                            : 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-destructive'
+                                                    }`}
+                                                >
+                                                    <Trash2 className="size-3.5" />
+                                                    {clearApisunat
+                                                        ? 'Cancelar borrado'
+                                                        : 'Borrar token guardado'}
+                                                </button>
+                                            )}
                                     </div>
                                 </div>
                             </div>
                         )}
-
                     </FormSection>
                 </SectionCard>
 
@@ -1180,7 +1334,9 @@ export default function Index({
                                 id="general-email-from"
                                 type="email"
                                 value={data.email_from}
-                                onChange={(e) => setData('email_from', e.target.value)}
+                                onChange={(e) =>
+                                    setData('email_from', e.target.value)
+                                }
                                 placeholder="contacto@miclinica.pe"
                                 autoComplete="email"
                                 disabled={!canUpdate}
@@ -1198,7 +1354,10 @@ export default function Index({
                                 id="general-whatsapp-display"
                                 value={data.whatsapp_display_number}
                                 onChange={(e) =>
-                                    setData('whatsapp_display_number', e.target.value)
+                                    setData(
+                                        'whatsapp_display_number',
+                                        e.target.value,
+                                    )
                                 }
                                 placeholder="+51 999 000 111"
                                 disabled={!canUpdate}
@@ -1224,7 +1383,8 @@ export default function Index({
                                 <span className="truncate">
                                     {setting.actualizado_por
                                         ? t('footer.last_updated_by', {
-                                              name: setting.actualizado_por.name,
+                                              name: setting.actualizado_por
+                                                  .name,
                                           })
                                         : t('footer.never_updated')}
                                 </span>
@@ -1246,7 +1406,10 @@ export default function Index({
                                         strokeWidth={2.5}
                                     />
                                 ) : (
-                                    <Save className="size-4" strokeWidth={2.5} />
+                                    <Save
+                                        className="size-4"
+                                        strokeWidth={2.5}
+                                    />
                                 )}
                                 {recentlySuccessful
                                     ? t('actions.saved')
@@ -1299,7 +1462,9 @@ function ToggleRow({
             <div className="flex flex-col gap-0.5">
                 <span className="text-sm font-medium">{label}</span>
                 {hint && (
-                    <span className="text-xs text-muted-foreground">{hint}</span>
+                    <span className="text-xs text-muted-foreground">
+                        {hint}
+                    </span>
                 )}
             </div>
         </label>

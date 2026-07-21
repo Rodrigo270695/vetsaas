@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests;
 
+use App\Models\ClinicSetting;
+use App\Models\PlatformSetting;
 use App\Models\Tenant;
 use App\Support\Caja\TicketAnchoMm;
 use App\Support\PlanCapabilities;
@@ -14,10 +16,10 @@ use Illuminate\Validation\Validator;
  *
  * El recurso es singleton (una fila por schema), por eso solo existe un
  * endpoint PUT/PATCH (`update`). No hay reglas de creación: la fila la
- * crea automáticamente {@see \App\Models\ClinicSetting::current()}.
+ * crea automáticamente {@see ClinicSetting::current()}.
  *
  * Alcance: SOLO datos del cliente. Las credenciales globales (Twilio,
- * Brevo) ya NO se piden aquí; viven en {@see \App\Models\PlatformSetting}
+ * Brevo) ya NO se piden aquí; viven en {@see PlatformSetting}
  * y se gestionan vía `PlatformSettingController` (solo superadmin).
  */
 class ClinicSettingRequest extends FormRequest
@@ -58,6 +60,8 @@ class ClinicSettingRequest extends FormRequest
             // Operación
             'duracion_cita_default_min' => ['required', 'integer', 'min:5', 'max:480'],
             'intervalo_agenda_min' => ['required', 'integer', 'min:5', 'max:120'],
+            'agenda_hora_inicio' => ['required', 'date_format:H:i', 'regex:/^(?:[01]\d|2[0-3]):00$/'],
+            'agenda_hora_fin' => ['required', 'date_format:H:i', 'regex:/^(?:[01]\d|2[0-3]):00$/'],
             'dias_anticipacion_cita' => ['required', 'integer', 'min:1', 'max:365'],
             'horas_min_cancelacion' => ['required', 'integer', 'min:0', 'max:168'],
 
@@ -106,6 +110,8 @@ class ClinicSettingRequest extends FormRequest
             'web_url' => 'sitio web',
             'duracion_cita_default_min' => 'duración de cita',
             'intervalo_agenda_min' => 'intervalo de agenda',
+            'agenda_hora_inicio' => 'primera hora visible de la agenda',
+            'agenda_hora_fin' => 'última hora visible de la agenda',
             'dias_anticipacion_cita' => 'días de anticipación',
             'horas_min_cancelacion' => 'horas mínimas para cancelar',
             'recordatorio_48h_activo' => 'recordatorio 48 h',
@@ -143,6 +149,20 @@ class ClinicSettingRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $v): void {
+            $start = (string) $this->input('agenda_hora_inicio', '');
+            $end = (string) $this->input('agenda_hora_fin', '');
+
+            if (
+                preg_match('/^(?:[01]\d|2[0-3]):00$/', $start) === 1
+                && preg_match('/^(?:[01]\d|2[0-3]):00$/', $end) === 1
+                && $start >= $end
+            ) {
+                $v->errors()->add(
+                    'agenda_hora_fin',
+                    'La última hora visible debe ser posterior a la primera.',
+                );
+            }
+
             if (! $this->boolean('emite_comprobantes_sunat')) {
                 return;
             }

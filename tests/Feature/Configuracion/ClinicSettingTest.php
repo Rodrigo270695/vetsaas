@@ -3,9 +3,6 @@
 use App\Models\Tenant;
 use App\Models\User;
 use Database\Seeders\PermissionsSeeder;
-use Database\Seeders\TenantRolesSeeder;
-use Tests\Support\TenantRbac;
-use Tests\Support\RefreshDatabaseWithPgsqlSafety;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Crypt;
@@ -13,6 +10,10 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
+use Tests\Support\RefreshDatabaseWithPgsqlSafety;
+use Tests\Support\TenantRbac;
 
 /**
  * Fase 4 · Módulo 1 — Configuración general de la clínica.
@@ -113,7 +114,7 @@ afterEach(function (): void {
 });
 
 /* -------------------------------------------------------------------------- */
-/*                                Show / acceso                                */
+/*                                Show / acceso */
 /* -------------------------------------------------------------------------- */
 
 it('autoprovisiona la fila de configuración al primer acceso del admin', function (): void {
@@ -160,11 +161,11 @@ it('superadmin sin tenant resuelto recibe la pantalla "shared/tenant-required" (
      * informativa en lugar del 404 seco, para evitar que el sidebar
      * (que para superadmin muestra TODO) lleve a una experiencia rota.
      */
-    $superRole = \Spatie\Permission\Models\Role::firstOrCreate([
+    $superRole = Role::firstOrCreate([
         'name' => 'superadmin',
         'guard_name' => 'web',
     ]);
-    $superRole->syncPermissions(\Spatie\Permission\Models\Permission::all());
+    $superRole->syncPermissions(Permission::all());
 
     $superadmin = User::factory()->create([
         'email' => 'super@vetsaas.test',
@@ -187,7 +188,7 @@ it('superadmin sin tenant resuelto recibe la pantalla "shared/tenant-required" (
 });
 
 /* -------------------------------------------------------------------------- */
-/*                                  Update                                     */
+/*                                  Update */
 /* -------------------------------------------------------------------------- */
 
 it('admin_clinica puede actualizar la configuración con datos válidos', function (): void {
@@ -207,6 +208,10 @@ it('admin_clinica puede actualizar la configuración con datos válidos', functi
     expect($row->ruc)->toBe('20123456789');
     expect($row->razon_social)->toBe('Clínica San Patricio SAC');
     expect($row->duracion_cita_default_min)->toBe(45);
+    expect(json_decode($row->horario_atencion, true))->toMatchArray([
+        'agenda_hora_inicio' => '06:00',
+        'agenda_hora_fin' => '22:00',
+    ]);
     expect((bool) $row->recordatorio_48h_activo)->toBeTrue();
     expect((bool) $row->precio_incluye_igv)->toBeFalse();
     expect($row->moneda)->toBe('USD');
@@ -262,6 +267,19 @@ it('rechaza moneda fuera del catálogo permitido', function (): void {
     $response->assertSessionHasErrors('moneda');
 });
 
+it('rechaza un rango de agenda invertido', function (): void {
+    $this->actingAs($this->admin);
+
+    $payload = array_merge(validPayload(), [
+        'agenda_hora_inicio' => '20:00',
+        'agenda_hora_fin' => '07:00',
+    ]);
+
+    $this->from('http://'.$this->host.'/configuracion/general')
+        ->put('http://'.$this->host.'/configuracion/general', $payload)
+        ->assertSessionHasErrors('agenda_hora_fin');
+});
+
 it('rechaza activar emisión SUNAT si el plan no incluye factura electrónica', function (): void {
     $this->actingAs($this->admin);
 
@@ -284,7 +302,7 @@ it('un empleado sin permiso config-general.update recibe 403 al intentar guardar
 });
 
 /* -------------------------------------------------------------------------- */
-/*                       Cifrado de Nubefact (única integración del cliente)  */
+/*                       Cifrado de Nubefact (única integración del cliente) */
 /* -------------------------------------------------------------------------- */
 
 it('cifra el token de Nubefact al guardarlo y marca la integración como configurada', function (): void {
@@ -387,7 +405,7 @@ it('no toca el token de Nubefact si el cliente no lo manda (preserva on-the-fly)
 });
 
 /* -------------------------------------------------------------------------- */
-/*                                Subida de logo                               */
+/*                                Subida de logo */
 /* -------------------------------------------------------------------------- */
 
 it('acepta un archivo de imagen y persiste el logo_path en el disco public', function (): void {
@@ -500,7 +518,7 @@ it('al reemplazar el logo elimina el archivo previo (no deja huérfanos)', funct
 });
 
 /* -------------------------------------------------------------------------- */
-/*                                  Helpers                                    */
+/*                                  Helpers */
 /* -------------------------------------------------------------------------- */
 
 function validPayload(): array
@@ -518,6 +536,8 @@ function validPayload(): array
         'web_url' => 'https://sp.pe',
         'duracion_cita_default_min' => 45,
         'intervalo_agenda_min' => 15,
+        'agenda_hora_inicio' => '06:00',
+        'agenda_hora_fin' => '22:00',
         'dias_anticipacion_cita' => 60,
         'horas_min_cancelacion' => 12,
         'recordatorio_48h_activo' => true,

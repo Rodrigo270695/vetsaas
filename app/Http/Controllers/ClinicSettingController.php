@@ -2,12 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Middleware\EnsureTenant;
 use App\Http\Requests\ClinicSettingRequest;
 use App\Models\ClinicSetting;
 use App\Models\Departamento;
+use App\Services\Tenancy\TenantShowcaseService;
 use App\Support\Caja\TicketAnchoMm;
 use App\Support\PlanCapabilities;
-use App\Services\Tenancy\TenantShowcaseService;
 use App\Tenancy\TenantManager;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
@@ -27,7 +28,7 @@ use Inertia\Response;
  * Acceso:
  *   - El módulo solo tiene sentido en el contexto de un tenant. Las
  *     rutas (`/configuracion/general`) llevan el alias de middleware
- *     `tenant.required` (ver {@see \App\Http\Middleware\EnsureTenant}),
+ *     `tenant.required` (ver {@see EnsureTenant}),
  *     que garantiza que al entrar al método hay un tenant resuelto.
  *     Si llega un request al host central, el middleware:
  *       · responde 404 para roles operativos (defensa en profundidad);
@@ -89,6 +90,12 @@ class ClinicSettingController extends Controller
             $data['emite_comprobantes_sunat'] = false;
         }
 
+        $horarioAtencion = is_array($setting->horario_atencion)
+            ? $setting->horario_atencion
+            : [];
+        $horarioAtencion['agenda_hora_inicio'] = $data['agenda_hora_inicio'];
+        $horarioAtencion['agenda_hora_fin'] = $data['agenda_hora_fin'];
+
         // Campos planos: simple mapping.
         $setting->fill([
             'ruc' => $data['ruc'] ?? null,
@@ -103,6 +110,7 @@ class ClinicSettingController extends Controller
             'web_url' => $data['web_url'] ?? null,
             'duracion_cita_default_min' => $data['duracion_cita_default_min'],
             'intervalo_agenda_min' => $data['intervalo_agenda_min'],
+            'horario_atencion' => $horarioAtencion,
             'dias_anticipacion_cita' => $data['dias_anticipacion_cita'],
             'horas_min_cancelacion' => $data['horas_min_cancelacion'],
             'recordatorio_48h_activo' => $data['recordatorio_48h_activo'],
@@ -268,6 +276,8 @@ class ClinicSettingController extends Controller
             // Operación
             'duracion_cita_default_min' => $setting->duracion_cita_default_min,
             'intervalo_agenda_min' => $setting->intervalo_agenda_min,
+            'agenda_hora_inicio' => $setting->agendaHoraInicio(),
+            'agenda_hora_fin' => $setting->agendaHoraFin(),
             'dias_anticipacion_cita' => $setting->dias_anticipacion_cita,
             'horas_min_cancelacion' => $setting->horas_min_cancelacion,
             // Recordatorios

@@ -10,7 +10,8 @@ import {
 } from 'date-fns';
 import { enUS, es } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight, Clock, Plus } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState, type DragEvent } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import type { DragEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,14 +25,14 @@ import { cn } from '@/lib/utils';
 import type { CitaRow } from '../types';
 
 const WEEKDAY_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
-const HOUR_START = 7;
-const HOUR_END = 21;
 const MAX_PILLS = 2;
 
 type Props = {
     citas: readonly CitaRow[];
     mes: string;
     timeZone: string;
+    horaInicio: string;
+    horaFin: string;
     isLoading?: boolean;
     canCreate: boolean;
     canUpdate?: boolean;
@@ -65,7 +66,11 @@ function toDateKey(d: Date, timeZone: string): string {
 }
 
 /** true si dateKey + HH:mm ya pasó respecto a ahora (zona de la app). */
-function isDateTimePast(dateKey: string, timeHHMM: string, timeZone: string): boolean {
+function isDateTimePast(
+    dateKey: string,
+    timeHHMM: string,
+    timeZone: string,
+): boolean {
     const slot = new TZDate(`${dateKey}T${timeHHMM}:00`, timeZone);
 
     return slot.getTime() <= Date.now();
@@ -74,6 +79,12 @@ function isDateTimePast(dateKey: string, timeHHMM: string, timeZone: string): bo
 /** true si el día completo ya terminó. */
 function isDateFullyPast(dateKey: string, timeZone: string): boolean {
     return isDateTimePast(dateKey, '23:59', timeZone);
+}
+
+function parseAgendaHour(value: string, fallback: number): number {
+    const match = /^(?:[01]\d|2[0-3]):00$/.exec(value);
+
+    return match ? Number(value.slice(0, 2)) : fallback;
 }
 
 function getEstadoAccent(estado: string): string {
@@ -115,6 +126,8 @@ export function CitasCalendar({
     citas,
     mes,
     timeZone,
+    horaInicio,
+    horaFin,
     isLoading,
     canCreate,
     canUpdate = false,
@@ -132,11 +145,10 @@ export function CitasCalendar({
     const monthStart = useMemo(() => parseMes(mes), [mes]);
     const [selectedDay, setSelectedDay] = useState<string | null>(null);
     const [dragOverKey, setDragOverKey] = useState<string | null>(null);
-    const citasById = useMemo(() => new Map(citas.map((c) => [c.id, c])), [citas]);
-
-    useEffect(() => {
-        setSelectedDay(null);
-    }, [mes]);
+    const citasById = useMemo(
+        () => new Map(citas.map((c) => [c.id, c])),
+        [citas],
+    );
 
     const todayKey = useMemo(() => toDateKey(new Date(), timeZone), [timeZone]);
 
@@ -152,7 +164,10 @@ export function CitasCalendar({
         const map = new Map<string, CitaRow[]>();
 
         for (const cita of citas) {
-            const key = toDateKey(new TZDate(cita.inicio_at, timeZone), timeZone);
+            const key = toDateKey(
+                new TZDate(cita.inicio_at, timeZone),
+                timeZone,
+            );
             const list = map.get(key) ?? [];
             list.push(cita);
             map.set(key, list);
@@ -170,7 +185,9 @@ export function CitasCalendar({
     }, [citas, timeZone]);
 
     const gridDays = useMemo(() => {
-        const start = startOfWeek(startOfMonth(monthStart), { weekStartsOn: 1 });
+        const start = startOfWeek(startOfMonth(monthStart), {
+            weekStartsOn: 1,
+        });
 
         return Array.from({ length: 42 }, (_, i) => addDays(start, i));
     }, [monthStart]);
@@ -215,7 +232,9 @@ export function CitasCalendar({
         [onJumpToMonth],
     );
 
-    const activeDay = selectedDay ?? defaultPanelDay;
+    const activeDay = selectedDay?.startsWith(`${mes}-`)
+        ? selectedDay
+        : defaultPanelDay;
     const activeDayCitas = citasByDay.get(activeDay) ?? [];
 
     const activeDayLabel = useMemo(() => {
@@ -225,10 +244,28 @@ export function CitasCalendar({
         return format(dt, "EEEE d 'de' MMMM", { locale: dateFnsLocale });
     }, [activeDay, dateFnsLocale]);
 
-    const hourSlots = useMemo(
-        () => Array.from({ length: HOUR_END - HOUR_START }, (_, i) => HOUR_START + i),
-        [],
-    );
+    const hourSlots = useMemo(() => {
+        const parsedStart = parseAgendaHour(horaInicio, 7);
+        const parsedEnd = parseAgendaHour(horaFin, 20);
+        const configuredStart = parsedStart < parsedEnd ? parsedStart : 7;
+        const configuredEnd = parsedStart < parsedEnd ? parsedEnd : 20;
+        const appointmentHours = citas.map((cita) =>
+            new TZDate(cita.inicio_at, timeZone).getHours(),
+        );
+        const firstHour =
+            appointmentHours.length > 0
+                ? Math.min(configuredStart, ...appointmentHours)
+                : configuredStart;
+        const lastHour =
+            appointmentHours.length > 0
+                ? Math.max(configuredEnd, ...appointmentHours)
+                : configuredEnd;
+
+        return Array.from(
+            { length: lastHour - firstHour + 1 },
+            (_, index) => firstHour + index,
+        );
+    }, [citas, horaFin, horaInicio, timeZone]);
 
     const handleDayClick = (dateKey: string, inMonth: boolean) => {
         if (!inMonth) {
@@ -240,7 +277,9 @@ export function CitasCalendar({
     };
 
     const resolveDragCita = (e: DragEvent): CitaRow | null => {
-        const id = e.dataTransfer.getData(DND_MIME) || e.dataTransfer.getData('text/plain');
+        const id =
+            e.dataTransfer.getData(DND_MIME) ||
+            e.dataTransfer.getData('text/plain');
 
         return id ? (citasById.get(id) ?? null) : null;
     };
@@ -257,7 +296,11 @@ export function CitasCalendar({
         e.dataTransfer.effectAllowed = 'move';
     };
 
-    const handleDropOnDay = (e: DragEvent, dateKey: string, inMonth: boolean) => {
+    const handleDropOnDay = (
+        e: DragEvent,
+        dateKey: string,
+        inMonth: boolean,
+    ) => {
         e.preventDefault();
         e.stopPropagation();
         setDragOverKey(null);
@@ -267,6 +310,7 @@ export function CitasCalendar({
         }
 
         const cita = resolveDragCita(e);
+
         if (!cita || !canDragCita(cita, canUpdate)) {
             return;
         }
@@ -285,11 +329,13 @@ export function CitasCalendar({
         }
 
         const hora = `${String(hour).padStart(2, '0')}:00`;
+
         if (isDateTimePast(dateKey, hora, timeZone)) {
             return;
         }
 
         const cita = resolveDragCita(e);
+
         if (!cita || !canDragCita(cita, canUpdate)) {
             return;
         }
@@ -352,7 +398,9 @@ export function CitasCalendar({
                     <div className="flex flex-wrap items-center gap-2">
                         <Select
                             value={String(mesMonth)}
-                            onValueChange={(value) => jumpToParts(mesYear, Number.parseInt(value, 10))}
+                            onValueChange={(value) =>
+                                jumpToParts(mesYear, Number.parseInt(value, 10))
+                            }
                         >
                             <SelectTrigger
                                 className="h-8 w-[8.5rem] cursor-pointer capitalize"
@@ -375,7 +423,12 @@ export function CitasCalendar({
 
                         <Select
                             value={String(mesYear)}
-                            onValueChange={(value) => jumpToParts(Number.parseInt(value, 10), mesMonth)}
+                            onValueChange={(value) =>
+                                jumpToParts(
+                                    Number.parseInt(value, 10),
+                                    mesMonth,
+                                )
+                            }
                         >
                             <SelectTrigger
                                 className="h-8 w-[5.5rem] cursor-pointer tabular-nums"
@@ -385,7 +438,11 @@ export function CitasCalendar({
                             </SelectTrigger>
                             <SelectContent className="max-h-56">
                                 {yearOptions.map((year) => (
-                                    <SelectItem key={year} value={String(year)} className="cursor-pointer tabular-nums">
+                                    <SelectItem
+                                        key={year}
+                                        value={String(year)}
+                                        className="cursor-pointer tabular-nums"
+                                    >
                                         {year}
                                     </SelectItem>
                                 ))}
@@ -403,8 +460,13 @@ export function CitasCalendar({
                             { estado: 'cancelada', swatch: 'bg-rose-500' },
                         ] as const
                     ).map(({ estado, swatch }) => (
-                        <span key={estado} className="flex items-center gap-1.5">
-                            <span className={cn('size-2.5 rounded-full', swatch)} />
+                        <span
+                            key={estado}
+                            className="flex items-center gap-1.5"
+                        >
+                            <span
+                                className={cn('size-2.5 rounded-full', swatch)}
+                            />
                             {t(`estado.${estado}`)}
                         </span>
                     ))}
@@ -412,12 +474,12 @@ export function CitasCalendar({
             </div>
 
             <div className="grid lg:grid-cols-[1fr_minmax(17rem,22rem)]">
-                <div className="border-b border-border/50 p-3 sm:p-4 lg:border-b-0 lg:border-r">
+                <div className="border-b border-border/50 p-3 sm:p-4 lg:border-r lg:border-b-0">
                     <div className="mb-2 grid grid-cols-7 gap-1">
                         {WEEKDAY_KEYS.map((key) => (
                             <div
                                 key={key}
-                                className="py-1 text-center text-[0.65rem] font-semibold uppercase tracking-wider text-muted-foreground"
+                                className="py-1 text-center text-[0.65rem] font-semibold tracking-wider text-muted-foreground uppercase"
                             >
                                 {t(`calendar.weekdays.${key}`)}
                             </div>
@@ -431,33 +493,48 @@ export function CitasCalendar({
                             const isToday = dateKey === todayKey;
                             const isSelected = dateKey === activeDay;
                             const dayCitas = citasByDay.get(dateKey) ?? [];
-                            const overflow = Math.max(0, dayCitas.length - MAX_PILLS);
+                            const overflow = Math.max(
+                                0,
+                                dayCitas.length - MAX_PILLS,
+                            );
 
                             return (
                                 <div
                                     key={dateKey}
                                     role="button"
                                     tabIndex={inMonth ? 0 : -1}
-                                    onClick={() => handleDayClick(dateKey, inMonth)}
+                                    onClick={() =>
+                                        handleDayClick(dateKey, inMonth)
+                                    }
                                     onKeyDown={(e) => {
-                                        if (inMonth && (e.key === 'Enter' || e.key === ' ')) {
+                                        if (
+                                            inMonth &&
+                                            (e.key === 'Enter' || e.key === ' ')
+                                        ) {
                                             e.preventDefault();
                                             handleDayClick(dateKey, inMonth);
                                         }
                                     }}
-                                    onDragOver={(e) => inMonth && allowDrop(e, `day:${dateKey}`)}
+                                    onDragOver={(e) =>
+                                        inMonth &&
+                                        allowDrop(e, `day:${dateKey}`)
+                                    }
                                     onDragLeave={() => {
                                         if (dragOverKey === `day:${dateKey}`) {
                                             setDragOverKey(null);
                                         }
                                     }}
-                                    onDrop={(e) => handleDropOnDay(e, dateKey, inMonth)}
+                                    onDrop={(e) =>
+                                        handleDropOnDay(e, dateKey, inMonth)
+                                    }
                                     className={cn(
                                         'group relative flex min-h-[5.5rem] flex-col rounded-xl border p-1.5 text-left transition-all sm:min-h-[6.5rem]',
                                         inMonth
                                             ? 'cursor-pointer border-border/50 bg-background hover:border-primary/40 hover:bg-primary/[0.03] hover:shadow-sm'
                                             : 'cursor-default border-transparent bg-muted/20 opacity-40',
-                                        isToday && inMonth && 'ring-1 ring-primary/50',
+                                        isToday &&
+                                            inMonth &&
+                                            'ring-1 ring-primary/50',
                                         isSelected &&
                                             inMonth &&
                                             'border-primary/60 bg-primary/[0.06] shadow-md ring-2 ring-primary/30',
@@ -468,41 +545,73 @@ export function CitasCalendar({
                                     <span
                                         className={cn(
                                             'mb-1 flex size-7 items-center justify-center rounded-full text-sm font-semibold tabular-nums',
-                                            isToday && 'bg-primary text-primary-foreground',
-                                            isSelected && !isToday && 'bg-primary/15 text-primary',
-                                            !isToday && !isSelected && 'text-foreground',
+                                            isToday &&
+                                                'bg-primary text-primary-foreground',
+                                            isSelected &&
+                                                !isToday &&
+                                                'bg-primary/15 text-primary',
+                                            !isToday &&
+                                                !isSelected &&
+                                                'text-foreground',
                                         )}
                                     >
                                         {format(day, 'd')}
                                     </span>
 
                                     <div className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-hidden">
-                                        {dayCitas.slice(0, MAX_PILLS).map((cita) => {
-                                            const draggable = canDragCita(cita, canUpdate) && Boolean(onReschedule);
+                                        {dayCitas
+                                            .slice(0, MAX_PILLS)
+                                            .map((cita) => {
+                                                const draggable =
+                                                    canDragCita(
+                                                        cita,
+                                                        canUpdate,
+                                                    ) && Boolean(onReschedule);
 
-                                            return (
-                                                <button
-                                                    key={cita.id}
-                                                    type="button"
-                                                    draggable={draggable}
-                                                    onDragStart={(e) => handleDragStart(e, cita)}
-                                                    onDragEnd={() => setDragOverKey(null)}
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setSelectedDay(dateKey);
-                                                        onSelectCita(cita);
-                                                    }}
-                                                    className={cn(
-                                                        'w-full truncate rounded-md border-l-[3px] px-1 py-0.5 text-left text-[0.6rem] font-medium leading-tight transition-colors',
-                                                        getEstadoAccent(cita.estado),
-                                                        draggable ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer',
-                                                    )}
-                                                >
-                                                    {format(new TZDate(cita.inicio_at, timeZone), 'HH:mm')}{' '}
-                                                    {displayPacienteCita(cita.paciente)}
-                                                </button>
-                                            );
-                                        })}
+                                                return (
+                                                    <button
+                                                        key={cita.id}
+                                                        type="button"
+                                                        draggable={draggable}
+                                                        onDragStart={(e) =>
+                                                            handleDragStart(
+                                                                e,
+                                                                cita,
+                                                            )
+                                                        }
+                                                        onDragEnd={() =>
+                                                            setDragOverKey(null)
+                                                        }
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setSelectedDay(
+                                                                dateKey,
+                                                            );
+                                                            onSelectCita(cita);
+                                                        }}
+                                                        className={cn(
+                                                            'w-full truncate rounded-md border-l-[3px] px-1 py-0.5 text-left text-[0.6rem] leading-tight font-medium transition-colors',
+                                                            getEstadoAccent(
+                                                                cita.estado,
+                                                            ),
+                                                            draggable
+                                                                ? 'cursor-grab active:cursor-grabbing'
+                                                                : 'cursor-pointer',
+                                                        )}
+                                                    >
+                                                        {format(
+                                                            new TZDate(
+                                                                cita.inicio_at,
+                                                                timeZone,
+                                                            ),
+                                                            'HH:mm',
+                                                        )}{' '}
+                                                        {displayPacienteCita(
+                                                            cita.paciente,
+                                                        )}
+                                                    </button>
+                                                );
+                                            })}
                                         {overflow > 0 ? (
                                             <span className="px-1 text-[0.6rem] font-medium text-primary">
                                                 +{overflow} {t('calendar.more')}
@@ -510,16 +619,20 @@ export function CitasCalendar({
                                         ) : null}
                                     </div>
 
-                                    {inMonth && canCreate && !isDateFullyPast(dateKey, timeZone) ? (
+                                    {inMonth &&
+                                    canCreate &&
+                                    !isDateFullyPast(dateKey, timeZone) ? (
                                         <button
                                             type="button"
-                                            aria-label={t('calendar.schedule_day')}
+                                            aria-label={t(
+                                                'calendar.schedule_day',
+                                            )}
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 setSelectedDay(dateKey);
                                                 onScheduleDay(dateKey);
                                             }}
-                                            className="absolute bottom-1 right-1 flex size-6 cursor-pointer items-center justify-center rounded-md bg-primary/10 text-primary opacity-0 transition-opacity hover:bg-primary/20 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                            className="absolute right-1 bottom-1 flex size-6 cursor-pointer items-center justify-center rounded-md bg-primary/10 text-primary opacity-0 transition-opacity group-hover:opacity-100 hover:bg-primary/20 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                                         >
                                             <Plus className="size-3.5" />
                                         </button>
@@ -530,29 +643,40 @@ export function CitasCalendar({
                     </div>
 
                     {canUpdate && onReschedule ? (
-                        <p className="mt-3 text-center text-xs text-muted-foreground">{t('calendar.drag_hint')}</p>
+                        <p className="mt-3 text-center text-xs text-muted-foreground">
+                            {t('calendar.drag_hint')}
+                        </p>
                     ) : canCreate ? (
-                        <p className="mt-3 text-center text-xs text-muted-foreground">{t('calendar.click_day_hint')}</p>
+                        <p className="mt-3 text-center text-xs text-muted-foreground">
+                            {t('calendar.click_day_hint')}
+                        </p>
                     ) : null}
                 </div>
 
                 <aside className="flex flex-col bg-gradient-to-b from-muted/30 to-background p-4">
                     <div className="mb-4">
-                        <p className="text-[0.65rem] font-semibold uppercase tracking-wider text-primary">
+                        <p className="text-[0.65rem] font-semibold tracking-wider text-primary uppercase">
                             {t('calendar.day_agenda')}
                         </p>
-                        <h3 className="mt-1 text-sm font-semibold capitalize text-foreground">{activeDayLabel}</h3>
+                        <h3 className="mt-1 text-sm font-semibold text-foreground capitalize">
+                            {activeDayLabel}
+                        </h3>
                         <p className="mt-0.5 text-xs text-muted-foreground">
                             {activeDayCitas.length === 0
                                 ? t('calendar.day_empty')
-                                : t('calendar.day_count', { count: activeDayCitas.length })}
+                                : t('calendar.day_count', {
+                                      count: activeDayCitas.length,
+                                  })}
                         </p>
                     </div>
 
                     <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto pr-1">
                         {hourSlots.map((hour) => {
                             const slotCitas = activeDayCitas.filter((c) => {
-                                const h = new TZDate(c.inicio_at, timeZone).getHours();
+                                const h = new TZDate(
+                                    c.inicio_at,
+                                    timeZone,
+                                ).getHours();
 
                                 return h === hour;
                             });
@@ -560,13 +684,20 @@ export function CitasCalendar({
                             const isOccupied = slotCitas.length > 0;
                             const slotKey = `hour:${activeDay}:${hour}`;
                             const hourLabel = `${String(hour).padStart(2, '0')}:00`;
-                            const slotPast = isDateTimePast(activeDay, hourLabel, timeZone);
+                            const slotPast = isDateTimePast(
+                                activeDay,
+                                hourLabel,
+                                timeZone,
+                            );
 
                             return (
-                                <div key={hour} className="grid grid-cols-[3rem_1fr] items-start gap-2">
+                                <div
+                                    key={hour}
+                                    className="grid grid-cols-[3rem_1fr] items-start gap-2"
+                                >
                                     <span
                                         className={cn(
-                                            'pt-1 text-[0.65rem] tabular-nums text-muted-foreground',
+                                            'pt-1 text-[0.65rem] text-muted-foreground tabular-nums',
                                             slotPast && 'opacity-50',
                                         )}
                                     >
@@ -583,42 +714,78 @@ export function CitasCalendar({
                                                 setDragOverKey(null);
                                             }
                                         }}
-                                        onDrop={(e) => handleDropOnHour(e, activeDay, hour)}
+                                        onDrop={(e) =>
+                                            handleDropOnHour(e, activeDay, hour)
+                                        }
                                         className={cn(
                                             'rounded-lg transition-colors',
-                                            dragOverKey === slotKey && 'bg-primary/10 ring-2 ring-primary/40',
+                                            dragOverKey === slotKey &&
+                                                'bg-primary/10 ring-2 ring-primary/40',
                                         )}
                                     >
                                         {isOccupied ? (
                                             <div className="space-y-1">
                                                 {slotCitas.map((cita) => {
                                                     const draggable =
-                                                        canDragCita(cita, canUpdate) && Boolean(onReschedule);
+                                                        canDragCita(
+                                                            cita,
+                                                            canUpdate,
+                                                        ) &&
+                                                        Boolean(onReschedule);
 
                                                     return (
                                                         <button
                                                             key={cita.id}
                                                             type="button"
-                                                            draggable={draggable}
-                                                            onDragStart={(e) => handleDragStart(e, cita)}
-                                                            onDragEnd={() => setDragOverKey(null)}
-                                                            onClick={() => onSelectCita(cita)}
+                                                            draggable={
+                                                                draggable
+                                                            }
+                                                            onDragStart={(e) =>
+                                                                handleDragStart(
+                                                                    e,
+                                                                    cita,
+                                                                )
+                                                            }
+                                                            onDragEnd={() =>
+                                                                setDragOverKey(
+                                                                    null,
+                                                                )
+                                                            }
+                                                            onClick={() =>
+                                                                onSelectCita(
+                                                                    cita,
+                                                                )
+                                                            }
                                                             className={cn(
                                                                 'w-full rounded-lg border-l-[3px] px-2.5 py-2 text-left transition-colors',
-                                                                getEstadoAccent(cita.estado),
+                                                                getEstadoAccent(
+                                                                    cita.estado,
+                                                                ),
                                                                 draggable
                                                                     ? 'cursor-grab active:cursor-grabbing'
                                                                     : 'cursor-pointer',
                                                             )}
                                                         >
                                                             <p className="text-xs font-semibold">
-                                                                {format(new TZDate(cita.inicio_at, timeZone), 'HH:mm')}
+                                                                {format(
+                                                                    new TZDate(
+                                                                        cita.inicio_at,
+                                                                        timeZone,
+                                                                    ),
+                                                                    'HH:mm',
+                                                                )}
                                                                 {' · '}
-                                                                {displayPacienteCita(cita.paciente)}
+                                                                {displayPacienteCita(
+                                                                    cita.paciente,
+                                                                )}
                                                             </p>
                                                             {cita.veterinario ? (
                                                                 <p className="mt-0.5 truncate text-[0.65rem] opacity-80">
-                                                                    {cita.veterinario.name}
+                                                                    {
+                                                                        cita
+                                                                            .veterinario
+                                                                            .name
+                                                                    }
                                                                 </p>
                                                             ) : null}
                                                         </button>
@@ -628,7 +795,12 @@ export function CitasCalendar({
                                         ) : canCreate && !slotPast ? (
                                             <button
                                                 type="button"
-                                                onClick={() => onScheduleDay(activeDay, hourLabel)}
+                                                onClick={() =>
+                                                    onScheduleDay(
+                                                        activeDay,
+                                                        hourLabel,
+                                                    )
+                                                }
                                                 className="group/slot flex h-9 w-full cursor-pointer items-center gap-2 rounded-lg border border-dashed border-primary/25 px-2 text-left text-[0.65rem] text-muted-foreground transition-colors hover:border-primary/50 hover:bg-primary/5 hover:text-primary"
                                             >
                                                 <Clock className="size-3 opacity-60 group-hover/slot:opacity-100" />
@@ -662,11 +834,15 @@ export function shiftMes(mes: string, delta: number): string {
     return `${next.getFullYear()}-${pad(next.getMonth() + 1)}`;
 }
 
-export function monthRangeFromMes(mes: string): { desde: string; hasta: string } {
+export function monthRangeFromMes(mes: string): {
+    desde: string;
+    hasta: string;
+} {
     const start = parseMes(mes);
     const end = endOfMonth(start);
     const pad = (n: number) => String(n).padStart(2, '0');
-    const fmt = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    const fmt = (d: Date) =>
+        `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
     return { desde: fmt(start), hasta: fmt(end) };
 }

@@ -1,5 +1,5 @@
-import { Head, router, usePage } from '@inertiajs/react';
 import { TZDate } from '@date-fns/tz';
+import { Head, router, usePage } from '@inertiajs/react';
 import {
     Activity,
     CalendarDays,
@@ -35,8 +35,8 @@ import type { Paginated } from '@/types';
 import { AtencionDateRangeFilter } from '../historias-clinicas/components/atencion-date-range-filter';
 import { formatAtendidoInAppTimezone } from '../historias-clinicas/format-atendido';
 import { CitaCancelDialog } from './components/cita-cancel-dialog';
-import { CitaDetailModal } from './components/cita-detail-modal';
 import { CitaDeleteDialog } from './components/cita-delete-dialog';
+import { CitaDetailModal } from './components/cita-detail-modal';
 import { CitaFormModal } from './components/cita-form-modal';
 import { CitaRowActions } from './components/cita-row-actions';
 import {
@@ -66,6 +66,10 @@ type Props = {
     sedes_opciones: readonly SedeCitaOpcion[];
     filters: CitaFilters;
     cita_filtro_ui: CitaFiltroUi;
+    agenda_horario: {
+        hora_inicio: string;
+        hora_fin: string;
+    };
     stats: CitaStats;
     cita_abrir_editar: CitaRow | null;
 };
@@ -111,10 +115,10 @@ export default function Index({
     citas: paginated,
     citas_agenda,
     pacientes_opciones,
-    usuarios_opciones,
     sedes_opciones,
     filters,
     cita_filtro_ui,
+    agenda_horario,
     stats,
     cita_abrir_editar,
 }: Props) {
@@ -220,6 +224,7 @@ export default function Index({
             }
 
             const target = new TZDate(`${inicioAt}:00`, appTz);
+
             if (target.getTime() <= Date.now()) {
                 toastManager.add({
                     type: 'warning',
@@ -718,6 +723,8 @@ export default function Index({
                                     citas={citas_agenda}
                                     mes={mesActivo}
                                     timeZone={appTz}
+                                    horaInicio={agenda_horario.hora_inicio}
+                                    horaFin={agenda_horario.hora_fin}
                                     isLoading={isLoading}
                                     canCreate={canCreate}
                                     canUpdate={canUpdate}

@@ -204,6 +204,8 @@ class CitaController extends Controller
             ->limit(100)
             ->get(['id', 'nombre', 'codigo']);
 
+        $clinicSetting = ClinicSetting::current();
+
         return Inertia::render('clinica/citas/index', [
             'citas' => $citas,
             'citas_agenda' => $citasAgenda->values()->all(),
@@ -226,6 +228,10 @@ class CitaController extends Controller
                 'default_hasta' => $defaultHasta,
                 'default_mes' => $defaultMes,
                 'fuera_del_mes_actual' => $fueraDelMesActual,
+            ],
+            'agenda_horario' => [
+                'hora_inicio' => $clinicSetting->agendaHoraInicio(),
+                'hora_fin' => $clinicSetting->agendaHoraFin(),
             ],
             'stats' => [
                 'total' => $totalEnRango,

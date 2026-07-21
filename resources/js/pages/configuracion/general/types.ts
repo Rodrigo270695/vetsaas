@@ -66,6 +66,8 @@ export type ClinicSetting = {
     // Operación (citas y agenda)
     duracion_cita_default_min: number;
     intervalo_agenda_min: number;
+    agenda_hora_inicio: string;
+    agenda_hora_fin: string;
     dias_anticipacion_cita: number;
     horas_min_cancelacion: number;
     // Recordatorios automáticos

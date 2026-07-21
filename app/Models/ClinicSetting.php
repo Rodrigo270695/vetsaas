@@ -76,6 +76,10 @@ class ClinicSetting extends Model
 {
     use HasUuids;
 
+    public const DEFAULT_AGENDA_HORA_INICIO = '07:00';
+
+    public const DEFAULT_AGENDA_HORA_FIN = '20:00';
+
     protected $table = 'cfg_clinic_settings';
 
     protected $fillable = [
@@ -208,5 +212,34 @@ class ClinicSetting extends Model
     public function isBotIaResponding(): bool
     {
         return (bool) ($this->bot_ia_respuestas_activo ?? true);
+    }
+
+    public function agendaHoraInicio(): string
+    {
+        return $this->agendaHour(
+            'agenda_hora_inicio',
+            self::DEFAULT_AGENDA_HORA_INICIO,
+        );
+    }
+
+    public function agendaHoraFin(): string
+    {
+        return $this->agendaHour(
+            'agenda_hora_fin',
+            self::DEFAULT_AGENDA_HORA_FIN,
+        );
+    }
+
+    private function agendaHour(string $key, string $fallback): string
+    {
+        $schedule = is_array($this->horario_atencion)
+            ? $this->horario_atencion
+            : [];
+        $value = $schedule[$key] ?? null;
+
+        return is_string($value)
+            && preg_match('/^(?:[01]\d|2[0-3]):00$/', $value) === 1
+                ? $value
+                : $fallback;
     }
 }
