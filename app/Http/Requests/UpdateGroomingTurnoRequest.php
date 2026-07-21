@@ -2,9 +2,8 @@
 
 namespace App\Http\Requests;
 
-use App\Http\Requests\Concerns\AssignsAuthenticatedResponsable;
 use App\Grooming\GroomingCatalogoServicio;
-use App\Models\GroomingTurno;
+use App\Http\Requests\Concerns\AssignsAuthenticatedResponsable;
 use App\Support\Grooming\GroomingTurnoServicioRules;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -76,7 +75,6 @@ class UpdateGroomingTurnoRequest extends FormRequest
             ],
             'inicio_at' => ['required', 'date'],
             'duracion_minutos' => ['required', 'integer', 'min:5', 'max:480'],
-            'estado' => ['required', 'string', Rule::in(GroomingTurno::ESTADOS)],
             ...GroomingTurnoServicioRules::servicioFields(),
             'notas' => ['nullable', 'string', 'max:20000'],
         ];
