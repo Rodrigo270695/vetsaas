@@ -18,6 +18,7 @@ const PAGES_WITH_OWN_CARD = new Set([
     'errors/forbidden',
     'errors/not-found',
     'errors/server-error',
+    'tenant/errors/blocked',
 ]);
 
 /**

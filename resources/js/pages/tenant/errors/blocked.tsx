@@ -91,15 +91,15 @@ export default function TenantBlocked({
         <>
             <Head title={config.title} />
 
-            <div className="mx-auto flex min-h-screen w-full max-w-2xl flex-col items-center justify-center gap-6 px-4 py-12 text-center">
+            <div className="mx-auto flex w-full flex-col items-center gap-5 text-center">
                 <div
-                    className={`flex h-20 w-20 items-center justify-center rounded-2xl ring-1 ${config.bg} ${config.accent}`}
+                    className={`flex size-16 items-center justify-center rounded-2xl ring-1 ${config.bg} ${config.accent}`}
                 >
-                    <Icon className="size-10" />
+                    <Icon className="size-8" />
                 </div>
 
                 <div className="space-y-2">
-                    <h1 className="text-3xl font-semibold tracking-tight">{config.title}</h1>
+                    <h1 className="text-2xl font-semibold tracking-tight">{config.title}</h1>
                     <p className="text-base text-muted-foreground">
                         Cuenta de <span className="font-medium text-foreground">{razon_social}</span>
                     </p>
@@ -155,7 +155,7 @@ export default function TenantBlocked({
                     </CardContent>
                 </Card>
 
-                <footer className="mt-auto pt-4 text-xs text-muted-foreground">VetSaaS · {new Date().getFullYear()}</footer>
+                <footer className="pt-1 text-xs text-muted-foreground">VetSaaS · {new Date().getFullYear()}</footer>
             </div>
         </>
     );
