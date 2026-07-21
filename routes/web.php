@@ -1298,6 +1298,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:plataforma-cobros.export')
             ->get('cobros/export', [SubscriptionPaymentController::class, 'export'])
             ->name('cobros.export');
+        Route::middleware('permission:plataforma-cobros.renew')
+            ->post('cobros/suscripciones/{subscription}/renovacion-manual', [SubscriptionPaymentController::class, 'manualRenew'])
+            ->name('cobros.manual-renew');
         Route::middleware('permission:plataforma-cobros.refund')
             ->post('cobros/{cobro}/mark-refunded', [SubscriptionPaymentController::class, 'markRefunded'])
             ->name('cobros.mark-refunded');

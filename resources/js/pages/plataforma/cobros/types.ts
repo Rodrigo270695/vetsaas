@@ -44,7 +44,10 @@ export type PaymentSubscriptionRef = {
     tenant_id: string;
     plan_id: string;
     estado: string;
+    ciclo?: 'mensual' | 'anual';
+    precio_pactado?: string;
     trial_ends_at?: string | null;
+    current_period_start?: string | null;
     current_period_end?: string | null;
     grace_ends_at?: string | null;
     proximo_cobro_at?: string | null;
@@ -110,6 +113,8 @@ export type SubscriptionPayment = {
     pagos_count?: number;
     /** Suma de totales procesados del tenant. */
     pagado_acumulado?: string;
+    /** Plan + add-ons vigentes; el superadmin puede ajustarlo al importe recibido. */
+    manual_renewal_suggested_amount?: string;
     /** Últimos cobros procesados del tenant (más reciente primero). */
     payment_history?: PaymentHistoryItem[];
 };

@@ -67,6 +67,14 @@ it('no resuelve ni ofrece navegación a módulos sin permiso', function (): void
         ->and(InAppAssistantNavigation::allowsUrl('/clinica/citas/123', $user))->toBeTrue();
 });
 
+it('no ofrece navegación hacia módulos todavía no implementados', function (): void {
+    expect(InAppAssistantNavigation::resolve('bloqueos'))->toBeNull()
+        ->and(
+            collect(InAppAssistantNavigation::destinations())
+                ->contains('url', '/configuracion/bloqueos'),
+        )->toBeFalse();
+});
+
 it('no ofrece herramientas de plataforma a usuarios tenant', function (): void {
     $user = Mockery::mock(User::class);
     $user->shouldReceive('isPlatformSuperadmin')->andReturnFalse();

@@ -6,6 +6,7 @@ namespace App\Support\Subscriptions;
 
 use App\Models\Subscription;
 use App\Models\SubscriptionPayment;
+use App\Support\Plan\TenantPlanLimitBilling;
 use Illuminate\Support\Collection;
 
 /**
@@ -37,6 +38,14 @@ final class CobrosListPresenter
 
             $row['pagos_count'] = (int) $stats['pagos_count'];
             $row['pagado_acumulado'] = number_format((float) $stats['pagado_acumulado'], 2, '.', '');
+            $row['manual_renewal_suggested_amount'] = number_format(
+                SubscriptionRenewalBilling::planAmount($subscription)
+                + SubscriptionRenewalBilling::botIaAmount($subscription)
+                + TenantPlanLimitBilling::totalAmount($subscription->tenant),
+                2,
+                '.',
+                '',
+            );
             $row['payment_history'] = $histories[$tenantId] ?? [];
 
             return $row;
@@ -252,7 +261,10 @@ final class CobrosListPresenter
             'tenant_id' => $subscription->tenant_id,
             'plan_id' => $subscription->plan_id,
             'estado' => $subscription->estado,
+            'ciclo' => $subscription->ciclo,
+            'precio_pactado' => (string) $subscription->precio_pactado,
             'trial_ends_at' => optional($subscription->trial_ends_at)?->toIso8601String(),
+            'current_period_start' => optional($subscription->current_period_start)?->toIso8601String(),
             'current_period_end' => optional($subscription->current_period_end)?->toIso8601String(),
             'grace_ends_at' => optional($subscription->grace_ends_at)?->toIso8601String(),
             'proximo_cobro_at' => optional($subscription->proximo_cobro_at)?->toIso8601String(),

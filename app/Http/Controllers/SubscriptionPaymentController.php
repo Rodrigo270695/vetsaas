@@ -7,6 +7,8 @@ use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\SubscriptionPayment;
 use App\Models\Tenant;
+use App\Models\User;
+use App\Services\Subscriptions\ManualSubscriptionRenewalService;
 use App\Support\Subscriptions\CobrosListPresenter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -20,9 +22,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  * Panel de cobros del SaaS (Plataforma → Cobros).
  *
  * Notas de diseño:
- *   - Es una vista **read-only** sobre los datos del webhook. Los cobros
- *     los procesa Orvae (con Niubiz/Culqi/MP) y escribe la fila acá.
- *     VetSaaS NO habla con la pasarela.
+ *   - Orvae escribe los cobros de pasarela. El superadmin también puede
+ *     registrar una renovación manual si recibió el dinero por fuera.
  *   - Las únicas acciones que el superadmin puede hacer son operativas
  *     de soporte:
  *       · `markRefunded`   → reembolso manual (cuando devolviste por
@@ -32,8 +33,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  *                            el envío real lo dispara un job/evento que
  *                            vive fuera de este controller (se hará
  *                            cuando se conecte el módulo FEL).
- *   - No hay `store`, `update`, `destroy`, `bulkDestroy`: la fila base
- *     es inmutable.
+ *   - No hay edición/destrucción de filas base: el historial es inmutable.
  */
 class SubscriptionPaymentController extends Controller
 {
@@ -234,6 +234,53 @@ class SubscriptionPaymentController extends Controller
         return back()->with('success', 'Factura reenviada al cliente.');
     }
 
+    public function manualRenew(
+        Request $request,
+        Subscription $subscription,
+        ManualSubscriptionRenewalService $manualRenewals,
+    ): RedirectResponse {
+        $data = $request->validate([
+            'amount' => ['required', 'numeric', 'min:0.01', 'max:999999.99'],
+            'method' => ['required', 'string', 'in:yape,transferencia,deposito,efectivo,otro'],
+            'reference' => ['required', 'string', 'min:3', 'max:120'],
+            'note' => ['nullable', 'string', 'max:1000'],
+            'idempotency_key' => ['required', 'uuid'],
+        ]);
+
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+
+        try {
+            $result = $manualRenewals->renew(
+                subscriptionId: (string) $subscription->id,
+                amount: (float) $data['amount'],
+                method: (string) $data['method'],
+                idempotencyKey: (string) $data['idempotency_key'],
+                actor: $user,
+                reference: trim((string) $data['reference']),
+                note: filled($data['note'] ?? null)
+                    ? trim((string) $data['note'])
+                    : null,
+            );
+        } catch (\InvalidArgumentException $exception) {
+            throw ValidationException::withMessages([
+                'manual_renewal' => $exception->getMessage(),
+            ]);
+        }
+
+        if ($result['already_processed']) {
+            return back()->with('info', 'Esta renovación manual ya había sido registrada.');
+        }
+
+        $nextCharge = $result['subscription']->proximo_cobro_at?->format('d/m/Y');
+
+        return back()->with(
+            'success',
+            'Pago manual registrado y suscripción renovada'
+            .($nextCharge !== null ? " hasta el {$nextCharge}." : '.'),
+        );
+    }
+
     public function export(Request $request): StreamedResponse
     {
         $search = trim((string) $request->string('search', ''));
@@ -277,7 +324,7 @@ class SubscriptionPaymentController extends Controller
         );
 
         $filename = 'cobros-'.now()->format('Ymd-His').'.xlsx';
-        $exporter = new SubscriptionPaymentsXlsxExport();
+        $exporter = new SubscriptionPaymentsXlsxExport;
 
         return response()->streamDownload(
             function () use ($exporter, $subscriptions) {

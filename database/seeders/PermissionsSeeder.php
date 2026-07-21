@@ -109,7 +109,7 @@ class PermissionsSeeder extends Seeder
         'plataforma-tenants' => ['view', 'create', 'update', 'suspend', 'resume', 'delete', 'export', 'bulk-delete', 'impersonate', 'whatsapp-restart', 'whatsapp-stop'],
         'plataforma-planes' => ['view', 'create', 'update', 'delete', 'export', 'bulk-delete'],
         'plataforma-suscripciones' => ['view', 'create', 'update', 'delete', 'export', 'bulk-delete', 'extend-trial', 'change-plan', 'cancel', 'toggle-bot-ia'],
-        'plataforma-cobros' => ['view', 'export', 'refund', 'resend-invoice', 'add-note'],
+        'plataforma-cobros' => ['view', 'export', 'renew', 'refund', 'resend-invoice', 'add-note'],
         /*
          * Radar operativo del SaaS: salud, WhatsApp, failed jobs,
          * suscripciones en grace y credenciales. `manage` = reintentar jobs.

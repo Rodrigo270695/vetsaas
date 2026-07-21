@@ -18,6 +18,11 @@ final class InAppAssistantKnowledgeSeeder extends Seeder
             );
         }
 
+        // Módulos todavía no operativos no deben aparecer como sugerencias.
+        InAppAssistantKnowledge::query()
+            ->where('slug', 'module-bloqueos')
+            ->update(['is_active' => false]);
+
         InAppAssistantKnowledge::flushCache();
     }
 
@@ -392,14 +397,6 @@ final class InAppAssistantKnowledgeSeeder extends Seeder
                 'component' => 'configuracion/horarios/*',
                 'keywords' => ['agenda', 'disponibilidad', 'atención'],
                 'content' => 'Define horarios de atención utilizados por agenda y disponibilidad operativa.',
-            ],
-            'bloqueos' => [
-                'title' => 'Configuración · Bloqueos',
-                'permission' => 'bloqueos.view',
-                'url' => '/configuracion/bloqueos',
-                'component' => 'configuracion/bloqueos/*',
-                'keywords' => ['agenda', 'indisponibilidad', 'feriado', 'ausencia'],
-                'content' => 'Registra periodos no disponibles en agenda por feriados, ausencias u otros bloqueos.',
             ],
             'tarifas' => [
                 'title' => 'Configuración · Tarifas',

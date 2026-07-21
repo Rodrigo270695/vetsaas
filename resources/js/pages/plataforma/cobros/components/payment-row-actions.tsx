@@ -1,4 +1,5 @@
 import {
+    CalendarSync,
     Copy,
     Eye,
     FileText,
@@ -27,10 +28,12 @@ export type PaymentRowActionsProps = {
     onMarkRefunded: (p: SubscriptionPayment) => void;
     onResendInvoice: (p: SubscriptionPayment) => void;
     onSendRenewalWhatsApp?: (p: SubscriptionPayment) => void;
+    onManualRenew?: (p: SubscriptionPayment) => void;
     canAddNote?: boolean;
     canRefund?: boolean;
     canResend?: boolean;
     canSendRenewalWhatsApp?: boolean;
+    canManualRenew?: boolean;
 };
 
 /**
@@ -57,10 +60,12 @@ export function PaymentRowActions({
     onMarkRefunded,
     onResendInvoice,
     onSendRenewalWhatsApp,
+    onManualRenew,
     canAddNote = true,
     canRefund = true,
     canResend = true,
     canSendRenewalWhatsApp = false,
+    canManualRenew = false,
 }: PaymentRowActionsProps) {
     const { t } = useTranslation(['cobros', 'common']);
 
@@ -81,9 +86,17 @@ export function PaymentRowActions({
         && onSendRenewalWhatsApp !== undefined
         && payment.subscription !== null
         && payment.subscription.estado !== 'cancelled';
+    const showManualRenew =
+        canManualRenew
+        && onManualRenew !== undefined
+        && payment.subscription !== null
+        && payment.subscription.estado !== 'cancelled';
 
     const handleCopyTxId = async () => {
-        if (!payment.pasarela_transaction_id) return;
+        if (!payment.pasarela_transaction_id) {
+return;
+}
+
         try {
             await navigator.clipboard.writeText(
                 payment.pasarela_transaction_id,
@@ -144,6 +157,16 @@ export function PaymentRowActions({
                     >
                         <MessageCircle className="size-4" strokeWidth={2.25} />
                         {t('cobros:row.send_payment_whatsapp')}
+                    </DropdownMenuItem>
+                )}
+
+                {showManualRenew && (
+                    <DropdownMenuItem
+                        onSelect={() => onManualRenew(payment)}
+                        className="cursor-pointer gap-2 text-emerald-700 focus:text-emerald-700 dark:text-emerald-400"
+                    >
+                        <CalendarSync className="size-4" strokeWidth={2.25} />
+                        {t('cobros:row.manual_renewal')}
                     </DropdownMenuItem>
                 )}
 

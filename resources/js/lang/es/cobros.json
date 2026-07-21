@@ -1,6 +1,6 @@
 {
     "title": "Cobros",
-    "description": "Operación de cobros SaaS: pendientes, fallidos y reembolsos. Los datos los escribe Orvae al confirmar/cobrar (no se procesan aquí).",
+    "description": "Operación de cobros SaaS: pagos de Orvae, renovaciones manuales, pendientes, fallidos y reembolsos.",
     "pagos_title": "Pagos",
     "pagos_description": "Clínicas que ya pagaron (cobros procesados vía Orvae). Es la misma data de Cobros, filtrada a estado procesado.",
     "search_placeholder": "Buscar por transaction ID, FEL, tenant, RUC…",
@@ -55,6 +55,7 @@
         "edit_note": "Editar nota interna",
         "resend_invoice": "Reenviar factura",
         "send_payment_whatsapp": "Enviar método de pago por WhatsApp",
+        "manual_renewal": "Registrar pago y renovar",
         "mark_refunded": "Marcar reembolso manual",
         "refunded_locked": "Cobro ya reembolsado",
         "no_invoice": "Sin factura",
@@ -144,9 +145,28 @@
         "hint": "El mensaje usa el teléfono registrado de la clínica e incluye su plan, vencimiento, total y enlace de pago de Orvae.",
         "confirm": "Enviar por WhatsApp"
     },
+    "manual_renewal": {
+        "title": "Registrar pago y renovar",
+        "description": "Registra el dinero recibido directamente de {{tenant}} y renueva su suscripción.",
+        "effect_hint": "Esta acción crea un cobro procesado, avanza el período y la próxima fecha de cobro, reactiva la suscripción y reinicia el cupo de comprobantes del nuevo período. No puede deshacerse; un error debe registrarse como reembolso.",
+        "amount": "Importe recibido (PEN)",
+        "method": "Medio de pago",
+        "methods": {
+            "yape": "Yape",
+            "transferencia": "Transferencia",
+            "deposito": "Depósito",
+            "efectivo": "Efectivo",
+            "otro": "Otro"
+        },
+        "reference": "Referencia u operación",
+        "reference_placeholder": "Código de operación, teléfono o referencia",
+        "note": "Nota interna",
+        "note_placeholder": "Contexto del pago recibido (opcional)",
+        "confirm": "Registrar y renovar"
+    },
     "empty": {
         "no_records_title": "Aún no hay cobros",
-        "no_records_description": "Cuando Orvae procese un pago y mande el webhook, aparecerá aquí. Esta tabla la alimenta Orvae, no se crea desde acá.",
+        "no_records_description": "Los pagos confirmados por Orvae y las renovaciones manuales aparecerán aquí.",
         "no_results_title": "Sin resultados",
         "no_results_description": "Ajusta los filtros o la búsqueda para ver más cobros."
     },

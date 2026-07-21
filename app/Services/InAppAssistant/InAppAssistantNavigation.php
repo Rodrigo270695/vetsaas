@@ -45,7 +45,6 @@ final class InAppAssistantNavigation
             ['id' => 'config-general', 'label' => 'Configuración general', 'url' => '/configuracion/general', 'aliases' => ['configuración', 'ajustes'], 'required_permissions' => ['config-general.view']],
             ['id' => 'suscripcion', 'label' => 'Suscripción', 'url' => '/configuracion/suscripcion', 'aliases' => ['plan', 'renovación'], 'required_permissions' => ['config-general.view']],
             ['id' => 'horarios', 'label' => 'Horarios', 'url' => '/configuracion/horarios', 'aliases' => ['disponibilidad'], 'required_permissions' => ['horarios.view']],
-            ['id' => 'bloqueos', 'label' => 'Bloqueos', 'url' => '/configuracion/bloqueos', 'aliases' => ['indisponibilidad'], 'required_permissions' => ['bloqueos.view']],
             ['id' => 'pagos', 'label' => 'Pagos', 'url' => '/caja/pagos', 'aliases' => ['medios de pago'], 'required_permissions' => ['pagos.view']],
             ['id' => 'descuentos', 'label' => 'Descuentos', 'url' => '/caja/descuentos', 'aliases' => ['promociones'], 'required_permissions' => ['descuentos.view']],
             ['id' => 'documentos', 'label' => 'Documentos', 'url' => '/facturacion/documentos', 'aliases' => ['comprobantes', 'facturación'], 'required_permissions' => ['documentos.view']],

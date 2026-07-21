@@ -28,15 +28,16 @@ import type {
     DataTableColumn,
     FilterChip,
 } from '@/components/data-page';
-import { Button } from '@/components/ui/button';
 import { SubscriptionExpiryBadge } from '@/components/plataforma/subscription-expiry-badge';
+import { Button } from '@/components/ui/button';
 import { useDataTablePage } from '@/hooks/use-data-table-page';
 import { usePermission } from '@/hooks/use-permission';
-import { livingSubscription } from '@/lib/living-subscription';
 import AppLayout from '@/layouts/app-layout';
+import { livingSubscription } from '@/lib/living-subscription';
 import cobros from '@/routes/plataforma/cobros';
 import type { Paginated } from '@/types';
 import { PaymentDetailModal } from './components/payment-detail-modal';
+import { PaymentManualRenewalDialog } from './components/payment-manual-renewal-dialog';
 import { PaymentNoteDialog } from './components/payment-note-dialog';
 import { PaymentRefundDialog } from './components/payment-refund-dialog';
 import { PaymentRenewalWhatsAppDialog } from './components/payment-renewal-whatsapp-dialog';
@@ -72,6 +73,7 @@ type ModalState =
     | { type: 'refund'; payment: SubscriptionPayment }
     | { type: 'note'; payment: SubscriptionPayment }
     | { type: 'resend'; payment: SubscriptionPayment }
+    | { type: 'manual-renewal'; payment: SubscriptionPayment }
     | { type: 'renewal-whatsapp'; payment: SubscriptionPayment };
 
 const DEFAULT_PER_PAGE = 10;
@@ -80,14 +82,25 @@ const PLAN_FILTER_ALL = '__all__';
 const TENANT_FILTER_ALL = '__all__';
 const formatPrice = (value: string | number): string => {
     const num = typeof value === 'string' ? Number(value) : value;
-    if (Number.isNaN(num)) return '—';
+
+    if (Number.isNaN(num)) {
+return '—';
+}
+
     return `S/. ${num.toFixed(2)}`;
 };
 
 const formatDate = (value: string | null): string => {
-    if (!value) return '—';
+    if (!value) {
+return '—';
+}
+
     const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return '—';
+
+    if (Number.isNaN(date.getTime())) {
+return '—';
+}
+
     return date.toLocaleDateString('es-PE', {
         day: '2-digit',
         month: 'short',
@@ -96,9 +109,16 @@ const formatDate = (value: string | null): string => {
 };
 
 const formatDateTime = (value: string | null): string => {
-    if (!value) return '—';
+    if (!value) {
+return '—';
+}
+
     const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return '—';
+
+    if (Number.isNaN(date.getTime())) {
+return '—';
+}
+
     return date.toLocaleString('es-PE', {
         day: '2-digit',
         month: 'short',
@@ -126,6 +146,7 @@ function renderEstadoBadge(
                 : estado === 'fallido'
                   ? 'danger'
                   : 'muted';
+
     return <StatBadge label={label} value="" variant={variant} />;
 }
 
@@ -162,6 +183,7 @@ export default function Index({
     const canAddNote = can('plataforma-cobros.add-note');
     const canResend = can('plataforma-cobros.resend-invoice');
     const canSendRenewalWhatsApp = can('plataforma-suscripciones.update');
+    const canManualRenew = can('plataforma-cobros.renew');
     const showRowActions = true;
 
     const {
@@ -284,16 +306,43 @@ export default function Index({
             setModal({ type: 'renewal-whatsapp', payment }),
         [],
     );
+    const openManualRenewal = useCallback(
+        (payment: SubscriptionPayment) =>
+            setModal({ type: 'manual-renewal', payment }),
+        [],
+    );
 
     const activeFiltersCount = useMemo(() => {
         let count = 0;
-        if (filters.search) count += 1;
-        if (filters.sort) count += 1;
-        if (filters.estado !== DEFAULT_ESTADO) count += 1;
-        if (filters.subscription_id) count += 1;
-        if (filters.tenant_id) count += 1;
-        if (filters.plan_id) count += 1;
-        if (filters.per_page !== DEFAULT_PER_PAGE) count += 1;
+
+        if (filters.search) {
+count += 1;
+}
+
+        if (filters.sort) {
+count += 1;
+}
+
+        if (filters.estado !== DEFAULT_ESTADO) {
+count += 1;
+}
+
+        if (filters.subscription_id) {
+count += 1;
+}
+
+        if (filters.tenant_id) {
+count += 1;
+}
+
+        if (filters.plan_id) {
+count += 1;
+}
+
+        if (filters.per_page !== DEFAULT_PER_PAGE) {
+count += 1;
+}
+
         return count;
     }, [
         filters.search,
@@ -307,18 +356,37 @@ export default function Index({
 
     const exportUrl = useMemo(() => {
         const params = new URLSearchParams();
-        if (filters.search) params.set('search', filters.search);
-        if (filters.sort) params.set('sort', filters.sort);
-        if (filters.direction) params.set('direction', filters.direction);
-        if (filters.estado !== DEFAULT_ESTADO)
-            params.set('estado', filters.estado);
-        if (filters.subscription_id)
-            params.set('subscription_id', filters.subscription_id);
-        if (filters.tenant_id)
-            params.set('tenant_id', filters.tenant_id);
-        if (filters.plan_id) params.set('plan_id', filters.plan_id);
+
+        if (filters.search) {
+params.set('search', filters.search);
+}
+
+        if (filters.sort) {
+params.set('sort', filters.sort);
+}
+
+        if (filters.direction) {
+params.set('direction', filters.direction);
+}
+
+        if (filters.estado !== DEFAULT_ESTADO) {
+params.set('estado', filters.estado);
+}
+
+        if (filters.subscription_id) {
+params.set('subscription_id', filters.subscription_id);
+}
+
+        if (filters.tenant_id) {
+params.set('tenant_id', filters.tenant_id);
+}
+
+        if (filters.plan_id) {
+params.set('plan_id', filters.plan_id);
+}
 
         const qs = params.toString();
+
         return qs.length > 0
             ? `${cobros.export().url}?${qs}`
             : cobros.export().url;
@@ -369,6 +437,7 @@ export default function Index({
                 cell: (p) => {
                     const liveSub = livingSubscription(p.tenant?.subscriptions);
                     const plan = liveSub?.plan ?? p.plan;
+
                     if (!plan) {
                         return (
                             <span className="text-xs text-muted-foreground italic">
@@ -376,11 +445,13 @@ export default function Index({
                             </span>
                         );
                     }
+
                     const hex =
                         plan.color_hex &&
                         /^#[0-9a-fA-F]{3,6}$/.test(plan.color_hex)
                             ? plan.color_hex
                             : '#1F6E4A';
+
                     return (
                         <div className="flex items-center gap-1.5">
                             <span
@@ -408,11 +479,13 @@ export default function Index({
                 header: t('cobros:columns.pagos_count'),
                 cell: (p) => {
                     const count = p.pagos_count ?? 0;
+
                     if (count < 1) {
                         return (
                             <span className="text-xs text-muted-foreground">—</span>
                         );
                     }
+
                     return (
                         <div className="flex flex-col leading-tight">
                             <span className="text-sm font-semibold tabular-nums">
@@ -431,11 +504,13 @@ export default function Index({
                 align: 'right',
                 cell: (p) => {
                     const count = p.pagos_count ?? 0;
+
                     if (count < 1 || !p.pagado_acumulado) {
                         return (
                             <span className="text-xs text-muted-foreground">—</span>
                         );
                     }
+
                     return (
                         <span className="font-mono text-sm font-semibold tabular-nums text-emerald-700 dark:text-emerald-400">
                             {formatPrice(p.pagado_acumulado)}
@@ -519,10 +594,12 @@ export default function Index({
                             onMarkRefunded={openRefund}
                             onResendInvoice={openResend}
                             onSendRenewalWhatsApp={openRenewalWhatsApp}
+                            onManualRenew={openManualRenewal}
                             canAddNote={canAddNote}
                             canRefund={canRefund}
                             canResend={canResend}
                             canSendRenewalWhatsApp={canSendRenewalWhatsApp}
+                            canManualRenew={canManualRenew}
                         />
                     </div>
                 ),
@@ -531,7 +608,7 @@ export default function Index({
         }
 
         return base;
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+
     }, [
         t,
         showRowActions,
@@ -539,11 +616,13 @@ export default function Index({
         canRefund,
         canResend,
         canSendRenewalWhatsApp,
+        canManualRenew,
         openDetail,
         openNote,
         openRefund,
         openResend,
         openRenewalWhatsApp,
+        openManualRenewal,
     ]);
 
     return (
@@ -726,7 +805,9 @@ export default function Index({
             <PaymentDetailModal
                 open={modal.type === 'detail'}
                 onOpenChange={(open) => {
-                    if (!open) closeModal();
+                    if (!open) {
+closeModal();
+}
                 }}
                 payment={modal.type === 'detail' ? modal.payment : null}
             />
@@ -734,7 +815,9 @@ export default function Index({
             <PaymentRefundDialog
                 open={modal.type === 'refund'}
                 onOpenChange={(open) => {
-                    if (!open) closeModal();
+                    if (!open) {
+closeModal();
+}
                 }}
                 payment={modal.type === 'refund' ? modal.payment : null}
             />
@@ -742,7 +825,9 @@ export default function Index({
             <PaymentNoteDialog
                 open={modal.type === 'note'}
                 onOpenChange={(open) => {
-                    if (!open) closeModal();
+                    if (!open) {
+closeModal();
+}
                 }}
                 payment={modal.type === 'note' ? modal.payment : null}
             />
@@ -750,17 +835,32 @@ export default function Index({
             <PaymentResendInvoiceDialog
                 open={modal.type === 'resend'}
                 onOpenChange={(open) => {
-                    if (!open) closeModal();
+                    if (!open) {
+closeModal();
+}
                 }}
                 payment={modal.type === 'resend' ? modal.payment : null}
             />
             <PaymentRenewalWhatsAppDialog
                 open={modal.type === 'renewal-whatsapp'}
                 onOpenChange={(open) => {
-                    if (!open) closeModal();
+                    if (!open) {
+closeModal();
+}
                 }}
                 payment={
                     modal.type === 'renewal-whatsapp' ? modal.payment : null
+                }
+            />
+            <PaymentManualRenewalDialog
+                open={modal.type === 'manual-renewal'}
+                onOpenChange={(open) => {
+                    if (!open) {
+closeModal();
+}
+                }}
+                payment={
+                    modal.type === 'manual-renewal' ? modal.payment : null
                 }
             />
         </>

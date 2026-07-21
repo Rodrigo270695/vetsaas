@@ -25,15 +25,6 @@ class SubscriptionRenewalService
      */
     public function renew(Tenant $tenant, array $payload): Subscription
     {
-        $plan = Plan::query()
-            ->where('codigo', $payload['plan_slug'])
-            ->where('activo', true)
-            ->first();
-
-        if ($plan === null) {
-            throw new InvalidArgumentException("Plan no encontrado o inactivo: {$payload['plan_slug']}");
-        }
-
         $subscription = $tenant->activeSubscription()
             ?? $tenant->subscriptions()->latest()->first();
 
@@ -41,9 +32,38 @@ class SubscriptionRenewalService
             throw new InvalidArgumentException('El tenant no tiene suscripción para renovar.');
         }
 
-        $ciclo = in_array($payload['ciclo'] ?? $subscription->ciclo, ['mensual', 'anual'], true)
-            ? ($payload['ciclo'] ?? $subscription->ciclo)
-            : $subscription->ciclo;
+        return $this->renewExisting($subscription, $tenant, $payload);
+    }
+
+    /**
+     * Renueva una suscripción concreta. Permite que flujos internos bloqueen
+     * esa fila antes de aplicar el período y registrar el pago.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    public function renewExisting(
+        Subscription $subscription,
+        Tenant $tenant,
+        array $payload,
+    ): Subscription {
+        if ((string) $subscription->tenant_id !== (string) $tenant->id) {
+            throw new InvalidArgumentException('La suscripción no pertenece al tenant indicado.');
+        }
+
+        $planSlug = (string) ($payload['plan_slug'] ?? '');
+        $plan = Plan::query()
+            ->where('codigo', $planSlug)
+            ->where('activo', true)
+            ->first();
+
+        if ($plan === null) {
+            throw new InvalidArgumentException("Plan no encontrado o inactivo: {$planSlug}");
+        }
+
+        $cicloCandidate = (string) ($payload['ciclo'] ?? $subscription->ciclo ?? 'mensual');
+        $ciclo = in_array($cicloCandidate, ['mensual', 'anual'], true)
+            ? $cicloCandidate
+            : 'mensual';
 
         $periodStart = $this->parseDate($payload['period_start'] ?? null)
             ?? $this->defaultPeriodStart($subscription);
@@ -133,6 +153,7 @@ class SubscriptionRenewalService
             'periodo_fin' => $periodEnd,
             'pagado_at' => isset($payment['pagado_at']) ? Carbon::parse($payment['pagado_at']) : now(),
             'created_at' => now(),
+            'internal_note' => $payment['internal_note'] ?? null,
         ]);
     }
 

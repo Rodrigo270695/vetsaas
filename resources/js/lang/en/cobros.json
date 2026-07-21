@@ -1,6 +1,6 @@
 {
     "title": "Billing",
-    "description": "SaaS billing ops: pending, failed and refunds. Orvae writes the rows when a charge is confirmed (nothing is charged from this panel).",
+    "description": "SaaS billing operations: Orvae payments, manual renewals, pending charges, failures, and refunds.",
     "pagos_title": "Payments",
     "pagos_description": "Clinics that already paid (processed charges from Orvae). Same data as Billing, filtered to processed status.",
     "search_placeholder": "Search by transaction ID, FEL, tenant, RUC…",
@@ -55,6 +55,7 @@
         "edit_note": "Edit internal note",
         "resend_invoice": "Resend invoice",
         "send_payment_whatsapp": "Send payment method via WhatsApp",
+        "manual_renewal": "Record payment and renew",
         "mark_refunded": "Mark manual refund",
         "refunded_locked": "Payment already refunded",
         "no_invoice": "No invoice",
@@ -142,9 +143,28 @@
         "hint": "The message uses the clinic's registered phone number and includes its plan, due date, total, and Orvae payment link.",
         "confirm": "Send via WhatsApp"
     },
+    "manual_renewal": {
+        "title": "Record payment and renew",
+        "description": "Record money received directly from {{tenant}} and renew its subscription.",
+        "effect_hint": "This creates a processed payment, advances the billing period and next charge date, reactivates the subscription, and resets the document allowance for the new period. It cannot be undone; mistakes must be recorded as refunds.",
+        "amount": "Amount received (PEN)",
+        "method": "Payment method",
+        "methods": {
+            "yape": "Yape",
+            "transferencia": "Bank transfer",
+            "deposito": "Deposit",
+            "efectivo": "Cash",
+            "otro": "Other"
+        },
+        "reference": "Reference or transaction",
+        "reference_placeholder": "Transaction code, phone, or reference",
+        "note": "Internal note",
+        "note_placeholder": "Context about the received payment (optional)",
+        "confirm": "Record and renew"
+    },
     "empty": {
         "no_records_title": "No payments yet",
-        "no_records_description": "When Orvae processes a payment and sends the webhook, it will show up here. This table is populated by Orvae, not created from here.",
+        "no_records_description": "Payments confirmed by Orvae and manual renewals will appear here.",
         "no_results_title": "No results",
         "no_results_description": "Adjust filters or search to see more payments."
     },
