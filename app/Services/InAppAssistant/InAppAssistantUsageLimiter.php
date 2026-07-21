@@ -53,7 +53,7 @@ final class InAppAssistantUsageLimiter
 
         $limit = $this->limit();
         $key = $this->keyFor($user);
-        $used = RateLimiter::attempts($key);
+        $used = min($limit, RateLimiter::attempts($key));
 
         return [
             'limit' => $limit,
@@ -64,22 +64,21 @@ final class InAppAssistantUsageLimiter
         ];
     }
 
-    public function tooManyAttempts(User $user): bool
+    /**
+     * Reserva un mensaje antes de ejecutar trabajo costoso.
+     *
+     * El incremento del backend de caché es atómico: solo las primeras
+     * `limit()` reservas se aceptan, incluso con requests concurrentes.
+     */
+    public function reserve(User $user): bool
     {
         if ($this->isUnlimited($user)) {
-            return false;
+            return true;
         }
 
-        return RateLimiter::tooManyAttempts($this->keyFor($user), $this->limit());
-    }
+        $attempt = RateLimiter::increment($this->keyFor($user), $this->decaySeconds());
 
-    public function hit(User $user): void
-    {
-        if ($this->isUnlimited($user)) {
-            return;
-        }
-
-        RateLimiter::hit($this->keyFor($user), $this->decaySeconds());
+        return $attempt <= $this->limit();
     }
 
     private function decaySeconds(): int

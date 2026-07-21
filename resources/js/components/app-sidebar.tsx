@@ -7,6 +7,7 @@ import {
     BedDouble,
     BellRing,
     Bot,
+    BookOpenCheck,
     Boxes,
     Building2,
     CalendarDays,
@@ -496,6 +497,12 @@ function useNavConfig(): { singles: NavItem[]; groups: NavGroup[] } {
                             href: '/plataforma/salesbot-knowledge',
                             icon: Bot,
                             permission: 'salesbot-knowledge.view',
+                        },
+                        {
+                            title: t('items.in_app_assistant_knowledge'),
+                            href: '/plataforma/in-app-assistant-knowledge',
+                            icon: BookOpenCheck,
+                            permission: 'in-app-assistant-knowledge.view',
                         },
                         {
                             title: t('items.bot_ia_announcements'),

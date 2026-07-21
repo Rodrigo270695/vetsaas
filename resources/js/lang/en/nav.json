@@ -73,6 +73,7 @@
         "platform_settings": "Settings",
         "salesbot_conversations": "Bot conversations",
         "salesbot_knowledge": "Sales bot",
+        "in_app_assistant_knowledge": "Internal guides",
         "bot_ia_announcements": "AI assistant updates"
     },
     "user_menu": {

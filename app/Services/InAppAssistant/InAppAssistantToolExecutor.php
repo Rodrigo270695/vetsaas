@@ -24,18 +24,48 @@ use App\Models\VacunaAplicada;
 use App\Models\Venta;
 use App\Services\Platform\OperacionesSnapshotService;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
 
 final class InAppAssistantToolExecutor
 {
+    /**
+     * `any` permite herramientas agregadas; cada bloque interno vuelve a filtrarse.
+     *
+     * @var array<string, array{permissions: list<string>, mode: 'any'|'all'}>
+     */
+    public const CLINIC_TOOL_PERMISSIONS = [
+        'buscar_pacientes' => ['permissions' => ['pacientes.view'], 'mode' => 'all'],
+        'buscar_propietarios' => ['permissions' => ['propietarios.view'], 'mode' => 'all'],
+        'buscar_productos' => ['permissions' => ['productos.view'], 'mode' => 'all'],
+        'resumen_operativo' => ['permissions' => ['citas.view', 'ventas.view', 'alertas-stock.view', 'vacunaciones.view', 'caja-sesiones.view', 'pacientes.view'], 'mode' => 'any'],
+        'alertas_operativas' => ['permissions' => ['vacunaciones.view', 'alertas-stock.view', 'caja-sesiones.view'], 'mode' => 'any'],
+        'paciente_en_contexto' => ['permissions' => ['pacientes.view'], 'mode' => 'all'],
+        'resolver_navegacion' => ['permissions' => ['in-app-assistant.use'], 'mode' => 'all'],
+        'resumen_historia_paciente' => ['permissions' => ['pacientes.view', 'historias-clinicas.view'], 'mode' => 'all'],
+        'agenda_citas' => ['permissions' => ['citas.view'], 'mode' => 'all'],
+        'caducidades_proximas' => ['permissions' => ['alertas-stock.view'], 'mode' => 'all'],
+        'caja_del_dia' => ['permissions' => ['caja-sesiones.view'], 'mode' => 'all'],
+        'buscar_venta' => ['permissions' => ['ventas.view'], 'mode' => 'all'],
+        'quien_atiende_hoy' => ['permissions' => ['citas.view'], 'mode' => 'all'],
+        'explicar_pantalla' => ['permissions' => ['in-app-assistant.use'], 'mode' => 'all'],
+    ];
+
     /** @var array{url?: string, component?: string, paciente_id?: string, scope?: string}|null */
     private ?array $pageContext = null;
 
     private string $scope = 'clinic';
 
+    private ?User $user = null;
+
     /** @var list<array{type: string, url: string, label: string}> */
     private array $pendingUiActions = [];
+
+    public function setUser(User $user): void
+    {
+        $this->user = $user;
+        $this->pendingUiActions = [];
+    }
 
     /**
      * @param  array{url?: string, component?: string, paciente_id?: string, scope?: string}|null  $pageContext
@@ -69,6 +99,14 @@ final class InAppAssistantToolExecutor
      */
     public function execute(string $name, array $args): string
     {
+        if (! self::isToolAuthorized($name, $this->scope, $this->user)) {
+            return (string) json_encode([
+                'ok' => false,
+                'status' => 403,
+                'error' => 'No tienes permiso para usar esta herramienta.',
+            ], JSON_UNESCAPED_UNICODE);
+        }
+
         if ($this->scope === 'platform') {
             $result = match ($name) {
                 'cobros_pendientes' => $this->cobrosPendientes((int) ($args['limite'] ?? 20)),
@@ -125,6 +163,40 @@ final class InAppAssistantToolExecutor
         return (string) json_encode($result, JSON_UNESCAPED_UNICODE);
     }
 
+    public function canExecute(string $name): bool
+    {
+        return self::isToolAuthorized($name, $this->scope, $this->user);
+    }
+
+    public static function isToolAuthorized(string $name, string $scope, ?User $user): bool
+    {
+        if ($user === null) {
+            return false;
+        }
+
+        if ($scope === 'platform') {
+            return $user->isPlatformSuperadmin();
+        }
+
+        $rule = self::CLINIC_TOOL_PERMISSIONS[$name] ?? null;
+        if ($rule === null) {
+            return false;
+        }
+
+        if ($user->isPlatformSuperadmin()) {
+            return true;
+        }
+
+        $checks = array_map(
+            static fn (string $permission): bool => $user->can($permission),
+            $rule['permissions'],
+        );
+
+        return $rule['mode'] === 'all'
+            ? ! in_array(false, $checks, true)
+            : in_array(true, $checks, true);
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -140,17 +212,23 @@ final class InAppAssistantToolExecutor
         }
 
         $like = '%'.addcslashes($q, '%_\\').'%';
-        $rows = Paciente::query()
-            ->with('propietario:id,nombres,apellidos,razon_social,telefono')
-            ->where(function ($query) use ($like): void {
+        $canViewOwners = $this->can('propietarios.view');
+        $query = Paciente::query();
+        if ($canViewOwners) {
+            $query->with('propietario:id,nombres,apellidos,razon_social,telefono');
+        }
+        $rows = $query
+            ->where(function ($query) use ($like, $canViewOwners): void {
                 $query->where('nombre', 'ILIKE', $like)
-                    ->orWhere('microchip', 'ILIKE', $like)
-                    ->orWhereHas('propietario', function ($p) use ($like): void {
+                    ->orWhere('microchip', 'ILIKE', $like);
+                if ($canViewOwners) {
+                    $query->orWhereHas('propietario', function ($p) use ($like): void {
                         $p->where('nombres', 'ILIKE', $like)
                             ->orWhere('apellidos', 'ILIKE', $like)
                             ->orWhere('razon_social', 'ILIKE', $like)
                             ->orWhere('telefono', 'ILIKE', $like);
                     });
+                }
             })
             ->orderBy('nombre')
             ->limit(8)
@@ -159,9 +237,10 @@ final class InAppAssistantToolExecutor
         return [
             'ok' => true,
             'count' => $rows->count(),
-            'pacientes' => $rows->map(static function (Paciente $p): array {
-                $titular = $p->propietario?->razon_social
-                    ?: trim(implode(' ', array_filter([(string) $p->propietario?->nombres, (string) $p->propietario?->apellidos])));
+            'pacientes' => $rows->map(static function (Paciente $p) use ($canViewOwners): array {
+                $owner = $canViewOwners ? $p->propietario : null;
+                $titular = $owner?->razon_social
+                    ?: trim(implode(' ', array_filter([(string) $owner?->nombres, (string) $owner?->apellidos])));
 
                 return [
                     'id' => $p->id,
@@ -170,7 +249,7 @@ final class InAppAssistantToolExecutor
                     'raza' => $p->raza,
                     'activo' => $p->activo,
                     'titular' => $titular !== '' ? $titular : null,
-                    'telefono_titular' => $p->propietario?->telefono,
+                    'telefono_titular' => $owner?->telefono,
                     'url' => '/clinica/pacientes/'.$p->id,
                 ];
             })->all(),
@@ -271,13 +350,13 @@ final class InAppAssistantToolExecutor
             'zona_horaria' => $tz,
         ];
 
-        if (Schema::hasTable('citas')) {
+        if ($this->can('citas.view') && Schema::hasTable('citas')) {
             $out['citas_hoy'] = Cita::query()
                 ->whereDate('inicio_at', $hoy)
                 ->count();
         }
 
-        if (Schema::hasTable('ventas')) {
+        if ($this->can('ventas.view') && Schema::hasTable('ventas')) {
             $ventasHoy = Venta::query()
                 ->where(function ($q) use ($hoy): void {
                     $q->whereDate('fecha_pago', $hoy)
@@ -293,7 +372,7 @@ final class InAppAssistantToolExecutor
             ];
         }
 
-        $alertas = $this->alertasOperativas(14);
+        $alertas = $this->canExecute('alertas_operativas') ? $this->alertasOperativas(14) : [];
         if (($alertas['ok'] ?? false) === true) {
             $out['alertas'] = [
                 'stock_bajo_count' => $alertas['stock_bajo']['count'] ?? 0,
@@ -303,7 +382,7 @@ final class InAppAssistantToolExecutor
             ];
         }
 
-        if (Schema::hasTable('pacientes')) {
+        if ($this->can('pacientes.view') && Schema::hasTable('pacientes')) {
             $out['pacientes_activos'] = Paciente::query()->where('activo', true)->count();
         }
 
@@ -327,7 +406,7 @@ final class InAppAssistantToolExecutor
             'hasta' => $hasta->toDateString(),
         ];
 
-        if (Schema::hasTable('vacunas_aplicadas')) {
+        if ($this->can('vacunaciones.view') && Schema::hasTable('vacunas_aplicadas')) {
             $rows = VacunaAplicada::query()
                 ->with('paciente:id,nombre')
                 ->whereNotNull('fecha_proxima_sugerida')
@@ -351,7 +430,7 @@ final class InAppAssistantToolExecutor
             ];
         }
 
-        if (Schema::hasTable('existencias_sede') && Schema::hasTable('productos')) {
+        if ($this->can('alertas-stock.view') && Schema::hasTable('existencias_sede') && Schema::hasTable('productos')) {
             $alertas = ExistenciaSede::query()
                 ->with('producto:id,nombre,sku,stock_minimo')
                 ->whereHas('producto', fn ($q) => $q->where('activo', true)->where('stock_minimo', '>', 0))
@@ -377,7 +456,7 @@ final class InAppAssistantToolExecutor
             ];
         }
 
-        if (Schema::hasTable('caja_sesiones')) {
+        if ($this->can('caja-sesiones.view') && Schema::hasTable('caja_sesiones')) {
             $abiertas = CajaSesion::query()
                 ->where('estado', CajaSesion::ESTADO_ABIERTA)
                 ->orderByDesc('opened_at')
@@ -389,7 +468,7 @@ final class InAppAssistantToolExecutor
                 ? Sede::query()->whereIn('id', $sedeIds)->pluck('nombre', 'id')
                 : collect();
 
-            $userId = Auth::id();
+            $userId = $this->user?->getAuthIdentifier();
             $mias = $abiertas->first(static fn (CajaSesion $s): bool => (string) $s->opened_by_id === (string) $userId);
 
             $out['caja'] = [
@@ -410,7 +489,7 @@ final class InAppAssistantToolExecutor
             ];
         }
 
-        $caducidades = $this->caducidadesProximas(30, 8);
+        $caducidades = $this->can('alertas-stock.view') ? $this->caducidadesProximas(30, 8) : [];
         if (($caducidades['ok'] ?? false) === true) {
             $out['caducidades'] = [
                 'vencidos_count' => $caducidades['vencidos_count'] ?? 0,
@@ -440,19 +519,24 @@ final class InAppAssistantToolExecutor
             return ['ok' => false, 'error' => 'Módulo de pacientes no disponible.'];
         }
 
-        $p = Paciente::query()
-            ->with('propietario:id,nombres,apellidos,razon_social,telefono,documento')
+        $canViewOwners = $this->can('propietarios.view');
+        $query = Paciente::query();
+        if ($canViewOwners) {
+            $query->with('propietario:id,nombres,apellidos,razon_social,telefono,documento');
+        }
+        $p = $query
             ->find($pacienteId, ['id', 'nombre', 'especie', 'raza', 'sexo', 'activo', 'microchip', 'propietario_id', 'fecha_nacimiento']);
 
         if ($p === null) {
             return ['ok' => false, 'error' => 'No encontré ese paciente.'];
         }
 
-        $titular = $p->propietario?->razon_social
-            ?: trim(implode(' ', array_filter([(string) $p->propietario?->nombres, (string) $p->propietario?->apellidos])));
+        $owner = $canViewOwners ? $p->propietario : null;
+        $titular = $owner?->razon_social
+            ?: trim(implode(' ', array_filter([(string) $owner?->nombres, (string) $owner?->apellidos])));
 
         $vacunasProximas = [];
-        if (Schema::hasTable('vacunas_aplicadas')) {
+        if ($this->can('vacunaciones.view') && Schema::hasTable('vacunas_aplicadas')) {
             $tz = (string) config('app.timezone', 'America/Lima');
             $hoy = Carbon::now($tz)->toDateString();
             $vacunasProximas = VacunaAplicada::query()
@@ -483,8 +567,8 @@ final class InAppAssistantToolExecutor
                 'microchip' => $p->microchip,
                 'fecha_nacimiento' => optional($p->fecha_nacimiento)?->toDateString(),
                 'titular' => $titular !== '' ? $titular : null,
-                'telefono_titular' => $p->propietario?->telefono,
-                'documento_titular' => $p->propietario?->documento,
+                'telefono_titular' => $owner?->telefono,
+                'documento_titular' => $owner?->documento,
                 'url' => '/clinica/pacientes/'.$p->id,
             ],
             'vacunas_proximas' => $vacunasProximas,
@@ -496,11 +580,11 @@ final class InAppAssistantToolExecutor
      */
     private function resolverNavegacion(string $destino): array
     {
-        $resolved = InAppAssistantNavigation::resolve($destino);
+        $resolved = InAppAssistantNavigation::resolve($destino, $this->user);
         if ($resolved === null) {
             $opciones = array_map(
                 static fn (array $d): string => $d['label'],
-                InAppAssistantNavigation::destinations(),
+                InAppAssistantNavigation::destinations($this->user),
             );
 
             return [
@@ -544,16 +628,21 @@ final class InAppAssistantToolExecutor
             return ['ok' => false, 'error' => 'Módulo de pacientes no disponible.'];
         }
 
-        $p = Paciente::query()
-            ->with('propietario:id,nombres,apellidos,razon_social')
+        $canViewOwners = $this->can('propietarios.view');
+        $patientQuery = Paciente::query();
+        if ($canViewOwners) {
+            $patientQuery->with('propietario:id,nombres,apellidos,razon_social');
+        }
+        $p = $patientQuery
             ->find($pacienteId, ['id', 'nombre', 'especie', 'raza', 'activo', 'propietario_id']);
 
         if ($p === null) {
             return ['ok' => false, 'error' => 'No encontré ese paciente.'];
         }
 
-        $titular = $p->propietario?->razon_social
-            ?: trim(implode(' ', array_filter([(string) $p->propietario?->nombres, (string) $p->propietario?->apellidos])));
+        $owner = $canViewOwners ? $p->propietario : null;
+        $titular = $owner?->razon_social
+            ?: trim(implode(' ', array_filter([(string) $owner?->nombres, (string) $owner?->apellidos])));
 
         $consultas = [];
         if (Schema::hasTable('historias_clinicas') && Schema::hasTable('consultas')) {
@@ -575,7 +664,7 @@ final class InAppAssistantToolExecutor
         }
 
         $aplicaciones = [];
-        if (Schema::hasTable('vacunas_aplicadas')) {
+        if ($this->can('vacunaciones.view') && Schema::hasTable('vacunas_aplicadas')) {
             $aplicaciones = VacunaAplicada::query()
                 ->where('paciente_id', $p->id)
                 ->orderByDesc('aplicada_at')
@@ -592,7 +681,7 @@ final class InAppAssistantToolExecutor
         }
 
         $labs = [];
-        if (Schema::hasTable('pedidos_laboratorio')) {
+        if ($this->can('laboratorio.view') && Schema::hasTable('pedidos_laboratorio')) {
             $labs = PedidoLaboratorio::query()
                 ->where('paciente_id', $p->id)
                 ->with(['lineas' => static fn ($q) => $q->limit(4)])
@@ -1105,7 +1194,7 @@ final class InAppAssistantToolExecutor
 
         $tz = (string) config('app.timezone', 'America/Lima');
         $hoy = Carbon::now($tz)->toDateString();
-        $userId = Auth::id();
+        $userId = $this->user?->getAuthIdentifier();
 
         $abiertas = CajaSesion::query()
             ->where('estado', CajaSesion::ESTADO_ABIERTA)
@@ -1133,7 +1222,7 @@ final class InAppAssistantToolExecutor
             : collect();
 
         $ventasHoy = null;
-        if (Schema::hasTable('ventas')) {
+        if ($this->can('ventas.view') && Schema::hasTable('ventas')) {
             $query = Venta::query()
                 ->where(function ($q) use ($hoy): void {
                     $q->whereDate('fecha_pago', $hoy)
@@ -1150,7 +1239,7 @@ final class InAppAssistantToolExecutor
         }
 
         $ventasMiSesion = null;
-        if ($miSesion !== null && Schema::hasTable('ventas')) {
+        if ($this->can('ventas.view') && $miSesion !== null && Schema::hasTable('ventas')) {
             $ventasMiSesion = [
                 'cantidad' => Venta::query()->where('caja_sesion_id', $miSesion->id)->whereNull('anulado_at')->count(),
                 'total' => (string) (Venta::query()->where('caja_sesion_id', $miSesion->id)->whereNull('anulado_at')->sum('total') ?? 0),
@@ -1274,7 +1363,10 @@ final class InAppAssistantToolExecutor
             return ['ok' => false, 'error' => 'Módulo de citas no disponible.'];
         }
 
-        $fecha = $this->resolveAgendaFecha($fechaRaw);
+        $fecha = $this->resolveAgendaDate(
+            $fechaRaw,
+            (string) config('app.timezone', 'America/Lima'),
+        );
         $rows = Cita::query()
             ->with(['veterinario:id,name', 'sede:id,nombre'])
             ->whereDate('inicio_at', $fecha)
@@ -1286,7 +1378,7 @@ final class InAppAssistantToolExecutor
         $byVet = $rows->groupBy('veterinario_id');
         $items = [];
         foreach ($byVet as $vetId => $citas) {
-            /** @var \Illuminate\Support\Collection<int, Cita> $citas */
+            /** @var Collection<int, Cita> $citas */
             $first = $citas->first();
             $items[] = [
                 'veterinario_id' => (string) $vetId,
@@ -1532,5 +1624,11 @@ final class InAppAssistantToolExecutor
             'muestra' => $sample,
             'nota' => 'Elegibles según la misma regla del comando vetsaas:reactivate-cold-leads (10:00 y 15:00).',
         ];
+    }
+
+    private function can(string $permission): bool
+    {
+        return $this->user !== null
+            && ($this->user->isPlatformSuperadmin() || $this->user->can($permission));
     }
 }

@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Listeners\RecordUserLoginPresence;
 use App\Models\User;
 use App\Observers\AuditModelObserver;
+use App\Services\InAppAssistant\InAppAssistantKnowledgeRepository;
 use App\Support\Subscriptions\BotIaAccess;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
@@ -23,7 +24,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(
+            InAppAssistantKnowledgeRepository::class,
+            static fn (): InAppAssistantKnowledgeRepository => new InAppAssistantKnowledgeRepository(
+                maxEntries: max(1, (int) config('in-app-assistant.knowledge.max_entries', 6)),
+                maxCharacters: max(500, (int) config('in-app-assistant.knowledge.max_characters', 10000)),
+            ),
+        );
     }
 
     /**
@@ -55,9 +62,9 @@ class AppServiceProvider extends ServiceProvider
         });
     }
 
-  /**
-   * Registra observadores de auditoría para modelos tenant configurados.
-   */
+    /**
+     * Registra observadores de auditoría para modelos tenant configurados.
+     */
     protected function registerAuditModelObservers(): void
     {
         $observer = AuditModelObserver::class;

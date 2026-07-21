@@ -1,5 +1,13 @@
 import { Head, usePage } from '@inertiajs/react';
-import { AlertTriangle, FileText, Filter, Lock, Plus, RefreshCw, Stethoscope } from 'lucide-react';
+import {
+    AlertTriangle,
+    FileText,
+    Filter,
+    Lock,
+    Plus,
+    RefreshCw,
+    Stethoscope,
+} from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Can } from '@/components/can';
@@ -73,11 +81,14 @@ type ModalState =
 const DEFAULT_PER_PAGE = 10;
 
 function displayPropietario(
-    p: {
-        nombres: string;
-        apellidos: string | null;
-        razon_social: string | null;
-    } | null | undefined,
+    p:
+        | {
+              nombres: string;
+              apellidos: string | null;
+              razon_social: string | null;
+          }
+        | null
+        | undefined,
 ): string {
     if (!p) {
         return '—';
@@ -184,7 +195,8 @@ export default function Index({
     const openedEditorFromQuery = useRef<string | null>(null);
     const openedPrefillPaciente = useRef<string | null>(null);
 
-    const estadoFiltro: ConsultaEstadoFiltro = filters.estado ?? (filters.solo_abiertas ? 'abierta' : 'todas');
+    const estadoFiltro: ConsultaEstadoFiltro =
+        filters.estado ?? (filters.solo_abiertas ? 'abierta' : 'todas');
     const filtrandoAbiertas = estadoFiltro === 'abierta';
 
     const estadoOptions = useMemo(
@@ -206,8 +218,14 @@ export default function Index({
 
     const closeModal = useCallback(() => setModal({ type: 'idle' }), []);
     const openCreate = useCallback(() => setModal({ type: 'create' }), []);
-    const openEdit = useCallback((c: ConsultaHistoriaRow) => setModal({ type: 'edit', consulta: c }), []);
-    const openDelete = useCallback((c: ConsultaHistoriaRow) => setModal({ type: 'delete', consulta: c }), []);
+    const openEdit = useCallback(
+        (c: ConsultaHistoriaRow) => setModal({ type: 'edit', consulta: c }),
+        [],
+    );
+    const openDelete = useCallback(
+        (c: ConsultaHistoriaRow) => setModal({ type: 'delete', consulta: c }),
+        [],
+    );
 
     const onEstadoChange = useCallback(
         (estado: ConsultaEstadoFiltro) => {
@@ -262,7 +280,11 @@ export default function Index({
 
         if (url.searchParams.has('editar_consulta')) {
             url.searchParams.delete('editar_consulta');
-            window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
+            window.history.replaceState(
+                {},
+                '',
+                `${url.pathname}${url.search}${url.hash}`,
+            );
         }
     }, [consulta_abrir_editar, openEdit]);
 
@@ -295,7 +317,11 @@ export default function Index({
             url.searchParams.delete('nuevo_para_paciente');
             url.searchParams.delete('motivo');
             url.searchParams.delete('cita_id');
-            window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
+            window.history.replaceState(
+                {},
+                '',
+                `${url.pathname}${url.search}${url.hash}`,
+            );
         }
     }, [paciente_prefill_nueva_consulta, canCreate]);
 
@@ -338,8 +364,12 @@ export default function Index({
                 header: t('columns.atendido_at'),
                 sortable: true,
                 cell: (row) => (
-                    <span className="whitespace-nowrap text-sm">
-                        {formatAtendidoInAppTimezone(row.atendido_at, appLocale, appTz)}
+                    <span className="text-sm whitespace-nowrap">
+                        {formatAtendidoInAppTimezone(
+                            row.atendido_at,
+                            appLocale,
+                            appTz,
+                        )}
                     </span>
                 ),
             },
@@ -361,7 +391,10 @@ export default function Index({
                 sortable: true,
                 cell: (row) => (
                     <span className="font-medium text-foreground">
-                        {displayPacienteNombre(row.historia_clinica.paciente, t('row.paciente_no_disponible'))}
+                        {displayPacienteNombre(
+                            row.historia_clinica.paciente,
+                            t('row.paciente_no_disponible'),
+                        )}
                     </span>
                 ),
             },
@@ -370,7 +403,9 @@ export default function Index({
                 header: t('columns.propietario'),
                 cell: (row) => (
                     <span className="text-sm text-muted-foreground">
-                        {displayPropietario(row.historia_clinica.paciente?.propietario)}
+                        {displayPropietario(
+                            row.historia_clinica.paciente?.propietario,
+                        )}
                     </span>
                 ),
             },
@@ -389,7 +424,9 @@ export default function Index({
                 header: t('columns.peso_kg'),
                 cell: (row) => (
                     <span className="text-sm tabular-nums">
-                        {row.peso_kg != null && row.peso_kg !== '' ? row.peso_kg : '—'}
+                        {row.peso_kg != null && row.peso_kg !== ''
+                            ? row.peso_kg
+                            : '—'}
                     </span>
                 ),
                 className: 'w-24',
@@ -412,7 +449,9 @@ export default function Index({
                 cell: (row) => {
                     if (!row.creado_por) {
                         return (
-                            <span className="text-xs text-muted-foreground">{t('row.system')}</span>
+                            <span className="text-xs text-muted-foreground">
+                                {t('row.system')}
+                            </span>
                         );
                     }
 
@@ -430,7 +469,9 @@ export default function Index({
         if (showRowActions) {
             base.push({
                 key: 'acciones',
-                header: <span className="md:sr-only">{t('columns.acciones')}</span>,
+                header: (
+                    <span className="md:sr-only">{t('columns.acciones')}</span>
+                ),
                 align: 'right',
                 cell: (row) => (
                     <div className="flex justify-end">
@@ -471,183 +512,249 @@ export default function Index({
         <>
             <Head title={t('title')} />
             <div className="flex flex-1 flex-col gap-5 p-4 sm:p-6">
-                <PageHeader
-                    title={t('title')}
-                    description={
-                        <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                            <span>{t('description')}</span>
-                            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                <span
-                                    className={`inline-block size-2 rounded-full ${
-                                        isRefreshing
-                                            ? 'animate-ping bg-amber-400'
-                                            : 'bg-emerald-500'
-                                    }`}
-                                />
-                                {isRefreshing
-                                    ? t('common:auto_refresh.updating')
-                                    : t('common:auto_refresh.updated_seconds', {
-                                          seconds: secondsSince,
-                                      })}
-                                <button
-                                    type="button"
-                                    onClick={refreshNow}
-                                    disabled={isRefreshing || isLoading}
-                                    className="ml-1 cursor-pointer rounded p-0.5 hover:text-foreground disabled:opacity-50"
-                                    title={t('common:auto_refresh.now')}
-                                >
-                                    <RefreshCw
-                                        className={`size-3 ${isRefreshing ? 'animate-spin' : ''}`}
+                <div data-tour-id="historias-header">
+                    <PageHeader
+                        title={t('title')}
+                        description={
+                            <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                                <span>{t('description')}</span>
+                                <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                    <span
+                                        className={`inline-block size-2 rounded-full ${
+                                            isRefreshing
+                                                ? 'animate-ping bg-amber-400'
+                                                : 'bg-emerald-500'
+                                        }`}
                                     />
-                                </button>
-                                <span className="hidden sm:inline">
-                                    · {t('common:auto_refresh.every')}
+                                    {isRefreshing
+                                        ? t('common:auto_refresh.updating')
+                                        : t(
+                                              'common:auto_refresh.updated_seconds',
+                                              {
+                                                  seconds: secondsSince,
+                                              },
+                                          )}
+                                    <button
+                                        type="button"
+                                        onClick={refreshNow}
+                                        disabled={isRefreshing || isLoading}
+                                        className="ml-1 cursor-pointer rounded p-0.5 hover:text-foreground disabled:opacity-50"
+                                        title={t('common:auto_refresh.now')}
+                                    >
+                                        <RefreshCw
+                                            className={`size-3 ${isRefreshing ? 'animate-spin' : ''}`}
+                                        />
+                                    </button>
+                                    <span className="hidden sm:inline">
+                                        · {t('common:auto_refresh.every')}
+                                    </span>
                                 </span>
                             </span>
-                        </span>
-                    }
-                    stats={[
-                        {
-                            label: t('stats.total'),
-                            value: stats.total,
-                            variant: 'info',
-                            icon: FileText,
-                        },
-                        {
-                            label: t('stats.filters'),
-                            value: activeFiltersCount,
-                            variant: 'warning',
-                            icon: Filter,
-                        },
-                        {
-                            label: t('stats.matches'),
-                            value: stats.coincidencias,
-                            variant: 'primary',
-                            icon: Stethoscope,
-                        },
-                    ]}
-                    action={
-                        <div className="flex flex-wrap items-center justify-end gap-2">
-                            {canUpdate && stats.abiertas_total > 0 ? (
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => setCerrarTodasOpen(true)}
-                                    className="cursor-pointer gap-2"
-                                >
-                                    <Lock className="size-4" strokeWidth={2.25} aria-hidden />
-                                    <span className="hidden sm:inline">{t('actions.cerrar_abiertas')}</span>
-                                    <span className="sm:hidden">{t('actions.cerrar_abiertas_short')}</span>
-                                </Button>
-                            ) : null}
-                            <Can permission="historias-clinicas.create">
-                                <Button type="button" onClick={openCreate} className="cursor-pointer gap-2">
-                                    <Plus className="size-4" strokeWidth={2.5} />
-                                    <span className="hidden sm:inline">{t('actions.new')}</span>
-                                    <span className="sm:hidden">{t('actions.new_short')}</span>
-                                </Button>
-                            </Can>
-                        </div>
-                    }
-                />
+                        }
+                        stats={[
+                            {
+                                label: t('stats.total'),
+                                value: stats.total,
+                                variant: 'info',
+                                icon: FileText,
+                            },
+                            {
+                                label: t('stats.filters'),
+                                value: activeFiltersCount,
+                                variant: 'warning',
+                                icon: Filter,
+                            },
+                            {
+                                label: t('stats.matches'),
+                                value: stats.coincidencias,
+                                variant: 'primary',
+                                icon: Stethoscope,
+                            },
+                        ]}
+                        action={
+                            <div className="flex flex-wrap items-center justify-end gap-2">
+                                {canUpdate && stats.abiertas_total > 0 ? (
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => setCerrarTodasOpen(true)}
+                                        className="cursor-pointer gap-2"
+                                    >
+                                        <Lock
+                                            className="size-4"
+                                            strokeWidth={2.25}
+                                            aria-hidden
+                                        />
+                                        <span className="hidden sm:inline">
+                                            {t('actions.cerrar_abiertas')}
+                                        </span>
+                                        <span className="sm:hidden">
+                                            {t('actions.cerrar_abiertas_short')}
+                                        </span>
+                                    </Button>
+                                ) : null}
+                                <Can permission="historias-clinicas.create">
+                                    <Button
+                                        type="button"
+                                        data-tour-id="historias-create"
+                                        onClick={openCreate}
+                                        className="cursor-pointer gap-2"
+                                    >
+                                        <Plus
+                                            className="size-4"
+                                            strokeWidth={2.5}
+                                        />
+                                        <span className="hidden sm:inline">
+                                            {t('actions.new')}
+                                        </span>
+                                        <span className="sm:hidden">
+                                            {t('actions.new_short')}
+                                        </span>
+                                    </Button>
+                                </Can>
+                            </div>
+                        }
+                    />
+                </div>
 
                 {filtrandoAbiertas && stats.abiertas_antiguas > 0 ? (
                     <div className="flex items-start gap-2 rounded-lg border border-amber-200/60 bg-amber-50/50 px-3 py-2 text-sm text-amber-900 dark:border-amber-800/30 dark:bg-amber-950/20 dark:text-amber-100">
-                        <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden />
-                        <p>{t('filter.abiertas_antiguas_hint', { count: stats.abiertas_antiguas })}</p>
+                        <AlertTriangle
+                            className="mt-0.5 size-4 shrink-0"
+                            aria-hidden
+                        />
+                        <p>
+                            {t('filter.abiertas_antiguas_hint', {
+                                count: stats.abiertas_antiguas,
+                            })}
+                        </p>
                     </div>
                 ) : null}
 
-                <DataTable
-                    columns={columns}
-                    data={paginated.data}
-                    rowKey={(row) => row.id}
-                    sort={sort}
-                    onSortChange={setSort}
-                    isLoading={isLoading}
-                    getRowClassName={getRowClassName}
-                    ariaLiveMessage={t('common:aria.results_count_other', { count: stats.coincidencias })}
-                    toolbar={
-                        <DataToolbar
-                            search={search}
-                            onSearchChange={setSearch}
-                            isSearching={isLoading}
-                            placeholder={t('search_placeholder')}
-                            filtersClassName="sm:flex-1 sm:justify-end"
-                        >
-                            <FilterChips
-                                ariaLabel={t('filter.estado_label')}
-                                value={estadoFiltro}
-                                onChange={onEstadoChange}
-                                options={estadoOptions}
-                            />
-                            <AtencionDateRangeFilter
-                                desde={filters.atendido_desde}
-                                hasta={filters.atendido_hasta}
-                                defaultDesde={atencion_filtro_ui.default_desde}
-                                defaultHasta={atencion_filtro_ui.default_hasta}
-                                disabled={isLoading}
-                                onClear={
-                                    filtrandoAbiertas
-                                        ? () =>
-                                              applyFilter({
-                                                  estado: 'abierta',
-                                                  solo_abiertas: undefined,
-                                                  atendido_desde: undefined,
-                                                  atendido_hasta: undefined,
-                                              })
-                                        : undefined
-                                }
-                                onApply={(desde, hasta) =>
-                                    applyFilter({
-                                        atendido_desde: desde,
-                                        atendido_hasta: hasta,
-                                        estado: estadoFiltro === 'abierta' ? 'abierta' : undefined,
-                                        solo_abiertas: undefined,
-                                    })
-                                }
-                            />
-                        </DataToolbar>
-                    }
-                    footer={
-                        <DataPagination
-                            meta={paginated}
-                            onPerPageChange={setPerPage}
-                            preservedQuery={{
-                                search: filters.search || undefined,
-                                per_page: filters.per_page,
-                                sort: filters.sort ?? undefined,
-                                direction: filters.direction ?? undefined,
-                                atendido_desde: filters.atendido_desde ?? undefined,
-                                atendido_hasta: filters.atendido_hasta ?? undefined,
-                                estado: estadoFiltro !== 'todas' ? estadoFiltro : undefined,
-                            }}
+                <div data-tour-id="historias-list">
+                    <div data-tour-id="historias-actions">
+                        <DataTable
+                            columns={columns}
+                            data={paginated.data}
+                            rowKey={(row) => row.id}
+                            sort={sort}
+                            onSortChange={setSort}
+                            isLoading={isLoading}
+                            getRowClassName={getRowClassName}
+                            ariaLiveMessage={t(
+                                'common:aria.results_count_other',
+                                { count: stats.coincidencias },
+                            )}
+                            toolbar={
+                                <div data-tour-id="historias-filters">
+                                    <DataToolbar
+                                        search={search}
+                                        onSearchChange={setSearch}
+                                        isSearching={isLoading}
+                                        placeholder={t('search_placeholder')}
+                                        filtersClassName="sm:flex-1 sm:justify-end"
+                                    >
+                                        <FilterChips
+                                            ariaLabel={t('filter.estado_label')}
+                                            value={estadoFiltro}
+                                            onChange={onEstadoChange}
+                                            options={estadoOptions}
+                                        />
+                                        <AtencionDateRangeFilter
+                                            desde={filters.atendido_desde}
+                                            hasta={filters.atendido_hasta}
+                                            defaultDesde={
+                                                atencion_filtro_ui.default_desde
+                                            }
+                                            defaultHasta={
+                                                atencion_filtro_ui.default_hasta
+                                            }
+                                            disabled={isLoading}
+                                            onClear={
+                                                filtrandoAbiertas
+                                                    ? () =>
+                                                          applyFilter({
+                                                              estado: 'abierta',
+                                                              solo_abiertas:
+                                                                  undefined,
+                                                              atendido_desde:
+                                                                  undefined,
+                                                              atendido_hasta:
+                                                                  undefined,
+                                                          })
+                                                    : undefined
+                                            }
+                                            onApply={(desde, hasta) =>
+                                                applyFilter({
+                                                    atendido_desde: desde,
+                                                    atendido_hasta: hasta,
+                                                    estado:
+                                                        estadoFiltro ===
+                                                        'abierta'
+                                                            ? 'abierta'
+                                                            : undefined,
+                                                    solo_abiertas: undefined,
+                                                })
+                                            }
+                                        />
+                                    </DataToolbar>
+                                </div>
+                            }
+                            footer={
+                                <DataPagination
+                                    meta={paginated}
+                                    onPerPageChange={setPerPage}
+                                    preservedQuery={{
+                                        search: filters.search || undefined,
+                                        per_page: filters.per_page,
+                                        sort: filters.sort ?? undefined,
+                                        direction:
+                                            filters.direction ?? undefined,
+                                        atendido_desde:
+                                            filters.atendido_desde ?? undefined,
+                                        atendido_hasta:
+                                            filters.atendido_hasta ?? undefined,
+                                        estado:
+                                            estadoFiltro !== 'todas'
+                                                ? estadoFiltro
+                                                : undefined,
+                                    }}
+                                />
+                            }
+                            emptyState={
+                                <EmptyState
+                                    icon={Stethoscope}
+                                    title={
+                                        activeFiltersCount > 0
+                                            ? t('empty.no_results_title')
+                                            : t('empty.no_records_title')
+                                    }
+                                    description={
+                                        activeFiltersCount > 0
+                                            ? t('empty.no_results_description')
+                                            : t('empty.no_records_description')
+                                    }
+                                    action={
+                                        activeFiltersCount === 0 &&
+                                        canCreate ? (
+                                            <Button
+                                                type="button"
+                                                onClick={openCreate}
+                                                className="cursor-pointer gap-2"
+                                            >
+                                                <Plus
+                                                    className="size-4"
+                                                    strokeWidth={2.5}
+                                                />
+                                                {t('actions.create_first')}
+                                            </Button>
+                                        ) : undefined
+                                    }
+                                />
+                            }
                         />
-                    }
-                    emptyState={
-                        <EmptyState
-                            icon={Stethoscope}
-                            title={
-                                activeFiltersCount > 0
-                                    ? t('empty.no_results_title')
-                                    : t('empty.no_records_title')
-                            }
-                            description={
-                                activeFiltersCount > 0
-                                    ? t('empty.no_results_description')
-                                    : t('empty.no_records_description')
-                            }
-                            action={
-                                activeFiltersCount === 0 && canCreate ? (
-                                    <Button type="button" onClick={openCreate} className="cursor-pointer gap-2">
-                                        <Plus className="size-4" strokeWidth={2.5} />
-                                        {t('actions.create_first')}
-                                    </Button>
-                                ) : undefined
-                            }
-                        />
-                    }
-                />
+                    </div>
+                </div>
             </div>
 
             <ConsultaFormModal
@@ -661,9 +768,15 @@ export default function Index({
                 }}
                 consulta={modal.type === 'edit' ? modal.consulta : null}
                 pacientesOpciones={pacientes_opciones}
-                pacienteIdPrefillNueva={paciente_prefill_nueva_consulta?.id ?? null}
-                motivoPrefillNueva={paciente_prefill_nueva_consulta?.motivo ?? null}
-                citaIdPrefillNueva={paciente_prefill_nueva_consulta?.cita_id ?? null}
+                pacienteIdPrefillNueva={
+                    paciente_prefill_nueva_consulta?.id ?? null
+                }
+                motivoPrefillNueva={
+                    paciente_prefill_nueva_consulta?.motivo ?? null
+                }
+                citaIdPrefillNueva={
+                    paciente_prefill_nueva_consulta?.cita_id ?? null
+                }
                 puedeCerrarConsulta={canUpdate}
             />
 

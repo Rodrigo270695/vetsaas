@@ -49,9 +49,84 @@
             "platform_cold_leads": "How many cold leads today?"
         },
         "go_to": "Go to {{label}}",
+        "start_tour": "Start {{label}}",
         "usage": "{{remaining}}/{{limit}} today",
         "usage_unlimited": "Unlimited",
         "limit_reached": "You’ve reached today’s assistant limit. Try again tomorrow."
+    },
+    "tour": {
+        "next": "Next",
+        "previous": "Previous",
+        "finish": "Finish",
+        "progress": "{{current}} of {{total}}",
+        "steps": {
+            "citas": {
+                "header": {
+                    "title": "Appointment schedule",
+                    "description": "This is the clinic appointment overview. Reception usually organizes bookings while the veterinary team reviews upcoming visits."
+                },
+                "filters": {
+                    "title": "Search and narrow the schedule",
+                    "description": "Search by patient, owner, or veterinarian, switch between calendar and list, and adjust the period you need."
+                },
+                "create": {
+                    "title": "Schedule an appointment",
+                    "description": "With create permission, you can select the patient, branch, veterinarian, date, and reason. Read-only roles do not see this step."
+                },
+                "view": {
+                    "title": "Use calendar or list view",
+                    "description": "The calendar helps plan and reschedule; the list helps sort and review details. Available actions depend on your role."
+                },
+                "actions": {
+                    "title": "Manage each booking",
+                    "description": "For authorized appointments you can edit, cancel, or start the visit. Starting it connects the appointment to the patient's clinical history."
+                }
+            },
+            "pacientes": {
+                "header": {
+                    "title": "Patient directory",
+                    "description": "Review registered pets and their owners. Reception maintains administrative data while the clinical team accesses patient records."
+                },
+                "create": {
+                    "title": "Register a patient",
+                    "description": "If your role can create patients, add the pet's details and identify the owner. Check for duplicates first."
+                },
+                "filters": {
+                    "title": "Find a pet quickly",
+                    "description": "Search by name, owner, or microchip and filter active or inactive patients."
+                },
+                "list": {
+                    "title": "Review the directory",
+                    "description": "The list shows identification, species, owner, and status. Select a name to open the record when your role has access."
+                },
+                "actions": {
+                    "title": "Patient actions",
+                    "description": "Depending on your permissions, you can edit details, open history, download the vaccination card, or deactivate records."
+                }
+            },
+            "historias": {
+                "header": {
+                    "title": "Clinical histories",
+                    "description": "This view brings together patient consultations. Clinical staff records care while other roles only see authorized operations."
+                },
+                "create": {
+                    "title": "Start a consultation",
+                    "description": "With clinical permission, you can choose the patient and document the reason, exam, diagnosis, and progress."
+                },
+                "filters": {
+                    "title": "Filter consultations",
+                    "description": "Search by patient or owner and combine status and date range to find open, closed, or older consultations."
+                },
+                "list": {
+                    "title": "Review the record",
+                    "description": "Each row summarizes date, status, patient, reason, weight, and veterinarian. Older open consultations are highlighted."
+                },
+                "actions": {
+                    "title": "Continue the clinical workflow",
+                    "description": "Depending on your role, you can edit the consultation or manage treatment plans, vaccinations, or charges. Medical content remains restricted."
+                }
+            }
+        }
     },
     "announcement": {
         "badge": "New",

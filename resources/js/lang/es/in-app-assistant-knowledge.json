@@ -1,0 +1,99 @@
+{
+    "title": "Guías internas",
+    "description": "Administra el conocimiento contextual y las acciones seguras del asistente in-app.",
+    "search_placeholder": "Buscar por título, slug o contenido…",
+    "scopes": {
+        "clinic": "Clínica",
+        "platform": "Plataforma",
+        "both": "Ambos"
+    },
+    "sections": {
+        "module": "Módulo",
+        "screen": "Pantalla",
+        "workflow": "Flujo",
+        "role": "Rol",
+        "faq": "FAQ"
+    },
+    "permission_modes": {
+        "any": "Cualquier permiso",
+        "all": "Todos los permisos"
+    },
+    "status": {
+        "active": "Activa",
+        "inactive": "Inactiva"
+    },
+    "filters": {
+        "scope": "Filtrar por ámbito",
+        "section": "Filtrar por sección",
+        "status": "Filtrar por estado",
+        "all_scopes": "Todos los ámbitos",
+        "all_sections": "Todas las secciones",
+        "all_statuses": "Todos los estados"
+    },
+    "stats": {
+        "total": "Total",
+        "active": "Activas",
+        "clinic": "Clínica",
+        "platform": "Plataforma",
+        "filters": "Filtros"
+    },
+    "columns": {
+        "entry": "Guía",
+        "scope": "Ámbito",
+        "section": "Sección",
+        "priority": "Prioridad",
+        "status": "Estado",
+        "actions": "Acciones"
+    },
+    "actions": {
+        "new": "Nueva guía",
+        "edit": "Editar",
+        "activate": "Activar",
+        "deactivate": "Desactivar",
+        "delete": "Eliminar",
+        "for_entry": "Acciones para {{title}}"
+    },
+    "form": {
+        "details": "Datos de la guía",
+        "create_title": "Crear guía interna",
+        "edit_title": "Editar guía interna",
+        "scope": "Ámbito",
+        "section": "Sección",
+        "permission_mode": "Modo de permisos",
+        "title": "Título",
+        "slug": "Slug",
+        "slug_hint": "Minúsculas, números y guiones.",
+        "content": "Contenido",
+        "keywords": "Palabras clave",
+        "required_permissions": "Permisos requeridos",
+        "url_patterns": "Patrones de URL",
+        "component_patterns": "Patrones de componente",
+        "allowed_roles": "Roles permitidos",
+        "priority": "Prioridad",
+        "sort_order": "Orden",
+        "actions": "Acciones (JSON)",
+        "actions_hint": "Array JSON. Tipos permitidos: navigate (URL interna) y start_tour (citas, pacientes o historias-clinicas).",
+        "actions_array_error": "El JSON de acciones debe ser un array.",
+        "actions_json_error": "El JSON de acciones no es válido.",
+        "comma_hint": "Valores separados por comas.",
+        "lines_hint": "Un valor por línea.",
+        "active": "Guía activa",
+        "cancel": "Cancelar",
+        "save": "Guardar"
+    },
+    "delete": {
+        "title": "Eliminar guía",
+        "description": "Se eliminará permanentemente <strong>{{title}}</strong>.",
+        "cancel": "Cancelar",
+        "confirm": "Eliminar"
+    },
+    "empty": {
+        "no_results": "No hay coincidencias",
+        "adjust_filters": "Prueba con otros filtros o términos de búsqueda.",
+        "no_records": "No hay guías internas",
+        "create_first": "Crea la primera guía para alimentar el asistente."
+    },
+    "toast": {
+        "load_error": "No se pudieron cargar las guías internas."
+    }
+}

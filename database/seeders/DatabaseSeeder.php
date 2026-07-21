@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
             PermissionsSeeder::class,
             SuperadminSeeder::class,
             TenantRolesSeeder::class,
+            InAppAssistantKnowledgeSeeder::class,
         ]);
     }
 }

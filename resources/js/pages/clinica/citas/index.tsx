@@ -1,6 +1,15 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import { TZDate } from '@date-fns/tz';
-import { Activity, CalendarDays, Download, Filter, LayoutList, Plus, RefreshCw, UserCircle } from 'lucide-react';
+import {
+    Activity,
+    CalendarDays,
+    Download,
+    Filter,
+    LayoutList,
+    Plus,
+    RefreshCw,
+    UserCircle,
+} from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Can } from '@/components/can';
@@ -30,7 +39,13 @@ import { CitaDetailModal } from './components/cita-detail-modal';
 import { CitaDeleteDialog } from './components/cita-delete-dialog';
 import { CitaFormModal } from './components/cita-form-modal';
 import { CitaRowActions } from './components/cita-row-actions';
-import { CitasCalendar, displayPacienteCita, displayPropietarioCita, monthRangeFromMes, shiftMes } from './components/citas-calendar';
+import {
+    CitasCalendar,
+    displayPacienteCita,
+    displayPropietarioCita,
+    monthRangeFromMes,
+    shiftMes,
+} from './components/citas-calendar';
 import type {
     CitaFilters,
     CitaFormPrefill,
@@ -55,7 +70,10 @@ type Props = {
     cita_abrir_editar: CitaRow | null;
 };
 
-type CitasTableExtra = Pick<CitaFilters, 'cita_desde' | 'cita_hasta' | 'vista' | 'mes'>;
+type CitasTableExtra = Pick<
+    CitaFilters,
+    'cita_desde' | 'cita_hasta' | 'vista' | 'mes'
+>;
 
 type ModalState =
     | { type: 'idle' }
@@ -67,7 +85,9 @@ type ModalState =
 
 const DEFAULT_PER_PAGE = 10;
 
-function estadoBadgeVariant(estado: string): 'default' | 'secondary' | 'destructive' | 'outline' {
+function estadoBadgeVariant(
+    estado: string,
+): 'default' | 'secondary' | 'destructive' | 'outline' {
     if (estado === 'completada') {
         return 'default';
     }
@@ -111,7 +131,10 @@ export default function Index({
 
     const vista = (filters.vista ?? 'calendario') as VistaCita;
     const mesActivo =
-        filters.mes ?? cita_filtro_ui.default_mes ?? filters.cita_desde?.slice(0, 7) ?? '';
+        filters.mes ??
+        cita_filtro_ui.default_mes ??
+        filters.cita_desde?.slice(0, 7) ??
+        '';
 
     const {
         search,
@@ -157,13 +180,26 @@ export default function Index({
     const closeModal = useCallback(() => setModal({ type: 'idle' }), []);
     const openCreate = useCallback(() => setModal({ type: 'create' }), []);
     const openCreateOnDay = useCallback(
-        (fecha: string, hora?: string) => setModal({ type: 'create', prefill: { fecha, hora } }),
+        (fecha: string, hora?: string) =>
+            setModal({ type: 'create', prefill: { fecha, hora } }),
         [],
     );
-    const openDetail = useCallback((c: CitaRow) => setModal({ type: 'detail', cita: c }), []);
-    const openEdit = useCallback((c: CitaRow) => setModal({ type: 'edit', cita: c }), []);
-    const openDelete = useCallback((c: CitaRow) => setModal({ type: 'delete', cita: c }), []);
-    const openCancel = useCallback((c: CitaRow) => setModal({ type: 'cancel', cita: c }), []);
+    const openDetail = useCallback(
+        (c: CitaRow) => setModal({ type: 'detail', cita: c }),
+        [],
+    );
+    const openEdit = useCallback(
+        (c: CitaRow) => setModal({ type: 'edit', cita: c }),
+        [],
+    );
+    const openDelete = useCallback(
+        (c: CitaRow) => setModal({ type: 'delete', cita: c }),
+        [],
+    );
+    const openCancel = useCallback(
+        (c: CitaRow) => setModal({ type: 'cancel', cita: c }),
+        [],
+    );
 
     const handleReschedule = useCallback(
         (cita: CitaRow, fecha: string, hora?: string) => {
@@ -174,7 +210,8 @@ export default function Index({
             const current = new TZDate(cita.inicio_at, appTz);
             const pad = (n: number) => String(n).padStart(2, '0');
             const time =
-                hora ?? `${pad(current.getHours())}:${pad(current.getMinutes())}`;
+                hora ??
+                `${pad(current.getHours())}:${pad(current.getMinutes())}`;
             const inicioAt = `${fecha}T${time}`;
             const currentKey = `${current.getFullYear()}-${pad(current.getMonth() + 1)}-${pad(current.getDate())}T${pad(current.getHours())}:${pad(current.getMinutes())}`;
 
@@ -243,7 +280,11 @@ export default function Index({
 
         if (url.searchParams.has('editar_cita')) {
             url.searchParams.delete('editar_cita');
-            window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
+            window.history.replaceState(
+                {},
+                '',
+                `${url.pathname}${url.search}${url.hash}`,
+            );
         }
     }, [cita_abrir_editar, canUpdate, openEdit]);
 
@@ -267,7 +308,12 @@ export default function Index({
         }
 
         return c;
-    }, [filters.search, filters.sort, filters.per_page, cita_filtro_ui.fuera_del_mes_actual]);
+    }, [
+        filters.search,
+        filters.sort,
+        filters.per_page,
+        cita_filtro_ui.fuera_del_mes_actual,
+    ]);
 
     const exportUrl = useMemo(() => {
         const params = new URLSearchParams();
@@ -294,7 +340,9 @@ export default function Index({
 
         const qs = params.toString();
 
-        return qs.length > 0 ? `${citasExportExcel.url()}?${qs}` : citasExportExcel.url();
+        return qs.length > 0
+            ? `${citasExportExcel.url()}?${qs}`
+            : citasExportExcel.url();
     }, [
         filters.search,
         filters.sort,
@@ -335,8 +383,12 @@ export default function Index({
                 header: t('columns.inicio_at'),
                 sortable: true,
                 cell: (row) => (
-                    <span className="whitespace-nowrap text-sm">
-                        {formatAtendidoInAppTimezone(row.inicio_at, appLocale, appTz)}
+                    <span className="text-sm whitespace-nowrap">
+                        {formatAtendidoInAppTimezone(
+                            row.inicio_at,
+                            appLocale,
+                            appTz,
+                        )}
                     </span>
                 ),
             },
@@ -344,7 +396,7 @@ export default function Index({
                 key: 'duracion',
                 header: t('columns.duracion'),
                 cell: (row) => (
-                    <span className="whitespace-nowrap text-sm text-muted-foreground">
+                    <span className="text-sm whitespace-nowrap text-muted-foreground">
                         {row.duracion_minutos} min
                     </span>
                 ),
@@ -355,7 +407,9 @@ export default function Index({
                 sortable: true,
                 cell: (row) => (
                     <div className="flex min-w-0 flex-col gap-0.5">
-                        <span className="truncate text-sm font-medium">{displayPacienteCita(row.paciente)}</span>
+                        <span className="truncate text-sm font-medium">
+                            {displayPacienteCita(row.paciente)}
+                        </span>
                         <span className="truncate text-xs text-muted-foreground">
                             {displayPropietarioCita(row.paciente?.propietario)}
                         </span>
@@ -369,9 +423,11 @@ export default function Index({
                 cell: (row) => (
                     <Badge
                         variant={estadoBadgeVariant(row.estado)}
-                        className="whitespace-nowrap text-[0.65rem] font-normal"
+                        className="text-[0.65rem] font-normal whitespace-nowrap"
                     >
-                        {t(`estado.${row.estado}`, { defaultValue: row.estado })}
+                        {t(`estado.${row.estado}`, {
+                            defaultValue: row.estado,
+                        })}
                     </Badge>
                 ),
             },
@@ -388,7 +444,9 @@ export default function Index({
                 key: 'veterinario',
                 header: t('columns.veterinario'),
                 cell: (row) => (
-                    <span className="text-sm">{row.veterinario?.name ?? '—'}</span>
+                    <span className="text-sm">
+                        {row.veterinario?.name ?? '—'}
+                    </span>
                 ),
             },
             {
@@ -408,20 +466,29 @@ export default function Index({
                 header: t('columns.creado_por'),
                 cell: (row) => {
                     if (!row.creado_por) {
-                        return <span className="text-xs text-muted-foreground">—</span>;
+                        return (
+                            <span className="text-xs text-muted-foreground">
+                                —
+                            </span>
+                        );
                     }
 
                     return (
                         <div className="flex items-center gap-2">
                             <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                                <UserCircle className="size-4" strokeWidth={2.25} />
+                                <UserCircle
+                                    className="size-4"
+                                    strokeWidth={2.25}
+                                />
                             </span>
                             <div className="flex min-w-0 flex-col leading-tight">
                                 <span className="truncate text-xs font-medium text-foreground">
                                     {row.creado_por.name}
                                 </span>
                                 <span className="text-[0.65rem] text-muted-foreground">
-                                    {new Date(row.created_at).toLocaleDateString(undefined, {
+                                    {new Date(
+                                        row.created_at,
+                                    ).toLocaleDateString(undefined, {
                                         day: '2-digit',
                                         month: 'short',
                                         year: 'numeric',
@@ -437,7 +504,9 @@ export default function Index({
         if (showRowActions) {
             base.push({
                 key: 'acciones',
-                header: <span className="md:sr-only">{t('columns.acciones')}</span>,
+                header: (
+                    <span className="md:sr-only">{t('columns.acciones')}</span>
+                ),
                 align: 'right',
                 cell: (row) => (
                     <div className="flex justify-end">
@@ -472,7 +541,10 @@ export default function Index({
     ]);
 
     const toolbarFilters = (
-        <div className="flex w-full min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div
+            data-tour-id="citas-filters"
+            className="flex w-full min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+        >
             <ToggleGroup
                 type="single"
                 value={vista}
@@ -489,7 +561,9 @@ export default function Index({
                     className="h-8 cursor-pointer gap-1.5 px-3 text-xs data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
                 >
                     <CalendarDays className="size-3.5" />
-                    <span className="hidden sm:inline">{t('view.calendar')}</span>
+                    <span className="hidden sm:inline">
+                        {t('view.calendar')}
+                    </span>
                 </ToggleGroupItem>
                 <ToggleGroupItem
                     value="lista"
@@ -510,7 +584,9 @@ export default function Index({
                     disabled={isLoading}
                     translationNs="citas"
                     triggerClassName="h-10"
-                    onApply={(desde, hasta) => applyFilter({ cita_desde: desde, cita_hasta: hasta })}
+                    onApply={(desde, hasta) =>
+                        applyFilter({ cita_desde: desde, cita_hasta: hasta })
+                    }
                 />
             ) : null}
         </div>
@@ -520,175 +596,233 @@ export default function Index({
         <>
             <Head title={t('title')} />
             <div className="flex flex-1 flex-col gap-5 p-4 sm:p-6">
-                <PageHeader
-                    title={t('title')}
-                    description={
-                        <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                            <span>{t('description')}</span>
-                            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                <span
-                                    className={`inline-block size-2 rounded-full ${
-                                        isRefreshing
-                                            ? 'animate-ping bg-amber-400'
-                                            : 'bg-emerald-500'
-                                    }`}
-                                />
-                                {isRefreshing
-                                    ? t('common:auto_refresh.updating')
-                                    : t('common:auto_refresh.updated_seconds', {
-                                          seconds: secondsSince,
-                                      })}
-                                <button
-                                    type="button"
-                                    onClick={refreshNow}
-                                    disabled={isRefreshing || isLoading}
-                                    className="ml-1 cursor-pointer rounded p-0.5 hover:text-foreground disabled:opacity-50"
-                                    title={t('common:auto_refresh.now')}
-                                >
-                                    <RefreshCw
-                                        className={`size-3 ${isRefreshing ? 'animate-spin' : ''}`}
+                <div data-tour-id="citas-header">
+                    <PageHeader
+                        title={t('title')}
+                        description={
+                            <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                                <span>{t('description')}</span>
+                                <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                    <span
+                                        className={`inline-block size-2 rounded-full ${
+                                            isRefreshing
+                                                ? 'animate-ping bg-amber-400'
+                                                : 'bg-emerald-500'
+                                        }`}
                                     />
-                                </button>
-                                <span className="hidden sm:inline">
-                                    · {t('common:auto_refresh.every')}
+                                    {isRefreshing
+                                        ? t('common:auto_refresh.updating')
+                                        : t(
+                                              'common:auto_refresh.updated_seconds',
+                                              {
+                                                  seconds: secondsSince,
+                                              },
+                                          )}
+                                    <button
+                                        type="button"
+                                        onClick={refreshNow}
+                                        disabled={isRefreshing || isLoading}
+                                        className="ml-1 cursor-pointer rounded p-0.5 hover:text-foreground disabled:opacity-50"
+                                        title={t('common:auto_refresh.now')}
+                                    >
+                                        <RefreshCw
+                                            className={`size-3 ${isRefreshing ? 'animate-spin' : ''}`}
+                                        />
+                                    </button>
+                                    <span className="hidden sm:inline">
+                                        · {t('common:auto_refresh.every')}
+                                    </span>
                                 </span>
                             </span>
-                        </span>
-                    }
-                    stats={[
-                        {
-                            label: t('stats.total'),
-                            value: stats.total,
-                            variant: 'info',
-                            icon: CalendarDays,
-                        },
-                        {
-                            label: t('stats.filters'),
-                            value: activeFiltersCount,
-                            variant: 'warning',
-                            icon: Filter,
-                        },
-                        {
-                            label: t('stats.matches'),
-                            value: stats.coincidencias,
-                            variant: 'primary',
-                            icon: Activity,
-                        },
-                    ]}
-                    action={
-                        <div className="flex flex-row flex-wrap items-center justify-end gap-2">
-                            {canView ? (
-                                <Button asChild variant="outline" className="h-10 shrink-0 cursor-pointer gap-2 px-3 font-normal">
-                                    <a href={exportUrl} download>
-                                        <Download className="size-4 shrink-0 opacity-70" strokeWidth={2.5} />
-                                        <span className="hidden sm:inline">{t('common:actions.export_xlsx')}</span>
-                                    </a>
-                                </Button>
-                            ) : null}
-                            <Can permission="citas.create">
-                                <Button type="button" onClick={openCreate} className="cursor-pointer gap-2">
-                                    <Plus className="size-4" strokeWidth={2.5} />
-                                    <span className="hidden sm:inline">{t('actions.new')}</span>
-                                    <span className="sm:hidden">{t('actions.new_short')}</span>
-                                </Button>
-                            </Can>
-                        </div>
-                    }
-                />
-
-                {vista === 'calendario' ? (
-                    <div className="flex flex-col gap-4">
-                        <DataToolbar
-                            search={search}
-                            onSearchChange={setSearch}
-                            isSearching={isLoading}
-                            placeholder={t('search_placeholder')}
-                            filtersClassName="sm:flex-1 sm:min-w-0"
-                        >
-                            {toolbarFilters}
-                        </DataToolbar>
-
-                        <CitasCalendar
-                            citas={citas_agenda}
-                            mes={mesActivo}
-                            timeZone={appTz}
-                            isLoading={isLoading}
-                            canCreate={canCreate}
-                            canUpdate={canUpdate}
-                            onSelectCita={openDetail}
-                            onScheduleDay={openCreateOnDay}
-                            onReschedule={handleReschedule}
-                            onPrevMonth={() => applyFilter({ mes: shiftMes(mesActivo, -1) })}
-                            onNextMonth={() => applyFilter({ mes: shiftMes(mesActivo, 1) })}
-                            onJumpToMonth={(nextMes) => applyFilter({ mes: nextMes })}
-                            onToday={() =>
-                                applyFilter({
-                                    mes: cita_filtro_ui.default_mes,
-                                })
-                            }
-                        />
-                    </div>
-                ) : (
-                    <DataTable
-                        columns={columns}
-                        data={paginated.data}
-                        rowKey={(row) => row.id}
-                        sort={sort}
-                        onSortChange={setSort}
-                        isLoading={isLoading}
-                        ariaLiveMessage={t('common:aria.results_count_other', { count: stats.coincidencias })}
-                        toolbar={
-                            <DataToolbar
-                                search={search}
-                                onSearchChange={setSearch}
-                                isSearching={isLoading}
-                                placeholder={t('search_placeholder')}
-                                filtersClassName="sm:flex-1 sm:min-w-0"
-                            >
-                                {toolbarFilters}
-                            </DataToolbar>
                         }
-                        footer={
-                            <DataPagination
-                                meta={paginated}
-                                onPerPageChange={setPerPage}
-                                preservedQuery={{
-                                    search: filters.search || undefined,
-                                    per_page: filters.per_page,
-                                    sort: filters.sort ?? undefined,
-                                    direction: filters.direction ?? undefined,
-                                    cita_desde: filters.cita_desde,
-                                    cita_hasta: filters.cita_hasta,
-                                    vista: filters.vista,
-                                    mes: filters.mes ?? undefined,
-                                }}
-                            />
-                        }
-                        emptyState={
-                            <EmptyState
-                                icon={CalendarDays}
-                                title={
-                                    activeFiltersCount > 0
-                                        ? t('empty.no_results_title')
-                                        : t('empty.no_records_title')
-                                }
-                                description={
-                                    activeFiltersCount > 0
-                                        ? t('empty.no_results_description')
-                                        : t('empty.no_records_description')
-                                }
-                                action={
-                                    activeFiltersCount === 0 && canCreate ? (
-                                        <Button type="button" onClick={openCreate} className="cursor-pointer gap-2">
-                                            <Plus className="size-4" strokeWidth={2.5} />
-                                            {t('actions.create_first')}
-                                        </Button>
-                                    ) : undefined
-                                }
-                            />
+                        stats={[
+                            {
+                                label: t('stats.total'),
+                                value: stats.total,
+                                variant: 'info',
+                                icon: CalendarDays,
+                            },
+                            {
+                                label: t('stats.filters'),
+                                value: activeFiltersCount,
+                                variant: 'warning',
+                                icon: Filter,
+                            },
+                            {
+                                label: t('stats.matches'),
+                                value: stats.coincidencias,
+                                variant: 'primary',
+                                icon: Activity,
+                            },
+                        ]}
+                        action={
+                            <div className="flex flex-row flex-wrap items-center justify-end gap-2">
+                                {canView ? (
+                                    <Button
+                                        asChild
+                                        variant="outline"
+                                        className="h-10 shrink-0 cursor-pointer gap-2 px-3 font-normal"
+                                    >
+                                        <a href={exportUrl} download>
+                                            <Download
+                                                className="size-4 shrink-0 opacity-70"
+                                                strokeWidth={2.5}
+                                            />
+                                            <span className="hidden sm:inline">
+                                                {t(
+                                                    'common:actions.export_xlsx',
+                                                )}
+                                            </span>
+                                        </a>
+                                    </Button>
+                                ) : null}
+                                <Can permission="citas.create">
+                                    <Button
+                                        type="button"
+                                        data-tour-id="citas-create"
+                                        onClick={openCreate}
+                                        className="cursor-pointer gap-2"
+                                    >
+                                        <Plus
+                                            className="size-4"
+                                            strokeWidth={2.5}
+                                        />
+                                        <span className="hidden sm:inline">
+                                            {t('actions.new')}
+                                        </span>
+                                        <span className="sm:hidden">
+                                            {t('actions.new_short')}
+                                        </span>
+                                    </Button>
+                                </Can>
+                            </div>
                         }
                     />
-                )}
+                </div>
+
+                <div data-tour-id="citas-view">
+                    <div data-tour-id="citas-actions">
+                        {vista === 'calendario' ? (
+                            <div className="flex flex-col gap-4">
+                                <DataToolbar
+                                    search={search}
+                                    onSearchChange={setSearch}
+                                    isSearching={isLoading}
+                                    placeholder={t('search_placeholder')}
+                                    filtersClassName="sm:flex-1 sm:min-w-0"
+                                >
+                                    {toolbarFilters}
+                                </DataToolbar>
+
+                                <CitasCalendar
+                                    citas={citas_agenda}
+                                    mes={mesActivo}
+                                    timeZone={appTz}
+                                    isLoading={isLoading}
+                                    canCreate={canCreate}
+                                    canUpdate={canUpdate}
+                                    onSelectCita={openDetail}
+                                    onScheduleDay={openCreateOnDay}
+                                    onReschedule={handleReschedule}
+                                    onPrevMonth={() =>
+                                        applyFilter({
+                                            mes: shiftMes(mesActivo, -1),
+                                        })
+                                    }
+                                    onNextMonth={() =>
+                                        applyFilter({
+                                            mes: shiftMes(mesActivo, 1),
+                                        })
+                                    }
+                                    onJumpToMonth={(nextMes) =>
+                                        applyFilter({ mes: nextMes })
+                                    }
+                                    onToday={() =>
+                                        applyFilter({
+                                            mes: cita_filtro_ui.default_mes,
+                                        })
+                                    }
+                                />
+                            </div>
+                        ) : (
+                            <DataTable
+                                columns={columns}
+                                data={paginated.data}
+                                rowKey={(row) => row.id}
+                                sort={sort}
+                                onSortChange={setSort}
+                                isLoading={isLoading}
+                                ariaLiveMessage={t(
+                                    'common:aria.results_count_other',
+                                    { count: stats.coincidencias },
+                                )}
+                                toolbar={
+                                    <DataToolbar
+                                        search={search}
+                                        onSearchChange={setSearch}
+                                        isSearching={isLoading}
+                                        placeholder={t('search_placeholder')}
+                                        filtersClassName="sm:flex-1 sm:min-w-0"
+                                    >
+                                        {toolbarFilters}
+                                    </DataToolbar>
+                                }
+                                footer={
+                                    <DataPagination
+                                        meta={paginated}
+                                        onPerPageChange={setPerPage}
+                                        preservedQuery={{
+                                            search: filters.search || undefined,
+                                            per_page: filters.per_page,
+                                            sort: filters.sort ?? undefined,
+                                            direction:
+                                                filters.direction ?? undefined,
+                                            cita_desde: filters.cita_desde,
+                                            cita_hasta: filters.cita_hasta,
+                                            vista: filters.vista,
+                                            mes: filters.mes ?? undefined,
+                                        }}
+                                    />
+                                }
+                                emptyState={
+                                    <EmptyState
+                                        icon={CalendarDays}
+                                        title={
+                                            activeFiltersCount > 0
+                                                ? t('empty.no_results_title')
+                                                : t('empty.no_records_title')
+                                        }
+                                        description={
+                                            activeFiltersCount > 0
+                                                ? t(
+                                                      'empty.no_results_description',
+                                                  )
+                                                : t(
+                                                      'empty.no_records_description',
+                                                  )
+                                        }
+                                        action={
+                                            activeFiltersCount === 0 &&
+                                            canCreate ? (
+                                                <Button
+                                                    type="button"
+                                                    onClick={openCreate}
+                                                    className="cursor-pointer gap-2"
+                                                >
+                                                    <Plus
+                                                        className="size-4"
+                                                        strokeWidth={2.5}
+                                                    />
+                                                    {t('actions.create_first')}
+                                                </Button>
+                                            ) : undefined
+                                        }
+                                    />
+                                }
+                            />
+                        )}
+                    </div>
+                </div>
             </div>
 
             <CitaDetailModal
@@ -715,7 +849,9 @@ export default function Index({
                     }
                 }}
                 cita={modal.type === 'edit' ? modal.cita : null}
-                prefill={modal.type === 'create' ? modal.prefill ?? null : null}
+                prefill={
+                    modal.type === 'create' ? (modal.prefill ?? null) : null
+                }
                 pacientesOpciones={pacientes_opciones}
                 sedesOpciones={sedes_opciones}
             />

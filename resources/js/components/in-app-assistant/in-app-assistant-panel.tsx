@@ -4,23 +4,21 @@ import {
     Bot,
     GripHorizontal,
     Loader2,
+    Map,
     SendHorizontal,
     Sparkles,
     Trash2,
     UserRound,
     X,
 } from 'lucide-react';
-import {
-    useEffect,
-    useMemo,
-    useRef,
-    useState,
-    type KeyboardEvent,
-    type PointerEvent as ReactPointerEvent,
-} from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { KeyboardEvent, PointerEvent as ReactPointerEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { resolveAssistantPageContext } from '@/components/in-app-assistant/resolve-page-context';
+import { isTourId } from '@/components/in-app-assistant/tour-definitions';
+import type { TourId } from '@/components/in-app-assistant/tour-definitions';
+import { startInAppTour } from '@/components/in-app-assistant/tour-manager';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { usePermission } from '@/hooks/use-permission';
@@ -28,11 +26,17 @@ import { cn } from '@/lib/utils';
 
 type ChatRole = 'user' | 'assistant';
 
-type UiAction = {
-    type: 'navigate';
-    url: string;
-    label: string;
-};
+type UiAction =
+    | {
+          type: 'navigate';
+          url: string;
+          label: string;
+      }
+    | {
+          type: 'start_tour';
+          tour_id: TourId;
+          label: string;
+      };
 
 type ChatMessage = {
     id: string;
@@ -79,8 +83,14 @@ function clampWindowGeom(geom: WindowGeom): WindowGeom {
     const maxH = Math.max(MIN_H, window.innerHeight - margin * 2);
     const w = Math.min(Math.max(MIN_W, geom.w), maxW);
     const h = Math.min(Math.max(MIN_H, geom.h), maxH);
-    const x = Math.min(Math.max(margin, geom.x), Math.max(margin, window.innerWidth - w - margin));
-    const y = Math.min(Math.max(margin, geom.y), Math.max(margin, window.innerHeight - h - margin));
+    const x = Math.min(
+        Math.max(margin, geom.x),
+        Math.max(margin, window.innerWidth - w - margin),
+    );
+    const y = Math.min(
+        Math.max(margin, geom.y),
+        Math.max(margin, window.innerHeight - h - margin),
+    );
     return { x, y, w, h };
 }
 
@@ -138,7 +148,8 @@ function loadHistory(scope: string): ChatMessage[] {
                     item != null &&
                     typeof item === 'object' &&
                     typeof (item as ChatMessage).id === 'string' &&
-                    ((item as ChatMessage).role === 'user' || (item as ChatMessage).role === 'assistant') &&
+                    ((item as ChatMessage).role === 'user' ||
+                        (item as ChatMessage).role === 'assistant') &&
                     typeof (item as ChatMessage).content === 'string',
             )
             .slice(-HISTORY_LIMIT)
@@ -155,11 +166,13 @@ function loadHistory(scope: string): ChatMessage[] {
 
 function saveHistory(scope: string, messages: ChatMessage[]): void {
     try {
-        const slim = messages.slice(-HISTORY_LIMIT).map(({ id, role, content }) => ({
-            id,
-            role,
-            content,
-        }));
+        const slim = messages
+            .slice(-HISTORY_LIMIT)
+            .map(({ id, role, content }) => ({
+                id,
+                role,
+                content,
+            }));
         sessionStorage.setItem(historyStorageKey(scope), JSON.stringify(slim));
     } catch {
         // sessionStorage lleno / privado: ignorar.
@@ -172,7 +185,10 @@ type Props = {
 };
 
 function csrfToken(): string {
-    return document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? '';
+    return (
+        document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')
+            ?.content ?? ''
+    );
 }
 
 function AssistantRichText({ text }: { text: string }) {
@@ -201,23 +217,33 @@ export function InAppAssistantPanel({ open, onOpenChange }: Props) {
     const page = usePage();
     const { can } = usePermission();
     const { in_app_assistant } = page.props;
-    const scope = in_app_assistant?.scope === 'platform' ? 'platform' : 'clinic';
+    const scope =
+        in_app_assistant?.scope === 'platform' ? 'platform' : 'clinic';
     const isUnlimited =
         in_app_assistant?.unlimited === true || scope === 'platform';
-    const pacientePropId = (page.props as { paciente?: { id?: string } }).paciente?.id;
+    const pacientePropId = (page.props as { paciente?: { id?: string } })
+        .paciente?.id;
     const pageContext = useMemo(
         () => resolveAssistantPageContext(page),
         [page.url, page.component, pacientePropId],
     );
 
-    const [configured, setConfigured] = useState(in_app_assistant?.configured === true);
+    const [configured, setConfigured] = useState(
+        in_app_assistant?.configured === true,
+    );
     const [usage, setUsage] = useState<{
         limit: number | null;
         used: number;
         remaining: number | null;
         unlimited: boolean;
-    } | null>(isUnlimited ? { limit: null, used: 0, remaining: null, unlimited: true } : null);
-    const [messages, setMessages] = useState<ChatMessage[]>(() => loadHistory(scope));
+    } | null>(
+        isUnlimited
+            ? { limit: null, used: 0, remaining: null, unlimited: true }
+            : null,
+    );
+    const [messages, setMessages] = useState<ChatMessage[]>(() =>
+        loadHistory(scope),
+    );
     const [draft, setDraft] = useState('');
     const [sending, setSending] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -294,11 +320,15 @@ export function InAppAssistantPanel({ open, onOpenChange }: Props) {
                     setConfigured(body.configured);
                 }
                 if (body.usage) {
-                    const unlimited = body.usage.unlimited === true || body.usage.limit == null;
+                    const unlimited =
+                        body.usage.unlimited === true ||
+                        body.usage.limit == null;
                     setUsage({
                         limit: unlimited ? null : Number(body.usage.limit ?? 0),
                         used: Number(body.usage.used ?? 0),
-                        remaining: unlimited ? null : Number(body.usage.remaining ?? 0),
+                        remaining: unlimited
+                            ? null
+                            : Number(body.usage.remaining ?? 0),
                         unlimited,
                     });
                 }
@@ -374,7 +404,14 @@ export function InAppAssistantPanel({ open, onOpenChange }: Props) {
             return pick([
                 { key: 'explain_screen' },
                 { key: 'query_this_patient', permission: 'pacientes.view' },
-                { key: 'query_alerts', permission: ['alertas-stock.view', 'stock.view', 'citas.view'] },
+                {
+                    key: 'query_alerts',
+                    permission: [
+                        'alertas-stock.view',
+                        'stock.view',
+                        'citas.view',
+                    ],
+                },
                 { key: 'nav_vacunas', permission: 'pacientes.view' },
                 { key: 'query_who_attends', permission: 'citas.view' },
             ]);
@@ -386,7 +423,10 @@ export function InAppAssistantPanel({ open, onOpenChange }: Props) {
             { key: 'query_who_attends', permission: 'citas.view' },
             { key: 'query_caja_today', permission: 'caja-sesiones.view' },
             { key: 'query_expiry', permission: 'alertas-stock.view' },
-            { key: 'query_alerts', permission: ['alertas-stock.view', 'stock.view'] },
+            {
+                key: 'query_alerts',
+                permission: ['alertas-stock.view', 'stock.view'],
+            },
             { key: 'query_stock', permission: 'stock.view' },
             { key: 'nav_caja', permission: 'caja-sesiones.view' },
             { key: 'nav_vacunas', permission: 'pacientes.view' },
@@ -414,6 +454,11 @@ export function InAppAssistantPanel({ open, onOpenChange }: Props) {
     const goTo = (url: string) => {
         // Ventana flotante: se puede seguir usando el chat mientras navegas.
         router.visit(url);
+    };
+
+    const startTour = (tourId: TourId) => {
+        onOpenChange(false);
+        startInAppTour(tourId);
     };
 
     const commitGeom = (next: WindowGeom) => {
@@ -524,7 +569,10 @@ export function InAppAssistantPanel({ open, onOpenChange }: Props) {
         setError(null);
         setDraft('');
 
-        const history = messages.map(({ role, content }) => ({ role, content }));
+        const history = messages.map(({ role, content }) => ({
+            role,
+            content,
+        }));
         const userMsg: ChatMessage = {
             id: `u-${Date.now()}`,
             role: 'user',
@@ -546,7 +594,11 @@ export function InAppAssistantPanel({ open, onOpenChange }: Props) {
                     'X-CSRF-TOKEN': csrfToken(),
                 },
                 credentials: 'same-origin',
-                body: JSON.stringify({ message, history, context: pageContext }),
+                body: JSON.stringify({
+                    message,
+                    history,
+                    context: pageContext,
+                }),
             });
 
             const body = (await res.json()) as {
@@ -562,11 +614,14 @@ export function InAppAssistantPanel({ open, onOpenChange }: Props) {
             };
 
             if (body.usage) {
-                const unlimited = body.usage.unlimited === true || body.usage.limit == null;
+                const unlimited =
+                    body.usage.unlimited === true || body.usage.limit == null;
                 setUsage({
                     limit: unlimited ? null : Number(body.usage.limit ?? 0),
                     used: Number(body.usage.used ?? 0),
-                    remaining: unlimited ? null : Number(body.usage.remaining ?? 0),
+                    remaining: unlimited
+                        ? null
+                        : Number(body.usage.remaining ?? 0),
                     unlimited,
                 });
             }
@@ -588,10 +643,12 @@ export function InAppAssistantPanel({ open, onOpenChange }: Props) {
                 ? body.actions.filter(
                       (a): a is UiAction =>
                           a != null &&
-                          a.type === 'navigate' &&
-                          typeof a.url === 'string' &&
-                          a.url !== '' &&
-                          typeof a.label === 'string',
+                          typeof a === 'object' &&
+                          typeof a.label === 'string' &&
+                          ((a.type === 'navigate' &&
+                              typeof a.url === 'string' &&
+                              a.url !== '') ||
+                              (a.type === 'start_tour' && isTourId(a.tour_id))),
                   )
                 : [];
 
@@ -656,7 +713,9 @@ export function InAppAssistantPanel({ open, onOpenChange }: Props) {
                     </div>
                     <div className="min-w-0 flex-1 space-y-1">
                         <div className="flex flex-wrap items-center gap-2 pr-8">
-                            <h2 className="text-base font-semibold tracking-tight">{t('panel.title')}</h2>
+                            <h2 className="text-base font-semibold tracking-tight">
+                                {t('panel.title')}
+                            </h2>
                             <span
                                 className={cn(
                                     'inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium tracking-wide uppercase',
@@ -665,7 +724,9 @@ export function InAppAssistantPanel({ open, onOpenChange }: Props) {
                                         : 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200',
                                 )}
                             >
-                                {configured ? t('panel.badge_ready') : t('panel.badge_offline')}
+                                {configured
+                                    ? t('panel.badge_ready')
+                                    : t('panel.badge_offline')}
                             </span>
                             {usage && configured && (
                                 <span className="inline-flex items-center rounded-full border border-border/70 bg-white/80 px-2 py-0.5 text-[10px] font-medium text-muted-foreground dark:bg-card/60">
@@ -732,9 +793,13 @@ export function InAppAssistantPanel({ open, onOpenChange }: Props) {
                                 {t('panel.welcome_title')}
                             </h3>
                             <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-                                {scope === 'platform' ? t('panel.welcome_platform') : t('panel.welcome')}
+                                {scope === 'platform'
+                                    ? t('panel.welcome_platform')
+                                    : t('panel.welcome')}
                             </p>
-                            <p className="mt-3 text-xs text-muted-foreground/80">{t('panel.empty_hint')}</p>
+                            <p className="mt-3 text-xs text-muted-foreground/80">
+                                {t('panel.empty_hint')}
+                            </p>
                             <div className="mt-4 grid gap-2">
                                 {suggestions.map((label) => (
                                     <button
@@ -754,7 +819,9 @@ export function InAppAssistantPanel({ open, onOpenChange }: Props) {
                                 key={msg.id}
                                 className={cn(
                                     'flex gap-2.5',
-                                    msg.role === 'user' ? 'flex-row-reverse' : 'flex-row',
+                                    msg.role === 'user'
+                                        ? 'flex-row-reverse'
+                                        : 'flex-row',
                                 )}
                             >
                                 <div
@@ -767,19 +834,29 @@ export function InAppAssistantPanel({ open, onOpenChange }: Props) {
                                     aria-hidden
                                 >
                                     {msg.role === 'user' ? (
-                                        <UserRound className="size-3.5" strokeWidth={2.25} />
+                                        <UserRound
+                                            className="size-3.5"
+                                            strokeWidth={2.25}
+                                        />
                                     ) : (
-                                        <Bot className="size-3.5" strokeWidth={2.25} />
+                                        <Bot
+                                            className="size-3.5"
+                                            strokeWidth={2.25}
+                                        />
                                     )}
                                 </div>
                                 <div
                                     className={cn(
                                         'max-w-[85%] space-y-1',
-                                        msg.role === 'user' ? 'items-end' : 'items-start',
+                                        msg.role === 'user'
+                                            ? 'items-end'
+                                            : 'items-start',
                                     )}
                                 >
                                     <p className="px-1 text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
-                                        {msg.role === 'user' ? t('panel.you') : t('panel.assistant')}
+                                        {msg.role === 'user'
+                                            ? t('panel.you')
+                                            : t('panel.assistant')}
                                     </p>
                                     <div
                                         className={cn(
@@ -790,7 +867,9 @@ export function InAppAssistantPanel({ open, onOpenChange }: Props) {
                                         )}
                                     >
                                         {msg.role === 'assistant' ? (
-                                            <AssistantRichText text={msg.content} />
+                                            <AssistantRichText
+                                                text={msg.content}
+                                            />
                                         ) : (
                                             msg.content
                                         )}
@@ -801,15 +880,44 @@ export function InAppAssistantPanel({ open, onOpenChange }: Props) {
                                             <div className="flex flex-wrap gap-2 pt-1">
                                                 {msg.actions.map((action) => (
                                                     <Button
-                                                        key={`${action.url}-${action.label}`}
+                                                        key={`${action.type}-${
+                                                            action.type ===
+                                                            'navigate'
+                                                                ? action.url
+                                                                : action.tour_id
+                                                        }-${action.label}`}
                                                         type="button"
                                                         size="sm"
                                                         variant="outline"
                                                         className="h-8 gap-1.5 rounded-full border-sky-200 bg-sky-50/80 text-xs text-sky-800 hover:bg-sky-100 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-200"
-                                                        onClick={() => goTo(action.url)}
+                                                        onClick={() =>
+                                                            action.type ===
+                                                            'navigate'
+                                                                ? goTo(
+                                                                      action.url,
+                                                                  )
+                                                                : startTour(
+                                                                      action.tour_id,
+                                                                  )
+                                                        }
                                                     >
-                                                        {t('panel.go_to', { label: action.label })}
-                                                        <ArrowUpRight className="size-3.5" />
+                                                        {action.type ===
+                                                        'navigate'
+                                                            ? t('panel.go_to', {
+                                                                  label: action.label,
+                                                              })
+                                                            : t(
+                                                                  'panel.start_tour',
+                                                                  {
+                                                                      label: action.label,
+                                                                  },
+                                                              )}
+                                                        {action.type ===
+                                                        'navigate' ? (
+                                                            <ArrowUpRight className="size-3.5" />
+                                                        ) : (
+                                                            <Map className="size-3.5" />
+                                                        )}
                                                     </Button>
                                                 ))}
                                             </div>
@@ -867,11 +975,11 @@ export function InAppAssistantPanel({ open, onOpenChange }: Props) {
                                 disabled={!configured || limitReached}
                                 rows={2}
                                 className={cn(
-                                    'min-h-17 max-h-32 resize-none border-0 bg-transparent shadow-none',
+                                    'max-h-32 min-h-17 resize-none border-0 bg-transparent shadow-none',
                                     'outline-none focus:outline-none focus-visible:outline-none',
                                     'focus:border-transparent focus-visible:border-transparent',
                                     'focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0',
-                                    'focus:shadow-none focus-visible:shadow-none focus-visible:bg-transparent',
+                                    'focus:shadow-none focus-visible:bg-transparent focus-visible:shadow-none',
                                 )}
                             />
                             <Button

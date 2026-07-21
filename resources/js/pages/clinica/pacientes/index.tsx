@@ -84,10 +84,7 @@ function displayPropietario(p: Paciente['propietario']): string {
     return [p.nombres, p.apellidos].filter(Boolean).join(' ');
 }
 
-function sexoLabel(
-    t: (k: string) => string,
-    sexo: string | null,
-): string {
+function sexoLabel(t: (k: string) => string, sexo: string | null): string {
     if (!sexo) {
         return '—';
     }
@@ -163,9 +160,18 @@ export default function Index({
     const [modal, setModal] = useState<ModalState>({ type: 'idle' });
     const closeModal = useCallback(() => setModal({ type: 'idle' }), []);
     const openCreate = useCallback(() => setModal({ type: 'create' }), []);
-    const openEdit = useCallback((p: Paciente) => setModal({ type: 'edit', paciente: p }), []);
-    const openDelete = useCallback((p: Paciente) => setModal({ type: 'delete', paciente: p }), []);
-    const openBulkDelete = useCallback(() => setModal({ type: 'bulk-delete' }), []);
+    const openEdit = useCallback(
+        (p: Paciente) => setModal({ type: 'edit', paciente: p }),
+        [],
+    );
+    const openDelete = useCallback(
+        (p: Paciente) => setModal({ type: 'delete', paciente: p }),
+        [],
+    );
+    const openBulkDelete = useCallback(
+        () => setModal({ type: 'bulk-delete' }),
+        [],
+    );
 
     const selection = useRowSelection({
         rows: paginated.data,
@@ -227,17 +233,23 @@ export default function Index({
                     <div className="flex flex-col">
                         {canViewHistorial ? (
                             <Link
-                                href={clinica.pacientes.show.url({ paciente: p.id })}
+                                href={clinica.pacientes.show.url({
+                                    paciente: p.id,
+                                })}
                                 className="font-medium text-primary underline-offset-4 hover:underline"
                             >
                                 {p.nombre}
                             </Link>
                         ) : (
-                            <span className="font-medium text-foreground">{p.nombre}</span>
+                            <span className="font-medium text-foreground">
+                                {p.nombre}
+                            </span>
                         )}
                         {(p.especie || p.raza) && (
-                            <span className="text-xs text-muted-foreground line-clamp-1">
-                                {[p.especie, p.raza].filter(Boolean).join(' · ')}
+                            <span className="line-clamp-1 text-xs text-muted-foreground">
+                                {[p.especie, p.raza]
+                                    .filter(Boolean)
+                                    .join(' · ')}
                             </span>
                         )}
                     </div>
@@ -248,7 +260,9 @@ export default function Index({
                 header: t('columns.propietario'),
                 sortable: true,
                 cell: (p) => (
-                    <span className="text-sm">{displayPropietario(p.propietario)}</span>
+                    <span className="text-sm">
+                        {displayPropietario(p.propietario)}
+                    </span>
                 ),
             },
             {
@@ -276,9 +290,17 @@ export default function Index({
                 sortable: true,
                 cell: (p) =>
                     p.activo ? (
-                        <StatBadge label={t('common:filters.active')} value="" variant="success" />
+                        <StatBadge
+                            label={t('common:filters.active')}
+                            value=""
+                            variant="success"
+                        />
                     ) : (
-                        <StatBadge label={t('common:filters.inactive')} value="" variant="muted" />
+                        <StatBadge
+                            label={t('common:filters.inactive')}
+                            value=""
+                            variant="muted"
+                        />
                     ),
             },
         ];
@@ -298,18 +320,24 @@ export default function Index({
                     return (
                         <div className="flex items-center gap-2">
                             <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                                <UserCircle className="size-4" strokeWidth={2.25} />
+                                <UserCircle
+                                    className="size-4"
+                                    strokeWidth={2.25}
+                                />
                             </span>
                             <div className="flex flex-col leading-tight">
                                 <span className="text-xs font-medium text-foreground">
                                     {p.creado_por.name}
                                 </span>
                                 <span className="text-[0.65rem] text-muted-foreground">
-                                    {new Date(p.created_at).toLocaleDateString(undefined, {
-                                        day: '2-digit',
-                                        month: 'short',
-                                        year: 'numeric',
-                                    })}
+                                    {new Date(p.created_at).toLocaleDateString(
+                                        undefined,
+                                        {
+                                            day: '2-digit',
+                                            month: 'short',
+                                            year: 'numeric',
+                                        },
+                                    )}
                                 </span>
                             </div>
                         </div>
@@ -321,7 +349,9 @@ export default function Index({
         if (showRowActions) {
             base.push({
                 key: 'acciones',
-                header: <span className="md:sr-only">{t('columns.acciones')}</span>,
+                header: (
+                    <span className="md:sr-only">{t('columns.acciones')}</span>
+                ),
                 align: 'right',
                 cell: (p) => (
                     <div className="flex justify-end">
@@ -334,7 +364,9 @@ export default function Index({
                             canDownloadCarnetVacunas={canDownloadCarnetVacunas}
                             carnetVacunasPdfUrl={
                                 canDownloadCarnetVacunas
-                                    ? clinica.pacientes.carnetVacunacionPdf.url({ paciente: p.id })
+                                    ? clinica.pacientes.carnetVacunacionPdf.url(
+                                          { paciente: p.id },
+                                      )
                                     : undefined
                             }
                             canViewHistorial={canViewHistorial}
@@ -346,136 +378,248 @@ export default function Index({
         }
 
         return base;
-    }, [t, canSeeAudit, showRowActions, canUpdate, canDelete, canDownloadCarnetVacunas, canViewHistorial, openEdit, openDelete]);
+    }, [
+        t,
+        canSeeAudit,
+        showRowActions,
+        canUpdate,
+        canDelete,
+        canDownloadCarnetVacunas,
+        canViewHistorial,
+        openEdit,
+        openDelete,
+    ]);
 
     return (
         <>
             <Head title={t('title')} />
             <div className="flex flex-1 flex-col gap-5 p-4 sm:p-6">
-                <PageHeader
-                    title={t('title')}
-                    description={t('description')}
-                    stats={[
-                        { label: t('stats.total'), value: stats.total, variant: 'info', icon: PawPrint },
-                        { label: t('stats.active'), value: stats.activos, variant: 'success', icon: PawPrint },
-                        { label: t('stats.inactive'), value: stats.inactivos, variant: 'muted', icon: PowerOff as LucideIcon },
-                        { label: t('stats.filters'), value: activeFiltersCount, variant: 'warning', icon: Filter },
-                        { label: t('stats.matches'), value: stats.coincidencias, variant: 'primary', icon: ScreenShare },
-                    ]}
-                    action={
-                        <div className="flex flex-row items-center gap-2">
-                            {canExport && (
-                                <Button asChild variant="outline" className="cursor-pointer gap-2">
-                                    <a href={exportUrl} download>
-                                        <Download className="size-4" strokeWidth={2.5} />
-                                        <span className="hidden sm:inline">{t('common:actions.export_xlsx')}</span>
-                                    </a>
-                                </Button>
-                            )}
-                            <Can permission="pacientes.create">
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <span className="inline-flex">
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                onClick={() => setModal({ type: 'bulk' })}
-                                                disabled={patientsLimitReached}
-                                                className="cursor-pointer gap-2"
+                <div data-tour-id="pacientes-header">
+                    <PageHeader
+                        title={t('title')}
+                        description={t('description')}
+                        stats={[
+                            {
+                                label: t('stats.total'),
+                                value: stats.total,
+                                variant: 'info',
+                                icon: PawPrint,
+                            },
+                            {
+                                label: t('stats.active'),
+                                value: stats.activos,
+                                variant: 'success',
+                                icon: PawPrint,
+                            },
+                            {
+                                label: t('stats.inactive'),
+                                value: stats.inactivos,
+                                variant: 'muted',
+                                icon: PowerOff as LucideIcon,
+                            },
+                            {
+                                label: t('stats.filters'),
+                                value: activeFiltersCount,
+                                variant: 'warning',
+                                icon: Filter,
+                            },
+                            {
+                                label: t('stats.matches'),
+                                value: stats.coincidencias,
+                                variant: 'primary',
+                                icon: ScreenShare,
+                            },
+                        ]}
+                        action={
+                            <div className="flex flex-row items-center gap-2">
+                                {canExport && (
+                                    <Button
+                                        asChild
+                                        variant="outline"
+                                        className="cursor-pointer gap-2"
+                                    >
+                                        <a href={exportUrl} download>
+                                            <Download
+                                                className="size-4"
+                                                strokeWidth={2.5}
+                                            />
+                                            <span className="hidden sm:inline">
+                                                {t(
+                                                    'common:actions.export_xlsx',
+                                                )}
+                                            </span>
+                                        </a>
+                                    </Button>
+                                )}
+                                <Can permission="pacientes.create">
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <span className="inline-flex">
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    onClick={() =>
+                                                        setModal({
+                                                            type: 'bulk',
+                                                        })
+                                                    }
+                                                    disabled={
+                                                        patientsLimitReached
+                                                    }
+                                                    className="cursor-pointer gap-2"
+                                                >
+                                                    <Upload
+                                                        className="size-4"
+                                                        strokeWidth={2.5}
+                                                    />
+                                                    <span className="hidden sm:inline">
+                                                        {t(
+                                                            'actions.bulk_import',
+                                                        )}
+                                                    </span>
+                                                    <span className="sm:hidden">
+                                                        {t(
+                                                            'actions.bulk_import_short',
+                                                        )}
+                                                    </span>
+                                                </Button>
+                                            </span>
+                                        </TooltipTrigger>
+                                        {patientsLimitReached ? (
+                                            <TooltipContent
+                                                side="bottom"
+                                                className="max-w-xs"
                                             >
-                                                <Upload className="size-4" strokeWidth={2.5} />
-                                                <span className="hidden sm:inline">{t('actions.bulk_import')}</span>
-                                                <span className="sm:hidden">{t('actions.bulk_import_short')}</span>
-                                            </Button>
-                                        </span>
-                                    </TooltipTrigger>
-                                    {patientsLimitReached ? (
-                                        <TooltipContent side="bottom" className="max-w-xs">
-                                            {t('plan_limit.max_pacientes')}
-                                        </TooltipContent>
-                                    ) : null}
-                                </Tooltip>
-                            </Can>
-                            <Can permission="pacientes.create">
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <span className="inline-flex">
+                                                {t('plan_limit.max_pacientes')}
+                                            </TooltipContent>
+                                        ) : null}
+                                    </Tooltip>
+                                </Can>
+                                <Can permission="pacientes.create">
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <span className="inline-flex">
+                                                <Button
+                                                    type="button"
+                                                    data-tour-id="pacientes-create"
+                                                    onClick={openCreate}
+                                                    disabled={
+                                                        patientsLimitReached
+                                                    }
+                                                    className="cursor-pointer gap-2"
+                                                >
+                                                    <Plus
+                                                        className="size-4"
+                                                        strokeWidth={2.5}
+                                                    />
+                                                    <span className="hidden sm:inline">
+                                                        {t('actions.new')}
+                                                    </span>
+                                                    <span className="sm:hidden">
+                                                        {t('actions.new_short')}
+                                                    </span>
+                                                </Button>
+                                            </span>
+                                        </TooltipTrigger>
+                                        {patientsLimitReached ? (
+                                            <TooltipContent
+                                                side="bottom"
+                                                className="max-w-xs"
+                                            >
+                                                {t('plan_limit.max_pacientes')}
+                                            </TooltipContent>
+                                        ) : null}
+                                    </Tooltip>
+                                </Can>
+                            </div>
+                        }
+                    />
+                </div>
+
+                <div data-tour-id="pacientes-list">
+                    <div data-tour-id="pacientes-actions">
+                        <DataTable
+                            columns={columns}
+                            data={paginated.data}
+                            rowKey={(p) => p.id}
+                            sort={sort}
+                            onSortChange={setSort}
+                            isLoading={isLoading}
+                            selection={canBulkDelete ? selection : undefined}
+                            ariaLiveMessage={t(
+                                'common:aria.results_count_other',
+                                { count: stats.coincidencias },
+                            )}
+                            toolbar={
+                                <div data-tour-id="pacientes-filters">
+                                    <DataToolbar
+                                        search={search}
+                                        onSearchChange={setSearch}
+                                        isSearching={isLoading}
+                                        placeholder={t('search_placeholder')}
+                                    >
+                                        <FilterChips
+                                            ariaLabel={t('filter_label')}
+                                            value={filters.estado}
+                                            onChange={(estado) =>
+                                                applyFilter({ estado })
+                                            }
+                                            options={estadoOptions}
+                                        />
+                                    </DataToolbar>
+                                </div>
+                            }
+                            footer={
+                                <DataPagination
+                                    meta={paginated}
+                                    onPerPageChange={setPerPage}
+                                    preservedQuery={{
+                                        search: filters.search || undefined,
+                                        per_page: filters.per_page,
+                                        sort: filters.sort ?? undefined,
+                                        direction:
+                                            filters.direction ?? undefined,
+                                        estado:
+                                            filters.estado !== DEFAULT_ESTADO
+                                                ? filters.estado
+                                                : undefined,
+                                    }}
+                                />
+                            }
+                            emptyState={
+                                <EmptyState
+                                    icon={PawPrint}
+                                    title={
+                                        activeFiltersCount > 0
+                                            ? t('empty.no_results_title')
+                                            : t('empty.no_records_title')
+                                    }
+                                    description={
+                                        activeFiltersCount > 0
+                                            ? t('empty.no_results_description')
+                                            : t('empty.no_records_description')
+                                    }
+                                    action={
+                                        activeFiltersCount === 0 &&
+                                        canCreatePatient ? (
                                             <Button
                                                 type="button"
                                                 onClick={openCreate}
-                                                disabled={patientsLimitReached}
                                                 className="cursor-pointer gap-2"
                                             >
-                                                <Plus className="size-4" strokeWidth={2.5} />
-                                                <span className="hidden sm:inline">{t('actions.new')}</span>
-                                                <span className="sm:hidden">{t('actions.new_short')}</span>
+                                                <Plus
+                                                    className="size-4"
+                                                    strokeWidth={2.5}
+                                                />
+                                                {t('actions.create_first')}
                                             </Button>
-                                        </span>
-                                    </TooltipTrigger>
-                                    {patientsLimitReached ? (
-                                        <TooltipContent side="bottom" className="max-w-xs">
-                                            {t('plan_limit.max_pacientes')}
-                                        </TooltipContent>
-                                    ) : null}
-                                </Tooltip>
-                            </Can>
-                        </div>
-                    }
-                />
-
-                <DataTable
-                    columns={columns}
-                    data={paginated.data}
-                    rowKey={(p) => p.id}
-                    sort={sort}
-                    onSortChange={setSort}
-                    isLoading={isLoading}
-                    selection={canBulkDelete ? selection : undefined}
-                    ariaLiveMessage={t('common:aria.results_count_other', { count: stats.coincidencias })}
-                    toolbar={
-                        <DataToolbar
-                            search={search}
-                            onSearchChange={setSearch}
-                            isSearching={isLoading}
-                            placeholder={t('search_placeholder')}
-                        >
-                            <FilterChips
-                                ariaLabel={t('filter_label')}
-                                value={filters.estado}
-                                onChange={(estado) => applyFilter({ estado })}
-                                options={estadoOptions}
-                            />
-                        </DataToolbar>
-                    }
-                    footer={
-                        <DataPagination
-                            meta={paginated}
-                            onPerPageChange={setPerPage}
-                            preservedQuery={{
-                                search: filters.search || undefined,
-                                per_page: filters.per_page,
-                                sort: filters.sort ?? undefined,
-                                direction: filters.direction ?? undefined,
-                                estado: filters.estado !== DEFAULT_ESTADO ? filters.estado : undefined,
-                            }}
-                        />
-                    }
-                    emptyState={
-                        <EmptyState
-                            icon={PawPrint}
-                            title={activeFiltersCount > 0 ? t('empty.no_results_title') : t('empty.no_records_title')}
-                            description={activeFiltersCount > 0 ? t('empty.no_results_description') : t('empty.no_records_description')}
-                            action={
-                                activeFiltersCount === 0 && canCreatePatient ? (
-                                    <Button type="button" onClick={openCreate} className="cursor-pointer gap-2">
-                                        <Plus className="size-4" strokeWidth={2.5} />
-                                        {t('actions.create_first')}
-                                    </Button>
-                                ) : undefined
+                                        ) : undefined
+                                    }
+                                />
                             }
                         />
-                    }
-                />
+                    </div>
+                </div>
             </div>
 
             <PacienteFormModal
@@ -522,7 +666,12 @@ export default function Index({
                 translationNs="pacientes"
                 templateUrl="/clinica/pacientes/plantilla-importacion"
                 importUrl="/clinica/pacientes/importar"
-                reloadOnly={['pacientes', 'filters', 'stats', 'propietarios_opciones']}
+                reloadOnly={[
+                    'pacientes',
+                    'filters',
+                    'stats',
+                    'propietarios_opciones',
+                ]}
             />
 
             {canBulkDelete && (
@@ -542,7 +691,9 @@ export default function Index({
                         className="cursor-pointer gap-1.5"
                     >
                         <Trash2 className="size-4" strokeWidth={2.5} />
-                        <span className="hidden sm:inline">{t('actions.delete_selected')}</span>
+                        <span className="hidden sm:inline">
+                            {t('actions.delete_selected')}
+                        </span>
                     </BulkAction>
                 </BulkActionBar>
             )}

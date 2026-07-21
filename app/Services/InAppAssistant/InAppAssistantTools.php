@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\InAppAssistant;
 
+use App\Models\User;
+
 /**
  * Tools de solo lectura para el asistente interno del staff.
  */
@@ -12,11 +14,20 @@ final class InAppAssistantTools
     /**
      * @return list<array<string, mixed>>
      */
-    public static function definitions(string $scope = 'clinic'): array
+    public static function definitions(string $scope = 'clinic', ?User $user = null): array
     {
-        return $scope === 'platform'
+        $definitions = $scope === 'platform'
             ? self::platformDefinitions()
             : self::clinicDefinitions();
+
+        return array_values(array_filter(
+            $definitions,
+            static fn (array $definition): bool => InAppAssistantToolExecutor::isToolAuthorized(
+                (string) ($definition['function']['name'] ?? ''),
+                $scope,
+                $user,
+            ),
+        ));
     }
 
     /**

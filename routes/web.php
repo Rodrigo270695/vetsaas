@@ -27,7 +27,9 @@ use App\Http\Controllers\GroomingTurnoController;
 use App\Http\Controllers\HospitalizacionController;
 use App\Http\Controllers\HotelEstanciaController;
 use App\Http\Controllers\HotelTipoEstanciaController;
+use App\Http\Controllers\InAppAssistantAnnouncementController;
 use App\Http\Controllers\InAppAssistantController;
+use App\Http\Controllers\InAppAssistantKnowledgeController;
 use App\Http\Controllers\InternamientoCargoController;
 use App\Http\Controllers\LaboratorioController;
 use App\Http\Controllers\MovimientoInventarioController;
@@ -41,7 +43,6 @@ use App\Http\Controllers\PlataformaOperacionesController;
 use App\Http\Controllers\PlataformaSecurityAuditController;
 use App\Http\Controllers\PlatformRenewalReminderController;
 use App\Http\Controllers\PlatformSettingController;
-use App\Http\Controllers\InAppAssistantAnnouncementController;
 use App\Http\Controllers\PlatformWhatsAppController;
 use App\Http\Controllers\PresenceHeartbeatController;
 use App\Http\Controllers\ProductoInventarioController;
@@ -172,8 +173,12 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
     Route::prefix('asistente')
         ->name('asistente.')
         ->group(function (): void {
-            Route::get('status', [InAppAssistantController::class, 'status'])->name('status');
-            Route::post('chat', [InAppAssistantController::class, 'chat'])->name('chat');
+            Route::get('status', [InAppAssistantController::class, 'status'])
+                ->middleware('throttle:30,1')
+                ->name('status');
+            Route::post('chat', [InAppAssistantController::class, 'chat'])
+                ->middleware('throttle:10,1')
+                ->name('chat');
         });
 
     Route::post('impersonate/leave', [TenantImpersonationController::class, 'leave'])
@@ -1223,6 +1228,22 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:salesbot-knowledge.update')
             ->post('salesbot-knowledge/flush-cache', [SalesBotKnowledgeController::class, 'flushCache'])
             ->name('salesbot-knowledge.flush-cache');
+
+        // ── Guías internas del asistente in-app (schema public) ──
+        Route::middleware('tenant.none')->group(function (): void {
+            Route::middleware('permission:in-app-assistant-knowledge.view')
+                ->get('in-app-assistant-knowledge', [InAppAssistantKnowledgeController::class, 'index'])
+                ->name('in-app-assistant-knowledge.index');
+            Route::middleware('permission:in-app-assistant-knowledge.create')
+                ->post('in-app-assistant-knowledge', [InAppAssistantKnowledgeController::class, 'store'])
+                ->name('in-app-assistant-knowledge.store');
+            Route::middleware('permission:in-app-assistant-knowledge.update')
+                ->match(['put', 'patch'], 'in-app-assistant-knowledge/{inAppAssistantKnowledge}', [InAppAssistantKnowledgeController::class, 'update'])
+                ->name('in-app-assistant-knowledge.update');
+            Route::middleware('permission:in-app-assistant-knowledge.delete')
+                ->delete('in-app-assistant-knowledge/{inAppAssistantKnowledge}', [InAppAssistantKnowledgeController::class, 'destroy'])
+                ->name('in-app-assistant-knowledge.destroy');
+        });
 
         // ── Novedades in-app del Asistente IA (tenants) ──
         Route::middleware('permission:bot-ia-announcements.view')

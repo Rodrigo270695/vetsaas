@@ -47,6 +47,7 @@ import stockInventarioEn from '@/lang/en/stock-inventario.json';
 import avisosRenovacionEn from '@/lang/en/avisos-renovacion.json';
 import botIaEn from '@/lang/en/bot-ia.json';
 import inAppAssistantEn from '@/lang/en/in-app-assistant.json';
+import inAppAssistantKnowledgeEn from '@/lang/en/in-app-assistant-knowledge.json';
 import suscripcionesEn from '@/lang/en/suscripciones.json';
 import subscriptionExpiryEn from '@/lang/en/subscription-expiry.json';
 import tenantsEn from '@/lang/en/tenants.json';
@@ -99,6 +100,7 @@ import stockInventarioEs from '@/lang/es/stock-inventario.json';
 import avisosRenovacionEs from '@/lang/es/avisos-renovacion.json';
 import botIaEs from '@/lang/es/bot-ia.json';
 import inAppAssistantEs from '@/lang/es/in-app-assistant.json';
+import inAppAssistantKnowledgeEs from '@/lang/es/in-app-assistant-knowledge.json';
 import suscripcionesEs from '@/lang/es/suscripciones.json';
 import subscriptionExpiryEs from '@/lang/es/subscription-expiry.json';
 import tenantsEs from '@/lang/es/tenants.json';
@@ -148,6 +150,7 @@ const resources = {
         comunicaciones: comunicacionesEs,
         'bot-ia': botIaEs,
         'in-app-assistant': inAppAssistantEs,
+        'in-app-assistant-knowledge': inAppAssistantKnowledgeEs,
         'plataforma-auditoria-soporte': plataformaAuditoriaSoporteEs,
         'plataforma-auditoria-seguridad': plataformaAuditoriaSeguridadEs,
         'plataforma-operaciones': plataformaOperacionesEs,
@@ -202,6 +205,7 @@ const resources = {
         comunicaciones: comunicacionesEn,
         'bot-ia': botIaEn,
         'in-app-assistant': inAppAssistantEn,
+        'in-app-assistant-knowledge': inAppAssistantKnowledgeEn,
         'plataforma-auditoria-soporte': plataformaAuditoriaSoporteEn,
         'plataforma-auditoria-seguridad': plataformaAuditoriaSeguridadEn,
         'plataforma-operaciones': plataformaOperacionesEn,
@@ -266,6 +270,7 @@ void i18n
             'comunicaciones',
             'bot-ia',
             'in-app-assistant',
+            'in-app-assistant-knowledge',
             'plataforma-auditoria-soporte',
             'plataforma-auditoria-seguridad',
             'plataforma-operaciones',

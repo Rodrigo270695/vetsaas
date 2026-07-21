@@ -61,6 +61,7 @@ class TenantRolesSeeder extends Seeder
             'permissions' => [
                 // Dashboard
                 'dashboard.view',
+                'in-app-assistant.use',
 
                 // Clínica
                 'pacientes.view', 'pacientes.create', 'pacientes.update', 'pacientes.delete', 'pacientes.export', 'pacientes.bulk-delete',
@@ -139,6 +140,7 @@ class TenantRolesSeeder extends Seeder
             'description' => 'Médico veterinario. Atiende pacientes, registra historias clínicas, vacunaciones, recetas, laboratorio, cirugías y hospitalización.',
             'permissions' => [
                 'dashboard.view',
+                'in-app-assistant.use',
 
                 // Pacientes & propietarios (puede crear si recibe walk-in)
                 'pacientes.view', 'pacientes.create', 'pacientes.update',
@@ -180,6 +182,7 @@ class TenantRolesSeeder extends Seeder
             'description' => 'Asistente clínico. Apoya al veterinario: lectura del expediente, agenda citas y registra vacunaciones de rutina.',
             'permissions' => [
                 'dashboard.view',
+                'in-app-assistant.use',
 
                 'pacientes.view',
                 'propietarios.view',
@@ -213,6 +216,7 @@ class TenantRolesSeeder extends Seeder
             'description' => 'Recepción y front-desk. Agenda citas, atiende clientes, cobra y emite comprobantes. Ve HC solo para cargos/pre-cuenta; no aperturar ni plan clínico.',
             'permissions' => [
                 'dashboard.view',
+                'in-app-assistant.use',
 
                 // Clientes & pacientes (los registra al ingresar)
                 'pacientes.view', 'pacientes.create', 'pacientes.update',
@@ -259,6 +263,7 @@ class TenantRolesSeeder extends Seeder
             'description' => 'Peluquero canino / felino. Solo opera el módulo de grooming y consulta datos básicos del paciente y propietario.',
             'permissions' => [
                 'dashboard.view',
+                'in-app-assistant.use',
 
                 // Necesita ver al paciente y contactar al dueño
                 'pacientes.view',

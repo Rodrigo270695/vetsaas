@@ -1,0 +1,99 @@
+{
+    "title": "Internal guides",
+    "description": "Manage contextual knowledge and safe actions for the in-app assistant.",
+    "search_placeholder": "Search by title, slug, or content…",
+    "scopes": {
+        "clinic": "Clinic",
+        "platform": "Platform",
+        "both": "Both"
+    },
+    "sections": {
+        "module": "Module",
+        "screen": "Screen",
+        "workflow": "Workflow",
+        "role": "Role",
+        "faq": "FAQ"
+    },
+    "permission_modes": {
+        "any": "Any permission",
+        "all": "All permissions"
+    },
+    "status": {
+        "active": "Active",
+        "inactive": "Inactive"
+    },
+    "filters": {
+        "scope": "Filter by scope",
+        "section": "Filter by section",
+        "status": "Filter by status",
+        "all_scopes": "All scopes",
+        "all_sections": "All sections",
+        "all_statuses": "All statuses"
+    },
+    "stats": {
+        "total": "Total",
+        "active": "Active",
+        "clinic": "Clinic",
+        "platform": "Platform",
+        "filters": "Filters"
+    },
+    "columns": {
+        "entry": "Guide",
+        "scope": "Scope",
+        "section": "Section",
+        "priority": "Priority",
+        "status": "Status",
+        "actions": "Actions"
+    },
+    "actions": {
+        "new": "New guide",
+        "edit": "Edit",
+        "activate": "Activate",
+        "deactivate": "Deactivate",
+        "delete": "Delete",
+        "for_entry": "Actions for {{title}}"
+    },
+    "form": {
+        "details": "Guide details",
+        "create_title": "Create internal guide",
+        "edit_title": "Edit internal guide",
+        "scope": "Scope",
+        "section": "Section",
+        "permission_mode": "Permission mode",
+        "title": "Title",
+        "slug": "Slug",
+        "slug_hint": "Lowercase letters, numbers, and hyphens.",
+        "content": "Content",
+        "keywords": "Keywords",
+        "required_permissions": "Required permissions",
+        "url_patterns": "URL patterns",
+        "component_patterns": "Component patterns",
+        "allowed_roles": "Allowed roles",
+        "priority": "Priority",
+        "sort_order": "Sort order",
+        "actions": "Actions (JSON)",
+        "actions_hint": "JSON array. Allowed types: navigate (internal URL) and start_tour (citas, pacientes, or historias-clinicas).",
+        "actions_array_error": "Actions JSON must be an array.",
+        "actions_json_error": "Actions JSON is invalid.",
+        "comma_hint": "Comma-separated values.",
+        "lines_hint": "One value per line.",
+        "active": "Active guide",
+        "cancel": "Cancel",
+        "save": "Save"
+    },
+    "delete": {
+        "title": "Delete guide",
+        "description": "<strong>{{title}}</strong> will be permanently deleted.",
+        "cancel": "Cancel",
+        "confirm": "Delete"
+    },
+    "empty": {
+        "no_results": "No matches found",
+        "adjust_filters": "Try different filters or search terms.",
+        "no_records": "No internal guides",
+        "create_first": "Create the first guide to feed the assistant."
+    },
+    "toast": {
+        "load_error": "Internal guides could not be loaded."
+    }
+}

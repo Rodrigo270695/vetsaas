@@ -31,6 +31,7 @@ class PermissionsSeeder extends Seeder
     public const CATALOG = [
         // ───── Dashboard ─────
         'dashboard' => ['view'],
+        'in-app-assistant' => ['use'],
 
         // ───── Clínica ─────
         'pacientes' => ['view', 'create', 'update', 'delete', 'export', 'bulk-delete'],
@@ -128,6 +129,12 @@ class PermissionsSeeder extends Seeder
          * que gestiona los planes, módulos y FAQs del bot de ventas.
          */
         'salesbot-knowledge' => ['view', 'create', 'update', 'delete'],
+
+        /*
+         * Guías y conocimiento del asistente in-app.
+         * Recurso global en public, administrado exclusivamente desde Plataforma.
+         */
+        'in-app-assistant-knowledge' => ['view', 'create', 'update', 'delete'],
 
         /*
          * Novedades in-app del Asistente IA para tenants (banner en Comunicaciones).

@@ -161,7 +161,9 @@ class HandleInertiaRequests extends Middleware
             'in_app_assistant' => $skipHeavySharedProps
                 ? null
                 : static function () use ($tenantContext, $user): ?array {
-                    $isClinic = $tenantContext !== null;
+                    $isClinic = $tenantContext !== null
+                        && $user instanceof User
+                        && $user->can('in-app-assistant.use');
                     $isPlatform = $tenantContext === null
                         && $user instanceof User
                         && $user->isPlatformSuperadmin();

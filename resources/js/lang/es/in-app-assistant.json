@@ -49,9 +49,84 @@
             "platform_cold_leads": "¿Cuántos leads fríos hay hoy?"
         },
         "go_to": "Ir a {{label}}",
+        "start_tour": "Iniciar {{label}}",
         "usage": "{{remaining}}/{{limit}} hoy",
         "usage_unlimited": "Sin límite",
         "limit_reached": "Llegaste al límite diario del asistente. Vuelve mañana."
+    },
+    "tour": {
+        "next": "Siguiente",
+        "previous": "Anterior",
+        "finish": "Finalizar",
+        "progress": "{{current}} de {{total}}",
+        "steps": {
+            "citas": {
+                "header": {
+                    "title": "Agenda de citas",
+                    "description": "Aquí se resume la agenda de la clínica. Recepción suele organizar las reservas y el equipo veterinario consulta sus próximas atenciones."
+                },
+                "filters": {
+                    "title": "Busca y acota la agenda",
+                    "description": "Busca por paciente, propietario o veterinario, cambia entre calendario y lista, y ajusta el periodo que necesitas revisar."
+                },
+                "create": {
+                    "title": "Registra una cita",
+                    "description": "Con permiso de creación puedes agendar al paciente, seleccionar sede, veterinario, fecha y motivo. Este paso no aparece para roles de solo lectura."
+                },
+                "view": {
+                    "title": "Trabaja en calendario o lista",
+                    "description": "El calendario facilita planificar y reprogramar; la lista permite ordenar y revisar detalles. Las acciones disponibles dependen de tu rol."
+                },
+                "actions": {
+                    "title": "Gestiona cada reserva",
+                    "description": "Desde cada cita autorizada puedes editar, cancelar o iniciar la atención. Aperturar conecta la cita con la historia clínica del paciente."
+                }
+            },
+            "pacientes": {
+                "header": {
+                    "title": "Directorio de pacientes",
+                    "description": "Consulta las mascotas registradas y sus propietarios. Recepción mantiene los datos administrativos y el equipo clínico accede al expediente del paciente."
+                },
+                "create": {
+                    "title": "Registra un paciente",
+                    "description": "Si tu rol puede crear pacientes, agrega sus datos e identifica al propietario. Verifica primero que no exista para evitar duplicados."
+                },
+                "filters": {
+                    "title": "Encuentra rápidamente una mascota",
+                    "description": "Busca por nombre, propietario o microchip y filtra pacientes activos o inactivos."
+                },
+                "list": {
+                    "title": "Revisa el listado",
+                    "description": "El listado muestra identificación, especie, propietario y estado. Selecciona el nombre para abrir el expediente cuando tu rol tenga acceso."
+                },
+                "actions": {
+                    "title": "Acciones del paciente",
+                    "description": "Según tus permisos podrás editar datos, abrir el historial, descargar el carnet de vacunación o desactivar registros."
+                }
+            },
+            "historias": {
+                "header": {
+                    "title": "Historias clínicas",
+                    "description": "Esta vista reúne las consultas de los pacientes. El personal clínico registra la atención y otros roles solo ven las operaciones que les fueron autorizadas."
+                },
+                "create": {
+                    "title": "Inicia una consulta",
+                    "description": "Con permiso clínico puedes crear una consulta, elegir al paciente y documentar motivo, examen, diagnóstico y evolución."
+                },
+                "filters": {
+                    "title": "Filtra las atenciones",
+                    "description": "Busca por paciente o propietario y combina estado y rango de fechas para localizar consultas abiertas, cerradas o antiguas."
+                },
+                "list": {
+                    "title": "Consulta el expediente",
+                    "description": "Cada fila resume fecha, estado, paciente, motivo, peso y veterinario. Las consultas antiguas abiertas se destacan para facilitar su seguimiento."
+                },
+                "actions": {
+                    "title": "Continúa el flujo clínico",
+                    "description": "Según tu rol podrás editar la consulta, gestionar el plan de tratamiento, vacunas o cargos. El contenido médico permanece restringido a personal autorizado."
+                }
+            }
+        }
     },
     "announcement": {
         "badge": "Novedad",

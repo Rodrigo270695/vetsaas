@@ -42,15 +42,6 @@ final class InAppAssistantController extends Controller
         abort_unless((bool) config('in-app-assistant.enabled', true), 503);
         abort_unless($assistant->isConfigured(), 503, 'Asistente no configurado (falta OPENAI_API_KEY).');
 
-        if ($limiter->tooManyAttempts($user)) {
-            $usage = $limiter->snapshot($user);
-
-            return response()->json([
-                'message' => 'Alcanzaste el límite diario del asistente ('.$usage['limit'].' mensajes). Vuelve mañana.',
-                'usage' => $usage,
-            ], 429);
-        }
-
         $data = $request->validate([
             'message' => ['required', 'string', 'min:2', 'max:4000'],
             'history' => ['nullable', 'array', 'max:20'],
@@ -61,6 +52,15 @@ final class InAppAssistantController extends Controller
             'context.component' => ['nullable', 'string', 'max:200'],
             'context.paciente_id' => ['nullable', 'string', 'max:64'],
         ]);
+
+        if (! $limiter->reserve($user)) {
+            $usage = $limiter->snapshot($user);
+
+            return response()->json([
+                'message' => 'Alcanzaste el límite diario del asistente ('.$usage['limit'].' mensajes). Vuelve mañana.',
+                'usage' => $usage,
+            ], 429);
+        }
 
         $scope = $this->resolveScope($user);
 
@@ -78,11 +78,11 @@ final class InAppAssistantController extends Controller
         try {
             $result = $assistant->chat(
                 (string) $data['message'],
+                $user,
                 is_array($data['history'] ?? null) ? $data['history'] : [],
                 $pageContext,
             );
 
-            $limiter->hit($user);
             $usage = $limiter->snapshot($user);
 
             return response()->json([
@@ -104,7 +104,7 @@ final class InAppAssistantController extends Controller
     private function canUseAssistant(User $user): bool
     {
         if (tenant_id() !== null) {
-            return true;
+            return $user->can('in-app-assistant.use');
         }
 
         return $user->isPlatformSuperadmin();

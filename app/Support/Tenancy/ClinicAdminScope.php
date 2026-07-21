@@ -35,6 +35,7 @@ final class ClinicAdminScope
     private const PLATFORM_PERMISSION_MODULES = [
         'salesbot-knowledge',
         'bot-ia-announcements',
+        'in-app-assistant-knowledge',
     ];
 
     public static function isClinicContext(): bool
