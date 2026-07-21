@@ -10,6 +10,7 @@ import AuthLayout from '@/layouts/auth-layout';
 import PublicDocumentLayout from '@/layouts/public-document-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import { applyInitialClinicThemeFromDocument } from '@/lib/apply-initial-clinic-theme';
+import { showConsoleSecurityWarning } from '@/lib/console-security-warning';
 import '@/lib/i18n';
 import { rememberInertiaPage } from '@/lib/offline/page-cache';
 
@@ -17,6 +18,7 @@ const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
 initializeTheme();
 applyInitialClinicThemeFromDocument();
+showConsoleSecurityWarning();
 
 createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),
