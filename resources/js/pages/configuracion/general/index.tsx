@@ -37,6 +37,12 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import {
+    Tabs,
+    TabsContent,
+    TabsList,
+    TabsTrigger,
+} from '@/components/ui/tabs';
 import { usePermission } from '@/hooks/use-permission';
 import AppLayout from '@/layouts/app-layout';
 import { toastManager } from '@/lib/toast';
@@ -51,6 +57,8 @@ type ConfiguracionGeneralProps = {
     departamentos: readonly GeoOption[];
     plan_permite_factura_electronica: boolean;
 };
+
+type GeneralTab = 'clinica' | 'agenda' | 'facturacion' | 'comunicaciones';
 
 /**
  * Shape del formulario de configuración (campos no-archivo).
@@ -167,6 +175,55 @@ const buildInitialGeo = (setting: ClinicSetting): GeoCascadeValue => {
     };
 };
 
+const resolveErrorTab = (errors: Record<string, string>): GeneralTab => {
+    const keys = Object.keys(errors);
+
+    if (
+        keys.some((key) =>
+            [
+                'moneda',
+                'igv_porcentaje',
+                'precio_incluye_igv',
+                'ticket_ancho_mm',
+                'emite_comprobantes_sunat',
+                'apisunat_token',
+                'apisunat_mode',
+            ].includes(key),
+        )
+    ) {
+        return 'facturacion';
+    }
+
+    if (
+        keys.some((key) =>
+            [
+                'whatsapp_display_number',
+                'email_from',
+                'email_from_nombre',
+            ].includes(key),
+        )
+    ) {
+        return 'comunicaciones';
+    }
+
+    if (
+        keys.some(
+            (key) =>
+                key.startsWith('agenda_') ||
+                key.startsWith('recordatorio_') ||
+                key === 'notificar_cita_whatsapp_activo' ||
+                key === 'duracion_cita_default_min' ||
+                key === 'intervalo_agenda_min' ||
+                key === 'dias_anticipacion_cita' ||
+                key === 'horas_min_cancelacion',
+        )
+    ) {
+        return 'agenda';
+    }
+
+    return 'clinica';
+};
+
 /**
  * Página de Configuración → General.
  *
@@ -196,6 +253,7 @@ export default function Index({
     const [data, setDataInternal] = useState<FormState>(() =>
         buildInitialState(setting),
     );
+    const [activeTab, setActiveTab] = useState<GeneralTab>('clinica');
     const [logoFile, setLogoFile] = useState<File | null>(null);
     const [clearLogo, setClearLogo] = useState(false);
     const [clearApisunat, setClearApisunat] = useState(false);
@@ -300,6 +358,7 @@ export default function Index({
             forceFormData: true,
             onError: (errs) => {
                 setErrors(errs as Partial<Record<string, string>>);
+                setActiveTab(resolveErrorTab(errs));
             },
             onSuccess: () => {
                 setErrors({});
@@ -441,6 +500,84 @@ export default function Index({
                     </div>
                 </div>
 
+                <Tabs
+                    value={activeTab}
+                    onValueChange={(value) =>
+                        setActiveTab(value as GeneralTab)
+                    }
+                    className="gap-5"
+                >
+                    <TabsList className="grid h-auto w-full grid-cols-2 gap-2 bg-transparent p-0 lg:grid-cols-4">
+                        <TabsTrigger
+                            value="clinica"
+                            className="group h-auto min-h-18 justify-start gap-3 border-border/70 bg-card/70 p-3 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-sky-300 hover:shadow-md data-[state=active]:border-sky-400 data-[state=active]:bg-sky-50 data-[state=active]:text-sky-950 dark:data-[state=active]:bg-sky-950/40 dark:data-[state=active]:text-sky-100"
+                        >
+                            <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-sky-500/12 text-sky-700 ring-1 ring-sky-500/20 dark:text-sky-300">
+                                <Building2 className="size-4.5" />
+                            </span>
+                            <span className="min-w-0">
+                                <span className="block font-semibold">
+                                    {t('tabs.clinica.title')}
+                                </span>
+                                <span className="hidden truncate text-[11px] font-normal text-muted-foreground sm:block">
+                                    {t('tabs.clinica.description')}
+                                </span>
+                            </span>
+                        </TabsTrigger>
+                        <TabsTrigger
+                            value="agenda"
+                            className="group h-auto min-h-18 justify-start gap-3 border-border/70 bg-card/70 p-3 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-violet-300 hover:shadow-md data-[state=active]:border-violet-400 data-[state=active]:bg-violet-50 data-[state=active]:text-violet-950 dark:data-[state=active]:bg-violet-950/40 dark:data-[state=active]:text-violet-100"
+                        >
+                            <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-violet-500/12 text-violet-700 ring-1 ring-violet-500/20 dark:text-violet-300">
+                                <CalendarClock className="size-4.5" />
+                            </span>
+                            <span className="min-w-0">
+                                <span className="block font-semibold">
+                                    {t('tabs.agenda.title')}
+                                </span>
+                                <span className="hidden truncate text-[11px] font-normal text-muted-foreground sm:block">
+                                    {t('tabs.agenda.description')}
+                                </span>
+                            </span>
+                        </TabsTrigger>
+                        <TabsTrigger
+                            value="facturacion"
+                            className="group h-auto min-h-18 justify-start gap-3 border-border/70 bg-card/70 p-3 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md data-[state=active]:border-emerald-400 data-[state=active]:bg-emerald-50 data-[state=active]:text-emerald-950 dark:data-[state=active]:bg-emerald-950/40 dark:data-[state=active]:text-emerald-100"
+                        >
+                            <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500/12 text-emerald-700 ring-1 ring-emerald-500/20 dark:text-emerald-300">
+                                <Receipt className="size-4.5" />
+                            </span>
+                            <span className="min-w-0">
+                                <span className="block font-semibold">
+                                    {t('tabs.facturacion.title')}
+                                </span>
+                                <span className="hidden truncate text-[11px] font-normal text-muted-foreground sm:block">
+                                    {t('tabs.facturacion.description')}
+                                </span>
+                            </span>
+                        </TabsTrigger>
+                        <TabsTrigger
+                            value="comunicaciones"
+                            className="group h-auto min-h-18 justify-start gap-3 border-border/70 bg-card/70 p-3 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-amber-300 hover:shadow-md data-[state=active]:border-amber-400 data-[state=active]:bg-amber-50 data-[state=active]:text-amber-950 dark:data-[state=active]:bg-amber-950/40 dark:data-[state=active]:text-amber-100"
+                        >
+                            <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-amber-500/12 text-amber-700 ring-1 ring-amber-500/20 dark:text-amber-300">
+                                <Megaphone className="size-4.5" />
+                            </span>
+                            <span className="min-w-0">
+                                <span className="block font-semibold">
+                                    {t('tabs.comunicaciones.title')}
+                                </span>
+                                <span className="hidden truncate text-[11px] font-normal text-muted-foreground sm:block">
+                                    {t('tabs.comunicaciones.description')}
+                                </span>
+                            </span>
+                        </TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent
+                        value="clinica"
+                        className="space-y-5 data-[state=active]:animate-in data-[state=active]:fade-in-50"
+                    >
                 {/* ───── Identidad fiscal ───── */}
                 <SectionCard
                     icon={Building2}
@@ -726,7 +863,12 @@ export default function Index({
                         </FormField>
                     </FormSection>
                 </SectionCard>
+                    </TabsContent>
 
+                    <TabsContent
+                        value="agenda"
+                        className="space-y-5 data-[state=active]:animate-in data-[state=active]:fade-in-50"
+                    >
                 {/* ───── Operación: agenda y citas ───── */}
                 <SectionCard
                     icon={CalendarClock}
@@ -991,7 +1133,12 @@ export default function Index({
                         />
                     </FormSection>
                 </SectionCard>
+                    </TabsContent>
 
+                    <TabsContent
+                        value="facturacion"
+                        className="space-y-5 data-[state=active]:animate-in data-[state=active]:fade-in-50"
+                    >
                 {/* ───── Facturación ───── */}
                 <SectionCard
                     icon={Receipt}
@@ -1318,7 +1465,12 @@ export default function Index({
                         )}
                     </FormSection>
                 </SectionCard>
+                    </TabsContent>
 
+                    <TabsContent
+                        value="comunicaciones"
+                        className="space-y-5 data-[state=active]:animate-in data-[state=active]:fade-in-50"
+                    >
                 {/* ───── Remitente comercial (cómo verán los mensajes los clientes) ───── */}
                 <SectionCard
                     icon={Megaphone}
@@ -1389,6 +1541,8 @@ export default function Index({
                         </FormField>
                     </FormSection>
                 </SectionCard>
+                    </TabsContent>
+                </Tabs>
 
                 {/*
                   Barra de acción sticky al pie del formulario. Contiene

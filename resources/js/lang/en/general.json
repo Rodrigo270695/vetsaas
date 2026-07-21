@@ -12,6 +12,24 @@
         "branding": "Branding",
         "facturacion": "E-invoicing"
     },
+    "tabs": {
+        "clinica": {
+            "title": "My clinic",
+            "description": "Identity, contact and brand"
+        },
+        "agenda": {
+            "title": "Schedule",
+            "description": "Appointments and reminders"
+        },
+        "facturacion": {
+            "title": "Billing",
+            "description": "VAT, tickets and SUNAT"
+        },
+        "comunicaciones": {
+            "title": "Communications",
+            "description": "Email and WhatsApp signature"
+        }
+    },
     "sections": {
         "identidad": {
             "title": "Tax identity",

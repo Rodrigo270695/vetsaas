@@ -41,14 +41,14 @@ export function SectionCard({
     return (
         <Card
             className={cn(
-                'min-w-0 gap-4 overflow-hidden border-border/60 bg-card/60 backdrop-blur-sm ring-1 ring-border/20',
+                'relative min-w-0 gap-4 overflow-hidden border-border/60 bg-card/75 shadow-sm backdrop-blur-sm ring-1 ring-border/20 transition-shadow before:absolute before:inset-x-0 before:top-0 before:h-0.5 before:bg-linear-to-r before:from-primary/80 before:via-emerald-400/50 before:to-cyan-400/30 hover:shadow-md',
                 className,
             )}
         >
             <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
                 <div className="flex min-w-0 flex-1 items-start gap-3">
                     {Icon && (
-                        <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/15">
+                        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-primary/18 to-emerald-400/10 text-primary shadow-sm ring-1 ring-primary/15">
                             <Icon className="size-4.5" strokeWidth={2.25} />
                         </span>
                     )}

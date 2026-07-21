@@ -12,6 +12,24 @@
         "branding": "Branding",
         "facturacion": "Facturación electrónica"
     },
+    "tabs": {
+        "clinica": {
+            "title": "Mi clínica",
+            "description": "Identidad, contacto y marca"
+        },
+        "agenda": {
+            "title": "Agenda",
+            "description": "Citas y recordatorios"
+        },
+        "facturacion": {
+            "title": "Facturación",
+            "description": "IGV, tickets y SUNAT"
+        },
+        "comunicaciones": {
+            "title": "Comunicaciones",
+            "description": "Firma de correos y WhatsApp"
+        }
+    },
     "sections": {
         "identidad": {
             "title": "Identidad fiscal",
