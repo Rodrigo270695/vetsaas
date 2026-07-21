@@ -271,6 +271,12 @@ return Application::configure(basePath: dirname(__DIR__))
         });
 
         $exceptions->renderable(function (\Throwable $e, Request $request) use ($renderInertiaHttpError) {
+            // Estas excepciones tienen una pantalla específica registrada abajo.
+            // No deben convertirse en el error 500 genérico en producción.
+            if ($e instanceof TenantNotFoundException || $e instanceof TenantSuspendedException) {
+                return null;
+            }
+
             if (app()->hasDebugModeEnabled()) {
                 return null;
             }
@@ -329,6 +335,10 @@ return Application::configure(basePath: dirname(__DIR__))
                 'reason' => $tenant->suspension_reason ?? $tenant->cancel_reason,
                 'suspended_at' => $tenant->suspended_at?->toIso8601String(),
                 'cancelled_at' => $tenant->cancelled_at?->toIso8601String(),
+                'support_whatsapp_phone' => (string) config(
+                    'bot-ia.activation_whatsapp_phone',
+                    '51976809804',
+                ),
             ])
                 ->toResponse($request)
                 ->setStatusCode(403);

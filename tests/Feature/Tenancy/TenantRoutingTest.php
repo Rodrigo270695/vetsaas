@@ -92,6 +92,8 @@ it('un subdominio inexistente renderiza la página "not-found" con 404', functio
 });
 
 it('un tenant suspendido renderiza la página "blocked" con 403', function (): void {
+    config(['app.debug' => false]);
+
     $this->tenant->update([
         'estado' => 'suspended',
         'suspended_at' => now(),
@@ -105,6 +107,7 @@ it('un tenant suspendido renderiza la página "blocked" con 403', function (): v
         ->component('tenant/errors/blocked')
         ->where('estado', 'suspended')
         ->where('reason', 'Falta de pago')
+        ->where('support_whatsapp_phone', '51976809804')
     );
 });
 

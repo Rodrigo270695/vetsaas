@@ -34,11 +34,21 @@ final class TenantSubscriptionAccess
             return self::DENIAL_CANCELLED;
         }
 
-        if ($tenant->estado === 'suspended') {
+        if (
+            $tenant->estado === 'suspended'
+            && ! $tenant->relationLoaded('subscriptions')
+            && $tenant->getKey() === null
+        ) {
             return self::DENIAL_SUSPENDED;
         }
 
         $subscription = $this->latestBillingSubscription($tenant);
+
+        if ($tenant->estado === 'suspended') {
+            return $subscription?->estado === 'suspended'
+                ? self::DENIAL_EXPIRED
+                : self::DENIAL_SUSPENDED;
+        }
 
         if ($subscription instanceof Subscription) {
             if ($subscription->estado === 'cancelled') {

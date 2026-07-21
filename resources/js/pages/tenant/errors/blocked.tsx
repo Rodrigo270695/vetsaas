@@ -1,5 +1,6 @@
 import { Head } from '@inertiajs/react';
-import { Ban, CalendarX, Headphones, Lock } from 'lucide-react';
+import { Ban, CalendarX, Headphones, Lock, MessageCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import type { TenantEstado } from '@/types/tenant';
 
@@ -20,6 +21,7 @@ type BlockedProps = {
     reason: string | null;
     suspended_at: string | null;
     cancelled_at: string | null;
+    support_whatsapp_phone?: string;
 };
 
 const CONFIG: Record<
@@ -71,6 +73,7 @@ export default function TenantBlocked({
     reason,
     suspended_at,
     cancelled_at,
+    support_whatsapp_phone = '51976809804',
 }: BlockedProps) {
     const variant: BlockType =
         block_type ?? (estado === 'cancelled' ? 'cancelled' : 'suspended');
@@ -79,6 +82,10 @@ export default function TenantBlocked({
     const fechaAccion = formatDate(
         variant === 'cancelled' ? cancelled_at : variant === 'suspended' ? suspended_at : null,
     );
+    const supportMessage = encodeURIComponent(
+        `Hola, soy de ${razon_social}. No podemos ingresar a VetSaaS por un pago pendiente. ¿Podrían enviarnos el método y enlace de pago para reactivar la cuenta?`,
+    );
+    const supportUrl = `https://wa.me/${support_whatsapp_phone.replace(/\D/g, '')}?text=${supportMessage}`;
 
     return (
         <>
@@ -117,7 +124,9 @@ export default function TenantBlocked({
                             <Headphones className="size-5 text-primary" />
                             Reactiva tu cuenta
                         </CardTitle>
-                        <CardDescription>Ponte en contacto con el equipo de soporte por los canales habituales.</CardDescription>
+                        <CardDescription>
+                            Contáctanos por WhatsApp para recibir el método de pago y reactivar tu clínica.
+                        </CardDescription>
                     </CardHeader>
                     <CardContent>
                         <ul className="grid gap-2 text-sm text-muted-foreground">
@@ -127,13 +136,22 @@ export default function TenantBlocked({
                             </li>
                             <li className="flex items-start gap-2">
                                 <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary" />
-                                Si tienes un pago pendiente, regulárizalo desde Orvae para que reactivemos tu cuenta.
+                                Te enviaremos el importe y enlace seguro de pago de tu suscripción.
                             </li>
                             <li className="flex items-start gap-2">
                                 <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary" />
-                                Escríbenos respondiendo el último correo que recibiste de VetSaaS.
+                                Cuando se confirme el pago, el acceso podrá habilitarse nuevamente.
                             </li>
                         </ul>
+                        <Button
+                            asChild
+                            className="mt-5 w-full gap-2 bg-emerald-600 text-white hover:bg-emerald-700"
+                        >
+                            <a href={supportUrl} target="_blank" rel="noreferrer">
+                                <MessageCircle className="size-4" />
+                                Solicitar método de pago por WhatsApp
+                            </a>
+                        </Button>
                     </CardContent>
                 </Card>
 

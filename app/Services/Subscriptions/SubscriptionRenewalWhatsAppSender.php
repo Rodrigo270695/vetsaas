@@ -34,8 +34,8 @@ final class SubscriptionRenewalWhatsAppSender
             return $this->fail('La suscripción está cancelada.');
         }
 
-        if (! in_array($subscription->estado, ['active', 'trial', 'grace'], true)) {
-            return $this->fail('Solo se puede enviar a suscripciones activas, en prueba o en gracia.');
+        if (! in_array($subscription->estado, ['active', 'trial', 'grace', 'suspended'], true)) {
+            return $this->fail('Solo se puede enviar a suscripciones vigentes, en prueba, en gracia o suspendidas por pago.');
         }
 
         if (! SubscriptionRenewalBilling::isBillable($subscription)) {

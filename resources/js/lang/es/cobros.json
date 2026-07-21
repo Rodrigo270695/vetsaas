@@ -54,6 +54,7 @@
         "add_note": "Agregar nota interna",
         "edit_note": "Editar nota interna",
         "resend_invoice": "Reenviar factura",
+        "send_payment_whatsapp": "Enviar método de pago por WhatsApp",
         "mark_refunded": "Marcar reembolso manual",
         "refunded_locked": "Cobro ya reembolsado",
         "no_invoice": "Sin factura",
@@ -136,6 +137,12 @@
         "description": "Se reenviará la factura <mono><strong>{{fel}}</strong></mono> al correo <strong>{{email}}</strong>. Esta acción no genera un nuevo número FEL, solo reenvía el correo con el PDF/XML existente.",
         "confirm": "Reenviar factura",
         "loading": "Reenviando…"
+    },
+    "renewal_whatsapp": {
+        "title": "Enviar método de pago",
+        "description": "Se enviará por WhatsApp a {{name}} el importe de renovación y el enlace seguro para pagar.",
+        "hint": "El mensaje usa el teléfono registrado de la clínica e incluye su plan, vencimiento, total y enlace de pago de Orvae.",
+        "confirm": "Enviar por WhatsApp"
     },
     "empty": {
         "no_records_title": "Aún no hay cobros",

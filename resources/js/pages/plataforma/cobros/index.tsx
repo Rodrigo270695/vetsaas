@@ -39,6 +39,7 @@ import type { Paginated } from '@/types';
 import { PaymentDetailModal } from './components/payment-detail-modal';
 import { PaymentNoteDialog } from './components/payment-note-dialog';
 import { PaymentRefundDialog } from './components/payment-refund-dialog';
+import { PaymentRenewalWhatsAppDialog } from './components/payment-renewal-whatsapp-dialog';
 import { PaymentResendInvoiceDialog } from './components/payment-resend-invoice-dialog';
 import { PaymentRowActions } from './components/payment-row-actions';
 import type {
@@ -70,7 +71,8 @@ type ModalState =
     | { type: 'detail'; payment: SubscriptionPayment }
     | { type: 'refund'; payment: SubscriptionPayment }
     | { type: 'note'; payment: SubscriptionPayment }
-    | { type: 'resend'; payment: SubscriptionPayment };
+    | { type: 'resend'; payment: SubscriptionPayment }
+    | { type: 'renewal-whatsapp'; payment: SubscriptionPayment };
 
 const DEFAULT_PER_PAGE = 10;
 const DEFAULT_ESTADO: PaymentEstadoFilter = 'todos';
@@ -159,6 +161,7 @@ export default function Index({
     const canRefund = can('plataforma-cobros.refund');
     const canAddNote = can('plataforma-cobros.add-note');
     const canResend = can('plataforma-cobros.resend-invoice');
+    const canSendRenewalWhatsApp = can('plataforma-suscripciones.update');
     const showRowActions = true;
 
     const {
@@ -274,6 +277,11 @@ export default function Index({
     const openResend = useCallback(
         (payment: SubscriptionPayment) =>
             setModal({ type: 'resend', payment }),
+        [],
+    );
+    const openRenewalWhatsApp = useCallback(
+        (payment: SubscriptionPayment) =>
+            setModal({ type: 'renewal-whatsapp', payment }),
         [],
     );
 
@@ -510,9 +518,11 @@ export default function Index({
                             onAddNote={openNote}
                             onMarkRefunded={openRefund}
                             onResendInvoice={openResend}
+                            onSendRenewalWhatsApp={openRenewalWhatsApp}
                             canAddNote={canAddNote}
                             canRefund={canRefund}
                             canResend={canResend}
+                            canSendRenewalWhatsApp={canSendRenewalWhatsApp}
                         />
                     </div>
                 ),
@@ -528,10 +538,12 @@ export default function Index({
         canAddNote,
         canRefund,
         canResend,
+        canSendRenewalWhatsApp,
         openDetail,
         openNote,
         openRefund,
         openResend,
+        openRenewalWhatsApp,
     ]);
 
     return (
@@ -741,6 +753,15 @@ export default function Index({
                     if (!open) closeModal();
                 }}
                 payment={modal.type === 'resend' ? modal.payment : null}
+            />
+            <PaymentRenewalWhatsAppDialog
+                open={modal.type === 'renewal-whatsapp'}
+                onOpenChange={(open) => {
+                    if (!open) closeModal();
+                }}
+                payment={
+                    modal.type === 'renewal-whatsapp' ? modal.payment : null
+                }
             />
         </>
     );

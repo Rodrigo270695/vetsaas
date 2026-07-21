@@ -54,6 +54,7 @@
         "add_note": "Add internal note",
         "edit_note": "Edit internal note",
         "resend_invoice": "Resend invoice",
+        "send_payment_whatsapp": "Send payment method via WhatsApp",
         "mark_refunded": "Mark manual refund",
         "refunded_locked": "Payment already refunded",
         "no_invoice": "No invoice",
@@ -134,6 +135,12 @@
         "description": "Invoice <mono><strong>{{fel}}</strong></mono> will be resent to <strong>{{email}}</strong>. This action does not generate a new FEL number; it only resends the email with the existing PDF/XML.",
         "confirm": "Resend invoice",
         "loading": "Resending…"
+    },
+    "renewal_whatsapp": {
+        "title": "Send payment method",
+        "description": "The renewal amount and secure payment link will be sent to {{name}} via WhatsApp.",
+        "hint": "The message uses the clinic's registered phone number and includes its plan, due date, total, and Orvae payment link.",
+        "confirm": "Send via WhatsApp"
     },
     "empty": {
         "no_records_title": "No payments yet",

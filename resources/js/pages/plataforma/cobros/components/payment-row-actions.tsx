@@ -3,6 +3,7 @@ import {
     Eye,
     FileText,
     Lock,
+    MessageCircle,
     MoreHorizontal,
     StickyNote,
     Undo2,
@@ -25,9 +26,11 @@ export type PaymentRowActionsProps = {
     onAddNote: (p: SubscriptionPayment) => void;
     onMarkRefunded: (p: SubscriptionPayment) => void;
     onResendInvoice: (p: SubscriptionPayment) => void;
+    onSendRenewalWhatsApp?: (p: SubscriptionPayment) => void;
     canAddNote?: boolean;
     canRefund?: boolean;
     canResend?: boolean;
+    canSendRenewalWhatsApp?: boolean;
 };
 
 /**
@@ -53,9 +56,11 @@ export function PaymentRowActions({
     onAddNote,
     onMarkRefunded,
     onResendInvoice,
+    onSendRenewalWhatsApp,
     canAddNote = true,
     canRefund = true,
     canResend = true,
+    canSendRenewalWhatsApp = false,
 }: PaymentRowActionsProps) {
     const { t } = useTranslation(['cobros', 'common']);
 
@@ -71,6 +76,11 @@ export function PaymentRowActions({
     const showNote = canAddNote && hasPaymentRecord;
     const showResend = canResend && hasFel && hasPaymentRecord;
     const showRefund = canRefund && !isRefunded && !isFailed && !isPending && hasPaymentRecord;
+    const showRenewalWhatsApp =
+        canSendRenewalWhatsApp
+        && onSendRenewalWhatsApp !== undefined
+        && payment.subscription !== null
+        && payment.subscription.estado !== 'cancelled';
 
     const handleCopyTxId = async () => {
         if (!payment.pasarela_transaction_id) return;
@@ -124,6 +134,16 @@ export function PaymentRowActions({
                     >
                         <Copy className="size-4" strokeWidth={2.25} />
                         {t('cobros:row.copy_tx_id')}
+                    </DropdownMenuItem>
+                )}
+
+                {showRenewalWhatsApp && (
+                    <DropdownMenuItem
+                        onSelect={() => onSendRenewalWhatsApp(payment)}
+                        className="cursor-pointer gap-2 text-emerald-700 focus:text-emerald-700 dark:text-emerald-400"
+                    >
+                        <MessageCircle className="size-4" strokeWidth={2.25} />
+                        {t('cobros:row.send_payment_whatsapp')}
                     </DropdownMenuItem>
                 )}
 
