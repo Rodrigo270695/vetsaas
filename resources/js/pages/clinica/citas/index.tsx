@@ -1,7 +1,7 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import { TZDate } from '@date-fns/tz';
 import { Activity, CalendarDays, Download, Filter, LayoutList, Plus, RefreshCw, UserCircle } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Can } from '@/components/can';
 import {
