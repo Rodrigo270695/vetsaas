@@ -56,6 +56,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property bool $notificar_grooming_completado_whatsapp_activo
  * @property bool $notificar_grooming_cancelado_whatsapp_activo
  * @property bool $notificar_grooming_no_asistio_whatsapp_activo
+ * @property bool $notificar_hotel_creado_whatsapp_activo
+ * @property bool $notificar_hotel_confirmado_whatsapp_activo
+ * @property bool $notificar_hotel_en_estancia_whatsapp_activo
+ * @property bool $notificar_hotel_completado_whatsapp_activo
+ * @property bool $notificar_hotel_cancelado_whatsapp_activo
+ * @property bool $notificar_hotel_no_presento_whatsapp_activo
+ * @property bool $notificar_hotel_bitacora_whatsapp_activo
  * @property bool $recordatorio_vacuna_activo
  * @property int $recordatorio_vacuna_dias_antes
  * @property bool $recordatorio_cumple_activo
@@ -110,6 +117,13 @@ class ClinicSetting extends Model
         'notificar_grooming_completado_whatsapp_activo',
         'notificar_grooming_cancelado_whatsapp_activo',
         'notificar_grooming_no_asistio_whatsapp_activo',
+        'notificar_hotel_creado_whatsapp_activo',
+        'notificar_hotel_confirmado_whatsapp_activo',
+        'notificar_hotel_en_estancia_whatsapp_activo',
+        'notificar_hotel_completado_whatsapp_activo',
+        'notificar_hotel_cancelado_whatsapp_activo',
+        'notificar_hotel_no_presento_whatsapp_activo',
+        'notificar_hotel_bitacora_whatsapp_activo',
         'recordatorio_vacuna_activo',
         'recordatorio_vacuna_dias_antes',
         'recordatorio_cumple_activo',
@@ -164,6 +178,13 @@ class ClinicSetting extends Model
             'notificar_grooming_completado_whatsapp_activo' => 'boolean',
             'notificar_grooming_cancelado_whatsapp_activo' => 'boolean',
             'notificar_grooming_no_asistio_whatsapp_activo' => 'boolean',
+            'notificar_hotel_creado_whatsapp_activo' => 'boolean',
+            'notificar_hotel_confirmado_whatsapp_activo' => 'boolean',
+            'notificar_hotel_en_estancia_whatsapp_activo' => 'boolean',
+            'notificar_hotel_completado_whatsapp_activo' => 'boolean',
+            'notificar_hotel_cancelado_whatsapp_activo' => 'boolean',
+            'notificar_hotel_no_presento_whatsapp_activo' => 'boolean',
+            'notificar_hotel_bitacora_whatsapp_activo' => 'boolean',
             'recordatorio_vacuna_activo' => 'boolean',
             'recordatorio_vacuna_dias_antes' => 'integer',
             'recordatorio_cumple_activo' => 'boolean',
@@ -263,6 +284,28 @@ class ClinicSetting extends Model
             'completada' => 'notificar_grooming_completado_whatsapp_activo',
             'cancelada' => 'notificar_grooming_cancelado_whatsapp_activo',
             'no_asistio' => 'notificar_grooming_no_asistio_whatsapp_activo',
+            default => null,
+        };
+
+        if ($attribute === null) {
+            return false;
+        }
+
+        $value = $this->getAttribute($attribute);
+
+        return $value === null ? true : (bool) $value;
+    }
+
+    public function notificarHotelWhatsAppActivo(string $evento): bool
+    {
+        $attribute = match ($evento) {
+            'programada', 'reprogramada' => 'notificar_hotel_creado_whatsapp_activo',
+            'confirmada' => 'notificar_hotel_confirmado_whatsapp_activo',
+            'en_estancia' => 'notificar_hotel_en_estancia_whatsapp_activo',
+            'completada' => 'notificar_hotel_completado_whatsapp_activo',
+            'cancelada' => 'notificar_hotel_cancelado_whatsapp_activo',
+            'no_presento' => 'notificar_hotel_no_presento_whatsapp_activo',
+            'bitacora' => 'notificar_hotel_bitacora_whatsapp_activo',
             default => null,
         };
 

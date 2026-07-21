@@ -356,6 +356,75 @@ final class ReminderMessageBuilder
         ]);
     }
 
+    public function hotelEstanciaEvento(
+        string $clinicName,
+        string $ownerName,
+        string $petName,
+        string $evento,
+        CarbonInterface $ingresoAt,
+        ?CarbonInterface $egresoAt = null,
+    ): string {
+        $ingreso = $ingresoAt->timezone(config('app.timezone'));
+        $fechaIngreso = $ingreso->translatedFormat('d/m/Y');
+        $horaIngreso = $ingreso->format('H:i');
+        $fechaEgreso = $egresoAt?->timezone(config('app.timezone'))->translatedFormat('d/m/Y');
+
+        $detalle = match ($evento) {
+            'reprogramada' => "🔄 Reprogramamos la estancia de *{$petName}*",
+            'confirmada' => "✅ Confirmamos la estancia de *{$petName}*",
+            'en_estancia' => "🏨 *{$petName}* ya ingresó al hotel",
+            'completada' => "🏡 La estancia de *{$petName}* fue completada",
+            'cancelada' => "La estancia de *{$petName}* fue *cancelada*.",
+            'no_presento' => "Registramos que *{$petName}* *no se presentó* a su estancia.",
+            default => "✅ Registramos la estancia de *{$petName}*",
+        };
+
+        $lines = [
+            "Hola {$ownerName} 👋",
+            '',
+            $detalle,
+            "📅 Ingreso: *{$fechaIngreso}* a las *{$horaIngreso}*",
+        ];
+
+        if ($fechaEgreso !== null) {
+            $lines[] = "📅 Egreso previsto: *{$fechaEgreso}*";
+        }
+
+        $lines[] = '';
+        $lines[] = match ($evento) {
+            'en_estancia' => 'Te mantendremos informado durante su estadía 🐾',
+            'completada' => 'Gracias por confiar en nosotros 🐾',
+            'cancelada', 'no_presento' => 'Si deseas reprogramar, comunícate con la clínica.',
+            default => 'Te esperamos 🐾',
+        };
+        $lines[] = '';
+        $lines[] = "— {$clinicName}";
+
+        return implode("\n", $lines);
+    }
+
+    public function hotelBitacora(
+        string $clinicName,
+        string $ownerName,
+        string $petName,
+        CarbonInterface $fecha,
+        ?string $notas,
+    ): string {
+        $detalle = trim((string) $notas);
+
+        return implode("\n", [
+            "Hola {$ownerName} 👋",
+            '',
+            "📋 Nueva actualización de la estancia de *{$petName}*",
+            '📅 *'.$fecha->translatedFormat('d/m/Y').'*',
+            $detalle !== '' ? "📝 {$detalle}" : '📝 Sin observaciones adicionales.',
+            '',
+            'Seguimos cuidándolo 🐾',
+            '',
+            "— {$clinicName}",
+        ]);
+    }
+
     public function clinicDisplayName(?ClinicSetting $setting): string
     {
         if ($setting === null) {

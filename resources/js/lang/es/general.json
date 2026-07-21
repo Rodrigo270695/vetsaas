@@ -59,6 +59,10 @@
             "title": "WhatsApp de grooming",
             "description": "Elige en qué momentos del servicio se avisará automáticamente al propietario. Todos están activos por defecto."
         },
+        "hotel_notificaciones": {
+            "title": "WhatsApp de hotel",
+            "description": "Configura los avisos de cada etapa de la estancia y las actualizaciones de bitácora."
+        },
         "facturacion": {
             "title": "Facturación y comprobantes SUNAT",
             "description": "Moneda, IGV y si tu clínica emitirá boletas o facturas electrónicas (según tu plan). La conexión con Nubefact es opcional hasta que actives la emisión."
@@ -124,6 +128,20 @@
         "notificar_grooming_cancelado_whatsapp_activo_hint": "Notifica al propietario que el turno fue cancelado.",
         "notificar_grooming_no_asistio_whatsapp_activo": "Cuando se marca que no asistió",
         "notificar_grooming_no_asistio_whatsapp_activo_hint": "Informa que la inasistencia quedó registrada y ofrece reagendar.",
+        "notificar_hotel_creado_whatsapp_activo": "Al crear o reprogramar la estancia",
+        "notificar_hotel_creado_whatsapp_activo_hint": "Confirma al propietario las fechas de ingreso y egreso previstas.",
+        "notificar_hotel_confirmado_whatsapp_activo": "Cuando la estancia se confirma",
+        "notificar_hotel_confirmado_whatsapp_activo_hint": "Avisa que la reserva de hotel quedó confirmada.",
+        "notificar_hotel_en_estancia_whatsapp_activo": "Cuando la mascota ingresa",
+        "notificar_hotel_en_estancia_whatsapp_activo_hint": "Informa que la mascota ya se encuentra en el hotel.",
+        "notificar_hotel_completado_whatsapp_activo": "Cuando la estancia se completa",
+        "notificar_hotel_completado_whatsapp_activo_hint": "Notifica que la estancia finalizó correctamente.",
+        "notificar_hotel_cancelado_whatsapp_activo": "Cuando la estancia se cancela",
+        "notificar_hotel_cancelado_whatsapp_activo_hint": "Informa al propietario que la reserva fue cancelada.",
+        "notificar_hotel_no_presento_whatsapp_activo": "Cuando se marca que no se presentó",
+        "notificar_hotel_no_presento_whatsapp_activo_hint": "Comunica que la inasistencia quedó registrada.",
+        "notificar_hotel_bitacora_whatsapp_activo": "Al registrar una bitácora",
+        "notificar_hotel_bitacora_whatsapp_activo_hint": "Envía al propietario la fecha y las observaciones de la nueva actualización.",
         "recordatorio_48h_activo": "Recordatorio 48 horas antes",
         "recordatorio_48h_activo_hint": "Avisa al cliente dos días antes de su cita.",
         "recordatorio_2h_activo": "Recordatorio 2 horas antes",

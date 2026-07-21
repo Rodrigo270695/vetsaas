@@ -9,9 +9,11 @@ use App\Http\Requests\StoreHotelEstanciaRequest;
 use App\Http\Requests\UpdateHotelEstanciaRequest;
 use App\Models\HotelEstancia;
 use App\Models\HotelEstanciaDiario;
+use App\Models\HotelTipoEstancia;
 use App\Models\Paciente;
 use App\Models\Sede;
 use App\Models\User;
+use App\Services\Hotel\HotelWhatsAppNotifier;
 use App\Support\Hotel\HotelEstanciaTipoRules;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -175,7 +177,7 @@ class HotelEstanciaController extends Controller
         $catalogoPersonalizado = HotelCatalogoMode::usaCatalogoPersonalizado();
 
         $hotelTipos = $catalogoPersonalizado
-            ? \App\Models\HotelTipoEstancia::query()
+            ? HotelTipoEstancia::query()
                 ->orderBy('orden')
                 ->orderBy('nombre')
                 ->get(['id', 'nombre', 'categoria', 'codigo_legacy', 'precio_lista', 'moneda', 'activo', 'orden'])
@@ -210,14 +212,17 @@ class HotelEstanciaController extends Controller
         ]);
     }
 
-    public function store(StoreHotelEstanciaRequest $request): RedirectResponse
-    {
+    public function store(
+        StoreHotelEstanciaRequest $request,
+        HotelWhatsAppNotifier $notifier,
+    ): RedirectResponse {
         $data = HotelEstanciaTipoRules::normalizarParaPersistencia($request->validated());
         $data['estado'] = HotelEstancia::ESTADO_PROGRAMADA;
         $data['created_by_id'] = Auth::id();
         $data['updated_by_id'] = Auth::id();
 
-        HotelEstancia::query()->create($data);
+        $estancia = HotelEstancia::query()->create($data);
+        $notifier->notify($estancia, HotelEstancia::ESTADO_PROGRAMADA);
 
         return redirect()
             ->route('servicios.hotel', $request->only([
@@ -226,13 +231,24 @@ class HotelEstanciaController extends Controller
             ->with('success', __('hotel.flash.created'));
     }
 
-    public function update(UpdateHotelEstanciaRequest $request, HotelEstancia $hotelEstancia): RedirectResponse
-    {
+    public function update(
+        UpdateHotelEstanciaRequest $request,
+        HotelEstancia $hotelEstancia,
+        HotelWhatsAppNotifier $notifier,
+    ): RedirectResponse {
         $data = HotelEstanciaTipoRules::normalizarParaPersistencia($request->validated());
         $data['updated_by_id'] = Auth::id();
 
         $hotelEstancia->fill($data);
+        $estadoCambio = $hotelEstancia->isDirty('estado');
+        $ingresoCambio = $hotelEstancia->isDirty('ingreso_at');
         $hotelEstancia->save();
+
+        if ($estadoCambio) {
+            $notifier->notify($hotelEstancia, $hotelEstancia->estado);
+        } elseif ($ingresoCambio) {
+            $notifier->notify($hotelEstancia, 'reprogramada');
+        }
 
         return redirect()
             ->route('servicios.hotel', $request->only([
@@ -276,8 +292,11 @@ class HotelEstanciaController extends Controller
         return response()->json(['data' => $data]);
     }
 
-    public function diariosStore(StoreHotelEstanciaDiarioRequest $request, HotelEstancia $hotelEstancia): JsonResponse
-    {
+    public function diariosStore(
+        StoreHotelEstanciaDiarioRequest $request,
+        HotelEstancia $hotelEstancia,
+        HotelWhatsAppNotifier $notifier,
+    ): JsonResponse {
         $validated = $request->validated();
 
         $diario = $hotelEstancia->diarios()->create([
@@ -287,6 +306,7 @@ class HotelEstanciaController extends Controller
         ]);
 
         $diario->load(['creadoPor:id,name']);
+        $whatsapp = $notifier->notify($hotelEstancia, 'bitacora', $diario);
 
         return response()->json([
             'data' => [
@@ -298,6 +318,7 @@ class HotelEstanciaController extends Controller
                     ? ['id' => $diario->creadoPor->id, 'name' => $diario->creadoPor->name]
                     : null,
             ],
+            'whatsapp' => $whatsapp,
         ], 201);
     }
 

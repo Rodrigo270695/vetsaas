@@ -31,7 +31,6 @@ use App\Models\Compra;
 use App\Models\CompraLinea;
 use App\Models\Consulta;
 use App\Models\Distrito;
-use App\Models\ExistenciaSede;
 use App\Models\GroomingTurno;
 use App\Models\HistoriaClinica;
 use App\Models\HotelEstancia;
@@ -52,8 +51,9 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Models\VacunaAplicada;
 use App\Models\Venta;
-use App\Services\Venta\VentaCheckoutService;
+use App\Services\Hotel\HotelWhatsAppNotifier;
 use App\Services\Inventario\InventarioLoteService;
+use App\Services\Venta\VentaCheckoutService;
 use App\Support\Grooming\GroomingTurnoServicioRules;
 use App\Support\Hotel\HotelEstanciaTipoRules;
 use App\Support\Vacunas\VacunaAplicadaStockSync;
@@ -61,6 +61,7 @@ use App\Tenancy\TenantManager;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -73,6 +74,7 @@ final class OfflineSyncPushService
     public function __construct(
         private readonly VentaCheckoutService $checkout,
         private readonly TenantManager $tenants,
+        private readonly HotelWhatsAppNotifier $hotelNotifier,
     ) {}
 
     /**
@@ -648,7 +650,7 @@ final class OfflineSyncPushService
             $stockCantidad = $validated['stock_inicial_cantidad'] ?? null;
             $numeroLote = $validated['numero_lote'] ?? null;
             $fechaVencimiento = $validated['fecha_vencimiento'] ?? null;
-            $productoData = \Illuminate\Support\Arr::except($validated, [
+            $productoData = Arr::except($validated, [
                 'stock_inicial_sede_id',
                 'stock_inicial_cantidad',
                 'numero_lote',
@@ -849,6 +851,7 @@ final class OfflineSyncPushService
                     'updated_by_id' => $uid,
                 ]);
             });
+            $this->hotelNotifier->notify($estancia, HotelEstancia::ESTADO_PROGRAMADA);
 
             $label = $estancia->ingreso_at->format('Y-m-d H:i');
 

@@ -79,6 +79,13 @@ export type ClinicSetting = {
     notificar_grooming_completado_whatsapp_activo: boolean;
     notificar_grooming_cancelado_whatsapp_activo: boolean;
     notificar_grooming_no_asistio_whatsapp_activo: boolean;
+    notificar_hotel_creado_whatsapp_activo: boolean;
+    notificar_hotel_confirmado_whatsapp_activo: boolean;
+    notificar_hotel_en_estancia_whatsapp_activo: boolean;
+    notificar_hotel_completado_whatsapp_activo: boolean;
+    notificar_hotel_cancelado_whatsapp_activo: boolean;
+    notificar_hotel_no_presento_whatsapp_activo: boolean;
+    notificar_hotel_bitacora_whatsapp_activo: boolean;
     recordatorio_vacuna_activo: boolean;
     recordatorio_vacuna_dias_antes: number;
     recordatorio_cumple_activo: boolean;

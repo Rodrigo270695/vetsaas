@@ -7,6 +7,7 @@ import {
     CheckCircle2,
     Eye,
     EyeOff,
+    Hotel,
     Info,
     KeyRound,
     Loader2,
@@ -38,12 +39,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import {
-    Tabs,
-    TabsContent,
-    TabsList,
-    TabsTrigger,
-} from '@/components/ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { usePermission } from '@/hooks/use-permission';
 import AppLayout from '@/layouts/app-layout';
 import { toastManager } from '@/lib/toast';
@@ -111,6 +107,13 @@ type FormState = {
     notificar_grooming_completado_whatsapp_activo: boolean;
     notificar_grooming_cancelado_whatsapp_activo: boolean;
     notificar_grooming_no_asistio_whatsapp_activo: boolean;
+    notificar_hotel_creado_whatsapp_activo: boolean;
+    notificar_hotel_confirmado_whatsapp_activo: boolean;
+    notificar_hotel_en_estancia_whatsapp_activo: boolean;
+    notificar_hotel_completado_whatsapp_activo: boolean;
+    notificar_hotel_cancelado_whatsapp_activo: boolean;
+    notificar_hotel_no_presento_whatsapp_activo: boolean;
+    notificar_hotel_bitacora_whatsapp_activo: boolean;
     recordatorio_vacuna_activo: boolean;
     recordatorio_vacuna_dias_antes: number;
     recordatorio_cumple_activo: boolean;
@@ -160,6 +163,20 @@ const buildInitialState = (setting: ClinicSetting): FormState => ({
         setting.notificar_grooming_cancelado_whatsapp_activo ?? true,
     notificar_grooming_no_asistio_whatsapp_activo:
         setting.notificar_grooming_no_asistio_whatsapp_activo ?? true,
+    notificar_hotel_creado_whatsapp_activo:
+        setting.notificar_hotel_creado_whatsapp_activo ?? true,
+    notificar_hotel_confirmado_whatsapp_activo:
+        setting.notificar_hotel_confirmado_whatsapp_activo ?? true,
+    notificar_hotel_en_estancia_whatsapp_activo:
+        setting.notificar_hotel_en_estancia_whatsapp_activo ?? true,
+    notificar_hotel_completado_whatsapp_activo:
+        setting.notificar_hotel_completado_whatsapp_activo ?? true,
+    notificar_hotel_cancelado_whatsapp_activo:
+        setting.notificar_hotel_cancelado_whatsapp_activo ?? true,
+    notificar_hotel_no_presento_whatsapp_activo:
+        setting.notificar_hotel_no_presento_whatsapp_activo ?? true,
+    notificar_hotel_bitacora_whatsapp_activo:
+        setting.notificar_hotel_bitacora_whatsapp_activo ?? true,
     recordatorio_vacuna_activo: setting.recordatorio_vacuna_activo,
     recordatorio_vacuna_dias_antes: setting.recordatorio_vacuna_dias_antes,
     recordatorio_cumple_activo: setting.recordatorio_cumple_activo,
@@ -232,7 +249,8 @@ const resolveErrorTab = (errors: Record<string, string>): GeneralTab => {
             (key) =>
                 key.startsWith('recordatorio_') ||
                 key === 'notificar_cita_whatsapp_activo' ||
-                key.startsWith('notificar_grooming_'),
+                key.startsWith('notificar_grooming_') ||
+                key.startsWith('notificar_hotel_'),
         )
     ) {
         return 'notificaciones';
@@ -358,8 +376,9 @@ export default function Index({
             // Booleans → '1' / '0' para que sobrevivan al multipart.
             recordatorio_48h_activo: data.recordatorio_48h_activo ? 1 : 0,
             recordatorio_2h_activo: data.recordatorio_2h_activo ? 1 : 0,
-            notificar_cita_whatsapp_activo:
-                data.notificar_cita_whatsapp_activo ? 1 : 0,
+            notificar_cita_whatsapp_activo: data.notificar_cita_whatsapp_activo
+                ? 1
+                : 0,
             notificar_grooming_creado_whatsapp_activo:
                 data.notificar_grooming_creado_whatsapp_activo ? 1 : 0,
             notificar_grooming_en_proceso_whatsapp_activo:
@@ -370,6 +389,20 @@ export default function Index({
                 data.notificar_grooming_cancelado_whatsapp_activo ? 1 : 0,
             notificar_grooming_no_asistio_whatsapp_activo:
                 data.notificar_grooming_no_asistio_whatsapp_activo ? 1 : 0,
+            notificar_hotel_creado_whatsapp_activo:
+                data.notificar_hotel_creado_whatsapp_activo ? 1 : 0,
+            notificar_hotel_confirmado_whatsapp_activo:
+                data.notificar_hotel_confirmado_whatsapp_activo ? 1 : 0,
+            notificar_hotel_en_estancia_whatsapp_activo:
+                data.notificar_hotel_en_estancia_whatsapp_activo ? 1 : 0,
+            notificar_hotel_completado_whatsapp_activo:
+                data.notificar_hotel_completado_whatsapp_activo ? 1 : 0,
+            notificar_hotel_cancelado_whatsapp_activo:
+                data.notificar_hotel_cancelado_whatsapp_activo ? 1 : 0,
+            notificar_hotel_no_presento_whatsapp_activo:
+                data.notificar_hotel_no_presento_whatsapp_activo ? 1 : 0,
+            notificar_hotel_bitacora_whatsapp_activo:
+                data.notificar_hotel_bitacora_whatsapp_activo ? 1 : 0,
             recordatorio_vacuna_activo: data.recordatorio_vacuna_activo ? 1 : 0,
             recordatorio_cumple_activo: data.recordatorio_cumple_activo ? 1 : 0,
             precio_incluye_igv: data.precio_incluye_igv ? 1 : 0,
@@ -472,7 +505,7 @@ export default function Index({
 
             <form
                 onSubmit={handleSubmit}
-                className="flex flex-1 flex-col gap-5 p-4 pb-24 sm:p-6 sm:pb-24"
+                className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 p-4 pb-24 sm:p-6 sm:pb-24"
                 noValidate
                 encType="multipart/form-data"
             >
@@ -542,1174 +575,1301 @@ export default function Index({
 
                 <Tabs
                     value={activeTab}
-                    onValueChange={(value) =>
-                        setActiveTab(value as GeneralTab)
-                    }
+                    onValueChange={(value) => setActiveTab(value as GeneralTab)}
                     className="gap-5"
                 >
-                    <TabsList className="grid h-auto w-full grid-cols-2 gap-2 bg-transparent p-0 lg:grid-cols-5">
-                        <TabsTrigger
-                            value="clinica"
-                            className="group h-auto min-h-18 justify-start gap-3 border-border/70 bg-card/70 p-3 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-sky-300 hover:shadow-md data-[state=active]:border-sky-400 data-[state=active]:bg-sky-50 data-[state=active]:text-sky-950 dark:data-[state=active]:bg-sky-950/40 dark:data-[state=active]:text-sky-100"
-                        >
-                            <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-sky-500/12 text-sky-700 ring-1 ring-sky-500/20 dark:text-sky-300">
-                                <Building2 className="size-4.5" />
-                            </span>
-                            <span className="min-w-0">
-                                <span className="block font-semibold">
-                                    {t('tabs.clinica.title')}
+                    <div className="sticky top-0 z-30 -mx-2 border-b border-transparent bg-background/95 px-2 py-2 backdrop-blur-md supports-backdrop-filter:bg-background/85">
+                        <TabsList className="grid h-auto w-full grid-cols-2 gap-2 bg-transparent p-0 lg:grid-cols-5">
+                            <TabsTrigger
+                                value="clinica"
+                                className="group h-auto min-h-18 cursor-pointer justify-start gap-3 border-border/70 bg-card/70 p-3 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-sky-300 hover:shadow-md data-[state=active]:border-sky-400 data-[state=active]:bg-sky-50 data-[state=active]:text-sky-950 dark:data-[state=active]:bg-sky-950/40 dark:data-[state=active]:text-sky-100"
+                            >
+                                <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-sky-500/12 text-sky-700 ring-1 ring-sky-500/20 dark:text-sky-300">
+                                    <Building2 className="size-4.5" />
                                 </span>
-                                <span className="hidden truncate text-[11px] font-normal text-muted-foreground sm:block">
-                                    {t('tabs.clinica.description')}
+                                <span className="min-w-0">
+                                    <span className="block font-semibold">
+                                        {t('tabs.clinica.title')}
+                                    </span>
+                                    <span className="hidden truncate text-[11px] font-normal text-muted-foreground sm:block">
+                                        {t('tabs.clinica.description')}
+                                    </span>
                                 </span>
-                            </span>
-                        </TabsTrigger>
-                        <TabsTrigger
-                            value="agenda"
-                            className="group h-auto min-h-18 justify-start gap-3 border-border/70 bg-card/70 p-3 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-violet-300 hover:shadow-md data-[state=active]:border-violet-400 data-[state=active]:bg-violet-50 data-[state=active]:text-violet-950 dark:data-[state=active]:bg-violet-950/40 dark:data-[state=active]:text-violet-100"
-                        >
-                            <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-violet-500/12 text-violet-700 ring-1 ring-violet-500/20 dark:text-violet-300">
-                                <CalendarClock className="size-4.5" />
-                            </span>
-                            <span className="min-w-0">
-                                <span className="block font-semibold">
-                                    {t('tabs.agenda.title')}
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="agenda"
+                                className="group h-auto min-h-18 cursor-pointer justify-start gap-3 border-border/70 bg-card/70 p-3 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-violet-300 hover:shadow-md data-[state=active]:border-violet-400 data-[state=active]:bg-violet-50 data-[state=active]:text-violet-950 dark:data-[state=active]:bg-violet-950/40 dark:data-[state=active]:text-violet-100"
+                            >
+                                <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-violet-500/12 text-violet-700 ring-1 ring-violet-500/20 dark:text-violet-300">
+                                    <CalendarClock className="size-4.5" />
                                 </span>
-                                <span className="hidden truncate text-[11px] font-normal text-muted-foreground sm:block">
-                                    {t('tabs.agenda.description')}
+                                <span className="min-w-0">
+                                    <span className="block font-semibold">
+                                        {t('tabs.agenda.title')}
+                                    </span>
+                                    <span className="hidden truncate text-[11px] font-normal text-muted-foreground sm:block">
+                                        {t('tabs.agenda.description')}
+                                    </span>
                                 </span>
-                            </span>
-                        </TabsTrigger>
-                        <TabsTrigger
-                            value="notificaciones"
-                            className="group h-auto min-h-18 justify-start gap-3 border-border/70 bg-card/70 p-3 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-rose-300 hover:shadow-md data-[state=active]:border-rose-400 data-[state=active]:bg-rose-50 data-[state=active]:text-rose-950 dark:data-[state=active]:bg-rose-950/40 dark:data-[state=active]:text-rose-100"
-                        >
-                            <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-rose-500/12 text-rose-700 ring-1 ring-rose-500/20 dark:text-rose-300">
-                                <Bell className="size-4.5" />
-                            </span>
-                            <span className="min-w-0">
-                                <span className="block font-semibold">
-                                    {t('tabs.notificaciones.title')}
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="notificaciones"
+                                className="group h-auto min-h-18 cursor-pointer justify-start gap-3 border-border/70 bg-card/70 p-3 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-rose-300 hover:shadow-md data-[state=active]:border-rose-400 data-[state=active]:bg-rose-50 data-[state=active]:text-rose-950 dark:data-[state=active]:bg-rose-950/40 dark:data-[state=active]:text-rose-100"
+                            >
+                                <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-rose-500/12 text-rose-700 ring-1 ring-rose-500/20 dark:text-rose-300">
+                                    <Bell className="size-4.5" />
                                 </span>
-                                <span className="hidden truncate text-[11px] font-normal text-muted-foreground sm:block">
-                                    {t('tabs.notificaciones.description')}
+                                <span className="min-w-0">
+                                    <span className="block font-semibold">
+                                        {t('tabs.notificaciones.title')}
+                                    </span>
+                                    <span className="hidden truncate text-[11px] font-normal text-muted-foreground sm:block">
+                                        {t('tabs.notificaciones.description')}
+                                    </span>
                                 </span>
-                            </span>
-                        </TabsTrigger>
-                        <TabsTrigger
-                            value="facturacion"
-                            className="group h-auto min-h-18 justify-start gap-3 border-border/70 bg-card/70 p-3 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md data-[state=active]:border-emerald-400 data-[state=active]:bg-emerald-50 data-[state=active]:text-emerald-950 dark:data-[state=active]:bg-emerald-950/40 dark:data-[state=active]:text-emerald-100"
-                        >
-                            <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500/12 text-emerald-700 ring-1 ring-emerald-500/20 dark:text-emerald-300">
-                                <Receipt className="size-4.5" />
-                            </span>
-                            <span className="min-w-0">
-                                <span className="block font-semibold">
-                                    {t('tabs.facturacion.title')}
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="facturacion"
+                                className="group h-auto min-h-18 cursor-pointer justify-start gap-3 border-border/70 bg-card/70 p-3 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md data-[state=active]:border-emerald-400 data-[state=active]:bg-emerald-50 data-[state=active]:text-emerald-950 dark:data-[state=active]:bg-emerald-950/40 dark:data-[state=active]:text-emerald-100"
+                            >
+                                <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500/12 text-emerald-700 ring-1 ring-emerald-500/20 dark:text-emerald-300">
+                                    <Receipt className="size-4.5" />
                                 </span>
-                                <span className="hidden truncate text-[11px] font-normal text-muted-foreground sm:block">
-                                    {t('tabs.facturacion.description')}
+                                <span className="min-w-0">
+                                    <span className="block font-semibold">
+                                        {t('tabs.facturacion.title')}
+                                    </span>
+                                    <span className="hidden truncate text-[11px] font-normal text-muted-foreground sm:block">
+                                        {t('tabs.facturacion.description')}
+                                    </span>
                                 </span>
-                            </span>
-                        </TabsTrigger>
-                        <TabsTrigger
-                            value="comunicaciones"
-                            className="group h-auto min-h-18 justify-start gap-3 border-border/70 bg-card/70 p-3 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-amber-300 hover:shadow-md data-[state=active]:border-amber-400 data-[state=active]:bg-amber-50 data-[state=active]:text-amber-950 dark:data-[state=active]:bg-amber-950/40 dark:data-[state=active]:text-amber-100"
-                        >
-                            <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-amber-500/12 text-amber-700 ring-1 ring-amber-500/20 dark:text-amber-300">
-                                <Megaphone className="size-4.5" />
-                            </span>
-                            <span className="min-w-0">
-                                <span className="block font-semibold">
-                                    {t('tabs.comunicaciones.title')}
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="comunicaciones"
+                                className="group h-auto min-h-18 cursor-pointer justify-start gap-3 border-border/70 bg-card/70 p-3 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-amber-300 hover:shadow-md data-[state=active]:border-amber-400 data-[state=active]:bg-amber-50 data-[state=active]:text-amber-950 dark:data-[state=active]:bg-amber-950/40 dark:data-[state=active]:text-amber-100"
+                            >
+                                <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-amber-500/12 text-amber-700 ring-1 ring-amber-500/20 dark:text-amber-300">
+                                    <Megaphone className="size-4.5" />
                                 </span>
-                                <span className="hidden truncate text-[11px] font-normal text-muted-foreground sm:block">
-                                    {t('tabs.comunicaciones.description')}
+                                <span className="min-w-0">
+                                    <span className="block font-semibold">
+                                        {t('tabs.comunicaciones.title')}
+                                    </span>
+                                    <span className="hidden truncate text-[11px] font-normal text-muted-foreground sm:block">
+                                        {t('tabs.comunicaciones.description')}
+                                    </span>
                                 </span>
-                            </span>
-                        </TabsTrigger>
-                    </TabsList>
+                            </TabsTrigger>
+                        </TabsList>
+                    </div>
 
                     <TabsContent
                         value="clinica"
                         className="space-y-5 data-[state=active]:animate-in data-[state=active]:fade-in-50"
                     >
-                {/* ───── Identidad fiscal ───── */}
-                <SectionCard
-                    icon={Building2}
-                    title={t('sections.identidad.title')}
-                    description={t('sections.identidad.description')}
-                >
-                    <FormSection
-                        index={0}
-                        title=""
-                        columns={2}
-                        className="gap-0"
-                    >
-                        <FormField
-                            id="general-ruc"
-                            label={t('fields.ruc')}
-                            error={errors.ruc}
-                            hint={t('fields.ruc_hint')}
+                        {/* ───── Identidad fiscal ───── */}
+                        <SectionCard
+                            icon={Building2}
+                            title={t('sections.identidad.title')}
+                            description={t('sections.identidad.description')}
                         >
-                            <Input
-                                id="general-ruc"
-                                value={data.ruc}
-                                onChange={(e) =>
-                                    setData(
-                                        'ruc',
-                                        e.target.value
-                                            .replace(/\D/g, '')
-                                            .slice(0, 11),
-                                    )
-                                }
-                                placeholder="20123456789"
-                                maxLength={11}
-                                inputMode="numeric"
-                                className="font-mono tabular-nums"
-                                disabled={!canUpdate}
-                            />
-                        </FormField>
+                            <FormSection
+                                index={0}
+                                title=""
+                                columns={2}
+                                className="gap-0"
+                            >
+                                <FormField
+                                    id="general-ruc"
+                                    label={t('fields.ruc')}
+                                    error={errors.ruc}
+                                    hint={t('fields.ruc_hint')}
+                                >
+                                    <Input
+                                        id="general-ruc"
+                                        value={data.ruc}
+                                        onChange={(e) =>
+                                            setData(
+                                                'ruc',
+                                                e.target.value
+                                                    .replace(/\D/g, '')
+                                                    .slice(0, 11),
+                                            )
+                                        }
+                                        placeholder="20123456789"
+                                        maxLength={11}
+                                        inputMode="numeric"
+                                        className="font-mono tabular-nums"
+                                        disabled={!canUpdate}
+                                    />
+                                </FormField>
 
-                        <FormField
-                            id="general-razon-social"
-                            label={t('fields.razon_social')}
-                            error={errors.razon_social}
+                                <FormField
+                                    id="general-razon-social"
+                                    label={t('fields.razon_social')}
+                                    error={errors.razon_social}
+                                >
+                                    <Input
+                                        id="general-razon-social"
+                                        value={data.razon_social}
+                                        onChange={(e) =>
+                                            setData(
+                                                'razon_social',
+                                                e.target.value,
+                                            )
+                                        }
+                                        placeholder="Clínica Veterinaria San Patricio SAC"
+                                        disabled={!canUpdate}
+                                    />
+                                </FormField>
+
+                                <FormField
+                                    id="general-nombre-comercial"
+                                    label={t('fields.nombre_comercial')}
+                                    error={errors.nombre_comercial}
+                                    hint={t('fields.nombre_comercial_hint')}
+                                    className="sm:col-span-2"
+                                >
+                                    <Input
+                                        id="general-nombre-comercial"
+                                        value={data.nombre_comercial}
+                                        onChange={(e) =>
+                                            setData(
+                                                'nombre_comercial',
+                                                e.target.value,
+                                            )
+                                        }
+                                        placeholder="San Patricio Vet"
+                                        disabled={!canUpdate}
+                                    />
+                                </FormField>
+
+                                <FormField
+                                    id="general-direccion-fiscal"
+                                    label={t('fields.direccion_fiscal')}
+                                    error={errors.direccion_fiscal}
+                                    className="sm:col-span-2"
+                                >
+                                    <Input
+                                        id="general-direccion-fiscal"
+                                        value={data.direccion_fiscal}
+                                        onChange={(e) =>
+                                            setData(
+                                                'direccion_fiscal',
+                                                e.target.value,
+                                            )
+                                        }
+                                        placeholder="Av. Javier Prado Este 1234, San Isidro"
+                                        disabled={!canUpdate}
+                                    />
+                                </FormField>
+
+                                <div className="sm:col-span-2">
+                                    <GeoCascadeFields
+                                        departamentos={departamentos}
+                                        value={geo}
+                                        onChange={handleGeoChange}
+                                        disabled={!canUpdate || processing}
+                                        errors={{
+                                            distrito_id: errors.distrito_id,
+                                        }}
+                                        labels={{
+                                            departamento: t(
+                                                'fields.departamento',
+                                            ),
+                                            provincia: t('fields.provincia'),
+                                            distrito: t('fields.distrito'),
+                                        }}
+                                    />
+                                </div>
+                            </FormSection>
+                        </SectionCard>
+
+                        {/* ───── Contacto ───── */}
+                        <SectionCard
+                            icon={Phone}
+                            title={t('sections.contacto.title')}
+                            description={t('sections.contacto.description')}
                         >
-                            <Input
-                                id="general-razon-social"
-                                value={data.razon_social}
-                                onChange={(e) =>
-                                    setData('razon_social', e.target.value)
-                                }
-                                placeholder="Clínica Veterinaria San Patricio SAC"
-                                disabled={!canUpdate}
-                            />
-                        </FormField>
+                            <FormSection
+                                index={1}
+                                title=""
+                                columns={2}
+                                className="gap-0"
+                            >
+                                <FormField
+                                    id="general-email-institucional"
+                                    label={t('fields.email_institucional')}
+                                    error={errors.email_institucional}
+                                >
+                                    <Input
+                                        id="general-email-institucional"
+                                        type="email"
+                                        value={data.email_institucional}
+                                        onChange={(e) =>
+                                            setData(
+                                                'email_institucional',
+                                                e.target.value,
+                                            )
+                                        }
+                                        placeholder="contacto@miclinica.pe"
+                                        autoComplete="email"
+                                        disabled={!canUpdate}
+                                    />
+                                </FormField>
 
-                        <FormField
-                            id="general-nombre-comercial"
-                            label={t('fields.nombre_comercial')}
-                            error={errors.nombre_comercial}
-                            hint={t('fields.nombre_comercial_hint')}
-                            className="sm:col-span-2"
+                                <FormField
+                                    id="general-telefono-principal"
+                                    label={t('fields.telefono_principal')}
+                                    error={errors.telefono_principal}
+                                >
+                                    <Input
+                                        id="general-telefono-principal"
+                                        value={data.telefono_principal}
+                                        onChange={(e) =>
+                                            setData(
+                                                'telefono_principal',
+                                                e.target.value,
+                                            )
+                                        }
+                                        placeholder="+51 1 555-0101"
+                                        autoComplete="tel"
+                                        disabled={!canUpdate}
+                                    />
+                                </FormField>
+
+                                <FormField
+                                    id="general-web-url"
+                                    label={t('fields.web_url')}
+                                    error={errors.web_url}
+                                    className="sm:col-span-2"
+                                >
+                                    <Input
+                                        id="general-web-url"
+                                        type="url"
+                                        value={data.web_url}
+                                        onChange={(e) =>
+                                            setData('web_url', e.target.value)
+                                        }
+                                        placeholder="https://miclinica.pe"
+                                        autoComplete="url"
+                                        disabled={!canUpdate}
+                                    />
+                                </FormField>
+                            </FormSection>
+                        </SectionCard>
+
+                        {/* ───── Branding ───── */}
+                        <SectionCard
+                            icon={Palette}
+                            title={t('sections.branding.title')}
+                            description={t('sections.branding.description')}
                         >
-                            <Input
-                                id="general-nombre-comercial"
-                                value={data.nombre_comercial}
-                                onChange={(e) =>
-                                    setData('nombre_comercial', e.target.value)
-                                }
-                                placeholder="San Patricio Vet"
-                                disabled={!canUpdate}
-                            />
-                        </FormField>
+                            <FormSection
+                                index={2}
+                                title=""
+                                columns={2}
+                                className="gap-0"
+                            >
+                                <FormField
+                                    id="general-logo"
+                                    label={t('fields.logo')}
+                                    error={errors.logo}
+                                    hint={t('fields.logo_hint')}
+                                    className="sm:col-span-2"
+                                >
+                                    <LogoUploader
+                                        currentUrl={setting.logo_url}
+                                        file={logoFile}
+                                        pendingRemoval={clearLogo}
+                                        error={errors.logo}
+                                        canUpdate={canUpdate}
+                                        onSelect={handleLogoSelect}
+                                        onClearSelection={
+                                            handleLogoClearSelection
+                                        }
+                                        onTogglePendingRemoval={
+                                            handleLogoTogglePendingRemoval
+                                        }
+                                    />
+                                </FormField>
 
-                        <FormField
-                            id="general-direccion-fiscal"
-                            label={t('fields.direccion_fiscal')}
-                            error={errors.direccion_fiscal}
-                            className="sm:col-span-2"
-                        >
-                            <Input
-                                id="general-direccion-fiscal"
-                                value={data.direccion_fiscal}
-                                onChange={(e) =>
-                                    setData('direccion_fiscal', e.target.value)
-                                }
-                                placeholder="Av. Javier Prado Este 1234, San Isidro"
-                                disabled={!canUpdate}
-                            />
-                        </FormField>
-
-                        <div className="sm:col-span-2">
-                            <GeoCascadeFields
-                                departamentos={departamentos}
-                                value={geo}
-                                onChange={handleGeoChange}
-                                disabled={!canUpdate || processing}
-                                errors={{ distrito_id: errors.distrito_id }}
-                                labels={{
-                                    departamento: t('fields.departamento'),
-                                    provincia: t('fields.provincia'),
-                                    distrito: t('fields.distrito'),
-                                }}
-                            />
-                        </div>
-                    </FormSection>
-                </SectionCard>
-
-                {/* ───── Contacto ───── */}
-                <SectionCard
-                    icon={Phone}
-                    title={t('sections.contacto.title')}
-                    description={t('sections.contacto.description')}
-                >
-                    <FormSection
-                        index={1}
-                        title=""
-                        columns={2}
-                        className="gap-0"
-                    >
-                        <FormField
-                            id="general-email-institucional"
-                            label={t('fields.email_institucional')}
-                            error={errors.email_institucional}
-                        >
-                            <Input
-                                id="general-email-institucional"
-                                type="email"
-                                value={data.email_institucional}
-                                onChange={(e) =>
-                                    setData(
-                                        'email_institucional',
-                                        e.target.value,
-                                    )
-                                }
-                                placeholder="contacto@miclinica.pe"
-                                autoComplete="email"
-                                disabled={!canUpdate}
-                            />
-                        </FormField>
-
-                        <FormField
-                            id="general-telefono-principal"
-                            label={t('fields.telefono_principal')}
-                            error={errors.telefono_principal}
-                        >
-                            <Input
-                                id="general-telefono-principal"
-                                value={data.telefono_principal}
-                                onChange={(e) =>
-                                    setData(
-                                        'telefono_principal',
-                                        e.target.value,
-                                    )
-                                }
-                                placeholder="+51 1 555-0101"
-                                autoComplete="tel"
-                                disabled={!canUpdate}
-                            />
-                        </FormField>
-
-                        <FormField
-                            id="general-web-url"
-                            label={t('fields.web_url')}
-                            error={errors.web_url}
-                            className="sm:col-span-2"
-                        >
-                            <Input
-                                id="general-web-url"
-                                type="url"
-                                value={data.web_url}
-                                onChange={(e) =>
-                                    setData('web_url', e.target.value)
-                                }
-                                placeholder="https://miclinica.pe"
-                                autoComplete="url"
-                                disabled={!canUpdate}
-                            />
-                        </FormField>
-                    </FormSection>
-                </SectionCard>
-
-                {/* ───── Branding ───── */}
-                <SectionCard
-                    icon={Palette}
-                    title={t('sections.branding.title')}
-                    description={t('sections.branding.description')}
-                >
-                    <FormSection
-                        index={2}
-                        title=""
-                        columns={2}
-                        className="gap-0"
-                    >
-                        <FormField
-                            id="general-logo"
-                            label={t('fields.logo')}
-                            error={errors.logo}
-                            hint={t('fields.logo_hint')}
-                            className="sm:col-span-2"
-                        >
-                            <LogoUploader
-                                currentUrl={setting.logo_url}
-                                file={logoFile}
-                                pendingRemoval={clearLogo}
-                                error={errors.logo}
-                                canUpdate={canUpdate}
-                                onSelect={handleLogoSelect}
-                                onClearSelection={handleLogoClearSelection}
-                                onTogglePendingRemoval={
-                                    handleLogoTogglePendingRemoval
-                                }
-                            />
-                        </FormField>
-
-                        <FormField
-                            id="general-color-primario"
-                            label={t('fields.color_primario')}
-                            error={errors.color_primario}
-                        >
-                            <div className="flex items-center gap-2">
-                                <input
-                                    type="color"
-                                    aria-label={t('fields.color_primario')}
-                                    value={data.color_primario || '#1f6f43'}
-                                    onChange={(e) =>
-                                        setData(
-                                            'color_primario',
-                                            e.target.value,
-                                        )
-                                    }
-                                    disabled={!canUpdate}
-                                    className="h-9 w-12 cursor-pointer rounded-md border border-border/60 bg-transparent disabled:cursor-not-allowed disabled:opacity-50"
-                                />
-                                <Input
+                                <FormField
                                     id="general-color-primario"
-                                    value={data.color_primario}
-                                    onChange={(e) =>
-                                        setData(
-                                            'color_primario',
-                                            e.target.value.toUpperCase(),
-                                        )
-                                    }
-                                    placeholder="#1F6F43"
-                                    maxLength={7}
-                                    className="font-mono uppercase"
-                                    disabled={!canUpdate}
-                                />
-                            </div>
-                        </FormField>
+                                    label={t('fields.color_primario')}
+                                    error={errors.color_primario}
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="color"
+                                            aria-label={t(
+                                                'fields.color_primario',
+                                            )}
+                                            value={
+                                                data.color_primario || '#1f6f43'
+                                            }
+                                            onChange={(e) =>
+                                                setData(
+                                                    'color_primario',
+                                                    e.target.value,
+                                                )
+                                            }
+                                            disabled={!canUpdate}
+                                            className="h-9 w-12 cursor-pointer rounded-md border border-border/60 bg-transparent disabled:cursor-not-allowed disabled:opacity-50"
+                                        />
+                                        <Input
+                                            id="general-color-primario"
+                                            value={data.color_primario}
+                                            onChange={(e) =>
+                                                setData(
+                                                    'color_primario',
+                                                    e.target.value.toUpperCase(),
+                                                )
+                                            }
+                                            placeholder="#1F6F43"
+                                            maxLength={7}
+                                            className="font-mono uppercase"
+                                            disabled={!canUpdate}
+                                        />
+                                    </div>
+                                </FormField>
 
-                        <FormField
-                            id="general-color-secundario"
-                            label={t('fields.color_secundario')}
-                            error={errors.color_secundario}
-                        >
-                            <div className="flex items-center gap-2">
-                                <input
-                                    type="color"
-                                    aria-label={t('fields.color_secundario')}
-                                    value={data.color_secundario || '#94c7a8'}
-                                    onChange={(e) =>
-                                        setData(
-                                            'color_secundario',
-                                            e.target.value,
-                                        )
-                                    }
-                                    disabled={!canUpdate}
-                                    className="h-9 w-12 cursor-pointer rounded-md border border-border/60 bg-transparent disabled:cursor-not-allowed disabled:opacity-50"
-                                />
-                                <Input
+                                <FormField
                                     id="general-color-secundario"
-                                    value={data.color_secundario}
-                                    onChange={(e) =>
-                                        setData(
-                                            'color_secundario',
-                                            e.target.value.toUpperCase(),
-                                        )
-                                    }
-                                    placeholder="#94C7A8"
-                                    maxLength={7}
-                                    className="font-mono uppercase"
-                                    disabled={!canUpdate}
-                                />
-                            </div>
-                        </FormField>
-                    </FormSection>
-                </SectionCard>
-
+                                    label={t('fields.color_secundario')}
+                                    error={errors.color_secundario}
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="color"
+                                            aria-label={t(
+                                                'fields.color_secundario',
+                                            )}
+                                            value={
+                                                data.color_secundario ||
+                                                '#94c7a8'
+                                            }
+                                            onChange={(e) =>
+                                                setData(
+                                                    'color_secundario',
+                                                    e.target.value,
+                                                )
+                                            }
+                                            disabled={!canUpdate}
+                                            className="h-9 w-12 cursor-pointer rounded-md border border-border/60 bg-transparent disabled:cursor-not-allowed disabled:opacity-50"
+                                        />
+                                        <Input
+                                            id="general-color-secundario"
+                                            value={data.color_secundario}
+                                            onChange={(e) =>
+                                                setData(
+                                                    'color_secundario',
+                                                    e.target.value.toUpperCase(),
+                                                )
+                                            }
+                                            placeholder="#94C7A8"
+                                            maxLength={7}
+                                            className="font-mono uppercase"
+                                            disabled={!canUpdate}
+                                        />
+                                    </div>
+                                </FormField>
+                            </FormSection>
+                        </SectionCard>
                     </TabsContent>
 
                     <TabsContent
                         value="agenda"
                         className="space-y-5 data-[state=active]:animate-in data-[state=active]:fade-in-50"
                     >
-                {/* ───── Operación: agenda y citas ───── */}
-                <SectionCard
-                    icon={CalendarClock}
-                    title={t('sections.operacion.title')}
-                    description={t('sections.operacion.description')}
-                >
-                    <FormSection
-                        index={3}
-                        title=""
-                        columns={2}
-                        className="gap-0"
-                    >
-                        <FormField
-                            id="general-duracion-cita"
-                            label={t('fields.duracion_cita_default_min')}
-                            error={errors.duracion_cita_default_min}
-                            hint={t('fields.duracion_cita_default_min_hint')}
-                            required
+                        {/* ───── Operación: agenda y citas ───── */}
+                        <SectionCard
+                            icon={CalendarClock}
+                            title={t('sections.operacion.title')}
+                            description={t('sections.operacion.description')}
                         >
-                            <Input
-                                id="general-duracion-cita"
-                                type="number"
-                                value={data.duracion_cita_default_min}
-                                onChange={(e) =>
-                                    setData(
-                                        'duracion_cita_default_min',
-                                        Number(e.target.value) || 0,
-                                    )
-                                }
-                                min={5}
-                                max={480}
-                                className="tabular-nums"
-                                disabled={!canUpdate}
-                            />
-                        </FormField>
-
-                        <FormField
-                            id="general-intervalo-agenda"
-                            label={t('fields.intervalo_agenda_min')}
-                            error={errors.intervalo_agenda_min}
-                            hint={t('fields.intervalo_agenda_min_hint')}
-                            required
-                        >
-                            <Input
-                                id="general-intervalo-agenda"
-                                type="number"
-                                value={data.intervalo_agenda_min}
-                                onChange={(e) =>
-                                    setData(
-                                        'intervalo_agenda_min',
-                                        Number(e.target.value) || 0,
-                                    )
-                                }
-                                min={5}
-                                max={120}
-                                className="tabular-nums"
-                                disabled={!canUpdate}
-                            />
-                        </FormField>
-
-                        <FormField
-                            id="general-agenda-hora-inicio"
-                            label={t('fields.agenda_hora_inicio')}
-                            error={errors.agenda_hora_inicio}
-                            hint={t('fields.agenda_hora_inicio_hint')}
-                            required
-                        >
-                            <Input
-                                id="general-agenda-hora-inicio"
-                                type="time"
-                                step={3600}
-                                value={data.agenda_hora_inicio}
-                                onChange={(e) =>
-                                    setData(
-                                        'agenda_hora_inicio',
-                                        e.target.value,
-                                    )
-                                }
-                                max={data.agenda_hora_fin}
-                                className="tabular-nums"
-                                disabled={!canUpdate}
-                            />
-                        </FormField>
-
-                        <FormField
-                            id="general-agenda-hora-fin"
-                            label={t('fields.agenda_hora_fin')}
-                            error={errors.agenda_hora_fin}
-                            hint={t('fields.agenda_hora_fin_hint')}
-                            required
-                        >
-                            <Input
-                                id="general-agenda-hora-fin"
-                                type="time"
-                                step={3600}
-                                value={data.agenda_hora_fin}
-                                onChange={(e) =>
-                                    setData('agenda_hora_fin', e.target.value)
-                                }
-                                min={data.agenda_hora_inicio}
-                                className="tabular-nums"
-                                disabled={!canUpdate}
-                            />
-                        </FormField>
-
-                        <FormField
-                            id="general-dias-anticipacion"
-                            label={t('fields.dias_anticipacion_cita')}
-                            error={errors.dias_anticipacion_cita}
-                            hint={t('fields.dias_anticipacion_cita_hint')}
-                            required
-                        >
-                            <Input
-                                id="general-dias-anticipacion"
-                                type="number"
-                                value={data.dias_anticipacion_cita}
-                                onChange={(e) =>
-                                    setData(
-                                        'dias_anticipacion_cita',
-                                        Number(e.target.value) || 0,
-                                    )
-                                }
-                                min={1}
-                                max={365}
-                                className="tabular-nums"
-                                disabled={!canUpdate}
-                            />
-                        </FormField>
-
-                        <FormField
-                            id="general-horas-min-cancelacion"
-                            label={t('fields.horas_min_cancelacion')}
-                            error={errors.horas_min_cancelacion}
-                            hint={t('fields.horas_min_cancelacion_hint')}
-                            required
-                        >
-                            <Input
-                                id="general-horas-min-cancelacion"
-                                type="number"
-                                value={data.horas_min_cancelacion}
-                                onChange={(e) =>
-                                    setData(
-                                        'horas_min_cancelacion',
-                                        Number(e.target.value) || 0,
-                                    )
-                                }
-                                min={0}
-                                max={168}
-                                className="tabular-nums"
-                                disabled={!canUpdate}
-                            />
-                        </FormField>
-
-                    </FormSection>
-                </SectionCard>
-                    </TabsContent>
-
-                    <TabsContent
-                        value="notificaciones"
-                        className="space-y-5 data-[state=active]:animate-in data-[state=active]:fade-in-50"
-                    >
-                {/* ───── Recordatorios automáticos ───── */}
-                <SectionCard
-                    icon={Bell}
-                    title={t('sections.recordatorios.title')}
-                    description={t('sections.recordatorios.description')}
-                >
-                    <FormSection
-                        index={4}
-                        title=""
-                        columns={1}
-                        className="gap-0"
-                    >
-                        <ToggleRow
-                            id="general-notificar-cita-whatsapp"
-                            label={t('fields.notificar_cita_whatsapp_activo')}
-                            hint={t(
-                                'fields.notificar_cita_whatsapp_activo_hint',
-                            )}
-                            checked={data.notificar_cita_whatsapp_activo}
-                            onChange={(value) =>
-                                setData(
-                                    'notificar_cita_whatsapp_activo',
-                                    value,
-                                )
-                            }
-                            disabled={!canUpdate}
-                        />
-                        <ToggleRow
-                            id="general-recordatorio-48h"
-                            label={t('fields.recordatorio_48h_activo')}
-                            hint={t('fields.recordatorio_48h_activo_hint')}
-                            checked={data.recordatorio_48h_activo}
-                            onChange={(v) =>
-                                setData('recordatorio_48h_activo', v)
-                            }
-                            disabled={!canUpdate}
-                        />
-                        <ToggleRow
-                            id="general-recordatorio-2h"
-                            label={t('fields.recordatorio_2h_activo')}
-                            hint={t('fields.recordatorio_2h_activo_hint')}
-                            checked={data.recordatorio_2h_activo}
-                            onChange={(v) =>
-                                setData('recordatorio_2h_activo', v)
-                            }
-                            disabled={!canUpdate}
-                        />
-                        <ToggleRow
-                            id="general-recordatorio-vacuna"
-                            label={t('fields.recordatorio_vacuna_activo')}
-                            hint={t('fields.recordatorio_vacuna_activo_hint')}
-                            checked={data.recordatorio_vacuna_activo}
-                            onChange={(v) =>
-                                setData('recordatorio_vacuna_activo', v)
-                            }
-                            disabled={!canUpdate}
-                        />
-                        {data.recordatorio_vacuna_activo && (
-                            <div className="mt-1 ml-12">
+                            <FormSection
+                                index={3}
+                                title=""
+                                columns={2}
+                                className="gap-0"
+                            >
                                 <FormField
-                                    id="general-recordatorio-vacuna-dias"
+                                    id="general-duracion-cita"
                                     label={t(
-                                        'fields.recordatorio_vacuna_dias_antes',
+                                        'fields.duracion_cita_default_min',
                                     )}
-                                    error={
-                                        errors.recordatorio_vacuna_dias_antes
-                                    }
+                                    error={errors.duracion_cita_default_min}
                                     hint={t(
-                                        'fields.recordatorio_vacuna_dias_antes_hint',
+                                        'fields.duracion_cita_default_min_hint',
                                     )}
-                                    className="max-w-xs"
+                                    required
                                 >
                                     <Input
-                                        id="general-recordatorio-vacuna-dias"
+                                        id="general-duracion-cita"
                                         type="number"
-                                        value={
-                                            data.recordatorio_vacuna_dias_antes
-                                        }
+                                        value={data.duracion_cita_default_min}
                                         onChange={(e) =>
                                             setData(
-                                                'recordatorio_vacuna_dias_antes',
+                                                'duracion_cita_default_min',
                                                 Number(e.target.value) || 0,
                                             )
                                         }
-                                        min={1}
-                                        max={90}
+                                        min={5}
+                                        max={480}
                                         className="tabular-nums"
                                         disabled={!canUpdate}
                                     />
                                 </FormField>
-                            </div>
-                        )}
-                        <ToggleRow
-                            id="general-recordatorio-cumple"
-                            label={t('fields.recordatorio_cumple_activo')}
-                            hint={t('fields.recordatorio_cumple_activo_hint')}
-                            checked={data.recordatorio_cumple_activo}
-                            onChange={(v) =>
-                                setData('recordatorio_cumple_activo', v)
-                            }
-                            disabled={!canUpdate}
-                        />
-                    </FormSection>
-                </SectionCard>
 
-                <SectionCard
-                    icon={Scissors}
-                    title={t('sections.grooming_notificaciones.title')}
-                    description={t(
-                        'sections.grooming_notificaciones.description',
-                    )}
-                >
-                    <FormSection
-                        index={5}
-                        title=""
-                        columns={1}
-                        className="gap-0"
+                                <FormField
+                                    id="general-intervalo-agenda"
+                                    label={t('fields.intervalo_agenda_min')}
+                                    error={errors.intervalo_agenda_min}
+                                    hint={t('fields.intervalo_agenda_min_hint')}
+                                    required
+                                >
+                                    <Input
+                                        id="general-intervalo-agenda"
+                                        type="number"
+                                        value={data.intervalo_agenda_min}
+                                        onChange={(e) =>
+                                            setData(
+                                                'intervalo_agenda_min',
+                                                Number(e.target.value) || 0,
+                                            )
+                                        }
+                                        min={5}
+                                        max={120}
+                                        className="tabular-nums"
+                                        disabled={!canUpdate}
+                                    />
+                                </FormField>
+
+                                <FormField
+                                    id="general-agenda-hora-inicio"
+                                    label={t('fields.agenda_hora_inicio')}
+                                    error={errors.agenda_hora_inicio}
+                                    hint={t('fields.agenda_hora_inicio_hint')}
+                                    required
+                                >
+                                    <Input
+                                        id="general-agenda-hora-inicio"
+                                        type="time"
+                                        step={3600}
+                                        value={data.agenda_hora_inicio}
+                                        onChange={(e) =>
+                                            setData(
+                                                'agenda_hora_inicio',
+                                                e.target.value,
+                                            )
+                                        }
+                                        max={data.agenda_hora_fin}
+                                        className="tabular-nums"
+                                        disabled={!canUpdate}
+                                    />
+                                </FormField>
+
+                                <FormField
+                                    id="general-agenda-hora-fin"
+                                    label={t('fields.agenda_hora_fin')}
+                                    error={errors.agenda_hora_fin}
+                                    hint={t('fields.agenda_hora_fin_hint')}
+                                    required
+                                >
+                                    <Input
+                                        id="general-agenda-hora-fin"
+                                        type="time"
+                                        step={3600}
+                                        value={data.agenda_hora_fin}
+                                        onChange={(e) =>
+                                            setData(
+                                                'agenda_hora_fin',
+                                                e.target.value,
+                                            )
+                                        }
+                                        min={data.agenda_hora_inicio}
+                                        className="tabular-nums"
+                                        disabled={!canUpdate}
+                                    />
+                                </FormField>
+
+                                <FormField
+                                    id="general-dias-anticipacion"
+                                    label={t('fields.dias_anticipacion_cita')}
+                                    error={errors.dias_anticipacion_cita}
+                                    hint={t(
+                                        'fields.dias_anticipacion_cita_hint',
+                                    )}
+                                    required
+                                >
+                                    <Input
+                                        id="general-dias-anticipacion"
+                                        type="number"
+                                        value={data.dias_anticipacion_cita}
+                                        onChange={(e) =>
+                                            setData(
+                                                'dias_anticipacion_cita',
+                                                Number(e.target.value) || 0,
+                                            )
+                                        }
+                                        min={1}
+                                        max={365}
+                                        className="tabular-nums"
+                                        disabled={!canUpdate}
+                                    />
+                                </FormField>
+
+                                <FormField
+                                    id="general-horas-min-cancelacion"
+                                    label={t('fields.horas_min_cancelacion')}
+                                    error={errors.horas_min_cancelacion}
+                                    hint={t(
+                                        'fields.horas_min_cancelacion_hint',
+                                    )}
+                                    required
+                                >
+                                    <Input
+                                        id="general-horas-min-cancelacion"
+                                        type="number"
+                                        value={data.horas_min_cancelacion}
+                                        onChange={(e) =>
+                                            setData(
+                                                'horas_min_cancelacion',
+                                                Number(e.target.value) || 0,
+                                            )
+                                        }
+                                        min={0}
+                                        max={168}
+                                        className="tabular-nums"
+                                        disabled={!canUpdate}
+                                    />
+                                </FormField>
+                            </FormSection>
+                        </SectionCard>
+                    </TabsContent>
+
+                    <TabsContent
+                        value="notificaciones"
+                        className="grid gap-4 data-[state=active]:animate-in data-[state=active]:fade-in-50 lg:grid-cols-2"
                     >
-                        <ToggleRow
-                            id="general-grooming-creado-whatsapp"
-                            label={t(
-                                'fields.notificar_grooming_creado_whatsapp_activo',
+                        {/* ───── Recordatorios automáticos ───── */}
+                        <SectionCard
+                            icon={Bell}
+                            title={t('sections.recordatorios.title')}
+                            description={t(
+                                'sections.recordatorios.description',
                             )}
-                            hint={t(
-                                'fields.notificar_grooming_creado_whatsapp_activo_hint',
+                            className="lg:col-span-2"
+                        >
+                            <FormSection
+                                index={4}
+                                title=""
+                                columns={1}
+                                className="gap-0"
+                            >
+                                <ToggleRow
+                                    id="general-notificar-cita-whatsapp"
+                                    label={t(
+                                        'fields.notificar_cita_whatsapp_activo',
+                                    )}
+                                    hint={t(
+                                        'fields.notificar_cita_whatsapp_activo_hint',
+                                    )}
+                                    checked={
+                                        data.notificar_cita_whatsapp_activo
+                                    }
+                                    onChange={(value) =>
+                                        setData(
+                                            'notificar_cita_whatsapp_activo',
+                                            value,
+                                        )
+                                    }
+                                    disabled={!canUpdate}
+                                />
+                                <ToggleRow
+                                    id="general-recordatorio-48h"
+                                    label={t('fields.recordatorio_48h_activo')}
+                                    hint={t(
+                                        'fields.recordatorio_48h_activo_hint',
+                                    )}
+                                    checked={data.recordatorio_48h_activo}
+                                    onChange={(v) =>
+                                        setData('recordatorio_48h_activo', v)
+                                    }
+                                    disabled={!canUpdate}
+                                />
+                                <ToggleRow
+                                    id="general-recordatorio-2h"
+                                    label={t('fields.recordatorio_2h_activo')}
+                                    hint={t(
+                                        'fields.recordatorio_2h_activo_hint',
+                                    )}
+                                    checked={data.recordatorio_2h_activo}
+                                    onChange={(v) =>
+                                        setData('recordatorio_2h_activo', v)
+                                    }
+                                    disabled={!canUpdate}
+                                />
+                                <ToggleRow
+                                    id="general-recordatorio-vacuna"
+                                    label={t(
+                                        'fields.recordatorio_vacuna_activo',
+                                    )}
+                                    hint={t(
+                                        'fields.recordatorio_vacuna_activo_hint',
+                                    )}
+                                    checked={data.recordatorio_vacuna_activo}
+                                    onChange={(v) =>
+                                        setData('recordatorio_vacuna_activo', v)
+                                    }
+                                    disabled={!canUpdate}
+                                />
+                                {data.recordatorio_vacuna_activo && (
+                                    <div className="mt-1 ml-12">
+                                        <FormField
+                                            id="general-recordatorio-vacuna-dias"
+                                            label={t(
+                                                'fields.recordatorio_vacuna_dias_antes',
+                                            )}
+                                            error={
+                                                errors.recordatorio_vacuna_dias_antes
+                                            }
+                                            hint={t(
+                                                'fields.recordatorio_vacuna_dias_antes_hint',
+                                            )}
+                                            className="max-w-xs"
+                                        >
+                                            <Input
+                                                id="general-recordatorio-vacuna-dias"
+                                                type="number"
+                                                value={
+                                                    data.recordatorio_vacuna_dias_antes
+                                                }
+                                                onChange={(e) =>
+                                                    setData(
+                                                        'recordatorio_vacuna_dias_antes',
+                                                        Number(
+                                                            e.target.value,
+                                                        ) || 0,
+                                                    )
+                                                }
+                                                min={1}
+                                                max={90}
+                                                className="tabular-nums"
+                                                disabled={!canUpdate}
+                                            />
+                                        </FormField>
+                                    </div>
+                                )}
+                                <ToggleRow
+                                    id="general-recordatorio-cumple"
+                                    label={t(
+                                        'fields.recordatorio_cumple_activo',
+                                    )}
+                                    hint={t(
+                                        'fields.recordatorio_cumple_activo_hint',
+                                    )}
+                                    checked={data.recordatorio_cumple_activo}
+                                    onChange={(v) =>
+                                        setData('recordatorio_cumple_activo', v)
+                                    }
+                                    disabled={!canUpdate}
+                                />
+                            </FormSection>
+                        </SectionCard>
+
+                        <SectionCard
+                            icon={Scissors}
+                            title={t('sections.grooming_notificaciones.title')}
+                            description={t(
+                                'sections.grooming_notificaciones.description',
                             )}
-                            checked={
-                                data.notificar_grooming_creado_whatsapp_activo
-                            }
-                            onChange={(value) =>
-                                setData(
-                                    'notificar_grooming_creado_whatsapp_activo',
-                                    value,
-                                )
-                            }
-                            disabled={!canUpdate}
-                        />
-                        <ToggleRow
-                            id="general-grooming-en-proceso-whatsapp"
-                            label={t(
-                                'fields.notificar_grooming_en_proceso_whatsapp_activo',
+                        >
+                            <FormSection
+                                index={5}
+                                title=""
+                                columns={1}
+                                className="gap-0"
+                            >
+                                <ToggleRow
+                                    id="general-grooming-creado-whatsapp"
+                                    label={t(
+                                        'fields.notificar_grooming_creado_whatsapp_activo',
+                                    )}
+                                    hint={t(
+                                        'fields.notificar_grooming_creado_whatsapp_activo_hint',
+                                    )}
+                                    checked={
+                                        data.notificar_grooming_creado_whatsapp_activo
+                                    }
+                                    onChange={(value) =>
+                                        setData(
+                                            'notificar_grooming_creado_whatsapp_activo',
+                                            value,
+                                        )
+                                    }
+                                    disabled={!canUpdate}
+                                />
+                                <ToggleRow
+                                    id="general-grooming-en-proceso-whatsapp"
+                                    label={t(
+                                        'fields.notificar_grooming_en_proceso_whatsapp_activo',
+                                    )}
+                                    hint={t(
+                                        'fields.notificar_grooming_en_proceso_whatsapp_activo_hint',
+                                    )}
+                                    checked={
+                                        data.notificar_grooming_en_proceso_whatsapp_activo
+                                    }
+                                    onChange={(value) =>
+                                        setData(
+                                            'notificar_grooming_en_proceso_whatsapp_activo',
+                                            value,
+                                        )
+                                    }
+                                    disabled={!canUpdate}
+                                />
+                                <ToggleRow
+                                    id="general-grooming-completado-whatsapp"
+                                    label={t(
+                                        'fields.notificar_grooming_completado_whatsapp_activo',
+                                    )}
+                                    hint={t(
+                                        'fields.notificar_grooming_completado_whatsapp_activo_hint',
+                                    )}
+                                    checked={
+                                        data.notificar_grooming_completado_whatsapp_activo
+                                    }
+                                    onChange={(value) =>
+                                        setData(
+                                            'notificar_grooming_completado_whatsapp_activo',
+                                            value,
+                                        )
+                                    }
+                                    disabled={!canUpdate}
+                                />
+                                <ToggleRow
+                                    id="general-grooming-cancelado-whatsapp"
+                                    label={t(
+                                        'fields.notificar_grooming_cancelado_whatsapp_activo',
+                                    )}
+                                    hint={t(
+                                        'fields.notificar_grooming_cancelado_whatsapp_activo_hint',
+                                    )}
+                                    checked={
+                                        data.notificar_grooming_cancelado_whatsapp_activo
+                                    }
+                                    onChange={(value) =>
+                                        setData(
+                                            'notificar_grooming_cancelado_whatsapp_activo',
+                                            value,
+                                        )
+                                    }
+                                    disabled={!canUpdate}
+                                />
+                                <ToggleRow
+                                    id="general-grooming-no-asistio-whatsapp"
+                                    label={t(
+                                        'fields.notificar_grooming_no_asistio_whatsapp_activo',
+                                    )}
+                                    hint={t(
+                                        'fields.notificar_grooming_no_asistio_whatsapp_activo_hint',
+                                    )}
+                                    checked={
+                                        data.notificar_grooming_no_asistio_whatsapp_activo
+                                    }
+                                    onChange={(value) =>
+                                        setData(
+                                            'notificar_grooming_no_asistio_whatsapp_activo',
+                                            value,
+                                        )
+                                    }
+                                    disabled={!canUpdate}
+                                />
+                            </FormSection>
+                        </SectionCard>
+
+                        <SectionCard
+                            icon={Hotel}
+                            title={t('sections.hotel_notificaciones.title')}
+                            description={t(
+                                'sections.hotel_notificaciones.description',
                             )}
-                            hint={t(
-                                'fields.notificar_grooming_en_proceso_whatsapp_activo_hint',
-                            )}
-                            checked={
-                                data.notificar_grooming_en_proceso_whatsapp_activo
-                            }
-                            onChange={(value) =>
-                                setData(
-                                    'notificar_grooming_en_proceso_whatsapp_activo',
-                                    value,
-                                )
-                            }
-                            disabled={!canUpdate}
-                        />
-                        <ToggleRow
-                            id="general-grooming-completado-whatsapp"
-                            label={t(
-                                'fields.notificar_grooming_completado_whatsapp_activo',
-                            )}
-                            hint={t(
-                                'fields.notificar_grooming_completado_whatsapp_activo_hint',
-                            )}
-                            checked={
-                                data.notificar_grooming_completado_whatsapp_activo
-                            }
-                            onChange={(value) =>
-                                setData(
-                                    'notificar_grooming_completado_whatsapp_activo',
-                                    value,
-                                )
-                            }
-                            disabled={!canUpdate}
-                        />
-                        <ToggleRow
-                            id="general-grooming-cancelado-whatsapp"
-                            label={t(
-                                'fields.notificar_grooming_cancelado_whatsapp_activo',
-                            )}
-                            hint={t(
-                                'fields.notificar_grooming_cancelado_whatsapp_activo_hint',
-                            )}
-                            checked={
-                                data.notificar_grooming_cancelado_whatsapp_activo
-                            }
-                            onChange={(value) =>
-                                setData(
-                                    'notificar_grooming_cancelado_whatsapp_activo',
-                                    value,
-                                )
-                            }
-                            disabled={!canUpdate}
-                        />
-                        <ToggleRow
-                            id="general-grooming-no-asistio-whatsapp"
-                            label={t(
-                                'fields.notificar_grooming_no_asistio_whatsapp_activo',
-                            )}
-                            hint={t(
-                                'fields.notificar_grooming_no_asistio_whatsapp_activo_hint',
-                            )}
-                            checked={
-                                data.notificar_grooming_no_asistio_whatsapp_activo
-                            }
-                            onChange={(value) =>
-                                setData(
-                                    'notificar_grooming_no_asistio_whatsapp_activo',
-                                    value,
-                                )
-                            }
-                            disabled={!canUpdate}
-                        />
-                    </FormSection>
-                </SectionCard>
+                        >
+                            <FormSection
+                                index={6}
+                                title=""
+                                columns={1}
+                                className="gap-0"
+                            >
+                                {(
+                                    [
+                                        'notificar_hotel_creado_whatsapp_activo',
+                                        'notificar_hotel_confirmado_whatsapp_activo',
+                                        'notificar_hotel_en_estancia_whatsapp_activo',
+                                        'notificar_hotel_completado_whatsapp_activo',
+                                        'notificar_hotel_cancelado_whatsapp_activo',
+                                        'notificar_hotel_no_presento_whatsapp_activo',
+                                        'notificar_hotel_bitacora_whatsapp_activo',
+                                    ] as const
+                                ).map((field) => (
+                                    <ToggleRow
+                                        key={field}
+                                        id={`general-${field.replaceAll('_', '-')}`}
+                                        label={t(`fields.${field}`)}
+                                        hint={t(`fields.${field}_hint`)}
+                                        checked={data[field]}
+                                        onChange={(value) =>
+                                            setData(field, value)
+                                        }
+                                        disabled={!canUpdate}
+                                    />
+                                ))}
+                            </FormSection>
+                        </SectionCard>
                     </TabsContent>
 
                     <TabsContent
                         value="facturacion"
                         className="space-y-5 data-[state=active]:animate-in data-[state=active]:fade-in-50"
                     >
-                {/* ───── Facturación ───── */}
-                <SectionCard
-                    icon={Receipt}
-                    title={t('sections.facturacion.title')}
-                    description={t('sections.facturacion.description')}
-                    badge={
-                        <StatBadge
-                            label=""
-                            value={
-                                setting.emite_comprobantes_sunat
-                                    ? t('common:state.configured')
-                                    : t('common:state.not_configured')
+                        {/* ───── Facturación ───── */}
+                        <SectionCard
+                            icon={Receipt}
+                            title={t('sections.facturacion.title')}
+                            description={t('sections.facturacion.description')}
+                            badge={
+                                <StatBadge
+                                    label=""
+                                    value={
+                                        setting.emite_comprobantes_sunat
+                                            ? t('common:state.configured')
+                                            : t('common:state.not_configured')
+                                    }
+                                    variant={
+                                        setting.emite_comprobantes_sunat
+                                            ? 'success'
+                                            : 'muted'
+                                    }
+                                    icon={
+                                        setting.emite_comprobantes_sunat
+                                            ? CheckCircle2
+                                            : XCircle
+                                    }
+                                />
                             }
-                            variant={
-                                setting.emite_comprobantes_sunat
-                                    ? 'success'
-                                    : 'muted'
-                            }
-                            icon={
-                                setting.emite_comprobantes_sunat
-                                    ? CheckCircle2
-                                    : XCircle
-                            }
-                        />
-                    }
-                >
-                    <FormSection
-                        index={5}
-                        title=""
-                        columns={2}
-                        className="gap-0"
-                    >
-                        <FormField
-                            id="general-moneda"
-                            label={t('fields.moneda')}
-                            error={errors.moneda}
-                            required
                         >
-                            <Select
-                                value={data.moneda}
-                                onValueChange={(v) =>
-                                    setData('moneda', v as 'PEN' | 'USD')
-                                }
-                                disabled={!canUpdate}
+                            <FormSection
+                                index={5}
+                                title=""
+                                columns={2}
+                                className="gap-0"
                             >
-                                <SelectTrigger id="general-moneda">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="PEN">
-                                        PEN — {t('fields.moneda_pen')}
-                                    </SelectItem>
-                                    <SelectItem value="USD">
-                                        USD — {t('fields.moneda_usd')}
-                                    </SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </FormField>
-
-                        <FormField
-                            id="general-igv-porcentaje"
-                            label={t('fields.igv_porcentaje')}
-                            error={errors.igv_porcentaje}
-                            hint={t('fields.igv_porcentaje_hint')}
-                            required
-                        >
-                            <Input
-                                id="general-igv-porcentaje"
-                                type="number"
-                                value={data.igv_porcentaje}
-                                onChange={(e) =>
-                                    setData('igv_porcentaje', e.target.value)
-                                }
-                                min={0}
-                                max={100}
-                                step={0.01}
-                                className="tabular-nums"
-                                disabled={!canUpdate}
-                            />
-                        </FormField>
-
-                        <div className="sm:col-span-2">
-                            <ToggleRow
-                                id="general-precio-incluye-igv"
-                                label={t('fields.precio_incluye_igv')}
-                                hint={t('fields.precio_incluye_igv_hint')}
-                                checked={data.precio_incluye_igv}
-                                onChange={(v) =>
-                                    setData('precio_incluye_igv', v)
-                                }
-                                disabled={!canUpdate}
-                            />
-                        </div>
-
-                        <FormField
-                            id="general-ticket-ancho-mm"
-                            label={t('fields.ticket_ancho_mm')}
-                            error={errors.ticket_ancho_mm}
-                            hint={t('fields.ticket_ancho_mm_hint')}
-                            className="sm:col-span-2"
-                        >
-                            <Select
-                                value={data.ticket_ancho_mm}
-                                onValueChange={(v) =>
-                                    setData(
-                                        'ticket_ancho_mm',
-                                        v as '56' | '58' | '80',
-                                    )
-                                }
-                                disabled={!canUpdate}
-                            >
-                                <SelectTrigger id="general-ticket-ancho-mm">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="56">
-                                        {t('fields.ticket_ancho_mm_56')}
-                                    </SelectItem>
-                                    <SelectItem value="58">
-                                        {t('fields.ticket_ancho_mm_58')}
-                                    </SelectItem>
-                                    <SelectItem value="80">
-                                        {t('fields.ticket_ancho_mm_80')}
-                                    </SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </FormField>
-
-                        <div className="flex flex-col gap-3 sm:col-span-2">
-                            {!plan_permite_factura_electronica ? (
-                                <div className="flex gap-2 rounded-lg border border-border/70 bg-muted/30 p-3 text-sm text-muted-foreground">
-                                    <Info
-                                        className="mt-0.5 size-4 shrink-0"
-                                        aria-hidden
-                                    />
-                                    <div className="flex flex-col gap-1">
-                                        <span className="font-medium text-foreground">
-                                            {t(
-                                                'plan_sin_facturacion_electronica.title',
-                                            )}
-                                        </span>
-                                        <span>
-                                            {t(
-                                                'plan_sin_facturacion_electronica.body',
-                                            )}
-                                        </span>
-                                    </div>
-                                </div>
-                            ) : null}
-                            <ToggleRow
-                                id="general-emite-sunat"
-                                label={t('fields.emite_comprobantes_sunat')}
-                                hint={t('fields.emite_comprobantes_sunat_hint')}
-                                checked={data.emite_comprobantes_sunat}
-                                onChange={(v) =>
-                                    setData('emite_comprobantes_sunat', v)
-                                }
-                                disabled={
-                                    !canUpdate ||
-                                    !plan_permite_factura_electronica
-                                }
-                            />
-                            {errors.emite_comprobantes_sunat ? (
-                                <p
-                                    className="text-xs text-destructive"
-                                    role="alert"
+                                <FormField
+                                    id="general-moneda"
+                                    label={t('fields.moneda')}
+                                    error={errors.moneda}
+                                    required
                                 >
-                                    {errors.emite_comprobantes_sunat}
-                                </p>
-                            ) : null}
-                        </div>
+                                    <Select
+                                        value={data.moneda}
+                                        onValueChange={(v) =>
+                                            setData(
+                                                'moneda',
+                                                v as 'PEN' | 'USD',
+                                            )
+                                        }
+                                        disabled={!canUpdate}
+                                    >
+                                        <SelectTrigger id="general-moneda">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="PEN">
+                                                PEN — {t('fields.moneda_pen')}
+                                            </SelectItem>
+                                            <SelectItem value="USD">
+                                                USD — {t('fields.moneda_usd')}
+                                            </SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </FormField>
 
-                        {/* APISUNAT: solo visible si el plan permite facturación */}
-                        {plan_permite_factura_electronica && (
-                            <div className="sm:col-span-2">
-                                <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
-                                    <div className="mb-3 flex items-center gap-2">
-                                        <span className="flex size-7 items-center justify-center rounded-md bg-primary/10 text-primary ring-1 ring-primary/20">
-                                            <KeyRound
-                                                className="size-4"
-                                                strokeWidth={2}
-                                            />
-                                        </span>
-                                        <div>
-                                            <p className="text-sm font-semibold">
-                                                Integración APISUNAT
-                                            </p>
-                                            <p className="text-xs text-muted-foreground">
-                                                Configura el token de tu cuenta
-                                                APISUNAT para emitir
-                                                comprobantes electrónicos.
-                                            </p>
-                                        </div>
-                                        {setting.apisunat_configurado && (
-                                            <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-emerald-200">
-                                                <CheckCircle2 className="size-3" />
-                                                Configurado
-                                            </span>
+                                <FormField
+                                    id="general-igv-porcentaje"
+                                    label={t('fields.igv_porcentaje')}
+                                    error={errors.igv_porcentaje}
+                                    hint={t('fields.igv_porcentaje_hint')}
+                                    required
+                                >
+                                    <Input
+                                        id="general-igv-porcentaje"
+                                        type="number"
+                                        value={data.igv_porcentaje}
+                                        onChange={(e) =>
+                                            setData(
+                                                'igv_porcentaje',
+                                                e.target.value,
+                                            )
+                                        }
+                                        min={0}
+                                        max={100}
+                                        step={0.01}
+                                        className="tabular-nums"
+                                        disabled={!canUpdate}
+                                    />
+                                </FormField>
+
+                                <div className="sm:col-span-2">
+                                    <ToggleRow
+                                        id="general-precio-incluye-igv"
+                                        label={t('fields.precio_incluye_igv')}
+                                        hint={t(
+                                            'fields.precio_incluye_igv_hint',
                                         )}
-                                    </div>
-
-                                    <div className="flex flex-col gap-3">
-                                        {/* Modo sandbox / producción */}
-                                        <FormField
-                                            id="apisunat-mode"
-                                            label="Modo de operación"
-                                            error={errors.apisunat_mode}
-                                        >
-                                            <Select
-                                                value={data.apisunat_mode}
-                                                onValueChange={(v) =>
-                                                    setData(
-                                                        'apisunat_mode',
-                                                        v as
-                                                            | 'sandbox'
-                                                            | 'produccion',
-                                                    )
-                                                }
-                                                disabled={!canUpdate}
-                                            >
-                                                <SelectTrigger id="apisunat-mode">
-                                                    <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="sandbox">
-                                                        Sandbox — pruebas (beta
-                                                        SUNAT)
-                                                    </SelectItem>
-                                                    <SelectItem value="produccion">
-                                                        Producción — emite
-                                                        comprobantes reales
-                                                    </SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </FormField>
-
-                                        {/* Token APISUNAT */}
-                                        <FormField
-                                            id="apisunat-token"
-                                            label={
-                                                setting.apisunat_configurado
-                                                    ? 'Nuevo token (dejar vacío para conservar el actual)'
-                                                    : 'Token de APISUNAT'
-                                            }
-                                            error={errors.apisunat_token}
-                                            hint="Lo encuentras en app.apisunat.pe → tu organización → API Token."
-                                        >
-                                            <div className="relative">
-                                                <Input
-                                                    id="apisunat-token"
-                                                    type={
-                                                        showApisunatToken
-                                                            ? 'text'
-                                                            : 'password'
-                                                    }
-                                                    value={data.apisunat_token}
-                                                    onChange={(e) =>
-                                                        setData(
-                                                            'apisunat_token',
-                                                            e.target.value,
-                                                        )
-                                                    }
-                                                    placeholder={
-                                                        setting.apisunat_configurado
-                                                            ? '••••••••••••••••'
-                                                            : 'eyJhbGciOiJIUzI1NiIs...'
-                                                    }
-                                                    className="pr-10 font-mono text-xs"
-                                                    disabled={
-                                                        !canUpdate ||
-                                                        clearApisunat
-                                                    }
-                                                    autoComplete="off"
-                                                />
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        setShowApisunatToken(
-                                                            (v) => !v,
-                                                        )
-                                                    }
-                                                    className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground hover:text-foreground"
-                                                    tabIndex={-1}
-                                                    aria-label={
-                                                        showApisunatToken
-                                                            ? 'Ocultar token'
-                                                            : 'Mostrar token'
-                                                    }
-                                                >
-                                                    {showApisunatToken ? (
-                                                        <EyeOff className="size-4" />
-                                                    ) : (
-                                                        <Eye className="size-4" />
-                                                    )}
-                                                </button>
-                                            </div>
-                                        </FormField>
-
-                                        {/* Borrar credencial */}
-                                        {setting.apisunat_configurado &&
-                                            canUpdate && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        setClearApisunat(
-                                                            (v) => !v,
-                                                        )
-                                                    }
-                                                    className={`inline-flex items-center gap-1.5 self-start rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-                                                        clearApisunat
-                                                            ? 'bg-destructive/10 text-destructive ring-1 ring-destructive/30 hover:bg-destructive/20'
-                                                            : 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-destructive'
-                                                    }`}
-                                                >
-                                                    <Trash2 className="size-3.5" />
-                                                    {clearApisunat
-                                                        ? 'Cancelar borrado'
-                                                        : 'Borrar token guardado'}
-                                                </button>
-                                            )}
-                                    </div>
+                                        checked={data.precio_incluye_igv}
+                                        onChange={(v) =>
+                                            setData('precio_incluye_igv', v)
+                                        }
+                                        disabled={!canUpdate}
+                                    />
                                 </div>
-                            </div>
-                        )}
-                    </FormSection>
-                </SectionCard>
+
+                                <FormField
+                                    id="general-ticket-ancho-mm"
+                                    label={t('fields.ticket_ancho_mm')}
+                                    error={errors.ticket_ancho_mm}
+                                    hint={t('fields.ticket_ancho_mm_hint')}
+                                    className="sm:col-span-2"
+                                >
+                                    <Select
+                                        value={data.ticket_ancho_mm}
+                                        onValueChange={(v) =>
+                                            setData(
+                                                'ticket_ancho_mm',
+                                                v as '56' | '58' | '80',
+                                            )
+                                        }
+                                        disabled={!canUpdate}
+                                    >
+                                        <SelectTrigger id="general-ticket-ancho-mm">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="56">
+                                                {t('fields.ticket_ancho_mm_56')}
+                                            </SelectItem>
+                                            <SelectItem value="58">
+                                                {t('fields.ticket_ancho_mm_58')}
+                                            </SelectItem>
+                                            <SelectItem value="80">
+                                                {t('fields.ticket_ancho_mm_80')}
+                                            </SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </FormField>
+
+                                <div className="flex flex-col gap-3 sm:col-span-2">
+                                    {!plan_permite_factura_electronica ? (
+                                        <div className="flex gap-2 rounded-lg border border-border/70 bg-muted/30 p-3 text-sm text-muted-foreground">
+                                            <Info
+                                                className="mt-0.5 size-4 shrink-0"
+                                                aria-hidden
+                                            />
+                                            <div className="flex flex-col gap-1">
+                                                <span className="font-medium text-foreground">
+                                                    {t(
+                                                        'plan_sin_facturacion_electronica.title',
+                                                    )}
+                                                </span>
+                                                <span>
+                                                    {t(
+                                                        'plan_sin_facturacion_electronica.body',
+                                                    )}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ) : null}
+                                    <ToggleRow
+                                        id="general-emite-sunat"
+                                        label={t(
+                                            'fields.emite_comprobantes_sunat',
+                                        )}
+                                        hint={t(
+                                            'fields.emite_comprobantes_sunat_hint',
+                                        )}
+                                        checked={data.emite_comprobantes_sunat}
+                                        onChange={(v) =>
+                                            setData(
+                                                'emite_comprobantes_sunat',
+                                                v,
+                                            )
+                                        }
+                                        disabled={
+                                            !canUpdate ||
+                                            !plan_permite_factura_electronica
+                                        }
+                                    />
+                                    {errors.emite_comprobantes_sunat ? (
+                                        <p
+                                            className="text-xs text-destructive"
+                                            role="alert"
+                                        >
+                                            {errors.emite_comprobantes_sunat}
+                                        </p>
+                                    ) : null}
+                                </div>
+
+                                {/* APISUNAT: solo visible si el plan permite facturación */}
+                                {plan_permite_factura_electronica && (
+                                    <div className="sm:col-span-2">
+                                        <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
+                                            <div className="mb-3 flex items-center gap-2">
+                                                <span className="flex size-7 items-center justify-center rounded-md bg-primary/10 text-primary ring-1 ring-primary/20">
+                                                    <KeyRound
+                                                        className="size-4"
+                                                        strokeWidth={2}
+                                                    />
+                                                </span>
+                                                <div>
+                                                    <p className="text-sm font-semibold">
+                                                        Integración APISUNAT
+                                                    </p>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        Configura el token de tu
+                                                        cuenta APISUNAT para
+                                                        emitir comprobantes
+                                                        electrónicos.
+                                                    </p>
+                                                </div>
+                                                {setting.apisunat_configurado && (
+                                                    <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-emerald-200">
+                                                        <CheckCircle2 className="size-3" />
+                                                        Configurado
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            <div className="flex flex-col gap-3">
+                                                {/* Modo sandbox / producción */}
+                                                <FormField
+                                                    id="apisunat-mode"
+                                                    label="Modo de operación"
+                                                    error={errors.apisunat_mode}
+                                                >
+                                                    <Select
+                                                        value={
+                                                            data.apisunat_mode
+                                                        }
+                                                        onValueChange={(v) =>
+                                                            setData(
+                                                                'apisunat_mode',
+                                                                v as
+                                                                    | 'sandbox'
+                                                                    | 'produccion',
+                                                            )
+                                                        }
+                                                        disabled={!canUpdate}
+                                                    >
+                                                        <SelectTrigger id="apisunat-mode">
+                                                            <SelectValue />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="sandbox">
+                                                                Sandbox —
+                                                                pruebas (beta
+                                                                SUNAT)
+                                                            </SelectItem>
+                                                            <SelectItem value="produccion">
+                                                                Producción —
+                                                                emite
+                                                                comprobantes
+                                                                reales
+                                                            </SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </FormField>
+
+                                                {/* Token APISUNAT */}
+                                                <FormField
+                                                    id="apisunat-token"
+                                                    label={
+                                                        setting.apisunat_configurado
+                                                            ? 'Nuevo token (dejar vacío para conservar el actual)'
+                                                            : 'Token de APISUNAT'
+                                                    }
+                                                    error={
+                                                        errors.apisunat_token
+                                                    }
+                                                    hint="Lo encuentras en app.apisunat.pe → tu organización → API Token."
+                                                >
+                                                    <div className="relative">
+                                                        <Input
+                                                            id="apisunat-token"
+                                                            type={
+                                                                showApisunatToken
+                                                                    ? 'text'
+                                                                    : 'password'
+                                                            }
+                                                            value={
+                                                                data.apisunat_token
+                                                            }
+                                                            onChange={(e) =>
+                                                                setData(
+                                                                    'apisunat_token',
+                                                                    e.target
+                                                                        .value,
+                                                                )
+                                                            }
+                                                            placeholder={
+                                                                setting.apisunat_configurado
+                                                                    ? '••••••••••••••••'
+                                                                    : 'eyJhbGciOiJIUzI1NiIs...'
+                                                            }
+                                                            className="pr-10 font-mono text-xs"
+                                                            disabled={
+                                                                !canUpdate ||
+                                                                clearApisunat
+                                                            }
+                                                            autoComplete="off"
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                setShowApisunatToken(
+                                                                    (v) => !v,
+                                                                )
+                                                            }
+                                                            className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground hover:text-foreground"
+                                                            tabIndex={-1}
+                                                            aria-label={
+                                                                showApisunatToken
+                                                                    ? 'Ocultar token'
+                                                                    : 'Mostrar token'
+                                                            }
+                                                        >
+                                                            {showApisunatToken ? (
+                                                                <EyeOff className="size-4" />
+                                                            ) : (
+                                                                <Eye className="size-4" />
+                                                            )}
+                                                        </button>
+                                                    </div>
+                                                </FormField>
+
+                                                {/* Borrar credencial */}
+                                                {setting.apisunat_configurado &&
+                                                    canUpdate && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                setClearApisunat(
+                                                                    (v) => !v,
+                                                                )
+                                                            }
+                                                            className={`inline-flex items-center gap-1.5 self-start rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                                                                clearApisunat
+                                                                    ? 'bg-destructive/10 text-destructive ring-1 ring-destructive/30 hover:bg-destructive/20'
+                                                                    : 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-destructive'
+                                                            }`}
+                                                        >
+                                                            <Trash2 className="size-3.5" />
+                                                            {clearApisunat
+                                                                ? 'Cancelar borrado'
+                                                                : 'Borrar token guardado'}
+                                                        </button>
+                                                    )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </FormSection>
+                        </SectionCard>
                     </TabsContent>
 
                     <TabsContent
                         value="comunicaciones"
                         className="space-y-5 data-[state=active]:animate-in data-[state=active]:fade-in-50"
                     >
-                {/* ───── Remitente comercial (cómo verán los mensajes los clientes) ───── */}
-                <SectionCard
-                    icon={Megaphone}
-                    title={t('sections.remitente.title')}
-                    description={t('sections.remitente.description')}
-                >
-                    <FormSection
-                        index={6}
-                        title=""
-                        columns={2}
-                        className="gap-0"
-                    >
-                        <FormField
-                            id="general-email-from-nombre"
-                            label={t('fields.email_from_nombre')}
-                            error={errors.email_from_nombre}
-                            hint={t('fields.email_from_nombre_hint')}
+                        {/* ───── Remitente comercial (cómo verán los mensajes los clientes) ───── */}
+                        <SectionCard
+                            icon={Megaphone}
+                            title={t('sections.remitente.title')}
+                            description={t('sections.remitente.description')}
                         >
-                            <Input
-                                id="general-email-from-nombre"
-                                value={data.email_from_nombre}
-                                onChange={(e) =>
-                                    setData('email_from_nombre', e.target.value)
-                                }
-                                placeholder="Clínica San Patricio"
-                                disabled={!canUpdate}
-                            />
-                        </FormField>
+                            <FormSection
+                                index={6}
+                                title=""
+                                columns={2}
+                                className="gap-0"
+                            >
+                                <FormField
+                                    id="general-email-from-nombre"
+                                    label={t('fields.email_from_nombre')}
+                                    error={errors.email_from_nombre}
+                                    hint={t('fields.email_from_nombre_hint')}
+                                >
+                                    <Input
+                                        id="general-email-from-nombre"
+                                        value={data.email_from_nombre}
+                                        onChange={(e) =>
+                                            setData(
+                                                'email_from_nombre',
+                                                e.target.value,
+                                            )
+                                        }
+                                        placeholder="Clínica San Patricio"
+                                        disabled={!canUpdate}
+                                    />
+                                </FormField>
 
-                        <FormField
-                            id="general-email-from"
-                            label={t('fields.email_from')}
-                            error={errors.email_from}
-                            hint={t('fields.email_from_hint')}
-                        >
-                            <Input
-                                id="general-email-from"
-                                type="email"
-                                value={data.email_from}
-                                onChange={(e) =>
-                                    setData('email_from', e.target.value)
-                                }
-                                placeholder="contacto@miclinica.pe"
-                                autoComplete="email"
-                                disabled={!canUpdate}
-                            />
-                        </FormField>
+                                <FormField
+                                    id="general-email-from"
+                                    label={t('fields.email_from')}
+                                    error={errors.email_from}
+                                    hint={t('fields.email_from_hint')}
+                                >
+                                    <Input
+                                        id="general-email-from"
+                                        type="email"
+                                        value={data.email_from}
+                                        onChange={(e) =>
+                                            setData(
+                                                'email_from',
+                                                e.target.value,
+                                            )
+                                        }
+                                        placeholder="contacto@miclinica.pe"
+                                        autoComplete="email"
+                                        disabled={!canUpdate}
+                                    />
+                                </FormField>
 
-                        <FormField
-                            id="general-whatsapp-display"
-                            label={t('fields.whatsapp_display_number')}
-                            error={errors.whatsapp_display_number}
-                            hint={t('fields.whatsapp_display_number_hint')}
-                            className="sm:col-span-2"
-                        >
-                            <Input
-                                id="general-whatsapp-display"
-                                value={data.whatsapp_display_number}
-                                onChange={(e) =>
-                                    setData(
-                                        'whatsapp_display_number',
-                                        e.target.value,
-                                    )
-                                }
-                                placeholder="+51 999 000 111"
-                                disabled={!canUpdate}
-                            />
-                        </FormField>
-                    </FormSection>
-                </SectionCard>
+                                <FormField
+                                    id="general-whatsapp-display"
+                                    label={t('fields.whatsapp_display_number')}
+                                    error={errors.whatsapp_display_number}
+                                    hint={t(
+                                        'fields.whatsapp_display_number_hint',
+                                    )}
+                                    className="sm:col-span-2"
+                                >
+                                    <Input
+                                        id="general-whatsapp-display"
+                                        value={data.whatsapp_display_number}
+                                        onChange={(e) =>
+                                            setData(
+                                                'whatsapp_display_number',
+                                                e.target.value,
+                                            )
+                                        }
+                                        placeholder="+51 999 000 111"
+                                        disabled={!canUpdate}
+                                    />
+                                </FormField>
+                            </FormSection>
+                        </SectionCard>
                     </TabsContent>
                 </Tabs>
 
@@ -1720,8 +1880,8 @@ export default function Index({
                   de la página.
                 */}
                 {canUpdate && (
-                    <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border/60 bg-card/95 px-4 py-3 backdrop-blur-md sm:px-6">
-                        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
+                    <div className="fixed right-2 bottom-2 z-40 w-[calc(100%-1rem)] max-w-xl rounded-xl border border-border/70 bg-card/95 px-4 py-3 shadow-lg backdrop-blur-md md:w-[calc(100vw-var(--sidebar-width)-2rem)]">
+                        <div className="flex items-center justify-between gap-3">
                             <div className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
                                 <ShieldCheck
                                     className="size-4 shrink-0 text-primary/70"

@@ -303,6 +303,14 @@ class TenantSchemaMigrator
                 && Schema::hasColumn('cfg_clinic_settings', 'notificar_grooming_completado_whatsapp_activo')
                 && Schema::hasColumn('cfg_clinic_settings', 'notificar_grooming_cancelado_whatsapp_activo')
                 && Schema::hasColumn('cfg_clinic_settings', 'notificar_grooming_no_asistio_whatsapp_activo'),
+            '2026_07_21_123000_t118_add_hotel_whatsapp_preferences_to_cfg_clinic_settings' => Schema::hasTable('cfg_clinic_settings')
+                && Schema::hasColumn('cfg_clinic_settings', 'notificar_hotel_creado_whatsapp_activo')
+                && Schema::hasColumn('cfg_clinic_settings', 'notificar_hotel_confirmado_whatsapp_activo')
+                && Schema::hasColumn('cfg_clinic_settings', 'notificar_hotel_en_estancia_whatsapp_activo')
+                && Schema::hasColumn('cfg_clinic_settings', 'notificar_hotel_completado_whatsapp_activo')
+                && Schema::hasColumn('cfg_clinic_settings', 'notificar_hotel_cancelado_whatsapp_activo')
+                && Schema::hasColumn('cfg_clinic_settings', 'notificar_hotel_no_presento_whatsapp_activo')
+                && Schema::hasColumn('cfg_clinic_settings', 'notificar_hotel_bitacora_whatsapp_activo'),
             default => false,
         };
     }
