@@ -505,7 +505,7 @@ export default function Index({
 
             <form
                 onSubmit={handleSubmit}
-                className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 p-4 pb-24 sm:p-6 sm:pb-24"
+                className="flex w-full flex-1 flex-col gap-4 p-4 pb-24 sm:p-6 sm:pb-24"
                 noValidate
                 encType="multipart/form-data"
             >
