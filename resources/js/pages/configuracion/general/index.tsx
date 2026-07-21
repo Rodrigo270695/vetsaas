@@ -15,6 +15,7 @@ import {
     Phone,
     Receipt,
     Save,
+    Scissors,
     ShieldCheck,
     Trash2,
     XCircle,
@@ -58,7 +59,12 @@ type ConfiguracionGeneralProps = {
     plan_permite_factura_electronica: boolean;
 };
 
-type GeneralTab = 'clinica' | 'agenda' | 'facturacion' | 'comunicaciones';
+type GeneralTab =
+    | 'clinica'
+    | 'agenda'
+    | 'notificaciones'
+    | 'facturacion'
+    | 'comunicaciones';
 
 /**
  * Shape del formulario de configuración (campos no-archivo).
@@ -100,6 +106,11 @@ type FormState = {
     recordatorio_48h_activo: boolean;
     recordatorio_2h_activo: boolean;
     notificar_cita_whatsapp_activo: boolean;
+    notificar_grooming_creado_whatsapp_activo: boolean;
+    notificar_grooming_en_proceso_whatsapp_activo: boolean;
+    notificar_grooming_completado_whatsapp_activo: boolean;
+    notificar_grooming_cancelado_whatsapp_activo: boolean;
+    notificar_grooming_no_asistio_whatsapp_activo: boolean;
     recordatorio_vacuna_activo: boolean;
     recordatorio_vacuna_dias_antes: number;
     recordatorio_cumple_activo: boolean;
@@ -139,6 +150,16 @@ const buildInitialState = (setting: ClinicSetting): FormState => ({
     recordatorio_2h_activo: setting.recordatorio_2h_activo,
     notificar_cita_whatsapp_activo:
         setting.notificar_cita_whatsapp_activo ?? true,
+    notificar_grooming_creado_whatsapp_activo:
+        setting.notificar_grooming_creado_whatsapp_activo ?? true,
+    notificar_grooming_en_proceso_whatsapp_activo:
+        setting.notificar_grooming_en_proceso_whatsapp_activo ?? true,
+    notificar_grooming_completado_whatsapp_activo:
+        setting.notificar_grooming_completado_whatsapp_activo ?? true,
+    notificar_grooming_cancelado_whatsapp_activo:
+        setting.notificar_grooming_cancelado_whatsapp_activo ?? true,
+    notificar_grooming_no_asistio_whatsapp_activo:
+        setting.notificar_grooming_no_asistio_whatsapp_activo ?? true,
     recordatorio_vacuna_activo: setting.recordatorio_vacuna_activo,
     recordatorio_vacuna_dias_antes: setting.recordatorio_vacuna_dias_antes,
     recordatorio_cumple_activo: setting.recordatorio_cumple_activo,
@@ -209,9 +230,18 @@ const resolveErrorTab = (errors: Record<string, string>): GeneralTab => {
     if (
         keys.some(
             (key) =>
-                key.startsWith('agenda_') ||
                 key.startsWith('recordatorio_') ||
                 key === 'notificar_cita_whatsapp_activo' ||
+                key.startsWith('notificar_grooming_'),
+        )
+    ) {
+        return 'notificaciones';
+    }
+
+    if (
+        keys.some(
+            (key) =>
+                key.startsWith('agenda_') ||
                 key === 'duracion_cita_default_min' ||
                 key === 'intervalo_agenda_min' ||
                 key === 'dias_anticipacion_cita' ||
@@ -330,6 +360,16 @@ export default function Index({
             recordatorio_2h_activo: data.recordatorio_2h_activo ? 1 : 0,
             notificar_cita_whatsapp_activo:
                 data.notificar_cita_whatsapp_activo ? 1 : 0,
+            notificar_grooming_creado_whatsapp_activo:
+                data.notificar_grooming_creado_whatsapp_activo ? 1 : 0,
+            notificar_grooming_en_proceso_whatsapp_activo:
+                data.notificar_grooming_en_proceso_whatsapp_activo ? 1 : 0,
+            notificar_grooming_completado_whatsapp_activo:
+                data.notificar_grooming_completado_whatsapp_activo ? 1 : 0,
+            notificar_grooming_cancelado_whatsapp_activo:
+                data.notificar_grooming_cancelado_whatsapp_activo ? 1 : 0,
+            notificar_grooming_no_asistio_whatsapp_activo:
+                data.notificar_grooming_no_asistio_whatsapp_activo ? 1 : 0,
             recordatorio_vacuna_activo: data.recordatorio_vacuna_activo ? 1 : 0,
             recordatorio_cumple_activo: data.recordatorio_cumple_activo ? 1 : 0,
             precio_incluye_igv: data.precio_incluye_igv ? 1 : 0,
@@ -507,7 +547,7 @@ export default function Index({
                     }
                     className="gap-5"
                 >
-                    <TabsList className="grid h-auto w-full grid-cols-2 gap-2 bg-transparent p-0 lg:grid-cols-4">
+                    <TabsList className="grid h-auto w-full grid-cols-2 gap-2 bg-transparent p-0 lg:grid-cols-5">
                         <TabsTrigger
                             value="clinica"
                             className="group h-auto min-h-18 justify-start gap-3 border-border/70 bg-card/70 p-3 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-sky-300 hover:shadow-md data-[state=active]:border-sky-400 data-[state=active]:bg-sky-50 data-[state=active]:text-sky-950 dark:data-[state=active]:bg-sky-950/40 dark:data-[state=active]:text-sky-100"
@@ -537,6 +577,22 @@ export default function Index({
                                 </span>
                                 <span className="hidden truncate text-[11px] font-normal text-muted-foreground sm:block">
                                     {t('tabs.agenda.description')}
+                                </span>
+                            </span>
+                        </TabsTrigger>
+                        <TabsTrigger
+                            value="notificaciones"
+                            className="group h-auto min-h-18 justify-start gap-3 border-border/70 bg-card/70 p-3 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-rose-300 hover:shadow-md data-[state=active]:border-rose-400 data-[state=active]:bg-rose-50 data-[state=active]:text-rose-950 dark:data-[state=active]:bg-rose-950/40 dark:data-[state=active]:text-rose-100"
+                        >
+                            <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-rose-500/12 text-rose-700 ring-1 ring-rose-500/20 dark:text-rose-300">
+                                <Bell className="size-4.5" />
+                            </span>
+                            <span className="min-w-0">
+                                <span className="block font-semibold">
+                                    {t('tabs.notificaciones.title')}
+                                </span>
+                                <span className="hidden truncate text-[11px] font-normal text-muted-foreground sm:block">
+                                    {t('tabs.notificaciones.description')}
                                 </span>
                             </span>
                         </TabsTrigger>
@@ -863,6 +919,7 @@ export default function Index({
                         </FormField>
                     </FormSection>
                 </SectionCard>
+
                     </TabsContent>
 
                     <TabsContent
@@ -1022,28 +1079,14 @@ export default function Index({
                             />
                         </FormField>
 
-                        <div className="sm:col-span-2">
-                            <ToggleRow
-                                id="general-notificar-cita-whatsapp"
-                                label={t(
-                                    'fields.notificar_cita_whatsapp_activo',
-                                )}
-                                hint={t(
-                                    'fields.notificar_cita_whatsapp_activo_hint',
-                                )}
-                                checked={data.notificar_cita_whatsapp_activo}
-                                onChange={(value) =>
-                                    setData(
-                                        'notificar_cita_whatsapp_activo',
-                                        value,
-                                    )
-                                }
-                                disabled={!canUpdate}
-                            />
-                        </div>
                     </FormSection>
                 </SectionCard>
+                    </TabsContent>
 
+                    <TabsContent
+                        value="notificaciones"
+                        className="space-y-5 data-[state=active]:animate-in data-[state=active]:fade-in-50"
+                    >
                 {/* ───── Recordatorios automáticos ───── */}
                 <SectionCard
                     icon={Bell}
@@ -1056,6 +1099,21 @@ export default function Index({
                         columns={1}
                         className="gap-0"
                     >
+                        <ToggleRow
+                            id="general-notificar-cita-whatsapp"
+                            label={t('fields.notificar_cita_whatsapp_activo')}
+                            hint={t(
+                                'fields.notificar_cita_whatsapp_activo_hint',
+                            )}
+                            checked={data.notificar_cita_whatsapp_activo}
+                            onChange={(value) =>
+                                setData(
+                                    'notificar_cita_whatsapp_activo',
+                                    value,
+                                )
+                            }
+                            disabled={!canUpdate}
+                        />
                         <ToggleRow
                             id="general-recordatorio-48h"
                             label={t('fields.recordatorio_48h_activo')}
@@ -1128,6 +1186,117 @@ export default function Index({
                             checked={data.recordatorio_cumple_activo}
                             onChange={(v) =>
                                 setData('recordatorio_cumple_activo', v)
+                            }
+                            disabled={!canUpdate}
+                        />
+                    </FormSection>
+                </SectionCard>
+
+                <SectionCard
+                    icon={Scissors}
+                    title={t('sections.grooming_notificaciones.title')}
+                    description={t(
+                        'sections.grooming_notificaciones.description',
+                    )}
+                >
+                    <FormSection
+                        index={5}
+                        title=""
+                        columns={1}
+                        className="gap-0"
+                    >
+                        <ToggleRow
+                            id="general-grooming-creado-whatsapp"
+                            label={t(
+                                'fields.notificar_grooming_creado_whatsapp_activo',
+                            )}
+                            hint={t(
+                                'fields.notificar_grooming_creado_whatsapp_activo_hint',
+                            )}
+                            checked={
+                                data.notificar_grooming_creado_whatsapp_activo
+                            }
+                            onChange={(value) =>
+                                setData(
+                                    'notificar_grooming_creado_whatsapp_activo',
+                                    value,
+                                )
+                            }
+                            disabled={!canUpdate}
+                        />
+                        <ToggleRow
+                            id="general-grooming-en-proceso-whatsapp"
+                            label={t(
+                                'fields.notificar_grooming_en_proceso_whatsapp_activo',
+                            )}
+                            hint={t(
+                                'fields.notificar_grooming_en_proceso_whatsapp_activo_hint',
+                            )}
+                            checked={
+                                data.notificar_grooming_en_proceso_whatsapp_activo
+                            }
+                            onChange={(value) =>
+                                setData(
+                                    'notificar_grooming_en_proceso_whatsapp_activo',
+                                    value,
+                                )
+                            }
+                            disabled={!canUpdate}
+                        />
+                        <ToggleRow
+                            id="general-grooming-completado-whatsapp"
+                            label={t(
+                                'fields.notificar_grooming_completado_whatsapp_activo',
+                            )}
+                            hint={t(
+                                'fields.notificar_grooming_completado_whatsapp_activo_hint',
+                            )}
+                            checked={
+                                data.notificar_grooming_completado_whatsapp_activo
+                            }
+                            onChange={(value) =>
+                                setData(
+                                    'notificar_grooming_completado_whatsapp_activo',
+                                    value,
+                                )
+                            }
+                            disabled={!canUpdate}
+                        />
+                        <ToggleRow
+                            id="general-grooming-cancelado-whatsapp"
+                            label={t(
+                                'fields.notificar_grooming_cancelado_whatsapp_activo',
+                            )}
+                            hint={t(
+                                'fields.notificar_grooming_cancelado_whatsapp_activo_hint',
+                            )}
+                            checked={
+                                data.notificar_grooming_cancelado_whatsapp_activo
+                            }
+                            onChange={(value) =>
+                                setData(
+                                    'notificar_grooming_cancelado_whatsapp_activo',
+                                    value,
+                                )
+                            }
+                            disabled={!canUpdate}
+                        />
+                        <ToggleRow
+                            id="general-grooming-no-asistio-whatsapp"
+                            label={t(
+                                'fields.notificar_grooming_no_asistio_whatsapp_activo',
+                            )}
+                            hint={t(
+                                'fields.notificar_grooming_no_asistio_whatsapp_activo_hint',
+                            )}
+                            checked={
+                                data.notificar_grooming_no_asistio_whatsapp_activo
+                            }
+                            onChange={(value) =>
+                                setData(
+                                    'notificar_grooming_no_asistio_whatsapp_activo',
+                                    value,
+                                )
                             }
                             disabled={!canUpdate}
                         />

@@ -9,7 +9,8 @@ import {
     RefreshCw,
     Trash2,
 } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState  } from 'react';
+import type {FormEvent} from 'react';
 import { useTranslation } from 'react-i18next';
 import { FormField, FormModal } from '@/components/forms';
 import { Button } from '@/components/ui/button';
@@ -26,6 +27,7 @@ export type GroomingEstadoTarget =
 type Props = {
     turno: GroomingTurnoRow | null;
     target: GroomingEstadoTarget | null;
+    notificationEnabled: boolean;
     onOpenChange: (open: boolean) => void;
 };
 
@@ -57,7 +59,12 @@ function toPhotoItems(files: File[]): PhotoItem[] {
     }));
 }
 
-export function GroomingEstadoModal({ turno, target, onOpenChange }: Props) {
+export function GroomingEstadoModal({
+    turno,
+    target,
+    notificationEnabled,
+    onOpenChange,
+}: Props) {
     const { t } = useTranslation(['grooming', 'common']);
     const galleryRef = useRef<HTMLInputElement>(null);
     const cameraRef = useRef<HTMLInputElement>(null);
@@ -76,7 +83,7 @@ export function GroomingEstadoModal({ turno, target, onOpenChange }: Props) {
     }>({
         estado: target ?? '',
         telefono: defaultPhone,
-        notificar_whatsapp: true,
+        notificar_whatsapp: notificationEnabled,
         fotos: [],
     });
 
@@ -94,6 +101,7 @@ export function GroomingEstadoModal({ turno, target, onOpenChange }: Props) {
         }
     };
 
+    /* eslint-disable react-hooks/set-state-in-effect -- reinicia fotos y formulario al cambiar de turno */
     useEffect(() => {
         if (!open || !target) {
             return;
@@ -102,22 +110,26 @@ export function GroomingEstadoModal({ turno, target, onOpenChange }: Props) {
         form.setData({
             estado: target,
             telefono: defaultPhone,
-            notificar_whatsapp: true,
+            notificar_whatsapp: notificationEnabled,
             fotos: [],
         });
         form.clearErrors();
         setPhotos((prev) => {
             revokeAll(prev);
+
             return [];
         });
+
         for (const ref of [galleryRef, cameraRef, replaceGalleryRef, replaceCameraRef]) {
             if (ref.current) {
                 ref.current.value = '';
             }
         }
+
         replaceIndexRef.current = null;
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [open, target, turno?.id, defaultPhone]);
+    }, [open, target, turno?.id, defaultPhone, notificationEnabled]);
+    /* eslint-enable react-hooks/set-state-in-effect */
 
     useEffect(() => {
         return () => {
@@ -150,6 +162,7 @@ export function GroomingEstadoModal({ turno, target, onOpenChange }: Props) {
         }
 
         const incoming = Array.from(fileList).filter((f) => f.type.startsWith('image/'));
+
         if (incoming.length === 0) {
             return;
         }
@@ -193,6 +206,7 @@ export function GroomingEstadoModal({ turno, target, onOpenChange }: Props) {
 
     const onSubmit = (e: FormEvent) => {
         e.preventDefault();
+
         if (!turno || !target) {
             return;
         }
@@ -200,7 +214,11 @@ export function GroomingEstadoModal({ turno, target, onOpenChange }: Props) {
         form.transform(() => ({
             estado: target,
             telefono: form.data.telefono,
-            notificar_whatsapp: isAutoWhatsApp(target) ? true : form.data.notificar_whatsapp,
+            notificar_whatsapp:
+                notificationEnabled &&
+                (isAutoWhatsApp(target)
+                    ? true
+                    : form.data.notificar_whatsapp),
             fotos: photos.map((p) => p.file),
         }));
 
@@ -292,9 +310,11 @@ export function GroomingEstadoModal({ turno, target, onOpenChange }: Props) {
                             disabled={form.processing}
                             onChange={(e) => {
                                 const idx = replaceIndexRef.current;
+
                                 if (idx !== null) {
                                     replaceAt(idx, e.target.files?.[0] ?? null);
                                 }
+
                                 replaceIndexRef.current = null;
                                 e.target.value = '';
                             }}
@@ -308,9 +328,11 @@ export function GroomingEstadoModal({ turno, target, onOpenChange }: Props) {
                             disabled={form.processing}
                             onChange={(e) => {
                                 const idx = replaceIndexRef.current;
+
                                 if (idx !== null) {
                                     replaceAt(idx, e.target.files?.[0] ?? null);
                                 }
+
                                 replaceIndexRef.current = null;
                                 e.target.value = '';
                             }}
@@ -422,7 +444,12 @@ export function GroomingEstadoModal({ turno, target, onOpenChange }: Props) {
                     />
                 </FormField>
 
-                {isAutoWhatsApp(target) ? (
+                {!notificationEnabled ? (
+                    <div className="flex gap-2 rounded-lg border border-border/70 bg-muted/30 p-3 text-xs leading-relaxed text-muted-foreground">
+                        <MessageCircle className="mt-0.5 size-4 shrink-0" />
+                        <p>{t('estado_flow.disabled_by_settings')}</p>
+                    </div>
+                ) : isAutoWhatsApp(target) ? (
                     <div className="flex gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/8 p-3 text-xs leading-relaxed text-emerald-900 dark:text-emerald-100">
                         <MessageCircle className="mt-0.5 size-4 shrink-0" />
                         <p>{t('estado_flow.auto_whatsapp')}</p>

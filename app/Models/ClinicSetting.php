@@ -51,6 +51,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property bool $recordatorio_48h_activo
  * @property bool $recordatorio_2h_activo
  * @property bool $notificar_cita_whatsapp_activo
+ * @property bool $notificar_grooming_creado_whatsapp_activo
+ * @property bool $notificar_grooming_en_proceso_whatsapp_activo
+ * @property bool $notificar_grooming_completado_whatsapp_activo
+ * @property bool $notificar_grooming_cancelado_whatsapp_activo
+ * @property bool $notificar_grooming_no_asistio_whatsapp_activo
  * @property bool $recordatorio_vacuna_activo
  * @property int $recordatorio_vacuna_dias_antes
  * @property bool $recordatorio_cumple_activo
@@ -100,6 +105,11 @@ class ClinicSetting extends Model
         'recordatorio_48h_activo',
         'recordatorio_2h_activo',
         'notificar_cita_whatsapp_activo',
+        'notificar_grooming_creado_whatsapp_activo',
+        'notificar_grooming_en_proceso_whatsapp_activo',
+        'notificar_grooming_completado_whatsapp_activo',
+        'notificar_grooming_cancelado_whatsapp_activo',
+        'notificar_grooming_no_asistio_whatsapp_activo',
         'recordatorio_vacuna_activo',
         'recordatorio_vacuna_dias_antes',
         'recordatorio_cumple_activo',
@@ -149,6 +159,11 @@ class ClinicSetting extends Model
             'recordatorio_48h_activo' => 'boolean',
             'recordatorio_2h_activo' => 'boolean',
             'notificar_cita_whatsapp_activo' => 'boolean',
+            'notificar_grooming_creado_whatsapp_activo' => 'boolean',
+            'notificar_grooming_en_proceso_whatsapp_activo' => 'boolean',
+            'notificar_grooming_completado_whatsapp_activo' => 'boolean',
+            'notificar_grooming_cancelado_whatsapp_activo' => 'boolean',
+            'notificar_grooming_no_asistio_whatsapp_activo' => 'boolean',
             'recordatorio_vacuna_activo' => 'boolean',
             'recordatorio_vacuna_dias_antes' => 'integer',
             'recordatorio_cumple_activo' => 'boolean',
@@ -236,6 +251,26 @@ class ClinicSetting extends Model
     public function notificarCitaWhatsAppActivo(): bool
     {
         $value = $this->getAttribute('notificar_cita_whatsapp_activo');
+
+        return $value === null ? true : (bool) $value;
+    }
+
+    public function notificarGroomingWhatsAppActivo(string $evento): bool
+    {
+        $attribute = match ($evento) {
+            'programado', 'reprogramado' => 'notificar_grooming_creado_whatsapp_activo',
+            'en_proceso' => 'notificar_grooming_en_proceso_whatsapp_activo',
+            'completada' => 'notificar_grooming_completado_whatsapp_activo',
+            'cancelada' => 'notificar_grooming_cancelado_whatsapp_activo',
+            'no_asistio' => 'notificar_grooming_no_asistio_whatsapp_activo',
+            default => null,
+        };
+
+        if ($attribute === null) {
+            return false;
+        }
+
+        $value = $this->getAttribute($attribute);
 
         return $value === null ? true : (bool) $value;
     }

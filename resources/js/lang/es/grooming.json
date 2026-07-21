@@ -95,6 +95,7 @@
         "remove_photo": "Eliminar foto",
         "phone": "Teléfono WhatsApp del propietario",
         "auto_whatsapp": "Se enviará automáticamente un mensaje de WhatsApp al propietario al confirmar.",
+        "disabled_by_settings": "Este aviso está desactivado en Configuración general → Notificaciones.",
         "notify_label": "Notificar al propietario por WhatsApp",
         "notify_hint": "Incluye el aviso del estado y las fotos que subas.",
         "en_proceso": {

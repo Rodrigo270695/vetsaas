@@ -74,6 +74,11 @@ export type ClinicSetting = {
     recordatorio_48h_activo: boolean;
     recordatorio_2h_activo: boolean;
     notificar_cita_whatsapp_activo: boolean;
+    notificar_grooming_creado_whatsapp_activo: boolean;
+    notificar_grooming_en_proceso_whatsapp_activo: boolean;
+    notificar_grooming_completado_whatsapp_activo: boolean;
+    notificar_grooming_cancelado_whatsapp_activo: boolean;
+    notificar_grooming_no_asistio_whatsapp_activo: boolean;
     recordatorio_vacuna_activo: boolean;
     recordatorio_vacuna_dias_antes: number;
     recordatorio_cumple_activo: boolean;

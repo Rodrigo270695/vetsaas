@@ -19,7 +19,11 @@
         },
         "agenda": {
             "title": "Agenda",
-            "description": "Citas y recordatorios"
+            "description": "Horarios y reglas de citas"
+        },
+        "notificaciones": {
+            "title": "Notificaciones",
+            "description": "WhatsApp y recordatorios"
         },
         "facturacion": {
             "title": "Facturación",
@@ -50,6 +54,10 @@
         "recordatorios": {
             "title": "Recordatorios automáticos",
             "description": "Notificaciones programadas que VetSaaS envía a tus clientes por correo y WhatsApp."
+        },
+        "grooming_notificaciones": {
+            "title": "WhatsApp de grooming",
+            "description": "Elige en qué momentos del servicio se avisará automáticamente al propietario. Todos están activos por defecto."
         },
         "facturacion": {
             "title": "Facturación y comprobantes SUNAT",
@@ -106,6 +114,16 @@
         "horas_min_cancelacion_hint": "Pasada esta ventana, la cancelación queda registrada como tardía.",
         "notificar_cita_whatsapp_activo": "Enviar WhatsApp al crear o modificar una cita",
         "notificar_cita_whatsapp_activo_hint": "Envía automáticamente al propietario la confirmación de una cita nueva o su nueva fecha y hora al reprogramarla.",
+        "notificar_grooming_creado_whatsapp_activo": "Al crear o reprogramar el turno",
+        "notificar_grooming_creado_whatsapp_activo_hint": "Confirma al propietario el servicio, la fecha y la hora del grooming.",
+        "notificar_grooming_en_proceso_whatsapp_activo": "Cuando el grooming inicia",
+        "notificar_grooming_en_proceso_whatsapp_activo_hint": "Avisa que la mascota ya se encuentra en proceso de grooming.",
+        "notificar_grooming_completado_whatsapp_activo": "Cuando el grooming se completa",
+        "notificar_grooming_completado_whatsapp_activo_hint": "Informa que el servicio terminó y que la mascota está lista para recoger.",
+        "notificar_grooming_cancelado_whatsapp_activo": "Cuando el turno se cancela",
+        "notificar_grooming_cancelado_whatsapp_activo_hint": "Notifica al propietario que el turno fue cancelado.",
+        "notificar_grooming_no_asistio_whatsapp_activo": "Cuando se marca que no asistió",
+        "notificar_grooming_no_asistio_whatsapp_activo_hint": "Informa que la inasistencia quedó registrada y ofrece reagendar.",
         "recordatorio_48h_activo": "Recordatorio 48 horas antes",
         "recordatorio_48h_activo_hint": "Avisa al cliente dos días antes de su cita.",
         "recordatorio_2h_activo": "Recordatorio 2 horas antes",

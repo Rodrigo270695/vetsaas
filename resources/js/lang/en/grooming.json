@@ -95,6 +95,7 @@
         "remove_photo": "Remove photo",
         "phone": "Owner WhatsApp phone",
         "auto_whatsapp": "An automatic WhatsApp message will be sent to the owner on confirm.",
+        "disabled_by_settings": "This notification is disabled in General settings → Notifications.",
         "notify_label": "Notify owner via WhatsApp",
         "notify_hint": "Includes the status update and any photos you upload.",
         "en_proceso": {

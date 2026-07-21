@@ -297,6 +297,12 @@ class TenantSchemaMigrator
                 && Schema::hasColumn('movimientos_inventario', 'traslado_grupo_id'),
             '2026_07_20_190000_t116_add_notificar_cita_whatsapp_to_cfg_clinic_settings' => Schema::hasTable('cfg_clinic_settings')
                 && Schema::hasColumn('cfg_clinic_settings', 'notificar_cita_whatsapp_activo'),
+            '2026_07_21_120000_t117_add_grooming_whatsapp_preferences_to_cfg_clinic_settings' => Schema::hasTable('cfg_clinic_settings')
+                && Schema::hasColumn('cfg_clinic_settings', 'notificar_grooming_creado_whatsapp_activo')
+                && Schema::hasColumn('cfg_clinic_settings', 'notificar_grooming_en_proceso_whatsapp_activo')
+                && Schema::hasColumn('cfg_clinic_settings', 'notificar_grooming_completado_whatsapp_activo')
+                && Schema::hasColumn('cfg_clinic_settings', 'notificar_grooming_cancelado_whatsapp_activo')
+                && Schema::hasColumn('cfg_clinic_settings', 'notificar_grooming_no_asistio_whatsapp_activo'),
             default => false,
         };
     }

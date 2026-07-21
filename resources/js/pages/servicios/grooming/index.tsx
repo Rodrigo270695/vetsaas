@@ -15,12 +15,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useDataTablePage } from '@/hooks/use-data-table-page';
 import { usePermission } from '@/hooks/use-permission';
-import type { Paginated } from '@/types';
 import { AtencionDateRangeFilter } from '@/pages/clinica/historias-clinicas/components/atencion-date-range-filter';
 import { formatAtendidoInAppTimezone } from '@/pages/clinica/historias-clinicas/format-atendido';
+import type { Paginated } from '@/types';
 import { GroomingDeleteDialog } from './components/grooming-delete-dialog';
 import { GroomingDetalleModal } from './components/grooming-detalle-modal';
-import { GroomingEstadoModal, type GroomingEstadoTarget } from './components/grooming-estado-modal';
+import { GroomingEstadoModal  } from './components/grooming-estado-modal';
+import type {GroomingEstadoTarget} from './components/grooming-estado-modal';
 import { GroomingFormModal } from './components/grooming-form-modal';
 import { GroomingRowActions } from './components/grooming-row-actions';
 import type {
@@ -50,6 +51,7 @@ type Props = {
     grooming_filtro_ui: GroomingFiltroUi;
     stats: GroomingStats;
     turno_abrir_editar: GroomingTurnoRow | null;
+    grooming_whatsapp_preferences: Record<GroomingEstadoTarget, boolean>;
 };
 
 type GroomingTableExtra = Pick<GroomingFilters, 'grooming_desde' | 'grooming_hasta'>;
@@ -118,12 +120,12 @@ export default function Index({
     grooming_servicio_grupos,
     grooming_servicio_duraciones,
     pacientes_opciones,
-    usuarios_opciones,
     sedes_opciones,
     filters,
     grooming_filtro_ui,
     stats,
     turno_abrir_editar,
+    grooming_whatsapp_preferences,
 }: Props) {
     const { t } = useTranslation(['grooming', 'common']);
     const { locale: appLocale, timezone: appTz } = usePage().props;
@@ -532,6 +534,11 @@ export default function Index({
             <GroomingEstadoModal
                 turno={modal.type === 'estado' ? modal.turno : null}
                 target={modal.type === 'estado' ? modal.target : null}
+                notificationEnabled={
+                    modal.type === 'estado'
+                        ? grooming_whatsapp_preferences[modal.target]
+                        : false
+                }
                 onOpenChange={(open) => {
                     if (!open) {
                         closeModal();

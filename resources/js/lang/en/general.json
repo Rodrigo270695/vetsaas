@@ -19,7 +19,11 @@
         },
         "agenda": {
             "title": "Schedule",
-            "description": "Appointments and reminders"
+            "description": "Hours and appointment rules"
+        },
+        "notificaciones": {
+            "title": "Notifications",
+            "description": "WhatsApp and reminders"
         },
         "facturacion": {
             "title": "Billing",
@@ -50,6 +54,10 @@
         "recordatorios": {
             "title": "Automated reminders",
             "description": "Scheduled notifications that VetSaaS sends to your clients via email and WhatsApp."
+        },
+        "grooming_notificaciones": {
+            "title": "Grooming WhatsApp",
+            "description": "Choose which service events automatically notify the owner. All options are enabled by default."
         },
         "facturacion": {
             "title": "Billing & SUNAT receipts",
@@ -106,6 +114,16 @@
         "horas_min_cancelacion_hint": "After this window, cancellations are logged as late.",
         "notificar_cita_whatsapp_activo": "Send WhatsApp when an appointment is created or changed",
         "notificar_cita_whatsapp_activo_hint": "Automatically sends the owner a confirmation for a new appointment or its new date and time after rescheduling.",
+        "notificar_grooming_creado_whatsapp_activo": "When the grooming appointment is created or rescheduled",
+        "notificar_grooming_creado_whatsapp_activo_hint": "Confirms the grooming service, date and time with the owner.",
+        "notificar_grooming_en_proceso_whatsapp_activo": "When grooming starts",
+        "notificar_grooming_en_proceso_whatsapp_activo_hint": "Lets the owner know their pet is now being groomed.",
+        "notificar_grooming_completado_whatsapp_activo": "When grooming is completed",
+        "notificar_grooming_completado_whatsapp_activo_hint": "Notifies the owner that the service is complete and their pet is ready.",
+        "notificar_grooming_cancelado_whatsapp_activo": "When the appointment is cancelled",
+        "notificar_grooming_cancelado_whatsapp_activo_hint": "Notifies the owner that the grooming appointment was cancelled.",
+        "notificar_grooming_no_asistio_whatsapp_activo": "When marked as no-show",
+        "notificar_grooming_no_asistio_whatsapp_activo_hint": "Reports the missed appointment and offers rescheduling.",
         "recordatorio_48h_activo": "48-hour reminder",
         "recordatorio_48h_activo_hint": "Reminds the client two days before their appointment.",
         "recordatorio_2h_activo": "2-hour reminder",

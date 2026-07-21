@@ -191,6 +191,7 @@ class GroomingTurnoController extends Controller
             ->get(['id', 'nombre', 'codigo']);
 
         $catalogoPersonalizado = GroomingCatalogoMode::usaCatalogoPersonalizado();
+        $notificationSetting = ClinicSetting::current();
 
         $groomingServicios = $catalogoPersonalizado
             ? GroomingServicio::query()
@@ -211,6 +212,12 @@ class GroomingTurnoController extends Controller
             'usuarios_opciones' => $usuariosOpciones,
             'sedes_opciones' => $sedesOpciones,
             'turno_abrir_editar' => $turnoAbrirEditar,
+            'grooming_whatsapp_preferences' => [
+                GroomingTurno::ESTADO_EN_PROCESO => $notificationSetting->notificarGroomingWhatsAppActivo(GroomingTurno::ESTADO_EN_PROCESO),
+                GroomingTurno::ESTADO_COMPLETADA => $notificationSetting->notificarGroomingWhatsAppActivo(GroomingTurno::ESTADO_COMPLETADA),
+                GroomingTurno::ESTADO_CANCELADA => $notificationSetting->notificarGroomingWhatsAppActivo(GroomingTurno::ESTADO_CANCELADA),
+                GroomingTurno::ESTADO_NO_ASISTIO => $notificationSetting->notificarGroomingWhatsAppActivo(GroomingTurno::ESTADO_NO_ASISTIO),
+            ],
             'filters' => [
                 'search' => $search,
                 'per_page' => $perPage,
@@ -317,11 +324,9 @@ class GroomingTurnoController extends Controller
     ): RedirectResponse {
         $data = $request->validated();
         $nuevoEstado = (string) $data['estado'];
-        $autoNotificar = in_array($nuevoEstado, [
-            GroomingTurno::ESTADO_CANCELADA,
-            GroomingTurno::ESTADO_NO_ASISTIO,
-        ], true);
-        $notificar = $autoNotificar || (($data['notificar_whatsapp'] ?? true) === true);
+        $setting = ClinicSetting::current();
+        $notificar = $setting->notificarGroomingWhatsAppActivo($nuevoEstado)
+            && (($data['notificar_whatsapp'] ?? true) === true);
 
         $groomingTurno->estado = $nuevoEstado;
         $groomingTurno->updated_by_id = Auth::id();
@@ -394,7 +399,7 @@ class GroomingTurnoController extends Controller
                 $tenantModel,
                 $chatId,
                 $ownerName,
-                ClinicSetting::current(),
+                $setting,
                 $nuevoEstado,
                 $fotosCreadas->isNotEmpty() ? $fotosCreadas : null,
             );
@@ -561,6 +566,11 @@ class GroomingTurnoController extends Controller
         GroomingProcesoWhatsAppSender $sender,
         string $tipo,
     ): string {
+        $setting = ClinicSetting::current();
+        if (! $setting->notificarGroomingWhatsAppActivo($tipo)) {
+            return 'skip';
+        }
+
         $turno->loadMissing([
             'paciente.propietario:id,nombres,apellidos,razon_social,telefono',
             'groomingServicio:id,nombre',
@@ -588,7 +598,7 @@ class GroomingTurnoController extends Controller
                 $tenant,
                 $chatId,
                 $ownerName,
-                ClinicSetting::current(),
+                $setting,
                 $tipo,
             );
 
