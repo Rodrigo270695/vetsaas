@@ -6,6 +6,7 @@ namespace App\Services\Notifications;
 
 use App\Models\Cita;
 use App\Models\ClinicSetting;
+use App\Models\NotificationQueue;
 use App\Support\WhatsApp\WhatsAppChatId;
 use Carbon\CarbonInterface;
 
@@ -17,7 +18,7 @@ final class AppointmentReminderScanner
     ) {}
 
     /**
-     * @return array{cita_48h: int, cita_2h: int}
+     * @return array{cita_dias: int, cita_2h: int}
      */
     public function scan(?CarbonInterface $now = null): array
     {
@@ -25,13 +26,13 @@ final class AppointmentReminderScanner
         $setting = ClinicSetting::query()->first();
 
         $clinicName = $this->messages->clinicDisplayName($setting);
-        $count48 = 0;
+        $countDays = 0;
         $count2h = 0;
 
-        if ($setting?->recordatorio_48h_activo) {
-            $count48 = $this->scanWindow(
-                $now->copy()->addHours(48),
-                'cita_48h',
+        foreach ($setting?->recordatorioCitaDiasAntesOpciones() ?? [] as $days) {
+            $countDays += $this->scanWindow(
+                $now->copy()->addDays($days),
+                $days === 2 ? 'cita_48h' : 'cita_'.$days.'d',
                 fn (Cita $cita) => $this->messages->cita48h(
                     $clinicName,
                     $this->ownerName($cita),
@@ -54,7 +55,7 @@ final class AppointmentReminderScanner
             );
         }
 
-        return ['cita_48h' => $count48, 'cita_2h' => $count2h];
+        return ['cita_dias' => $countDays, 'cita_2h' => $count2h];
     }
 
     /**
@@ -65,6 +66,7 @@ final class AppointmentReminderScanner
         $from = $target->copy()->subMinutes(30);
         $to = $target->copy()->addMinutes(30);
 
+        /** @var \Illuminate\Database\Eloquent\Collection<int, Cita> $citas */
         $citas = Cita::query()
             ->with(['paciente.propietario'])
             ->whereIn('estado', [Cita::ESTADO_PROGRAMADA, Cita::ESTADO_CONFIRMADA])
@@ -92,7 +94,7 @@ final class AppointmentReminderScanner
                 prioridad: $tipo === 'cita_2h' ? 3 : 5,
             );
 
-            if ($created instanceof \App\Models\NotificationQueue) {
+            if ($created instanceof NotificationQueue) {
                 $enqueued++;
             }
         }

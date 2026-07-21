@@ -62,7 +62,7 @@ type GeneralTab =
     | 'facturacion'
     | 'comunicaciones';
 
-const VACCINE_REMINDER_OPTIONS = [1, 2, 3, 7, 30] as const;
+const REMINDER_DAY_OPTIONS = [1, 2, 3, 7, 30] as const;
 
 /**
  * Shape del formulario de configuración (campos no-archivo).
@@ -101,8 +101,8 @@ type FormState = {
     dias_anticipacion_cita: number;
     horas_min_cancelacion: number;
     // Recordatorios
-    recordatorio_48h_activo: boolean;
     recordatorio_2h_activo: boolean;
+    recordatorio_cita_dias_antes_opciones: number[];
     notificar_cita_whatsapp_activo: boolean;
     notificar_grooming_creado_whatsapp_activo: boolean;
     notificar_grooming_en_proceso_whatsapp_activo: boolean;
@@ -151,8 +151,13 @@ const buildInitialState = (setting: ClinicSetting): FormState => ({
     agenda_hora_fin: setting.agenda_hora_fin ?? '20:00',
     dias_anticipacion_cita: setting.dias_anticipacion_cita,
     horas_min_cancelacion: setting.horas_min_cancelacion,
-    recordatorio_48h_activo: setting.recordatorio_48h_activo,
     recordatorio_2h_activo: setting.recordatorio_2h_activo,
+    recordatorio_cita_dias_antes_opciones:
+        setting.recordatorio_cita_dias_antes_opciones?.filter((days) =>
+            REMINDER_DAY_OPTIONS.includes(
+                days as (typeof REMINDER_DAY_OPTIONS)[number],
+            ),
+        ) ?? (setting.recordatorio_48h_activo ? [2] : []),
     notificar_cita_whatsapp_activo:
         setting.notificar_cita_whatsapp_activo ?? true,
     notificar_grooming_creado_whatsapp_activo:
@@ -182,8 +187,8 @@ const buildInitialState = (setting: ClinicSetting): FormState => ({
     recordatorio_vacuna_activo: setting.recordatorio_vacuna_activo,
     recordatorio_vacuna_dias_antes_opciones:
         setting.recordatorio_vacuna_dias_antes_opciones?.filter((days) =>
-            VACCINE_REMINDER_OPTIONS.includes(
-                days as (typeof VACCINE_REMINDER_OPTIONS)[number],
+            REMINDER_DAY_OPTIONS.includes(
+                days as (typeof REMINDER_DAY_OPTIONS)[number],
             ),
         ) ?? [7],
     recordatorio_cumple_activo: setting.recordatorio_cumple_activo,
@@ -381,8 +386,11 @@ export default function Index({
             // (FormData no soporta null y null no satisface Convertible).
             distrito_id: data.distrito_id ?? '',
             // Booleans → '1' / '0' para que sobrevivan al multipart.
-            recordatorio_48h_activo: data.recordatorio_48h_activo ? 1 : 0,
+            recordatorio_48h_activo:
+                data.recordatorio_cita_dias_antes_opciones.includes(2) ? 1 : 0,
             recordatorio_2h_activo: data.recordatorio_2h_activo ? 1 : 0,
+            recordatorio_cita_dias_antes_opciones:
+                data.recordatorio_cita_dias_antes_opciones,
             notificar_cita_whatsapp_activo: data.notificar_cita_whatsapp_activo
                 ? 1
                 : 0,
@@ -1215,23 +1223,62 @@ export default function Index({
                                                 'fields.recordatorio_cita_momentos',
                                             )}
                                         </p>
-                                        <div className="grid gap-2 sm:grid-cols-2">
-                                            <ReminderCheck
-                                                id="general-recordatorio-48h"
-                                                label={t(
-                                                    'fields.recordatorio_cita_opcion_2d',
-                                                )}
-                                                checked={
-                                                    data.recordatorio_48h_activo
-                                                }
-                                                onChange={(checked) =>
-                                                    setData(
-                                                        'recordatorio_48h_activo',
-                                                        checked,
-                                                    )
-                                                }
-                                                disabled={!canUpdate}
-                                            />
+                                        <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
+                                            {REMINDER_DAY_OPTIONS.map(
+                                                (days) => {
+                                                    const selected =
+                                                        data.recordatorio_cita_dias_antes_opciones.includes(
+                                                            days,
+                                                        );
+
+                                                    return (
+                                                        <ReminderCheck
+                                                            key={days}
+                                                            id={`general-recordatorio-cita-${days}d`}
+                                                            label={t(
+                                                                `fields.recordatorio_vacuna_opcion_${days}`,
+                                                            )}
+                                                            checked={selected}
+                                                            onChange={(
+                                                                checked,
+                                                            ) => {
+                                                                const next =
+                                                                    checked
+                                                                        ? [
+                                                                              ...data.recordatorio_cita_dias_antes_opciones,
+                                                                              days,
+                                                                          ]
+                                                                        : data.recordatorio_cita_dias_antes_opciones.filter(
+                                                                              (
+                                                                                  value,
+                                                                              ) =>
+                                                                                  value !==
+                                                                                  days,
+                                                                          );
+
+                                                                setData(
+                                                                    'recordatorio_cita_dias_antes_opciones',
+                                                                    [
+                                                                        ...new Set(
+                                                                            next,
+                                                                        ),
+                                                                    ].sort(
+                                                                        (
+                                                                            a,
+                                                                            b,
+                                                                        ) =>
+                                                                            a -
+                                                                            b,
+                                                                    ),
+                                                                );
+                                                            }}
+                                                            disabled={
+                                                                !canUpdate
+                                                            }
+                                                        />
+                                                    );
+                                                },
+                                            )}
                                             <ReminderCheck
                                                 id="general-recordatorio-2h"
                                                 label={t(
@@ -1298,7 +1345,7 @@ export default function Index({
                                                 </p>
                                             </div>
                                             <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-5">
-                                                {VACCINE_REMINDER_OPTIONS.map(
+                                                {REMINDER_DAY_OPTIONS.map(
                                                     (days) => {
                                                         const selected =
                                                             data.recordatorio_vacuna_dias_antes_opciones.includes(

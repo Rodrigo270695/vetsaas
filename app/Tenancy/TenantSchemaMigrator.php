@@ -313,6 +313,8 @@ class TenantSchemaMigrator
                 && Schema::hasColumn('cfg_clinic_settings', 'notificar_hotel_bitacora_whatsapp_activo'),
             '2026_07_21_184000_t119_add_vaccine_reminder_intervals_to_cfg_clinic_settings' => Schema::hasTable('cfg_clinic_settings')
                 && Schema::hasColumn('cfg_clinic_settings', 'recordatorio_vacuna_dias_antes_opciones'),
+            '2026_07_21_185000_t120_add_appointment_reminder_intervals_to_cfg_clinic_settings' => Schema::hasTable('cfg_clinic_settings')
+                && Schema::hasColumn('cfg_clinic_settings', 'recordatorio_cita_dias_antes_opciones'),
             default => false,
         };
     }

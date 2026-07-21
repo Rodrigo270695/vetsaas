@@ -68,6 +68,12 @@ class ClinicSettingRequest extends FormRequest
             // Recordatorios
             'recordatorio_48h_activo' => ['required', 'boolean'],
             'recordatorio_2h_activo' => ['required', 'boolean'],
+            'recordatorio_cita_dias_antes_opciones' => ['required', 'array'],
+            'recordatorio_cita_dias_antes_opciones.*' => [
+                'integer',
+                'distinct',
+                Rule::in(ClinicSetting::APPOINTMENT_REMINDER_DAY_OPTIONS),
+            ],
             'notificar_cita_whatsapp_activo' => ['required', 'boolean'],
             'notificar_grooming_creado_whatsapp_activo' => ['required', 'boolean'],
             'notificar_grooming_en_proceso_whatsapp_activo' => ['required', 'boolean'],
@@ -135,6 +141,8 @@ class ClinicSettingRequest extends FormRequest
             'horas_min_cancelacion' => 'horas mínimas para cancelar',
             'recordatorio_48h_activo' => 'recordatorio 48 h',
             'recordatorio_2h_activo' => 'recordatorio 2 h',
+            'recordatorio_cita_dias_antes_opciones' => 'momentos de recordatorio de citas',
+            'recordatorio_cita_dias_antes_opciones.*' => 'momento de recordatorio de cita',
             'notificar_cita_whatsapp_activo' => 'notificación WhatsApp de citas',
             'notificar_grooming_creado_whatsapp_activo' => 'notificación al crear grooming',
             'notificar_grooming_en_proceso_whatsapp_activo' => 'notificación de grooming en proceso',

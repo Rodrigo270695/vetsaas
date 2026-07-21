@@ -50,6 +50,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $dias_anticipacion_cita
  * @property bool $recordatorio_48h_activo
  * @property bool $recordatorio_2h_activo
+ * @property array<int, int> $recordatorio_cita_dias_antes_opciones
  * @property bool $notificar_cita_whatsapp_activo
  * @property bool $notificar_grooming_creado_whatsapp_activo
  * @property bool $notificar_grooming_en_proceso_whatsapp_activo
@@ -97,6 +98,9 @@ class ClinicSetting extends Model
     /** @var list<int> */
     public const VACCINE_REMINDER_DAY_OPTIONS = [1, 2, 3, 7, 30];
 
+    /** @var list<int> */
+    public const APPOINTMENT_REMINDER_DAY_OPTIONS = [1, 2, 3, 7, 30];
+
     protected $table = 'cfg_clinic_settings';
 
     protected $fillable = [
@@ -115,6 +119,7 @@ class ClinicSetting extends Model
         'dias_anticipacion_cita',
         'recordatorio_48h_activo',
         'recordatorio_2h_activo',
+        'recordatorio_cita_dias_antes_opciones',
         'notificar_cita_whatsapp_activo',
         'notificar_grooming_creado_whatsapp_activo',
         'notificar_grooming_en_proceso_whatsapp_activo',
@@ -177,6 +182,7 @@ class ClinicSetting extends Model
             'dias_anticipacion_cita' => 'integer',
             'recordatorio_48h_activo' => 'boolean',
             'recordatorio_2h_activo' => 'boolean',
+            'recordatorio_cita_dias_antes_opciones' => 'array',
             'notificar_cita_whatsapp_activo' => 'boolean',
             'notificar_grooming_creado_whatsapp_activo' => 'boolean',
             'notificar_grooming_en_proceso_whatsapp_activo' => 'boolean',
@@ -280,6 +286,25 @@ class ClinicSetting extends Model
         $value = $this->getAttribute('notificar_cita_whatsapp_activo');
 
         return $value === null ? true : (bool) $value;
+    }
+
+    /**
+     * @return list<int>
+     */
+    public function recordatorioCitaDiasAntesOpciones(): array
+    {
+        $values = $this->getAttribute('recordatorio_cita_dias_antes_opciones');
+        if (! is_array($values)) {
+            $values = ($this->recordatorio_48h_activo ?? true) ? [2] : [];
+        }
+
+        $normalized = array_values(array_unique(array_filter(
+            array_map(static fn (mixed $value): int => (int) $value, $values),
+            static fn (int $value): bool => in_array($value, self::APPOINTMENT_REMINDER_DAY_OPTIONS, true),
+        )));
+        sort($normalized);
+
+        return $normalized;
     }
 
     public function notificarGroomingWhatsAppActivo(string $evento): bool

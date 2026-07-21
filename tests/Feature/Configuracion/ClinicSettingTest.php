@@ -138,6 +138,7 @@ it('autoprovisiona la fila de configuración al primer acceso del admin', functi
     expect($row->duracion_cita_default_min)->toBe(30);
     expect((bool) $row->notificar_cita_whatsapp_activo)->toBeTrue();
     expect((bool) $row->notificar_hotel_bitacora_whatsapp_activo)->toBeTrue();
+    expect(json_decode($row->recordatorio_cita_dias_antes_opciones, true))->toBe([2]);
     expect(json_decode($row->recordatorio_vacuna_dias_antes_opciones, true))->toBe([7]);
     expect((bool) $row->emite_comprobantes_sunat)->toBeFalse();
 });
@@ -216,6 +217,7 @@ it('admin_clinica puede actualizar la configuración con datos válidos', functi
         'agenda_hora_fin' => '22:00',
     ]);
     expect((bool) $row->recordatorio_48h_activo)->toBeTrue();
+    expect(json_decode($row->recordatorio_cita_dias_antes_opciones, true))->toBe([1, 2, 7, 30]);
     expect((bool) $row->notificar_cita_whatsapp_activo)->toBeTrue();
     expect((bool) $row->notificar_hotel_creado_whatsapp_activo)->toBeTrue();
     expect(json_decode($row->recordatorio_vacuna_dias_antes_opciones, true))->toBe([1, 3, 7]);
@@ -548,6 +550,7 @@ function validPayload(): array
         'horas_min_cancelacion' => 12,
         'recordatorio_48h_activo' => true,
         'recordatorio_2h_activo' => true,
+        'recordatorio_cita_dias_antes_opciones' => [1, 2, 7, 30],
         'notificar_cita_whatsapp_activo' => true,
         'notificar_grooming_creado_whatsapp_activo' => true,
         'notificar_grooming_en_proceso_whatsapp_activo' => true,

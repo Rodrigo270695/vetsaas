@@ -115,6 +115,7 @@ class ClinicSettingController extends Controller
             'horas_min_cancelacion' => $data['horas_min_cancelacion'],
             'recordatorio_48h_activo' => $data['recordatorio_48h_activo'],
             'recordatorio_2h_activo' => $data['recordatorio_2h_activo'],
+            'recordatorio_cita_dias_antes_opciones' => $data['recordatorio_cita_dias_antes_opciones'],
             'notificar_cita_whatsapp_activo' => $data['notificar_cita_whatsapp_activo'],
             'notificar_grooming_creado_whatsapp_activo' => $data['notificar_grooming_creado_whatsapp_activo'],
             'notificar_grooming_en_proceso_whatsapp_activo' => $data['notificar_grooming_en_proceso_whatsapp_activo'],
@@ -296,6 +297,7 @@ class ClinicSettingController extends Controller
             // Recordatorios
             'recordatorio_48h_activo' => $setting->recordatorio_48h_activo,
             'recordatorio_2h_activo' => $setting->recordatorio_2h_activo,
+            'recordatorio_cita_dias_antes_opciones' => $setting->recordatorioCitaDiasAntesOpciones(),
             'notificar_cita_whatsapp_activo' => $setting->notificarCitaWhatsAppActivo(),
             'notificar_grooming_creado_whatsapp_activo' => $setting->notificarGroomingWhatsAppActivo('programado'),
             'notificar_grooming_en_proceso_whatsapp_activo' => $setting->notificarGroomingWhatsAppActivo('en_proceso'),

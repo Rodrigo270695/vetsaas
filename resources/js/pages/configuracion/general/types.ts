@@ -73,6 +73,7 @@ export type ClinicSetting = {
     // Recordatorios automáticos
     recordatorio_48h_activo: boolean;
     recordatorio_2h_activo: boolean;
+    recordatorio_cita_dias_antes_opciones: number[];
     notificar_cita_whatsapp_activo: boolean;
     notificar_grooming_creado_whatsapp_activo: boolean;
     notificar_grooming_en_proceso_whatsapp_activo: boolean;
