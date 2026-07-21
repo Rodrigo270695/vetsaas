@@ -16,9 +16,8 @@ import {
     normalizeTicketAncho,
     resolveTicketAncho,
     TICKET_ANCHO_OPTIONS,
-    writeStoredTicketAncho,
-    type TicketAnchoMm,
 } from '@/lib/ticket-ancho';
+import type { TicketAnchoMm } from '@/lib/ticket-ancho';
 
 export type TicketPrintDialogProps = {
     open: boolean;
@@ -37,7 +36,8 @@ export type TicketPrintDialogProps = {
 
 /**
  * Modal de vista previa e impresión de ticket térmico.
- * Permite elegir 56 / 58 / 80 mm en cada impresión (recuerda la última elección).
+ * Permite elegir 56 / 58 / 80 mm en cada impresión.
+ * Cada apertura usa como base la configuración vigente del tenant.
  */
 export function TicketPrintDialog({
     open,
@@ -56,12 +56,14 @@ export function TicketPrintDialog({
     const [ancho, setAncho] = useState<TicketAnchoMm>(() =>
         resolveTicketAncho(normalizeTicketAncho(configAncho)),
     );
-    const [iframeBust, setIframeBust] = useState(() => Date.now());
+    const [iframeBust, setIframeBust] = useState(0);
 
     useEffect(() => {
         if (open) {
+            // Reinicia la selección cada vez que el modal usa la configuración del tenant.
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setAncho(resolveTicketAncho(normalizeTicketAncho(configAncho)));
-            setIframeBust(Date.now());
+            setIframeBust((value) => value + 1);
         }
     }, [open, configAncho]);
 
@@ -78,12 +80,12 @@ export function TicketPrintDialog({
 
     const handleAnchoChange = (next: TicketAnchoMm) => {
         setAncho(next);
-        writeStoredTicketAncho(next);
-        setIframeBust(Date.now());
+        setIframeBust((value) => value + 1);
     };
 
     const imprimir = () => {
         const win = iframeRef.current?.contentWindow;
+
         if (win) {
             win.focus();
             win.print();
@@ -92,6 +94,7 @@ export function TicketPrintDialog({
 
     const handleOpenChange = (next: boolean) => {
         onOpenChange(next);
+
         if (!next) {
             onAutoPrintConsumed?.();
         }

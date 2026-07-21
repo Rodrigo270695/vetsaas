@@ -5,7 +5,7 @@
     <title>Ticket {{ $venta->numero }}</title>
     <style>
         @page {
-            margin: 2mm;
+            margin: 0;
         }
         * {
             box-sizing: border-box;
@@ -16,10 +16,10 @@
         }
         body {
             width: 100%;
-            font-family: DejaVu Sans Mono, DejaVu Sans, monospace;
+            font-family: DejaVu Sans, sans-serif;
             font-size: {{ $tf['fs'] }}px;
             line-height: 1.25;
-            color: #111;
+            color: #000;
         }
         .pad {
             padding: 2mm {{ $tf['pad_x'] }} 3mm;
@@ -36,7 +36,7 @@
             width: auto;
             height: auto;
         }
-        .muted { color: #555; font-size: {{ $tf['fs_sm'] }}px; }
+        .muted { color: #000; font-size: {{ $tf['fs_sm'] }}px; }
         .title {
             font-weight: bold;
             font-size: {{ $tf['fs_title'] }}px;
@@ -45,7 +45,7 @@
         }
         .rule {
             border: 0;
-            border-top: 1px dashed #999;
+            border-top: 1px dashed #000;
             margin: 4px 0;
         }
         .doc-head {
@@ -58,7 +58,7 @@
         .badge {
             display: inline-block;
             padding: 0 5px;
-            border: 1px solid #222;
+            border: 1px solid #000;
             font-size: {{ $tf['fs_sm'] }}px;
             font-weight: bold;
             line-height: 1.35;
@@ -76,7 +76,7 @@
             line-height: 1.3;
         }
         table.meta .lbl {
-            color: #555;
+            color: #000;
             font-size: {{ $tf['fs_sm'] }}px;
             width: 36%;
             padding-right: 3px;
@@ -93,10 +93,10 @@
         .meta-section-title {
             font-size: {{ $tf['fs_sm'] }}px;
             font-weight: bold;
-            color: #333;
+            color: #000;
             margin: 0 0 2px;
             padding-bottom: 1px;
-            border-bottom: 1px dotted #bbb;
+            border-bottom: 1px dotted #000;
             text-transform: uppercase;
         }
         table.items {
@@ -115,7 +115,7 @@
             overflow-wrap: break-word;
         }
         table.items th {
-            border-bottom: 1px solid #333;
+            border-bottom: 1px solid #000;
             font-size: {{ $tf['fs_sm'] }}px;
             padding-bottom: 3px;
         }
@@ -133,7 +133,7 @@
             vertical-align: baseline;
         }
         table.items tfoot tr:first-child td {
-            border-top: 1px solid #333;
+            border-top: 1px solid #000;
             padding-top: 4px;
         }
         table.items .tot-label {
@@ -155,7 +155,7 @@
             line-height: 1.3;
         }
         .notes-block .lbl {
-            color: #555;
+            color: #000;
             display: block;
             margin-bottom: 1px;
         }
@@ -163,7 +163,7 @@
             margin-top: 5px;
             font-size: {{ $tf['footer'] }}px;
             line-height: 1.25;
-            color: #444;
+            color: #000;
             text-align: center;
         }
     </style>

@@ -32,7 +32,7 @@
         "56": "56 mm",
         "58": "58 mm",
         "80": "80 mm",
-        "hint": "Elige el ancho de tu impresora. La elección se guarda para la próxima impresión."
+        "hint": "Elige el ancho para esta impresión. Al volver a abrir se usará el valor de Configuración General."
     },
     "feedback": {
         "no_results": "Sin resultados",

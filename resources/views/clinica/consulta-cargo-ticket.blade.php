@@ -15,7 +15,7 @@
         }
         @page {
             size: {{ $ancho_mm }}mm auto;
-            margin: 2mm;
+            margin: 0;
         }
         * {
             box-sizing: border-box;
@@ -27,11 +27,14 @@
         body {
             width: var(--paper);
             max-width: var(--paper);
-            font-family: ui-monospace, 'Cascadia Code', 'Consolas', monospace;
+            font-family: Arial, Helvetica, sans-serif;
             font-size: var(--fs);
+            font-weight: 500;
             line-height: 1.35;
-            color: #111;
+            color: #000;
             background: #fff;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
         }
         .pad {
             padding: 2mm {{ $tf['pad_x'] }} 3mm;
@@ -49,11 +52,11 @@
             height: auto;
             object-fit: contain;
         }
-        .muted { color: #444; font-size: var(--fs-sm); }
+        .muted { color: #000; font-size: var(--fs-sm); font-weight: 500; }
         .title { font-weight: 700; font-size: var(--fs-title); margin: 0 0 2px; }
         .rule {
             border: 0;
-            border-top: 1px dashed #999;
+            border-top: 1px dashed #000;
             margin: 6px 0;
         }
         .row { margin: 3px 0; }
@@ -69,7 +72,7 @@
             padding: 2px 0;
             word-break: break-word;
         }
-        th { border-bottom: 1px solid #333; }
+        th { border-bottom: 1px solid #000; }
         .num { text-align: right; white-space: nowrap; }
         tfoot td {
             padding-top: 4px;
@@ -77,7 +80,7 @@
             vertical-align: baseline;
         }
         tfoot tr:first-child td {
-            border-top: 1px solid #333;
+            border-top: 1px solid #000;
             padding-top: 6px;
         }
         .tot-label {
@@ -85,26 +88,27 @@
             font-weight: 600;
         }
         .tot-label-total {
-            font-size: 11px;
+            font-size: var(--fs-total);
         }
         tfoot .num {
             font-weight: 600;
         }
         tfoot tr:last-child .num {
-            font-size: 12px;
+            font-size: var(--fs-total);
         }
         .badge {
             display: inline-block;
             padding: 1px 6px;
-            border: 1px solid #333;
+            border: 1px solid #000;
             font-size: var(--fs-sm);
             font-weight: 600;
         }
         .footer {
             margin-top: 8px;
-            font-size: 9px;
+            font-size: {{ $tf['footer'] }}px;
             line-height: 1.3;
-            color: #333;
+            color: #000;
+            font-weight: 500;
         }
     </style>
 </head>

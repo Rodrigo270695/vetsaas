@@ -6,8 +6,6 @@ export const TICKET_ANCHO_OPTIONS: readonly TicketAnchoMm[] = [
     '80',
 ];
 
-const STORAGE_KEY = 'vetsaas.ticket.ancho_mm';
-
 export function normalizeTicketAncho(
     value: string | null | undefined,
     fallback: TicketAnchoMm = '58',
@@ -19,37 +17,8 @@ export function normalizeTicketAncho(
     return fallback;
 }
 
-export function readStoredTicketAncho(): TicketAnchoMm | null {
-    if (typeof window === 'undefined') {
-        return null;
-    }
-
-    try {
-        const raw = window.localStorage.getItem(STORAGE_KEY);
-        if (raw === '56' || raw === '58' || raw === '80') {
-            return raw;
-        }
-    } catch {
-        // localStorage no disponible
-    }
-
-    return null;
-}
-
-export function writeStoredTicketAncho(ancho: TicketAnchoMm): void {
-    if (typeof window === 'undefined') {
-        return;
-    }
-
-    try {
-        window.localStorage.setItem(STORAGE_KEY, ancho);
-    } catch {
-        // ignore
-    }
-}
-
 export function resolveTicketAncho(configDefault: TicketAnchoMm): TicketAnchoMm {
-    return readStoredTicketAncho() ?? normalizeTicketAncho(configDefault);
+    return normalizeTicketAncho(configDefault);
 }
 
 export function buildTicketPreviewUrl(

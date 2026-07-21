@@ -32,7 +32,7 @@
         "56": "56 mm",
         "58": "58 mm",
         "80": "80 mm",
-        "hint": "Pick your printer roll width. Your choice is remembered for the next print."
+        "hint": "Choose the width for this print. Reopening will use the value from General Settings."
     },
     "feedback": {
         "no_results": "No results",

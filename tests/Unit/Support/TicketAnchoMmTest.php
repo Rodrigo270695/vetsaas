@@ -21,7 +21,8 @@ it('prioriza el query param ancho sobre la configuración', function (): void {
 });
 
 it('ajusta tipografía según ancho estrecho', function (): void {
-    expect(TicketAnchoMm::typography('56')['fs'])->toBeLessThan(
-        TicketAnchoMm::typography('80')['fs'],
-    );
+    expect(TicketAnchoMm::typography('56')['fs'])->toBe(10)
+        ->and(TicketAnchoMm::typography('58')['fs'])->toBe(10)
+        ->and(TicketAnchoMm::typography('80')['fs'])->toBe(12)
+        ->and(TicketAnchoMm::typography('80')['fs_sm'])->toBe(11);
 });

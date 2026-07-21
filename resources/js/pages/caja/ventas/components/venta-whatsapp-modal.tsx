@@ -17,9 +17,8 @@ import {
     normalizeTicketAncho,
     resolveTicketAncho,
     TICKET_ANCHO_OPTIONS,
-    writeStoredTicketAncho,
-    type TicketAnchoMm,
 } from '@/lib/ticket-ancho';
+import type { TicketAnchoMm } from '@/lib/ticket-ancho';
 import type { VentaRow } from '../types';
 
 export type VentaWhatsAppModalProps = {
@@ -39,6 +38,7 @@ export function VentaWhatsAppModal({ open, onOpenChange, venta, configAncho }: V
     const hasStoredPhone = Boolean(venta?.cliente_telefono?.trim());
     const esCpeEmitido = venta?.fel_estado === 'emitido' && Boolean(venta.pdf_url?.trim());
 
+    /* eslint-disable react-hooks/set-state-in-effect -- sincroniza el formulario al abrir otra venta */
     useEffect(() => {
         if (!open || !venta) {
             return;
@@ -49,10 +49,10 @@ export function VentaWhatsAppModal({ open, onOpenChange, venta, configAncho }: V
         setError(null);
         setProcessing(false);
     }, [open, venta, configAncho]);
+    /* eslint-enable react-hooks/set-state-in-effect */
 
     const handleAnchoChange = (next: TicketAnchoMm) => {
         setAncho(next);
-        writeStoredTicketAncho(next);
     };
 
     const submit = () => {
@@ -61,6 +61,7 @@ export function VentaWhatsAppModal({ open, onOpenChange, venta, configAncho }: V
         }
 
         const phoneToSend = telefono.trim();
+
         if (!hasStoredPhone && phoneToSend === '') {
             setError(t('caja:ventas.whatsapp.phone_hint'));
 
