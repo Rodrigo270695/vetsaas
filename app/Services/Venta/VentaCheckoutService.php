@@ -3,7 +3,9 @@
 namespace App\Services\Venta;
 
 use App\Models\CajaSesion;
+use App\Models\Cita;
 use App\Models\ClinicSetting;
+use App\Models\Consulta;
 use App\Models\ConsultaCargo;
 use App\Models\ConsultaCargoLinea;
 use App\Models\FelSerie;
@@ -299,6 +301,29 @@ final class VentaCheckoutService
                 ConsultaCargo::query()
                     ->whereKey($cargoVinculado['consulta_cargo_id'])
                     ->update(['venta_id' => $venta->id]);
+
+                $consulta = Consulta::query()
+                    ->lockForUpdate()
+                    ->find($cargoVinculado['consulta_id']);
+
+                if ($consulta !== null) {
+                    $consulta->update([
+                        'cerrada_at' => $consulta->cerrada_at ?? now(),
+                        'cerrada_por_id' => $consulta->cerrada_por_id
+                            ?? $user->getAuthIdentifier(),
+                        'updated_by_id' => $user->getAuthIdentifier(),
+                    ]);
+
+                    if (is_string($consulta->cita_id) && $consulta->cita_id !== '') {
+                        Cita::query()
+                            ->whereKey($consulta->cita_id)
+                            ->where('estado', Cita::ESTADO_EN_ATENCION)
+                            ->update([
+                                'estado' => Cita::ESTADO_COMPLETADA,
+                                'updated_by_id' => $user->getAuthIdentifier(),
+                            ]);
+                    }
+                }
             }
 
             if ($groomingTurnoLocked !== null) {

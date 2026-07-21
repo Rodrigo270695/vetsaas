@@ -1,7 +1,7 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import { TZDate } from '@date-fns/tz';
-import { Activity, CalendarDays, Download, Filter, LayoutList, Plus, UserCircle } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Activity, CalendarDays, Download, Filter, LayoutList, Plus, RefreshCw, UserCircle } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Can } from '@/components/can';
 import {
@@ -15,6 +15,7 @@ import type { DataTableColumn } from '@/components/data-page';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { useAutoRefresh } from '@/hooks/use-auto-refresh';
 import { useDataTablePage } from '@/hooks/use-data-table-page';
 import { usePermission } from '@/hooks/use-permission';
 import { toastManager } from '@/lib/toast';
@@ -143,25 +144,14 @@ export default function Index({
         },
     });
 
-    const isLoadingRef = useRef(isLoading);
-
-    useEffect(() => {
-        isLoadingRef.current = isLoading;
-    }, [isLoading]);
-
-    useEffect(() => {
-        const interval = window.setInterval(() => {
-            if (document.visibilityState !== 'visible' || isLoadingRef.current) {
-                return;
-            }
-
-            router.reload({
-                only: ['citas', 'citas_agenda', 'stats'],
-            });
-        }, 15_000);
-
-        return () => window.clearInterval(interval);
-    }, []);
+    const {
+        secondsSince,
+        isRefreshing,
+        refresh: refreshNow,
+    } = useAutoRefresh({
+        only: ['citas', 'citas_agenda', 'stats'],
+        busy: isLoading,
+    });
 
     const [modal, setModal] = useState<ModalState>({ type: 'idle' });
     const closeModal = useCallback(() => setModal({ type: 'idle' }), []);
@@ -532,7 +522,39 @@ export default function Index({
             <div className="flex flex-1 flex-col gap-5 p-4 sm:p-6">
                 <PageHeader
                     title={t('title')}
-                    description={t('description')}
+                    description={
+                        <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                            <span>{t('description')}</span>
+                            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                <span
+                                    className={`inline-block size-2 rounded-full ${
+                                        isRefreshing
+                                            ? 'animate-ping bg-amber-400'
+                                            : 'bg-emerald-500'
+                                    }`}
+                                />
+                                {isRefreshing
+                                    ? t('common:auto_refresh.updating')
+                                    : t('common:auto_refresh.updated_seconds', {
+                                          seconds: secondsSince,
+                                      })}
+                                <button
+                                    type="button"
+                                    onClick={refreshNow}
+                                    disabled={isRefreshing || isLoading}
+                                    className="ml-1 cursor-pointer rounded p-0.5 hover:text-foreground disabled:opacity-50"
+                                    title={t('common:auto_refresh.now')}
+                                >
+                                    <RefreshCw
+                                        className={`size-3 ${isRefreshing ? 'animate-spin' : ''}`}
+                                    />
+                                </button>
+                                <span className="hidden sm:inline">
+                                    · {t('common:auto_refresh.every')}
+                                </span>
+                            </span>
+                        </span>
+                    }
                     stats={[
                         {
                             label: t('stats.total'),

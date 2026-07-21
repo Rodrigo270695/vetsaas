@@ -21,6 +21,12 @@
         "loading": "Loading...",
         "retry": "Retry"
     },
+    "auto_refresh": {
+        "every": "Automatic refresh every 15s",
+        "updating": "Updating…",
+        "updated_seconds": "Updated {{seconds}}s ago",
+        "now": "Refresh now"
+    },
     "ticket_ancho": {
         "label": "Thermal roll width",
         "56": "56 mm",

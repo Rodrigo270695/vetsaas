@@ -6,7 +6,7 @@ export type PageHeaderStat = Omit<StatBadgeProps, 'className'>;
 
 export type PageHeaderProps = {
     title: string;
-    description?: string;
+    description?: ReactNode;
     stats?: PageHeaderStat[];
     /** Slot a la derecha del header: botones, dropdowns, etc. */
     action?: ReactNode;

@@ -6,9 +6,10 @@ const DEFAULT_INTERVAL_MS = 15_000;
 type Options = {
     only: string[];
     intervalMs?: number;
-    preserveScroll?: boolean;
     /** Si es false, no hace polling (p. ej. asistente apagado). */
     enabled?: boolean;
+    /** Evita competir con otra navegación o filtro que ya esté cargando. */
+    busy?: boolean;
 };
 
 /**
@@ -17,21 +18,31 @@ type Options = {
 export function useAutoRefresh({
     only,
     intervalMs = DEFAULT_INTERVAL_MS,
-    preserveScroll = true,
     enabled = true,
+    busy = false,
 }: Options) {
     const [secondsSince, setSecondsSince] = useState(0);
     const [isRefreshing, setIsRefreshing] = useState(false);
 
     const onlyRef = useRef(only);
-    const preserveScrollRef = useRef(preserveScroll);
+    const busyRef = useRef(busy);
     const isRefreshingRef = useRef(false);
 
-    onlyRef.current = only;
-    preserveScrollRef.current = preserveScroll;
+    useEffect(() => {
+        onlyRef.current = only;
+    }, [only]);
+
+    useEffect(() => {
+        busyRef.current = busy;
+    }, [busy]);
 
     const refresh = useCallback(() => {
-        if (!enabled || isRefreshingRef.current) {
+        if (
+            !enabled
+            || busyRef.current
+            || isRefreshingRef.current
+            || document.visibilityState !== 'visible'
+        ) {
             return;
         }
 
@@ -41,7 +52,6 @@ export function useAutoRefresh({
 
         router.reload({
             only: onlyRef.current,
-            preserveScroll: preserveScrollRef.current,
             onFinish: () => {
                 isRefreshingRef.current = false;
                 setIsRefreshing(false);

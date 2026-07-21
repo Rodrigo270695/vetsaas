@@ -21,6 +21,12 @@
         "loading": "Cargando...",
         "retry": "Reintentar"
     },
+    "auto_refresh": {
+        "every": "Actualización automática cada 15 s",
+        "updating": "Actualizando…",
+        "updated_seconds": "Actualizado hace {{seconds}}s",
+        "now": "Actualizar ahora"
+    },
     "ticket_ancho": {
         "label": "Ancho del rollo térmico",
         "56": "56 mm",

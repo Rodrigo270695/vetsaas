@@ -2,10 +2,13 @@ import { Link } from '@inertiajs/react';
 import {
     ArrowLeft,
     AlertTriangle,
+    BadgeCheck,
     CalendarDays,
     CheckCircle2,
+    HeartHandshake,
     Info,
     Loader2,
+    PawPrint,
     Pencil,
     Plus,
     Printer,
@@ -136,18 +139,19 @@ function StatusBanner({
     return (
         <div
             className={cn(
-                'flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border px-3 py-2 text-sm',
-                tone === 'neutral' && 'border-border/40 bg-muted/25 text-muted-foreground',
+                'flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border px-3 py-2.5 text-sm font-medium shadow-xs',
+                tone === 'neutral' && 'border-slate-200 bg-slate-50 text-slate-800 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-200',
                 tone === 'success' &&
-                    'border-emerald-200/50 bg-emerald-50/50 text-emerald-900 dark:border-emerald-500/20 dark:bg-emerald-950/20 dark:text-emerald-100',
+                    'border-emerald-300 bg-emerald-100/90 text-emerald-950 dark:border-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-100',
                 tone === 'warning' &&
-                    'border-amber-200/50 bg-amber-50/50 text-amber-900 dark:border-amber-500/20 dark:bg-amber-950/20 dark:text-amber-100',
-                tone === 'primary' && 'border-primary/15 bg-primary/5 text-foreground',
+                    'border-amber-300 bg-amber-100/90 text-amber-950 dark:border-amber-700 dark:bg-amber-950/50 dark:text-amber-100',
+                tone === 'primary' &&
+                    'border-sky-300 bg-sky-100/90 text-sky-950 dark:border-sky-700 dark:bg-sky-950/50 dark:text-sky-100',
                 tone === 'danger' &&
-                    'border-destructive/20 bg-destructive/5 text-destructive dark:text-destructive-foreground',
+                    'border-red-300 bg-red-100/90 text-red-900 dark:border-red-700 dark:bg-red-950/50 dark:text-red-100',
             )}
         >
-            <Icon className="size-3.5 shrink-0 opacity-70" aria-hidden />
+            <Icon className="size-4 shrink-0" strokeWidth={2.4} aria-hidden />
             <span className="min-w-0 flex-1 leading-snug">{children}</span>
             {action ? <div className="shrink-0">{action}</div> : null}
         </div>
@@ -384,34 +388,77 @@ export function ConsultaCargosMain({
     );
 
     return (
-        <div className="flex flex-1 flex-col gap-4 p-4 sm:gap-5 sm:p-6">
-            <PageHeader
-                title={title}
-                description={t('page_description')}
-                stats={headerStats}
-                className="border-border/40 pb-4"
-                action={
-                    <Button variant="outline" size="sm" asChild className="gap-1.5">
-                        <Link href={historiasUrl}>
-                            <ArrowLeft className="size-4" aria-hidden />
-                            {t('back_list')}
-                        </Link>
-                    </Button>
-                }
-            />
+        <div className="flex flex-1 flex-col gap-4 bg-linear-to-b from-sky-50/35 via-background to-background p-4 dark:from-sky-950/10 sm:gap-5 sm:p-6">
+            <section className="rounded-2xl border border-sky-200/80 bg-linear-to-br from-white via-sky-50/70 to-indigo-50/60 p-4 shadow-sm dark:border-sky-800/50 dark:from-card dark:via-sky-950/20 dark:to-indigo-950/20 sm:p-5">
+                <PageHeader
+                    title={title}
+                    description={t('page_description')}
+                    className="border-sky-200/70 pb-4 dark:border-sky-800/50"
+                    action={
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            asChild
+                            className="gap-1.5 border-sky-300 bg-white/80 text-sky-800 hover:bg-sky-100 dark:border-sky-700 dark:bg-sky-950/30 dark:text-sky-200"
+                        >
+                            <Link href={historiasUrl}>
+                                <ArrowLeft className="size-4" aria-hidden />
+                                {t('back_list')}
+                            </Link>
+                        </Button>
+                    }
+                />
 
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground sm:text-sm">
+                <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                    {headerStats.map((stat, index) => {
+                        const Icon =
+                            index === 0 ? PawPrint : index === 1 ? HeartHandshake : BadgeCheck;
+                        const tone =
+                            index === 0
+                                ? 'border-sky-300 bg-sky-100 text-sky-950 dark:border-sky-700 dark:bg-sky-950/45 dark:text-sky-100'
+                                : index === 1
+                                  ? 'border-violet-300 bg-violet-100 text-violet-950 dark:border-violet-700 dark:bg-violet-950/45 dark:text-violet-100'
+                                  : esBorrador
+                                    ? 'border-amber-300 bg-amber-100 text-amber-950 dark:border-amber-700 dark:bg-amber-950/45 dark:text-amber-100'
+                                    : 'border-emerald-300 bg-emerald-100 text-emerald-950 dark:border-emerald-700 dark:bg-emerald-950/45 dark:text-emerald-100';
+
+                        return (
+                            <div
+                                key={stat.label}
+                                className={cn(
+                                    'flex min-w-0 items-center gap-3 rounded-xl border px-3 py-2.5 shadow-xs',
+                                    tone,
+                                )}
+                            >
+                                <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-white/65 shadow-xs dark:bg-black/20">
+                                    <Icon className="size-4.5" strokeWidth={2.3} aria-hidden />
+                                </span>
+                                <span className="min-w-0">
+                                    <span className="block text-[0.65rem] font-bold uppercase tracking-wide opacity-70">
+                                        {stat.label}
+                                    </span>
+                                    <span className="block truncate text-sm font-bold">
+                                        {stat.value}
+                                    </span>
+                                </span>
+                            </div>
+                        );
+                    })}
+                </div>
+            </section>
+
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-indigo-200/70 bg-indigo-50/80 px-3 py-2 text-xs font-medium text-indigo-900 dark:border-indigo-800/60 dark:bg-indigo-950/30 dark:text-indigo-100 sm:text-sm">
                 <span className="inline-flex items-center gap-1.5">
-                    <CalendarDays className="size-3.5 shrink-0 opacity-60" aria-hidden />
+                    <CalendarDays className="size-3.5 shrink-0 text-indigo-600 dark:text-indigo-300" aria-hidden />
                     {atendidoLabel}
                 </span>
-                <span className="text-border/50" aria-hidden>
+                <span className="text-indigo-300 dark:text-indigo-700" aria-hidden>
                     ·
                 </span>
                 <span className="tabular-nums">{t('label_moneda', { code: cargo.moneda })}</span>
                 {consulta.veterinario ? (
                     <>
-                        <span className="text-border/50" aria-hidden>
+                        <span className="text-indigo-300 dark:text-indigo-700" aria-hidden>
                             ·
                         </span>
                         <span className="truncate">{consulta.veterinario.name}</span>
@@ -446,15 +493,15 @@ export function ConsultaCargosMain({
                 className="grid gap-4 lg:grid-cols-[1fr_minmax(240px,280px)] lg:items-start lg:gap-5"
             >
                 <div className="flex min-w-0 flex-col gap-3">
-                    <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/40 bg-muted/15 px-3 py-2">
-                        <p className="min-w-0 flex-1 text-[0.7rem] leading-snug text-muted-foreground sm:text-xs">
+                    <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-violet-200 bg-violet-50/80 px-3 py-2 dark:border-violet-800/60 dark:bg-violet-950/25">
+                        <p className="min-w-0 flex-1 text-[0.7rem] font-medium leading-snug text-violet-900 dark:text-violet-100 sm:text-xs">
                             {igvHint}
                         </p>
                         <Button
                             type="button"
                             variant="ghost"
                             size="sm"
-                            className="h-7 shrink-0 gap-1.5 px-2.5 text-xs text-muted-foreground hover:text-foreground"
+                            className="h-7 shrink-0 gap-1.5 px-2.5 text-xs text-violet-700 hover:bg-violet-100 hover:text-violet-950 dark:text-violet-300 dark:hover:bg-violet-950/50"
                             onClick={abrirTicketEnModal}
                             title={t('imprimir_ticket_ayuda')}
                         >
@@ -477,7 +524,7 @@ export function ConsultaCargosMain({
                                 </Badge>
                             ) : null
                         }
-                        className="min-h-0 shadow-none ring-0"
+                        className="min-h-0 border-sky-200 bg-white/90 shadow-sm ring-1 ring-sky-100 dark:border-sky-800/60 dark:bg-card/90 dark:ring-sky-950/40"
                         contentClassName="min-h-0 gap-0 p-0 sm:p-0"
                     >
                         {puedeEditar ? (
@@ -513,10 +560,10 @@ export function ConsultaCargosMain({
                                     data.lineas.map((linea, idx) => (
                                         <div
                                             key={idx}
-                                            className="rounded-lg border border-border/40 bg-background/60"
+                                            className="overflow-hidden rounded-lg border border-sky-200 bg-white shadow-xs dark:border-sky-800/60 dark:bg-card"
                                         >
-                                            <div className="flex items-center justify-between gap-2 border-b border-border/30 px-2.5 py-1.5">
-                                                <span className="text-[0.65rem] font-medium text-muted-foreground">
+                                            <div className="flex items-center justify-between gap-2 border-b border-sky-200 bg-sky-50 px-2.5 py-1.5 dark:border-sky-800/60 dark:bg-sky-950/30">
+                                                <span className="text-[0.65rem] font-bold text-sky-700 dark:text-sky-300">
                                                     #{idx + 1}
                                                 </span>
                                                 {data.lineas.length > 1 ? (
@@ -759,20 +806,20 @@ export function ConsultaCargosMain({
                             <div className="overflow-x-auto">
                                 <table className="w-full min-w-130 border-collapse text-sm">
                                     <thead>
-                                        <tr className="border-b border-border/40 bg-muted/20">
-                                            <th className="px-3 py-2 text-left text-[0.65rem] font-medium uppercase tracking-wide text-muted-foreground">
+                                        <tr className="border-b border-sky-200 bg-sky-100/90 dark:border-sky-800 dark:bg-sky-950/45">
+                                            <th className="px-3 py-2.5 text-left text-[0.65rem] font-bold uppercase tracking-wide text-sky-900 dark:text-sky-100">
                                                 {t('col_concepto')}
                                             </th>
-                                            <th className="w-20 px-3 py-2 text-left text-[0.65rem] font-medium uppercase tracking-wide text-muted-foreground">
+                                            <th className="w-20 px-3 py-2.5 text-left text-[0.65rem] font-bold uppercase tracking-wide text-sky-900 dark:text-sky-100">
                                                 {t('field_tipo')}
                                             </th>
-                                            <th className="w-16 px-3 py-2 text-right text-[0.65rem] font-medium uppercase tracking-wide text-muted-foreground">
+                                            <th className="w-16 px-3 py-2.5 text-right text-[0.65rem] font-bold uppercase tracking-wide text-sky-900 dark:text-sky-100">
                                                 {t('field_cantidad')}
                                             </th>
-                                            <th className="w-24 px-3 py-2 text-right text-[0.65rem] font-medium uppercase tracking-wide text-muted-foreground">
+                                            <th className="w-24 px-3 py-2.5 text-right text-[0.65rem] font-bold uppercase tracking-wide text-sky-900 dark:text-sky-100">
                                                 {t('field_precio_unitario')}
                                             </th>
-                                            <th className="w-24 px-3 py-2 text-right text-[0.65rem] font-medium uppercase tracking-wide text-muted-foreground">
+                                            <th className="w-24 px-3 py-2.5 text-right text-[0.65rem] font-bold uppercase tracking-wide text-sky-900 dark:text-sky-100">
                                                 {t('col_importe')}
                                             </th>
                                         </tr>
@@ -781,7 +828,7 @@ export function ConsultaCargosMain({
                                         {cargo.lineas.map((ln) => (
                                             <tr
                                                 key={ln.id}
-                                                className="border-b border-border/30 last:border-b-0 hover:bg-muted/15"
+                                                className="border-b border-sky-100 odd:bg-white even:bg-sky-50/45 last:border-b-0 hover:bg-sky-100/70 dark:border-sky-900/50 dark:odd:bg-card dark:even:bg-sky-950/15 dark:hover:bg-sky-950/35"
                                             >
                                                 <td className="px-3 py-2 align-middle">
                                                     <div className="font-medium text-foreground">
@@ -794,19 +841,19 @@ export function ConsultaCargosMain({
                                                     ) : null}
                                                 </td>
                                                 <td className="px-3 py-2 align-middle">
-                                                    <span className="text-xs text-muted-foreground">
+                                                    <span className="inline-flex rounded-full bg-violet-100 px-2 py-0.5 text-xs font-semibold text-violet-800 dark:bg-violet-950/50 dark:text-violet-200">
                                                         {t(`tipo.${ln.tipo_linea}`, {
                                                             defaultValue: ln.tipo_linea,
                                                         })}
                                                     </span>
                                                 </td>
-                                                <td className="px-3 py-2 text-right align-middle tabular-nums text-muted-foreground">
+                                                <td className="px-3 py-2.5 text-right align-middle font-medium tabular-nums text-slate-700 dark:text-slate-200">
                                                     {ln.cantidad}
                                                 </td>
-                                                <td className="px-3 py-2 text-right align-middle tabular-nums text-muted-foreground">
+                                                <td className="px-3 py-2.5 text-right align-middle font-medium tabular-nums text-slate-700 dark:text-slate-200">
                                                     {formatMonto(ln.precio_unitario, cargo.moneda)}
                                                 </td>
-                                                <td className="px-3 py-2 text-right align-middle font-medium tabular-nums">
+                                                <td className="px-3 py-2.5 text-right align-middle font-bold tabular-nums text-emerald-700 dark:text-emerald-300">
                                                     {formatMonto(
                                                         String(
                                                             lineaImporteMostrar({

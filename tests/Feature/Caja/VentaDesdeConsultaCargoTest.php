@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Consulta;
 use App\Models\ConsultaCargo;
 use App\Models\MovimientoInventario;
 use App\Models\Tenant;
@@ -119,6 +120,10 @@ it('registra venta desde pre-cuenta confirmada y vincula consulta y cargo', func
         expect((string) $venta->consulta_id)->toBe((string) $this->scenario['consulta']->id);
         expect((string) $venta->consulta_cargo_id)->toBe((string) $cargo->id);
         expect($venta->lineas)->toHaveCount(2);
+
+        $consulta = Consulta::query()->findOrFail($this->scenario['consulta']->id);
+        expect($consulta->cerrada_at)->not->toBeNull();
+        expect((string) $consulta->cerrada_por_id)->toBe((string) $this->cajero->id);
 
         $lineasProducto = $venta->lineas->whereNotNull('producto_id');
         $lineasServicio = $venta->lineas->whereNull('producto_id');
