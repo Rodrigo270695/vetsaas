@@ -1175,96 +1175,144 @@ export default function Index({
                                 index={4}
                                 title=""
                                 columns={1}
-                                className="gap-0"
+                                className="gap-3"
                             >
-                                <ToggleRow
-                                    id="general-notificar-cita-whatsapp"
-                                    label={t(
-                                        'fields.notificar_cita_whatsapp_activo',
-                                    )}
-                                    hint={t(
-                                        'fields.notificar_cita_whatsapp_activo_hint',
-                                    )}
-                                    checked={
-                                        data.notificar_cita_whatsapp_activo
-                                    }
-                                    onChange={(value) =>
-                                        setData(
-                                            'notificar_cita_whatsapp_activo',
-                                            value,
-                                        )
-                                    }
-                                    disabled={!canUpdate}
-                                />
-                                <ToggleRow
-                                    id="general-recordatorio-48h"
-                                    label={t('fields.recordatorio_48h_activo')}
-                                    hint={t(
-                                        'fields.recordatorio_48h_activo_hint',
-                                    )}
-                                    checked={data.recordatorio_48h_activo}
-                                    onChange={(v) =>
-                                        setData('recordatorio_48h_activo', v)
-                                    }
-                                    disabled={!canUpdate}
-                                />
-                                <ToggleRow
-                                    id="general-recordatorio-2h"
-                                    label={t('fields.recordatorio_2h_activo')}
-                                    hint={t(
-                                        'fields.recordatorio_2h_activo_hint',
-                                    )}
-                                    checked={data.recordatorio_2h_activo}
-                                    onChange={(v) =>
-                                        setData('recordatorio_2h_activo', v)
-                                    }
-                                    disabled={!canUpdate}
-                                />
-                                <ToggleRow
-                                    id="general-recordatorio-vacuna"
-                                    label={t(
-                                        'fields.recordatorio_vacuna_activo',
-                                    )}
-                                    hint={t(
-                                        'fields.recordatorio_vacuna_activo_hint',
-                                    )}
-                                    checked={data.recordatorio_vacuna_activo}
-                                    onChange={(v) =>
-                                        setData('recordatorio_vacuna_activo', v)
-                                    }
-                                    disabled={!canUpdate}
-                                />
-                                {data.recordatorio_vacuna_activo && (
-                                    <div className="mt-2 ml-12 space-y-2">
-                                        <div>
-                                            <p className="text-sm font-medium">
-                                                {t(
-                                                    'fields.recordatorio_vacuna_dias_antes',
+                                <div className="space-y-3 rounded-xl border border-border/70 bg-muted/15 p-4">
+                                    <div>
+                                        <h3 className="text-sm font-semibold">
+                                            {t(
+                                                'sections.recordatorios_citas.title',
+                                            )}
+                                        </h3>
+                                        <p className="text-xs text-muted-foreground">
+                                            {t(
+                                                'sections.recordatorios_citas.description',
+                                            )}
+                                        </p>
+                                    </div>
+                                    <ToggleRow
+                                        id="general-notificar-cita-whatsapp"
+                                        label={t(
+                                            'fields.notificar_cita_whatsapp_activo',
+                                        )}
+                                        hint={t(
+                                            'fields.notificar_cita_whatsapp_activo_hint',
+                                        )}
+                                        checked={
+                                            data.notificar_cita_whatsapp_activo
+                                        }
+                                        onChange={(value) =>
+                                            setData(
+                                                'notificar_cita_whatsapp_activo',
+                                                value,
+                                            )
+                                        }
+                                        disabled={!canUpdate}
+                                    />
+                                    <div>
+                                        <p className="mb-2 text-xs font-medium text-muted-foreground">
+                                            {t(
+                                                'fields.recordatorio_cita_momentos',
+                                            )}
+                                        </p>
+                                        <div className="grid gap-2 sm:grid-cols-2">
+                                            <ReminderCheck
+                                                id="general-recordatorio-48h"
+                                                label={t(
+                                                    'fields.recordatorio_cita_opcion_2d',
                                                 )}
-                                            </p>
-                                            <p className="text-xs text-muted-foreground">
-                                                {t(
-                                                    'fields.recordatorio_vacuna_dias_antes_hint',
+                                                checked={
+                                                    data.recordatorio_48h_activo
+                                                }
+                                                onChange={(checked) =>
+                                                    setData(
+                                                        'recordatorio_48h_activo',
+                                                        checked,
+                                                    )
+                                                }
+                                                disabled={!canUpdate}
+                                            />
+                                            <ReminderCheck
+                                                id="general-recordatorio-2h"
+                                                label={t(
+                                                    'fields.recordatorio_cita_opcion_2h',
                                                 )}
-                                            </p>
+                                                checked={
+                                                    data.recordatorio_2h_activo
+                                                }
+                                                onChange={(checked) =>
+                                                    setData(
+                                                        'recordatorio_2h_activo',
+                                                        checked,
+                                                    )
+                                                }
+                                                disabled={!canUpdate}
+                                            />
                                         </div>
-                                        <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-5">
-                                            {VACCINE_REMINDER_OPTIONS.map(
-                                                (days) => {
-                                                    const selected =
-                                                        data.recordatorio_vacuna_dias_antes_opciones.includes(
-                                                            days,
-                                                        );
-                                                    const id = `general-recordatorio-vacuna-${days}`;
+                                    </div>
+                                </div>
+                                <div className="space-y-3 rounded-xl border border-border/70 bg-muted/15 p-4">
+                                    <div>
+                                        <h3 className="text-sm font-semibold">
+                                            {t(
+                                                'sections.recordatorios_vacunas.title',
+                                            )}
+                                        </h3>
+                                        <p className="text-xs text-muted-foreground">
+                                            {t(
+                                                'sections.recordatorios_vacunas.description',
+                                            )}
+                                        </p>
+                                    </div>
+                                    <ToggleRow
+                                        id="general-recordatorio-vacuna"
+                                        label={t(
+                                            'fields.recordatorio_vacuna_activo',
+                                        )}
+                                        hint={t(
+                                            'fields.recordatorio_vacuna_activo_hint',
+                                        )}
+                                        checked={
+                                            data.recordatorio_vacuna_activo
+                                        }
+                                        onChange={(v) =>
+                                            setData(
+                                                'recordatorio_vacuna_activo',
+                                                v,
+                                            )
+                                        }
+                                        disabled={!canUpdate}
+                                    />
+                                    {data.recordatorio_vacuna_activo && (
+                                        <div className="space-y-2">
+                                            <div>
+                                                <p className="text-sm font-medium">
+                                                    {t(
+                                                        'fields.recordatorio_vacuna_dias_antes',
+                                                    )}
+                                                </p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {t(
+                                                        'fields.recordatorio_vacuna_dias_antes_hint',
+                                                    )}
+                                                </p>
+                                            </div>
+                                            <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-5">
+                                                {VACCINE_REMINDER_OPTIONS.map(
+                                                    (days) => {
+                                                        const selected =
+                                                            data.recordatorio_vacuna_dias_antes_opciones.includes(
+                                                                days,
+                                                            );
+                                                        const id = `general-recordatorio-vacuna-${days}`;
 
-                                                    return (
-                                                        <label
-                                                            key={days}
-                                                            htmlFor={id}
-                                                            className="flex cursor-pointer items-center gap-2 rounded-lg border border-border/70 bg-background px-3 py-2 text-sm transition-colors hover:bg-muted/50"
-                                                        >
-                                                            <Checkbox
+                                                        return (
+                                                            <ReminderCheck
+                                                                key={days}
                                                                 id={id}
+                                                                label={t(
+                                                                    `fields.recordatorio_vacuna_opcion_${days}`,
+                                                                )}
                                                                 checked={
                                                                     selected
                                                                 }
@@ -1276,7 +1324,7 @@ export default function Index({
                                                                             .length ===
                                                                             1)
                                                                 }
-                                                                onCheckedChange={(
+                                                                onChange={(
                                                                     checked,
                                                                 ) => {
                                                                     const next =
@@ -1310,39 +1358,41 @@ export default function Index({
                                                                     );
                                                                 }}
                                                             />
-                                                            <span>
-                                                                {t(
-                                                                    `fields.recordatorio_vacuna_opcion_${days}`,
-                                                                )}
-                                                            </span>
-                                                        </label>
-                                                    );
-                                                },
-                                            )}
+                                                        );
+                                                    },
+                                                )}
+                                            </div>
+                                            {errors.recordatorio_vacuna_dias_antes_opciones ? (
+                                                <p className="text-xs text-destructive">
+                                                    {
+                                                        errors.recordatorio_vacuna_dias_antes_opciones
+                                                    }
+                                                </p>
+                                            ) : null}
                                         </div>
-                                        {errors.recordatorio_vacuna_dias_antes_opciones ? (
-                                            <p className="text-xs text-destructive">
-                                                {
-                                                    errors.recordatorio_vacuna_dias_antes_opciones
-                                                }
-                                            </p>
-                                        ) : null}
-                                    </div>
-                                )}
-                                <ToggleRow
-                                    id="general-recordatorio-cumple"
-                                    label={t(
-                                        'fields.recordatorio_cumple_activo',
                                     )}
-                                    hint={t(
-                                        'fields.recordatorio_cumple_activo_hint',
-                                    )}
-                                    checked={data.recordatorio_cumple_activo}
-                                    onChange={(v) =>
-                                        setData('recordatorio_cumple_activo', v)
-                                    }
-                                    disabled={!canUpdate}
-                                />
+                                </div>
+                                <div className="rounded-xl border border-border/70 bg-muted/15 p-4">
+                                    <ToggleRow
+                                        id="general-recordatorio-cumple"
+                                        label={t(
+                                            'fields.recordatorio_cumple_activo',
+                                        )}
+                                        hint={t(
+                                            'fields.recordatorio_cumple_activo_hint',
+                                        )}
+                                        checked={
+                                            data.recordatorio_cumple_activo
+                                        }
+                                        onChange={(v) =>
+                                            setData(
+                                                'recordatorio_cumple_activo',
+                                                v,
+                                            )
+                                        }
+                                        disabled={!canUpdate}
+                                    />
+                                </div>
                             </FormSection>
                         </SectionCard>
 
@@ -2041,6 +2091,37 @@ function ToggleRow({
                     </span>
                 )}
             </div>
+        </label>
+    );
+}
+
+type ReminderCheckProps = {
+    id: string;
+    label: string;
+    checked: boolean;
+    onChange: (checked: boolean) => void;
+    disabled?: boolean;
+};
+
+function ReminderCheck({
+    id,
+    label,
+    checked,
+    onChange,
+    disabled,
+}: ReminderCheckProps) {
+    return (
+        <label
+            htmlFor={id}
+            className="flex cursor-pointer items-center gap-2 rounded-lg border border-border/70 bg-background px-3 py-2 text-sm transition-colors hover:border-primary/30 hover:bg-muted/50 has-[button:disabled]:cursor-not-allowed has-[button:disabled]:opacity-60"
+        >
+            <Checkbox
+                id={id}
+                checked={checked}
+                onCheckedChange={(value) => onChange(value === true)}
+                disabled={disabled}
+            />
+            <span>{label}</span>
         </label>
     );
 }

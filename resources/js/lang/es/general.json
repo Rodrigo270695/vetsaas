@@ -55,6 +55,14 @@
             "title": "Recordatorios automáticos",
             "description": "Notificaciones programadas que VetSaaS envía a tus clientes por correo y WhatsApp."
         },
+        "recordatorios_citas": {
+            "title": "Citas",
+            "description": "Confirmaciones y avisos previos relacionados con la agenda médica."
+        },
+        "recordatorios_vacunas": {
+            "title": "Vacunas",
+            "description": "Avisos según la próxima fecha sugerida registrada en la vacunación."
+        },
         "grooming_notificaciones": {
             "title": "WhatsApp de grooming",
             "description": "Elige en qué momentos del servicio se avisará automáticamente al propietario. Todos están activos por defecto."
@@ -146,6 +154,9 @@
         "recordatorio_48h_activo_hint": "Avisa al cliente dos días antes de su cita.",
         "recordatorio_2h_activo": "Recordatorio 2 horas antes",
         "recordatorio_2h_activo_hint": "Aviso de último momento al cliente y al veterinario.",
+        "recordatorio_cita_momentos": "¿Cuándo deseas recordar la cita?",
+        "recordatorio_cita_opcion_2d": "2 días antes",
+        "recordatorio_cita_opcion_2h": "2 horas antes",
         "recordatorio_vacuna_activo": "Recordatorio de vacuna por vencer",
         "recordatorio_vacuna_activo_hint": "Notifica cuando una vacuna se aproxima a su fecha de refuerzo.",
         "recordatorio_vacuna_dias_antes": "¿Cuándo deseas enviar los recordatorios?",

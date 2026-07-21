@@ -55,6 +55,14 @@
             "title": "Automated reminders",
             "description": "Scheduled notifications that VetSaaS sends to your clients via email and WhatsApp."
         },
+        "recordatorios_citas": {
+            "title": "Appointments",
+            "description": "Confirmations and advance reminders related to the medical schedule."
+        },
+        "recordatorios_vacunas": {
+            "title": "Vaccines",
+            "description": "Alerts based on the next suggested date recorded for the vaccination."
+        },
         "grooming_notificaciones": {
             "title": "Grooming WhatsApp",
             "description": "Choose which service events automatically notify the owner. All options are enabled by default."
@@ -146,6 +154,9 @@
         "recordatorio_48h_activo_hint": "Reminds the client two days before their appointment.",
         "recordatorio_2h_activo": "2-hour reminder",
         "recordatorio_2h_activo_hint": "Last-minute alert to both client and vet.",
+        "recordatorio_cita_momentos": "When should the appointment reminder be sent?",
+        "recordatorio_cita_opcion_2d": "2 days before",
+        "recordatorio_cita_opcion_2h": "2 hours before",
         "recordatorio_vacuna_activo": "Upcoming vaccine reminder",
         "recordatorio_vacuna_activo_hint": "Notifies when a vaccine is approaching its booster date.",
         "recordatorio_vacuna_dias_antes": "When should reminders be sent?",
