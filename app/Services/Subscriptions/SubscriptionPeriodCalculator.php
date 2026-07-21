@@ -11,8 +11,10 @@ use Illuminate\Support\Carbon;
 /**
  * Calcula el siguiente período de facturación conservando el ancla del ciclo.
  *
- * Ej.: inicio 05/06 → vence 05/07; si paga el 01/07, el nuevo período es
- * 05/07 → 05/08 (no 01/08).
+ * Ej.: vence cada día 05:
+ * - paga el 01/07: período 05/07 → 05/08;
+ * - paga el 06/07: período 05/07 → 05/08;
+ * - paga el 10/08 tras más de un mes: período 05/08 → 05/09.
  */
 final class SubscriptionPeriodCalculator
 {
@@ -21,14 +23,19 @@ final class SubscriptionPeriodCalculator
         $paidAt ??= now();
 
         $periodEnd = $subscription->current_period_end;
+        $anchor = $periodEnd instanceof CarbonInterface
+            ? $periodEnd
+            : ($subscription->current_period_start ?? $paidAt);
 
-        if ($periodEnd instanceof CarbonInterface && $periodEnd->greaterThan($paidAt)) {
-            return $periodEnd->copy();
+        if ($anchor->greaterThan($paidAt)) {
+            return $anchor->copy();
         }
 
-        $anchor = $subscription->current_period_start ?? $paidAt;
-
-        return $this->advanceAnchorToUpcoming($anchor, $subscription->ciclo === 'anual' ? 'anual' : 'mensual', $paidAt);
+        return $this->advanceAnchorToCurrentPeriod(
+            $anchor,
+            $subscription->ciclo === 'anual' ? 'anual' : 'mensual',
+            $paidAt,
+        );
     }
 
     public function nextPeriodEnd(CarbonInterface $periodStart, string $ciclo): CarbonInterface
@@ -38,7 +45,7 @@ final class SubscriptionPeriodCalculator
             : Carbon::parse($periodStart)->addMonth();
     }
 
-    private function advanceAnchorToUpcoming(
+    private function advanceAnchorToCurrentPeriod(
         CarbonInterface $anchor,
         string $ciclo,
         CarbonInterface $paidAt,
@@ -48,10 +55,13 @@ final class SubscriptionPeriodCalculator
             ? static fn (Carbon $date): Carbon => $date->addYear()
             : static fn (Carbon $date): Carbon => $date->addMonth();
 
-        while ($cursor->lessThanOrEqualTo($paidAt)) {
-            $cursor = $add($cursor);
-        }
+        while (true) {
+            $next = $add($cursor->copy());
+            if ($next->greaterThan($paidAt)) {
+                return $cursor;
+            }
 
-        return $cursor;
+            $cursor = $next;
+        }
     }
 }

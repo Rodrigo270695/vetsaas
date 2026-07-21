@@ -65,8 +65,12 @@ class SubscriptionRenewalService
             ? $cicloCandidate
             : 'mensual';
 
+        $payment = is_array($payload['payment'] ?? null)
+            ? $payload['payment']
+            : null;
+        $paidAt = $this->parseDate($payment['pagado_at'] ?? null) ?? now();
         $periodStart = $this->parseDate($payload['period_start'] ?? null)
-            ?? $this->defaultPeriodStart($subscription);
+            ?? $this->defaultPeriodStart($subscription, $paidAt);
         $periodEnd = $this->parseDate($payload['period_end'] ?? null)
             ?? $this->defaultPeriodEnd($periodStart, $ciclo);
 
@@ -91,16 +95,18 @@ class SubscriptionRenewalService
         // El cupo de comprobantes en UI usa emitido_at dentro de [period_start, period_end].
         // Al renovar, las fechas nuevas reinician el contador sin campo aparte.
 
-        if (is_array($payload['payment'] ?? null)) {
-            $this->recordPayment($subscription, $tenant, $plan, $payload['payment'], $periodStart, $periodEnd, $payload['comprobantes_overage'] ?? null);
+        if ($payment !== null) {
+            $this->recordPayment($subscription, $tenant, $plan, $payment, $periodStart, $periodEnd, $payload['comprobantes_overage'] ?? null);
         }
 
         return $subscription->fresh(['plan']);
     }
 
-    private function defaultPeriodStart(Subscription $subscription): CarbonInterface
-    {
-        return $this->periods->nextPeriodStart($subscription);
+    private function defaultPeriodStart(
+        Subscription $subscription,
+        CarbonInterface $paidAt,
+    ): CarbonInterface {
+        return $this->periods->nextPeriodStart($subscription, $paidAt);
     }
 
     private function defaultPeriodEnd(CarbonInterface $start, string $ciclo): CarbonInterface
