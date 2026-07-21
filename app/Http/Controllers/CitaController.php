@@ -296,13 +296,18 @@ class CitaController extends Controller
     }
 
     /**
-     * Encola WhatsApp al propietario vía OpenWA (creación o reprogramación).
+     * Encola WhatsApp al propietario vía OpenWA (creación o modificación).
      *
-     * @param  'creada'|'reprogramada'  $evento
+     * @param  'creada'|'actualizada'|'reprogramada'  $evento
      * @return array{type: 'warning'|'info', message: string}|null
      */
     private function enqueueCitaWhatsApp(Cita $cita, string $evento): ?array
     {
+        $setting = ClinicSetting::current();
+        if (! $setting->notificarCitaWhatsAppActivo()) {
+            return null;
+        }
+
         $propietario = $cita->paciente?->propietario;
         $phone = $propietario?->telefono;
         $chatId = WhatsAppChatId::fromPhone($phone);
@@ -314,11 +319,15 @@ class CitaController extends Controller
             ];
         }
 
-        $tipo = $evento === 'reprogramada' ? 'cita_reprogramada' : 'cita_creada';
+        $tipo = match ($evento) {
+            'reprogramada' => 'cita_reprogramada',
+            'actualizada' => 'cita_actualizada',
+            default => 'cita_creada',
+        };
 
         try {
             $messages = app(ReminderMessageBuilder::class);
-            $clinicName = $messages->clinicDisplayName(ClinicSetting::current());
+            $clinicName = $messages->clinicDisplayName($setting);
             $ownerName = trim((string) ($propietario?->displayName() ?? ''));
             if ($ownerName === '') {
                 $ownerName = 'cliente';
@@ -328,9 +337,30 @@ class CitaController extends Controller
                 ? $cita->inicio_at
                 : Carbon::parse((string) $cita->inicio_at);
 
-            $cuerpo = $evento === 'reprogramada'
-                ? $messages->citaReprogramada($clinicName, $ownerName, $petName, $inicioAt)
-                : $messages->citaCreada($clinicName, $ownerName, $petName, $inicioAt);
+            $cuerpo = match ($evento) {
+                'reprogramada' => $messages->citaReprogramada(
+                    $clinicName,
+                    $ownerName,
+                    $petName,
+                    $inicioAt,
+                ),
+                'actualizada' => $messages->citaActualizada(
+                    $clinicName,
+                    $ownerName,
+                    $petName,
+                    $inicioAt,
+                ),
+                default => $messages->citaCreada(
+                    $clinicName,
+                    $ownerName,
+                    $petName,
+                    $inicioAt,
+                ),
+            };
+
+            $dedupeVersion = $evento === 'actualizada'
+                ? ($cita->updated_at?->format('U.u') ?? now()->format('U.u'))
+                : (string) $inicioAt->timestamp;
 
             $item = app(NotificationQueueService::class)->enqueue(
                 tipo: $tipo,
@@ -340,7 +370,7 @@ class CitaController extends Controller
                 destinatarioNombre: $ownerName,
                 referenciaTipo: 'cita',
                 referenciaId: $cita->id,
-                dedupeKey: $tipo.':'.$cita->id.':'.$inicioAt->timestamp,
+                dedupeKey: $tipo.':'.$cita->id.':'.$dedupeVersion,
                 prioridad: 4,
             );
 
@@ -397,12 +427,13 @@ class CitaController extends Controller
             ]))
             ->with('success', __('citas.flash.updated'));
 
-        if ($inicioCambio) {
-            $cita->loadMissing(['paciente.propietario']);
-            $whatsappFlash = $this->enqueueCitaWhatsApp($cita, 'reprogramada');
-            if ($whatsappFlash !== null) {
-                $redirect->with($whatsappFlash['type'], $whatsappFlash['message']);
-            }
+        $cita->loadMissing(['paciente.propietario']);
+        $whatsappFlash = $this->enqueueCitaWhatsApp(
+            $cita,
+            $inicioCambio ? 'reprogramada' : 'actualizada',
+        );
+        if ($whatsappFlash !== null) {
+            $redirect->with($whatsappFlash['type'], $whatsappFlash['message']);
         }
 
         return $redirect;

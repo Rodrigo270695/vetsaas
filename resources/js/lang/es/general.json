@@ -86,6 +86,8 @@
         "dias_anticipacion_cita_hint": "Tus clientes no podrán agendar más allá de este horizonte.",
         "horas_min_cancelacion": "Horas mínimas para cancelar sin penalidad",
         "horas_min_cancelacion_hint": "Pasada esta ventana, la cancelación queda registrada como tardía.",
+        "notificar_cita_whatsapp_activo": "Enviar WhatsApp al crear o modificar una cita",
+        "notificar_cita_whatsapp_activo_hint": "Envía automáticamente al propietario la confirmación de una cita nueva o su nueva fecha y hora al reprogramarla.",
         "recordatorio_48h_activo": "Recordatorio 48 horas antes",
         "recordatorio_48h_activo_hint": "Avisa al cliente dos días antes de su cita.",
         "recordatorio_2h_activo": "Recordatorio 2 horas antes",

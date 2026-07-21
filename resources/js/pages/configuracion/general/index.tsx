@@ -91,6 +91,7 @@ type FormState = {
     // Recordatorios
     recordatorio_48h_activo: boolean;
     recordatorio_2h_activo: boolean;
+    notificar_cita_whatsapp_activo: boolean;
     recordatorio_vacuna_activo: boolean;
     recordatorio_vacuna_dias_antes: number;
     recordatorio_cumple_activo: boolean;
@@ -128,6 +129,8 @@ const buildInitialState = (setting: ClinicSetting): FormState => ({
     horas_min_cancelacion: setting.horas_min_cancelacion,
     recordatorio_48h_activo: setting.recordatorio_48h_activo,
     recordatorio_2h_activo: setting.recordatorio_2h_activo,
+    notificar_cita_whatsapp_activo:
+        setting.notificar_cita_whatsapp_activo ?? true,
     recordatorio_vacuna_activo: setting.recordatorio_vacuna_activo,
     recordatorio_vacuna_dias_antes: setting.recordatorio_vacuna_dias_antes,
     recordatorio_cumple_activo: setting.recordatorio_cumple_activo,
@@ -267,6 +270,8 @@ export default function Index({
             // Booleans → '1' / '0' para que sobrevivan al multipart.
             recordatorio_48h_activo: data.recordatorio_48h_activo ? 1 : 0,
             recordatorio_2h_activo: data.recordatorio_2h_activo ? 1 : 0,
+            notificar_cita_whatsapp_activo:
+                data.notificar_cita_whatsapp_activo ? 1 : 0,
             recordatorio_vacuna_activo: data.recordatorio_vacuna_activo ? 1 : 0,
             recordatorio_cumple_activo: data.recordatorio_cumple_activo ? 1 : 0,
             precio_incluye_igv: data.precio_incluye_igv ? 1 : 0,
@@ -308,7 +313,6 @@ export default function Index({
 
                     router.reload({
                         only: ['clinic_branding', 'setting'],
-                        preserveScroll: true,
                     });
 
                     if (logoChanged) {
@@ -875,6 +879,26 @@ export default function Index({
                                 disabled={!canUpdate}
                             />
                         </FormField>
+
+                        <div className="sm:col-span-2">
+                            <ToggleRow
+                                id="general-notificar-cita-whatsapp"
+                                label={t(
+                                    'fields.notificar_cita_whatsapp_activo',
+                                )}
+                                hint={t(
+                                    'fields.notificar_cita_whatsapp_activo_hint',
+                                )}
+                                checked={data.notificar_cita_whatsapp_activo}
+                                onChange={(value) =>
+                                    setData(
+                                        'notificar_cita_whatsapp_activo',
+                                        value,
+                                    )
+                                }
+                                disabled={!canUpdate}
+                            />
+                        </div>
                     </FormSection>
                 </SectionCard>
 

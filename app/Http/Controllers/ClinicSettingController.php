@@ -115,6 +115,7 @@ class ClinicSettingController extends Controller
             'horas_min_cancelacion' => $data['horas_min_cancelacion'],
             'recordatorio_48h_activo' => $data['recordatorio_48h_activo'],
             'recordatorio_2h_activo' => $data['recordatorio_2h_activo'],
+            'notificar_cita_whatsapp_activo' => $data['notificar_cita_whatsapp_activo'],
             'recordatorio_vacuna_activo' => $data['recordatorio_vacuna_activo'],
             'recordatorio_vacuna_dias_antes' => $data['recordatorio_vacuna_dias_antes'],
             'recordatorio_cumple_activo' => $data['recordatorio_cumple_activo'],
@@ -283,6 +284,7 @@ class ClinicSettingController extends Controller
             // Recordatorios
             'recordatorio_48h_activo' => $setting->recordatorio_48h_activo,
             'recordatorio_2h_activo' => $setting->recordatorio_2h_activo,
+            'notificar_cita_whatsapp_activo' => $setting->notificarCitaWhatsAppActivo(),
             'recordatorio_vacuna_activo' => $setting->recordatorio_vacuna_activo,
             'recordatorio_vacuna_dias_antes' => $setting->recordatorio_vacuna_dias_antes,
             'recordatorio_cumple_activo' => $setting->recordatorio_cumple_activo,

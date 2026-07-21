@@ -295,6 +295,8 @@ class TenantSchemaMigrator
                 && Schema::hasColumn('movimientos_inventario', 'fefo_grupo_id'),
             '2026_07_12_110000_t110_add_traslado_grupo_id_to_movimientos_inventario' => Schema::hasTable('movimientos_inventario')
                 && Schema::hasColumn('movimientos_inventario', 'traslado_grupo_id'),
+            '2026_07_20_190000_t116_add_notificar_cita_whatsapp_to_cfg_clinic_settings' => Schema::hasTable('cfg_clinic_settings')
+                && Schema::hasColumn('cfg_clinic_settings', 'notificar_cita_whatsapp_activo'),
             default => false,
         };
     }

@@ -35,6 +35,7 @@
     },
     "tipo": {
         "cita_creada": "Cita creada",
+        "cita_actualizada": "Cita actualizada",
         "cita_reprogramada": "Cita reprogramada",
         "cita_48h": "Cita 48h",
         "cita_2h": "Cita 2h",

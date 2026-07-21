@@ -50,6 +50,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $dias_anticipacion_cita
  * @property bool $recordatorio_48h_activo
  * @property bool $recordatorio_2h_activo
+ * @property bool $notificar_cita_whatsapp_activo
  * @property bool $recordatorio_vacuna_activo
  * @property int $recordatorio_vacuna_dias_antes
  * @property bool $recordatorio_cumple_activo
@@ -98,6 +99,7 @@ class ClinicSetting extends Model
         'dias_anticipacion_cita',
         'recordatorio_48h_activo',
         'recordatorio_2h_activo',
+        'notificar_cita_whatsapp_activo',
         'recordatorio_vacuna_activo',
         'recordatorio_vacuna_dias_antes',
         'recordatorio_cumple_activo',
@@ -146,6 +148,7 @@ class ClinicSetting extends Model
             'dias_anticipacion_cita' => 'integer',
             'recordatorio_48h_activo' => 'boolean',
             'recordatorio_2h_activo' => 'boolean',
+            'notificar_cita_whatsapp_activo' => 'boolean',
             'recordatorio_vacuna_activo' => 'boolean',
             'recordatorio_vacuna_dias_antes' => 'integer',
             'recordatorio_cumple_activo' => 'boolean',
@@ -228,6 +231,13 @@ class ClinicSetting extends Model
             'agenda_hora_fin',
             self::DEFAULT_AGENDA_HORA_FIN,
         );
+    }
+
+    public function notificarCitaWhatsAppActivo(): bool
+    {
+        $value = $this->getAttribute('notificar_cita_whatsapp_activo');
+
+        return $value === null ? true : (bool) $value;
     }
 
     private function agendaHour(string $key, string $fallback): string

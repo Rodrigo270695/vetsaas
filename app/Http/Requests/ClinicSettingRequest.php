@@ -68,6 +68,7 @@ class ClinicSettingRequest extends FormRequest
             // Recordatorios
             'recordatorio_48h_activo' => ['required', 'boolean'],
             'recordatorio_2h_activo' => ['required', 'boolean'],
+            'notificar_cita_whatsapp_activo' => ['required', 'boolean'],
             'recordatorio_vacuna_activo' => ['required', 'boolean'],
             'recordatorio_vacuna_dias_antes' => ['required', 'integer', 'min:1', 'max:90'],
             'recordatorio_cumple_activo' => ['required', 'boolean'],
@@ -116,6 +117,7 @@ class ClinicSettingRequest extends FormRequest
             'horas_min_cancelacion' => 'horas mínimas para cancelar',
             'recordatorio_48h_activo' => 'recordatorio 48 h',
             'recordatorio_2h_activo' => 'recordatorio 2 h',
+            'notificar_cita_whatsapp_activo' => 'notificación WhatsApp de citas',
             'recordatorio_vacuna_activo' => 'recordatorio de vacuna',
             'recordatorio_vacuna_dias_antes' => 'días previos al vencimiento',
             'recordatorio_cumple_activo' => 'recordatorio de cumpleaños',
@@ -137,6 +139,7 @@ class ClinicSettingRequest extends FormRequest
         $this->merge([
             'recordatorio_48h_activo' => $this->boolean('recordatorio_48h_activo'),
             'recordatorio_2h_activo' => $this->boolean('recordatorio_2h_activo'),
+            'notificar_cita_whatsapp_activo' => $this->boolean('notificar_cita_whatsapp_activo'),
             'recordatorio_vacuna_activo' => $this->boolean('recordatorio_vacuna_activo'),
             'recordatorio_cumple_activo' => $this->boolean('recordatorio_cumple_activo'),
             'precio_incluye_igv' => $this->boolean('precio_incluye_igv'),

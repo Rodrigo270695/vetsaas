@@ -86,6 +86,8 @@
         "dias_anticipacion_cita_hint": "Clients won't be able to book beyond this horizon.",
         "horas_min_cancelacion": "Free cancellation window (hours)",
         "horas_min_cancelacion_hint": "After this window, cancellations are logged as late.",
+        "notificar_cita_whatsapp_activo": "Send WhatsApp when an appointment is created or changed",
+        "notificar_cita_whatsapp_activo_hint": "Automatically sends the owner a confirmation for a new appointment or its new date and time after rescheduling.",
         "recordatorio_48h_activo": "48-hour reminder",
         "recordatorio_48h_activo_hint": "Reminds the client two days before their appointment.",
         "recordatorio_2h_activo": "2-hour reminder",
