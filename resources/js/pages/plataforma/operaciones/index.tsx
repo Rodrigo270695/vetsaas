@@ -26,6 +26,7 @@ import { SectionCard } from '@/pages/configuracion/general/components/section-ca
 import cobros from '@/routes/plataforma/cobros';
 import configuracion from '@/routes/plataforma/configuracion';
 import operaciones from '@/routes/plataforma/operaciones';
+import sesionesLogin from '@/routes/plataforma/sesiones-login';
 import suscripciones from '@/routes/plataforma/suscripciones';
 import tenants from '@/routes/plataforma/tenants';
 
@@ -380,6 +381,13 @@ export default function Index({ snapshot, can_manage }: Props) {
                             session: snapshot.presence.session_lifetime_minutes,
                         })}
                         icon={Users}
+                        badge={
+                            <Button variant="outline" size="sm" asChild>
+                                <Link href={sesionesLogin.index().url}>
+                                    {t('presence.cta_historial')}
+                                </Link>
+                            </Button>
+                        }
                     >
                         <div className="mb-3 flex flex-wrap gap-2">
                             <StatBadge

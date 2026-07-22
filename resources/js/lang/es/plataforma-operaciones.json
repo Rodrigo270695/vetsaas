@@ -40,6 +40,7 @@
         "session_users": "Usuarios con sesión",
         "superadmins_online": "Superadmins online",
         "empty": "Nadie con ventana abierta ni sesión reciente.",
+        "cta_historial": "Ver historial",
         "columns": {
             "tenant": "Clínica",
             "online": "Ventana",

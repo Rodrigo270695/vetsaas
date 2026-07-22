@@ -1,0 +1,63 @@
+{
+    "title": "Sesiones de login",
+    "description": "Historial de inicios y cierres de sesión por clínica. Free y de pago por separado.",
+    "search_placeholder": "Buscar clínica, usuario o email…",
+    "filter_estado_label": "Estado de sesión",
+    "filter_plan_label": "Plan",
+    "columns": {
+        "logged_in_at": "Entrada",
+        "logged_out_at": "Salida",
+        "user": "Usuario",
+        "tenant": "Clínica",
+        "plan": "Plan",
+        "status": "Estado",
+        "reason": "Motivo",
+        "ip": "IP"
+    },
+    "filters": {
+        "plan": {
+            "free": "Free",
+            "paid": "De pago",
+            "todos": "Todos"
+        },
+        "estado": {
+            "todos": "Todos",
+            "abiertas": "Abiertas",
+            "cerradas": "Cerradas"
+        }
+    },
+    "status": {
+        "open": "Abierta",
+        "closed": "Cerrada"
+    },
+    "reason": {
+        "logout": "Cierre de sesión",
+        "expired": "Expirada / idle",
+        "unknown": "—"
+    },
+    "plan": {
+        "free": "Free",
+        "paid": "Pago",
+        "unknown": "Sin plan"
+    },
+    "stats": {
+        "total": "Total",
+        "abiertas": "Abiertas",
+        "hoy": "Hoy",
+        "clinicas": "Clínicas",
+        "free": "Free",
+        "paid": "De pago",
+        "matches": "Coincidencias"
+    },
+    "empty": {
+        "title": "Sin sesiones registradas",
+        "description": "Cuando un usuario de clínica inicie sesión, aparecerá aquí con hora de entrada y salida.",
+        "cta_operaciones": "Ir a Operaciones"
+    },
+    "aria": {
+        "results_count": "{{count}} sesiones encontradas"
+    },
+    "toast": {
+        "load_error": "Error al cargar el historial de sesiones"
+    }
+}

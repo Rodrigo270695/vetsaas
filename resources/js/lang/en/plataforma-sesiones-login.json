@@ -1,0 +1,63 @@
+{
+    "title": "Login sessions",
+    "description": "Login and logout history per clinic, split into Free and paid.",
+    "search_placeholder": "Search clinic, user, or email…",
+    "filter_estado_label": "Session status",
+    "filter_plan_label": "Plan",
+    "columns": {
+        "logged_in_at": "Signed in",
+        "logged_out_at": "Signed out",
+        "user": "User",
+        "tenant": "Clinic",
+        "plan": "Plan",
+        "status": "Status",
+        "reason": "Reason",
+        "ip": "IP"
+    },
+    "filters": {
+        "plan": {
+            "free": "Free",
+            "paid": "Paid",
+            "todos": "All"
+        },
+        "estado": {
+            "todos": "All",
+            "abiertas": "Open",
+            "cerradas": "Closed"
+        }
+    },
+    "status": {
+        "open": "Open",
+        "closed": "Closed"
+    },
+    "reason": {
+        "logout": "Logout",
+        "expired": "Expired / idle",
+        "unknown": "—"
+    },
+    "plan": {
+        "free": "Free",
+        "paid": "Paid",
+        "unknown": "No plan"
+    },
+    "stats": {
+        "total": "Total",
+        "abiertas": "Open",
+        "hoy": "Today",
+        "clinicas": "Clinics",
+        "free": "Free",
+        "paid": "Paid",
+        "matches": "Matches"
+    },
+    "empty": {
+        "title": "No sessions yet",
+        "description": "When a clinic user signs in, they will appear here with sign-in and sign-out times.",
+        "cta_operaciones": "Go to Operations"
+    },
+    "aria": {
+        "results_count": "{{count}} sessions found"
+    },
+    "toast": {
+        "load_error": "Failed to load session history"
+    }
+}

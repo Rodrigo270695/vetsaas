@@ -62,6 +62,7 @@
         "api_logs": "API logs",
         "tokens": "Tokens",
         "operaciones": "Operations",
+        "sesiones_login": "Login sessions",
         "auditoria_soporte": "Support audit",
         "auditoria_seguridad": "Security audit",
         "tenants": "Tenants",

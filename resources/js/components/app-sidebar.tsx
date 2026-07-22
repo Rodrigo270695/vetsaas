@@ -28,6 +28,7 @@ import {
     Headset,
     History,
     Home,
+    KeyRound,
     LayoutGrid,
     LineChart,
     Megaphone,
@@ -433,6 +434,12 @@ function useNavConfig(): { singles: NavItem[]; groups: NavGroup[] } {
                             title: t('items.operaciones'),
                             href: '/plataforma/operaciones',
                             icon: Activity,
+                            permission: 'plataforma-operaciones.view',
+                        },
+                        {
+                            title: t('items.sesiones_login'),
+                            href: '/plataforma/sesiones-login',
+                            icon: KeyRound,
                             permission: 'plataforma-operaciones.view',
                         },
                         {

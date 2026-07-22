@@ -20,6 +20,7 @@ import comunicacionesEn from '@/lang/en/comunicaciones.json';
 import plataformaAuditoriaSoporteEn from '@/lang/en/plataforma-auditoria-soporte.json';
 import plataformaAuditoriaSeguridadEn from '@/lang/en/plataforma-auditoria-seguridad.json';
 import plataformaOperacionesEn from '@/lang/en/plataforma-operaciones.json';
+import plataformaSesionesLoginEn from '@/lang/en/plataforma-sesiones-login.json';
 import dashboardEn from '@/lang/en/dashboard.json';
 import onboardingEn from '@/lang/en/onboarding.json';
 import descuentosPromocionesEn from '@/lang/en/descuentos-promociones.json';
@@ -73,6 +74,7 @@ import comunicacionesEs from '@/lang/es/comunicaciones.json';
 import plataformaAuditoriaSoporteEs from '@/lang/es/plataforma-auditoria-soporte.json';
 import plataformaAuditoriaSeguridadEs from '@/lang/es/plataforma-auditoria-seguridad.json';
 import plataformaOperacionesEs from '@/lang/es/plataforma-operaciones.json';
+import plataformaSesionesLoginEs from '@/lang/es/plataforma-sesiones-login.json';
 import dashboardEs from '@/lang/es/dashboard.json';
 import onboardingEs from '@/lang/es/onboarding.json';
 import descuentosPromocionesEs from '@/lang/es/descuentos-promociones.json';
@@ -154,6 +156,7 @@ const resources = {
         'plataforma-auditoria-soporte': plataformaAuditoriaSoporteEs,
         'plataforma-auditoria-seguridad': plataformaAuditoriaSeguridadEs,
         'plataforma-operaciones': plataformaOperacionesEs,
+        'plataforma-sesiones-login': plataformaSesionesLoginEs,
         dashboard: dashboardEs,
         onboarding: onboardingEs,
         auth: authEs,
@@ -209,6 +212,7 @@ const resources = {
         'plataforma-auditoria-soporte': plataformaAuditoriaSoporteEn,
         'plataforma-auditoria-seguridad': plataformaAuditoriaSeguridadEn,
         'plataforma-operaciones': plataformaOperacionesEn,
+        'plataforma-sesiones-login': plataformaSesionesLoginEn,
         dashboard: dashboardEn,
         onboarding: onboardingEn,
         auth: authEn,
@@ -274,6 +278,7 @@ void i18n
             'plataforma-auditoria-soporte',
             'plataforma-auditoria-seguridad',
             'plataforma-operaciones',
+            'plataforma-sesiones-login',
             'dashboard',
             'onboarding',
             'auth',

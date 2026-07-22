@@ -41,6 +41,7 @@ use App\Http\Controllers\PlanController;
 use App\Http\Controllers\PlataformaImpersonationAuditController;
 use App\Http\Controllers\PlataformaOperacionesController;
 use App\Http\Controllers\PlataformaSecurityAuditController;
+use App\Http\Controllers\PlataformaUserAuthSessionController;
 use App\Http\Controllers\PlatformRenewalReminderController;
 use App\Http\Controllers\PlatformSettingController;
 use App\Http\Controllers\PlatformWhatsAppController;
@@ -1061,6 +1062,10 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:plataforma-operaciones.manage')
             ->post('operaciones/backups/run', [PlataformaOperacionesController::class, 'runBackup'])
             ->name('operaciones.backups.run');
+
+        Route::middleware('permission:plataforma-operaciones.view')
+            ->get('sesiones-login', [PlataformaUserAuthSessionController::class, 'index'])
+            ->name('sesiones-login.index');
 
         Route::middleware('permission:plataforma-tenants.view')
             ->get('tenants', [TenantController::class, 'index'])
