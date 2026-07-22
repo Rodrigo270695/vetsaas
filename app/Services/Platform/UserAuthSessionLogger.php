@@ -123,6 +123,8 @@ final class UserAuthSessionLogger
 
     /**
      * Cierra sesiones abiertas cuya cookie Laravel ya no existe o expiró por idle.
+     * Cubre “dejar sesión iniciada” / cerrar navegador sin logout: no hace falta
+     * el botón Cerrar sesión para marcar Salida (motivo expired).
      *
      * @return int Filas cerradas
      */
@@ -130,11 +132,25 @@ final class UserAuthSessionLogger
     {
         $lifetimeMinutes ??= max(1, (int) config('session.lifetime', 120));
         $thresholdTs = now()->subMinutes($lifetimeMinutes)->getTimestamp();
+        $loggedInBefore = now()->subMinutes($lifetimeMinutes);
         $closed = 0;
+
+        // Filas sin session_id capturado: cierran por antigüedad del login.
+        $closed += UserAuthSessionLog::query()
+            ->open()
+            ->where(function ($q): void {
+                $q->whereNull('session_id')->orWhere('session_id', '');
+            })
+            ->where('logged_in_at', '<=', $loggedInBefore)
+            ->update([
+                'logged_out_at' => now(),
+                'logout_reason' => UserAuthSessionLog::REASON_EXPIRED,
+            ]);
 
         UserAuthSessionLog::query()
             ->open()
             ->whereNotNull('session_id')
+            ->where('session_id', '!=', '')
             ->orderBy('logged_in_at')
             ->chunkById(100, function ($logs) use ($thresholdTs, &$closed): void {
                 /** @var \Illuminate\Support\Collection<int, UserAuthSessionLog> $logs */

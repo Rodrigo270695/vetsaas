@@ -7,8 +7,10 @@ namespace App\Http\Controllers;
 use App\Models\Plan;
 use App\Models\UserAuthSessionLog;
 use App\Services\Platform\LivePresenceDetailService;
+use App\Services\Platform\UserAuthSessionLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -27,10 +29,20 @@ class PlataformaUserAuthSessionController extends Controller
         'plan_codigo',
     ];
 
-    public function index(Request $request, LivePresenceDetailService $livePresence): Response
-    {
+    public function index(
+        Request $request,
+        LivePresenceDetailService $livePresence,
+        UserAuthSessionLogger $authSessionLogger,
+    ): Response {
+        // Autocierre por idle aunque el cron falle: como máximo cada 60s al abrir esta página.
+        Cache::remember('plataforma.auth-sessions.expire-tick', 60, static function () use ($authSessionLogger): bool {
+            $authSessionLogger->expireStaleSessions();
+
+            return true;
+        });
+
         $search = (string) $request->input('search', '');
-        $planGrupo = (string) $request->input('plan_grupo', 'free');
+        $planGrupo = (string) $request->input('plan_grupo', 'todos');
         $estado = (string) $request->input('estado', 'todos');
         $sort = (string) $request->input('sort', 'logged_in_at');
         $direction = (string) $request->input('direction', 'desc');
@@ -46,7 +58,7 @@ class PlataformaUserAuthSessionController extends Controller
         }
 
         if (! in_array($planGrupo, ['free', 'paid', 'todos'], true)) {
-            $planGrupo = 'free';
+            $planGrupo = 'todos';
         }
 
         if (! in_array($estado, ['todos', 'abiertas', 'cerradas'], true)) {
@@ -140,11 +152,8 @@ class PlataformaUserAuthSessionController extends Controller
             'coincidencias' => $logs->total(),
         ];
 
-        $presence = $livePresence->build(
-            $fechaDesde,
-            $fechaHasta,
-            $planGrupo === 'todos' ? null : $planGrupo,
-        );
+        // Presencia en vivo: siempre todos los planes (el filtro Free/Pago aplica al historial).
+        $presence = $livePresence->build($fechaDesde, $fechaHasta, null);
 
         return Inertia::render('plataforma/sesiones-login/index', [
             'logs' => $logs,

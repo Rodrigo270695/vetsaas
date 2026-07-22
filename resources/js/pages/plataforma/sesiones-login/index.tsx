@@ -118,7 +118,7 @@ type Props = {
 };
 
 const DEFAULT_PER_PAGE = 15;
-const DEFAULT_PLAN: PlanGrupoFilter = 'free';
+const DEFAULT_PLAN: PlanGrupoFilter = 'todos';
 const DEFAULT_ESTADO: EstadoFilter = 'todos';
 
 const formatWhen = (value: string | null): string => {
@@ -510,7 +510,9 @@ export default function PlataformaSesionesLoginIndex({
                         className="xl:col-span-2"
                     >
                         {presence.online.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">{t('presence.empty')}</p>
+                            <p className="text-sm text-muted-foreground">
+                                {t('presence.empty', { minutes: presence.online_window_minutes })}
+                            </p>
                         ) : (
                             <DataTable
                                 columns={onlineColumns}
@@ -593,7 +595,9 @@ export default function PlataformaSesionesLoginIndex({
                         count: stats.coincidencias,
                     })}
                     toolbar={
-                        <DataToolbar
+                        <div className="flex w-full min-w-0 flex-col gap-2">
+                            <p className="text-xs text-muted-foreground">{t('history_hint')}</p>
+                            <DataToolbar
                             search={search}
                             onSearchChange={setSearch}
                             isSearching={isLoading}
@@ -623,6 +627,7 @@ export default function PlataformaSesionesLoginIndex({
                                 options={estadoOptions}
                             />
                         </DataToolbar>
+                        </div>
                     }
                     footer={
                         <DataPagination

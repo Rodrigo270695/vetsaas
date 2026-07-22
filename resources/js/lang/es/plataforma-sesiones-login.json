@@ -1,6 +1,7 @@
 {
     "title": "Sesiones de login",
-    "description": "Historial de inicios/cierres y presencia en vivo por clínica. Free y de pago por separado.",
+    "description": "Historial de inicios/cierres y presencia en vivo por clínica. Si no hay logout, la salida se marca como expirada al idle (~120 min).",
+    "history_hint": "Abierta = cookie Laravel aún vigente. Cerrada = logout o expiración por inactividad (no hace falta cerrar sesión a mano).",
     "search_placeholder": "Buscar clínica, usuario o email…",
     "filter_estado_label": "Estado de sesión",
     "filter_plan_label": "Plan",
@@ -17,8 +18,8 @@
     },
     "presence": {
         "title": "Conectados ahora",
-        "description": "Ventana abierta en los últimos {{minutes}} min. Vista = última pantalla reportada por el heartbeat.",
-        "empty": "Nadie con ventana abierta en este momento.",
+        "description": "Ventana abierta en los últimos {{minutes}} min (cualquier plan). Vista = última pantalla del heartbeat. Distinto del historial de login.",
+        "empty": "Nadie con ventana abierta ahora. Si hay flujo abajo, navegaron hace más de {{minutes}} min o cerraron la pestaña.",
         "columns": {
             "user": "Usuario",
             "tenant": "Clínica",
