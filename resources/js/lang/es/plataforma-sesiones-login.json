@@ -1,9 +1,38 @@
 {
     "title": "Sesiones de login",
-    "description": "Historial de inicios y cierres de sesión por clínica. Free y de pago por separado.",
+    "description": "Historial de inicios/cierres y presencia en vivo por clínica. Free y de pago por separado.",
     "search_placeholder": "Buscar clínica, usuario o email…",
     "filter_estado_label": "Estado de sesión",
     "filter_plan_label": "Plan",
+    "date_filter": {
+        "placeholder": "Rango de fechas",
+        "aria": "Filtrar por fecha de login",
+        "reset_month": "Mes actual"
+    },
+    "sync": {
+        "interval_hint": "actualización cada 15 s",
+        "updating": "Actualizando…",
+        "updated_ago": "Actualizado hace {{seconds}}s",
+        "refresh_now": "Actualizar ahora"
+    },
+    "presence": {
+        "title": "Conectados ahora",
+        "description": "Ventana abierta en los últimos {{minutes}} min. Vista = última pantalla reportada por el heartbeat.",
+        "empty": "Nadie con ventana abierta en este momento.",
+        "columns": {
+            "user": "Usuario",
+            "tenant": "Clínica",
+            "module": "Módulo",
+            "path": "Vista",
+            "seen": "Visto"
+        },
+        "modules_now_title": "Módulos en uso ahora",
+        "modules_range_title": "Flujo de módulos (rango)",
+        "tenants_range_title": "Clínicas con más navegación (rango)",
+        "hits": "hits",
+        "users": "usuarios",
+        "empty_flow": "Aún no hay navegación registrada en este rango."
+    },
     "columns": {
         "logged_in_at": "Entrada",
         "logged_out_at": "Salida",
@@ -47,7 +76,8 @@
         "clinicas": "Clínicas",
         "free": "Free",
         "paid": "De pago",
-        "matches": "Coincidencias"
+        "matches": "Coincidencias",
+        "online": "Online ahora"
     },
     "empty": {
         "title": "Sin sesiones registradas",
@@ -59,5 +89,6 @@
     },
     "toast": {
         "load_error": "Error al cargar el historial de sesiones"
-    }
+    },
+    "history_title": "Historial de logins"
 }

@@ -1,9 +1,38 @@
 {
     "title": "Login sessions",
-    "description": "Login and logout history per clinic, split into Free and paid.",
+    "description": "Login/logout history and live presence per clinic. Free and paid separately.",
     "search_placeholder": "Search clinic, user, or email…",
     "filter_estado_label": "Session status",
     "filter_plan_label": "Plan",
+    "date_filter": {
+        "placeholder": "Date range",
+        "aria": "Filter by login date",
+        "reset_month": "This month"
+    },
+    "sync": {
+        "interval_hint": "refresh every 15 s",
+        "updating": "Updating…",
+        "updated_ago": "Updated {{seconds}}s ago",
+        "refresh_now": "Refresh now"
+    },
+    "presence": {
+        "title": "Online now",
+        "description": "Open window in the last {{minutes}} min. View = last screen reported by the heartbeat.",
+        "empty": "No one with an open window right now.",
+        "columns": {
+            "user": "User",
+            "tenant": "Clinic",
+            "module": "Module",
+            "path": "View",
+            "seen": "Seen"
+        },
+        "modules_now_title": "Modules in use now",
+        "modules_range_title": "Module flow (range)",
+        "tenants_range_title": "Clinics with most navigation (range)",
+        "hits": "hits",
+        "users": "users",
+        "empty_flow": "No navigation recorded in this range yet."
+    },
     "columns": {
         "logged_in_at": "Signed in",
         "logged_out_at": "Signed out",
@@ -47,7 +76,8 @@
         "clinicas": "Clinics",
         "free": "Free",
         "paid": "Paid",
-        "matches": "Matches"
+        "matches": "Matches",
+        "online": "Online now"
     },
     "empty": {
         "title": "No sessions yet",
@@ -59,5 +89,6 @@
     },
     "toast": {
         "load_error": "Failed to load session history"
-    }
+    },
+    "history_title": "Login history"
 }

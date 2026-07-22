@@ -6,12 +6,14 @@ namespace App\Http\Controllers;
 
 use App\Models\Plan;
 use App\Models\UserAuthSessionLog;
+use App\Services\Platform\LivePresenceDetailService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * Historial central de inicios/cierres de sesión de usuarios de clínica.
+ * Historial central de inicios/cierres de sesión + presencia en vivo por vista.
  */
 class PlataformaUserAuthSessionController extends Controller
 {
@@ -25,7 +27,7 @@ class PlataformaUserAuthSessionController extends Controller
         'plan_codigo',
     ];
 
-    public function index(Request $request): Response
+    public function index(Request $request, LivePresenceDetailService $livePresence): Response
     {
         $search = (string) $request->input('search', '');
         $planGrupo = (string) $request->input('plan_grupo', 'free');
@@ -33,6 +35,15 @@ class PlataformaUserAuthSessionController extends Controller
         $sort = (string) $request->input('sort', 'logged_in_at');
         $direction = (string) $request->input('direction', 'desc');
         $perPage = (int) $request->input('per_page', 15);
+
+        $defaultDesde = Carbon::now()->startOfMonth()->toDateString();
+        $defaultHasta = Carbon::now()->toDateString();
+        $fechaDesde = $this->parseDateParam($request->query('fecha_desde')) ?? $defaultDesde;
+        $fechaHasta = $this->parseDateParam($request->query('fecha_hasta')) ?? $defaultHasta;
+
+        if ($fechaDesde > $fechaHasta) {
+            [$fechaDesde, $fechaHasta] = [$fechaHasta, $fechaDesde];
+        }
 
         if (! in_array($planGrupo, ['free', 'paid', 'todos'], true)) {
             $planGrupo = 'free';
@@ -56,7 +67,9 @@ class PlataformaUserAuthSessionController extends Controller
             ->clinicUsers()
             ->with([
                 'tenant:id,slug,nombre_comercial,razon_social',
-            ]);
+            ])
+            ->whereDate('logged_in_at', '>=', $fechaDesde)
+            ->whereDate('logged_in_at', '<=', $fechaHasta);
 
         if ($planGrupo === 'free') {
             $query->freePlan();
@@ -112,17 +125,26 @@ class PlataformaUserAuthSessionController extends Controller
                 ];
             });
 
-        $baseClinic = UserAuthSessionLog::query()->clinicUsers();
+        $baseClinic = UserAuthSessionLog::query()
+            ->clinicUsers()
+            ->whereDate('logged_in_at', '>=', $fechaDesde)
+            ->whereDate('logged_in_at', '<=', $fechaHasta);
 
         $stats = [
             'total' => (clone $baseClinic)->count(),
             'abiertas' => (clone $baseClinic)->open()->count(),
-            'hoy' => (clone $baseClinic)->whereDate('logged_in_at', today())->count(),
+            'hoy' => UserAuthSessionLog::query()->clinicUsers()->whereDate('logged_in_at', today())->count(),
             'clinicas' => (clone $baseClinic)->distinct('tenant_id')->count('tenant_id'),
             'free' => (clone $baseClinic)->freePlan()->count(),
             'paid' => (clone $baseClinic)->paidPlan()->count(),
             'coincidencias' => $logs->total(),
         ];
+
+        $presence = $livePresence->build(
+            $fechaDesde,
+            $fechaHasta,
+            $planGrupo === 'todos' ? null : $planGrupo,
+        );
 
         return Inertia::render('plataforma/sesiones-login/index', [
             'logs' => $logs,
@@ -134,9 +156,25 @@ class PlataformaUserAuthSessionController extends Controller
                 'sort' => $sort,
                 'direction' => $direction,
                 'per_page' => $perPage,
+                'fecha_desde' => $fechaDesde,
+                'fecha_hasta' => $fechaHasta,
+            ],
+            'fecha_filtro_ui' => [
+                'default_desde' => $defaultDesde,
+                'default_hasta' => $defaultHasta,
             ],
             'stats' => $stats,
+            'presence' => $presence,
             'plan_free_codigo' => Plan::CODIGO_FREE,
         ]);
+    }
+
+    private function parseDateParam(mixed $value): ?string
+    {
+        if (! is_string($value) || preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) !== 1) {
+            return null;
+        }
+
+        return $value;
     }
 }

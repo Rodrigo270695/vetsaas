@@ -1,5 +1,5 @@
 import { usePage } from '@inertiajs/react';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 type AuthUser = {
     id: string;
@@ -26,12 +26,13 @@ function csrfToken(): string {
 }
 
 /**
- * Marca presencia mientras la pestaña está abierta (cada ~45s).
- * Alimenta el radar de Operaciones (ventana abierta vs sesión idle).
+ * Marca presencia mientras la pestaña está abierta (cada ~45s) y al cambiar de vista.
+ * Envía path + componente Inertia para el radar de módulos.
  */
 export function usePresenceHeartbeat(): void {
-    const { auth } = usePage<PageProps>().props;
-    const userId = auth?.user?.id ?? null;
+    const page = usePage<PageProps>();
+    const userId = page.props.auth?.user?.id ?? null;
+    const lastSentPathRef = useRef<string | null>(null);
 
     useEffect(() => {
         if (!userId) {
@@ -45,12 +46,17 @@ export function usePresenceHeartbeat(): void {
                 return;
             }
 
+            const path = `${window.location.pathname}${window.location.search}`;
+            const component = typeof page.component === 'string' ? page.component : null;
+            lastSentPathRef.current = path;
+
             const token = csrfToken();
             void fetch('/presence/heartbeat', {
                 method: 'POST',
                 credentials: 'same-origin',
                 headers: {
                     Accept: 'application/json',
+                    'Content-Type': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest',
                     ...(token
                         ? {
@@ -59,8 +65,12 @@ export function usePresenceHeartbeat(): void {
                           }
                         : {}),
                 },
+                body: JSON.stringify({
+                    path,
+                    component,
+                }),
             }).catch(() => {
-                /* silencioso: no molestar al operador si falla un ping */
+                /* silencioso */
             });
         };
 
@@ -79,5 +89,5 @@ export function usePresenceHeartbeat(): void {
             window.clearInterval(intervalId);
             document.removeEventListener('visibilitychange', onVisible);
         };
-    }, [userId]);
+    }, [userId, page.url, page.component]);
 }

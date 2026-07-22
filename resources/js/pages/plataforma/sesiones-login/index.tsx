@@ -5,10 +5,13 @@ import {
     CalendarDays,
     Filter,
     KeyRound,
+    LayoutGrid,
     LogIn,
     Radio,
+    RefreshCw,
     Store,
     UserCircle,
+    Users,
     Wallet,
 } from 'lucide-react';
 import { useMemo } from 'react';
@@ -24,8 +27,11 @@ import {
     StatBadge,
 } from '@/components/data-page';
 import type { DataTableColumn, FilterChip } from '@/components/data-page';
+import { useAutoRefresh } from '@/hooks/use-auto-refresh';
 import { useDataTablePage } from '@/hooks/use-data-table-page';
 import AppLayout from '@/layouts/app-layout';
+import { SectionCard } from '@/pages/configuracion/general/components/section-card';
+import { AtencionDateRangeFilter } from '@/pages/clinica/historias-clinicas/components/atencion-date-range-filter';
 import operaciones from '@/routes/plataforma/operaciones';
 import sesionesLogin from '@/routes/plataforma/sesiones-login';
 import type { Paginated } from '@/types';
@@ -45,6 +51,21 @@ type SessionLogRow = {
     is_open: boolean;
 };
 
+type OnlineUserRow = {
+    user_id: string;
+    user_name: string;
+    user_email: string;
+    tenant_id: string | null;
+    tenant_slug: string | null;
+    tenant_label: string | null;
+    plan_codigo: string | null;
+    is_free: boolean | null;
+    last_path: string | null;
+    last_module: string | null;
+    last_seen_at: string | null;
+    last_path_at: string | null;
+};
+
 type PlanGrupoFilter = 'free' | 'paid' | 'todos';
 type EstadoFilter = 'todos' | 'abiertas' | 'cerradas';
 
@@ -55,6 +76,8 @@ type SessionFilters = {
     sort: string | null;
     direction: 'asc' | 'desc' | null;
     per_page: number;
+    fecha_desde: string;
+    fecha_hasta: string;
 };
 
 type SessionStats = {
@@ -67,10 +90,29 @@ type SessionStats = {
     coincidencias: number;
 };
 
+type PresencePayload = {
+    online_window_minutes: number;
+    online: OnlineUserRow[];
+    modules_now: Array<{ module: string; users: number }>;
+    modules_range: Array<{ module: string; hits: number }>;
+    tenants_range: Array<{
+        tenant_id: string;
+        tenant_slug: string;
+        tenant_label: string;
+        hits: number;
+        users: number;
+    }>;
+};
+
 type Props = {
     logs: Paginated<SessionLogRow>;
     filters: SessionFilters;
     stats: SessionStats;
+    presence: PresencePayload;
+    fecha_filtro_ui: {
+        default_desde: string;
+        default_hasta: string;
+    };
     perPageOptions: number[];
     plan_free_codigo: string;
 };
@@ -100,8 +142,10 @@ export default function PlataformaSesionesLoginIndex({
     logs,
     filters,
     stats,
+    presence,
+    fecha_filtro_ui,
 }: Props) {
-    const { t } = useTranslation('plataforma-sesiones-login');
+    const { t } = useTranslation(['plataforma-sesiones-login', 'common']);
 
     const planOptions: readonly FilterChip<PlanGrupoFilter>[] = useMemo(
         () => [
@@ -129,10 +173,15 @@ export default function PlataformaSesionesLoginIndex({
         setSort,
         setPerPage,
         applyFilter,
-    } = useDataTablePage<{ plan_grupo: PlanGrupoFilter; estado: EstadoFilter }>({
+    } = useDataTablePage<{
+        plan_grupo: PlanGrupoFilter;
+        estado: EstadoFilter;
+        fecha_desde: string;
+        fecha_hasta: string;
+    }>({
         routeUrl: sesionesLogin.index().url,
         initialFilters: filters,
-        only: ['logs', 'filters', 'stats'],
+        only: ['logs', 'filters', 'stats', 'presence', 'fecha_filtro_ui'],
         errorMessage: t('toast.load_error'),
         storageKey: 'vetsaas.plataforma.sesiones-login.prefs',
         defaults: {
@@ -140,6 +189,12 @@ export default function PlataformaSesionesLoginIndex({
             sort: null,
             direction: null,
         },
+    });
+
+    const { secondsSince, isRefreshing, refresh } = useAutoRefresh({
+        only: ['logs', 'filters', 'stats', 'presence', 'fecha_filtro_ui'],
+        enabled: true,
+        busy: isLoading,
     });
 
     const activeFiltersCount = useMemo(() => {
@@ -161,18 +216,19 @@ export default function PlataformaSesionesLoginIndex({
             count += 1;
         }
 
+        if (
+            filters.fecha_desde !== fecha_filtro_ui.default_desde
+            || filters.fecha_hasta !== fecha_filtro_ui.default_hasta
+        ) {
+            count += 1;
+        }
+
         if (filters.per_page !== DEFAULT_PER_PAGE) {
             count += 1;
         }
 
         return count;
-    }, [
-        filters.search,
-        filters.sort,
-        filters.plan_grupo,
-        filters.estado,
-        filters.per_page,
-    ]);
+    }, [filters, fecha_filtro_ui]);
 
     const reasonLabel = (reason: string | null): string => {
         if (reason === 'logout') {
@@ -185,6 +241,57 @@ export default function PlataformaSesionesLoginIndex({
 
         return t('reason.unknown');
     };
+
+    const onlineColumns: DataTableColumn<OnlineUserRow>[] = useMemo(
+        () => [
+            {
+                key: 'user',
+                header: t('presence.columns.user'),
+                cell: (row) => (
+                    <div className="flex min-w-0 flex-col leading-tight">
+                        <span className="truncate text-sm font-semibold">{row.user_name}</span>
+                        <span className="truncate text-xs text-muted-foreground">{row.user_email}</span>
+                    </div>
+                ),
+            },
+            {
+                key: 'tenant',
+                header: t('presence.columns.tenant'),
+                cell: (row) => (
+                    <div className="flex min-w-0 flex-col leading-tight">
+                        <span className="truncate text-sm font-medium">{row.tenant_label ?? '—'}</span>
+                        <span className="truncate font-mono text-xs text-muted-foreground">
+                            {row.tenant_slug ?? '—'}
+                        </span>
+                    </div>
+                ),
+            },
+            {
+                key: 'module',
+                header: t('presence.columns.module'),
+                cell: (row) => (
+                    <StatBadge label={row.last_module ?? '—'} value="" variant="info" />
+                ),
+            },
+            {
+                key: 'path',
+                header: t('presence.columns.path'),
+                cell: (row) => (
+                    <span className="block max-w-72 truncate font-mono text-xs text-muted-foreground" title={row.last_path ?? undefined}>
+                        {row.last_path ?? '—'}
+                    </span>
+                ),
+            },
+            {
+                key: 'seen',
+                header: t('presence.columns.seen'),
+                cell: (row) => (
+                    <span className="text-xs text-muted-foreground">{formatWhen(row.last_seen_at)}</span>
+                ),
+            },
+        ],
+        [t],
+    );
 
     const columns: DataTableColumn<SessionLogRow>[] = useMemo(
         () => [
@@ -204,11 +311,7 @@ export default function PlataformaSesionesLoginIndex({
                 sortable: true,
                 cell: (row) =>
                     row.is_open ? (
-                        <StatBadge
-                            label={t('status.open')}
-                            value=""
-                            variant="warning"
-                        />
+                        <StatBadge label={t('status.open')} value="" variant="warning" />
                     ) : (
                         <span className="text-xs text-muted-foreground">
                             {formatWhen(row.logged_out_at)}
@@ -294,6 +397,17 @@ export default function PlataformaSesionesLoginIndex({
         [t],
     );
 
+    const preservedQuery = {
+        search: filters.search || undefined,
+        per_page: filters.per_page,
+        sort: filters.sort ?? undefined,
+        direction: filters.direction ?? undefined,
+        plan_grupo: filters.plan_grupo !== DEFAULT_PLAN ? filters.plan_grupo : undefined,
+        estado: filters.estado !== DEFAULT_ESTADO ? filters.estado : undefined,
+        fecha_desde: filters.fecha_desde,
+        fecha_hasta: filters.fecha_hasta,
+    };
+
     return (
         <>
             <Head title={t('title')} />
@@ -302,7 +416,39 @@ export default function PlataformaSesionesLoginIndex({
                 <PageHeader
                     title={t('title')}
                     description={t('description')}
+                    action={
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <span
+                                className={`inline-block size-2 rounded-full ${
+                                    isRefreshing ? 'animate-ping bg-amber-400' : 'bg-emerald-400'
+                                }`}
+                            />
+                            <span>
+                                {isRefreshing
+                                    ? t('sync.updating')
+                                    : t('sync.updated_ago', { seconds: secondsSince })}
+                            </span>
+                            <span className="hidden sm:inline">· {t('sync.interval_hint')}</span>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 cursor-pointer gap-1 px-2"
+                                onClick={refresh}
+                                disabled={isRefreshing}
+                            >
+                                <RefreshCw className={`size-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                                {t('sync.refresh_now')}
+                            </Button>
+                        </div>
+                    }
                     stats={[
+                        {
+                            label: t('stats.online'),
+                            value: presence.online.length,
+                            variant: presence.online.length > 0 ? 'success' : 'muted',
+                            icon: Users,
+                        },
                         {
                             label: t('stats.total'),
                             value: stats.total,
@@ -354,13 +500,95 @@ export default function PlataformaSesionesLoginIndex({
                     ]}
                 />
 
+                <div className="grid gap-4 xl:grid-cols-3">
+                    <SectionCard
+                        title={t('presence.title')}
+                        description={t('presence.description', {
+                            minutes: presence.online_window_minutes,
+                        })}
+                        icon={Users}
+                        className="xl:col-span-2"
+                    >
+                        {presence.online.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">{t('presence.empty')}</p>
+                        ) : (
+                            <DataTable
+                                columns={onlineColumns}
+                                data={presence.online}
+                                rowKey={(row) => row.user_id}
+                                isLoading={isRefreshing}
+                            />
+                        )}
+                    </SectionCard>
+
+                    <div className="flex flex-col gap-4">
+                        <SectionCard title={t('presence.modules_now_title')} icon={LayoutGrid}>
+                            {presence.modules_now.length === 0 ? (
+                                <p className="text-sm text-muted-foreground">{t('presence.empty')}</p>
+                            ) : (
+                                <ul className="flex flex-col gap-1.5">
+                                    {presence.modules_now.map((row) => (
+                                        <li
+                                            key={row.module}
+                                            className="flex items-center justify-between gap-2 text-sm"
+                                        >
+                                            <span className="truncate font-medium">{row.module}</span>
+                                            <StatBadge label={t('presence.users')} value={row.users} />
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </SectionCard>
+
+                        <SectionCard title={t('presence.modules_range_title')} icon={Activity}>
+                            {presence.modules_range.length === 0 ? (
+                                <p className="text-sm text-muted-foreground">{t('presence.empty_flow')}</p>
+                            ) : (
+                                <ul className="flex flex-col gap-1.5">
+                                    {presence.modules_range.map((row) => (
+                                        <li
+                                            key={row.module}
+                                            className="flex items-center justify-between gap-2 text-sm"
+                                        >
+                                            <span className="truncate font-medium">{row.module}</span>
+                                            <StatBadge label={t('presence.hits')} value={row.hits} variant="info" />
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </SectionCard>
+                    </div>
+                </div>
+
+                <SectionCard title={t('presence.tenants_range_title')} icon={Building2}>
+                    {presence.tenants_range.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">{t('presence.empty_flow')}</p>
+                    ) : (
+                        <div className="flex flex-wrap gap-2">
+                            {presence.tenants_range.map((row) => (
+                                <div
+                                    key={row.tenant_id}
+                                    className="flex min-w-48 flex-col gap-1 rounded-lg border border-border/50 bg-muted/20 px-3 py-2"
+                                >
+                                    <span className="truncate text-sm font-semibold">{row.tenant_label}</span>
+                                    <span className="font-mono text-xs text-muted-foreground">{row.tenant_slug}</span>
+                                    <div className="mt-1 flex flex-wrap gap-1.5">
+                                        <StatBadge label={t('presence.hits')} value={row.hits} variant="info" />
+                                        <StatBadge label={t('presence.users')} value={row.users} />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </SectionCard>
+
                 <DataTable
                     columns={columns}
                     data={logs.data}
                     rowKey={(row) => row.id}
                     sort={sort}
                     onSortChange={setSort}
-                    isLoading={isLoading}
+                    isLoading={isLoading || isRefreshing}
                     ariaLiveMessage={t('aria.results_count', {
                         count: stats.coincidencias,
                     })}
@@ -371,6 +599,17 @@ export default function PlataformaSesionesLoginIndex({
                             isSearching={isLoading}
                             placeholder={t('search_placeholder')}
                         >
+                            <AtencionDateRangeFilter
+                                desde={filters.fecha_desde}
+                                hasta={filters.fecha_hasta}
+                                defaultDesde={fecha_filtro_ui.default_desde}
+                                defaultHasta={fecha_filtro_ui.default_hasta}
+                                translationNs="plataforma-sesiones-login"
+                                triggerClassName="h-9"
+                                onApply={(desde, hasta) =>
+                                    applyFilter({ fecha_desde: desde, fecha_hasta: hasta })
+                                }
+                            />
                             <FilterChips
                                 ariaLabel={t('filter_plan_label')}
                                 value={filters.plan_grupo}
@@ -389,20 +628,7 @@ export default function PlataformaSesionesLoginIndex({
                         <DataPagination
                             meta={logs}
                             onPerPageChange={setPerPage}
-                            preservedQuery={{
-                                search: filters.search || undefined,
-                                per_page: filters.per_page,
-                                sort: filters.sort ?? undefined,
-                                direction: filters.direction ?? undefined,
-                                plan_grupo:
-                                    filters.plan_grupo !== DEFAULT_PLAN
-                                        ? filters.plan_grupo
-                                        : undefined,
-                                estado:
-                                    filters.estado !== DEFAULT_ESTADO
-                                        ? filters.estado
-                                        : undefined,
-                            }}
+                            preservedQuery={preservedQuery}
                         />
                     }
                     emptyState={
