@@ -91,5 +91,11 @@
     "toast": {
         "load_error": "Failed to load session history"
     },
-    "history_title": "Login history"
+    "history_title": "Login history",
+    "tabs": {
+        "en_vivo": "Live",
+        "flujo": "Flow",
+        "historial": "History",
+        "flujo_hint": "The date range applies to navigation hits (modules and clinics)."
+    }
 }

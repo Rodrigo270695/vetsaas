@@ -14,9 +14,10 @@ import {
     Users,
     Wallet,
 } from 'lucide-react';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
     DataPagination,
     DataTable,
@@ -35,6 +36,8 @@ import { AtencionDateRangeFilter } from '@/pages/clinica/historias-clinicas/comp
 import operaciones from '@/routes/plataforma/operaciones';
 import sesionesLogin from '@/routes/plataforma/sesiones-login';
 import type { Paginated } from '@/types';
+
+type SessionTab = 'en_vivo' | 'flujo' | 'historial';
 
 type SessionLogRow = {
     id: string;
@@ -146,6 +149,7 @@ export default function PlataformaSesionesLoginIndex({
     fecha_filtro_ui,
 }: Props) {
     const { t } = useTranslation(['plataforma-sesiones-login', 'common']);
+    const [tab, setTab] = useState<SessionTab>('en_vivo');
 
     const planOptions: readonly FilterChip<PlanGrupoFilter>[] = useMemo(
         () => [
@@ -500,109 +504,83 @@ export default function PlataformaSesionesLoginIndex({
                     ]}
                 />
 
-                <div className="grid gap-4 xl:grid-cols-3">
-                    <SectionCard
-                        title={t('presence.title')}
-                        description={t('presence.description', {
-                            minutes: presence.online_window_minutes,
-                        })}
-                        icon={Users}
-                        className="xl:col-span-2"
-                    >
-                        {presence.online.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">
-                                {t('presence.empty', { minutes: presence.online_window_minutes })}
-                            </p>
-                        ) : (
-                            <DataTable
-                                columns={onlineColumns}
-                                data={presence.online}
-                                rowKey={(row) => row.user_id}
-                                isLoading={isRefreshing}
-                            />
-                        )}
-                    </SectionCard>
+                <Tabs
+                    value={tab}
+                    onValueChange={(value) => setTab(value as SessionTab)}
+                    className="flex flex-col gap-4"
+                >
+                    <TabsList className="grid h-auto w-full max-w-xl grid-cols-3 gap-1 p-1">
+                        <TabsTrigger value="en_vivo" className="cursor-pointer gap-1.5 text-xs sm:text-sm">
+                            <Users className="size-3.5 shrink-0" />
+                            <span className="truncate">{t('tabs.en_vivo')}</span>
+                            {presence.online.length > 0 ? (
+                                <span className="rounded-full bg-emerald-500/15 px-1.5 text-[10px] font-semibold text-emerald-700 tabular-nums dark:text-emerald-300">
+                                    {presence.online.length}
+                                </span>
+                            ) : null}
+                        </TabsTrigger>
+                        <TabsTrigger value="flujo" className="cursor-pointer gap-1.5 text-xs sm:text-sm">
+                            <Activity className="size-3.5 shrink-0" />
+                            <span className="truncate">{t('tabs.flujo')}</span>
+                        </TabsTrigger>
+                        <TabsTrigger value="historial" className="cursor-pointer gap-1.5 text-xs sm:text-sm">
+                            <LogIn className="size-3.5 shrink-0" />
+                            <span className="truncate">{t('tabs.historial')}</span>
+                        </TabsTrigger>
+                    </TabsList>
 
-                    <div className="flex flex-col gap-4">
-                        <SectionCard title={t('presence.modules_now_title')} icon={LayoutGrid}>
-                            {presence.modules_now.length === 0 ? (
-                                <p className="text-sm text-muted-foreground">{t('presence.empty')}</p>
-                            ) : (
-                                <ul className="flex flex-col gap-1.5">
-                                    {presence.modules_now.map((row) => (
-                                        <li
-                                            key={row.module}
-                                            className="flex items-center justify-between gap-2 text-sm"
-                                        >
-                                            <span className="truncate font-medium">{row.module}</span>
-                                            <StatBadge label={t('presence.users')} value={row.users} />
-                                        </li>
-                                    ))}
-                                </ul>
-                            )}
-                        </SectionCard>
+                    <TabsContent value="en_vivo" className="mt-0 flex flex-col gap-4">
+                        <div className="grid gap-4 xl:grid-cols-3">
+                            <SectionCard
+                                title={t('presence.title')}
+                                description={t('presence.description', {
+                                    minutes: presence.online_window_minutes,
+                                })}
+                                icon={Users}
+                                className="xl:col-span-2"
+                            >
+                                {presence.online.length === 0 ? (
+                                    <p className="text-sm text-muted-foreground">
+                                        {t('presence.empty', {
+                                            minutes: presence.online_window_minutes,
+                                        })}
+                                    </p>
+                                ) : (
+                                    <DataTable
+                                        columns={onlineColumns}
+                                        data={presence.online}
+                                        rowKey={(row) => row.user_id}
+                                        isLoading={isRefreshing}
+                                    />
+                                )}
+                            </SectionCard>
 
-                        <SectionCard title={t('presence.modules_range_title')} icon={Activity}>
-                            {presence.modules_range.length === 0 ? (
-                                <p className="text-sm text-muted-foreground">{t('presence.empty_flow')}</p>
-                            ) : (
-                                <ul className="flex flex-col gap-1.5">
-                                    {presence.modules_range.map((row) => (
-                                        <li
-                                            key={row.module}
-                                            className="flex items-center justify-between gap-2 text-sm"
-                                        >
-                                            <span className="truncate font-medium">{row.module}</span>
-                                            <StatBadge label={t('presence.hits')} value={row.hits} variant="info" />
-                                        </li>
-                                    ))}
-                                </ul>
-                            )}
-                        </SectionCard>
-                    </div>
-                </div>
-
-                <SectionCard title={t('presence.tenants_range_title')} icon={Building2}>
-                    {presence.tenants_range.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">{t('presence.empty_flow')}</p>
-                    ) : (
-                        <div className="flex flex-wrap gap-2">
-                            {presence.tenants_range.map((row) => (
-                                <div
-                                    key={row.tenant_id}
-                                    className="flex min-w-48 flex-col gap-1 rounded-lg border border-border/50 bg-muted/20 px-3 py-2"
-                                >
-                                    <span className="truncate text-sm font-semibold">{row.tenant_label}</span>
-                                    <span className="font-mono text-xs text-muted-foreground">{row.tenant_slug}</span>
-                                    <div className="mt-1 flex flex-wrap gap-1.5">
-                                        <StatBadge label={t('presence.hits')} value={row.hits} variant="info" />
-                                        <StatBadge label={t('presence.users')} value={row.users} />
-                                    </div>
-                                </div>
-                            ))}
+                            <SectionCard title={t('presence.modules_now_title')} icon={LayoutGrid}>
+                                {presence.modules_now.length === 0 ? (
+                                    <p className="text-sm text-muted-foreground">
+                                        {t('presence.empty', {
+                                            minutes: presence.online_window_minutes,
+                                        })}
+                                    </p>
+                                ) : (
+                                    <ul className="flex flex-col gap-1.5">
+                                        {presence.modules_now.map((row) => (
+                                            <li
+                                                key={row.module}
+                                                className="flex items-center justify-between gap-2 text-sm"
+                                            >
+                                                <span className="truncate font-medium">{row.module}</span>
+                                                <StatBadge label={t('presence.users')} value={row.users} />
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </SectionCard>
                         </div>
-                    )}
-                </SectionCard>
+                    </TabsContent>
 
-                <DataTable
-                    columns={columns}
-                    data={logs.data}
-                    rowKey={(row) => row.id}
-                    sort={sort}
-                    onSortChange={setSort}
-                    isLoading={isLoading || isRefreshing}
-                    ariaLiveMessage={t('aria.results_count', {
-                        count: stats.coincidencias,
-                    })}
-                    toolbar={
-                        <div className="flex w-full min-w-0 flex-col gap-2">
-                            <p className="text-xs text-muted-foreground">{t('history_hint')}</p>
-                            <DataToolbar
-                            search={search}
-                            onSearchChange={setSearch}
-                            isSearching={isLoading}
-                            placeholder={t('search_placeholder')}
-                        >
+                    <TabsContent value="flujo" className="mt-0 flex flex-col gap-4">
+                        <div className="flex flex-wrap items-center gap-2">
                             <AtencionDateRangeFilter
                                 desde={filters.fecha_desde}
                                 hasta={filters.fecha_hasta}
@@ -614,45 +592,146 @@ export default function PlataformaSesionesLoginIndex({
                                     applyFilter({ fecha_desde: desde, fecha_hasta: hasta })
                                 }
                             />
-                            <FilterChips
-                                ariaLabel={t('filter_plan_label')}
-                                value={filters.plan_grupo}
-                                onChange={(plan_grupo) => applyFilter({ plan_grupo })}
-                                options={planOptions}
-                            />
-                            <FilterChips
-                                ariaLabel={t('filter_estado_label')}
-                                value={filters.estado}
-                                onChange={(estado) => applyFilter({ estado })}
-                                options={estadoOptions}
-                            />
-                        </DataToolbar>
+                            <p className="text-xs text-muted-foreground">{t('tabs.flujo_hint')}</p>
                         </div>
-                    }
-                    footer={
-                        <DataPagination
-                            meta={logs}
-                            onPerPageChange={setPerPage}
-                            preservedQuery={preservedQuery}
-                        />
-                    }
-                    emptyState={
-                        <EmptyState
-                            icon={activeFiltersCount > 0 ? Activity : LogIn}
-                            title={t('empty.title')}
-                            description={t('empty.description')}
-                            action={
-                                activeFiltersCount === 0 ? (
-                                    <Button asChild>
-                                        <Link href={operaciones.index().url}>
-                                            {t('empty.cta_operaciones')}
-                                        </Link>
-                                    </Button>
-                                ) : undefined
+
+                        <div className="grid gap-4 lg:grid-cols-2">
+                            <SectionCard title={t('presence.modules_range_title')} icon={Activity}>
+                                {presence.modules_range.length === 0 ? (
+                                    <p className="text-sm text-muted-foreground">
+                                        {t('presence.empty_flow')}
+                                    </p>
+                                ) : (
+                                    <ul className="flex max-h-[28rem] flex-col gap-1.5 overflow-y-auto pr-1">
+                                        {presence.modules_range.map((row) => (
+                                            <li
+                                                key={row.module}
+                                                className="flex items-center justify-between gap-2 text-sm"
+                                            >
+                                                <span className="truncate font-medium">{row.module}</span>
+                                                <StatBadge
+                                                    label={t('presence.hits')}
+                                                    value={row.hits}
+                                                    variant="info"
+                                                />
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </SectionCard>
+
+                            <SectionCard title={t('presence.tenants_range_title')} icon={Building2}>
+                                {presence.tenants_range.length === 0 ? (
+                                    <p className="text-sm text-muted-foreground">
+                                        {t('presence.empty_flow')}
+                                    </p>
+                                ) : (
+                                    <div className="flex max-h-[28rem] flex-col gap-2 overflow-y-auto pr-1">
+                                        {presence.tenants_range.map((row) => (
+                                            <div
+                                                key={row.tenant_id}
+                                                className="flex flex-col gap-1 rounded-lg border border-border/50 bg-muted/20 px-3 py-2"
+                                            >
+                                                <span className="truncate text-sm font-semibold">
+                                                    {row.tenant_label}
+                                                </span>
+                                                <span className="font-mono text-xs text-muted-foreground">
+                                                    {row.tenant_slug}
+                                                </span>
+                                                <div className="mt-1 flex flex-wrap gap-1.5">
+                                                    <StatBadge
+                                                        label={t('presence.hits')}
+                                                        value={row.hits}
+                                                        variant="info"
+                                                    />
+                                                    <StatBadge
+                                                        label={t('presence.users')}
+                                                        value={row.users}
+                                                    />
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </SectionCard>
+                        </div>
+                    </TabsContent>
+
+                    <TabsContent value="historial" className="mt-0">
+                        <DataTable
+                            columns={columns}
+                            data={logs.data}
+                            rowKey={(row) => row.id}
+                            sort={sort}
+                            onSortChange={setSort}
+                            isLoading={isLoading || isRefreshing}
+                            ariaLiveMessage={t('aria.results_count', {
+                                count: stats.coincidencias,
+                            })}
+                            toolbar={
+                                <div className="flex w-full min-w-0 flex-col gap-2">
+                                    <p className="text-xs text-muted-foreground">{t('history_hint')}</p>
+                                    <DataToolbar
+                                        search={search}
+                                        onSearchChange={setSearch}
+                                        isSearching={isLoading}
+                                        placeholder={t('search_placeholder')}
+                                    >
+                                        <AtencionDateRangeFilter
+                                            desde={filters.fecha_desde}
+                                            hasta={filters.fecha_hasta}
+                                            defaultDesde={fecha_filtro_ui.default_desde}
+                                            defaultHasta={fecha_filtro_ui.default_hasta}
+                                            translationNs="plataforma-sesiones-login"
+                                            triggerClassName="h-9"
+                                            onApply={(desde, hasta) =>
+                                                applyFilter({
+                                                    fecha_desde: desde,
+                                                    fecha_hasta: hasta,
+                                                })
+                                            }
+                                        />
+                                        <FilterChips
+                                            ariaLabel={t('filter_plan_label')}
+                                            value={filters.plan_grupo}
+                                            onChange={(plan_grupo) => applyFilter({ plan_grupo })}
+                                            options={planOptions}
+                                        />
+                                        <FilterChips
+                                            ariaLabel={t('filter_estado_label')}
+                                            value={filters.estado}
+                                            onChange={(estado) => applyFilter({ estado })}
+                                            options={estadoOptions}
+                                        />
+                                    </DataToolbar>
+                                </div>
+                            }
+                            footer={
+                                <DataPagination
+                                    meta={logs}
+                                    onPerPageChange={setPerPage}
+                                    preservedQuery={preservedQuery}
+                                />
+                            }
+                            emptyState={
+                                <EmptyState
+                                    icon={activeFiltersCount > 0 ? Activity : LogIn}
+                                    title={t('empty.title')}
+                                    description={t('empty.description')}
+                                    action={
+                                        activeFiltersCount === 0 ? (
+                                            <Button asChild>
+                                                <Link href={operaciones.index().url}>
+                                                    {t('empty.cta_operaciones')}
+                                                </Link>
+                                            </Button>
+                                        ) : undefined
+                                    }
+                                />
                             }
                         />
-                    }
-                />
+                    </TabsContent>
+                </Tabs>
             </div>
         </>
     );

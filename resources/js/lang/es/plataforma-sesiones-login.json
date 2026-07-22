@@ -91,5 +91,11 @@
     "toast": {
         "load_error": "Error al cargar el historial de sesiones"
     },
-    "history_title": "Historial de logins"
+    "history_title": "Historial de logins",
+    "tabs": {
+        "en_vivo": "En vivo",
+        "flujo": "Flujo",
+        "historial": "Historial",
+        "flujo_hint": "El rango de fechas aplica a hits de navegación (módulos y clínicas)."
+    }
 }
