@@ -1,6 +1,6 @@
 import { useForm } from '@inertiajs/react';
 import { Loader2 } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import type { FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FormField, FormModal, SedeFormField } from '@/components/forms';
@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { resolveDefaultSedeIdOrEmpty } from '@/lib/default-sede';
+import { toastManager } from '@/lib/toast';
 import caja from '@/routes/caja';
 import type { QueryParams } from '@/wayfinder';
 import type { SedeOpcion } from '../types';
@@ -69,16 +70,19 @@ export function SesionAbrirModal({
     const { data, setData, post, processing, errors, reset, clearErrors } = useForm<FormData>(() =>
         buildEmpty(sedes, preferredSedeId),
     );
+    const wasOpenRef = useRef(false);
 
+    // Solo resetear al abrir el modal. Si dependemos de `sedes`, un 422 de Inertia
+    // re-renderiza con nueva referencia de array y borra los errores de validación.
     useEffect(() => {
-        if (!open) {
-            return;
+        if (open && !wasOpenRef.current) {
+            reset();
+            clearErrors();
+            setData(buildEmpty(sedes, preferredSedeId));
         }
 
-        reset();
-        clearErrors();
-        setData(buildEmpty(sedes, preferredSedeId));
-    }, [open, sedes, preferredSedeId]);
+        wasOpenRef.current = open;
+    }, [open, sedes, preferredSedeId, reset, clearErrors, setData]);
 
     const sedeValida = data.sede_id.trim() !== '';
 
@@ -96,6 +100,17 @@ export function SesionAbrirModal({
                 onOpenChange(false);
                 reset();
                 clearErrors();
+            },
+            onError: (formErrors) => {
+                const message =
+                    formErrors.sede_id ??
+                    formErrors.saldo_apertura ??
+                    formErrors.moneda ??
+                    formErrors.notas;
+
+                if (message) {
+                    toastManager.error({ title: message });
+                }
             },
         });
     };

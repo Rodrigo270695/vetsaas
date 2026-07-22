@@ -1,4 +1,5 @@
 import { useLayoutEffect } from 'react';
+import { AlertCircle } from 'lucide-react';
 import {
     Select,
     SelectContent,
@@ -75,7 +76,22 @@ export function SedeFormField({
     }, [sedes, lockedSedeId, value, onChange, allowNone]);
 
     if (!showSelector) {
-        return null;
+        // Con una sola sede el selector se oculta, pero el error de validación
+        // (p. ej. "ya hay sesión abierta en esta sede") debe seguir visible.
+        if (!error) {
+            return null;
+        }
+
+        return (
+            <p
+                role="alert"
+                id={`${id}-error`}
+                className="flex items-start gap-1 text-xs text-destructive"
+            >
+                <AlertCircle className="mt-0.5 size-3 shrink-0" strokeWidth={2.5} />
+                <span>{error}</span>
+            </p>
+        );
     }
 
     const selectValue = allowNone
