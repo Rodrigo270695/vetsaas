@@ -14,6 +14,7 @@ use App\Models\ClinicSetting;
 use App\Models\Consulta;
 use App\Models\Departamento;
 use App\Models\Distrito;
+use App\Models\FelSerie;
 use App\Models\GroomingServicio;
 use App\Models\GroomingTurno;
 use App\Models\HotelEstancia;
@@ -81,6 +82,7 @@ class VentaController extends Controller
             'direction' => $ctx['sort_valid'] && $ctx['direction_valid'] ? $ctx['direction'] : null,
             'estado' => $ctx['estado'],
             'metodo_pago' => $ctx['metodo_pago'],
+            'tipo_comprobante' => $ctx['tipo_comprobante'],
             'fecha_desde' => $ctx['fecha_desde'],
             'fecha_hasta' => $ctx['fecha_hasta'],
         ];
@@ -242,6 +244,11 @@ class VentaController extends Controller
             $metodoPago = 'todos';
         }
 
+        $tipoComprobante = (string) $request->string('tipo_comprobante', 'todos');
+        if (! in_array($tipoComprobante, ['todos', 'ticket', 'boleta', 'factura'], true)) {
+            $tipoComprobante = 'todos';
+        }
+
         $tz = config('app.timezone');
         $now = now($tz);
         $hoy = $now->toDateString();
@@ -294,6 +301,23 @@ class VentaController extends Controller
             }
         }
 
+        if ($tipoComprobante !== 'todos') {
+            if ($tipoComprobante === 'ticket') {
+                $baseQuery->where(function ($q): void {
+                    $q->whereNull('tipo_comprobante_sunat')
+                        ->orWhere('tipo_comprobante_sunat', FelSerie::TIPO_TICKET)
+                        ->orWhereNotIn('tipo_comprobante_sunat', [
+                            FelSerie::TIPO_BOLETA,
+                            FelSerie::TIPO_FACTURA,
+                        ]);
+                });
+            } elseif ($tipoComprobante === 'boleta') {
+                $baseQuery->where('tipo_comprobante_sunat', FelSerie::TIPO_BOLETA);
+            } else {
+                $baseQuery->where('tipo_comprobante_sunat', FelSerie::TIPO_FACTURA);
+            }
+        }
+
         if ($sortValid) {
             $baseQuery->orderBy($sort, $directionSql);
             if ($sort !== 'created_at') {
@@ -318,6 +342,7 @@ class VentaController extends Controller
             'venta_filtro_ui' => $ventaFiltroUi,
             'estado' => $estado,
             'metodo_pago' => $metodoPago,
+            'tipo_comprobante' => $tipoComprobante,
             'sort_valid' => $sortValid,
             'sort' => $sort,
             'direction' => $direction,

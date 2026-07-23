@@ -17,6 +17,8 @@ export type VentaMetodoPagoFiltro =
     | 'transferencia'
     | 'otro';
 
+export type VentaTipoComprobanteFiltro = 'todos' | 'ticket' | 'boleta' | 'factura';
+
 export type VentaRow = {
     id: string;
     numero: string;
@@ -44,6 +46,7 @@ export type VentasIndexFilters = {
     direction: string | null;
     estado: VentaEstadoFiltro;
     metodo_pago: VentaMetodoPagoFiltro;
+    tipo_comprobante: VentaTipoComprobanteFiltro;
     /** Rango aplicado a la fecha de venta (inclusive, día calendario en zona de la app). */
     fecha_desde: string;
     fecha_hasta: string;

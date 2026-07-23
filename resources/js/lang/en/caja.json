@@ -148,6 +148,7 @@
         "search_placeholder": "Search by number or customer…",
         "filter_estado_label": "Status",
         "filter_metodo_label": "Payment method",
+        "filter_tipo_comprobante_label": "Document type",
         "stats": {
             "total": "Sales",
             "pagado": "Paid",
@@ -183,6 +184,12 @@
             "tarjeta": "Card",
             "transferencia": "Transfer",
             "otro": "Other"
+        },
+        "tipo_comprobante_filtro": {
+            "todos": "All documents",
+            "ticket": "Ticket",
+            "boleta": "Receipt",
+            "factura": "Invoice"
         },
         "estado_valor": {
             "pagado": "Paid",

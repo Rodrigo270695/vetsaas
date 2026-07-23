@@ -31,6 +31,7 @@ import { VentaWhatsAppModal } from './components/venta-whatsapp-modal';
 import type {
     VentaEstadoFiltro,
     VentaMetodoPagoFiltro,
+    VentaTipoComprobanteFiltro,
     VentasIndexProps,
     VentaRow,
 } from './types';
@@ -38,6 +39,7 @@ import type {
 type TableExtraFilters = {
     estado: VentaEstadoFiltro;
     metodo_pago: VentaMetodoPagoFiltro;
+    tipo_comprobante: VentaTipoComprobanteFiltro;
     fecha_desde: string;
     fecha_hasta: string;
 };
@@ -45,6 +47,7 @@ type TableExtraFilters = {
 const DEFAULT_PER_PAGE = 15;
 const DEFAULT_ESTADO: VentaEstadoFiltro = 'todas';
 const DEFAULT_METODO: VentaMetodoPagoFiltro = 'todos';
+const DEFAULT_TIPO_COMPROBANTE: VentaTipoComprobanteFiltro = 'todos';
 
 function ventaEstadoBadgeVariant(estado: string): StatBadgeVariant {
     switch (estado) {
@@ -117,6 +120,7 @@ export default function Index({ ventas: paginated, filters, stats, venta_filtro_
 
     const estado = (filters.estado ?? DEFAULT_ESTADO) as VentaEstadoFiltro;
     const metodoPago = (filters.metodo_pago ?? DEFAULT_METODO) as VentaMetodoPagoFiltro;
+    const tipoComprobante = (filters.tipo_comprobante ?? DEFAULT_TIPO_COMPROBANTE) as VentaTipoComprobanteFiltro;
 
     const activeFiltersCount = useMemo(() => {
         let n = 0;
@@ -133,12 +137,16 @@ export default function Index({ ventas: paginated, filters, stats, venta_filtro_
             n += 1;
         }
 
+        if (tipoComprobante !== DEFAULT_TIPO_COMPROBANTE) {
+            n += 1;
+        }
+
         if (venta_filtro_ui.fuera_del_mes_actual) {
             n += 1;
         }
 
         return n;
-    }, [estado, metodoPago, filters.search, venta_filtro_ui.fuera_del_mes_actual]);
+    }, [estado, metodoPago, tipoComprobante, filters.search, venta_filtro_ui.fuera_del_mes_actual]);
 
     const exportUrl = useMemo(() => {
         const params = new URLSearchParams();
@@ -163,6 +171,10 @@ export default function Index({ ventas: paginated, filters, stats, venta_filtro_
             params.set('metodo_pago', filters.metodo_pago);
         }
 
+        if (filters.tipo_comprobante && filters.tipo_comprobante !== DEFAULT_TIPO_COMPROBANTE) {
+            params.set('tipo_comprobante', filters.tipo_comprobante);
+        }
+
         params.set('fecha_desde', filters.fecha_desde);
         params.set('fecha_hasta', filters.fecha_hasta);
 
@@ -175,6 +187,7 @@ export default function Index({ ventas: paginated, filters, stats, venta_filtro_
         filters.direction,
         filters.estado,
         filters.metodo_pago,
+        filters.tipo_comprobante,
         filters.fecha_desde,
         filters.fecha_hasta,
     ]);
@@ -199,6 +212,16 @@ export default function Index({ ventas: paginated, filters, stats, venta_filtro_
             { value: 'tarjeta', label: t('caja:ventas.metodo.tarjeta') },
             { value: 'transferencia', label: t('caja:ventas.metodo.transferencia') },
             { value: 'otro', label: t('caja:ventas.metodo.otro') },
+        ],
+        [t],
+    );
+
+    const tipoComprobanteOptions: readonly FilterChip<VentaTipoComprobanteFiltro>[] = useMemo(
+        () => [
+            { value: 'todos', label: t('caja:ventas.tipo_comprobante_filtro.todos') },
+            { value: 'ticket', label: t('caja:ventas.tipo_comprobante_filtro.ticket') },
+            { value: 'boleta', label: t('caja:ventas.tipo_comprobante_filtro.boleta') },
+            { value: 'factura', label: t('caja:ventas.tipo_comprobante_filtro.factura') },
         ],
         [t],
     );
@@ -451,6 +474,12 @@ export default function Index({ ventas: paginated, filters, stats, venta_filtro_
                                         onChange={(v) => applyFilter({ metodo_pago: v })}
                                         options={metodoOptions}
                                     />
+                                    <FilterChips
+                                        ariaLabel={t('caja:ventas.filter_tipo_comprobante_label')}
+                                        value={tipoComprobante}
+                                        onChange={(v) => applyFilter({ tipo_comprobante: v })}
+                                        options={tipoComprobanteOptions}
+                                    />
                                 </div>
                                 <div className="flex shrink-0 justify-start sm:justify-end">
                                     <AtencionDateRangeFilter
@@ -480,6 +509,11 @@ export default function Index({ ventas: paginated, filters, stats, venta_filtro_
                                 metodo_pago:
                                     filters.metodo_pago && filters.metodo_pago !== DEFAULT_METODO
                                         ? filters.metodo_pago
+                                        : undefined,
+                                tipo_comprobante:
+                                    filters.tipo_comprobante &&
+                                    filters.tipo_comprobante !== DEFAULT_TIPO_COMPROBANTE
+                                        ? filters.tipo_comprobante
                                         : undefined,
                                 fecha_desde: filters.fecha_desde,
                                 fecha_hasta: filters.fecha_hasta,

@@ -148,6 +148,7 @@
         "search_placeholder": "Buscar por número o cliente…",
         "filter_estado_label": "Estado",
         "filter_metodo_label": "Método de pago",
+        "filter_tipo_comprobante_label": "Tipo de comprobante",
         "stats": {
             "total": "Ventas",
             "pagado": "Pagado",
@@ -183,6 +184,12 @@
             "tarjeta": "Tarjeta",
             "transferencia": "Transferencia",
             "otro": "Otro"
+        },
+        "tipo_comprobante_filtro": {
+            "todos": "Todos los comprobantes",
+            "ticket": "Ticket",
+            "boleta": "Boleta",
+            "factura": "Factura"
         },
         "estado_valor": {
             "pagado": "Pagado",

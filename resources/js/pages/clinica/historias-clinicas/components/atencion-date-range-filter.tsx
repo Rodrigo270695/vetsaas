@@ -28,7 +28,7 @@ export type AtencionDateRangeFilterProps = {
     desde: string | null;
     /** Fin del rango aplicado (YYYY-MM-DD). Null = sin filtro de fechas. */
     hasta: string | null;
-    /** Límites del “mes actual” según el servidor (para el botón de restablecer). */
+    /** Rango por defecto al limpiar (si no hay onClear) y al abrir personalizado. */
     defaultDesde: string;
     defaultHasta: string;
     disabled?: boolean;
@@ -157,22 +157,17 @@ export function AtencionDateRangeFilter({
             hasta: toIsoDate(range.to),
         });
 
-        const thisMonth = rangeThisMonth(appTz);
-        const serverThisMonth =
-            defaultDesde && defaultHasta
-                ? { from: parseDay(defaultDesde)!, to: parseDay(defaultHasta)! }
-                : thisMonth;
-
         return [
             build('today', 'preset_today', rangeToday(appTz)),
             build('yesterday', 'preset_yesterday', rangeYesterday(appTz)),
             build('this_week', 'preset_this_week', rangeThisWeek(appTz)),
             build('last_week', 'preset_last_week', rangeLastWeek(appTz)),
-            build('this_month', 'preset_this_month', serverThisMonth),
+            // Siempre el mes calendario; defaultDesde/Hasta pueden ser “hoy” u otro default de listado.
+            build('this_month', 'preset_this_month', rangeThisMonth(appTz)),
             build('last_month', 'preset_last_month', rangeLastMonth(appTz)),
             build('this_year', 'preset_this_year', rangeThisYear(appTz)),
         ];
-    }, [appTz, defaultDesde, defaultHasta, t]);
+    }, [appTz, t]);
 
     const committedFrom = desde ? parseDay(desde) : undefined;
     const committedTo = hasta ? parseDay(hasta) : undefined;
