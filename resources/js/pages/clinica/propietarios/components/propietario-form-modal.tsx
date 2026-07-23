@@ -57,7 +57,7 @@ type FormData = {
 };
 
 const empty: FormData = {
-    tipo_documento: '',
+    tipo_documento: 'DNI',
     numero_documento: '',
     nombres: '',
     apellidos: '',
@@ -80,7 +80,7 @@ function normalizeTipoDocumento(raw: string | null | undefined): string {
 }
 
 const fromModel = (p: Propietario | null): FormData => ({
-    tipo_documento: normalizeTipoDocumento(p?.tipo_documento),
+    tipo_documento: p ? normalizeTipoDocumento(p.tipo_documento) : 'DNI',
     numero_documento: p?.numero_documento ?? '',
     nombres: p?.nombres ?? '',
     apellidos: p?.apellidos ?? '',
@@ -126,6 +126,7 @@ export function PropietarioFormModal({
 
     const [geo, setGeo] = useState<GeoCascadeValue>(() => geoFrom(null));
     const initialRef = useRef<FormData>(empty);
+    const lastConsultaKeyRef = useRef<string | null>(null);
     const [jsonSubmitting, setJsonSubmitting] = useState(false);
     const [consultandoDoc, setConsultandoDoc] = useState(false);
     const submitting = processing || jsonSubmitting;
@@ -139,6 +140,16 @@ export function PropietarioFormModal({
     const docLen = soloDigitos(data.numero_documento).length;
     const docCompleto = docMaxLen !== undefined && docLen === docMaxLen;
 
+    const consultaKeyFor = (tipo: string, numero: string, maxLen: number | undefined) => {
+        if (maxLen === undefined) {
+            return null;
+        }
+
+        const digits = soloDigitos(numero, maxLen);
+
+        return digits.length === maxLen ? `${tipo}:${digits}` : null;
+    };
+
     useEffect(() => {
         if (open) {
             const initial = fromModel(propietario);
@@ -148,6 +159,12 @@ export function PropietarioFormModal({
             });
             setGeo(geoFrom(propietario));
             clearErrors();
+            setConsultandoDoc(false);
+
+            const tipo = initial.tipo_documento.trim().toUpperCase();
+            const max = tipo === 'DNI' ? 8 : tipo === 'RUC' ? 11 : undefined;
+            // Evita auto-consulta al abrir un registro ya completo (edición).
+            lastConsultaKeyRef.current = consultaKeyFor(tipo, initial.numero_documento, max);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, propietario?.id]);
@@ -167,6 +184,7 @@ export function PropietarioFormModal({
             numero = soloDigitos(numero, 11);
         }
 
+        lastConsultaKeyRef.current = null;
         setData({
             ...data,
             tipo_documento: value,
@@ -174,8 +192,8 @@ export function PropietarioFormModal({
         });
     };
 
-    const onConsultarDocumento = async () => {
-        const numero = soloDigitos(data.numero_documento, docMaxLen);
+    const onConsultarDocumento = async (forcedNumero?: string) => {
+        const numero = soloDigitos(forcedNumero ?? data.numero_documento, docMaxLen);
 
         if (!isConsultableDoc || docMaxLen === undefined) {
             return;
@@ -189,6 +207,8 @@ export function PropietarioFormModal({
             return;
         }
 
+        const key = `${tipoDoc}:${numero}`;
+        lastConsultaKeyRef.current = key;
         setConsultandoDoc(true);
 
         try {
@@ -259,6 +279,21 @@ export function PropietarioFormModal({
             setConsultandoDoc(false);
         }
     };
+
+    useEffect(() => {
+        if (!open || !isConsultableDoc || !docCompleto || consultandoDoc || submitting) {
+            return;
+        }
+
+        const key = consultaKeyFor(tipoDoc, data.numero_documento, docMaxLen);
+
+        if (!key || lastConsultaKeyRef.current === key) {
+            return;
+        }
+
+        void onConsultarDocumento(soloDigitos(data.numero_documento, docMaxLen));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [open, data.numero_documento, tipoDoc, docCompleto, consultandoDoc, submitting]);
 
     const isDirty = useMemo(() => {
         const initial = initialRef.current;

@@ -1,6 +1,6 @@
 import { useForm } from '@inertiajs/react';
 import { Loader2, Search } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FormField, FormModal } from '@/components/forms';
@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toastManager } from '@/lib/toast';
 import { enqueueIfOffline } from '@/lib/offline/enqueue-if-offline';
+import { cn } from '@/lib/utils';
 import { useOfflineSync } from '@/hooks/use-offline-sync';
 import inventario from '@/routes/inventario';
 import type { ProveedorFila } from '../types';
@@ -46,8 +47,10 @@ const empty: FormData = {
     activo: true,
 };
 
+const RUC_MAX_LEN = 11;
+
 function soloDigitosRuc(value: string): string {
-    return value.replace(/\D/g, '').slice(0, 11);
+    return value.replace(/\D/g, '').slice(0, RUC_MAX_LEN);
 }
 
 export function ProveedorFormModal({ open, onOpenChange, proveedor }: ProveedorFormModalProps) {
@@ -55,8 +58,12 @@ export function ProveedorFormModal({ open, onOpenChange, proveedor }: ProveedorF
     const { refreshPending } = useOfflineSync();
     const isEdit = proveedor !== null;
     const [consultandoRuc, setConsultandoRuc] = useState(false);
+    const lastConsultaRucRef = useRef<string | null>(null);
 
     const { data, setData, post, put, processing, errors, reset, clearErrors, transform } = useForm<FormData>(empty);
+
+    const rucLen = soloDigitosRuc(data.ruc).length;
+    const rucCompleto = rucLen === RUC_MAX_LEN;
 
     useEffect(() => {
         transform((form) => ({
@@ -73,10 +80,13 @@ export function ProveedorFormModal({ open, onOpenChange, proveedor }: ProveedorF
         if (!proveedor) {
             reset();
             clearErrors();
+            setConsultandoRuc(false);
+            lastConsultaRucRef.current = null;
 
             return;
         }
 
+        const ruc = soloDigitosRuc(proveedor.ruc);
         setData({
             ruc: proveedor.ruc,
             razon_social: proveedor.razon_social,
@@ -90,18 +100,22 @@ export function ProveedorFormModal({ open, onOpenChange, proveedor }: ProveedorF
             activo: proveedor.activo,
         });
         clearErrors();
+        setConsultandoRuc(false);
+        // Evita auto-consulta al abrir un proveedor ya completo.
+        lastConsultaRucRef.current = ruc.length === RUC_MAX_LEN ? ruc : null;
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, proveedor?.id]);
 
-    const onConsultarRuc = async () => {
-        const ruc = soloDigitosRuc(data.ruc);
+    const onConsultarRuc = async (forcedRuc?: string) => {
+        const ruc = soloDigitosRuc(forcedRuc ?? data.ruc);
 
-        if (ruc.length !== 11) {
+        if (ruc.length !== RUC_MAX_LEN) {
             toastManager.error({ title: t('form.consultar_invalid') });
 
             return;
         }
 
+        lastConsultaRucRef.current = ruc;
         setConsultandoRuc(true);
 
         try {
@@ -151,6 +165,21 @@ export function ProveedorFormModal({ open, onOpenChange, proveedor }: ProveedorF
             setConsultandoRuc(false);
         }
     };
+
+    useEffect(() => {
+        if (!open || !rucCompleto || consultandoRuc || processing) {
+            return;
+        }
+
+        const ruc = soloDigitosRuc(data.ruc);
+
+        if (lastConsultaRucRef.current === ruc) {
+            return;
+        }
+
+        void onConsultarRuc(ruc);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [open, data.ruc, rucCompleto, consultandoRuc, processing]);
 
     const onSubmit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -210,30 +239,51 @@ export function ProveedorFormModal({ open, onOpenChange, proveedor }: ProveedorF
         >
             <div className="grid gap-4">
                 <FormField id="prov-ruc" label={t('form.ruc')} error={errors.ruc}>
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
-                        <Input
-                            id="prov-ruc"
-                            className="min-w-0 sm:flex-1"
-                            inputMode="numeric"
-                            autoComplete="off"
-                            maxLength={11}
-                            value={data.ruc}
-                            onChange={(e) => setData('ruc', soloDigitosRuc(e.target.value))}
-                            aria-invalid={Boolean(errors.ruc)}
-                        />
+                    <div className="flex items-stretch gap-2">
+                        <div className="relative min-w-0 flex-1">
+                            <Input
+                                id="prov-ruc"
+                                className="pr-14 tabular-nums tracking-wide"
+                                inputMode="numeric"
+                                autoComplete="off"
+                                maxLength={RUC_MAX_LEN}
+                                value={data.ruc}
+                                onChange={(e) => setData('ruc', soloDigitosRuc(e.target.value))}
+                                aria-invalid={Boolean(errors.ruc)}
+                            />
+                            <span
+                                className={cn(
+                                    'pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs font-medium tabular-nums',
+                                    rucCompleto
+                                        ? 'text-emerald-600 dark:text-emerald-400'
+                                        : 'text-muted-foreground',
+                                )}
+                                aria-hidden
+                            >
+                                {rucLen}/{RUC_MAX_LEN}
+                            </span>
+                        </div>
                         <Button
                             type="button"
-                            variant="secondary"
-                            className="shrink-0 gap-2 sm:w-auto"
-                            disabled={consultandoRuc || processing}
+                            size="icon"
+                            variant="ghost"
+                            className={cn(
+                                'size-9 shrink-0 cursor-pointer rounded-lg border-0 shadow-sm transition-all',
+                                'bg-gradient-to-br from-teal-500 to-emerald-600 text-white',
+                                'hover:from-teal-600 hover:to-emerald-700 hover:shadow-md',
+                                'focus-visible:ring-2 focus-visible:ring-emerald-500/40',
+                                'disabled:cursor-not-allowed disabled:from-muted disabled:to-muted disabled:text-muted-foreground disabled:opacity-60 disabled:shadow-none',
+                            )}
+                            disabled={consultandoRuc || processing || !rucCompleto}
                             onClick={() => void onConsultarRuc()}
+                            aria-label={t('form.consultar_ruc')}
+                            title={t('form.consultar_ruc')}
                         >
                             {consultandoRuc ? (
                                 <Loader2 className="size-4 animate-spin" aria-hidden />
                             ) : (
                                 <Search className="size-4" aria-hidden />
                             )}
-                            {consultandoRuc ? t('form.consultar_loading') : t('form.consultar_ruc')}
                         </Button>
                     </div>
                 </FormField>
