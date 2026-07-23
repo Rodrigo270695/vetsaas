@@ -12,7 +12,7 @@ return [
     | registrado, el supervisor pasa a suspended.
     |
     */
-    'grace_days' => (int) env('BILLING_GRACE_DAYS', 7),
+    'grace_days' => (int) env('BILLING_GRACE_DAYS', 3),
 
     /*
     |--------------------------------------------------------------------------

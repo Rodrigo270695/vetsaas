@@ -9,8 +9,10 @@ use Illuminate\Support\Carbon;
 /**
  * Decide si un tenant puede usar la aplicación (login y sesiones activas).
  *
- * Bloquea acceso cuando la suscripción está suspendida/cancelada, en gracia
- * (plan vencido) o cuando el período/trial ya expiró sin renovación.
+ * Bloquea acceso cuando la suscripción está suspendida/cancelada, o cuando
+ * el período/trial ya expiró y también venció la ventana de gracia.
+ * Durante `grace` (o active recién vencido dentro de `billing.grace_days`)
+ * el tenant conserva acceso para poder pagar.
  */
 final class TenantSubscriptionAccess
 {
@@ -60,6 +62,10 @@ final class TenantSubscriptionAccess
             }
 
             if ($subscription->estado === 'grace') {
+                if ($this->isWithinGraceWindow($subscription)) {
+                    return null;
+                }
+
                 return self::DENIAL_EXPIRED;
             }
 
@@ -76,11 +82,17 @@ final class TenantSubscriptionAccess
             if ($subscription->estado === 'active') {
                 $periodEnd = $subscription->current_period_end ?? $subscription->proximo_cobro_at;
 
-                if ($this->isPast($periodEnd)) {
-                    return self::DENIAL_EXPIRED;
+                if (! $this->isPast($periodEnd)) {
+                    return null;
                 }
 
-                return null;
+                // Plan de pago recién vencido: acceso mientras corre la gracia
+                // (aunque el supervisor aún no haya marcado estado=grace).
+                if ($this->isBillableOverdueWithinGrace($subscription, $periodEnd)) {
+                    return null;
+                }
+
+                return self::DENIAL_EXPIRED;
             }
 
             return self::DENIAL_EXPIRED;
@@ -129,6 +141,41 @@ final class TenantSubscriptionAccess
         }
 
         return $latest;
+    }
+
+    private function isWithinGraceWindow(Subscription $subscription): bool
+    {
+        if ($subscription->grace_ends_at !== null) {
+            return ! $this->isPast($subscription->grace_ends_at);
+        }
+
+        $periodEnd = $subscription->proximo_cobro_at
+            ?? $subscription->current_period_end
+            ?? $subscription->trial_ends_at;
+
+        if ($periodEnd === null) {
+            return false;
+        }
+
+        return ! $this->isPast(Carbon::parse($periodEnd)->addDays($this->graceDays()));
+    }
+
+    private function isBillableOverdueWithinGrace(Subscription $subscription, mixed $periodEnd): bool
+    {
+        if ((float) $subscription->precio_pactado <= 0) {
+            return false;
+        }
+
+        if ($periodEnd === null) {
+            return false;
+        }
+
+        return ! $this->isPast(Carbon::parse($periodEnd)->addDays($this->graceDays()));
+    }
+
+    private function graceDays(): int
+    {
+        return max(1, (int) config('billing.grace_days', 3));
     }
 
     private function isPast(mixed $value): bool

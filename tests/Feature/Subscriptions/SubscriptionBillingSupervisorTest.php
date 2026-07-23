@@ -59,7 +59,10 @@ it('pasa active a grace cuando vence proximo_cobro sin pago', function (): void 
 
     expect($result['active_to_grace'])->toBe(1)
         ->and($subscription->estado)->toBe('grace')
-        ->and($subscription->grace_ends_at)->not->toBeNull();
+        ->and($subscription->grace_ends_at)->not->toBeNull()
+        ->and($subscription->grace_ends_at?->equalTo(
+            $subscription->proximo_cobro_at?->copy()->addDays((int) config('billing.grace_days', 3))
+        ))->toBeTrue();
 });
 
 it('suspende tras vencer grace sin pago y sincroniza tenant', function (): void {

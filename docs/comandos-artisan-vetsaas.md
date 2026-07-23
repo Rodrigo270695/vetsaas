@@ -39,7 +39,7 @@ Recuperación de una clínica: `vetsaas:tenant-restore {slug} --force` (exige du
 |-------|----------|
 | **Tenants** | `tenant-diagnose`, `tenant-migrate`, `tenant-migrate-all`, `tenant-create-admin`, `tenant-restore`, `onboarding-reset` |
 | **Backups** | `backup-database`, `tenant-restore` |
-| **Cobros / suscripciones** | `billing-supervisor`, `subscription-renewal-reminders`, `sync-tenants-from-subscriptions` |
+| **Cobros / suscripciones** | `billing-supervisor`, `subscriptions-apply-grace`, `subscription-renewal-reminders`, `sync-tenants-from-subscriptions` |
 | **WhatsApp / notificaciones clínicas** | `whatsapp-sync-sessions`, `reminders-scan`, `notifications-dispatch`, `clinic-bot-register-webhooks` |
 | **Bot de ventas / leads** | `salesbot:*`, `reactivate-cold-leads`, `import-leads`, `import-leads-from-openwa`, `resolve-lid-leads`, `sync-bot-knowledge` |
 | **Demo / mantenimiento** | `reset-demo`, `geo-fix-encoding`, `nubefact-diagnose`, `test-password-reset-mail` |
@@ -213,12 +213,26 @@ php artisan vetsaas:backup-database
 ### `vetsaas:billing-supervisor`
 
 Aplica grace / suspended a suscripciones con cobro o trial vencido sin pago.
+El periodo de gracia dura `BILLING_GRACE_DAYS` (default **3**) desde el vencimiento del cobro; durante esa ventana el tenant conserva acceso para pagar. Al renovar, el ciclo sigue anclado al día de cobro (p. ej. día 1), no a la fecha de pago.
 
 ```bash
 php artisan vetsaas:billing-supervisor
 ```
 
 **Scheduler:** diario **06:00**.
+
+---
+
+### `vetsaas:subscriptions-apply-grace`
+
+Migración / backfill: pone en gracia las suscripciones **de pago** actuales que ya están vencidas, en gracia o suspendidas (excluye plan `free` y `precio_pactado <= 0`). Las `active` aún vigentes no se tocan: al vencer el cobro las pasa el supervisor.
+
+```bash
+php artisan vetsaas:subscriptions-apply-grace --dry-run --report
+php artisan vetsaas:subscriptions-apply-grace
+```
+
+**Uso típico en VPS (una vez al activar la gracia):** dry-run → aplicar.
 
 ---
 

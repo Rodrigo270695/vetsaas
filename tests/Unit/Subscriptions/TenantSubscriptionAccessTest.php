@@ -13,6 +13,7 @@ it('permite acceso con suscripción activa vigente', function (): void {
         new Subscription([
             'estado' => 'active',
             'current_period_end' => now()->addMonth(),
+            'precio_pactado' => '59.90',
         ]),
     ]));
 
@@ -35,6 +36,7 @@ it('identifica como vencido el tenant suspendido automáticamente por impago', f
         new Subscription([
             'estado' => 'suspended',
             'current_period_end' => now()->subDay(),
+            'precio_pactado' => '59.90',
         ]),
     ]));
 
@@ -43,12 +45,30 @@ it('identifica como vencido el tenant suspendido automáticamente por impago', f
     expect($access->resolveDenial($tenant))->toBe(TenantSubscriptionAccess::DENIAL_EXPIRED);
 });
 
-it('bloquea suscripción en gracia', function (): void {
+it('permite acceso en gracia mientras grace_ends_at es futuro', function (): void {
+    config(['billing.grace_days' => 3]);
+
     $tenant = new Tenant(['estado' => 'active']);
     $tenant->setRelation('subscriptions', collect([
         new Subscription([
             'estado' => 'grace',
-            'grace_ends_at' => now()->addDays(3),
+            'grace_ends_at' => now()->addDays(2),
+            'precio_pactado' => '59.90',
+        ]),
+    ]));
+
+    $access = new TenantSubscriptionAccess;
+
+    expect($access->allowsAccess($tenant))->toBeTrue();
+});
+
+it('bloquea gracia cuando grace_ends_at ya pasó', function (): void {
+    $tenant = new Tenant(['estado' => 'active']);
+    $tenant->setRelation('subscriptions', collect([
+        new Subscription([
+            'estado' => 'grace',
+            'grace_ends_at' => now()->subHour(),
+            'precio_pactado' => '59.90',
         ]),
     ]));
 
@@ -57,12 +77,34 @@ it('bloquea suscripción en gracia', function (): void {
     expect($access->resolveDenial($tenant))->toBe(TenantSubscriptionAccess::DENIAL_EXPIRED);
 });
 
-it('bloquea período activo vencido', function (): void {
+it('permite active recién vencido dentro de la ventana de gracia', function (): void {
+    config(['billing.grace_days' => 3]);
+
     $tenant = new Tenant(['estado' => 'active', 'id' => (string) Str::uuid()]);
     $tenant->setRelation('subscriptions', collect([
         new Subscription([
             'estado' => 'active',
             'current_period_end' => now()->subDay(),
+            'proximo_cobro_at' => now()->subDay(),
+            'precio_pactado' => '59.90',
+        ]),
+    ]));
+
+    $access = new TenantSubscriptionAccess;
+
+    expect($access->allowsAccess($tenant))->toBeTrue();
+});
+
+it('bloquea active vencido fuera de la ventana de gracia', function (): void {
+    config(['billing.grace_days' => 3]);
+
+    $tenant = new Tenant(['estado' => 'active', 'id' => (string) Str::uuid()]);
+    $tenant->setRelation('subscriptions', collect([
+        new Subscription([
+            'estado' => 'active',
+            'current_period_end' => now()->subDays(5),
+            'proximo_cobro_at' => now()->subDays(5),
+            'precio_pactado' => '59.90',
         ]),
     ]));
 
