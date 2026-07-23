@@ -20,7 +20,7 @@ beforeEach(function (): void {
     config(['billing.grace_days' => 3]);
 });
 
-it('aplica gracia a suscripciones de pago vencidas y omite free', function (): void {
+it('rellena grace_ends_at = proximo_cobro + 3 días en suscripciones de pago', function (): void {
     $paidPlan = Plan::query()->create([
         'codigo' => 'GRACE-PAID-'.Str::lower(Str::random(4)),
         'nombre' => 'Plan pago',
@@ -63,61 +63,39 @@ it('aplica gracia a suscripciones de pago vencidas y omite free', function (): v
         'estado' => 'active',
     ]);
 
-    $tenantOk = Tenant::query()->create([
-        'slug' => 'graceok-'.Str::lower(Str::random(6)),
-        'schema_name' => 'vet_'.Str::lower(Str::random(6)),
-        'razon_social' => 'Clínica Grace Ok',
-        'email_admin' => Str::lower(Str::random(8)).'@okg.test',
-        'estado' => 'active',
-    ]);
+    $dueAt = now()->addDays(10)->startOfMinute();
 
-    $overdue = Subscription::withoutEvents(function () use ($tenantPaid, $paidPlan): Subscription {
+    $paid = Subscription::withoutEvents(function () use ($tenantPaid, $paidPlan, $dueAt): Subscription {
         return Subscription::query()->create([
             'tenant_id' => $tenantPaid->id,
             'plan_id' => $paidPlan->id,
             'estado' => 'active',
             'ciclo' => 'mensual',
-            'current_period_end' => now()->subDays(2),
-            'proximo_cobro_at' => now()->subDays(2),
+            'current_period_end' => $dueAt,
+            'proximo_cobro_at' => $dueAt,
             'precio_pactado' => '59.90',
         ]);
     });
 
-    $freeSub = Subscription::withoutEvents(function () use ($tenantFree, $freePlan): Subscription {
+    $freeSub = Subscription::withoutEvents(function () use ($tenantFree, $freePlan, $dueAt): Subscription {
         return Subscription::query()->create([
             'tenant_id' => $tenantFree->id,
             'plan_id' => $freePlan->id,
             'estado' => 'active',
             'ciclo' => 'mensual',
-            'current_period_end' => now()->subDays(2),
-            'proximo_cobro_at' => now()->subDays(2),
+            'current_period_end' => $dueAt,
+            'proximo_cobro_at' => $dueAt,
             'precio_pactado' => '0',
-        ]);
-    });
-
-    $current = Subscription::withoutEvents(function () use ($tenantOk, $paidPlan): Subscription {
-        return Subscription::query()->create([
-            'tenant_id' => $tenantOk->id,
-            'plan_id' => $paidPlan->id,
-            'estado' => 'active',
-            'ciclo' => 'mensual',
-            'current_period_end' => now()->addDays(10),
-            'proximo_cobro_at' => now()->addDays(10),
-            'precio_pactado' => '59.90',
         ]);
     });
 
     $result = app(SubscriptionGraceBackfillService::class)->run();
 
-    $overdue->refresh();
+    $paid->refresh();
     $freeSub->refresh();
-    $current->refresh();
 
-    expect($result['grace_applied'])->toBe(1)
-        ->and($overdue->estado)->toBe('grace')
-        ->and($overdue->grace_ends_at)->not->toBeNull()
-        ->and($overdue->grace_days)->toBe(3)
-        ->and($freeSub->estado)->toBe('active')
-        ->and($current->estado)->toBe('active')
-        ->and($current->grace_days)->toBe(3);
+    expect($result['updated'])->toBe(1)
+        ->and($paid->grace_ends_at)->not->toBeNull()
+        ->and($paid->grace_ends_at?->equalTo($dueAt->copy()->addDays(3)))->toBeTrue()
+        ->and($freeSub->grace_ends_at)->toBeNull();
 });

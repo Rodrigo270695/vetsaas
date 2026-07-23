@@ -125,9 +125,7 @@
             "current_period_start": "Current period start",
             "current_period_end": "Current period end",
             "grace_ends_at": "Grace period end",
-            "grace_ends_at_hint": "Filled when grace starts. Leave empty if the charge has not come due yet.",
-            "grace_days": "Grace days",
-            "grace_days_hint": "Default is 3. Override per tenant if they need more (or fewer) days after the due date.",
+            "grace_ends_at_hint": "Default = next charge + 3 days. Extend this date if a tenant needs more time.",
             "proximo_cobro_at": "Next charge",
             "cancel_reason": "Cancellation reason",
             "cancel_feedback": "Additional customer feedback"

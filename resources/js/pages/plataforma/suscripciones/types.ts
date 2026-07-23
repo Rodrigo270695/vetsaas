@@ -49,8 +49,6 @@ export type Subscription = {
     current_period_start: string | null;
     current_period_end: string | null;
     grace_ends_at: string | null;
-    /** Días de gracia tras el vencimiento (default 3; editable por tenant). */
-    grace_days: number;
     cancelled_at: string | null;
     cancel_reason: string | null;
     cancel_feedback: string | null;

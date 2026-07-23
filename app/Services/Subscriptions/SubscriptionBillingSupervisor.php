@@ -64,7 +64,7 @@ class SubscriptionBillingSupervisor
                     $this->enterGraceOrSuspend(
                         $subscription,
                         $now,
-                        $subscription->effectiveGraceDays(),
+                        $this->graceDays(),
                         $subscription->trial_ends_at,
                     );
                     $count++;
@@ -95,7 +95,7 @@ class SubscriptionBillingSupervisor
                     $this->enterGraceOrSuspend(
                         $subscription,
                         $now,
-                        $subscription->effectiveGraceDays(),
+                        $this->graceDays(),
                         $anchor,
                     );
                     $count++;
@@ -143,7 +143,10 @@ class SubscriptionBillingSupervisor
         int $graceDays,
         mixed $anchor,
     ): void {
-        $graceEndsAt = $this->graceEndsAtFromAnchor($anchor, $graceDays, $now);
+        // Si ya hay fin de gracia (p. ej. backfill o ajuste manual), respetarlo.
+        $graceEndsAt = $subscription->grace_ends_at !== null
+            ? Carbon::parse($subscription->grace_ends_at)
+            : $this->graceEndsAtFromAnchor($anchor, $graceDays, $now);
 
         if ($graceEndsAt->lte($now)) {
             $subscription->update([
@@ -177,5 +180,10 @@ class SubscriptionBillingSupervisor
     private function hasCoveringPayment(Subscription $subscription): bool
     {
         return $this->coverage->hasCoveringPayment($subscription);
+    }
+
+    private function graceDays(): int
+    {
+        return max(1, (int) config('billing.grace_days', 3));
     }
 }

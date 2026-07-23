@@ -61,7 +61,7 @@ it('pasa active a grace cuando vence proximo_cobro sin pago', function (): void 
         ->and($subscription->estado)->toBe('grace')
         ->and($subscription->grace_ends_at)->not->toBeNull()
         ->and($subscription->grace_ends_at?->equalTo(
-            $subscription->proximo_cobro_at?->copy()->addDays($subscription->effectiveGraceDays())
+            $subscription->proximo_cobro_at?->copy()->addDays((int) config('billing.grace_days', 3))
         ))->toBeTrue();
 });
 

@@ -225,9 +225,11 @@ php artisan vetsaas:billing-supervisor
 
 ### `vetsaas:subscriptions-apply-grace`
 
-Inicializa `grace_days` (default **3**) en suscripciones de **pago** y activa la ventana de gracia solo si ya estaban vencidas / en gracia / suspendidas. Excluye plan `free`.
+En suscripciones de **pago** con `proximo_cobro_at`: escribe  
+`grace_ends_at = proximo_cobro_at + BILLING_GRACE_DAYS` (default **3**).  
+No cambia el estado. Excluye plan `free`.
 
-Las `active` aún vigentes no pasan a estado `grace` (correcto): al vencer el cobro el supervisor usa los días de esa suscripción. Edita **Días de gracia** en Plataforma → Suscripciones → Editar.
+Si un tenant necesita más tiempo, edita **Fin del periodo de gracia** en esa suscripción.
 
 ```bash
 php artisan migrate
