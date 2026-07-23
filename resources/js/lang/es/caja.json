@@ -39,8 +39,10 @@
         "actions": {
             "abrir": "Abrir sesión",
             "abrir_short": "Abrir",
-            "cerrar": "Cerrar sesión",
-            "cerrar_short": "Cerrar"
+            "cerrar": "Cerrar / arqueo",
+            "cerrar_short": "Cerrar",
+            "arqueo_pdf": "PDF arqueo",
+            "arqueo_pdf_short": "PDF"
         },
         "row": {
             "cerrar_solo_si_abriste": "Solo quien abrió puede cerrar"
@@ -63,10 +65,38 @@
             "cancel": "Cancelar"
         },
         "dialog_cerrar": {
-            "title": "Cerrar sesión de caja",
-            "description": "Registra el efectivo contado al cierre. Puedes añadir una nota opcional.",
+            "title": "Arqueo y cierre de caja",
+            "description": "Revisa ventas, comprobantes y métodos de pago. Cuadra el efectivo contado contra lo esperado.",
             "submit": "Confirmar cierre",
-            "cancel": "Cancelar"
+            "cancel": "Cancelar",
+            "loading_arqueo": "Calculando arqueo…",
+            "arqueo_error": "No se pudo cargar el arqueo. Puedes cerrar igual con el efectivo contado.",
+            "kpi_ventas": "Ventas del turno",
+            "kpi_esperado": "Efectivo esperado",
+            "kpi_esperado_hint": "Apertura + ventas en efectivo",
+            "kpi_diferencia": "Diferencia",
+            "diff_ok": "Cuadra exacto",
+            "diff_over": "Sobrante",
+            "diff_short": "Faltante",
+            "diff_pending": "Ingresa el contado",
+            "metodos_title": "Métodos de pago",
+            "comprobantes": {
+                "tickets": "Tickets",
+                "boletas": "Boletas",
+                "facturas": "Facturas"
+            },
+            "metodos": {
+                "efectivo": "Efectivo",
+                "yape": "Yape",
+                "plin": "Plin",
+                "tarjeta": "Tarjeta",
+                "transferencia": "Transferencia",
+                "otro": "Otro"
+            },
+            "formula": "Esperado = {{apertura}} (apertura) + {{ventas}} (efectivo) → {{esperado}}",
+            "anuladas_hint": "{{count}} anulada(s) excluidas ({{total}}).",
+            "contado_hint": "Cuenta el efectivo físico en caja e ingresa el monto.",
+            "notas_placeholder": "Observaciones del arqueo (opcional)"
         },
         "fields": {
             "sede": "Sede",

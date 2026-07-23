@@ -39,8 +39,10 @@
         "actions": {
             "abrir": "Open session",
             "abrir_short": "Open",
-            "cerrar": "Close session",
-            "cerrar_short": "Close"
+            "cerrar": "Close / reconcile",
+            "cerrar_short": "Close",
+            "arqueo_pdf": "Reconciliation PDF",
+            "arqueo_pdf_short": "PDF"
         },
         "row": {
             "cerrar_solo_si_abriste": "Only the opener can close"
@@ -63,10 +65,38 @@
             "cancel": "Cancel"
         },
         "dialog_cerrar": {
-            "title": "Close cash session",
-            "description": "Enter the cash counted at closing. You can add an optional note.",
+            "title": "Cash reconciliation & close",
+            "description": "Review sales, documents and payment methods. Match counted cash against expected cash.",
             "submit": "Confirm closing",
-            "cancel": "Cancel"
+            "cancel": "Cancel",
+            "loading_arqueo": "Calculating reconciliation…",
+            "arqueo_error": "Could not load reconciliation. You can still close with counted cash.",
+            "kpi_ventas": "Shift sales",
+            "kpi_esperado": "Expected cash",
+            "kpi_esperado_hint": "Opening + cash sales",
+            "kpi_diferencia": "Difference",
+            "diff_ok": "Exact match",
+            "diff_over": "Overage",
+            "diff_short": "Shortage",
+            "diff_pending": "Enter counted cash",
+            "metodos_title": "Payment methods",
+            "comprobantes": {
+                "tickets": "Tickets",
+                "boletas": "Receipts",
+                "facturas": "Invoices"
+            },
+            "metodos": {
+                "efectivo": "Cash",
+                "yape": "Yape",
+                "plin": "Plin",
+                "tarjeta": "Card",
+                "transferencia": "Transfer",
+                "otro": "Other"
+            },
+            "formula": "Expected = {{apertura}} (opening) + {{ventas}} (cash) → {{esperado}}",
+            "anuladas_hint": "{{count}} voided sale(s) excluded ({{total}}).",
+            "contado_hint": "Count physical cash in the drawer and enter the amount.",
+            "notas_placeholder": "Reconciliation notes (optional)"
         },
         "fields": {
             "sede": "Branch",

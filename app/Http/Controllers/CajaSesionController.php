@@ -6,14 +6,18 @@ use App\Http\Requests\CloseCajaSesionRequest;
 use App\Http\Requests\StoreCajaSesionRequest;
 use App\Models\CajaSesion;
 use App\Models\Sede;
-use App\Models\User;
+use App\Services\Caja\CajaSesionArqueoPdfService;
+use App\Services\Caja\CajaSesionArqueoService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
-use Inertia\Response;
+use Inertia\Response as InertiaResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class CajaSesionController extends Controller
 {
@@ -26,7 +30,7 @@ class CajaSesionController extends Controller
         'saldo_apertura',
     ];
 
-    public function index(Request $request): Response
+    public function index(Request $request): InertiaResponse
     {
         $tenantId = $request->user()?->tenant_id;
         abort_if($tenantId === null, 403);
@@ -199,8 +203,11 @@ class CajaSesionController extends Controller
             ->with('success', __('caja.flash.sesion_abierta'));
     }
 
-    public function cerrar(CloseCajaSesionRequest $request, CajaSesion $cajaSesion): RedirectResponse
-    {
+    public function cerrar(
+        CloseCajaSesionRequest $request,
+        CajaSesion $cajaSesion,
+        CajaSesionArqueoService $arqueoService,
+    ): RedirectResponse {
         if (! $cajaSesion->estaAbierta()) {
             return redirect()
                 ->route('caja.sesiones.index', $request->query())
@@ -214,10 +221,12 @@ class CajaSesionController extends Controller
         }
 
         $data = $request->validated();
+        $arqueo = $arqueoService->build($cajaSesion, (string) $data['saldo_cierre_efectivo']);
 
         $cajaSesion->update([
             'estado' => CajaSesion::ESTADO_CERRADA,
             'saldo_cierre_efectivo' => $data['saldo_cierre_efectivo'],
+            'arqueo_json' => $arqueo,
             'closed_at' => now(),
             'closed_by_id' => Auth::id(),
             'notas' => $this->mergeNotasCierre($cajaSesion->notas, $data['notas'] ?? null),
@@ -226,6 +235,45 @@ class CajaSesionController extends Controller
         return redirect()
             ->route('caja.sesiones.index', $request->query())
             ->with('success', __('caja.flash.sesion_cerrada'));
+    }
+
+    public function arqueo(CajaSesion $cajaSesion, CajaSesionArqueoService $arqueoService): JsonResponse
+    {
+        $this->authorizeSesionAccess($cajaSesion);
+
+        $contado = $cajaSesion->saldo_cierre_efectivo !== null
+            ? (string) $cajaSesion->saldo_cierre_efectivo
+            : null;
+
+        if (is_array($cajaSesion->arqueo_json) && $cajaSesion->arqueo_json !== [] && ! $cajaSesion->estaAbierta()) {
+            return response()->json(['arqueo' => $cajaSesion->arqueo_json]);
+        }
+
+        return response()->json([
+            'arqueo' => $arqueoService->build($cajaSesion, $contado),
+        ]);
+    }
+
+    public function arqueoPdf(
+        CajaSesion $cajaSesion,
+        CajaSesionArqueoPdfService $pdfService,
+        Request $request,
+    ): Response|StreamedResponse {
+        $this->authorizeSesionAccess($cajaSesion);
+
+        $tenantId = $request->user()?->tenant_id;
+        abort_if($tenantId === null, 403);
+
+        $cajaSesion->loadMissing(['abiertaPor:id,name', 'cerradaPor:id,name']);
+
+        return $pdfService->stream($cajaSesion, (string) $tenantId);
+    }
+
+    private function authorizeSesionAccess(CajaSesion $cajaSesion): void
+    {
+        // La ruta exige caja-sesiones.view. Si la sesión está abierta y no es del
+        // usuario, igual puede ver el preview si tiene el permiso (supervisor).
+        unset($cajaSesion);
     }
 
     private function mergeNotasCierre(?string $existentes, ?string $nuevas): ?string

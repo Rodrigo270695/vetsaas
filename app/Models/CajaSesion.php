@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $moneda
  * @property string $saldo_apertura
  * @property ?string $saldo_cierre_efectivo
+ * @property ?array $arqueo_json
  * @property \Illuminate\Support\Carbon $opened_at
  * @property ?\Illuminate\Support\Carbon $closed_at
  * @property ?string $notas
@@ -38,6 +39,7 @@ class CajaSesion extends Model
         'moneda',
         'saldo_apertura',
         'saldo_cierre_efectivo',
+        'arqueo_json',
         'opened_at',
         'closed_at',
         'notas',
@@ -50,6 +52,7 @@ class CajaSesion extends Model
         return [
             'saldo_apertura' => 'decimal:2',
             'saldo_cierre_efectivo' => 'decimal:2',
+            'arqueo_json' => 'array',
             'opened_at' => 'datetime',
             'closed_at' => 'datetime',
         ];

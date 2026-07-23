@@ -2,6 +2,7 @@ import { Head, Link, usePage } from '@inertiajs/react';
 import {
     AlertTriangle,
     CircleDot,
+    FileText,
     Lock,
     Plus,
     ScreenShare,
@@ -104,6 +105,7 @@ export default function Index({
     const { can } = usePermission();
     const canOpen = can('caja-sesiones.open');
     const canClose = can('caja-sesiones.close');
+    const canView = can('caja-sesiones.view');
     const bloqueadoAbrirPorMiSesion = Boolean(miSesionAbierta);
 
     const { search, setSearch, isLoading, sort, setSort, setPerPage, applyFilter } = useDataTablePage<TableExtraFilters>({
@@ -281,12 +283,36 @@ export default function Index({
             },
         ];
 
-        if (canClose) {
+        if (canClose || canView) {
             base.push({
                 key: 'acciones',
                 header: <span className="md:sr-only">{t('caja:sesiones.columns.acciones')}</span>,
                 align: 'right',
                 cell: (row) => {
+                    if (row.estado === 'cerrada' && canView) {
+                        return (
+                            <div className="flex justify-end">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-7 min-h-7 cursor-pointer gap-1 rounded-md px-2 text-xs font-medium"
+                                    asChild
+                                >
+                                    <a
+                                        href={caja.sesiones.arqueoPdf.url({ caja_sesion: row.id })}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                    >
+                                        <FileText className="size-3 shrink-0 opacity-90" strokeWidth={2.5} aria-hidden />
+                                        <span className="hidden sm:inline">{t('caja:sesiones.actions.arqueo_pdf')}</span>
+                                        <span className="sm:hidden">{t('caja:sesiones.actions.arqueo_pdf_short')}</span>
+                                    </a>
+                                </Button>
+                            </div>
+                        );
+                    }
+
                     if (row.estado !== 'abierta') {
                         return <span className="text-xs text-muted-foreground"> </span>;
                     }
@@ -294,7 +320,7 @@ export default function Index({
                     const soyQuienAbrio =
                         authUserId !== undefined && String(row.opened_by_id) === String(authUserId);
 
-                    if (soyQuienAbrio) {
+                    if (soyQuienAbrio && canClose) {
                         return (
                             <div className="flex justify-end">
                                 <Button
@@ -312,20 +338,24 @@ export default function Index({
                         );
                     }
 
-                    return (
-                        <div className="flex justify-end">
-                            <span className="max-w-[10rem] text-right text-xs leading-snug text-muted-foreground sm:max-w-none">
-                                {t('caja:sesiones.row.cerrar_solo_si_abriste')}
-                            </span>
-                        </div>
-                    );
+                    if (row.estado === 'abierta' && canClose) {
+                        return (
+                            <div className="flex justify-end">
+                                <span className="max-w-[10rem] text-right text-xs leading-snug text-muted-foreground sm:max-w-none">
+                                    {t('caja:sesiones.row.cerrar_solo_si_abriste')}
+                                </span>
+                            </div>
+                        );
+                    }
+
+                    return <span className="text-xs text-muted-foreground"> </span>;
                 },
-                className: 'w-36 sm:w-40',
+                className: 'w-36 sm:w-44',
             });
         }
 
         return base;
-    }, [t, i18n.language, canClose, authUserId, sedeCodigoById]);
+    }, [t, i18n.language, canClose, canView, authUserId, sedeCodigoById]);
 
     return (
         <>
