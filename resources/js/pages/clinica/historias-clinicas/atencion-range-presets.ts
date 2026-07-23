@@ -18,6 +18,20 @@ function nowTz(timeZone: string): TZDate {
     return new TZDate(Date.now(), timeZone);
 }
 
+/** Solo el día de hoy (zona de la app). */
+export function rangeToday(timeZone: string): { from: Date; to: Date } {
+    const n = startOfDay(nowTz(timeZone));
+
+    return { from: n, to: n };
+}
+
+/** Solo el día de ayer (zona de la app). */
+export function rangeYesterday(timeZone: string): { from: Date; to: Date } {
+    const n = startOfDay(subDays(nowTz(timeZone), 1));
+
+    return { from: n, to: n };
+}
+
 /** Lunes a domingo de la semana calendario actual (zona de la app). */
 export function rangeThisWeek(timeZone: string): { from: Date; to: Date } {
     const n = nowTz(timeZone);

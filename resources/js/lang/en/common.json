@@ -125,6 +125,9 @@
         }
     },
     "date_range": {
+        "preset_today": "Today",
+        "preset_yesterday": "Yesterday",
+        "preset_this_week": "This week",
         "preset_this_month": "This month",
         "preset_last_month": "Last month",
         "preset_last_7_days": "Last 7 days",

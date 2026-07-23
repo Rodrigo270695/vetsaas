@@ -1,5 +1,5 @@
 import { usePage } from '@inertiajs/react';
-import { format, isSameMonth, isSameYear } from 'date-fns';
+import { format, isSameDay, isSameMonth, isSameYear } from 'date-fns';
 import { enUS, es as esLocale } from 'date-fns/locale';
 import { CalendarIcon, Check, X } from 'lucide-react';
 import { useEffect, useMemo, useState, type MouseEvent } from 'react';
@@ -19,7 +19,10 @@ import {
     rangeLastMonth,
     rangeThisMonth,
     rangeThisQuarter,
+    rangeThisWeek,
     rangeThisYear,
+    rangeToday,
+    rangeYesterday,
 } from '../atencion-range-presets';
 
 export type AtencionDateRangeFilterProps = {
@@ -42,6 +45,9 @@ export type AtencionDateRangeFilterProps = {
 };
 
 type PresetId =
+    | 'today'
+    | 'yesterday'
+    | 'this_week'
     | 'this_month'
     | 'last_month'
     | 'last_7_days'
@@ -91,6 +97,10 @@ function formatTriggerLabel(
 ): string {
     if (from == null || to == null) {
         return allDatesLabel;
+    }
+
+    if (isSameDay(from, to)) {
+        return format(from, 'dd/MM/yyyy', { locale });
     }
 
     if (isSameMonth(from, to) && isSameYear(from, to)) {
@@ -158,6 +168,9 @@ export function AtencionDateRangeFilter({
                 : thisMonth;
 
         return [
+            build('today', 'preset_today', rangeToday(appTz)),
+            build('yesterday', 'preset_yesterday', rangeYesterday(appTz)),
+            build('this_week', 'preset_this_week', rangeThisWeek(appTz)),
             build('this_month', 'preset_this_month', serverThisMonth),
             build('last_month', 'preset_last_month', rangeLastMonth(appTz)),
             build('last_7_days', 'preset_last_7_days', rangeLast7Days(appTz)),
