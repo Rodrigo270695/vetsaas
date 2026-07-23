@@ -11,7 +11,6 @@ import type { ComboboxOption } from '@/components/ui/combobox';
 import { useDataTablePage } from '@/hooks/use-data-table-page';
 import { usePermission } from '@/hooks/use-permission';
 import AppLayout from '@/layouts/app-layout';
-import { cn } from '@/lib/utils';
 import { AtencionDateRangeFilter } from '@/pages/clinica/historias-clinicas/components/atencion-date-range-filter';
 import { formatDateOnlyLabel } from '@/pages/clinica/historias-clinicas/format-atendido';
 import inventario from '@/routes/inventario';
@@ -378,57 +377,48 @@ export default function Index({
                                 onSearchChange={setSearch}
                                 isSearching={isLoading}
                                 placeholder={t('search_placeholder')}
-                                filtersClassName="sm:flex-1 sm:min-w-0"
                             >
-                                <div
-                                    className={cn(
-                                        'flex w-full min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:gap-3 sm:justify-between',
-                                    )}
-                                >
-                                    <div className="flex min-w-0 flex-wrap items-center gap-2">
-                                        <div className="min-w-0 w-full sm:w-auto sm:min-w-56">
-                                            <FilterChips
-                                                ariaLabel={t('filters.sede')}
-                                                value={filters.sede_id || defaultSedeId}
-                                                onChange={(sede_id) => applyFilter({ sede_id })}
-                                                options={sedeFilterOptions}
-                                                disabled={isLoading || sedeOptions.length <= 1}
-                                            />
-                                        </div>
-                                        <div className="min-w-0 w-full sm:w-auto sm:min-w-48 sm:max-w-80">
-                                            <Combobox
-                                                id="filtro-proveedor-compra"
-                                                options={proveedorComboboxOptions}
-                                                value={filters.proveedor_id ?? PROVEEDOR_FILTRO_TODOS}
-                                                onChange={(v) => {
-                                                    if (v === null || v === PROVEEDOR_FILTRO_TODOS) {
-                                                        applyFilter({ proveedor_id: null });
-
-                                                        return;
-                                                    }
-
-                                                    applyFilter({ proveedor_id: v });
-                                                }}
-                                                placeholder={t('filters.proveedor')}
-                                                searchPlaceholder={t('filters.proveedor_search')}
-                                                emptyMessage={t('filters.proveedor_empty')}
-                                                disabled={isLoading}
-                                                className="h-10"
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="flex shrink-0 justify-start sm:justify-end">
-                                        <AtencionDateRangeFilter
-                                            desde={filters.fecha_desde}
-                                            hasta={filters.fecha_hasta}
-                                            defaultDesde={compra_filtro_ui.default_desde}
-                                            defaultHasta={compra_filtro_ui.default_hasta}
-                                            disabled={isLoading}
-                                            translationNs="compras-inventario"
-                                            triggerClassName="h-10 min-w-[12rem]"
-                                            onApply={(desde, hasta) => applyFilter({ fecha_desde: desde, fecha_hasta: hasta })}
+                                <div className="flex w-full min-w-0 flex-wrap items-center gap-2">
+                                    <div className="min-w-0 w-full sm:w-auto sm:min-w-56">
+                                        <FilterChips
+                                            ariaLabel={t('filters.sede')}
+                                            value={filters.sede_id || defaultSedeId}
+                                            onChange={(sede_id) => applyFilter({ sede_id })}
+                                            options={sedeFilterOptions}
+                                            disabled={isLoading || sedeOptions.length <= 1}
                                         />
                                     </div>
+                                    <div className="min-w-0 w-full sm:w-auto sm:min-w-48 sm:max-w-80">
+                                        <Combobox
+                                            id="filtro-proveedor-compra"
+                                            options={proveedorComboboxOptions}
+                                            value={filters.proveedor_id ?? PROVEEDOR_FILTRO_TODOS}
+                                            onChange={(v) => {
+                                                if (v === null || v === PROVEEDOR_FILTRO_TODOS) {
+                                                    applyFilter({ proveedor_id: null });
+
+                                                    return;
+                                                }
+
+                                                applyFilter({ proveedor_id: v });
+                                            }}
+                                            placeholder={t('filters.proveedor')}
+                                            searchPlaceholder={t('filters.proveedor_search')}
+                                            emptyMessage={t('filters.proveedor_empty')}
+                                            disabled={isLoading}
+                                            className="h-10"
+                                        />
+                                    </div>
+                                    <AtencionDateRangeFilter
+                                        desde={filters.fecha_desde}
+                                        hasta={filters.fecha_hasta}
+                                        defaultDesde={compra_filtro_ui.default_desde}
+                                        defaultHasta={compra_filtro_ui.default_hasta}
+                                        disabled={isLoading}
+                                        translationNs="compras-inventario"
+                                        triggerClassName="h-10 min-w-[12rem]"
+                                        onApply={(desde, hasta) => applyFilter({ fecha_desde: desde, fecha_hasta: hasta })}
+                                    />
                                 </div>
                             </DataToolbar>
                         }

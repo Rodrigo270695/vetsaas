@@ -15,7 +15,7 @@ export type DataToolbarProps = {
     className?: string;
     /** Clases del envoltorio del input de búsqueda (p. ej. `sm:max-w-none` para ancho completo). */
     searchWrapperClassName?: string;
-    /** Clases extra del contenedor del slot `children` (p. ej. `sm:flex-1 sm:justify-end`). */
+    /** Clases extra del contenedor del slot `children` (p. ej. `sm:justify-end`). */
     filtersClassName?: string;
 };
 
@@ -26,7 +26,8 @@ export type DataToolbarProps = {
  * - Cuando `isSearching` es `true`, el ícono se convierte en spinner para
  *   indicar al usuario que la consulta está en curso (útil con miles de filas).
  *
- * Responsive: en móvil el search ocupa el 100%; los filtros van debajo en la misma fila con scroll horizontal si hace falta.
+ * Layout: el buscador va solo en la primera fila; los selects/filtros debajo,
+ * en una fila que puede hacer wrap sin desalinear el search.
  */
 export function DataToolbar({
     search,
@@ -39,12 +40,7 @@ export function DataToolbar({
     filtersClassName,
 }: DataToolbarProps) {
     return (
-        <div
-            className={cn(
-                'flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3',
-                className,
-            )}
-        >
+        <div className={cn('flex w-full flex-col gap-3', className)}>
             <div className={cn('relative w-full sm:max-w-sm', searchWrapperClassName)}>
                 {isSearching ? (
                     <Loader2
@@ -78,17 +74,16 @@ export function DataToolbar({
                 )}
             </div>
 
-            {children && (
+            {children ? (
                 <div
                     className={cn(
-                        'flex min-w-0 w-full flex-row flex-nowrap items-center gap-2 overflow-x-auto sm:flex-1 sm:justify-end sm:gap-3',
-                        'scrollbar-none [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden',
+                        'flex min-w-0 w-full flex-wrap items-center gap-2 sm:gap-3',
                         filtersClassName,
                     )}
                 >
                     {children}
                 </div>
-            )}
+            ) : null}
         </div>
     );
 }

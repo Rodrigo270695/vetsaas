@@ -20,7 +20,6 @@ import { Button } from '@/components/ui/button';
 import { useDataTablePage } from '@/hooks/use-data-table-page';
 import { usePermission } from '@/hooks/use-permission';
 import AppLayout from '@/layouts/app-layout';
-import { cn } from '@/lib/utils';
 import { listPendingOutboxForDisplay } from '@/lib/offline/outbox';
 import type { OutboxItem } from '@/lib/offline/types';
 import { useOfflineSync } from '@/hooks/use-offline-sync';
@@ -454,45 +453,36 @@ export default function Index({ ventas: paginated, filters, stats, venta_filtro_
                             onSearchChange={setSearch}
                             isSearching={isLoading}
                             placeholder={t('caja:ventas.search_placeholder')}
-                            filtersClassName="sm:flex-1 sm:min-w-0"
                         >
-                            <div
-                                className={cn(
-                                    'flex w-full min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3',
-                                )}
-                            >
-                                <div className="flex min-w-0 flex-wrap items-center gap-2">
-                                    <FilterChips
-                                        ariaLabel={t('caja:ventas.filter_estado_label')}
-                                        value={estado}
-                                        onChange={(v) => applyFilter({ estado: v })}
-                                        options={estadoOptions}
-                                    />
-                                    <FilterChips
-                                        ariaLabel={t('caja:ventas.filter_metodo_label')}
-                                        value={metodoPago}
-                                        onChange={(v) => applyFilter({ metodo_pago: v })}
-                                        options={metodoOptions}
-                                    />
-                                    <FilterChips
-                                        ariaLabel={t('caja:ventas.filter_tipo_comprobante_label')}
-                                        value={tipoComprobante}
-                                        onChange={(v) => applyFilter({ tipo_comprobante: v })}
-                                        options={tipoComprobanteOptions}
-                                    />
-                                </div>
-                                <div className="flex shrink-0 justify-start sm:justify-end">
-                                    <AtencionDateRangeFilter
-                                        desde={filters.fecha_desde}
-                                        hasta={filters.fecha_hasta}
-                                        defaultDesde={venta_filtro_ui.default_desde}
-                                        defaultHasta={venta_filtro_ui.default_hasta}
-                                        disabled={isLoading}
-                                        translationNs="caja"
-                                        triggerClassName="h-10 min-w-[12rem]"
-                                        onApply={(desde, hasta) => applyFilter({ fecha_desde: desde, fecha_hasta: hasta })}
-                                    />
-                                </div>
+                            <div className="flex w-full min-w-0 flex-wrap items-center gap-2">
+                                <FilterChips
+                                    ariaLabel={t('caja:ventas.filter_estado_label')}
+                                    value={estado}
+                                    onChange={(v) => applyFilter({ estado: v })}
+                                    options={estadoOptions}
+                                />
+                                <FilterChips
+                                    ariaLabel={t('caja:ventas.filter_metodo_label')}
+                                    value={metodoPago}
+                                    onChange={(v) => applyFilter({ metodo_pago: v })}
+                                    options={metodoOptions}
+                                />
+                                <FilterChips
+                                    ariaLabel={t('caja:ventas.filter_tipo_comprobante_label')}
+                                    value={tipoComprobante}
+                                    onChange={(v) => applyFilter({ tipo_comprobante: v })}
+                                    options={tipoComprobanteOptions}
+                                />
+                                <AtencionDateRangeFilter
+                                    desde={filters.fecha_desde}
+                                    hasta={filters.fecha_hasta}
+                                    defaultDesde={venta_filtro_ui.default_desde}
+                                    defaultHasta={venta_filtro_ui.default_hasta}
+                                    disabled={isLoading}
+                                    translationNs="caja"
+                                    triggerClassName="h-10 min-w-[12rem]"
+                                    onApply={(desde, hasta) => applyFilter({ fecha_desde: desde, fecha_hasta: hasta })}
+                                />
                             </div>
                         </DataToolbar>
                     }

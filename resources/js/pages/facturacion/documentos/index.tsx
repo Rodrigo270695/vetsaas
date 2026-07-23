@@ -378,23 +378,20 @@ export default function Index({ documentos: paginated, filters, documento_filtro
                             onSearchChange={setSearch}
                             isSearching={isLoading}
                             placeholder="Buscar por número CPE, cliente o venta…"
-                            filtersClassName="sm:flex-1 sm:justify-end"
                         >
-                            <div className="flex w-full flex-col gap-2 lg:flex-row lg:items-center lg:justify-end">
-                                <div className="flex flex-wrap items-center gap-2">
-                                    <FilterChips
-                                        ariaLabel="Filtrar por estado"
-                                        value={estado}
-                                        onChange={(v) => applyFilter({ estado: v })}
-                                        options={estadoOptions}
-                                    />
-                                    <FilterChips
-                                        ariaLabel="Filtrar por método de pago"
-                                        value={metodoPago}
-                                        onChange={(v) => applyFilter({ metodo_pago: v })}
-                                        options={metodoOptions}
-                                    />
-                                </div>
+                            <div className="flex w-full min-w-0 flex-wrap items-center gap-2">
+                                <FilterChips
+                                    ariaLabel="Filtrar por estado"
+                                    value={estado}
+                                    onChange={(v) => applyFilter({ estado: v })}
+                                    options={estadoOptions}
+                                />
+                                <FilterChips
+                                    ariaLabel="Filtrar por método de pago"
+                                    value={metodoPago}
+                                    onChange={(v) => applyFilter({ metodo_pago: v })}
+                                    options={metodoOptions}
+                                />
                                 <AtencionDateRangeFilter
                                     desde={filters.fecha_desde}
                                     hasta={filters.fecha_hasta}

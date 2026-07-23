@@ -19,7 +19,6 @@ import { Button } from '@/components/ui/button';
 import { useDataTablePage } from '@/hooks/use-data-table-page';
 import { usePermission } from '@/hooks/use-permission';
 import AppLayout from '@/layouts/app-layout';
-import { cn } from '@/lib/utils';
 import { AtencionDateRangeFilter } from '@/pages/clinica/historias-clinicas/components/atencion-date-range-filter';
 import inventario from '@/routes/inventario';
 import { exportMethod as movimientosExport } from '@/routes/inventario/movimientos';
@@ -436,16 +435,10 @@ export default function Index({
                             onSearchChange={setSearch}
                             isSearching={isLoading}
                             placeholder={t('search_placeholder')}
-                            filtersClassName="sm:flex-1 sm:min-w-0"
                         >
-                            <div
-                                className={cn(
-                                    'flex w-full min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:gap-3',
-                                    sinSedes || sedeOptions.length === 0 ? 'sm:justify-end' : 'sm:justify-between',
-                                )}
-                            >
+                            <div className="flex w-full min-w-0 flex-wrap items-center gap-2">
                                 {!sinSedes && sedeOptions.length > 0 ? (
-                                    <div className="flex min-w-0 flex-wrap items-center gap-2">
+                                    <>
                                         <FilterChips
                                             ariaLabel={t('filter_sede')}
                                             value={
@@ -465,19 +458,17 @@ export default function Index({
                                             options={tipoOptions}
                                             className="sm:min-w-56"
                                         />
-                                    </div>
+                                    </>
                                 ) : null}
-                                <div className="flex shrink-0 justify-start sm:justify-end">
-                                    <AtencionDateRangeFilter
-                                        desde={filters.creado_desde}
-                                        hasta={filters.creado_hasta}
-                                        defaultDesde={movimiento_filtro_ui.default_desde}
-                                        defaultHasta={movimiento_filtro_ui.default_hasta}
-                                        disabled={isLoading}
-                                        translationNs="movimientos-inventario"
-                                        onApply={(desde, hasta) => applyFilter({ creado_desde: desde, creado_hasta: hasta })}
-                                    />
-                                </div>
+                                <AtencionDateRangeFilter
+                                    desde={filters.creado_desde}
+                                    hasta={filters.creado_hasta}
+                                    defaultDesde={movimiento_filtro_ui.default_desde}
+                                    defaultHasta={movimiento_filtro_ui.default_hasta}
+                                    disabled={isLoading}
+                                    translationNs="movimientos-inventario"
+                                    onApply={(desde, hasta) => applyFilter({ creado_desde: desde, creado_hasta: hasta })}
+                                />
                             </div>
                         </DataToolbar>
                     }

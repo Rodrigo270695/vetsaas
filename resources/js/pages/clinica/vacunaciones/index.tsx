@@ -445,7 +445,6 @@ export default function Index({
                             onSearchChange={setSearch}
                             isSearching={isLoading}
                             placeholder={t('search_placeholder')}
-                            filtersClassName="sm:flex-1 sm:justify-end"
                         >
                             <AtencionDateRangeFilter
                                 desde={filters.aplicada_desde}

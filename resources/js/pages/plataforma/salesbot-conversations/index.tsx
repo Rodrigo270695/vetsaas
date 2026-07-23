@@ -913,7 +913,7 @@ export default function SalesBotConversationsIndex({ conversations, filters, sta
                             onSearchChange={setSearch}
                             isSearching={isLoading}
                             placeholder="Buscar por nombre o teléfono..."
-                            filtersClassName="sm:flex-1 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-2"
+                            filtersClassName="sm:justify-between"
                         >
                             <FilterChips
                                 ariaLabel="Filtrar por estado del bot"

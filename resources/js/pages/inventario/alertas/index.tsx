@@ -461,11 +461,10 @@ export default function Index({
                             onSearchChange={setSearch}
                             isSearching={isLoading}
                             placeholder={modo === 'lotes' ? t('search_placeholder_lotes') : t('search_placeholder')}
-                            filtersClassName="sm:flex-1 sm:min-w-0"
                         >
-                            <div className="flex w-full min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                            <div className="flex w-full min-w-0 flex-wrap items-center gap-2">
                                 {!sinSedes && sedeOptions.length > 0 ? (
-                                    <div className="flex min-w-0 flex-wrap items-center gap-2">
+                                    <>
                                         <FilterChips
                                             ariaLabel={t('filter_sede')}
                                             value={
@@ -485,7 +484,7 @@ export default function Index({
                                             options={tipoAlertaOptions}
                                             className="sm:min-w-48"
                                         />
-                                    </div>
+                                    </>
                                 ) : null}
                             </div>
                         </DataToolbar>

@@ -490,40 +490,35 @@ export default function Index({
                             onSearchChange={setSearch}
                             isSearching={isLoading}
                             placeholder={t('caja:sesiones.search_placeholder')}
-                            filtersClassName="sm:flex-1 sm:min-w-0"
                         >
-                            <div className="flex w-full min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-                                <div className="flex min-w-0 flex-wrap items-center gap-2">
+                            <div className="flex w-full min-w-0 flex-wrap items-center gap-2">
+                                <FilterChips
+                                    ariaLabel={t('caja:sesiones.filter_estado_label')}
+                                    value={filters.estado}
+                                    onChange={(estado) => applyFilter({ estado })}
+                                    options={estadoOptions}
+                                />
+                                {!sinSedes && sedesOpciones.length > 0 ? (
                                     <FilterChips
-                                        ariaLabel={t('caja:sesiones.filter_estado_label')}
-                                        value={filters.estado}
-                                        onChange={(estado) => applyFilter({ estado })}
-                                        options={estadoOptions}
+                                        ariaLabel={t('caja:sesiones.filter_sede_label')}
+                                        value={filters.sede_id ? filters.sede_id : 'all'}
+                                        onChange={(v) => applyFilter({ sede_id: v === 'all' ? '' : v })}
+                                        options={sedeFilterOptions}
+                                        className="sm:min-w-56"
                                     />
-                                    {!sinSedes && sedesOpciones.length > 0 ? (
-                                        <FilterChips
-                                            ariaLabel={t('caja:sesiones.filter_sede_label')}
-                                            value={filters.sede_id ? filters.sede_id : 'all'}
-                                            onChange={(v) => applyFilter({ sede_id: v === 'all' ? '' : v })}
-                                            options={sedeFilterOptions}
-                                            className="sm:min-w-56"
-                                        />
-                                    ) : null}
-                                </div>
-                                <div className="flex shrink-0 justify-start sm:justify-end">
-                                    <AtencionDateRangeFilter
-                                        desde={filters.fecha_desde}
-                                        hasta={filters.fecha_hasta}
-                                        defaultDesde={sesionFiltroUi.default_desde}
-                                        defaultHasta={sesionFiltroUi.default_hasta}
-                                        disabled={isLoading}
-                                        translationNs="caja"
-                                        triggerClassName="h-10 min-w-[12rem]"
-                                        onApply={(desde, hasta) =>
-                                            applyFilter({ fecha_desde: desde, fecha_hasta: hasta })
-                                        }
-                                    />
-                                </div>
+                                ) : null}
+                                <AtencionDateRangeFilter
+                                    desde={filters.fecha_desde}
+                                    hasta={filters.fecha_hasta}
+                                    defaultDesde={sesionFiltroUi.default_desde}
+                                    defaultHasta={sesionFiltroUi.default_hasta}
+                                    disabled={isLoading}
+                                    translationNs="caja"
+                                    triggerClassName="h-10 min-w-[12rem]"
+                                    onApply={(desde, hasta) =>
+                                        applyFilter({ fecha_desde: desde, fecha_hasta: hasta })
+                                    }
+                                />
                             </div>
                         </DataToolbar>
                     }
