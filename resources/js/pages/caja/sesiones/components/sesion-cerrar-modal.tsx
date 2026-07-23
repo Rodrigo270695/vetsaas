@@ -39,10 +39,22 @@ type ArqueoMetodo = {
     total: string;
 };
 
+type ArqueoVenta = {
+    id: string;
+    numero: string;
+    fecha: string | null;
+    cliente: string;
+    metodo: string;
+    comprobante: string;
+    total: string;
+    estado: string;
+};
+
 type ArqueoPayload = {
     moneda: string;
     ventas_count: number;
     ventas_total: string;
+    no_efectivo_total: string;
     anuladas_count: number;
     anuladas_total: string;
     comprobantes: {
@@ -51,6 +63,7 @@ type ArqueoPayload = {
         facturas: { count: number; total: string };
     };
     metodos: ArqueoMetodo[];
+    ventas: ArqueoVenta[];
     saldo_apertura: string;
     efectivo_ventas: string;
     efectivo_esperado: string;
@@ -77,6 +90,24 @@ function formatMoney(value: string | null | undefined, moneda: string, locale: s
         style: 'currency',
         currency: moneda === 'USD' ? 'USD' : 'PEN',
     }).format(n);
+}
+
+function formatShortDate(iso: string | null, locale: string): string {
+    if (!iso) {
+        return '—';
+    }
+
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) {
+        return '—';
+    }
+
+    return new Intl.DateTimeFormat(locale, {
+        day: '2-digit',
+        month: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+    }).format(d);
 }
 
 function csrfToken(): string {
@@ -231,7 +262,7 @@ export function SesionCerrarModal({ open, onOpenChange, sesion, listQuery }: Ses
 
                 {arqueo ? (
                     <>
-                        <div className="grid gap-2 sm:grid-cols-3">
+                        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
                             <div className="rounded-xl border border-border/60 bg-muted/30 px-3 py-2.5">
                                 <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                                     {t('sesiones.dialog_cerrar.kpi_ventas')}
@@ -239,6 +270,17 @@ export function SesionCerrarModal({ open, onOpenChange, sesion, listQuery }: Ses
                                 <p className="mt-1 text-lg font-semibold tabular-nums">{arqueo.ventas_count}</p>
                                 <p className="text-xs text-muted-foreground">
                                     {formatMoney(arqueo.ventas_total, moneda, locale)}
+                                </p>
+                            </div>
+                            <div className="rounded-xl border border-border/60 bg-muted/30 px-3 py-2.5">
+                                <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                                    {t('sesiones.dialog_cerrar.kpi_otros')}
+                                </p>
+                                <p className="mt-1 text-lg font-semibold tabular-nums">
+                                    {formatMoney(arqueo.no_efectivo_total, moneda, locale)}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                    {t('sesiones.dialog_cerrar.kpi_otros_hint')}
                                 </p>
                             </div>
                             <div className="rounded-xl border border-border/60 bg-muted/30 px-3 py-2.5">
@@ -277,6 +319,15 @@ export function SesionCerrarModal({ open, onOpenChange, sesion, listQuery }: Ses
                                             : t('sesiones.dialog_cerrar.diff_pending')}
                                 </p>
                             </div>
+                        </div>
+
+                        <div className="rounded-xl border border-primary/20 bg-primary/5 px-3 py-2.5 text-xs text-foreground/90">
+                            {t('sesiones.dialog_cerrar.clarify', {
+                                count: arqueo.ventas_count,
+                                total: formatMoney(arqueo.ventas_total, moneda, locale),
+                                esperado: formatMoney(arqueo.efectivo_esperado, moneda, locale),
+                                otros: formatMoney(arqueo.no_efectivo_total, moneda, locale),
+                            })}
                         </div>
 
                         <div className="grid gap-3 sm:grid-cols-3">
@@ -329,6 +380,39 @@ export function SesionCerrarModal({ open, onOpenChange, sesion, listQuery }: Ses
                                     </li>
                                 ))}
                             </ul>
+                        </div>
+
+                        <div className="rounded-xl border border-border/50 overflow-hidden">
+                            <div className="border-b border-border/50 bg-muted/40 px-3 py-2">
+                                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                    {t('sesiones.dialog_cerrar.ventas_title')} ({arqueo.ventas_count})
+                                </p>
+                            </div>
+                            {(arqueo.ventas?.length ?? 0) === 0 ? (
+                                <p className="px-3 py-3 text-sm text-muted-foreground">
+                                    {t('sesiones.dialog_cerrar.ventas_empty')}
+                                </p>
+                            ) : (
+                                <ul className="max-h-44 divide-y divide-border/40 overflow-y-auto">
+                                    {arqueo.ventas.map((v) => (
+                                        <li
+                                            key={v.id}
+                                            className="flex items-start justify-between gap-3 px-3 py-2 text-sm"
+                                        >
+                                            <div className="min-w-0">
+                                                <p className="truncate font-medium">{v.numero}</p>
+                                                <p className="truncate text-xs text-muted-foreground">
+                                                    {formatShortDate(v.fecha, locale)} · {metodoLabel(v.metodo)} ·{' '}
+                                                    {v.cliente}
+                                                </p>
+                                            </div>
+                                            <span className="shrink-0 tabular-nums font-semibold">
+                                                {formatMoney(v.total, moneda, locale)}
+                                            </span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
                         </div>
 
                         <div className="rounded-xl border border-dashed border-border/70 bg-muted/20 px-3 py-2.5 text-xs text-muted-foreground">
