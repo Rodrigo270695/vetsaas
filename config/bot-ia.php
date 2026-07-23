@@ -9,6 +9,7 @@ return [
 
     /*
     | Secreto del webhook OpenWA (header X-Webhook-Secret o HMAC).
+    | Obligatorio: vacío → el webhook responde 503.
     | Generar: php artisan tinker --execute="echo Str::random(48);"
     */
     'webhook_secret' => env('BOT_IA_WEBHOOK_SECRET', ''),

@@ -162,6 +162,11 @@ class Venta extends Model
         return $this->belongsTo(User::class, 'created_by_id');
     }
 
+    public function anuladoPor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'anulado_por_id');
+    }
+
     public function lineas(): HasMany
     {
         return $this->hasMany(VentaLinea::class, 'venta_id')->orderBy('id');

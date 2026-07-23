@@ -114,6 +114,18 @@ it('rechaza webhook sin secreto cuando está configurado', function (): void {
     ])->assertUnauthorized();
 });
 
+it('responde 503 si BOT_IA_WEBHOOK_SECRET no está configurado', function (): void {
+    config(['bot-ia.webhook_secret' => '']);
+
+    $this->postJson('http://127.0.0.1/api/webhooks/clinic-bot', [
+        'event' => 'message.received',
+        'sessionId' => 'session-clinic-bot-001',
+        'data' => ['body' => 'hola', 'from' => '51999999999@c.us', 'fromMe' => false],
+    ], [
+        'X-Webhook-Secret' => 'cualquier-cosa',
+    ])->assertStatus(503)->assertJson(['error' => 'Webhook secret not configured']);
+});
+
 it('no responde cuando el asistente global está apagado', function (): void {
     app(TenantManager::class)->runForSlug($this->testTenant->slug, function (): void {
         ClinicSetting::current()->update(['bot_ia_respuestas_activo' => false]);

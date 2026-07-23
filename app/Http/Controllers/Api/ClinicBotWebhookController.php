@@ -37,7 +37,14 @@ final class ClinicBotWebhookController extends Controller
 
     public function handle(Request $request): JsonResponse
     {
-        if (! $this->verifyWebhookSecret($request)) {
+        $secret = (string) config('bot-ia.webhook_secret', '');
+        if ($secret === '') {
+            Log::error('ClinicBot webhook rechazado: BOT_IA_WEBHOOK_SECRET no configurado.');
+
+            return response()->json(['error' => 'Webhook secret not configured'], 503);
+        }
+
+        if (! $this->verifyWebhookSecret($request, $secret)) {
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
@@ -259,14 +266,8 @@ final class ClinicBotWebhookController extends Controller
         return response()->json(['ok' => true, 'skipped' => 'fromMe']);
     }
 
-    private function verifyWebhookSecret(Request $request): bool
+    private function verifyWebhookSecret(Request $request, string $secret): bool
     {
-        $secret = (string) config('bot-ia.webhook_secret', '');
-
-        if ($secret === '') {
-            return true;
-        }
-
         $signature = (string) $request->header('X-Webhook-Signature', '');
         $openWaSignature = (string) $request->header('X-OpenWA-Signature', '');
         $legacySecret = (string) $request->header('X-Webhook-Secret', '');

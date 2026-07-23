@@ -48,31 +48,33 @@ final class SalesBotWebhookController extends Controller
 
     public function handle(Request $request): JsonResponse
     {
-        // ── 1. Verificar firma del webhook ────────────────────────────────
+        // ── 1. Verificar firma del webhook (fail-closed si no hay secret) ─
         // OpenWA firma el body con HMAC-SHA256 usando el "secret" del webhook
         // y lo envía en el header "X-Webhook-Signature".
         // También soportamos el header "X-Webhook-Secret" por compatibilidad.
         $secret = (string) config('salesbot.webhook_secret', '');
 
-        if ($secret !== '') {
-            $signature = (string) $request->header('X-Webhook-Signature', '');
-            $legacySecret = (string) $request->header('X-Webhook-Secret', '');
+        if ($secret === '') {
+            Log::error('SalesBot webhook rechazado: SALESBOT_WEBHOOK_SECRET no configurado.');
 
-            if ($signature !== '') {
-                // Verificar HMAC-SHA256
-                $rawBody  = (string) $request->getContent();
-                $expected = 'sha256='.hash_hmac('sha256', $rawBody, $secret);
-                if (! hash_equals($expected, $signature)) {
-                    return response()->json(['error' => 'Unauthorized'], 401);
-                }
-            } elseif ($legacySecret !== '') {
-                // Fallback: comparación directa del secret como header
-                if (! hash_equals($secret, $legacySecret)) {
-                    return response()->json(['error' => 'Unauthorized'], 401);
-                }
-            } else {
+            return response()->json(['error' => 'Webhook secret not configured'], 503);
+        }
+
+        $signature = (string) $request->header('X-Webhook-Signature', '');
+        $legacySecret = (string) $request->header('X-Webhook-Secret', '');
+
+        if ($signature !== '') {
+            $rawBody = (string) $request->getContent();
+            $expected = 'sha256='.hash_hmac('sha256', $rawBody, $secret);
+            if (! hash_equals($expected, $signature)) {
                 return response()->json(['error' => 'Unauthorized'], 401);
             }
+        } elseif ($legacySecret !== '') {
+            if (! hash_equals($secret, $legacySecret)) {
+                return response()->json(['error' => 'Unauthorized'], 401);
+            }
+        } else {
+            return response()->json(['error' => 'Unauthorized'], 401);
         }
 
         // ── 2. Verificar que el bot está habilitado ───────────────────────

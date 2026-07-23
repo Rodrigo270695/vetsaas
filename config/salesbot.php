@@ -19,7 +19,7 @@ return [
     | al endpoint de webhook. Protege contra llamadas externas maliciosas.
     | Generar con: php artisan tinker --execute="echo Str::random(48);"
     */
-    'webhook_secret' => env('SALESBOT_WEBHOOK_SECRET', ''),
+    'webhook_secret' => env('SALESBOT_WEBHOOK_SECRET', ''), // Obligatorio en producción; vacío → webhook responde 503
 
     /*
     | OpenAI — API key y modelo a usar.

@@ -19,6 +19,7 @@ use App\Http\Controllers\ConsultaHistoriaController;
 use App\Http\Controllers\ConsultaPlanTratamientoController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ReporteFinancieroController;
+use App\Http\Controllers\FelAnulacionHistorialController;
 use App\Http\Controllers\FelDocumentController;
 use App\Http\Controllers\FelSerieController;
 use App\Http\Controllers\GeoController;
@@ -801,9 +802,14 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:series.delete')
             ->delete('series/{felSerie}', [FelSerieController::class, 'destroy'])->name('series.destroy');
 
-        Route::inertia('notas-baja', 'facturacion/notas-baja/index')->name('notas-baja');
-        Route::inertia('resumenes', 'facturacion/resumenes/index')->name('resumenes');
+        Route::middleware('permission:notas-baja.view')
+            ->get('notas-baja', [FelAnulacionHistorialController::class, 'notasBaja'])
+            ->name('notas-baja');
+        Route::middleware('permission:resumenes.view')
+            ->get('resumenes', [FelAnulacionHistorialController::class, 'resumenes'])
+            ->name('resumenes');
     });
+
 
     // ===== Comunicaciones (schema del tenant: cola, WhatsApp por clínica) =====
     Route::prefix('comunicaciones')->name('comunicaciones.')->middleware('tenant.required')->group(function () {
