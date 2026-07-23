@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import caja from '@/routes/caja';
+import { arqueo as arqueoRoute } from '@/routes/caja/sesiones';
 import type { QueryParams } from '@/wayfinder';
 import type { CajaSesionRow } from '../types';
 
@@ -106,7 +107,7 @@ export function SesionCerrarModal({ open, onOpenChange, sesion, listQuery }: Ses
         setArqueoError(null);
         setLoadingArqueo(true);
 
-        const url = caja.sesiones.arqueo.url({ caja_sesion: sesion.id });
+        const url = arqueoRoute.url({ caja_sesion: sesion.id });
         const token = csrfToken();
 
         void fetch(url, {

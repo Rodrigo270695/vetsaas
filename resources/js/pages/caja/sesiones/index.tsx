@@ -32,6 +32,7 @@ import { useDataTablePage } from '@/hooks/use-data-table-page';
 import { usePermission } from '@/hooks/use-permission';
 import AppLayout from '@/layouts/app-layout';
 import caja from '@/routes/caja';
+import { arqueoPdf } from '@/routes/caja/sesiones';
 import type { QueryParams } from '@/wayfinder';
 import { SesionAbrirModal } from './components/sesion-abrir-modal';
 import { SesionCerrarModal } from './components/sesion-cerrar-modal';
@@ -300,7 +301,7 @@ export default function Index({
                                     asChild
                                 >
                                     <a
-                                        href={caja.sesiones.arqueoPdf.url({ caja_sesion: row.id })}
+                                        href={arqueoPdf.url({ caja_sesion: row.id })}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                     >
