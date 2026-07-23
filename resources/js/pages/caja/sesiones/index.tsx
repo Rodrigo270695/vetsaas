@@ -34,6 +34,8 @@ import AppLayout from '@/layouts/app-layout';
 import caja from '@/routes/caja';
 import { arqueoPdf } from '@/routes/caja/sesiones';
 import type { QueryParams } from '@/wayfinder';
+import { normalizeTicketAncho } from '@/lib/ticket-ancho';
+import { ArqueoPrintDialog } from './components/arqueo-print-dialog';
 import { SesionAbrirModal } from './components/sesion-abrir-modal';
 import { SesionCerrarModal } from './components/sesion-cerrar-modal';
 import type { CajaSesionEstadoFiltro, CajaSesionFilters, CajaSesionRow, CajaSesionesIndexProps } from './types';
@@ -99,6 +101,7 @@ export default function Index({
     sedes_opciones: sedesOpciones,
     mi_sesion_abierta: miSesionAbierta,
     sin_sedes: sinSedes,
+    ticket_ancho_mm: ticketAnchoMm,
 }: CajaSesionesIndexProps) {
     const { t, i18n } = useTranslation(['caja', 'common']);
     const { props } = usePage();
@@ -108,11 +111,12 @@ export default function Index({
     const canClose = can('caja-sesiones.close');
     const canView = can('caja-sesiones.view');
     const bloqueadoAbrirPorMiSesion = Boolean(miSesionAbierta);
+    const configTicketAncho = normalizeTicketAncho(ticketAnchoMm);
 
     const { search, setSearch, isLoading, sort, setSort, setPerPage, applyFilter } = useDataTablePage<TableExtraFilters>({
         routeUrl: caja.sesiones.index.url(),
         initialFilters: filters,
-        only: ['sesiones', 'filters', 'stats', 'sedes_opciones', 'mi_sesion_abierta', 'sin_sedes'],
+        only: ['sesiones', 'filters', 'stats', 'sedes_opciones', 'mi_sesion_abierta', 'sin_sedes', 'ticket_ancho_mm'],
         errorMessage: t('caja:sesiones.toast_load_error'),
         storageKey: 'vetsaas.caja.sesiones.prefs',
         defaults: {
@@ -126,7 +130,13 @@ export default function Index({
 
     const [abrirOpen, setAbrirOpen] = useState(false);
     const [cerrarSesion, setCerrarSesion] = useState<CajaSesionRow | null>(null);
+    const [imprimirSesionId, setImprimirSesionId] = useState<string | null>(null);
     const closeCerrar = useCallback(() => setCerrarSesion(null), []);
+
+    const imprimirPdfUrl = useMemo(
+        () => (imprimirSesionId ? arqueoPdf.url({ caja_sesion: imprimirSesionId }) : ''),
+        [imprimirSesionId],
+    );
 
     const estadoOptions: readonly FilterChip<CajaSesionEstadoFiltro>[] = useMemo(
         () => [
@@ -298,17 +308,11 @@ export default function Index({
                                     variant="outline"
                                     size="sm"
                                     className="h-7 min-h-7 cursor-pointer gap-1 rounded-md px-2 text-xs font-medium"
-                                    asChild
+                                    onClick={() => setImprimirSesionId(row.id)}
                                 >
-                                    <a
-                                        href={arqueoPdf.url({ caja_sesion: row.id })}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                    >
-                                        <FileText className="size-3 shrink-0 opacity-90" strokeWidth={2.5} aria-hidden />
-                                        <span className="hidden sm:inline">{t('caja:sesiones.actions.arqueo_pdf')}</span>
-                                        <span className="sm:hidden">{t('caja:sesiones.actions.arqueo_pdf_short')}</span>
-                                    </a>
+                                    <FileText className="size-3 shrink-0 opacity-90" strokeWidth={2.5} aria-hidden />
+                                    <span className="hidden sm:inline">{t('caja:sesiones.actions.arqueo_pdf')}</span>
+                                    <span className="sm:hidden">{t('caja:sesiones.actions.arqueo_pdf_short')}</span>
                                 </Button>
                             </div>
                         );
@@ -514,6 +518,17 @@ export default function Index({
                 }}
                 sesion={cerrarSesion}
                 listQuery={listQuery}
+            />
+
+            <ArqueoPrintDialog
+                open={imprimirSesionId !== null}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setImprimirSesionId(null);
+                    }
+                }}
+                pdfBaseUrl={imprimirPdfUrl}
+                configAncho={configTicketAncho}
             />
         </>
     );

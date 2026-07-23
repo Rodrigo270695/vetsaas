@@ -53,4 +53,5 @@ export type CajaSesionesIndexProps = {
     filters: CajaSesionFilters;
     stats: CajaSesionStats;
     sin_sedes: boolean;
+    ticket_ancho_mm: '56' | '58' | '80';
 };

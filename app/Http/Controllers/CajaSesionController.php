@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use App\Http\Requests\CloseCajaSesionRequest;
 use App\Http\Requests\StoreCajaSesionRequest;
 use App\Models\CajaSesion;
+use App\Models\ClinicSetting;
 use App\Models\Sede;
 use App\Services\Caja\CajaSesionArqueoPdfService;
 use App\Services\Caja\CajaSesionArqueoService;
+use App\Support\Caja\TicketAnchoMm;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -155,6 +157,9 @@ class CajaSesionController extends Controller
                 'coincidencias' => $sesiones->total(),
             ],
             'sin_sedes' => $sedesActivas->isEmpty(),
+            'ticket_ancho_mm' => TicketAnchoMm::normalize(
+                (string) (ClinicSetting::query()->value('ticket_ancho_mm') ?? TicketAnchoMm::DEFAULT),
+            ),
         ]);
     }
 
@@ -266,7 +271,12 @@ class CajaSesionController extends Controller
 
         $cajaSesion->loadMissing(['abiertaPor:id,name', 'cerradaPor:id,name']);
 
-        return $pdfService->stream($cajaSesion, (string) $tenantId);
+        $formato = CajaSesionArqueoPdfService::normalizeFormato(
+            (string) $request->string('formato', 'a4'),
+            (string) (ClinicSetting::query()->value('ticket_ancho_mm') ?? TicketAnchoMm::DEFAULT),
+        );
+
+        return $pdfService->stream($cajaSesion, (string) $tenantId, null, $formato);
     }
 
     private function authorizeSesionAccess(CajaSesion $cajaSesion): void

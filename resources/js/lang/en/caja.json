@@ -41,11 +41,22 @@
             "abrir_short": "Open",
             "cerrar": "Close / reconcile",
             "cerrar_short": "Close",
-            "arqueo_pdf": "Reconciliation PDF",
+            "arqueo_pdf": "Print reconciliation",
             "arqueo_pdf_short": "PDF"
         },
         "row": {
             "cerrar_solo_si_abriste": "Only the opener can close"
+        },
+        "dialog_imprimir": {
+            "title": "Print cash reconciliation",
+            "description": "Choose A4 for the full report, or a thermal ticket with the closing summary.",
+            "format_label": "Print format",
+            "format_a4": "A4",
+            "hint_a4": "Full report: methods, charts, sales detail and branding.",
+            "hint_ticket": "Short ticket: only the closing modal summary (no sales list).",
+            "hint_config": "Default width in Settings: {{ancho}}.",
+            "iframe_title": "Reconciliation preview",
+            "print": "Print"
         },
         "abrir_bloqueado_tooltip": "Close your current session before opening another.",
         "sin_sedes": {

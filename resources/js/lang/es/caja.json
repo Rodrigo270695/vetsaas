@@ -41,11 +41,22 @@
             "abrir_short": "Abrir",
             "cerrar": "Cerrar / arqueo",
             "cerrar_short": "Cerrar",
-            "arqueo_pdf": "PDF arqueo",
+            "arqueo_pdf": "Imprimir arqueo",
             "arqueo_pdf_short": "PDF"
         },
         "row": {
             "cerrar_solo_si_abriste": "Solo quien abrió puede cerrar"
+        },
+        "dialog_imprimir": {
+            "title": "Imprimir arqueo de caja",
+            "description": "Elige A4 para el reporte completo, o ticket térmico con el resumen del cierre.",
+            "format_label": "Formato de impresión",
+            "format_a4": "A4",
+            "hint_a4": "Reporte general: métodos, gráficos, detalle de ventas y branding.",
+            "hint_ticket": "Ticket corto: solo el resumen del modal de cierre (sin listar ventas).",
+            "hint_config": "Ancho por defecto en Configuración: {{ancho}}.",
+            "iframe_title": "Vista previa del arqueo",
+            "print": "Imprimir"
         },
         "abrir_bloqueado_tooltip": "Cierra tu sesión actual antes de abrir otra.",
         "sin_sedes": {
