@@ -251,7 +251,7 @@ export default function Index({
                     row.estado === 'abierta' ? (
                         <StatBadge label={t('caja:sesiones.estado.abierta')} value="" variant="success" />
                     ) : (
-                        <StatBadge label={t('caja:sesiones.estado.cerrada')} value="" variant="muted" />
+                        <StatBadge label={t('caja:sesiones.estado.cerrada')} value="" variant="warning" />
                     ),
             },
             {
@@ -341,24 +341,24 @@ export default function Index({
                                 <Button
                                     type="button"
                                     variant="ghost"
-                                    size="sm"
-                                    className="h-8 cursor-pointer gap-1 rounded-md px-2 text-xs font-medium text-violet-600 shadow-none hover:bg-violet-500/10 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300"
+                                    size="icon"
+                                    className="size-8 shrink-0 cursor-pointer border-0 bg-transparent text-violet-600 shadow-none hover:bg-violet-500/10 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300"
                                     onClick={() => setDetalleSesion(row)}
+                                    aria-label={t('caja:sesiones.actions.arqueo_ver')}
+                                    title={t('caja:sesiones.actions.arqueo_ver')}
                                 >
-                                    <Eye className="size-3.5 shrink-0" strokeWidth={2.25} aria-hidden />
-                                    <span className="hidden sm:inline">{t('caja:sesiones.actions.arqueo_ver')}</span>
-                                    <span className="sm:hidden">{t('caja:sesiones.actions.arqueo_ver_short')}</span>
+                                    <Eye className="size-4" strokeWidth={2.25} aria-hidden />
                                 </Button>
                                 <Button
                                     type="button"
                                     variant="ghost"
-                                    size="sm"
-                                    className="h-8 cursor-pointer gap-1 rounded-md px-2 text-xs font-medium text-sky-600 shadow-none hover:bg-sky-500/10 hover:text-sky-700 dark:text-sky-400 dark:hover:text-sky-300"
+                                    size="icon"
+                                    className="size-8 shrink-0 cursor-pointer border-0 bg-transparent text-sky-600 shadow-none hover:bg-sky-500/10 hover:text-sky-700 dark:text-sky-400 dark:hover:text-sky-300"
                                     onClick={() => setImprimirSesionId(row.id)}
+                                    aria-label={t('caja:sesiones.actions.arqueo_pdf')}
+                                    title={t('caja:sesiones.actions.arqueo_pdf')}
                                 >
-                                    <Printer className="size-3.5 shrink-0" strokeWidth={2.25} aria-hidden />
-                                    <span className="hidden sm:inline">{t('caja:sesiones.actions.arqueo_pdf')}</span>
-                                    <span className="sm:hidden">{t('caja:sesiones.actions.arqueo_pdf_short')}</span>
+                                    <Printer className="size-4" strokeWidth={2.25} aria-hidden />
                                 </Button>
                             </div>
                         );
@@ -376,14 +376,14 @@ export default function Index({
                             <div className="flex justify-end">
                                 <Button
                                     type="button"
-                                    variant="secondary"
-                                    size="sm"
-                                    className="h-7 min-h-7 cursor-pointer gap-1 rounded-md px-2 text-xs font-medium shadow-sm ring-1 ring-border/60 hover:ring-border"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="size-8 shrink-0 cursor-pointer border-0 bg-transparent text-amber-600 shadow-none hover:bg-amber-500/10 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300"
                                     onClick={() => setCerrarSesion(row)}
+                                    aria-label={t('caja:sesiones.actions.cerrar')}
+                                    title={t('caja:sesiones.actions.cerrar')}
                                 >
-                                    <Lock className="size-3 shrink-0 opacity-90" strokeWidth={2.5} aria-hidden />
-                                    <span className="hidden sm:inline">{t('caja:sesiones.actions.cerrar')}</span>
-                                    <span className="sm:hidden">{t('caja:sesiones.actions.cerrar_short')}</span>
+                                    <Lock className="size-4" strokeWidth={2.25} aria-hidden />
                                 </Button>
                             </div>
                         );
@@ -401,7 +401,7 @@ export default function Index({
 
                     return <span className="text-xs text-muted-foreground"> </span>;
                 },
-                className: 'w-44 sm:w-56',
+                className: 'w-20 sm:w-24',
             });
         }
 
@@ -419,7 +419,7 @@ export default function Index({
                     stats={[
                         { label: t('caja:sesiones.stats.total'), value: stats.total, variant: 'info', icon: Wallet },
                         { label: t('caja:sesiones.stats.abiertas'), value: stats.abiertas, variant: 'success', icon: CircleDot },
-                        { label: t('caja:sesiones.stats.cerradas'), value: stats.cerradas, variant: 'muted', icon: Lock as LucideIcon },
+                        { label: t('caja:sesiones.stats.cerradas'), value: stats.cerradas, variant: 'warning', icon: Lock as LucideIcon },
                         { label: t('caja:sesiones.stats.filters'), value: activeFiltersCount, variant: 'warning', icon: SlidersHorizontal },
                         { label: t('caja:sesiones.stats.matches'), value: stats.coincidencias, variant: 'primary', icon: ScreenShare },
                     ]}
@@ -464,11 +464,11 @@ export default function Index({
                             {canClose ? (
                                 <Button
                                     type="button"
-                                    variant="secondary"
                                     size="sm"
-                                    className="shrink-0 cursor-pointer"
+                                    className="shrink-0 cursor-pointer gap-1.5 bg-amber-600 text-white hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600"
                                     onClick={() => setCerrarSesion(miSesionAbierta)}
                                 >
+                                    <Lock className="size-3.5 shrink-0" strokeWidth={2.25} aria-hidden />
                                     {t('caja:sesiones.mi_sesion.cerrar_cta')}
                                 </Button>
                             ) : null}
