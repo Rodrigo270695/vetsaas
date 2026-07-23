@@ -187,8 +187,8 @@
 </div>
 
 <div class="note-box">
-    <strong>Importante:</strong> el total de ventas del turno incluye todos los métodos de pago.
-    El <strong>efectivo esperado</strong> solo suma apertura + ventas en efectivo (Yape, tarjeta u otros no entran a la caja física).
+    <strong>Importante:</strong> el total de ventas del turno incluye productos y servicios (todos los métodos de pago).
+    El <strong>efectivo esperado</strong> solo suma apertura + ventas cobradas en efectivo (Yape, tarjeta u otros no entran a la caja física).
 </div>
 
 <table class="kpi-table">
@@ -201,6 +201,7 @@
         <td class="kpi" width="20%">
             <div class="label">Total vendido</div>
             <div class="value" style="font-size:11px;">{{ $fmt($arqueo['ventas_total'] ?? null, $moneda) }}</div>
+            <div class="hint">prod. + serv.</div>
         </td>
         <td class="kpi" width="20%">
             <div class="label">Otros medios</div>
@@ -229,6 +230,8 @@
                     <tr><td class="k">Abrió</td><td class="v">{{ $abierta_por ?? '—' }}</td></tr>
                     <tr><td class="k">Cerró</td><td class="v">{{ $cerrada_por ?? '—' }}</td></tr>
                     <tr><td class="k">Saldo apertura</td><td class="v">{{ $fmt($arqueo['saldo_apertura'] ?? null, $moneda) }}</td></tr>
+                    <tr><td class="k">Productos (cobrado)</td><td class="v">{{ $fmt($arqueo['productos_total'] ?? null, $moneda) }}</td></tr>
+                    <tr><td class="k">Servicios (cobrado)</td><td class="v">{{ $fmt($arqueo['servicios_total'] ?? null, $moneda) }}</td></tr>
                     <tr><td class="k">Ventas en efectivo</td><td class="v">{{ $fmt($arqueo['efectivo_ventas'] ?? null, $moneda) }}</td></tr>
                     <tr><td class="k">Efectivo esperado</td><td class="v">{{ $fmt($arqueo['efectivo_esperado'] ?? null, $moneda) }}</td></tr>
                     <tr><td class="k">Efectivo contado</td><td class="v">{{ $fmt($arqueo['efectivo_contado'] ?? null, $moneda) }}</td></tr>

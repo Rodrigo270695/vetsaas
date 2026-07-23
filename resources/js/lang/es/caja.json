@@ -72,8 +72,8 @@
             "loading_arqueo": "Calculando arqueo…",
             "arqueo_error": "No se pudo cargar el arqueo. Puedes cerrar igual con el efectivo contado.",
             "kpi_ventas": "Ventas del turno",
-            "kpi_esperado": "Efectivo esperado",
-            "kpi_esperado_hint": "Solo apertura + ventas en efectivo",
+            "kpi_esperado": "Efectivo a cuadrar",
+            "kpi_esperado_hint": "Solo apertura + cobros en efectivo",
             "kpi_otros": "Otros medios",
             "kpi_otros_hint": "Yape, tarjeta, etc.",
             "kpi_diferencia": "Diferencia",
@@ -84,7 +84,7 @@
             "metodos_title": "Métodos de pago",
             "ventas_title": "Ventas del turno",
             "ventas_empty": "No hay ventas pagadas en esta sesión.",
-            "clarify": "Las {{count}} ventas suman {{total}}. El efectivo esperado ({{esperado}}) solo incluye lo cobrado en efectivo; el resto ({{otros}}) no entra a la caja física.",
+            "clarify": "{{count}} ventas = {{total}} (productos {{productos}} + servicios {{servicios}}). El efectivo a cuadrar es {{esperado}}: solo apertura + cobros en efectivo. Los otros medios ({{otros}}) no entran a la caja física.",
             "comprobantes": {
                 "tickets": "Tickets",
                 "boletas": "Boletas",
@@ -98,9 +98,11 @@
                 "transferencia": "Transferencia",
                 "otro": "Otro"
             },
-            "formula": "Esperado = {{apertura}} (apertura) + {{ventas}} (efectivo) → {{esperado}}",
+            "metodos_total": "Total cobrado",
+            "rubros": "Incluye productos {{productos}} · servicios {{servicios}}",
+            "formula": "Efectivo a cuadrar = {{apertura}} (apertura) + {{ventas}} (solo ventas en efectivo) → {{esperado}}",
             "anuladas_hint": "{{count}} anulada(s) excluidas ({{total}}).",
-            "contado_hint": "Cuenta el efectivo físico en caja e ingresa el monto.",
+            "contado_hint": "Cuenta solo el efectivo físico en caja (no Yape/tarjeta).",
             "notas_placeholder": "Observaciones del arqueo (opcional)"
         },
         "fields": {

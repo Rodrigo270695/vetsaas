@@ -72,8 +72,8 @@
             "loading_arqueo": "Calculating reconciliation…",
             "arqueo_error": "Could not load reconciliation. You can still close with counted cash.",
             "kpi_ventas": "Shift sales",
-            "kpi_esperado": "Expected cash",
-            "kpi_esperado_hint": "Opening + cash sales only",
+            "kpi_esperado": "Cash to reconcile",
+            "kpi_esperado_hint": "Opening + cash payments only",
             "kpi_otros": "Other methods",
             "kpi_otros_hint": "Yape, card, etc.",
             "kpi_diferencia": "Difference",
@@ -84,7 +84,7 @@
             "metodos_title": "Payment methods",
             "ventas_title": "Shift sales",
             "ventas_empty": "No paid sales in this session.",
-            "clarify": "{{count}} sales total {{total}}. Expected cash ({{esperado}}) only includes cash payments; the rest ({{otros}}) does not go into the drawer.",
+            "clarify": "{{count}} sales = {{total}} (products {{productos}} + services {{servicios}}). Cash to reconcile is {{esperado}}: opening + cash payments only. Other methods ({{otros}}) do not go into the drawer.",
             "comprobantes": {
                 "tickets": "Tickets",
                 "boletas": "Receipts",
@@ -98,9 +98,11 @@
                 "transferencia": "Transfer",
                 "otro": "Other"
             },
-            "formula": "Expected = {{apertura}} (opening) + {{ventas}} (cash) → {{esperado}}",
+            "metodos_total": "Total collected",
+            "rubros": "Includes products {{productos}} · services {{servicios}}",
+            "formula": "Cash to reconcile = {{apertura}} (opening) + {{ventas}} (cash sales only) → {{esperado}}",
             "anuladas_hint": "{{count}} voided sale(s) excluded ({{total}}).",
-            "contado_hint": "Count physical cash in the drawer and enter the amount.",
+            "contado_hint": "Count physical cash only (not Yape/card).",
             "notas_placeholder": "Reconciliation notes (optional)"
         },
         "fields": {

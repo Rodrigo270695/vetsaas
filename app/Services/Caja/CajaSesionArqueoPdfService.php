@@ -32,8 +32,10 @@ final class CajaSesionArqueoPdfService
                 ? (string) $sesion->saldo_cierre_efectivo
                 : null);
 
-        // Si el snapshot es antiguo (sin ventas detalle), recalcular en vivo.
-        if (! isset($arqueo['ventas']) || ! is_array($arqueo['ventas'])) {
+        // Si el snapshot es antiguo (sin ventas detalle / rubros), recalcular en vivo.
+        if (! isset($arqueo['ventas']) || ! is_array($arqueo['ventas'])
+            || ! isset($arqueo['productos_total'])
+            || ! isset($arqueo['servicios_total'])) {
             $arqueo = $this->arqueoService->build(
                 $sesion,
                 $sesion->saldo_cierre_efectivo !== null

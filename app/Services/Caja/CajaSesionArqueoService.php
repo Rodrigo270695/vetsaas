@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Services\Caja;
 
 use App\Models\CajaSesion;
+use App\Models\ConsultaCargoLinea;
 use App\Models\FelSerie;
 use App\Models\Sede;
 use App\Models\Venta;
+use App\Models\VentaLinea;
 use Illuminate\Support\Collection;
 
 /**
@@ -61,6 +63,7 @@ final class CajaSesionArqueoService
         $metodos = $this->agruparMetodos($vigentes);
         $comprobantes = $this->agruparComprobantes($vigentes);
         $ventasDetalle = $this->detalleVentas($vigentes);
+        $rubros = $this->desgloseRubros($vigentes);
 
         $ventasTotal = '0.00';
         foreach ($vigentes as $venta) {
@@ -75,6 +78,8 @@ final class CajaSesionArqueoService
         $efectivoVentas = $this->sumMetodo($metodos, 'efectivo');
         $noEfectivoTotal = $this->sub($ventasTotal, $efectivoVentas);
         $saldoApertura = $this->money((string) $sesion->saldo_apertura);
+        // Efectivo esperado = solo caja física (apertura + ventas pagadas en efectivo).
+        // Yape/tarjeta/etc. ya estánaron; no se cuentan aquí aunque incluyan servicios.
         $esperado = $this->add($saldoApertura, $efectivoVentas);
 
         $contado = null;
@@ -100,6 +105,8 @@ final class CajaSesionArqueoService
             'closed_at' => $sesion->closed_at?->toIso8601String(),
             'ventas_count' => $vigentes->count(),
             'ventas_total' => $ventasTotal,
+            'productos_total' => $rubros['productos_total'],
+            'servicios_total' => $rubros['servicios_total'],
             'no_efectivo_total' => $noEfectivoTotal,
             'anuladas_count' => $anuladas->count(),
             'anuladas_total' => $anuladasTotal,
@@ -115,6 +122,79 @@ final class CajaSesionArqueoService
             'diferencia' => $diferencia,
             'generated_at' => now()->toIso8601String(),
         ];
+    }
+
+    /**
+     * Reparte el total cobrado de cada venta entre productos y servicios
+     * (proporcional al subtotal de líneas). Así el cierre refleja ambos rubros.
+     *
+     * @param  Collection<int, Venta>  $ventas
+     * @return array{productos_total: string, servicios_total: string}
+     */
+    private function desgloseRubros(Collection $ventas): array
+    {
+        $productos = '0.00';
+        $servicios = '0.00';
+
+        if ($ventas->isEmpty()) {
+            return ['productos_total' => $productos, 'servicios_total' => $servicios];
+        }
+
+        $ids = $ventas->modelKeys();
+        $lineas = VentaLinea::query()
+            ->whereIn('venta_id', $ids)
+            ->get(['venta_id', 'tipo_linea', 'producto_id', 'subtotal'])
+            ->groupBy('venta_id');
+
+        foreach ($ventas as $venta) {
+            $ventaTotal = $this->money((string) $venta->total);
+            $ventaLineas = $lineas->get($venta->getKey(), collect());
+
+            if ($ventaLineas->isEmpty()) {
+                $servicios = $this->add($servicios, $ventaTotal);
+
+                continue;
+            }
+
+            $sumSub = 0.0;
+            $prodSub = 0.0;
+            foreach ($ventaLineas as $linea) {
+                $sub = (float) $linea->subtotal;
+                $sumSub += $sub;
+                if ($this->esLineaProducto($linea)) {
+                    $prodSub += $sub;
+                }
+            }
+
+            if ($sumSub <= 0) {
+                $servicios = $this->add($servicios, $ventaTotal);
+
+                continue;
+            }
+
+            $prodShare = $this->money((string) (((float) $ventaTotal) * ($prodSub / $sumSub)));
+            $servShare = $this->sub($ventaTotal, $prodShare);
+            $productos = $this->add($productos, $prodShare);
+            $servicios = $this->add($servicios, $servShare);
+        }
+
+        return [
+            'productos_total' => $productos,
+            'servicios_total' => $servicios,
+        ];
+    }
+
+    private function esLineaProducto(VentaLinea $linea): bool
+    {
+        if ($linea->tipo_linea === ConsultaCargoLinea::TIPO_SERVICIO) {
+            return false;
+        }
+
+        if ($linea->tipo_linea === ConsultaCargoLinea::TIPO_PRODUCTO) {
+            return true;
+        }
+
+        return $linea->producto_id !== null;
     }
 
     /**
