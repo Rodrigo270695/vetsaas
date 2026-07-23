@@ -1,6 +1,6 @@
-import { Head } from '@inertiajs/react';
+import { Head, resetLayoutProps, setLayoutProps, usePage } from '@inertiajs/react';
 import { LineChart, Package, ReceiptText, TrendingUp, Wallet } from 'lucide-react';
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DashboardChartCard } from '@/components/dashboard/dashboard-chart-card';
 import { DashboardFelChart } from '@/components/dashboard/dashboard-fel-chart';
@@ -9,6 +9,7 @@ import { DashboardRentabilidadCard } from '@/components/dashboard/dashboard-rent
 import { DashboardRentabilidadClinicaCard } from '@/components/dashboard/dashboard-rentabilidad-clinica-card';
 import { DashboardRentabilidadGroomingCard } from '@/components/dashboard/dashboard-rentabilidad-grooming-card';
 import { DashboardTopProductsChart } from '@/components/dashboard/dashboard-top-products-chart';
+import { usePermission } from '@/hooks/use-permission';
 import type {
     ComparacionIngresosMes,
     FelEstadoRow,
@@ -25,13 +26,7 @@ type Capabilities = {
     grooming: boolean;
 };
 
-const EMPTY_CAPABILITIES: Capabilities = {
-    ventas: false,
-    productos: false,
-    grooming: false,
-};
-
-type Props = {
+type FinancieroPageProps = {
     capabilities?: Capabilities | null;
     moneda?: string;
     ingresos_mensuales?: IngresosMensualRow[];
@@ -43,20 +38,43 @@ type Props = {
     fel_estado_mes?: FelEstadoRow[];
 };
 
-export default function ReporteFinancieroIndex({
-    capabilities: capabilitiesProp,
-    moneda = 'PEN',
-    ingresos_mensuales = [],
-    comparacion_ingresos_mes = null,
-    top_productos_mes = [],
-    rentabilidad = null,
-    rentabilidad_grooming = null,
-    rentabilidad_clinica = null,
-    fel_estado_mes = [],
-}: Props) {
+export default function ReporteFinancieroIndex() {
     const { t, i18n } = useTranslation(['dashboard', 'common']);
+    const { can } = usePermission();
     const locale = i18n.language?.startsWith('en') ? 'en-US' : 'es-PE';
-    const capabilities = capabilitiesProp ?? EMPTY_CAPABILITIES;
+
+    const {
+        capabilities: capsFromServer,
+        moneda = 'PEN',
+        ingresos_mensuales = [],
+        comparacion_ingresos_mes = null,
+        top_productos_mes = [],
+        rentabilidad = null,
+        rentabilidad_grooming = null,
+        rentabilidad_clinica = null,
+        fel_estado_mes = [],
+    } = usePage().props as FinancieroPageProps;
+
+    const capabilities: Capabilities = {
+        ventas: capsFromServer != null ? Boolean(capsFromServer.ventas) : can('ventas.view'),
+        productos:
+            capsFromServer != null ? Boolean(capsFromServer.productos) : can('productos.view'),
+        grooming:
+            capsFromServer != null ? Boolean(capsFromServer.grooming) : can('grooming.view'),
+    };
+
+    useEffect(() => {
+        setLayoutProps({
+            breadcrumbs: [
+                { title: 'Reportes', href: '#' },
+                { title: 'Análisis financiero', href: '/reportes/financiero' },
+            ],
+        });
+
+        return () => {
+            resetLayoutProps();
+        };
+    }, []);
 
     const felEstadoLabel = useCallback(
         (estado: string) => t(`estados_fel.${estado}`, { defaultValue: estado }),
@@ -65,9 +83,9 @@ export default function ReporteFinancieroIndex({
 
     const hasVentasCharts = capabilities.ventas;
     const hasRentabilidad =
-        (capabilities.productos && rentabilidad) ||
-        (capabilities.grooming && rentabilidad_grooming) ||
-        Boolean(rentabilidad_clinica);
+        (capabilities.productos && rentabilidad !== null) ||
+        (capabilities.grooming && rentabilidad_grooming !== null) ||
+        rentabilidad_clinica !== null;
 
     return (
         <>
@@ -95,7 +113,9 @@ export default function ReporteFinancieroIndex({
                     </div>
                 ) : (
                     <div className="space-y-6">
-                        {hasRentabilidad ? (
+                        {(capabilities.productos && rentabilidad) ||
+                        (capabilities.grooming && rentabilidad_grooming) ||
+                        rentabilidad_clinica ? (
                             <div className="grid min-w-0 items-start gap-4 lg:grid-cols-2">
                                 {capabilities.productos && rentabilidad && (
                                     <DashboardRentabilidadCard
@@ -177,10 +197,3 @@ export default function ReporteFinancieroIndex({
         </>
     );
 }
-
-ReporteFinancieroIndex.layout = {
-    breadcrumbs: [
-        { title: 'Reportes', href: '#' },
-        { title: 'Análisis financiero', href: '/reportes/financiero' },
-    ],
-};

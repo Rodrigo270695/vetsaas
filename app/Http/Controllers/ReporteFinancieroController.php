@@ -39,15 +39,19 @@ class ReporteFinancieroController extends Controller
         $analysis = $this->stats->buildFinancialAnalysis($capabilities);
 
         return Inertia::render('reportes/financiero/index', [
-            'capabilities' => $capabilities,
-            'moneda' => $analysis['moneda'],
-            'ingresos_mensuales' => $analysis['ingresos_mensuales'],
-            'comparacion_ingresos_mes' => $analysis['comparacion_ingresos_mes'],
-            'top_productos_mes' => $analysis['top_productos_mes'],
-            'rentabilidad' => $analysis['rentabilidad'],
-            'rentabilidad_grooming' => $analysis['rentabilidad_grooming'],
-            'rentabilidad_clinica' => $analysis['rentabilidad_clinica'],
-            'fel_estado_mes' => $analysis['fel_estado_mes'],
+            'capabilities' => [
+                'ventas' => (bool) $capabilities['ventas'],
+                'productos' => (bool) $capabilities['productos'],
+                'grooming' => (bool) $capabilities['grooming'],
+            ],
+            'moneda' => $analysis['moneda'] ?? 'PEN',
+            'ingresos_mensuales' => $analysis['ingresos_mensuales'] ?? [],
+            'comparacion_ingresos_mes' => $analysis['comparacion_ingresos_mes'] ?? null,
+            'top_productos_mes' => $analysis['top_productos_mes'] ?? [],
+            'rentabilidad' => $analysis['rentabilidad'] ?? null,
+            'rentabilidad_grooming' => $analysis['rentabilidad_grooming'] ?? null,
+            'rentabilidad_clinica' => $analysis['rentabilidad_clinica'] ?? null,
+            'fel_estado_mes' => $analysis['fel_estado_mes'] ?? [],
         ]);
     }
 

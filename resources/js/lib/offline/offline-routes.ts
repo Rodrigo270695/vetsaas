@@ -52,7 +52,6 @@ export const COMUNICACIONES_OFFLINE_PATHS = [
 /** Rutas de Reportes navegables offline (consulta de última snapshot cacheada). */
 export const REPORTES_OFFLINE_PATHS = [
     '/reportes/snapshots',
-    '/reportes/financiero',
     '/reportes/top-pacientes',
 ] as const;
 

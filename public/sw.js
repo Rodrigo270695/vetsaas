@@ -1,8 +1,8 @@
 /**
  * Service Worker VetSaaS — Fase 8 offline (+ centro de sync /offline/cola).
  */
-const STATIC_CACHE = 'vetsaas-static-v10';
-const INERTIA_OFFLINE_CACHE = 'vetsaas-inertia-offline-v10';
+const STATIC_CACHE = 'vetsaas-static-v11';
+const INERTIA_OFFLINE_CACHE = 'vetsaas-inertia-offline-v11';
 const OFFLINE_PREFIXES = [
     '/offline',
     '/caja',
@@ -16,7 +16,7 @@ const OFFLINE_PREFIXES = [
 ];
 
 /** Rutas de plataforma/superadmin: siempre red, nunca caché (evita 500 por assets viejos en PWA). */
-const NETWORK_ONLY_PREFIXES = ['/plataforma', '/login', '/dashboard'];
+const NETWORK_ONLY_PREFIXES = ['/plataforma', '/login', '/dashboard', '/reportes/financiero'];
 
 self.addEventListener('install', (event) => {
     self.skipWaiting();
