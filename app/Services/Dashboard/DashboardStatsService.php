@@ -187,8 +187,6 @@ final class DashboardStatsService
         }
 
         $monthEnd = $now->copy()->endOfMonth();
-        $prevMonthStart = $now->copy()->subMonth()->startOfMonth();
-        $prevMonthEnd = $now->copy()->subMonth()->endOfMonth();
 
         return [
             'moneda' => $moneda,
@@ -208,27 +206,6 @@ final class DashboardStatsService
             'proximas_citas' => ($capabilities['citas'] ?? false)
                 ? $this->proximasCitas($now)
                 : [],
-            'ingresos_mensuales' => ($capabilities['ventas'] ?? false)
-                ? $this->ingresosMensuales($now)
-                : [],
-            'comparacion_ingresos_mes' => ($capabilities['ventas'] ?? false)
-                ? $this->comparacionIngresosMes($monthStart, $monthEnd, $prevMonthStart, $prevMonthEnd)
-                : null,
-            'top_productos_mes' => ($capabilities['ventas'] ?? false)
-                ? $this->topProductosMes($monthStart, $monthEnd)
-                : [],
-            'rentabilidad' => (($capabilities['ventas'] ?? false) && ($capabilities['productos'] ?? false))
-                ? $this->rentabilidad('mes_actual')
-                : null,
-            'rentabilidad_grooming' => ($capabilities['grooming'] ?? false)
-                ? $this->rentabilidadGrooming('mes_actual')
-                : null,
-            'rentabilidad_clinica' => ($capabilities['ventas'] ?? false)
-                ? $this->rentabilidadClinica('mes_actual')
-                : null,
-            'fel_estado_mes' => ($capabilities['ventas'] ?? false)
-                ? $this->felEstadoMes($monthStart, $monthEnd)
-                : [],
             'vacunaciones_por_dia' => ($capabilities['vacunaciones'] ?? false)
                 ? $this->vacunacionesPorDia($now)
                 : [],
@@ -239,6 +216,64 @@ final class DashboardStatsService
                 ? $this->citasAsistenciaMes($monthStart, $monthEnd)
                 : [],
         ];
+    }
+
+    /**
+     * Payload del reporte de análisis financiero (fuera del dashboard operativo).
+     *
+     * @param  array<string, bool>  $capabilities
+     * @return array<string, mixed>
+     */
+    public function buildFinancialAnalysis(array $capabilities): array
+    {
+        abort_unless($this->tenantManager->check(), 403);
+
+        try {
+            $tz = (string) config('app.timezone');
+            $now = now($tz);
+            $monthStart = $now->copy()->startOfMonth();
+            $monthEnd = $now->copy()->endOfMonth();
+            $prevMonthStart = $now->copy()->subMonth()->startOfMonth();
+            $prevMonthEnd = $now->copy()->subMonth()->endOfMonth();
+
+            return [
+                'moneda' => $this->resolveMoneda(),
+                'ingresos_mensuales' => ($capabilities['ventas'] ?? false)
+                    ? $this->ingresosMensuales($now)
+                    : [],
+                'comparacion_ingresos_mes' => ($capabilities['ventas'] ?? false)
+                    ? $this->comparacionIngresosMes($monthStart, $monthEnd, $prevMonthStart, $prevMonthEnd)
+                    : null,
+                'top_productos_mes' => ($capabilities['ventas'] ?? false)
+                    ? $this->topProductosMes($monthStart, $monthEnd)
+                    : [],
+                'rentabilidad' => (($capabilities['ventas'] ?? false) && ($capabilities['productos'] ?? false))
+                    ? $this->rentabilidad('mes_actual')
+                    : null,
+                'rentabilidad_grooming' => ($capabilities['grooming'] ?? false)
+                    ? $this->rentabilidadGrooming('mes_actual')
+                    : null,
+                'rentabilidad_clinica' => ($capabilities['ventas'] ?? false)
+                    ? $this->rentabilidadClinica('mes_actual')
+                    : null,
+                'fel_estado_mes' => ($capabilities['ventas'] ?? false)
+                    ? $this->felEstadoMes($monthStart, $monthEnd)
+                    : [],
+            ];
+        } catch (Throwable $e) {
+            report($e);
+
+            return [
+                'moneda' => 'PEN',
+                'ingresos_mensuales' => [],
+                'comparacion_ingresos_mes' => null,
+                'top_productos_mes' => [],
+                'rentabilidad' => null,
+                'rentabilidad_grooming' => null,
+                'rentabilidad_clinica' => null,
+                'fel_estado_mes' => [],
+            ];
+        }
     }
 
     /**
@@ -272,13 +307,6 @@ final class DashboardStatsService
             'ventas_por_metodo' => [],
             'citas_por_estado' => [],
             'proximas_citas' => [],
-            'ingresos_mensuales' => [],
-            'comparacion_ingresos_mes' => null,
-            'top_productos_mes' => [],
-            'rentabilidad' => null,
-            'rentabilidad_grooming' => null,
-            'rentabilidad_clinica' => null,
-            'fel_estado_mes' => [],
             'vacunaciones_por_dia' => [],
             'nuevos_clientes_mensuales' => [],
             'citas_asistencia_mes' => [],

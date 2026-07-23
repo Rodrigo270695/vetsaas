@@ -15,6 +15,7 @@ type Props = {
     initial: RentabilidadResumen;
     moneda: string;
     locale: string;
+    endpoint?: string;
 };
 
 const PERIODOS: RentabilidadPeriodo[] = ['semana', 'mes_actual', 'mes_pasado'];
@@ -56,7 +57,12 @@ function marginTone(pct: number | null): { text: string; bar: string } {
     return { text: 'text-emerald-600 dark:text-emerald-400', bar: 'bg-emerald-500' };
 }
 
-export function DashboardRentabilidadCard({ initial, moneda, locale }: Props) {
+export function DashboardRentabilidadCard({
+    initial,
+    moneda,
+    locale,
+    endpoint = '/reportes/financiero/rentabilidad',
+}: Props) {
     const { t } = useTranslation(['dashboard', 'common']);
     const [periodo, setPeriodo] = useState<RentabilidadPeriodo>(initial.periodo);
     const [filtros, setFiltros] = useState<RentabilidadComprobanteFiltros>(
@@ -78,7 +84,7 @@ export function DashboardRentabilidadCard({ initial, moneda, locale }: Props) {
         setError(false);
         setShowAll(false);
 
-        fetch(buildRentabilidadUrl('/dashboard/rentabilidad', nextPeriodo, nextFiltros), {
+        fetch(buildRentabilidadUrl(endpoint, nextPeriodo, nextFiltros), {
             credentials: 'same-origin',
             headers: {
                 Accept: 'application/json',

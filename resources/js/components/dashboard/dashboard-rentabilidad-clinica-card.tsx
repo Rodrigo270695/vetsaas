@@ -19,6 +19,7 @@ type Props = {
     initial: RentabilidadClinicaResumen;
     moneda: string;
     locale: string;
+    endpoint?: string;
 };
 
 const PERIODOS: RentabilidadPeriodo[] = ['semana', 'mes_actual', 'mes_pasado'];
@@ -60,7 +61,12 @@ function marginTone(pct: number | null): { text: string } {
     return { text: 'text-emerald-600 dark:text-emerald-400' };
 }
 
-export function DashboardRentabilidadClinicaCard({ initial, moneda, locale }: Props) {
+export function DashboardRentabilidadClinicaCard({
+    initial,
+    moneda,
+    locale,
+    endpoint = '/reportes/financiero/rentabilidad-clinica',
+}: Props) {
     const { t } = useTranslation(['dashboard', 'common']);
     const [periodo, setPeriodo] = useState<RentabilidadPeriodo>(initial.periodo);
     const [filtros, setFiltros] = useState<RentabilidadComprobanteFiltros>(
@@ -82,7 +88,7 @@ export function DashboardRentabilidadClinicaCard({ initial, moneda, locale }: Pr
         setError(false);
         setShowAll(false);
 
-        fetch(buildRentabilidadUrl('/dashboard/rentabilidad-clinica', nextPeriodo, nextFiltros), {
+        fetch(buildRentabilidadUrl(endpoint, nextPeriodo, nextFiltros), {
             credentials: 'same-origin',
             headers: {
                 Accept: 'application/json',

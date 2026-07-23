@@ -7,10 +7,8 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Services\Dashboard\DashboardStatsService;
 use App\Services\Onboarding\ClinicOnboardingService;
-use App\Models\Tenant;
 use App\Support\Tenancy\TenantModuleAccess;
 use App\Tenancy\TenantManager;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -64,92 +62,6 @@ class DashboardController extends Controller
                 : null,
             ...$this->stats->build($user, $capabilities),
         ]);
-    }
-
-    /**
-     * Devuelve el resumen de rentabilidad para el periodo solicitado.
-     * Se consume vía fetch desde el widget del dashboard (sin recargar la página).
-     */
-    public function rentabilidad(Request $request): JsonResponse
-    {
-        abort_unless($this->tenantManager->check(), 404);
-
-        /** @var User $user */
-        $user = $request->user();
-
-        abort_unless(
-            $this->userCan($user, 'ventas.view') && $this->userCan($user, 'productos.view'),
-            403,
-        );
-
-        $periodo = (string) $request->query('periodo', 'mes_actual');
-
-        if (! in_array($periodo, ['semana', 'mes_actual', 'mes_pasado'], true)) {
-            $periodo = 'mes_actual';
-        }
-
-        $comprobantes = DashboardStatsService::resolveRentabilidadComprobantes([
-            'boleta' => $request->has('boleta') ? $request->boolean('boleta') : true,
-            'factura' => $request->has('factura') ? $request->boolean('factura') : true,
-            'ticket' => $request->has('ticket') ? $request->boolean('ticket') : true,
-        ]);
-
-        return response()->json($this->stats->rentabilidad($periodo, $comprobantes));
-    }
-
-    /**
-     * Rentabilidad de grooming (precio del servicio menos costo de insumos).
-     * Se consume vía fetch desde el widget del dashboard.
-     */
-    public function rentabilidadGrooming(Request $request): JsonResponse
-    {
-        abort_unless($this->tenantManager->check(), 404);
-
-        /** @var User $user */
-        $user = $request->user();
-
-        abort_unless($this->userCan($user, 'grooming.view'), 403);
-
-        $periodo = (string) $request->query('periodo', 'mes_actual');
-
-        if (! in_array($periodo, ['semana', 'mes_actual', 'mes_pasado'], true)) {
-            $periodo = 'mes_actual';
-        }
-
-        $comprobantes = DashboardStatsService::resolveRentabilidadComprobantes([
-            'boleta' => $request->has('boleta') ? $request->boolean('boleta') : true,
-            'factura' => $request->has('factura') ? $request->boolean('factura') : true,
-            'ticket' => $request->has('ticket') ? $request->boolean('ticket') : true,
-        ]);
-
-        return response()->json($this->stats->rentabilidadGrooming($periodo, $comprobantes));
-    }
-
-    /**
-     * Rentabilidad de servicios clínicos (precio lista menos precio de costo).
-     */
-    public function rentabilidadClinica(Request $request): JsonResponse
-    {
-        abort_unless($this->tenantManager->check(), 404);
-
-        /** @var User $user */
-        $user = $request->user();
-
-        abort_unless($this->userCan($user, 'ventas.view'), 403);
-
-        $periodo = (string) $request->query('periodo', 'mes_actual');
-
-        if (! in_array($periodo, ['semana', 'mes_actual', 'mes_pasado'], true)) {
-            $periodo = 'mes_actual';
-        }
-
-        $comprobantes = DashboardStatsService::resolveRentabilidadComprobantes([
-            'boleta' => $request->has('boleta') ? $request->boolean('boleta') : true,
-            'factura' => $request->has('factura') ? $request->boolean('factura') : true,
-            'ticket' => $request->has('ticket') ? $request->boolean('ticket') : true,
-        ]);
-
-        return response()->json($this->stats->rentabilidadClinica($periodo, $comprobantes));
     }
 
     private function userCan(User $user, string $ability): bool

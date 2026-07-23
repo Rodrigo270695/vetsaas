@@ -18,6 +18,7 @@ use App\Http\Controllers\ConsultaDictationController;
 use App\Http\Controllers\ConsultaHistoriaController;
 use App\Http\Controllers\ConsultaPlanTratamientoController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ReporteFinancieroController;
 use App\Http\Controllers\FelDocumentController;
 use App\Http\Controllers\FelSerieController;
 use App\Http\Controllers\GeoController;
@@ -134,12 +135,6 @@ Route::middleware(['throttle:12,1'])->group(function (): void {
 Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-change', 'permission:dashboard.view'])
     ->group(function (): void {
         Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
-        Route::get('dashboard/rentabilidad', [DashboardController::class, 'rentabilidad'])
-            ->name('dashboard.rentabilidad');
-        Route::get('dashboard/rentabilidad-grooming', [DashboardController::class, 'rentabilidadGrooming'])
-            ->name('dashboard.rentabilidad-grooming');
-        Route::get('dashboard/rentabilidad-clinica', [DashboardController::class, 'rentabilidadClinica'])
-            ->name('dashboard.rentabilidad-clinica');
     });
 
 /*
@@ -858,7 +853,16 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
     // ===== Reportes =====
     Route::prefix('reportes')->name('reportes.')->group(function () {
         Route::inertia('snapshots', 'reportes/snapshots/index')->name('snapshots');
-        Route::inertia('financiero', 'reportes/financiero/index')->name('financiero');
+        Route::middleware(['tenant.required', 'permission:reporte-financiero.view'])->group(function (): void {
+            Route::get('financiero', [ReporteFinancieroController::class, 'index'])
+                ->name('financiero');
+            Route::get('financiero/rentabilidad', [ReporteFinancieroController::class, 'rentabilidad'])
+                ->name('financiero.rentabilidad');
+            Route::get('financiero/rentabilidad-grooming', [ReporteFinancieroController::class, 'rentabilidadGrooming'])
+                ->name('financiero.rentabilidad-grooming');
+            Route::get('financiero/rentabilidad-clinica', [ReporteFinancieroController::class, 'rentabilidadClinica'])
+                ->name('financiero.rentabilidad-clinica');
+        });
         Route::inertia('top-pacientes', 'reportes/top-pacientes/index')->name('top-pacientes');
     });
 

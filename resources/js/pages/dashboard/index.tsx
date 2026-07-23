@@ -36,15 +36,9 @@ import {
     type QuickActionItem,
 } from '@/components/dashboard/dashboard-quick-actions';
 import { DashboardClientesMensualesChart } from '@/components/dashboard/dashboard-clientes-mensuales-chart';
-import { DashboardFelChart } from '@/components/dashboard/dashboard-fel-chart';
-import { DashboardMonthlyRevenueChart } from '@/components/dashboard/dashboard-monthly-revenue-chart';
 import { DashboardOnboardingCard } from '@/components/dashboard/dashboard-onboarding-card';
-import { DashboardRentabilidadCard } from '@/components/dashboard/dashboard-rentabilidad-card';
-import { DashboardRentabilidadGroomingCard } from '@/components/dashboard/dashboard-rentabilidad-grooming-card';
-import { DashboardRentabilidadClinicaCard } from '@/components/dashboard/dashboard-rentabilidad-clinica-card';
 import { DashboardSalesChart } from '@/components/dashboard/dashboard-sales-chart';
 import { DashboardSectionTitle } from '@/components/dashboard/dashboard-section-title';
-import { DashboardTopProductsChart } from '@/components/dashboard/dashboard-top-products-chart';
 import { DashboardVacunacionesChart } from '@/components/dashboard/dashboard-vacunaciones-chart';
 import { usePermission } from '@/hooks/use-permission';
 import AppLayout from '@/layouts/app-layout';
@@ -52,19 +46,12 @@ import { dashboard } from '@/routes';
 import clinica from '@/routes/clinica';
 import type {
     CitasPorEstadoRow,
-    ComparacionIngresosMes,
     ConsultasPorDiaRow,
     DashboardCapabilities,
     DashboardKpis,
-    FelEstadoRow,
-    IngresosMensualRow,
     NuevosClientesMensualRow,
     OnboardingSnapshot,
     ProximaCitaRow,
-    RentabilidadClinicaResumen,
-    RentabilidadGroomingResumen,
-    RentabilidadResumen,
-    TopProductoRow,
     VacunacionesPorDiaRow,
     VentasPorDiaRow,
     VentasPorMetodoRow,
@@ -82,13 +69,6 @@ type Props = {
     ventas_por_metodo: VentasPorMetodoRow[];
     citas_por_estado: CitasPorEstadoRow[];
     proximas_citas: ProximaCitaRow[];
-    ingresos_mensuales: IngresosMensualRow[];
-    comparacion_ingresos_mes: ComparacionIngresosMes | null;
-    top_productos_mes: TopProductoRow[];
-    rentabilidad: RentabilidadResumen | null;
-    rentabilidad_grooming: RentabilidadGroomingResumen | null;
-    rentabilidad_clinica: RentabilidadClinicaResumen | null;
-    fel_estado_mes: FelEstadoRow[];
     vacunaciones_por_dia: VacunacionesPorDiaRow[];
     nuevos_clientes_mensuales: NuevosClientesMensualRow[];
     citas_asistencia_mes: CitasPorEstadoRow[];
@@ -123,13 +103,6 @@ export default function DashboardIndex({
     ventas_por_metodo,
     citas_por_estado,
     proximas_citas,
-    ingresos_mensuales,
-    comparacion_ingresos_mes,
-    top_productos_mes,
-    rentabilidad,
-    rentabilidad_grooming,
-    rentabilidad_clinica,
-    fel_estado_mes,
     vacunaciones_por_dia,
     nuevos_clientes_mensuales,
     citas_asistencia_mes,
@@ -146,11 +119,6 @@ export default function DashboardIndex({
 
     const metodoLabel = useCallback(
         (metodo: string) => t(`metodos_pago.${metodo}`, { defaultValue: metodo }),
-        [t],
-    );
-
-    const felEstadoLabel = useCallback(
-        (estado: string) => t(`estados_fel.${estado}`, { defaultValue: estado }),
         [t],
     );
 
@@ -368,7 +336,6 @@ export default function DashboardIndex({
         return items;
     }, [can, t]);
 
-    const hasFinancialCharts = capabilities.ventas;
     const hasWeeklyCharts =
         capabilities.ventas || capabilities.consultas || capabilities.citas;
     const hasGrowthCharts =
@@ -430,120 +397,6 @@ export default function DashboardIndex({
                             accent="amber"
                         />
                         <DashboardKpiGrid items={inventoryKpis} />
-                    </section>
-                )}
-
-                {hasFinancialCharts && (
-                    <section className="space-y-4">
-                        <DashboardSectionTitle
-                            title={t('sections.financial')}
-                            description={t('sections.financial_hint')}
-                            icon={Wallet}
-                            accent="emerald"
-                        />
-                        {(capabilities.productos && rentabilidad) ||
-                        (capabilities.grooming && rentabilidad_grooming) ||
-                        rentabilidad_clinica ? (
-                            <div className="grid min-w-0 items-start gap-4 lg:grid-cols-2">
-                                {capabilities.productos && rentabilidad && (
-                                    <DashboardRentabilidadCard
-                                        initial={rentabilidad}
-                                        moneda={moneda}
-                                        locale={locale}
-                                    />
-                                )}
-                                {capabilities.grooming && rentabilidad_grooming && (
-                                    <DashboardRentabilidadGroomingCard
-                                        initial={rentabilidad_grooming}
-                                        moneda={moneda}
-                                        locale={locale}
-                                    />
-                                )}
-                                {rentabilidad_clinica && (
-                                    <DashboardRentabilidadClinicaCard
-                                        initial={rentabilidad_clinica}
-                                        moneda={moneda}
-                                        locale={locale}
-                                    />
-                                )}
-                            </div>
-                        ) : null}
-                        <div className="grid min-w-0 gap-4 lg:grid-cols-2">
-                            <DashboardChartCard
-                                title={t('charts.ingresos_mensuales')}
-                                description={t('charts.ingresos_mensuales_hint')}
-                                icon={TrendingUp}
-                                accent="brand"
-                                className="lg:col-span-2"
-                            >
-                                <DashboardMonthlyRevenueChart
-                                    data={ingresos_mensuales}
-                                    comparacion={comparacion_ingresos_mes}
-                                    moneda={moneda}
-                                    locale={locale}
-                                    labels={{
-                                        vsPrevious: t('charts.vs_mes_anterior'),
-                                        ticketAvg: t('charts.ticket_promedio'),
-                                        sales: t('charts.ventas_label'),
-                                        noChange: t('charts.sin_mes_anterior'),
-                                    }}
-                                />
-                            </DashboardChartCard>
-
-                            <DashboardChartCard
-                                title={t('charts.top_productos')}
-                                description={t('charts.top_productos_hint')}
-                                icon={Package}
-                                accent="emerald"
-                            >
-                                <DashboardTopProductsChart
-                                    data={top_productos_mes}
-                                    moneda={moneda}
-                                    locale={locale}
-                                    qtyLabel={t('charts.unidades')}
-                                />
-                            </DashboardChartCard>
-
-                            <DashboardChartCard
-                                title={t('charts.fel_mes')}
-                                description={t('charts.fel_mes_hint')}
-                                icon={ReceiptText}
-                                accent="amber"
-                            >
-                                <DashboardFelChart
-                                    data={fel_estado_mes}
-                                    estadoLabel={felEstadoLabel}
-                                />
-                            </DashboardChartCard>
-                        </div>
-                    </section>
-                )}
-
-                {!hasFinancialCharts &&
-                    ((capabilities.grooming && rentabilidad_grooming) || rentabilidad_clinica) && (
-                    <section className="space-y-4">
-                        <DashboardSectionTitle
-                            title={t('sections.financial')}
-                            description={t('sections.financial_hint')}
-                            icon={Wallet}
-                            accent="emerald"
-                        />
-                        <div className="grid min-w-0 items-start gap-4 lg:grid-cols-2">
-                            {capabilities.grooming && rentabilidad_grooming && (
-                                <DashboardRentabilidadGroomingCard
-                                    initial={rentabilidad_grooming}
-                                    moneda={moneda}
-                                    locale={locale}
-                                />
-                            )}
-                            {rentabilidad_clinica && (
-                                <DashboardRentabilidadClinicaCard
-                                    initial={rentabilidad_clinica}
-                                    moneda={moneda}
-                                    locale={locale}
-                                />
-                            )}
-                        </div>
                     </section>
                 )}
 
