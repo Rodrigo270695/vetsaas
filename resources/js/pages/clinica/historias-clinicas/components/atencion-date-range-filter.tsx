@@ -14,11 +14,9 @@ import {
 import { cn } from '@/lib/utils';
 
 import {
-    rangeLast30Days,
-    rangeLast7Days,
     rangeLastMonth,
+    rangeLastWeek,
     rangeThisMonth,
-    rangeThisQuarter,
     rangeThisWeek,
     rangeThisYear,
     rangeToday,
@@ -48,11 +46,9 @@ type PresetId =
     | 'today'
     | 'yesterday'
     | 'this_week'
+    | 'last_week'
     | 'this_month'
     | 'last_month'
-    | 'last_7_days'
-    | 'last_30_days'
-    | 'this_quarter'
     | 'this_year'
     | 'custom';
 
@@ -171,11 +167,9 @@ export function AtencionDateRangeFilter({
             build('today', 'preset_today', rangeToday(appTz)),
             build('yesterday', 'preset_yesterday', rangeYesterday(appTz)),
             build('this_week', 'preset_this_week', rangeThisWeek(appTz)),
+            build('last_week', 'preset_last_week', rangeLastWeek(appTz)),
             build('this_month', 'preset_this_month', serverThisMonth),
             build('last_month', 'preset_last_month', rangeLastMonth(appTz)),
-            build('last_7_days', 'preset_last_7_days', rangeLast7Days(appTz)),
-            build('last_30_days', 'preset_last_30_days', rangeLast30Days(appTz)),
-            build('this_quarter', 'preset_this_quarter', rangeThisQuarter(appTz)),
             build('this_year', 'preset_this_year', rangeThisYear(appTz)),
         ];
     }, [appTz, defaultDesde, defaultHasta, t]);
