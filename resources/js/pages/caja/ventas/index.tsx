@@ -28,16 +28,23 @@ import { AtencionDateRangeFilter } from '@/pages/clinica/historias-clinicas/comp
 import caja from '@/routes/caja';
 import { exportMethod as ventasExportExcel } from '@/routes/caja/ventas';
 import { VentaWhatsAppModal } from './components/venta-whatsapp-modal';
-import type { VentaEstadoFiltro, VentasIndexProps, VentaRow } from './types';
+import type {
+    VentaEstadoFiltro,
+    VentaMetodoPagoFiltro,
+    VentasIndexProps,
+    VentaRow,
+} from './types';
 
 type TableExtraFilters = {
     estado: VentaEstadoFiltro;
+    metodo_pago: VentaMetodoPagoFiltro;
     fecha_desde: string;
     fecha_hasta: string;
 };
 
 const DEFAULT_PER_PAGE = 15;
 const DEFAULT_ESTADO: VentaEstadoFiltro = 'todas';
+const DEFAULT_METODO: VentaMetodoPagoFiltro = 'todos';
 
 function ventaEstadoBadgeVariant(estado: string): StatBadgeVariant {
     switch (estado) {
@@ -109,6 +116,7 @@ export default function Index({ ventas: paginated, filters, stats, venta_filtro_
     });
 
     const estado = (filters.estado ?? DEFAULT_ESTADO) as VentaEstadoFiltro;
+    const metodoPago = (filters.metodo_pago ?? DEFAULT_METODO) as VentaMetodoPagoFiltro;
 
     const activeFiltersCount = useMemo(() => {
         let n = 0;
@@ -121,12 +129,16 @@ export default function Index({ ventas: paginated, filters, stats, venta_filtro_
             n += 1;
         }
 
+        if (metodoPago !== DEFAULT_METODO) {
+            n += 1;
+        }
+
         if (venta_filtro_ui.fuera_del_mes_actual) {
             n += 1;
         }
 
         return n;
-    }, [estado, filters.search, venta_filtro_ui.fuera_del_mes_actual]);
+    }, [estado, metodoPago, filters.search, venta_filtro_ui.fuera_del_mes_actual]);
 
     const exportUrl = useMemo(() => {
         const params = new URLSearchParams();
@@ -147,6 +159,10 @@ export default function Index({ ventas: paginated, filters, stats, venta_filtro_
             params.set('estado', filters.estado);
         }
 
+        if (filters.metodo_pago && filters.metodo_pago !== DEFAULT_METODO) {
+            params.set('metodo_pago', filters.metodo_pago);
+        }
+
         params.set('fecha_desde', filters.fecha_desde);
         params.set('fecha_hasta', filters.fecha_hasta);
 
@@ -158,6 +174,7 @@ export default function Index({ ventas: paginated, filters, stats, venta_filtro_
         filters.sort,
         filters.direction,
         filters.estado,
+        filters.metodo_pago,
         filters.fecha_desde,
         filters.fecha_hasta,
     ]);
@@ -169,6 +186,19 @@ export default function Index({ ventas: paginated, filters, stats, venta_filtro_
             { value: 'pendiente', label: t('caja:ventas.estado.pendiente') },
             { value: 'parcial', label: t('caja:ventas.estado.parcial') },
             { value: 'anulado', label: t('caja:ventas.estado.anulado') },
+        ],
+        [t],
+    );
+
+    const metodoOptions: readonly FilterChip<VentaMetodoPagoFiltro>[] = useMemo(
+        () => [
+            { value: 'todos', label: t('caja:ventas.metodo.todos') },
+            { value: 'efectivo', label: t('caja:ventas.metodo.efectivo') },
+            { value: 'yape', label: t('caja:ventas.metodo.yape') },
+            { value: 'plin', label: t('caja:ventas.metodo.plin') },
+            { value: 'tarjeta', label: t('caja:ventas.metodo.tarjeta') },
+            { value: 'transferencia', label: t('caja:ventas.metodo.transferencia') },
+            { value: 'otro', label: t('caja:ventas.metodo.otro') },
         ],
         [t],
     );
@@ -230,6 +260,14 @@ export default function Index({ ventas: paginated, filters, stats, venta_filtro_
                 ),
                 sortable: true,
                 sortKey: 'total',
+            },
+            {
+                key: 'metodo',
+                header: t('caja:ventas.columns.metodo'),
+                cell: (row) =>
+                    t(`caja:ventas.metodo.${row.metodo_pago ?? 'otro'}`, {
+                        defaultValue: row.metodo_pago ?? '—',
+                    }),
             },
             {
                 key: 'estado',
@@ -400,12 +438,20 @@ export default function Index({ ventas: paginated, filters, stats, venta_filtro_
                                     'flex w-full min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3',
                                 )}
                             >
-                                <FilterChips
-                                    ariaLabel={t('caja:ventas.filter_estado_label')}
-                                    value={estado}
-                                    onChange={(v) => applyFilter({ estado: v })}
-                                    options={estadoOptions}
-                                />
+                                <div className="flex min-w-0 flex-wrap items-center gap-2">
+                                    <FilterChips
+                                        ariaLabel={t('caja:ventas.filter_estado_label')}
+                                        value={estado}
+                                        onChange={(v) => applyFilter({ estado: v })}
+                                        options={estadoOptions}
+                                    />
+                                    <FilterChips
+                                        ariaLabel={t('caja:ventas.filter_metodo_label')}
+                                        value={metodoPago}
+                                        onChange={(v) => applyFilter({ metodo_pago: v })}
+                                        options={metodoOptions}
+                                    />
+                                </div>
                                 <div className="flex shrink-0 justify-start sm:justify-end">
                                     <AtencionDateRangeFilter
                                         desde={filters.fecha_desde}
@@ -431,6 +477,10 @@ export default function Index({ ventas: paginated, filters, stats, venta_filtro_
                                 sort: filters.sort ?? undefined,
                                 direction: filters.direction ?? undefined,
                                 estado: filters.estado !== DEFAULT_ESTADO ? filters.estado : undefined,
+                                metodo_pago:
+                                    filters.metodo_pago && filters.metodo_pago !== DEFAULT_METODO
+                                        ? filters.metodo_pago
+                                        : undefined,
                                 fecha_desde: filters.fecha_desde,
                                 fecha_hasta: filters.fecha_hasta,
                             }}

@@ -27,6 +27,14 @@ import {
 } from './components/documento-whatsapp-modal';
 
 type DocumentoEstadoFiltro = 'todos' | 'emitido' | 'anulado' | 'rechazado' | 'pendiente';
+type DocumentoMetodoPagoFiltro =
+    | 'todos'
+    | 'efectivo'
+    | 'yape'
+    | 'plin'
+    | 'tarjeta'
+    | 'transferencia'
+    | 'otro';
 
 type DocumentoRow = DocumentoDownloadRow & {
     tipo_comprobante: number;
@@ -41,6 +49,7 @@ type DocumentoRow = DocumentoDownloadRow & {
     emitido_at: string | null;
     venta_numero: string | null;
     venta_estado: string | null;
+    metodo_pago: string | null;
     sede: string;
 };
 
@@ -52,6 +61,7 @@ type Props = {
         sort: string | null;
         direction: string | null;
         estado: DocumentoEstadoFiltro;
+        metodo_pago: DocumentoMetodoPagoFiltro;
         fecha_desde: string;
         fecha_hasta: string;
     };
@@ -69,6 +79,7 @@ type Props = {
 
 type TableExtraFilters = {
     estado: DocumentoEstadoFiltro;
+    metodo_pago: DocumentoMetodoPagoFiltro;
     fecha_desde: string;
     fecha_hasta: string;
 };
@@ -76,6 +87,17 @@ type TableExtraFilters = {
 const ROUTE_URL = '/facturacion/documentos';
 const DEFAULT_PER_PAGE = 15;
 const DEFAULT_ESTADO: DocumentoEstadoFiltro = 'todos';
+const DEFAULT_METODO: DocumentoMetodoPagoFiltro = 'todos';
+
+const METODO_LABEL: Record<string, string> = {
+    todos: 'Todos los métodos',
+    efectivo: 'Efectivo',
+    yape: 'Yape',
+    plin: 'Plin',
+    tarjeta: 'Tarjeta',
+    transferencia: 'Transferencia',
+    otro: 'Otro',
+};
 
 const ESTADO_BADGE: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
     emitido: 'default',
@@ -137,6 +159,7 @@ export default function Index({ documentos: paginated, filters, documento_filtro
         });
 
     const estado = (filters.estado ?? DEFAULT_ESTADO) as DocumentoEstadoFiltro;
+    const metodoPago = (filters.metodo_pago ?? DEFAULT_METODO) as DocumentoMetodoPagoFiltro;
 
     const activeFiltersCount = useMemo(() => {
         let n = 0;
@@ -149,12 +172,16 @@ export default function Index({ documentos: paginated, filters, documento_filtro
             n += 1;
         }
 
+        if (metodoPago !== DEFAULT_METODO) {
+            n += 1;
+        }
+
         if (documento_filtro_ui.fuera_del_mes_actual) {
             n += 1;
         }
 
         return n;
-    }, [documento_filtro_ui.fuera_del_mes_actual, estado, filters.search]);
+    }, [documento_filtro_ui.fuera_del_mes_actual, estado, metodoPago, filters.search]);
 
     const estadoOptions: readonly FilterChip<DocumentoEstadoFiltro>[] = useMemo(
         () => [
@@ -163,6 +190,19 @@ export default function Index({ documentos: paginated, filters, documento_filtro
             { value: 'anulado', label: 'Anulados' },
             { value: 'rechazado', label: 'Rechazados' },
             { value: 'pendiente', label: 'Pendientes' },
+        ],
+        [],
+    );
+
+    const metodoOptions: readonly FilterChip<DocumentoMetodoPagoFiltro>[] = useMemo(
+        () => [
+            { value: 'todos', label: METODO_LABEL.todos },
+            { value: 'efectivo', label: METODO_LABEL.efectivo },
+            { value: 'yape', label: METODO_LABEL.yape },
+            { value: 'plin', label: METODO_LABEL.plin },
+            { value: 'tarjeta', label: METODO_LABEL.tarjeta },
+            { value: 'transferencia', label: METODO_LABEL.transferencia },
+            { value: 'otro', label: METODO_LABEL.otro },
         ],
         [],
     );
@@ -240,6 +280,11 @@ export default function Index({ documentos: paginated, filters, documento_filtro
                 key: 'sede',
                 header: 'Sede',
                 cell: (row) => row.sede,
+            },
+            {
+                key: 'metodo',
+                header: 'Método',
+                cell: (row) => METODO_LABEL[row.metodo_pago ?? 'otro'] ?? row.metodo_pago ?? '—',
             },
             {
                 key: 'total',
@@ -336,12 +381,20 @@ export default function Index({ documentos: paginated, filters, documento_filtro
                             filtersClassName="sm:flex-1 sm:justify-end"
                         >
                             <div className="flex w-full flex-col gap-2 lg:flex-row lg:items-center lg:justify-end">
-                                <FilterChips
-                                    ariaLabel="Filtrar por estado"
-                                    value={estado}
-                                    onChange={(v) => applyFilter({ estado: v })}
-                                    options={estadoOptions}
-                                />
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <FilterChips
+                                        ariaLabel="Filtrar por estado"
+                                        value={estado}
+                                        onChange={(v) => applyFilter({ estado: v })}
+                                        options={estadoOptions}
+                                    />
+                                    <FilterChips
+                                        ariaLabel="Filtrar por método de pago"
+                                        value={metodoPago}
+                                        onChange={(v) => applyFilter({ metodo_pago: v })}
+                                        options={metodoOptions}
+                                    />
+                                </div>
                                 <AtencionDateRangeFilter
                                     desde={filters.fecha_desde}
                                     hasta={filters.fecha_hasta}
@@ -367,6 +420,10 @@ export default function Index({ documentos: paginated, filters, documento_filtro
                                 sort: filters.sort ?? undefined,
                                 direction: filters.direction ?? undefined,
                                 estado: filters.estado !== DEFAULT_ESTADO ? filters.estado : undefined,
+                                metodo_pago:
+                                    filters.metodo_pago && filters.metodo_pago !== DEFAULT_METODO
+                                        ? filters.metodo_pago
+                                        : undefined,
                                 fecha_desde: filters.fecha_desde,
                                 fecha_hasta: filters.fecha_hasta,
                             }}

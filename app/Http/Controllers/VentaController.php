@@ -80,6 +80,7 @@ class VentaController extends Controller
             'sort' => $ctx['sort_valid'] ? $ctx['sort'] : null,
             'direction' => $ctx['sort_valid'] && $ctx['direction_valid'] ? $ctx['direction'] : null,
             'estado' => $ctx['estado'],
+            'metodo_pago' => $ctx['metodo_pago'],
             'fecha_desde' => $ctx['fecha_desde'],
             'fecha_hasta' => $ctx['fecha_hasta'],
         ];
@@ -235,6 +236,12 @@ class VentaController extends Controller
             $estado = 'todas';
         }
 
+        $metodosPermitidos = ['efectivo', 'yape', 'plin', 'tarjeta', 'transferencia', 'otro'];
+        $metodoPago = (string) $request->string('metodo_pago', 'todos');
+        if (! in_array($metodoPago, ['todos', ...$metodosPermitidos], true)) {
+            $metodoPago = 'todos';
+        }
+
         $tz = config('app.timezone');
         $now = now($tz);
         $defaultDesde = $now->copy()->startOfMonth()->toDateString();
@@ -274,6 +281,18 @@ class VentaController extends Controller
             $baseQuery->where('estado', $estado);
         }
 
+        if ($metodoPago !== 'todos') {
+            if ($metodoPago === 'otro') {
+                $baseQuery->where(function ($q) use ($metodosPermitidos): void {
+                    $q->whereNull('metodo_pago')
+                        ->orWhere('metodo_pago', '')
+                        ->orWhereNotIn('metodo_pago', array_values(array_diff($metodosPermitidos, ['otro'])));
+                });
+            } else {
+                $baseQuery->where('metodo_pago', $metodoPago);
+            }
+        }
+
         if ($sortValid) {
             $baseQuery->orderBy($sort, $directionSql);
             if ($sort !== 'created_at') {
@@ -297,6 +316,7 @@ class VentaController extends Controller
             'fecha_hasta' => $fechaHasta,
             'venta_filtro_ui' => $ventaFiltroUi,
             'estado' => $estado,
+            'metodo_pago' => $metodoPago,
             'sort_valid' => $sortValid,
             'sort' => $sort,
             'direction' => $direction,

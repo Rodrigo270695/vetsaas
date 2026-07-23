@@ -42,10 +42,17 @@
             "cerrar": "Close / reconcile",
             "cerrar_short": "Close",
             "arqueo_pdf": "Print reconciliation",
-            "arqueo_pdf_short": "PDF"
+            "arqueo_pdf_short": "PDF",
+            "arqueo_ver": "View reconciliation",
+            "arqueo_ver_short": "View"
         },
         "row": {
             "cerrar_solo_si_abriste": "Only the opener can close"
+        },
+        "dialog_detalle": {
+            "title": "Reconciliation detail",
+            "description": "Closed session summary: sales, payment methods and cash reconciliation.",
+            "close": "Close"
         },
         "dialog_imprimir": {
             "title": "Print cash reconciliation",
@@ -140,6 +147,7 @@
         "toast_load_error": "Could not load sales.",
         "search_placeholder": "Search by number or customer…",
         "filter_estado_label": "Status",
+        "filter_metodo_label": "Payment method",
         "stats": {
             "total": "Sales",
             "pagado": "Paid",
@@ -155,6 +163,7 @@
             "cliente": "Customer / patient",
             "sede": "Branch",
             "total": "Total",
+            "metodo": "Method",
             "estado": "Status",
             "fel": "SUNAT / CPE",
             "acciones": "Detail"
@@ -165,6 +174,15 @@
             "pendiente": "Pending",
             "parcial": "Partial",
             "anulado": "Voided"
+        },
+        "metodo": {
+            "todos": "All methods",
+            "efectivo": "Cash",
+            "yape": "Yape",
+            "plin": "Plin",
+            "tarjeta": "Card",
+            "transferencia": "Transfer",
+            "otro": "Other"
         },
         "estado_valor": {
             "pagado": "Paid",

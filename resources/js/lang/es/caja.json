@@ -42,10 +42,17 @@
             "cerrar": "Cerrar / arqueo",
             "cerrar_short": "Cerrar",
             "arqueo_pdf": "Imprimir arqueo",
-            "arqueo_pdf_short": "PDF"
+            "arqueo_pdf_short": "PDF",
+            "arqueo_ver": "Ver arqueo",
+            "arqueo_ver_short": "Ver"
         },
         "row": {
             "cerrar_solo_si_abriste": "Solo quien abrió puede cerrar"
+        },
+        "dialog_detalle": {
+            "title": "Detalle del arqueo",
+            "description": "Resumen de la sesión cerrada: ventas, métodos de pago y cuadre de efectivo.",
+            "close": "Cerrar"
         },
         "dialog_imprimir": {
             "title": "Imprimir arqueo de caja",
@@ -140,6 +147,7 @@
         "toast_load_error": "No se pudieron cargar las ventas.",
         "search_placeholder": "Buscar por número o cliente…",
         "filter_estado_label": "Estado",
+        "filter_metodo_label": "Método de pago",
         "stats": {
             "total": "Ventas",
             "pagado": "Pagado",
@@ -155,6 +163,7 @@
             "cliente": "Cliente / paciente",
             "sede": "Sede",
             "total": "Total",
+            "metodo": "Método",
             "estado": "Estado",
             "fel": "SUNAT / CPE",
             "acciones": "Detalle"
@@ -165,6 +174,15 @@
             "pendiente": "Pendiente",
             "parcial": "Parcial",
             "anulado": "Anulado"
+        },
+        "metodo": {
+            "todos": "Todos los métodos",
+            "efectivo": "Efectivo",
+            "yape": "Yape",
+            "plin": "Plin",
+            "tarjeta": "Tarjeta",
+            "transferencia": "Transferencia",
+            "otro": "Otro"
         },
         "estado_valor": {
             "pagado": "Pagado",

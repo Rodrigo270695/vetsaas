@@ -2,6 +2,7 @@ import { Head, Link, usePage } from '@inertiajs/react';
 import {
     AlertTriangle,
     CircleDot,
+    Eye,
     FileText,
     Lock,
     Plus,
@@ -37,6 +38,7 @@ import type { QueryParams } from '@/wayfinder';
 import { normalizeTicketAncho } from '@/lib/ticket-ancho';
 import { ArqueoPrintDialog } from './components/arqueo-print-dialog';
 import { SesionAbrirModal } from './components/sesion-abrir-modal';
+import { SesionArqueoDetalleModal } from './components/sesion-arqueo-detalle-modal';
 import { SesionCerrarModal } from './components/sesion-cerrar-modal';
 import type { CajaSesionEstadoFiltro, CajaSesionFilters, CajaSesionRow, CajaSesionesIndexProps } from './types';
 
@@ -130,6 +132,7 @@ export default function Index({
 
     const [abrirOpen, setAbrirOpen] = useState(false);
     const [cerrarSesion, setCerrarSesion] = useState<CajaSesionRow | null>(null);
+    const [detalleSesion, setDetalleSesion] = useState<CajaSesionRow | null>(null);
     const [imprimirSesionId, setImprimirSesionId] = useState<string | null>(null);
     const closeCerrar = useCallback(() => setCerrarSesion(null), []);
 
@@ -302,7 +305,18 @@ export default function Index({
                 cell: (row) => {
                     if (row.estado === 'cerrada' && canView) {
                         return (
-                            <div className="flex justify-end">
+                            <div className="flex justify-end gap-1">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-7 min-h-7 cursor-pointer gap-1 rounded-md px-2 text-xs font-medium"
+                                    onClick={() => setDetalleSesion(row)}
+                                >
+                                    <Eye className="size-3 shrink-0 opacity-90" strokeWidth={2.5} aria-hidden />
+                                    <span className="hidden sm:inline">{t('caja:sesiones.actions.arqueo_ver')}</span>
+                                    <span className="sm:hidden">{t('caja:sesiones.actions.arqueo_ver_short')}</span>
+                                </Button>
                                 <Button
                                     type="button"
                                     variant="outline"
@@ -355,7 +369,7 @@ export default function Index({
 
                     return <span className="text-xs text-muted-foreground"> </span>;
                 },
-                className: 'w-36 sm:w-44',
+                className: 'w-44 sm:w-56',
             });
         }
 
@@ -518,6 +532,16 @@ export default function Index({
                 }}
                 sesion={cerrarSesion}
                 listQuery={listQuery}
+            />
+
+            <SesionArqueoDetalleModal
+                open={detalleSesion !== null}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setDetalleSesion(null);
+                    }
+                }}
+                sesion={detalleSesion}
             />
 
             <ArqueoPrintDialog

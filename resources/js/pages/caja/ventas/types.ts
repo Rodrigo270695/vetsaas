@@ -8,6 +8,15 @@ export type VentaEstadoFiltro =
     | 'parcial'
     | 'anulado';
 
+export type VentaMetodoPagoFiltro =
+    | 'todos'
+    | 'efectivo'
+    | 'yape'
+    | 'plin'
+    | 'tarjeta'
+    | 'transferencia'
+    | 'otro';
+
 export type VentaRow = {
     id: string;
     numero: string;
@@ -34,6 +43,7 @@ export type VentasIndexFilters = {
     sort: string | null;
     direction: string | null;
     estado: VentaEstadoFiltro;
+    metodo_pago: VentaMetodoPagoFiltro;
     /** Rango aplicado a la fecha de venta (inclusive, día calendario en zona de la app). */
     fecha_desde: string;
     fecha_hasta: string;

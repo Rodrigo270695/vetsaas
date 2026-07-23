@@ -52,6 +52,12 @@ class FelDocumentController extends Controller
             $estado = 'todos';
         }
 
+        $metodosPermitidos = ['efectivo', 'yape', 'plin', 'tarjeta', 'transferencia', 'otro'];
+        $metodoPago = (string) $request->string('metodo_pago', 'todos');
+        if (! in_array($metodoPago, ['todos', ...$metodosPermitidos], true)) {
+            $metodoPago = 'todos';
+        }
+
         $tz = config('app.timezone');
         $now = now($tz);
         $defaultDesde = $now->copy()->startOfMonth()->toDateString();
@@ -79,7 +85,7 @@ class FelDocumentController extends Controller
 
         $query = FelDocument::query()
             ->with([
-                'venta:id,numero,sede_id,estado,propietario_id',
+                'venta:id,numero,sede_id,estado,propietario_id,metodo_pago',
                 'venta.propietario:id,nombres,apellidos,razon_social,telefono',
             ]);
 
@@ -95,6 +101,20 @@ class FelDocumentController extends Controller
 
         if ($estado !== 'todos') {
             $query->where('estado', $estado);
+        }
+
+        if ($metodoPago !== 'todos') {
+            if ($metodoPago === 'otro') {
+                $query->whereHas('venta', function ($vq) use ($metodosPermitidos): void {
+                    $vq->where(function ($q) use ($metodosPermitidos): void {
+                        $q->whereNull('metodo_pago')
+                            ->orWhere('metodo_pago', '')
+                            ->orWhereNotIn('metodo_pago', array_values(array_diff($metodosPermitidos, ['otro'])));
+                    });
+                });
+            } else {
+                $query->whereHas('venta', fn ($vq) => $vq->where('metodo_pago', $metodoPago));
+            }
         }
 
         $query->whereRaw('DATE(COALESCE(emitido_at, created_at)) >= ?', [$fechaDesde])
@@ -142,6 +162,7 @@ class FelDocumentController extends Controller
                 'venta_id' => $doc->venta_id,
                 'venta_numero' => $venta?->numero,
                 'venta_estado' => $venta?->estado,
+                'metodo_pago' => $venta?->metodo_pago,
                 'sede' => $venta !== null ? ($sedeNombres[$venta->sede_id] ?? '—') : '—',
                 'cliente_telefono' => $propietario?->telefono,
                 'url_pdf_ticket' => $pdfTicket,
@@ -164,6 +185,7 @@ class FelDocumentController extends Controller
                 'sort' => $sortValid ? $sort : null,
                 'direction' => $sortValid && $directionValid ? $direction : null,
                 'estado' => $estado,
+                'metodo_pago' => $metodoPago,
                 'fecha_desde' => $fechaDesde,
                 'fecha_hasta' => $fechaHasta,
             ],
