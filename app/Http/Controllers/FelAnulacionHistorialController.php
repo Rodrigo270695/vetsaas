@@ -73,8 +73,9 @@ class FelAnulacionHistorialController extends Controller
 
         $tz = (string) config('app.timezone');
         $now = now($tz);
-        $defaultDesde = $now->copy()->startOfMonth()->toDateString();
-        $defaultHasta = $now->toDateString();
+        $hoy = $now->toDateString();
+        $defaultDesde = $hoy;
+        $defaultHasta = $hoy;
 
         $fechaDesde = $this->parseDateParam($request->query('fecha_desde')) ?? $defaultDesde;
         $fechaHasta = $this->parseDateParam($request->query('fecha_hasta')) ?? $defaultHasta;

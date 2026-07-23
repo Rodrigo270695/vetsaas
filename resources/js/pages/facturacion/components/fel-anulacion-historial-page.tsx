@@ -1,5 +1,5 @@
 import { Head, Link, usePage } from '@inertiajs/react';
-import { Eye, FileMinus2 } from 'lucide-react';
+import { Eye, FileMinus2, Filter, Ban } from 'lucide-react';
 import { useMemo } from 'react';
 import {
     DataPagination,
@@ -106,6 +106,15 @@ const EMPTY_PAGINATED: Paginated<AnulacionRow> = {
     total: 0,
 };
 
+function todayIsoDate(): string {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+
+    return `${y}-${m}-${d}`;
+}
+
 export function FelAnulacionHistorialPage({
     route_url,
     empty_title,
@@ -115,20 +124,21 @@ export function FelAnulacionHistorialPage({
     // usePage(): fuente de verdad del payload Inertia (evita props perdidas
     // al reenviar desde un shell o con layouts función en Inertia v3).
     const pageProps = usePage().props as unknown as Partial<ServerProps>;
+    const hoy = todayIsoDate();
 
     const page_title = pageProps.page_title ?? 'Historial de anulaciones';
     const paginated = pageProps.documentos ?? EMPTY_PAGINATED;
-    const filters = pageProps.filters ?? {
-        search: '',
-        per_page: 15,
-        sort: null,
-        direction: null,
-        fecha_desde: '',
-        fecha_hasta: '',
+    const filters = {
+        search: pageProps.filters?.search ?? '',
+        per_page: pageProps.filters?.per_page ?? 15,
+        sort: pageProps.filters?.sort ?? null,
+        direction: pageProps.filters?.direction ?? null,
+        fecha_desde: pageProps.filters?.fecha_desde || hoy,
+        fecha_hasta: pageProps.filters?.fecha_hasta || hoy,
     };
     const filtro_ui = pageProps.filtro_ui ?? {
-        default_desde: filters.fecha_desde,
-        default_hasta: filters.fecha_hasta,
+        default_desde: hoy,
+        default_hasta: hoy,
         fuera_del_rango_default: false,
     };
     const stats = pageProps.stats ?? {
@@ -283,12 +293,14 @@ export function FelAnulacionHistorialPage({
                         {
                             label: 'En filtro',
                             value: stats.coincidencias,
-                            variant: 'muted',
+                            variant: 'info',
+                            icon: Filter,
                         },
                         {
                             label: 'Anulados (total)',
                             value: stats.total_anulados,
-                            variant: 'default',
+                            variant: 'danger',
+                            icon: Ban,
                         },
                     ]}
                 />
