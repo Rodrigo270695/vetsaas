@@ -11,7 +11,7 @@ class SubscriptionsApplyGraceCommand extends Command
                             {--dry-run : Solo listar qué se actualizaría, sin escribir}
                             {--report : Mostrar detalle por suscripción}';
 
-    protected $description = 'Aplica periodo de gracia (billing.grace_days) a suscripciones de pago actuales vencidas/en gracia/suspendidas. Excluye plan free.';
+    protected $description = 'Inicializa grace_days (default 3) en suscripciones de pago y activa gracia si ya están vencidas/suspendidas. Excluye plan free.';
 
     public function handle(SubscriptionGraceBackfillService $backfill): int
     {
@@ -21,31 +21,34 @@ class SubscriptionsApplyGraceCommand extends Command
         $result = $backfill->run(dryRun: $dryRun);
 
         $this->info(sprintf(
-            '%s Gracia %d día(s): escaneadas=%d aplicadas=%d omitidas=%d',
+            '%s Default %d día(s): escaneadas=%d grace_days_set=%d gracia_activada=%d omitidas=%d',
             $dryRun ? '[dry-run]' : '[ok]',
-            $result['grace_days'],
+            $result['default_grace_days'],
             $result['scanned'],
-            $result['applied'],
+            $result['days_set'],
+            $result['grace_applied'],
             $result['skipped'],
         ));
 
         if ($report && $result['items'] !== []) {
             $this->table(
-                ['subscription_id', 'tenant_id', 'from', 'to', 'grace_ends_at'],
+                ['subscription_id', 'tenant_id', 'from', 'estado', 'grace_days', 'grace_ends_at'],
                 array_map(
                     static fn (array $row): array => [
                         $row['id'],
                         $row['tenant_id'],
                         $row['from'],
-                        $row['to'],
-                        $row['grace_ends_at'],
+                        $row['estado'],
+                        (string) $row['grace_days'],
+                        $row['grace_ends_at'] ?? '—',
                     ],
                     $result['items'],
                 ),
             );
         }
 
-        $this->comment('Las active aún vigentes no se tocan: al vencer el cobro, `vetsaas:billing-supervisor` las pasa a grace.');
+        $this->comment('Puedes ajustar “Días de gracia” por suscripción en Plataforma → Suscripciones → Editar.');
+        $this->comment('Las active vigentes solo reciben grace_days; al vencer el cobro el supervisor activa la gracia con ese valor.');
 
         return self::SUCCESS;
     }

@@ -73,6 +73,7 @@ class SubscriptionRequest extends FormRequest
             'current_period_start' => ['nullable', 'date'],
             'current_period_end' => ['nullable', 'date', 'after_or_equal:current_period_start'],
             'grace_ends_at' => ['nullable', 'date'],
+            'grace_days' => ['nullable', 'integer', 'min:1', 'max:90'],
             'proximo_cobro_at' => ['nullable', 'date'],
             'cancel_reason' => ['nullable', 'string', 'max:500'],
             'cancel_feedback' => ['nullable', 'string', 'max:2000'],
@@ -92,6 +93,7 @@ class SubscriptionRequest extends FormRequest
             'current_period_start' => 'inicio del periodo',
             'current_period_end' => 'fin del periodo',
             'grace_ends_at' => 'fin del periodo de gracia',
+            'grace_days' => 'días de gracia',
             'proximo_cobro_at' => 'próximo cobro',
         ];
     }
@@ -102,6 +104,9 @@ class SubscriptionRequest extends FormRequest
             'descuento_pct' => filled($this->input('descuento_pct'))
                 ? $this->input('descuento_pct')
                 : 0,
+            'grace_days' => filled($this->input('grace_days'))
+                ? (int) $this->input('grace_days')
+                : max(1, (int) config('billing.grace_days', 3)),
             'cancel_reason' => filled($this->input('cancel_reason'))
                 ? trim((string) $this->input('cancel_reason'))
                 : null,

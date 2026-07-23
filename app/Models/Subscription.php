@@ -23,6 +23,7 @@ class Subscription extends Model
         'current_period_start',
         'current_period_end',
         'grace_ends_at',
+        'grace_days',
         'cancelled_at',
         'cancel_reason',
         'cancel_feedback',
@@ -50,6 +51,7 @@ class Subscription extends Model
             'current_period_start' => 'datetime',
             'current_period_end' => 'datetime',
             'grace_ends_at' => 'datetime',
+            'grace_days' => 'integer',
             'cancelled_at' => 'datetime',
             'proximo_cobro_at' => 'datetime',
             'bot_ia_activado_at' => 'datetime',
@@ -68,6 +70,21 @@ class Subscription extends Model
     public function plan(): BelongsTo
     {
         return $this->belongsTo(Plan::class);
+    }
+
+    /**
+     * Días de gracia efectivos de esta suscripción.
+     * Por defecto usa `billing.grace_days` (3); se puede sobreescribir por tenant.
+     */
+    public function effectiveGraceDays(): int
+    {
+        $days = $this->grace_days;
+
+        if ($days === null || (int) $days < 1) {
+            return max(1, (int) config('billing.grace_days', 3));
+        }
+
+        return max(1, min(90, (int) $days));
     }
 
     public function payments(): HasMany

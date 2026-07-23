@@ -38,14 +38,13 @@ class SubscriptionBillingSupervisor
     private function processExpiredTrials(CarbonInterface $now): int
     {
         $count = 0;
-        $graceDays = $this->graceDays();
 
         Subscription::query()
             ->where('estado', 'trial')
             ->whereNotNull('trial_ends_at')
             ->where('trial_ends_at', '<=', $now)
             ->orderBy('id')
-            ->chunkById(100, function ($subscriptions) use ($now, $graceDays, &$count): void {
+            ->chunkById(100, function ($subscriptions) use ($now, &$count): void {
                 foreach ($subscriptions as $subscription) {
                     if ($this->hasCoveringPayment($subscription)) {
                         continue;
@@ -62,7 +61,12 @@ class SubscriptionBillingSupervisor
                         continue;
                     }
 
-                    $this->enterGraceOrSuspend($subscription, $now, $graceDays, $subscription->trial_ends_at);
+                    $this->enterGraceOrSuspend(
+                        $subscription,
+                        $now,
+                        $subscription->effectiveGraceDays(),
+                        $subscription->trial_ends_at,
+                    );
                     $count++;
                 }
             });
@@ -73,7 +77,6 @@ class SubscriptionBillingSupervisor
     private function processOverdueActive(CarbonInterface $now): int
     {
         $count = 0;
-        $graceDays = $this->graceDays();
 
         Subscription::query()
             ->where('estado', 'active')
@@ -82,14 +85,19 @@ class SubscriptionBillingSupervisor
             ->where('proximo_cobro_at', '<=', $now)
             ->whereHas('plan', fn ($q) => $q->excludingFree())
             ->orderBy('id')
-            ->chunkById(100, function ($subscriptions) use ($now, $graceDays, &$count): void {
+            ->chunkById(100, function ($subscriptions) use ($now, &$count): void {
                 foreach ($subscriptions as $subscription) {
                     if ($this->hasCoveringPayment($subscription)) {
                         continue;
                     }
 
                     $anchor = $subscription->proximo_cobro_at ?? $subscription->current_period_end;
-                    $this->enterGraceOrSuspend($subscription, $now, $graceDays, $anchor);
+                    $this->enterGraceOrSuspend(
+                        $subscription,
+                        $now,
+                        $subscription->effectiveGraceDays(),
+                        $anchor,
+                    );
                     $count++;
                 }
             });
@@ -169,10 +177,5 @@ class SubscriptionBillingSupervisor
     private function hasCoveringPayment(Subscription $subscription): bool
     {
         return $this->coverage->hasCoveringPayment($subscription);
-    }
-
-    private function graceDays(): int
-    {
-        return max(1, (int) config('billing.grace_days', 3));
     }
 }

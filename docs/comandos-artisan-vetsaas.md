@@ -225,14 +225,15 @@ php artisan vetsaas:billing-supervisor
 
 ### `vetsaas:subscriptions-apply-grace`
 
-Migración / backfill: pone en gracia las suscripciones **de pago** actuales que ya están vencidas, en gracia o suspendidas (excluye plan `free` y `precio_pactado <= 0`). Las `active` aún vigentes no se tocan: al vencer el cobro las pasa el supervisor.
+Inicializa `grace_days` (default **3**) en suscripciones de **pago** y activa la ventana de gracia solo si ya estaban vencidas / en gracia / suspendidas. Excluye plan `free`.
+
+Las `active` aún vigentes no pasan a estado `grace` (correcto): al vencer el cobro el supervisor usa los días de esa suscripción. Edita **Días de gracia** en Plataforma → Suscripciones → Editar.
 
 ```bash
+php artisan migrate
 php artisan vetsaas:subscriptions-apply-grace --dry-run --report
 php artisan vetsaas:subscriptions-apply-grace
 ```
-
-**Uso típico en VPS (una vez al activar la gracia):** dry-run → aplicar.
 
 ---
 

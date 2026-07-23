@@ -40,6 +40,7 @@ type SubscriptionFormData = {
     current_period_start: string;
     current_period_end: string;
     grace_ends_at: string;
+    grace_days: string;
     proximo_cobro_at: string;
     cancel_reason: string;
     cancel_feedback: string;
@@ -56,6 +57,7 @@ const emptyForm: SubscriptionFormData = {
     current_period_start: '',
     current_period_end: '',
     grace_ends_at: '',
+    grace_days: '3',
     proximo_cobro_at: '',
     cancel_reason: '',
     cancel_feedback: '',
@@ -97,6 +99,7 @@ const buildInitialData = (
         subscription?.current_period_end ?? null,
     ),
     grace_ends_at: formatDateTimeLocal(subscription?.grace_ends_at ?? null),
+    grace_days: String(subscription?.grace_days ?? 3),
     proximo_cobro_at: formatDateTimeLocal(
         subscription?.proximo_cobro_at ?? null,
     ),
@@ -568,10 +571,29 @@ export function SubscriptionFormModal({
                         </FormField>
 
                         <FormField
+                            id="sub-grace-days"
+                            label={t('suscripciones:form.fields.grace_days')}
+                            hint={t('suscripciones:form.fields.grace_days_hint')}
+                            error={errors.grace_days}
+                        >
+                            <Input
+                                id="sub-grace-days"
+                                type="number"
+                                min={1}
+                                max={90}
+                                step={1}
+                                value={data.grace_days}
+                                onChange={(e) => setData('grace_days', e.target.value)}
+                                className="font-mono"
+                            />
+                        </FormField>
+
+                        <FormField
                             id="sub-grace-ends-at"
                             label={t(
                                 'suscripciones:form.fields.grace_ends_at',
                             )}
+                            hint={t('suscripciones:form.fields.grace_ends_at_hint')}
                             error={errors.grace_ends_at}
                         >
                             <Input

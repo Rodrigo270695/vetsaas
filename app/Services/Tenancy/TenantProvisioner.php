@@ -150,6 +150,7 @@ class TenantProvisioner
             'proximo_cobro_at' => $periodEnd,
             'precio_pactado' => $precio,
             'descuento_pct' => $payload['descuento_pct'] ?? 0,
+            'grace_days' => max(1, (int) config('billing.grace_days', 3)),
         ]);
     }
 

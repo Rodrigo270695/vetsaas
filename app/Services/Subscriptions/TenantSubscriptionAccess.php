@@ -157,7 +157,7 @@ final class TenantSubscriptionAccess
             return false;
         }
 
-        return ! $this->isPast(Carbon::parse($periodEnd)->addDays($this->graceDays()));
+        return ! $this->isPast(Carbon::parse($periodEnd)->addDays($subscription->effectiveGraceDays()));
     }
 
     private function isBillableOverdueWithinGrace(Subscription $subscription, mixed $periodEnd): bool
@@ -170,12 +170,7 @@ final class TenantSubscriptionAccess
             return false;
         }
 
-        return ! $this->isPast(Carbon::parse($periodEnd)->addDays($this->graceDays()));
-    }
-
-    private function graceDays(): int
-    {
-        return max(1, (int) config('billing.grace_days', 3));
+        return ! $this->isPast(Carbon::parse($periodEnd)->addDays($subscription->effectiveGraceDays()));
     }
 
     private function isPast(mixed $value): bool

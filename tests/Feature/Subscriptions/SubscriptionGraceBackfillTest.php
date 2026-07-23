@@ -113,9 +113,11 @@ it('aplica gracia a suscripciones de pago vencidas y omite free', function (): v
     $freeSub->refresh();
     $current->refresh();
 
-    expect($result['applied'])->toBe(1)
+    expect($result['grace_applied'])->toBe(1)
         ->and($overdue->estado)->toBe('grace')
         ->and($overdue->grace_ends_at)->not->toBeNull()
+        ->and($overdue->grace_days)->toBe(3)
         ->and($freeSub->estado)->toBe('active')
-        ->and($current->estado)->toBe('active');
+        ->and($current->estado)->toBe('active')
+        ->and($current->grace_days)->toBe(3);
 });

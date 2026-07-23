@@ -125,6 +125,9 @@
             "current_period_start": "Inicio del periodo actual",
             "current_period_end": "Fin del periodo actual",
             "grace_ends_at": "Fin del periodo de gracia",
+            "grace_ends_at_hint": "Se calcula solo al activar la gracia. Déjalo vacío si aún no venció el cobro.",
+            "grace_days": "Días de gracia",
+            "grace_days_hint": "Por defecto 3. Si el tenant pide más (o menos), cámbialo aquí; aplica al próximo vencimiento.",
             "proximo_cobro_at": "Próximo cobro",
             "cancel_reason": "Motivo de la cancelación",
             "cancel_feedback": "Feedback adicional del cliente"
