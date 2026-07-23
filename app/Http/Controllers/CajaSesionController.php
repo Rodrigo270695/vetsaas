@@ -52,6 +52,32 @@ class CajaSesionController extends Controller
             $estadoFiltro = 'todas';
         }
 
+        $tz = config('app.timezone');
+        $now = now($tz);
+        $hoy = $now->toDateString();
+        $defaultDesde = $hoy;
+        $defaultHasta = $hoy;
+
+        $fechaDesde = $this->parseDateParam($request->query('fecha_desde'));
+        $fechaHasta = $this->parseDateParam($request->query('fecha_hasta'));
+
+        if ($fechaDesde === null || $fechaHasta === null) {
+            $fechaDesde = $defaultDesde;
+            $fechaHasta = $defaultHasta;
+            $fueraDelDefault = false;
+        } else {
+            if ($fechaDesde > $fechaHasta) {
+                [$fechaDesde, $fechaHasta] = [$fechaHasta, $fechaDesde];
+            }
+            $fueraDelDefault = ($fechaDesde !== $defaultDesde) || ($fechaHasta !== $defaultHasta);
+        }
+
+        $sesionFiltroUi = [
+            'default_desde' => $defaultDesde,
+            'default_hasta' => $defaultHasta,
+            'fuera_del_mes_actual' => $fueraDelDefault,
+        ];
+
         $sedesActivas = Sede::query()
             ->where('tenant_id', $tenantId)
             ->where('activa', true)
@@ -72,7 +98,9 @@ class CajaSesionController extends Controller
             ->with([
                 'abiertaPor:id,name',
                 'cerradaPor:id,name',
-            ]);
+            ])
+            ->whereRaw('DATE(opened_at) >= ?', [$fechaDesde])
+            ->whereRaw('DATE(opened_at) <= ?', [$fechaHasta]);
 
         if ($search !== '') {
             $query->where(function ($q) use ($search): void {
@@ -113,17 +141,14 @@ class CajaSesionController extends Controller
             return $s;
         });
 
-        $abiertasCount = CajaSesion::query()
-            ->where('estado', CajaSesion::ESTADO_ABIERTA)
-            ->when($sedeFiltro !== '', fn ($q) => $q->where('sede_id', $sedeFiltro))
-            ->count();
-        $cerradasCount = CajaSesion::query()
-            ->where('estado', CajaSesion::ESTADO_CERRADA)
-            ->when($sedeFiltro !== '', fn ($q) => $q->where('sede_id', $sedeFiltro))
-            ->count();
-        $totalCount = CajaSesion::query()
-            ->when($sedeFiltro !== '', fn ($q) => $q->where('sede_id', $sedeFiltro))
-            ->count();
+        $statsBase = CajaSesion::query()
+            ->whereRaw('DATE(opened_at) >= ?', [$fechaDesde])
+            ->whereRaw('DATE(opened_at) <= ?', [$fechaHasta])
+            ->when($sedeFiltro !== '', fn ($q) => $q->where('sede_id', $sedeFiltro));
+
+        $abiertasCount = (clone $statsBase)->where('estado', CajaSesion::ESTADO_ABIERTA)->count();
+        $cerradasCount = (clone $statsBase)->where('estado', CajaSesion::ESTADO_CERRADA)->count();
+        $totalCount = (clone $statsBase)->count();
 
         $miSesionAbierta = CajaSesion::query()
             ->where('estado', CajaSesion::ESTADO_ABIERTA)
@@ -149,7 +174,10 @@ class CajaSesionController extends Controller
                 'direction' => $sortValid && $directionValid ? $direction : null,
                 'estado' => $estadoFiltro,
                 'sede_id' => $sedeFiltro,
+                'fecha_desde' => $fechaDesde,
+                'fecha_hasta' => $fechaHasta,
             ],
+            'sesion_filtro_ui' => $sesionFiltroUi,
             'stats' => [
                 'total' => $totalCount,
                 'abiertas' => $abiertasCount,
@@ -161,6 +189,19 @@ class CajaSesionController extends Controller
                 (string) (ClinicSetting::query()->value('ticket_ancho_mm') ?? TicketAnchoMm::DEFAULT),
             ),
         ]);
+    }
+
+    private function parseDateParam(mixed $value): ?string
+    {
+        if (! is_string($value) || $value === '') {
+            return null;
+        }
+
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) !== 1) {
+            return null;
+        }
+
+        return $value;
     }
 
     public function store(StoreCajaSesionRequest $request): RedirectResponse

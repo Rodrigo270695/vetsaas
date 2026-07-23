@@ -3,9 +3,9 @@ import {
     AlertTriangle,
     CircleDot,
     Eye,
-    FileText,
     Lock,
     Plus,
+    Printer,
     ScreenShare,
     SlidersHorizontal,
     Store,
@@ -32,10 +32,11 @@ import { Button } from '@/components/ui/button';
 import { useDataTablePage } from '@/hooks/use-data-table-page';
 import { usePermission } from '@/hooks/use-permission';
 import AppLayout from '@/layouts/app-layout';
+import { normalizeTicketAncho } from '@/lib/ticket-ancho';
+import { AtencionDateRangeFilter } from '@/pages/clinica/historias-clinicas/components/atencion-date-range-filter';
 import caja from '@/routes/caja';
 import { arqueoPdf } from '@/routes/caja/sesiones';
 import type { QueryParams } from '@/wayfinder';
-import { normalizeTicketAncho } from '@/lib/ticket-ancho';
 import { ArqueoPrintDialog } from './components/arqueo-print-dialog';
 import { SesionAbrirModal } from './components/sesion-abrir-modal';
 import { SesionArqueoDetalleModal } from './components/sesion-arqueo-detalle-modal';
@@ -45,6 +46,8 @@ import type { CajaSesionEstadoFiltro, CajaSesionFilters, CajaSesionRow, CajaSesi
 type TableExtraFilters = {
     estado: CajaSesionEstadoFiltro;
     sede_id: string;
+    fecha_desde: string;
+    fecha_hasta: string;
 };
 
 const DEFAULT_PER_PAGE = 10;
@@ -93,6 +96,14 @@ function filtersToListQuery(filters: CajaSesionFilters): QueryParams {
         q.sede_id = filters.sede_id;
     }
 
+    if (filters.fecha_desde) {
+        q.fecha_desde = filters.fecha_desde;
+    }
+
+    if (filters.fecha_hasta) {
+        q.fecha_hasta = filters.fecha_hasta;
+    }
+
     return q;
 }
 
@@ -104,6 +115,7 @@ export default function Index({
     mi_sesion_abierta: miSesionAbierta,
     sin_sedes: sinSedes,
     ticket_ancho_mm: ticketAnchoMm,
+    sesion_filtro_ui: sesionFiltroUi,
 }: CajaSesionesIndexProps) {
     const { t, i18n } = useTranslation(['caja', 'common']);
     const { props } = usePage();
@@ -118,7 +130,16 @@ export default function Index({
     const { search, setSearch, isLoading, sort, setSort, setPerPage, applyFilter } = useDataTablePage<TableExtraFilters>({
         routeUrl: caja.sesiones.index.url(),
         initialFilters: filters,
-        only: ['sesiones', 'filters', 'stats', 'sedes_opciones', 'mi_sesion_abierta', 'sin_sedes', 'ticket_ancho_mm'],
+        only: [
+            'sesiones',
+            'filters',
+            'stats',
+            'sedes_opciones',
+            'mi_sesion_abierta',
+            'sin_sedes',
+            'ticket_ancho_mm',
+            'sesion_filtro_ui',
+        ],
         errorMessage: t('caja:sesiones.toast_load_error'),
         storageKey: 'vetsaas.caja.sesiones.prefs',
         defaults: {
@@ -181,12 +202,23 @@ export default function Index({
             count += 1;
         }
 
+        if (sesionFiltroUi.fuera_del_mes_actual) {
+            count += 1;
+        }
+
         if (filters.per_page !== DEFAULT_PER_PAGE) {
             count += 1;
         }
 
         return count;
-    }, [filters.search, filters.sort, filters.estado, filters.sede_id, filters.per_page]);
+    }, [
+        filters.search,
+        filters.sort,
+        filters.estado,
+        filters.sede_id,
+        filters.per_page,
+        sesionFiltroUi.fuera_del_mes_actual,
+    ]);
 
     const sedeCodigoById = useMemo(
         () => Object.fromEntries(sedesOpciones.map((s) => [s.id, s.codigo])),
@@ -305,26 +337,26 @@ export default function Index({
                 cell: (row) => {
                     if (row.estado === 'cerrada' && canView) {
                         return (
-                            <div className="flex justify-end gap-1">
+                            <div className="flex justify-end gap-0.5">
                                 <Button
                                     type="button"
-                                    variant="outline"
+                                    variant="ghost"
                                     size="sm"
-                                    className="h-7 min-h-7 cursor-pointer gap-1 rounded-md px-2 text-xs font-medium"
+                                    className="h-8 cursor-pointer gap-1 rounded-md px-2 text-xs font-medium text-violet-600 shadow-none hover:bg-violet-500/10 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300"
                                     onClick={() => setDetalleSesion(row)}
                                 >
-                                    <Eye className="size-3 shrink-0 opacity-90" strokeWidth={2.5} aria-hidden />
+                                    <Eye className="size-3.5 shrink-0" strokeWidth={2.25} aria-hidden />
                                     <span className="hidden sm:inline">{t('caja:sesiones.actions.arqueo_ver')}</span>
                                     <span className="sm:hidden">{t('caja:sesiones.actions.arqueo_ver_short')}</span>
                                 </Button>
                                 <Button
                                     type="button"
-                                    variant="outline"
+                                    variant="ghost"
                                     size="sm"
-                                    className="h-7 min-h-7 cursor-pointer gap-1 rounded-md px-2 text-xs font-medium"
+                                    className="h-8 cursor-pointer gap-1 rounded-md px-2 text-xs font-medium text-sky-600 shadow-none hover:bg-sky-500/10 hover:text-sky-700 dark:text-sky-400 dark:hover:text-sky-300"
                                     onClick={() => setImprimirSesionId(row.id)}
                                 >
-                                    <FileText className="size-3 shrink-0 opacity-90" strokeWidth={2.5} aria-hidden />
+                                    <Printer className="size-3.5 shrink-0" strokeWidth={2.25} aria-hidden />
                                     <span className="hidden sm:inline">{t('caja:sesiones.actions.arqueo_pdf')}</span>
                                     <span className="sm:hidden">{t('caja:sesiones.actions.arqueo_pdf_short')}</span>
                                 </Button>
@@ -460,22 +492,38 @@ export default function Index({
                             placeholder={t('caja:sesiones.search_placeholder')}
                             filtersClassName="sm:flex-1 sm:min-w-0"
                         >
-                            <div className="flex w-full min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
-                                <FilterChips
-                                    ariaLabel={t('caja:sesiones.filter_estado_label')}
-                                    value={filters.estado}
-                                    onChange={(estado) => applyFilter({ estado })}
-                                    options={estadoOptions}
-                                />
-                                {!sinSedes && sedesOpciones.length > 0 ? (
+                            <div className="flex w-full min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                                <div className="flex min-w-0 flex-wrap items-center gap-2">
                                     <FilterChips
-                                        ariaLabel={t('caja:sesiones.filter_sede_label')}
-                                        value={filters.sede_id ? filters.sede_id : 'all'}
-                                        onChange={(v) => applyFilter({ sede_id: v === 'all' ? '' : v })}
-                                        options={sedeFilterOptions}
-                                        className="sm:min-w-56"
+                                        ariaLabel={t('caja:sesiones.filter_estado_label')}
+                                        value={filters.estado}
+                                        onChange={(estado) => applyFilter({ estado })}
+                                        options={estadoOptions}
                                     />
-                                ) : null}
+                                    {!sinSedes && sedesOpciones.length > 0 ? (
+                                        <FilterChips
+                                            ariaLabel={t('caja:sesiones.filter_sede_label')}
+                                            value={filters.sede_id ? filters.sede_id : 'all'}
+                                            onChange={(v) => applyFilter({ sede_id: v === 'all' ? '' : v })}
+                                            options={sedeFilterOptions}
+                                            className="sm:min-w-56"
+                                        />
+                                    ) : null}
+                                </div>
+                                <div className="flex shrink-0 justify-start sm:justify-end">
+                                    <AtencionDateRangeFilter
+                                        desde={filters.fecha_desde}
+                                        hasta={filters.fecha_hasta}
+                                        defaultDesde={sesionFiltroUi.default_desde}
+                                        defaultHasta={sesionFiltroUi.default_hasta}
+                                        disabled={isLoading}
+                                        translationNs="caja"
+                                        triggerClassName="h-10 min-w-[12rem]"
+                                        onApply={(desde, hasta) =>
+                                            applyFilter({ fecha_desde: desde, fecha_hasta: hasta })
+                                        }
+                                    />
+                                </div>
                             </div>
                         </DataToolbar>
                     }
@@ -490,6 +538,8 @@ export default function Index({
                                 direction: filters.direction ?? undefined,
                                 estado: filters.estado !== DEFAULT_ESTADO ? filters.estado : undefined,
                                 sede_id: filters.sede_id || undefined,
+                                fecha_desde: filters.fecha_desde,
+                                fecha_hasta: filters.fecha_hasta,
                             }}
                         />
                     }

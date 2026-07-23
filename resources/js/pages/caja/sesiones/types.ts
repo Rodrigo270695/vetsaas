@@ -9,6 +9,14 @@ export type CajaSesionFilters = {
     direction: 'asc' | 'desc' | null;
     estado: CajaSesionEstadoFiltro;
     sede_id: string;
+    fecha_desde: string;
+    fecha_hasta: string;
+};
+
+export type CajaSesionFiltroUi = {
+    default_desde: string;
+    default_hasta: string;
+    fuera_del_mes_actual: boolean;
 };
 
 export type CajaSesionUsuario = {
@@ -51,6 +59,7 @@ export type CajaSesionesIndexProps = {
     sedes_opciones: SedeOpcion[];
     mi_sesion_abierta: (CajaSesionRow & { sede_nombre?: string }) | null;
     filters: CajaSesionFilters;
+    sesion_filtro_ui: CajaSesionFiltroUi;
     stats: CajaSesionStats;
     sin_sedes: boolean;
     ticket_ancho_mm: '56' | '58' | '80';

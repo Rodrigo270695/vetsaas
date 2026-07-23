@@ -244,8 +244,9 @@ class VentaController extends Controller
 
         $tz = config('app.timezone');
         $now = now($tz);
-        $defaultDesde = $now->copy()->startOfMonth()->toDateString();
-        $defaultHasta = $now->copy()->endOfMonth()->toDateString();
+        $hoy = $now->toDateString();
+        $defaultDesde = $hoy;
+        $defaultHasta = $hoy;
 
         $fechaDesde = $this->parseDateParam($request->query('fecha_desde'));
         $fechaHasta = $this->parseDateParam($request->query('fecha_hasta'));

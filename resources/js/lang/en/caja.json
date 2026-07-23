@@ -133,9 +133,9 @@
         }
     },
     "date_filter": {
-        "placeholder": "Date range (sale)",
-        "aria": "Filter sales by date",
-        "reset_month": "Current month",
+        "placeholder": "Date range",
+        "aria": "Filter by date range",
+        "reset_month": "Today",
         "preset_this_week": "This week",
         "preset_last_week": "Last week",
         "preset_last_month": "Last month",

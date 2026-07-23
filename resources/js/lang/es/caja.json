@@ -133,9 +133,9 @@
         }
     },
     "date_filter": {
-        "placeholder": "Rango de fechas (venta)",
-        "aria": "Filtrar ventas por fecha",
-        "reset_month": "Mes actual",
+        "placeholder": "Rango de fechas",
+        "aria": "Filtrar por rango de fechas",
+        "reset_month": "Hoy",
         "preset_this_week": "Esta semana",
         "preset_last_week": "Semana pasada",
         "preset_last_month": "Mes pasado",
