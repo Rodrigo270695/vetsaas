@@ -1,6 +1,6 @@
 import { Head } from '@inertiajs/react';
 import { LineChart, Package, ReceiptText, TrendingUp, Wallet } from 'lucide-react';
-import { useCallback, type ReactNode } from 'react';
+import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DashboardChartCard } from '@/components/dashboard/dashboard-chart-card';
 import { DashboardFelChart } from '@/components/dashboard/dashboard-fel-chart';
@@ -9,7 +9,6 @@ import { DashboardRentabilidadCard } from '@/components/dashboard/dashboard-rent
 import { DashboardRentabilidadClinicaCard } from '@/components/dashboard/dashboard-rentabilidad-clinica-card';
 import { DashboardRentabilidadGroomingCard } from '@/components/dashboard/dashboard-rentabilidad-grooming-card';
 import { DashboardTopProductsChart } from '@/components/dashboard/dashboard-top-products-chart';
-import AppLayout from '@/layouts/app-layout';
 import type {
     ComparacionIngresosMes,
     FelEstadoRow,
@@ -26,31 +25,38 @@ type Capabilities = {
     grooming: boolean;
 };
 
+const EMPTY_CAPABILITIES: Capabilities = {
+    ventas: false,
+    productos: false,
+    grooming: false,
+};
+
 type Props = {
-    capabilities: Capabilities;
-    moneda: string;
-    ingresos_mensuales: IngresosMensualRow[];
-    comparacion_ingresos_mes: ComparacionIngresosMes | null;
-    top_productos_mes: TopProductoRow[];
-    rentabilidad: RentabilidadResumen | null;
-    rentabilidad_grooming: RentabilidadGroomingResumen | null;
-    rentabilidad_clinica: RentabilidadClinicaResumen | null;
-    fel_estado_mes: FelEstadoRow[];
+    capabilities?: Capabilities | null;
+    moneda?: string;
+    ingresos_mensuales?: IngresosMensualRow[];
+    comparacion_ingresos_mes?: ComparacionIngresosMes | null;
+    top_productos_mes?: TopProductoRow[];
+    rentabilidad?: RentabilidadResumen | null;
+    rentabilidad_grooming?: RentabilidadGroomingResumen | null;
+    rentabilidad_clinica?: RentabilidadClinicaResumen | null;
+    fel_estado_mes?: FelEstadoRow[];
 };
 
 export default function ReporteFinancieroIndex({
-    capabilities,
-    moneda,
-    ingresos_mensuales,
-    comparacion_ingresos_mes,
-    top_productos_mes,
-    rentabilidad,
-    rentabilidad_grooming,
-    rentabilidad_clinica,
-    fel_estado_mes,
+    capabilities: capabilitiesProp,
+    moneda = 'PEN',
+    ingresos_mensuales = [],
+    comparacion_ingresos_mes = null,
+    top_productos_mes = [],
+    rentabilidad = null,
+    rentabilidad_grooming = null,
+    rentabilidad_clinica = null,
+    fel_estado_mes = [],
 }: Props) {
     const { t, i18n } = useTranslation(['dashboard', 'common']);
     const locale = i18n.language?.startsWith('en') ? 'en-US' : 'es-PE';
+    const capabilities = capabilitiesProp ?? EMPTY_CAPABILITIES;
 
     const felEstadoLabel = useCallback(
         (estado: string) => t(`estados_fel.${estado}`, { defaultValue: estado }),
@@ -172,13 +178,9 @@ export default function ReporteFinancieroIndex({
     );
 }
 
-ReporteFinancieroIndex.layout = (page: ReactNode) => (
-    <AppLayout
-        breadcrumbs={[
-            { title: 'Reportes', href: '#' },
-            { title: 'Análisis financiero', href: '/reportes/financiero' },
-        ]}
-    >
-        {page}
-    </AppLayout>
-);
+ReporteFinancieroIndex.layout = {
+    breadcrumbs: [
+        { title: 'Reportes', href: '#' },
+        { title: 'Análisis financiero', href: '/reportes/financiero' },
+    ],
+};

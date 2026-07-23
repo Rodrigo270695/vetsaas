@@ -36,10 +36,18 @@ class ReporteFinancieroController extends Controller
 
         $tenantModel = $this->tenantManager->current()?->tenant;
         $capabilities = TenantModuleAccess::filterCapabilities($tenantModel, $capabilities);
+        $analysis = $this->stats->buildFinancialAnalysis($capabilities);
 
         return Inertia::render('reportes/financiero/index', [
             'capabilities' => $capabilities,
-            ...$this->stats->buildFinancialAnalysis($capabilities),
+            'moneda' => $analysis['moneda'],
+            'ingresos_mensuales' => $analysis['ingresos_mensuales'],
+            'comparacion_ingresos_mes' => $analysis['comparacion_ingresos_mes'],
+            'top_productos_mes' => $analysis['top_productos_mes'],
+            'rentabilidad' => $analysis['rentabilidad'],
+            'rentabilidad_grooming' => $analysis['rentabilidad_grooming'],
+            'rentabilidad_clinica' => $analysis['rentabilidad_clinica'],
+            'fel_estado_mes' => $analysis['fel_estado_mes'],
         ]);
     }
 
