@@ -1,17 +1,10 @@
-import {
-    FelAnulacionHistorialPage,
-    felAnulacionLayout,
-    type FelAnulacionHistorialProps,
-} from '@/pages/facturacion/components/fel-anulacion-historial-page';
+import { FelAnulacionHistorialPage } from '@/pages/facturacion/components/fel-anulacion-historial-page';
 
 const ROUTE_URL = '/facturacion/resumenes';
 
-type Props = Omit<FelAnulacionHistorialProps, 'route_url' | 'empty_title' | 'empty_description' | 'hint'>;
-
-export default function Index(props: Props) {
+export default function Index() {
     return (
         <FelAnulacionHistorialPage
-            {...props}
             route_url={ROUTE_URL}
             empty_title="Aún no hay boletas anuladas"
             empty_description="Cuando anules boletas electrónicas desde caja, aparecerán aquí como historial de resúmenes."
@@ -20,4 +13,9 @@ export default function Index(props: Props) {
     );
 }
 
-Index.layout = felAnulacionLayout('Resúmenes', ROUTE_URL);
+Index.layout = {
+    breadcrumbs: [
+        { title: 'Facturación' },
+        { title: 'Resúmenes', href: ROUTE_URL },
+    ],
+};

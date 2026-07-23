@@ -1,17 +1,10 @@
-import {
-    FelAnulacionHistorialPage,
-    felAnulacionLayout,
-    type FelAnulacionHistorialProps,
-} from '@/pages/facturacion/components/fel-anulacion-historial-page';
+import { FelAnulacionHistorialPage } from '@/pages/facturacion/components/fel-anulacion-historial-page';
 
 const ROUTE_URL = '/facturacion/notas-baja';
 
-type Props = Omit<FelAnulacionHistorialProps, 'route_url' | 'empty_title' | 'empty_description' | 'hint'>;
-
-export default function Index(props: Props) {
+export default function Index() {
     return (
         <FelAnulacionHistorialPage
-            {...props}
             route_url={ROUTE_URL}
             empty_title="Aún no hay facturas anuladas"
             empty_description="Cuando anules facturas electrónicas desde caja, aparecerán aquí como historial de notas de baja."
@@ -20,4 +13,9 @@ export default function Index(props: Props) {
     );
 }
 
-Index.layout = felAnulacionLayout('Notas de baja', ROUTE_URL);
+Index.layout = {
+    breadcrumbs: [
+        { title: 'Facturación' },
+        { title: 'Notas de baja', href: ROUTE_URL },
+    ],
+};

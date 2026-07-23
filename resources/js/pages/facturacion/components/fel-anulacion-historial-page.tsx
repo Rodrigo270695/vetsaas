@@ -1,6 +1,5 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import { Eye, FileMinus2 } from 'lucide-react';
-import type { ReactNode } from 'react';
 import { useMemo } from 'react';
 import {
     DataPagination,
@@ -13,7 +12,6 @@ import type { DataTableColumn } from '@/components/data-page';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useDataTablePage } from '@/hooks/use-data-table-page';
-import AppLayout from '@/layouts/app-layout';
 import { AtencionDateRangeFilter } from '@/pages/clinica/historias-clinicas/components/atencion-date-range-filter';
 import caja from '@/routes/caja';
 import type { Paginated } from '@/types';
@@ -35,12 +33,8 @@ export type AnulacionRow = {
     sede: string;
 };
 
-export type FelAnulacionHistorialProps = {
+type ServerProps = {
     page_title: string;
-    route_url: string;
-    empty_title: string;
-    empty_description: string;
-    hint: string;
     documentos: Paginated<AnulacionRow>;
     filters: {
         search: string;
@@ -59,6 +53,13 @@ export type FelAnulacionHistorialProps = {
         total_anulados: number;
         coincidencias: number;
     };
+};
+
+export type FelAnulacionHistorialShellProps = {
+    route_url: string;
+    empty_title: string;
+    empty_description: string;
+    hint: string;
 };
 
 type TableExtraFilters = {
@@ -89,17 +90,52 @@ function formatDate(value: string | null): string {
     }).format(new Date(value));
 }
 
+const EMPTY_PAGINATED: Paginated<AnulacionRow> = {
+    data: [],
+    current_page: 1,
+    first_page_url: null,
+    from: null,
+    last_page: 1,
+    last_page_url: null,
+    links: [],
+    next_page_url: null,
+    path: '',
+    per_page: 15,
+    prev_page_url: null,
+    to: null,
+    total: 0,
+};
+
 export function FelAnulacionHistorialPage({
-    page_title,
     route_url,
     empty_title,
     empty_description,
     hint,
-    documentos: paginated,
-    filters,
-    filtro_ui,
-    stats,
-}: FelAnulacionHistorialProps) {
+}: FelAnulacionHistorialShellProps) {
+    // usePage(): fuente de verdad del payload Inertia (evita props perdidas
+    // al reenviar desde un shell o con layouts función en Inertia v3).
+    const pageProps = usePage().props as unknown as Partial<ServerProps>;
+
+    const page_title = pageProps.page_title ?? 'Historial de anulaciones';
+    const paginated = pageProps.documentos ?? EMPTY_PAGINATED;
+    const filters = pageProps.filters ?? {
+        search: '',
+        per_page: 15,
+        sort: null,
+        direction: null,
+        fecha_desde: '',
+        fecha_hasta: '',
+    };
+    const filtro_ui = pageProps.filtro_ui ?? {
+        default_desde: filters.fecha_desde,
+        default_hasta: filters.fecha_hasta,
+        fuera_del_rango_default: false,
+    };
+    const stats = pageProps.stats ?? {
+        total_anulados: 0,
+        coincidencias: paginated.total,
+    };
+
     const { search, setSearch, isLoading, sort, setSort, setPerPage, applyFilter } =
         useDataTablePage<TableExtraFilters>({
             routeUrl: route_url,
@@ -316,18 +352,5 @@ export function FelAnulacionHistorialPage({
                 />
             </div>
         </>
-    );
-}
-
-export function felAnulacionLayout(breadcrumb: string, routeUrl: string) {
-    return (page: ReactNode) => (
-        <AppLayout
-            breadcrumbs={[
-                { title: 'Facturación' },
-                { title: breadcrumb, href: routeUrl },
-            ]}
-        >
-            {page}
-        </AppLayout>
     );
 }
