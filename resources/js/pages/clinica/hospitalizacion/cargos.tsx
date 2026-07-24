@@ -204,12 +204,21 @@ export default function InternamientoCargos({
         () => ({
             notas: cargo.notas ?? '',
             lineas:
-                cargo.lineas.length > 0 ? mapLineasToForm(cargo.lineas) : puedeEditar ? [emptyLine()] : [],
+                cargo.lineas.length > 0 ? mapLineasToForm(cargo.lineas) : [emptyLine()],
         }),
-        [cargo, puedeEditar],
+        [cargo],
     );
 
     const { data, setData, post, processing, errors, clearErrors } = useForm<FormState>(initial);
+
+    const entrarEnEdicion = useCallback(() => {
+        setData({
+            notas: cargo.notas ?? '',
+            lineas:
+                cargo.lineas.length > 0 ? mapLineasToForm(cargo.lineas) : [emptyLine()],
+        });
+        setEditandoConfirmada(true);
+    }, [cargo, setData]);
 
     const title = useMemo(
         () =>
@@ -376,7 +385,7 @@ export default function InternamientoCargos({
                 errors={errors}
                 processing={processing}
                 onSubmit={onSubmit}
-                onEditar={() => setEditandoConfirmada(true)}
+                onEditar={entrarEnEdicion}
                 addLinea={addLinea}
                 removeLinea={removeLinea}
                 updateLinea={updateLinea}

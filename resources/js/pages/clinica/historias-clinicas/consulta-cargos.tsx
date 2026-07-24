@@ -210,12 +210,21 @@ export default function ConsultaCargos({ consulta, cargo, cobro, clinic_billing 
         () => ({
             notas: cargo.notas ?? '',
             lineas:
-                cargo.lineas.length > 0 ? mapLineasToForm(cargo.lineas) : puedeEditar ? [emptyLine()] : [],
+                cargo.lineas.length > 0 ? mapLineasToForm(cargo.lineas) : [emptyLine()],
         }),
-        [cargo, puedeEditar],
+        [cargo],
     );
 
     const { data, setData, post, processing, errors, clearErrors } = useForm<FormState>(initial);
+
+    const entrarEnEdicion = useCallback(() => {
+        setData({
+            notas: cargo.notas ?? '',
+            lineas:
+                cargo.lineas.length > 0 ? mapLineasToForm(cargo.lineas) : [emptyLine()],
+        });
+        setEditandoConfirmada(true);
+    }, [cargo, setData]);
 
     const title = useMemo(
         () => t('page_title', { paciente: consulta.historia_clinica.paciente.nombre }),
@@ -384,7 +393,7 @@ export default function ConsultaCargos({ consulta, cargo, cobro, clinic_billing 
                 errors={errors}
                 processing={processing}
                 onSubmit={onSubmit}
-                onEditar={() => setEditandoConfirmada(true)}
+                onEditar={entrarEnEdicion}
                 addLinea={addLinea}
                 removeLinea={removeLinea}
                 updateLinea={updateLinea}

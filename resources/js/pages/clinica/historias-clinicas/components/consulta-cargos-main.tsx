@@ -377,7 +377,15 @@ export function ConsultaCargosMain({
                         variant="outline"
                         size="sm"
                         className="w-full gap-2 border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-200"
-                        onClick={onEditar}
+                        onClick={(e) => {
+                            // Evita que el mismo click active el botón Confirmar
+                            // (type=submit) que reemplaza a este al entrar en edición.
+                            e.preventDefault();
+                            e.stopPropagation();
+                            window.setTimeout(() => {
+                                onEditar();
+                            }, 0);
+                        }}
                     >
                         <Pencil className="size-3.5" aria-hidden />
                         {t('editar_precuenta')}
