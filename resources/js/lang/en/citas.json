@@ -55,8 +55,19 @@
     },
     "aperturar_hc": {
         "title": "Open clinical record?",
-        "description": "{{paciente}}'s appointment will be marked in progress and the clinical record will open for follow-up (new visit or the one already open).",
-        "confirm": "Yes, open record"
+        "description": "Choose whether to create a new visit for {{paciente}} or reactivate a closed clinical record.",
+        "loading": "Loading patient visits…",
+        "load_error": "Could not load visits. Try again.",
+        "empty": "No previous visits and no permission to create a new one.",
+        "option_nueva": "New visit",
+        "option_nueva_hint": "Opens a new consultation in the clinical record.",
+        "option_abierta": "Continue open visit",
+        "option_reactivar": "Reactivate closed visit",
+        "badge_abierta": "Open",
+        "badge_cerrada": "Closed",
+        "confirm": "Yes, open record",
+        "confirm_nueva": "Create and open",
+        "confirm_reactivar": "Reactivate and open"
     },
     "columns": {
         "inicio_at": "Start",

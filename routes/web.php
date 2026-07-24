@@ -387,6 +387,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
                 ->post('citas/{cita}/cancelar', [CitaController::class, 'cancelar'])
                 ->name('citas.cancelar');
             Route::middleware('permission:citas.aperturar')
+                ->get('citas/{cita}/consultas-hc', [CitaController::class, 'consultasHc'])
+                ->name('citas.consultas-hc');
+            Route::middleware('permission:citas.aperturar')
                 ->post('citas/{cita}/aperturar', [CitaController::class, 'aperturar'])
                 ->name('citas.aperturar');
 

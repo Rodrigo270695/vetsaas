@@ -55,8 +55,19 @@
     },
     "aperturar_hc": {
         "title": "¿Abrir historia clínica?",
-        "description": "Se marcará la cita de {{paciente}} en atención y se abrirá la HC para el seguimiento de la consulta (nueva o la que ya esté abierta).",
-        "confirm": "Sí, abrir HC"
+        "description": "Elige si creas una consulta nueva para {{paciente}} o reactivas una HC que ya estaba cerrada.",
+        "loading": "Cargando consultas del paciente…",
+        "load_error": "No se pudieron cargar las consultas. Intenta de nuevo.",
+        "empty": "No hay consultas previas ni permiso para crear una nueva.",
+        "option_nueva": "Nueva consulta",
+        "option_nueva_hint": "Abre una atención nueva en la HC (seguimiento o primera visita).",
+        "option_abierta": "Continuar consulta abierta",
+        "option_reactivar": "Reactivar consulta cerrada",
+        "badge_abierta": "Abierta",
+        "badge_cerrada": "Cerrada",
+        "confirm": "Sí, abrir HC",
+        "confirm_nueva": "Crear y abrir",
+        "confirm_reactivar": "Reactivar y abrir"
     },
     "columns": {
         "inicio_at": "Inicio",

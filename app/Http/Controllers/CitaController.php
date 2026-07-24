@@ -498,13 +498,63 @@ class CitaController extends Controller
     }
 
     /**
-     * Marca la cita en atención (si aún está en espera) y abre Historia clínica
-     * para crear o continuar el seguimiento de la consulta.
+     * Consultas recientes del paciente de la cita (para elegir cuál reactivar al aperturar).
      */
-    public function aperturar(Cita $cita): RedirectResponse
+    public function consultasHc(Cita $cita): \Illuminate\Http\JsonResponse
     {
         abort_unless(auth()->user()?->can('citas.aperturar') ?? false, 403);
-        abort_unless(auth()->user()?->can('historias-clinicas.create') ?? false, 403);
+        abort_unless(auth()->user()?->can('historias-clinicas.view') ?? false, 403);
+
+        $tz = (string) config('app.timezone');
+
+        $consultas = Consulta::query()
+            ->whereHas(
+                'historiaClinica',
+                static fn ($q) => $q->where('paciente_id', $cita->paciente_id),
+            )
+            ->orderByDesc('atendido_at')
+            ->limit(20)
+            ->get(['id', 'atendido_at', 'motivo', 'cerrada_at'])
+            ->map(static function (Consulta $c) use ($tz): array {
+                $motivo = trim((string) ($c->motivo ?? ''));
+
+                return [
+                    'id' => $c->id,
+                    'atendido_at' => $c->atendido_at?->toIso8601String(),
+                    'atendido_label' => $c->atendido_at?->timezone($tz)->format('d/m/Y H:i') ?? '—',
+                    'motivo' => $motivo !== '' ? Str::limit($motivo, 80) : null,
+                    'abierta' => $c->cerrada_at === null,
+                ];
+            })
+            ->values()
+            ->all();
+
+        return response()->json([
+            'consultas' => $consultas,
+            'puede_reabrir' => auth()->user()?->can('historias-clinicas.update') ?? false,
+            'puede_crear' => auth()->user()?->can('historias-clinicas.create') ?? false,
+        ]);
+    }
+
+    /**
+     * Marca la cita en atención y abre Historia clínica:
+     * - accion=nueva → alta de consulta
+     * - accion=reabrir + consulta_id → reactiva esa consulta (o continúa si ya está abierta)
+     */
+    public function aperturar(Request $request, Cita $cita): RedirectResponse
+    {
+        abort_unless(auth()->user()?->can('citas.aperturar') ?? false, 403);
+
+        $accion = (string) $request->input('accion', 'nueva');
+        if (! in_array($accion, ['nueva', 'reabrir'], true)) {
+            $accion = 'nueva';
+        }
+
+        if ($accion === 'nueva') {
+            abort_unless(auth()->user()?->can('historias-clinicas.create') ?? false, 403);
+        } else {
+            abort_unless(auth()->user()?->can('historias-clinicas.update') ?? false, 403);
+        }
 
         $yaEnAtencion = $cita->estado === Cita::ESTADO_EN_ATENCION;
 
@@ -521,30 +571,42 @@ class CitaController extends Controller
             ])->save();
         }
 
-        // Si el paciente ya tiene una consulta abierta, abrir esa (seguimiento).
-        $consultaAbierta = Consulta::query()
-            ->whereNull('cerrada_at')
-            ->whereHas(
-                'historiaClinica',
-                static fn ($q) => $q->where('paciente_id', $cita->paciente_id),
-            )
-            ->orderByDesc('atendido_at')
-            ->first();
-
-        if ($consultaAbierta !== null) {
-            if ($consultaAbierta->cita_id === null) {
-                $consultaAbierta->forceFill([
-                    'cita_id' => $cita->id,
-                    'updated_by_id' => Auth::id(),
-                ])->save();
+        if ($accion === 'reabrir') {
+            $consultaId = $request->input('consulta_id');
+            if (! is_string($consultaId) || ! Str::isUuid($consultaId)) {
+                return redirect()
+                    ->route('clinica.citas.index')
+                    ->with('error', __('citas.flash.aperturar_consulta_invalida'));
             }
+
+            $consulta = Consulta::query()
+                ->whereKey($consultaId)
+                ->whereHas(
+                    'historiaClinica',
+                    static fn ($q) => $q->where('paciente_id', $cita->paciente_id),
+                )
+                ->first();
+
+            if ($consulta === null) {
+                return redirect()
+                    ->route('clinica.citas.index')
+                    ->with('error', __('citas.flash.aperturar_consulta_invalida'));
+            }
+
+            $uid = Auth::id();
+            $consulta->forceFill([
+                'cerrada_at' => null,
+                'cerrada_por_id' => null,
+                'cita_id' => $cita->id,
+                'updated_by_id' => $uid,
+            ])->save();
 
             return redirect()
                 ->route('clinica.historias-clinicas', [
                     'estado' => 'abierta',
-                    'editar_consulta' => $consultaAbierta->id,
+                    'editar_consulta' => $consulta->id,
                 ])
-                ->with('success', __('citas.flash.aperturada_seguimiento'));
+                ->with('success', __('citas.flash.aperturada_reactivada'));
         }
 
         $query = [
