@@ -4,6 +4,7 @@ use App\Http\Controllers\AlertaStockInventarioController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\Auth\ChangePasswordController;
 use App\Http\Controllers\BotIaAnnouncementController;
+use App\Http\Controllers\CajaEgresoController;
 use App\Http\Controllers\CajaSesionController;
 use App\Http\Controllers\CategoriaInventarioController;
 use App\Http\Controllers\CirugiaController;
@@ -687,6 +688,15 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:caja-sesiones.view')
             ->get('sesiones/{caja_sesion}/arqueo.pdf', [CajaSesionController::class, 'arqueoPdf'])
             ->name('sesiones.arqueo-pdf');
+        Route::middleware('permission:caja-sesiones.view')
+            ->get('sesiones/{caja_sesion}/egresos', [CajaEgresoController::class, 'index'])
+            ->name('sesiones.egresos.index');
+        Route::middleware('permission:caja-sesiones.egreso')
+            ->post('sesiones/{caja_sesion}/egresos', [CajaEgresoController::class, 'store'])
+            ->name('sesiones.egresos.store');
+        Route::middleware('permission:caja-sesiones.egreso')
+            ->delete('sesiones/{caja_sesion}/egresos/{egreso}', [CajaEgresoController::class, 'destroy'])
+            ->name('sesiones.egresos.destroy');
         Route::middleware('permission:ventas.view')
             ->get('ventas/export', [VentaController::class, 'exportExcel'])
             ->name('ventas.export');

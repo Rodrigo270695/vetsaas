@@ -1,6 +1,7 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import {
     AlertTriangle,
+    ArrowDownCircle,
     CircleDot,
     Eye,
     Lock,
@@ -41,6 +42,7 @@ import { ArqueoPrintDialog } from './components/arqueo-print-dialog';
 import { SesionAbrirModal } from './components/sesion-abrir-modal';
 import { SesionArqueoDetalleModal } from './components/sesion-arqueo-detalle-modal';
 import { SesionCerrarModal } from './components/sesion-cerrar-modal';
+import { SesionEgresoModal } from './components/sesion-egreso-modal';
 import type { CajaSesionEstadoFiltro, CajaSesionFilters, CajaSesionRow, CajaSesionesIndexProps } from './types';
 
 type TableExtraFilters = {
@@ -123,6 +125,7 @@ export default function Index({
     const { can } = usePermission();
     const canOpen = can('caja-sesiones.open');
     const canClose = can('caja-sesiones.close');
+    const canEgreso = can('caja-sesiones.egreso');
     const canView = can('caja-sesiones.view');
     const bloqueadoAbrirPorMiSesion = Boolean(miSesionAbierta);
     const configTicketAncho = normalizeTicketAncho(ticketAnchoMm);
@@ -153,6 +156,7 @@ export default function Index({
 
     const [abrirOpen, setAbrirOpen] = useState(false);
     const [cerrarSesion, setCerrarSesion] = useState<CajaSesionRow | null>(null);
+    const [egresoSesion, setEgresoSesion] = useState<CajaSesionRow | null>(null);
     const [detalleSesion, setDetalleSesion] = useState<CajaSesionRow | null>(null);
     const [imprimirSesionId, setImprimirSesionId] = useState<string | null>(null);
     const closeCerrar = useCallback(() => setCerrarSesion(null), []);
@@ -371,20 +375,35 @@ export default function Index({
                     const soyQuienAbrio =
                         authUserId !== undefined && String(row.opened_by_id) === String(authUserId);
 
-                    if (soyQuienAbrio && canClose) {
+                    if (soyQuienAbrio && (canClose || canEgreso)) {
                         return (
-                            <div className="flex justify-end">
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    className="size-8 shrink-0 cursor-pointer border-0 bg-transparent text-amber-600 shadow-none hover:bg-amber-500/10 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300"
-                                    onClick={() => setCerrarSesion(row)}
-                                    aria-label={t('caja:sesiones.actions.cerrar')}
-                                    title={t('caja:sesiones.actions.cerrar')}
-                                >
-                                    <Lock className="size-4" strokeWidth={2.25} aria-hidden />
-                                </Button>
+                            <div className="flex justify-end gap-0.5">
+                                {canEgreso ? (
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="size-8 shrink-0 cursor-pointer border-0 bg-transparent text-rose-600 shadow-none hover:bg-rose-500/10 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300"
+                                        onClick={() => setEgresoSesion(row)}
+                                        aria-label={t('caja:sesiones.mi_sesion.egreso_cta')}
+                                        title={t('caja:sesiones.mi_sesion.egreso_cta')}
+                                    >
+                                        <ArrowDownCircle className="size-4" strokeWidth={2.25} aria-hidden />
+                                    </Button>
+                                ) : null}
+                                {canClose ? (
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="size-8 shrink-0 cursor-pointer border-0 bg-transparent text-amber-600 shadow-none hover:bg-amber-500/10 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300"
+                                        onClick={() => setCerrarSesion(row)}
+                                        aria-label={t('caja:sesiones.actions.cerrar')}
+                                        title={t('caja:sesiones.actions.cerrar')}
+                                    >
+                                        <Lock className="size-4" strokeWidth={2.25} aria-hidden />
+                                    </Button>
+                                ) : null}
                             </div>
                         );
                     }
@@ -406,7 +425,7 @@ export default function Index({
         }
 
         return base;
-    }, [t, i18n.language, canClose, canView, authUserId, sedeCodigoById]);
+    }, [t, i18n.language, canClose, canEgreso, canView, authUserId, sedeCodigoById]);
 
     return (
         <>
@@ -461,17 +480,31 @@ export default function Index({
                         <AlertTitle>{t('caja:sesiones.mi_sesion.title')}</AlertTitle>
                         <AlertDescription className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <span>{t('caja:sesiones.mi_sesion.description', { sede: miSesionAbierta.sede_nombre ?? '—' })}</span>
-                            {canClose ? (
-                                <Button
-                                    type="button"
-                                    size="sm"
-                                    className="shrink-0 cursor-pointer gap-1.5 bg-amber-600 text-white hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600"
-                                    onClick={() => setCerrarSesion(miSesionAbierta)}
-                                >
-                                    <Lock className="size-3.5 shrink-0" strokeWidth={2.25} aria-hidden />
-                                    {t('caja:sesiones.mi_sesion.cerrar_cta')}
-                                </Button>
-                            ) : null}
+                            <div className="flex shrink-0 flex-wrap items-center gap-2">
+                                {canEgreso ? (
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        className="cursor-pointer gap-1.5 border-rose-500/40 text-rose-700 hover:bg-rose-500/10 dark:text-rose-300"
+                                        onClick={() => setEgresoSesion(miSesionAbierta)}
+                                    >
+                                        <ArrowDownCircle className="size-3.5 shrink-0" strokeWidth={2.25} aria-hidden />
+                                        {t('caja:sesiones.mi_sesion.egreso_cta')}
+                                    </Button>
+                                ) : null}
+                                {canClose ? (
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        className="cursor-pointer gap-1.5 bg-amber-600 text-white hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600"
+                                        onClick={() => setCerrarSesion(miSesionAbierta)}
+                                    >
+                                        <Lock className="size-3.5 shrink-0" strokeWidth={2.25} aria-hidden />
+                                        {t('caja:sesiones.mi_sesion.cerrar_cta')}
+                                    </Button>
+                                ) : null}
+                            </div>
                         </AlertDescription>
                     </Alert>
                 ) : null}
@@ -576,6 +609,17 @@ export default function Index({
                     }
                 }}
                 sesion={cerrarSesion}
+                listQuery={listQuery}
+            />
+
+            <SesionEgresoModal
+                open={egresoSesion !== null}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setEgresoSesion(null);
+                    }
+                }}
+                sesion={egresoSesion}
                 listQuery={listQuery}
             />
 

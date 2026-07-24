@@ -91,7 +91,7 @@ class TenantRolesSeeder extends Seeder
                 'compras.view', 'compras.create', 'compras.update', 'compras.delete',
 
                 // Caja & ventas
-                'caja-sesiones.view', 'caja-sesiones.open', 'caja-sesiones.close',
+                'caja-sesiones.view', 'caja-sesiones.open', 'caja-sesiones.close', 'caja-sesiones.egreso',
                 'ventas.view', 'ventas.create', 'ventas.update', 'ventas.delete',
                 'pagos.view', 'pagos.create', 'pagos.refund',
                 'descuentos.view', 'descuentos.create', 'descuentos.update', 'descuentos.delete',
@@ -237,7 +237,7 @@ class TenantRolesSeeder extends Seeder
                 'grooming.view',
 
                 // Caja & ventas
-                'caja-sesiones.view', 'caja-sesiones.open', 'caja-sesiones.close',
+                'caja-sesiones.view', 'caja-sesiones.open', 'caja-sesiones.close', 'caja-sesiones.egreso',
                 'ventas.view', 'ventas.create', 'ventas.delete',
                 'pagos.view', 'pagos.create',
                 'descuentos.view',

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Caja;
 
+use App\Models\CajaEgreso;
 use App\Models\CajaSesion;
 use App\Models\ConsultaCargoLinea;
 use App\Models\FelSerie;
@@ -13,7 +14,7 @@ use App\Models\VentaLinea;
 use Illuminate\Support\Collection;
 
 /**
- * Calcula el arqueo de una sesión: ventas, métodos de pago y comprobantes.
+ * Calcula el arqueo de una sesión: ventas, egresos, métodos de pago y comprobantes.
  */
 final class CajaSesionArqueoService
 {
@@ -65,6 +66,28 @@ final class CajaSesionArqueoService
         $ventasDetalle = $this->detalleVentas($vigentes);
         $rubros = $this->desgloseRubros($vigentes);
 
+        $egresos = CajaEgreso::query()
+            ->with(['creadoPor:id,name'])
+            ->where('caja_sesion_id', $sesion->getKey())
+            ->orderBy('created_at')
+            ->get();
+
+        $egresosTotal = '0.00';
+        $egresosDetalle = [];
+        foreach ($egresos as $egreso) {
+            $monto = $this->money((string) $egreso->monto);
+            $egresosTotal = $this->add($egresosTotal, $monto);
+            $egresosDetalle[] = [
+                'id' => (string) $egreso->getKey(),
+                'monto' => $monto,
+                'motivo' => (string) $egreso->motivo,
+                'motivo_label' => CajaEgreso::labelMotivo((string) $egreso->motivo),
+                'notas' => $egreso->notas,
+                'created_at' => $egreso->created_at?->toIso8601String(),
+                'created_by' => $egreso->creadoPor?->name,
+            ];
+        }
+
         $ventasTotal = '0.00';
         foreach ($vigentes as $venta) {
             $ventasTotal = $this->add($ventasTotal, $this->money((string) $venta->total));
@@ -78,9 +101,8 @@ final class CajaSesionArqueoService
         $efectivoVentas = $this->sumMetodo($metodos, 'efectivo');
         $noEfectivoTotal = $this->sub($ventasTotal, $efectivoVentas);
         $saldoApertura = $this->money((string) $sesion->saldo_apertura);
-        // Efectivo esperado = solo caja física (apertura + ventas pagadas en efectivo).
-        // Yape/tarjeta/etc. ya estánaron; no se cuentan aquí aunque incluyan servicios.
-        $esperado = $this->add($saldoApertura, $efectivoVentas);
+        // Efectivo esperado = caja física (apertura + ventas en efectivo − egresos).
+        $esperado = $this->sub($this->add($saldoApertura, $efectivoVentas), $egresosTotal);
 
         $contado = null;
         $diferencia = null;
@@ -115,6 +137,9 @@ final class CajaSesionArqueoService
             'metodos' => $metodos,
             'metodos_chart' => $metodosChart,
             'ventas' => $ventasDetalle,
+            'egresos_count' => $egresos->count(),
+            'egresos_total' => $egresosTotal,
+            'egresos' => $egresosDetalle,
             'saldo_apertura' => $saldoApertura,
             'efectivo_ventas' => $efectivoVentas,
             'efectivo_esperado' => $esperado,

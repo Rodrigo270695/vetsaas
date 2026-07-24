@@ -233,6 +233,7 @@
                     <tr><td class="k">Productos (cobrado)</td><td class="v">{{ $fmt($arqueo['productos_total'] ?? null, $moneda) }}</td></tr>
                     <tr><td class="k">Servicios (cobrado)</td><td class="v">{{ $fmt($arqueo['servicios_total'] ?? null, $moneda) }}</td></tr>
                     <tr><td class="k">Ventas en efectivo</td><td class="v">{{ $fmt($arqueo['efectivo_ventas'] ?? null, $moneda) }}</td></tr>
+                    <tr><td class="k">Egresos</td><td class="v">{{ $fmt($arqueo['egresos_total'] ?? '0.00', $moneda) }}</td></tr>
                     <tr><td class="k">Efectivo esperado</td><td class="v">{{ $fmt($arqueo['efectivo_esperado'] ?? null, $moneda) }}</td></tr>
                     <tr><td class="k">Efectivo contado</td><td class="v">{{ $fmt($arqueo['efectivo_contado'] ?? null, $moneda) }}</td></tr>
                     <tr>

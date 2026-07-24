@@ -4,6 +4,16 @@ export type ArqueoMetodo = {
     total: string;
 };
 
+export type ArqueoEgreso = {
+    id: string;
+    monto: string;
+    motivo: string;
+    motivo_label: string;
+    notas: string | null;
+    created_at: string | null;
+    created_by: string | null;
+};
+
 export type ArqueoPayload = {
     moneda: string;
     ventas_count: number;
@@ -13,6 +23,9 @@ export type ArqueoPayload = {
     no_efectivo_total?: string;
     anuladas_count: number;
     anuladas_total: string;
+    egresos_count?: number;
+    egresos_total?: string;
+    egresos?: ArqueoEgreso[];
     comprobantes: {
         tickets: { count: number; total: string };
         boletas: { count: number; total: string };

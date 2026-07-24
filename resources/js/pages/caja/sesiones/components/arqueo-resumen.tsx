@@ -1,4 +1,4 @@
-import { Banknote, FileText, Receipt, Scale, Ticket } from 'lucide-react';
+import { ArrowDownCircle, Banknote, FileText, Receipt, Scale, Ticket } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { formatArqueoMoney, type ArqueoPayload } from './arqueo-types';
@@ -38,7 +38,7 @@ export function ArqueoResumen({
 
     return (
         <>
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
                 <div className="rounded-xl border border-border/60 bg-muted/30 px-3 py-2.5">
                     <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                         {t('sesiones.dialog_cerrar.kpi_ventas')}
@@ -68,6 +68,19 @@ export function ArqueoResumen({
                     </p>
                     <p className="text-xs text-muted-foreground">
                         {t('sesiones.dialog_cerrar.kpi_esperado_hint')}
+                    </p>
+                </div>
+                <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2.5">
+                    <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                        {t('sesiones.dialog_cerrar.kpi_egresos')}
+                    </p>
+                    <p className="mt-1 text-lg font-semibold tabular-nums text-rose-700 dark:text-rose-300">
+                        {formatArqueoMoney(arqueo.egresos_total ?? '0.00', moneda, locale)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                        {t('sesiones.dialog_cerrar.kpi_egresos_hint', {
+                            count: arqueo.egresos_count ?? 0,
+                        })}
                     </p>
                 </div>
                 <div
@@ -105,8 +118,44 @@ export function ArqueoResumen({
                     servicios: formatArqueoMoney(arqueo.servicios_total, moneda, locale),
                     esperado: formatArqueoMoney(arqueo.efectivo_esperado, moneda, locale),
                     otros: formatArqueoMoney(arqueo.no_efectivo_total, moneda, locale),
+                    egresos: formatArqueoMoney(arqueo.egresos_total ?? '0.00', moneda, locale),
                 })}
             </div>
+
+            {(arqueo.egresos_count ?? 0) > 0 ? (
+                <div className="overflow-hidden rounded-xl border border-rose-500/25">
+                    <div className="flex items-center gap-2 border-b border-rose-500/20 bg-rose-500/10 px-3 py-2">
+                        <ArrowDownCircle className="size-3.5 text-rose-600 dark:text-rose-300" />
+                        <p className="text-xs font-semibold uppercase tracking-wide text-rose-700 dark:text-rose-300">
+                            {t('sesiones.dialog_cerrar.egresos_title')}
+                        </p>
+                    </div>
+                    <ul className="divide-y divide-border/40">
+                        {(arqueo.egresos ?? []).map((row) => (
+                            <li
+                                key={row.id}
+                                className="flex items-center justify-between gap-3 px-3 py-2 text-sm"
+                            >
+                                <span className="min-w-0 truncate font-medium">
+                                    {row.motivo_label}
+                                    {row.notas ? (
+                                        <span className="text-muted-foreground"> · {row.notas}</span>
+                                    ) : null}
+                                </span>
+                                <span className="shrink-0 tabular-nums text-rose-700 dark:text-rose-300">
+                                    −{formatArqueoMoney(row.monto, moneda, locale)}
+                                </span>
+                            </li>
+                        ))}
+                        <li className="flex items-center justify-between gap-3 bg-muted/30 px-3 py-2.5 text-sm font-semibold">
+                            <span>{t('sesiones.dialog_cerrar.egresos_total')}</span>
+                            <span className="tabular-nums text-rose-700 dark:text-rose-300">
+                                −{formatArqueoMoney(arqueo.egresos_total ?? '0.00', moneda, locale)}
+                            </span>
+                        </li>
+                    </ul>
+                </div>
+            ) : null}
 
             <div className="grid gap-3 sm:grid-cols-3">
                 {(
@@ -179,6 +228,7 @@ export function ArqueoResumen({
                         {t('sesiones.dialog_cerrar.formula', {
                             apertura: formatArqueoMoney(arqueo.saldo_apertura, moneda, locale),
                             ventas: formatArqueoMoney(arqueo.efectivo_ventas, moneda, locale),
+                            egresos: formatArqueoMoney(arqueo.egresos_total ?? '0.00', moneda, locale),
                             esperado: formatArqueoMoney(arqueo.efectivo_esperado, moneda, locale),
                         })}
                     </p>

@@ -73,6 +73,11 @@ class CajaSesion extends Model
         return $this->hasMany(Venta::class, 'caja_sesion_id');
     }
 
+    public function egresos(): HasMany
+    {
+        return $this->hasMany(CajaEgreso::class, 'caja_sesion_id');
+    }
+
     public function estaAbierta(): bool
     {
         return $this->estado === self::ESTADO_ABIERTA;

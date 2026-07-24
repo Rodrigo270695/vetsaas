@@ -74,7 +74,8 @@
         "mi_sesion": {
             "title": "Your open session",
             "description": "You have an open cash session at {{sede}}. Close it at end of shift or before opening another at the same branch.",
-            "cerrar_cta": "Close it"
+            "cerrar_cta": "Close it",
+            "egreso_cta": "Record expense"
         },
         "dialog_abrir": {
             "title": "Open cash session",
@@ -82,16 +83,39 @@
             "submit": "Confirm opening",
             "cancel": "Cancel"
         },
+        "dialog_egreso": {
+            "title": "Record cash expense",
+            "description": "Cash leaving the drawer for this session. It is subtracted from the closing reconciliation.",
+            "submit": "Record expense",
+            "cancel": "Cancel",
+            "list_title": "Session expenses",
+            "list_empty": "No expenses in this session yet.",
+            "list_total": "Expenses total",
+            "delete": "Delete",
+            "delete_confirm": "Delete this expense?",
+            "loading": "Loading expenses…",
+            "load_error": "Could not load expenses.",
+            "motivos": {
+                "insumos": "Supplies / small purchases",
+                "delivery": "Delivery / courier",
+                "servicios": "Services / operating payments",
+                "personal": "Staff / advances",
+                "cambio": "Change / float",
+                "otros": "Other"
+            }
+        },
         "dialog_cerrar": {
             "title": "Cash reconciliation & close",
-            "description": "Review sales, documents and payment methods. Match counted cash against expected cash.",
+            "description": "Review sales, expenses, documents and payment methods. Match counted cash against expected cash.",
             "submit": "Confirm closing",
             "cancel": "Cancel",
             "loading_arqueo": "Calculating reconciliation…",
             "arqueo_error": "Could not load reconciliation. You can still close with counted cash.",
             "kpi_ventas": "Shift sales",
             "kpi_esperado": "Cash to reconcile",
-            "kpi_esperado_hint": "Opening + cash payments only",
+            "kpi_esperado_hint": "Opening + cash − expenses",
+            "kpi_egresos": "Expenses",
+            "kpi_egresos_hint": "{{count}} cash outflow(s)",
             "kpi_otros": "Other methods",
             "kpi_otros_hint": "Yape, card, etc.",
             "kpi_diferencia": "Difference",
@@ -102,7 +126,9 @@
             "metodos_title": "Payment methods",
             "ventas_title": "Shift sales",
             "ventas_empty": "No paid sales in this session.",
-            "clarify": "{{count}} sales = {{total}} (products {{productos}} + services {{servicios}}). Cash to reconcile is {{esperado}}: opening + cash payments only. Other methods ({{otros}}) do not go into the drawer.",
+            "egresos_title": "Shift expenses",
+            "egresos_total": "Expenses total",
+            "clarify": "{{count}} sales = {{total}} (products {{productos}} + services {{servicios}}). Cash to reconcile is {{esperado}}: opening + cash payments − expenses ({{egresos}}). Other methods ({{otros}}) do not go into the drawer.",
             "comprobantes": {
                 "tickets": "Tickets",
                 "boletas": "Receipts",
@@ -118,7 +144,7 @@
             },
             "metodos_total": "Total collected",
             "rubros": "Includes products {{productos}} · services {{servicios}}",
-            "formula": "Cash to reconcile = {{apertura}} (opening) + {{ventas}} (cash sales only) → {{esperado}}",
+            "formula": "Cash to reconcile = {{apertura}} (opening) + {{ventas}} (cash) − {{egresos}} (expenses) → {{esperado}}",
             "anuladas_hint": "{{count}} voided sale(s) excluded ({{total}}).",
             "contado_hint": "Count physical cash only (not Yape/card).",
             "notas_placeholder": "Reconciliation notes (optional)"
@@ -129,7 +155,10 @@
             "saldo_apertura": "Opening cash",
             "notas_apertura": "Notes (optional)",
             "saldo_cierre": "Cash counted at closing",
-            "notas_cierre": "Closing notes (optional)"
+            "notas_cierre": "Closing notes (optional)",
+            "egreso_monto": "Amount",
+            "egreso_motivo": "Reason",
+            "egreso_notas": "Detail (optional)"
         }
     },
     "date_filter": {

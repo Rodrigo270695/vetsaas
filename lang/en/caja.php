@@ -7,16 +7,22 @@ return [
         'saldo_apertura' => 'opening cash',
         'saldo_cierre_efectivo' => 'cash counted at closing',
         'notas' => 'notes',
+        'egreso_monto' => 'expense amount',
+        'egreso_motivo' => 'expense reason',
     ],
     'validation' => [
         'sede_tiene_sesion_abierta' => 'There is already an open cash session for this branch. Close it before opening another.',
         'usuario_tiene_sesion_abierta' => 'You already have an open cash session. Close it before opening another.',
+        'egreso_sesion_cerrada' => 'You cannot add or remove expenses on a closed session.',
+        'egreso_sesion_no_tuya' => 'Only the user who opened the session can add or remove expenses.',
     ],
     'flash' => [
         'sesion_abierta' => 'Cash session opened.',
         'sesion_cerrada' => 'Cash session closed.',
         'sesion_ya_cerrada' => 'This session was already closed.',
         'solo_apertura_puede_cerrar' => 'Only the user who opened the session can close it.',
+        'egreso_registrado' => 'Expense recorded.',
+        'egreso_eliminado' => 'Expense removed.',
     ],
     'ventas' => [
         'create' => [
