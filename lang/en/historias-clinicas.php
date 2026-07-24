@@ -8,6 +8,7 @@ return [
         'created' => 'Visit record saved successfully.',
         'created_open_plan' => 'Visit saved. You can define or review the medication plan and follow-up from this screen.',
         'updated' => 'Visit record updated successfully.',
+        'updated_open_plan' => 'Visit updated. Continue with the medication plan and follow-up.',
         'deleted' => 'Visit record deleted successfully.',
         'cerrada' => 'Visit closed successfully.',
         'cerrar_abiertas' => ':count open visit(s) closed successfully.',

@@ -8,6 +8,7 @@ return [
         'created' => 'Consulta registrada correctamente.',
         'created_open_plan' => 'Consulta registrada. Desde esta pantalla puedes definir o revisar el plan de medicación y el seguimiento.',
         'updated' => 'Consulta actualizada correctamente.',
+        'updated_open_plan' => 'Consulta actualizada. Continúa con el plan de medicación y el seguimiento.',
         'deleted' => 'Consulta eliminada correctamente.',
         'cerrada' => 'Consulta cerrada correctamente.',
         'cerrar_abiertas' => ':count consulta(s) abierta(s) cerrada(s) correctamente.',

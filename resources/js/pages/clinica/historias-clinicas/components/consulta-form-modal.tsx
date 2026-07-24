@@ -16,7 +16,6 @@ import {
     ConsultaDictationBar,
     type ConsultaDictationFields,
 } from './consulta-dictation-bar';
-import { ConsultaCerrarPromptDialog } from './consulta-cerrar-prompt-dialog';
 import { ConsultaEstadoBadge } from './consulta-estado-badge';
 
 export type ConsultaFormModalProps = {
@@ -119,7 +118,6 @@ export function ConsultaFormModal({
 
     const [ownerTouched, setOwnerTouched] = useState(false);
     const [cierreProcessing, setCierreProcessing] = useState(false);
-    const [showClosePrompt, setShowClosePrompt] = useState(false);
     const isEditRef = useRef(isEdit);
     isEditRef.current = isEdit;
 
@@ -191,7 +189,6 @@ export function ConsultaFormModal({
         }
         setDefaults();
         setOwnerTouched(false);
-        setShowClosePrompt(false);
         clearErrors();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, consulta?.id, pacienteIdPrefillNueva, motivoPrefillNueva, citaIdPrefillNueva]);
@@ -242,12 +239,8 @@ export function ConsultaFormModal({
             return;
         }
         const onSuccess = () => {
-            if (isEdit && consulta && puedeCerrarConsulta && !isCerrada) {
-                setShowClosePrompt(true);
-
-                return;
-            }
-
+            // En edición el backend redirige a Plan y seguimiento;
+            // aquí solo cerramos el modal (Inertia navega con el redirect).
             reset();
             clearErrors();
             onOpenChange(false);
@@ -644,24 +637,6 @@ export function ConsultaFormModal({
                 </FormSection>
             </div>
         </FormModal>
-
-            {consulta && puedeCerrarConsulta ? (
-                <ConsultaCerrarPromptDialog
-                    open={showClosePrompt}
-                    onOpenChange={setShowClosePrompt}
-                    consultaId={consulta.id}
-                    onClosed={() => {
-                        reset();
-                        clearErrors();
-                        onOpenChange(false);
-                    }}
-                    onKeepOpen={() => {
-                        reset();
-                        clearErrors();
-                        onOpenChange(false);
-                    }}
-                />
-            ) : null}
         </>
     );
 }

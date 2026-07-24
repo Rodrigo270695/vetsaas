@@ -421,6 +421,12 @@ class ConsultaHistoriaController extends Controller
 
         });
 
+        if ($request->user()?->can('historias-clinicas-planes.view') ?? false) {
+            return redirect()
+                ->route('clinica.historias-clinicas.consultas.plan-tratamiento', $consulta)
+                ->with('success', __('historias-clinicas.flash.updated_open_plan'));
+        }
+
         return redirect()
             ->route('clinica.historias-clinicas')
             ->with('success', __('historias-clinicas.flash.updated'));
