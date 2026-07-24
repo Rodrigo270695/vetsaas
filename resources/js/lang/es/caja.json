@@ -94,7 +94,9 @@
             "delete": "Eliminar",
             "delete_confirm": "¿Eliminar este egreso?",
             "loading": "Cargando egresos…",
-            "load_error": "No se pudieron cargar los egresos.",
+            "load_error": "No se pudieron cargar los egresos. Si acabas de desplegar, verifica que la ruta esté en el servidor.",
+            "saved": "Egreso registrado.",
+            "deleted": "Egreso eliminado.",
             "motivos": {
                 "insumos": "Insumos / compras menores",
                 "delivery": "Delivery / mensajería",

@@ -329,6 +329,43 @@
     @endif
 </div>
 
+@php
+    $egresosDetalle = is_array($arqueo['egresos'] ?? null) ? $arqueo['egresos'] : [];
+@endphp
+<div class="card">
+    <h2>Detalle de egresos del turno ({{ count($egresosDetalle) }})</h2>
+    @if(count($egresosDetalle) === 0)
+        <p class="muted">No hay egresos registrados en esta sesión.</p>
+    @else
+        <table class="detail">
+            <thead>
+                <tr>
+                    <th style="width:18%;">Fecha</th>
+                    <th style="width:28%;">Motivo</th>
+                    <th style="width:28%;">Detalle</th>
+                    <th style="width:14%;">Registró</th>
+                    <th style="width:12%; text-align:right;">Monto</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($egresosDetalle as $egreso)
+                    <tr>
+                        <td>{{ $fmtDate($egreso['created_at'] ?? null) }}</td>
+                        <td>{{ $egreso['motivo_label'] ?? ($egreso['motivo'] ?? '—') }}</td>
+                        <td>{{ $egreso['notas'] ?? '—' }}</td>
+                        <td>{{ $egreso['created_by'] ?? '—' }}</td>
+                        <td class="num">− {{ $fmt($egreso['monto'] ?? null, $moneda) }}</td>
+                    </tr>
+                @endforeach
+                <tr>
+                    <td colspan="4" style="font-weight:bold; text-align:right;">Total egresos</td>
+                    <td class="num" style="font-weight:bold;">− {{ $fmt($arqueo['egresos_total'] ?? '0.00', $moneda) }}</td>
+                </tr>
+            </tbody>
+        </table>
+    @endif
+</div>
+
 <div class="card">
     <h2>Detalle de ventas del turno ({{ count($ventas) }})</h2>
     @if(count($ventas) === 0)

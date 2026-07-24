@@ -1,4 +1,4 @@
-import { router, useForm } from '@inertiajs/react';
+import { router } from '@inertiajs/react';
 import { Loader2, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { toastManager } from '@/lib/toast';
+import caja from '@/routes/caja';
 import type { QueryParams } from '@/wayfinder';
 import { arqueoCsrfToken, formatArqueoMoney } from './arqueo-types';
 import type { CajaSesionRow } from '../types';
@@ -50,6 +51,14 @@ const empty: FormData = {
     notas: '',
 };
 
+function egresosUrl(sesionId: string): string {
+    return `/caja/sesiones/${sesionId}/egresos`;
+}
+
+function egresoItemUrl(sesionId: string, egresoId: string): string {
+    return `/caja/sesiones/${sesionId}/egresos/${egresoId}`;
+}
+
 export function SesionEgresoModal({
     open,
     onOpenChange,
@@ -57,72 +66,141 @@ export function SesionEgresoModal({
     listQuery,
 }: SesionEgresoModalProps) {
     const { t, i18n } = useTranslation('caja');
-    const { data, setData, post, processing, errors, reset, clearErrors } = useForm<FormData>(empty);
+    const [data, setData] = useState<FormData>(empty);
+    const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
     const [egresos, setEgresos] = useState<EgresoRow[]>([]);
     const [total, setTotal] = useState('0.00');
     const [loadingList, setLoadingList] = useState(false);
+    const [processing, setProcessing] = useState(false);
     const [deletingId, setDeletingId] = useState<string | null>(null);
 
     const locale = i18n.language?.startsWith('en') ? 'en-US' : 'es-PE';
     const moneda = sesion?.moneda || 'PEN';
 
-    const loadEgresos = useCallback(async (sesionId: string) => {
-        setLoadingList(true);
-        try {
-            const res = await fetch(`/caja/sesiones/${sesionId}/egresos`, {
-                headers: {
-                    Accept: 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-                credentials: 'same-origin',
-            });
-            if (!res.ok) {
-                throw new Error('load failed');
+    const refreshSesionesIndex = useCallback(() => {
+        router.get(caja.sesiones.index.url({ query: listQuery }), {}, {
+            preserveScroll: true,
+            preserveState: true,
+            replace: true,
+            only: ['sesiones', 'mi_sesion_abierta', 'stats'],
+        });
+    }, [listQuery]);
+
+    const loadEgresos = useCallback(
+        async (sesionId: string, { silent = false }: { silent?: boolean } = {}) => {
+            setLoadingList(true);
+            try {
+                const token = arqueoCsrfToken();
+                const res = await fetch(egresosUrl(sesionId), {
+                    headers: {
+                        Accept: 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        ...(token ? { 'X-CSRF-TOKEN': token } : {}),
+                    },
+                    credentials: 'same-origin',
+                });
+
+                if (!res.ok) {
+                    throw new Error(`HTTP ${res.status}`);
+                }
+
+                const json = (await res.json()) as { egresos: EgresoRow[]; total: string };
+                setEgresos(json.egresos ?? []);
+                setTotal(json.total ?? '0.00');
+            } catch {
+                if (!silent) {
+                    toastManager.error({ title: t('sesiones.dialog_egreso.load_error') });
+                }
+                setEgresos([]);
+                setTotal('0.00');
+            } finally {
+                setLoadingList(false);
             }
-            const json = (await res.json()) as { egresos: EgresoRow[]; total: string };
-            setEgresos(json.egresos ?? []);
-            setTotal(json.total ?? '0.00');
-        } catch {
-            toastManager.error({ title: t('sesiones.dialog_egreso.load_error') });
-            setEgresos([]);
-            setTotal('0.00');
-        } finally {
-            setLoadingList(false);
-        }
-    }, [t]);
+        },
+        [t],
+    );
 
     useEffect(() => {
         if (!open || !sesion) {
             return;
         }
-        reset();
-        clearErrors();
         setData(empty);
+        setErrors({});
         void loadEgresos(sesion.id);
-    }, [open, sesion, reset, clearErrors, setData, loadEgresos]);
+    }, [open, sesion, loadEgresos]);
 
-    const onSubmit = (e: FormEvent<HTMLFormElement>) => {
+    const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        if (!sesion) {
+        if (!sesion || processing) {
             return;
         }
 
-        post(`/caja/sesiones/${sesion.id}/egresos`, {
-            preserveScroll: true,
-            onSuccess: () => {
-                reset();
-                setData(empty);
-                void loadEgresos(sesion.id);
-                router.reload({
-                    only: ['sesiones', 'mi_sesion_abierta', 'stats'],
-                    data: listQuery as Record<string, string | number | null | undefined>,
+        setProcessing(true);
+        setErrors({});
+
+        try {
+            const token = arqueoCsrfToken();
+            const res = await fetch(egresosUrl(sesion.id), {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    ...(token ? { 'X-CSRF-TOKEN': token } : {}),
+                },
+                body: JSON.stringify({
+                    monto: data.monto,
+                    motivo: data.motivo,
+                    notas: data.notas.trim() === '' ? null : data.notas.trim(),
+                }),
+            });
+
+            const json = (await res.json().catch(() => ({}))) as {
+                message?: string;
+                errors?: Record<string, string[]>;
+                egreso?: EgresoRow;
+                total?: string;
+                egresos?: EgresoRow[];
+            };
+
+            if (res.status === 422 && json.errors) {
+                const next: Partial<Record<keyof FormData, string>> = {};
+                for (const key of ['monto', 'motivo', 'notas'] as const) {
+                    const msg = json.errors[key]?.[0];
+                    if (msg) {
+                        next[key] = msg;
+                    }
+                }
+                setErrors(next);
+                return;
+            }
+
+            if (!res.ok) {
+                toastManager.error({
+                    title: json.message ?? t('sesiones.dialog_egreso.load_error'),
                 });
-            },
-        });
+                return;
+            }
+
+            setData(empty);
+            if (json.egresos) {
+                setEgresos(json.egresos);
+                setTotal(json.total ?? '0.00');
+            } else {
+                await loadEgresos(sesion.id, { silent: true });
+            }
+            toastManager.success({ title: t('sesiones.dialog_egreso.saved') });
+            refreshSesionesIndex();
+        } catch {
+            toastManager.error({ title: t('sesiones.dialog_egreso.load_error') });
+        } finally {
+            setProcessing(false);
+        }
     };
 
-    const onDelete = (egresoId: string) => {
-        if (!sesion) {
+    const onDelete = async (egresoId: string) => {
+        if (!sesion || deletingId) {
             return;
         }
         if (!window.confirm(t('sesiones.dialog_egreso.delete_confirm'))) {
@@ -130,18 +208,34 @@ export function SesionEgresoModal({
         }
 
         setDeletingId(egresoId);
-        router.delete(`/caja/sesiones/${sesion.id}/egresos/${egresoId}`, {
-            preserveScroll: true,
-            headers: { 'X-CSRF-TOKEN': arqueoCsrfToken() },
-            onSuccess: () => {
-                void loadEgresos(sesion.id);
-                router.reload({
-                    only: ['sesiones', 'mi_sesion_abierta', 'stats'],
-                    data: listQuery as Record<string, string | number | null | undefined>,
+        try {
+            const token = arqueoCsrfToken();
+            const res = await fetch(egresoItemUrl(sesion.id, egresoId), {
+                method: 'DELETE',
+                credentials: 'same-origin',
+                headers: {
+                    Accept: 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    ...(token ? { 'X-CSRF-TOKEN': token } : {}),
+                },
+            });
+
+            if (!res.ok) {
+                const json = (await res.json().catch(() => ({}))) as { message?: string };
+                toastManager.error({
+                    title: json.message ?? t('sesiones.dialog_egreso.load_error'),
                 });
-            },
-            onFinish: () => setDeletingId(null),
-        });
+                return;
+            }
+
+            await loadEgresos(sesion.id, { silent: true });
+            toastManager.success({ title: t('sesiones.dialog_egreso.deleted') });
+            refreshSesionesIndex();
+        } catch {
+            toastManager.error({ title: t('sesiones.dialog_egreso.load_error') });
+        } finally {
+            setDeletingId(null);
+        }
     };
 
     return (
@@ -177,13 +271,16 @@ export function SesionEgresoModal({
                         min="0.01"
                         step="0.01"
                         value={data.monto}
-                        onChange={(ev) => setData('monto', ev.target.value)}
+                        onChange={(ev) => setData((prev) => ({ ...prev, monto: ev.target.value }))}
                         autoFocus
                     />
                 </FormField>
 
                 <FormField label={t('sesiones.fields.egreso_motivo')} error={errors.motivo} required>
-                    <Select value={data.motivo} onValueChange={(v) => setData('motivo', v)}>
+                    <Select
+                        value={data.motivo}
+                        onValueChange={(v) => setData((prev) => ({ ...prev, motivo: v }))}
+                    >
                         <SelectTrigger className="w-full">
                             <SelectValue />
                         </SelectTrigger>
@@ -200,7 +297,7 @@ export function SesionEgresoModal({
                 <FormField label={t('sesiones.fields.egreso_notas')} error={errors.notas}>
                     <Textarea
                         value={data.notas}
-                        onChange={(ev) => setData('notas', ev.target.value)}
+                        onChange={(ev) => setData((prev) => ({ ...prev, notas: ev.target.value }))}
                         rows={2}
                     />
                 </FormField>
@@ -248,7 +345,7 @@ export function SesionEgresoModal({
                                             size="icon"
                                             className="size-8 cursor-pointer text-muted-foreground hover:text-destructive"
                                             disabled={deletingId === row.id}
-                                            onClick={() => onDelete(row.id)}
+                                            onClick={() => void onDelete(row.id)}
                                             aria-label={t('sesiones.dialog_egreso.delete')}
                                             title={t('sesiones.dialog_egreso.delete')}
                                         >

@@ -94,7 +94,9 @@
             "delete": "Delete",
             "delete_confirm": "Delete this expense?",
             "loading": "Loading expenses…",
-            "load_error": "Could not load expenses.",
+            "load_error": "Could not load expenses. If you just deployed, check that the route is on the server.",
+            "saved": "Expense recorded.",
+            "deleted": "Expense removed.",
             "motivos": {
                 "insumos": "Supplies / small purchases",
                 "delivery": "Delivery / courier",

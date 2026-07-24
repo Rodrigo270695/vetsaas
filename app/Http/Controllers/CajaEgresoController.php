@@ -20,19 +20,10 @@ class CajaEgresoController extends Controller
     {
         abort_unless($request->user()?->can('caja-sesiones.view'), 403);
 
-        $egresos = $cajaSesion->egresos()
-            ->with(['creadoPor:id,name'])
-            ->orderByDesc('created_at')
-            ->get();
-
-        return response()->json([
-            'egresos' => $egresos->map(static fn (CajaEgreso $e): array => self::serialize($e))->values(),
-            'total' => number_format((float) $egresos->sum(static fn (CajaEgreso $e): float => (float) $e->monto), 2, '.', ''),
-            'sesion_abierta' => $cajaSesion->estaAbierta(),
-        ]);
+        return response()->json($this->payload($cajaSesion));
     }
 
-    public function store(StoreCajaEgresoRequest $request, CajaSesion $cajaSesion): RedirectResponse
+    public function store(StoreCajaEgresoRequest $request, CajaSesion $cajaSesion): JsonResponse|RedirectResponse
     {
         $userId = Auth::id();
         abort_if($userId === null, 403);
@@ -51,8 +42,8 @@ class CajaEgresoController extends Controller
 
         $data = $request->validated();
 
-        DB::transaction(function () use ($cajaSesion, $data, $userId): void {
-            CajaEgreso::query()->create([
+        $egreso = DB::transaction(function () use ($cajaSesion, $data, $userId): CajaEgreso {
+            return CajaEgreso::query()->create([
                 'caja_sesion_id' => $cajaSesion->getKey(),
                 'monto' => number_format((float) $data['monto'], 2, '.', ''),
                 'motivo' => $data['motivo'],
@@ -63,10 +54,20 @@ class CajaEgresoController extends Controller
             ]);
         });
 
+        $egreso->load(['creadoPor:id,name']);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                ...$this->payload($cajaSesion->fresh() ?? $cajaSesion),
+                'egreso' => self::serialize($egreso),
+                'message' => __('caja.flash.egreso_registrado'),
+            ], 201);
+        }
+
         return back()->with('success', __('caja.flash.egreso_registrado'));
     }
 
-    public function destroy(Request $request, CajaSesion $cajaSesion, CajaEgreso $egreso): RedirectResponse
+    public function destroy(Request $request, CajaSesion $cajaSesion, CajaEgreso $egreso): JsonResponse|RedirectResponse
     {
         abort_unless($request->user()?->can('caja-sesiones.egreso'), 403);
 
@@ -91,7 +92,35 @@ class CajaEgresoController extends Controller
 
         $egreso->delete();
 
+        if ($request->expectsJson()) {
+            return response()->json([
+                ...$this->payload($cajaSesion->fresh() ?? $cajaSesion),
+                'message' => __('caja.flash.egreso_eliminado'),
+            ]);
+        }
+
         return back()->with('success', __('caja.flash.egreso_eliminado'));
+    }
+
+    /**
+     * @return array{
+     *     egresos: list<array<string, mixed>>,
+     *     total: string,
+     *     sesion_abierta: bool
+     * }
+     */
+    private function payload(CajaSesion $cajaSesion): array
+    {
+        $egresos = $cajaSesion->egresos()
+            ->with(['creadoPor:id,name'])
+            ->orderByDesc('created_at')
+            ->get();
+
+        return [
+            'egresos' => $egresos->map(static fn (CajaEgreso $e): array => self::serialize($e))->values()->all(),
+            'total' => number_format((float) $egresos->sum(static fn (CajaEgreso $e): float => (float) $e->monto), 2, '.', ''),
+            'sesion_abierta' => $cajaSesion->estaAbierta(),
+        ];
     }
 
     /**
