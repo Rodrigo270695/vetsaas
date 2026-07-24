@@ -4,14 +4,14 @@ namespace App\Services\Subscriptions;
 
 use App\Models\Plan;
 use App\Models\Subscription;
+use App\Support\Subscriptions\BillingGrace;
 use Carbon\CarbonInterface;
-use Illuminate\Support\Carbon;
 
 /**
  * Revisa suscripciones vencidas y aplica la máquina de estados de cobro:
  *   trial/active impago → grace → suspended.
  *
- * Diseñado para ejecutarse vía scheduler (p. ej. una vez al día).
+ * Diseñado para ejecutarse vía scheduler (cada hora).
  * El periodo de gracia se activa al vencer el cobro (`proximo_cobro_at`)
  * y dura `billing.grace_days` desde esa fecha ancla (no desde el pago).
  */
@@ -64,7 +64,6 @@ class SubscriptionBillingSupervisor
                     $this->enterGraceOrSuspend(
                         $subscription,
                         $now,
-                        $this->graceDays(),
                         $subscription->trial_ends_at,
                     );
                     $count++;
@@ -95,7 +94,6 @@ class SubscriptionBillingSupervisor
                     $this->enterGraceOrSuspend(
                         $subscription,
                         $now,
-                        $this->graceDays(),
                         $anchor,
                     );
                     $count++;
@@ -140,13 +138,12 @@ class SubscriptionBillingSupervisor
     private function enterGraceOrSuspend(
         Subscription $subscription,
         CarbonInterface $now,
-        int $graceDays,
         mixed $anchor,
     ): void {
-        // Si ya hay fin de gracia (p. ej. backfill o ajuste manual), respetarlo.
-        $graceEndsAt = $subscription->grace_ends_at !== null
-            ? Carbon::parse($subscription->grace_ends_at)
-            : $this->graceEndsAtFromAnchor($anchor, $graceDays, $now);
+        // Siempre anclar al cobro/periodo vencido (+ N días). Ignora grace_ends_at
+        // desfasada (p. ej. tras cambiar ciclo sin recalcular) para no dejar
+        // clínicas "activas" semanas después del vencimiento real.
+        $graceEndsAt = BillingGrace::endsAtFrom($anchor ?? $now);
 
         if ($graceEndsAt->lte($now)) {
             $subscription->update([
@@ -163,13 +160,6 @@ class SubscriptionBillingSupervisor
         ]);
     }
 
-    private function graceEndsAtFromAnchor(mixed $anchor, int $graceDays, CarbonInterface $now): CarbonInterface
-    {
-        $base = $anchor !== null ? Carbon::parse($anchor) : Carbon::parse($now);
-
-        return $base->copy()->addDays($graceDays);
-    }
-
     private function isFreePlan(Subscription $subscription): bool
     {
         $subscription->loadMissing('plan');
@@ -180,10 +170,5 @@ class SubscriptionBillingSupervisor
     private function hasCoveringPayment(Subscription $subscription): bool
     {
         return $this->coverage->hasCoveringPayment($subscription);
-    }
-
-    private function graceDays(): int
-    {
-        return max(1, (int) config('billing.grace_days', 3));
     }
 }

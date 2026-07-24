@@ -6,6 +6,7 @@ use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\SubscriptionPayment;
 use App\Models\Tenant;
+use App\Support\Subscriptions\BillingGrace;
 use App\Support\Subscriptions\SubscriptionCiclo;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
@@ -86,7 +87,7 @@ class SubscriptionRenewalService
             'estado' => 'active',
             'ciclo' => $ciclo,
             'trial_ends_at' => null,
-            'grace_ends_at' => $periodEnd->copy()->addDays(max(1, (int) config('billing.grace_days', 3))),
+            'grace_ends_at' => $periodEnd->copy()->addDays(BillingGrace::days()),
             'current_period_start' => $periodStart,
             'current_period_end' => $periodEnd,
             'proximo_cobro_at' => $periodEnd,

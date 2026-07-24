@@ -7,6 +7,7 @@ use App\Models\Subscription;
 use App\Models\SubscriptionPayment;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Support\Subscriptions\BillingGrace;
 use App\Support\Subscriptions\SubscriptionCiclo;
 use App\Support\Tenancy\TenantSubdomainUrl;
 use Database\Seeders\TenantRolesSeeder;
@@ -143,7 +144,6 @@ class TenantProvisioner
         $isFreePlan = $plan->codigo === 'free';
 
         $periodEnd = now()->addMonthsNoOverflow(SubscriptionCiclo::months($ciclo));
-        $graceDays = max(1, (int) config('billing.grace_days', 3));
 
         return Subscription::create([
             'tenant_id' => $tenant->id,
@@ -154,7 +154,7 @@ class TenantProvisioner
             'current_period_start' => now(),
             'current_period_end' => $periodEnd,
             'proximo_cobro_at' => $periodEnd,
-            'grace_ends_at' => $isFreePlan ? null : $periodEnd->copy()->addDays($graceDays),
+            'grace_ends_at' => $isFreePlan ? null : BillingGrace::endsAtFrom($periodEnd),
             'precio_pactado' => $precio,
             'descuento_pct' => $payload['descuento_pct'] ?? 0,
         ]);

@@ -127,7 +127,7 @@
             "current_period_start": "Inicio del periodo actual",
             "current_period_end": "Fin del periodo actual",
             "grace_ends_at": "Fin del periodo de gracia",
-            "grace_ends_at_hint": "Por defecto = próximo cobro + 3 días. Si un tenant necesita más tiempo, alarga esta fecha.",
+            "grace_ends_at_hint": "Por defecto = próximo cobro + 3 días (se recalcula al cambiar ciclo o próximo cobro). Al reactivar un tenant suspendido se otorga +1 día de gracia.",
             "proximo_cobro_at": "Próximo cobro",
             "cancel_reason": "Motivo de la cancelación",
             "cancel_feedback": "Feedback adicional del cliente"

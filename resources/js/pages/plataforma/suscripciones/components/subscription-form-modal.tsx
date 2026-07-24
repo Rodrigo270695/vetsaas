@@ -163,6 +163,23 @@ function addMonthsToDateTimeLocal(value: string, months: number): string {
     return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
+/** Gracia por defecto: ancla de cobro + 3 días (alineado a billing.grace_days). */
+function graceFromCobro(value: string, days = 3): string {
+    if (!value) {
+        return '';
+    }
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+        return value;
+    }
+
+    date.setDate(date.getDate() + days);
+    const pad = (n: number) => n.toString().padStart(2, '0');
+
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 /**
  * Modal de crear/editar suscripción.
  *
@@ -478,10 +495,12 @@ export function SubscriptionFormModal({
                                         'current_period_end',
                                         addMonthsToDateTimeLocal(start, cycleMonths(v)),
                                     );
-                                    setData(
-                                        'proximo_cobro_at',
-                                        addMonthsToDateTimeLocal(start, cycleMonths(v)),
+                                    const nextCobro = addMonthsToDateTimeLocal(
+                                        start,
+                                        cycleMonths(v),
                                     );
+                                    setData('proximo_cobro_at', nextCobro);
+                                    setData('grace_ends_at', graceFromCobro(nextCobro));
                                 }}
                             >
                                 <SelectTrigger
@@ -587,12 +606,11 @@ export function SubscriptionFormModal({
                                 id="sub-proximo-cobro"
                                 type="datetime-local"
                                 value={data.proximo_cobro_at}
-                                onChange={(e) =>
-                                    setData(
-                                        'proximo_cobro_at',
-                                        e.target.value,
-                                    )
-                                }
+                                onChange={(e) => {
+                                    const value = e.target.value;
+                                    setData('proximo_cobro_at', value);
+                                    setData('grace_ends_at', graceFromCobro(value));
+                                }}
                             />
                         </FormField>
 
@@ -627,12 +645,18 @@ export function SubscriptionFormModal({
                                 id="sub-period-end"
                                 type="datetime-local"
                                 value={data.current_period_end}
-                                onChange={(e) =>
-                                    setData(
-                                        'current_period_end',
-                                        e.target.value,
-                                    )
-                                }
+                                onChange={(e) => {
+                                    const value = e.target.value;
+                                    setData('current_period_end', value);
+                                    // Si el próximo cobro está vacío o igual al fin anterior, lo alineamos.
+                                    if (
+                                        !data.proximo_cobro_at ||
+                                        data.proximo_cobro_at === data.current_period_end
+                                    ) {
+                                        setData('proximo_cobro_at', value);
+                                        setData('grace_ends_at', graceFromCobro(value));
+                                    }
+                                }}
                             />
                         </FormField>
 

@@ -3,7 +3,7 @@
 namespace App\Services\Subscriptions;
 
 use App\Models\Subscription;
-use Illuminate\Support\Carbon;
+use App\Support\Subscriptions\BillingGrace;
 
 /**
  * Rellena `grace_ends_at` = `proximo_cobro_at` + `billing.grace_days` (default 3)
@@ -24,7 +24,7 @@ class SubscriptionGraceBackfillService
      */
     public function run(bool $dryRun = false): array
     {
-        $graceDays = max(1, (int) config('billing.grace_days', 3));
+        $graceDays = BillingGrace::days();
 
         $scanned = 0;
         $updated = 0;
@@ -56,9 +56,7 @@ class SubscriptionGraceBackfillService
                         continue;
                     }
 
-                    $graceEndsAt = Carbon::parse($subscription->proximo_cobro_at)
-                        ->copy()
-                        ->addDays($graceDays);
+                    $graceEndsAt = BillingGrace::endsAtFrom($subscription->proximo_cobro_at);
 
                     $items[] = [
                         'id' => (string) $subscription->id,

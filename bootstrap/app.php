@@ -137,7 +137,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('vetsaas:reactivate-cold-leads --limit=10 --delay=15')->dailyAt('10:00');
         $schedule->command('vetsaas:reactivate-cold-leads --limit=10 --delay=15')->dailyAt('15:00');
 
-        $schedule->command('vetsaas:billing-supervisor')->dailyAt('06:00');
+        $schedule->command('vetsaas:billing-supervisor')->hourly();
         $schedule->command('vetsaas:subscription-renewal-reminders')->dailyAt('09:00');
         $schedule->command('vetsaas:reminders-scan')->everyFifteenMinutes();
         $schedule->command('vetsaas:notifications-dispatch')->everyFiveMinutes();

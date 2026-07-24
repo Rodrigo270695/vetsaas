@@ -278,15 +278,30 @@ class TenantController extends Controller
             'suspension_reason' => $data['reason'],
         ]);
 
-        $manager->flushCacheFor($tenant);
+        // Alinea la suscripción viva para que el acceso y el supervisor
+        // no la traten como "active" con tenant ya bloqueado.
+        $subscription = $tenant->subscriptions()
+            ->whereIn('estado', ['trial', 'active', 'grace'])
+            ->orderByDesc('created_at')
+            ->first();
+
+        if ($subscription !== null) {
+            $subscription->update([
+                'estado' => 'suspended',
+                'grace_ends_at' => null,
+            ]);
+        }
+
+        $manager->flushCacheFor($tenant->fresh() ?? $tenant);
 
         return back()->with('success', 'Tenant suspendido correctamente.');
     }
 
     /**
-     * Pasa el tenant de `suspended` a `active`. Solo aplica si previamente
-     * estaba suspendido. No hace upgrade desde trial → active (eso es
-     * responsabilidad del flujo de suscripciones).
+     * Pasa el tenant de `suspended` a acceso temporal vía gracia (+1 día)
+     * solo en la suscripción viva de ese tenant. El sync deja el tenant
+     * como `active` mientras corre esa ventana; al vencer, el supervisor
+     * vuelve a suspender si no hay pago.
      */
     public function resume(Tenant $tenant, TenantManager $manager): RedirectResponse
     {
@@ -294,6 +309,25 @@ class TenantController extends Controller
             throw ValidationException::withMessages([
                 'estado' => 'Solo se puede reanudar un tenant suspendido.',
             ]);
+        }
+
+        $subscription = $tenant->subscriptions()
+            ->whereIn('estado', ['suspended', 'grace', 'active', 'trial'])
+            ->orderByDesc('created_at')
+            ->first();
+
+        if ($subscription !== null) {
+            $subscription->update([
+                'estado' => 'grace',
+                'grace_ends_at' => now()->addDay(),
+            ]);
+
+            $manager->flushCacheFor($tenant->fresh() ?? $tenant);
+
+            return back()->with(
+                'success',
+                'Tenant reanudado con 1 día de gracia en su suscripción. Si no renueva, se suspenderá automáticamente al vencer.',
+            );
         }
 
         $tenant->update([

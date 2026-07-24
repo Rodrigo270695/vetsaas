@@ -163,3 +163,51 @@ it('no suspende si hay un pago procesado que cubre el vencimiento', function ():
     expect($result['active_to_grace'])->toBe(0)
         ->and($subscription->estado)->toBe('active');
 });
+
+it('suspende active vencido aunque grace_ends_at este desfasada al futuro', function (): void {
+    $plan = Plan::query()->create([
+        'codigo' => 'BILL-STALE-'.Str::lower(Str::random(4)),
+        'nombre' => 'Plan bill stale',
+        'descripcion' => null,
+        'precio_mensual' => '59.90',
+        'precio_anual' => null,
+        'trial_days' => 0,
+        'orden' => 63,
+        'es_publico' => true,
+        'activo' => true,
+    ]);
+
+    $tenant = Tenant::query()->create([
+        'slug' => 'billstale-'.Str::lower(Str::random(6)),
+        'schema_name' => 'vet_'.Str::lower(Str::random(6)),
+        'razon_social' => 'Clínica Bill Stale',
+        'email_admin' => Str::lower(Str::random(8)).'@stale.test',
+        'estado' => 'active',
+    ]);
+
+    $dueAt = now()->subDays(10);
+
+    $subscription = Subscription::withoutEvents(function () use ($tenant, $plan, $dueAt): Subscription {
+        return Subscription::query()->create([
+            'tenant_id' => $tenant->id,
+            'plan_id' => $plan->id,
+            'estado' => 'active',
+            'ciclo' => 'mensual',
+            'current_period_start' => $dueAt->copy()->subMonth(),
+            'current_period_end' => $dueAt,
+            'proximo_cobro_at' => $dueAt,
+            // Gracia “fantasma” lejos en el futuro (ciclo mal editado).
+            'grace_ends_at' => now()->addMonths(6),
+            'precio_pactado' => '59.90',
+        ]);
+    });
+
+    $result = app(SubscriptionBillingSupervisor::class)->run();
+
+    $subscription->refresh();
+    $tenant->refresh();
+
+    expect($result['active_to_grace'])->toBe(1)
+        ->and($subscription->estado)->toBe('suspended')
+        ->and($tenant->estado)->toBe('suspended');
+});

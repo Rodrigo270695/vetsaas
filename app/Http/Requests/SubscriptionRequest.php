@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\Subscription;
+use App\Support\Subscriptions\BillingGrace;
 use App\Support\Subscriptions\SubscriptionCiclo;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -99,6 +100,19 @@ class SubscriptionRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        $proximoCobro = filled($this->input('proximo_cobro_at'))
+            ? (string) $this->input('proximo_cobro_at')
+            : null;
+
+        $graceEndsAt = filled($this->input('grace_ends_at'))
+            ? (string) $this->input('grace_ends_at')
+            : null;
+
+        // Si hay próximo cobro y no enviaron gracia, la acoplamos automáticamente.
+        if ($proximoCobro !== null && $graceEndsAt === null) {
+            $graceEndsAt = BillingGrace::endsAtFrom($proximoCobro)->toDateTimeString();
+        }
+
         $this->merge([
             'descuento_pct' => filled($this->input('descuento_pct'))
                 ? $this->input('descuento_pct')
@@ -109,6 +123,7 @@ class SubscriptionRequest extends FormRequest
             'cancel_feedback' => filled($this->input('cancel_feedback'))
                 ? trim((string) $this->input('cancel_feedback'))
                 : null,
+            'grace_ends_at' => $graceEndsAt,
         ]);
     }
 }
