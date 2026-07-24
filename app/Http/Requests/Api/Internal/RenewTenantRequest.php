@@ -21,7 +21,7 @@ class RenewTenantRequest extends FormRequest
             'order_number' => ['nullable', 'string', 'max:60'],
             'tenant_slug' => ['required', 'string', 'regex:/^[a-z0-9\-]{3,60}$/'],
             'plan_slug' => ['required', 'string', 'max:30'],
-            'ciclo' => ['nullable', 'in:mensual,anual'],
+            'ciclo' => ['nullable', 'in:mensual,trimestral,semestral,anual'],
             'period_start' => ['nullable', 'date'],
             'period_end' => ['nullable', 'date', 'after:period_start'],
             'precio_pactado' => ['nullable', 'numeric', 'min:0', 'max:9999999.99'],

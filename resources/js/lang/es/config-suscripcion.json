@@ -30,6 +30,8 @@
     },
     "ciclos": {
         "mensual": "Mensual",
+        "trimestral": "Trimestral",
+        "semestral": "Semestral",
         "anual": "Anual"
     },
     "days_until": {
@@ -78,14 +80,16 @@
         "remaining": "Cupos incluidos restantes",
         "progress_label": "Uso del cupo incluido",
         "period_mensual": "Período mensual: {{start}} – {{end}}",
+        "period_trimestral": "Período trimestral: {{start}} – {{end}}",
+        "period_semestral": "Período semestral: {{start}} – {{end}}",
         "period_anual": "Período anual: {{start}} – {{end}}",
         "production_only": "No se cuentan comprobantes emitidos en modo sandbox (pruebas).",
-        "period_reset_hint": "El contador se reinicia al renovar tu plan desde Orvae (nuevo período de suscripción).",
+        "period_reset_hint": "El contador se reinicia al renovar tu plan (nuevo período de suscripción).",
         "overage_title": "Cargo adicional estimado: {{cost}}",
         "overage_hint": "Por superar el cupo incluido: {{blocks}} bloque(s) de {{block}} comprobantes × S/. {{price}} c/u.",
-        "annual_over_title": "Has superado el cupo anual incluido",
-        "annual_over_hint": "Puedes seguir emitiendo. Contacta a Orvae para revisar tu plan o un ajuste de cupo.",
-        "allow_overage": "Al llegar al límite incluido puedes seguir emitiendo comprobantes; en planes mensuales cada 100 extras adiciona S/. 8.00 al cobro.",
+        "annual_over_title": "Has superado el cupo incluido del período",
+        "annual_over_hint": "Puedes seguir emitiendo. Los extras (S/. 8 por cada 100) se suman al próximo cobro.",
+        "allow_overage": "Al llegar al límite incluido puedes seguir emitiendo; cada 100 extras adiciona S/. 8.00 al cobro (cualquier ciclo).",
         "semaphore": {
             "unlimited": "Ilimitado",
             "ok": "Normal",

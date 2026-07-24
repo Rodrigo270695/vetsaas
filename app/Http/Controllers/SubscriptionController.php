@@ -10,6 +10,7 @@ use App\Models\Tenant;
 use App\Services\Subscriptions\SubscriptionRenewalReminderScanner;
 use App\Services\Subscriptions\SubscriptionRenewalWhatsAppSender;
 use App\Support\Subscriptions\SubscriptionBotIaAddon;
+use App\Support\Subscriptions\SubscriptionCiclo;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -238,7 +239,7 @@ class SubscriptionController extends Controller
 
     /**
      * Cambia el plan de una suscripción. Recalcula el `precio_pactado`
-     * con el precio del nuevo plan según el ciclo actual (mensual/anual).
+     * con el precio del nuevo plan según el ciclo actual (mensual/trimestral/semestral/anual).
      */
     public function changePlan(Request $request, Subscription $suscripcion): RedirectResponse
     {
@@ -260,9 +261,11 @@ class SubscriptionController extends Controller
 
         // Solo recalculamos el precio si NO se pidió mantener el actual.
         if (! ($data['keep_price'] ?? false)) {
-            $payload['precio_pactado'] = $suscripcion->ciclo === 'anual'
-                ? (float) ($newPlan->precio_anual ?? $newPlan->precio_mensual * 12)
-                : (float) $newPlan->precio_mensual;
+            $payload['precio_pactado'] = SubscriptionCiclo::suggestedPriceFromPlan(
+                (float) $newPlan->precio_mensual,
+                $newPlan->precio_anual !== null ? (float) $newPlan->precio_anual : null,
+                (string) $suscripcion->ciclo,
+            );
         }
 
         $suscripcion->update($payload);

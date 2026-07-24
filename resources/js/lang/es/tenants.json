@@ -204,7 +204,7 @@
             "max_comprobantes_mes": "Comprobantes / mes"
         },
         "features_hint": {
-            "max_comprobantes_mes": "Cupo mensual incluido. El uso se mide en el período de facturación de la clínica."
+            "max_comprobantes_mes": "Cupo base mensual incluido. En el período se multiplica por los meses del ciclo (×1 / ×3 / ×6 / ×12)."
         }
     }
 }

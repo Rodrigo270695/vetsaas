@@ -38,7 +38,7 @@ type SubscriptionSummary = {
     has_subscription: boolean;
     plan: SubscriptionPlan | null;
     estado: SubscriptionEstado;
-    ciclo: 'mensual' | 'anual' | null;
+    ciclo: 'mensual' | 'trimestral' | 'semestral' | 'anual' | null;
     precio_pactado: string | null;
     trial_ends_at: string | null;
     current_period_start: string | null;

@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\Subscription;
+use App\Support\Subscriptions\SubscriptionCiclo;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -65,7 +66,7 @@ class SubscriptionRequest extends FormRequest
             'ciclo' => [
                 'required',
                 'string',
-                Rule::in(['mensual', 'anual']),
+                Rule::in(SubscriptionCiclo::ALL),
             ],
             'precio_pactado' => ['required', 'numeric', 'min:0', 'max:9999999.99'],
             'descuento_pct' => ['nullable', 'numeric', 'min:0', 'max:100'],

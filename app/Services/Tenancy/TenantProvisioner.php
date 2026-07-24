@@ -7,6 +7,7 @@ use App\Models\Subscription;
 use App\Models\SubscriptionPayment;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Support\Subscriptions\SubscriptionCiclo;
 use App\Support\Tenancy\TenantSubdomainUrl;
 use Database\Seeders\TenantRolesSeeder;
 use Illuminate\Support\Carbon;
@@ -132,12 +133,16 @@ class TenantProvisioner
      */
     private function createSubscription(Tenant $tenant, Plan $plan, array $payload): Subscription
     {
-        $ciclo = $payload['ciclo'] ?? 'mensual';
-        $precio = $ciclo === 'anual' ? (float) $plan->precio_anual : (float) $plan->precio_mensual;
+        $ciclo = SubscriptionCiclo::normalize($payload['ciclo'] ?? null);
+        $precio = SubscriptionCiclo::suggestedPriceFromPlan(
+            (float) $plan->precio_mensual,
+            $plan->precio_anual !== null ? (float) $plan->precio_anual : null,
+            $ciclo,
+        );
 
         $isFreePlan = $plan->codigo === 'free';
 
-        $periodEnd = $ciclo === 'anual' ? now()->addYear() : now()->addMonth();
+        $periodEnd = now()->addMonthsNoOverflow(SubscriptionCiclo::months($ciclo));
         $graceDays = max(1, (int) config('billing.grace_days', 3));
 
         return Subscription::create([

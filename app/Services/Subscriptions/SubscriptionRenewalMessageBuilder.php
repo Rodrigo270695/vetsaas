@@ -6,6 +6,7 @@ namespace App\Services\Subscriptions;
 
 use App\Models\Subscription;
 use App\Models\Tenant;
+use App\Support\Subscriptions\SubscriptionCiclo;
 use App\Support\Subscriptions\SubscriptionRenewalBilling;
 use App\Support\Subscriptions\SubscriptionRenewalUrl;
 use Carbon\CarbonInterface;
@@ -23,7 +24,7 @@ final class SubscriptionRenewalMessageBuilder
         bool $expired = false,
     ): string {
         $name = trim((string) ($tenant->nombre_comercial ?: $tenant->razon_social));
-        $ciclo = $subscription->ciclo === 'anual' ? 'anual' : 'mensual';
+        $ciclo = SubscriptionCiclo::normalize($subscription->ciclo);
         $fecha = $anchor->timezone(config('app.timezone', 'America/Lima'))->format('d/m/Y');
         $renewUrl = $this->renewalUrl->for($tenant, $subscription);
         $total = SubscriptionRenewalBilling::totalAmount($subscription, $tenant);

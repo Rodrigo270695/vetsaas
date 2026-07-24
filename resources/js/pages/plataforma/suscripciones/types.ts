@@ -18,7 +18,11 @@ export type SubscriptionEstado =
 
 export type SubscriptionEstadoFilter = 'todos' | SubscriptionEstado;
 
-export type SubscriptionCiclo = 'mensual' | 'anual';
+export type SubscriptionCiclo =
+    | 'mensual'
+    | 'trimestral'
+    | 'semestral'
+    | 'anual';
 
 /** Mini-tenant que viaja en cada suscripción. */
 export type SubscriptionTenantRef = {

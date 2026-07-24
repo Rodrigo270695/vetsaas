@@ -30,6 +30,8 @@
     },
     "ciclos": {
         "mensual": "Monthly",
+        "trimestral": "Quarterly",
+        "semestral": "Semiannual",
         "anual": "Annual"
     },
     "days_until": {
@@ -78,14 +80,16 @@
         "remaining": "Remaining included quota",
         "progress_label": "Included quota usage",
         "period_mensual": "Monthly period: {{start}} – {{end}}",
+        "period_trimestral": "Quarterly period: {{start}} – {{end}}",
+        "period_semestral": "Semiannual period: {{start}} – {{end}}",
         "period_anual": "Annual period: {{start}} – {{end}}",
         "production_only": "Receipts issued in sandbox (test) mode are not counted.",
-        "period_reset_hint": "The counter resets when you renew your plan from Orvae (new subscription period).",
+        "period_reset_hint": "The counter resets when you renew your plan (new subscription period).",
         "overage_title": "Estimated additional charge: {{cost}}",
         "overage_hint": "Over included quota: {{blocks}} block(s) of {{block}} receipts × S/. {{price}} each.",
-        "annual_over_title": "You exceeded the annual included quota",
-        "annual_over_hint": "You can keep issuing receipts. Contact Orvae to review your plan or quota.",
-        "allow_overage": "When you reach the included limit you can still issue receipts; on monthly plans every extra 100 adds S/. 8.00 to your bill.",
+        "annual_over_title": "You exceeded the included quota for the period",
+        "annual_over_hint": "You can keep issuing receipts. Extra blocks (S/. 8 per 100) are added to the next bill.",
+        "allow_overage": "When you reach the included limit you can still issue receipts; every extra 100 adds S/. 8.00 to your bill (any billing cycle).",
         "semaphore": {
             "unlimited": "Unlimited",
             "ok": "Normal",

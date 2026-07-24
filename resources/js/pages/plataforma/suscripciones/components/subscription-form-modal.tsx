@@ -120,7 +120,48 @@ const isFormValid = (data: SubscriptionFormData): boolean => {
 };
 
 const ESTADOS = ['trial', 'active', 'grace', 'suspended', 'cancelled'];
-const CICLOS = ['mensual', 'anual'];
+const CICLOS = ['mensual', 'trimestral', 'semestral', 'anual'] as const;
+
+function cycleMonths(ciclo: string): number {
+    switch (ciclo) {
+        case 'trimestral':
+            return 3;
+        case 'semestral':
+            return 6;
+        case 'anual':
+            return 12;
+        default:
+            return 1;
+    }
+}
+
+function suggestedPlanPrice(
+    plan: { precio_mensual: string; precio_anual: string | null },
+    ciclo: string,
+): string {
+    const mensual = Number(plan.precio_mensual);
+    if (ciclo === 'anual') {
+        return plan.precio_anual ?? String(mensual * 12);
+    }
+
+    return String(Math.round(mensual * cycleMonths(ciclo) * 100) / 100);
+}
+
+function addMonthsToDateTimeLocal(value: string, months: number): string {
+    if (!value) {
+        return '';
+    }
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+        return value;
+    }
+
+    date.setMonth(date.getMonth() + months);
+    const pad = (n: number) => n.toString().padStart(2, '0');
+
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
 
 /**
  * Modal de crear/editar suscripción.
@@ -197,11 +238,7 @@ export function SubscriptionFormModal({
         const plan = plansCatalog.find((p) => p.id === planId);
         if (!plan) return;
 
-        const price =
-            data.ciclo === 'anual'
-                ? plan.precio_anual ??
-                  String(Number(plan.precio_mensual) * 12)
-                : plan.precio_mensual;
+        const price = suggestedPlanPrice(plan, data.ciclo);
         setData('precio_pactado', price);
 
         // Si el plan tiene trial_days y aún no hay fecha, la inicializamos.
@@ -413,7 +450,39 @@ export function SubscriptionFormModal({
                         >
                             <Select
                                 value={data.ciclo}
-                                onValueChange={(v) => setData('ciclo', v)}
+                                onValueChange={(v) => {
+                                    setData('ciclo', v);
+                                    const plan = plansCatalog.find((p) => p.id === data.plan_id);
+                                    if (plan && !isEdit) {
+                                        setData('precio_pactado', suggestedPlanPrice(plan, v));
+                                    } else if (plan && isEdit) {
+                                        // Al cambiar ciclo en edición, sugerimos precio del catálogo;
+                                        // el operador puede sobreescribir precio_pactado.
+                                        setData('precio_pactado', suggestedPlanPrice(plan, v));
+                                    }
+
+                                    const start =
+                                        data.current_period_start ||
+                                        (() => {
+                                            const now = new Date();
+                                            const pad = (n: number) => n.toString().padStart(2, '0');
+
+                                            return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+                                        })();
+
+                                    if (!data.current_period_start) {
+                                        setData('current_period_start', start);
+                                    }
+
+                                    setData(
+                                        'current_period_end',
+                                        addMonthsToDateTimeLocal(start, cycleMonths(v)),
+                                    );
+                                    setData(
+                                        'proximo_cobro_at',
+                                        addMonthsToDateTimeLocal(start, cycleMonths(v)),
+                                    );
+                                }}
                             >
                                 <SelectTrigger
                                     id="sub-ciclo"

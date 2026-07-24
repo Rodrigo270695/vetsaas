@@ -44,7 +44,7 @@ export type PaymentSubscriptionRef = {
     tenant_id: string;
     plan_id: string;
     estado: string;
-    ciclo?: 'mensual' | 'anual';
+    ciclo?: 'mensual' | 'trimestral' | 'semestral' | 'anual';
     precio_pactado?: string;
     trial_ends_at?: string | null;
     current_period_start?: string | null;

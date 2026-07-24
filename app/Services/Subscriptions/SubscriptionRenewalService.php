@@ -6,6 +6,7 @@ use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\SubscriptionPayment;
 use App\Models\Tenant;
+use App\Support\Subscriptions\SubscriptionCiclo;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
 use InvalidArgumentException;
@@ -60,10 +61,8 @@ class SubscriptionRenewalService
             throw new InvalidArgumentException("Plan no encontrado o inactivo: {$planSlug}");
         }
 
-        $cicloCandidate = (string) ($payload['ciclo'] ?? $subscription->ciclo ?? 'mensual');
-        $ciclo = in_array($cicloCandidate, ['mensual', 'anual'], true)
-            ? $cicloCandidate
-            : 'mensual';
+        $cicloCandidate = (string) ($payload['ciclo'] ?? $subscription->ciclo ?? SubscriptionCiclo::MENSUAL);
+        $ciclo = SubscriptionCiclo::normalize($cicloCandidate);
 
         $payment = is_array($payload['payment'] ?? null)
             ? $payload['payment']
@@ -76,9 +75,11 @@ class SubscriptionRenewalService
 
         $precio = isset($payload['precio_pactado'])
             ? (float) $payload['precio_pactado']
-            : ($ciclo === 'anual'
-                ? (float) ($plan->precio_anual ?? $plan->precio_mensual * 12)
-                : (float) $plan->precio_mensual);
+            : SubscriptionCiclo::suggestedPriceFromPlan(
+                (float) $plan->precio_mensual,
+                $plan->precio_anual !== null ? (float) $plan->precio_anual : null,
+                $ciclo,
+            );
 
         $subscription->update([
             'plan_id' => $plan->id,

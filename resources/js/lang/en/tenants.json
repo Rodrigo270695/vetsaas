@@ -204,7 +204,7 @@
             "max_comprobantes_mes": "Vouchers / month"
         },
         "features_hint": {
-            "max_comprobantes_mes": "Monthly included quota. Usage is measured in the clinic billing period."
+            "max_comprobantes_mes": "Included monthly base quota. In the billing period it is multiplied by cycle months (×1 / ×3 / ×6 / ×12)."
         }
     }
 }

@@ -5,16 +5,18 @@ declare(strict_types=1);
 namespace App\Services\Subscriptions;
 
 use App\Models\Subscription;
+use App\Support\Subscriptions\SubscriptionCiclo;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
 
 /**
  * Calcula el siguiente período de facturación conservando el ancla del ciclo.
  *
- * Ej.: vence cada día 05:
+ * Ej. ciclo mensual, vence cada día 05:
  * - paga el 01/07: período 05/07 → 05/08;
- * - paga el 06/07: período 05/07 → 05/08;
- * - paga el 10/08 tras más de un mes: período 05/08 → 05/09.
+ * - paga el 06/07: período 05/07 → 05/08.
+ *
+ * Trimestral / semestral / anual avanzan 3 / 6 / 12 meses desde el ancla.
  */
 final class SubscriptionPeriodCalculator
 {
@@ -33,16 +35,16 @@ final class SubscriptionPeriodCalculator
 
         return $this->advanceAnchorToCurrentPeriod(
             $anchor,
-            $subscription->ciclo === 'anual' ? 'anual' : 'mensual',
+            SubscriptionCiclo::normalize($subscription->ciclo),
             $paidAt,
         );
     }
 
     public function nextPeriodEnd(CarbonInterface $periodStart, string $ciclo): CarbonInterface
     {
-        return $ciclo === 'anual'
-            ? Carbon::parse($periodStart)->addYear()
-            : Carbon::parse($periodStart)->addMonth();
+        $months = SubscriptionCiclo::months($ciclo);
+
+        return Carbon::parse($periodStart)->addMonthsNoOverflow($months);
     }
 
     private function advanceAnchorToCurrentPeriod(
@@ -51,12 +53,10 @@ final class SubscriptionPeriodCalculator
         CarbonInterface $paidAt,
     ): CarbonInterface {
         $cursor = Carbon::parse($anchor);
-        $add = $ciclo === 'anual'
-            ? static fn (Carbon $date): Carbon => $date->addYear()
-            : static fn (Carbon $date): Carbon => $date->addMonth();
+        $months = SubscriptionCiclo::months($ciclo);
 
         while (true) {
-            $next = $add($cursor->copy());
+            $next = $cursor->copy()->addMonthsNoOverflow($months);
             if ($next->greaterThan($paidAt)) {
                 return $cursor;
             }

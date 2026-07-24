@@ -9,7 +9,9 @@ export type ComprobantesQuota = {
     used: number;
     included: number | null;
     remaining: number | null;
-    ciclo: 'mensual' | 'anual';
+    ciclo: 'mensual' | 'trimestral' | 'semestral' | 'anual';
+    cycle_months?: number;
+    monthly_base?: number | null;
     period_start: string;
     period_end: string;
     usage_pct: number | null;
@@ -160,15 +162,13 @@ export function ComprobantesQuotaCard({
                     </div>
                 )}
 
-                {quota.semaphore === 'over' &&
-                    quota.ciclo === 'mensual' &&
-                    overageCost > 0 && (
-                        <p className="mt-2 text-xs text-amber-800 dark:text-amber-200">
-                            {t('comprobantes.overage_title', {
-                                cost: `S/. ${overageCost.toFixed(2)}`,
-                            })}
-                        </p>
-                    )}
+                {quota.semaphore === 'over' && overageCost > 0 && (
+                    <p className="mt-2 text-xs text-amber-800 dark:text-amber-200">
+                        {t('comprobantes.overage_title', {
+                            cost: `S/. ${overageCost.toFixed(2)}`,
+                        })}
+                    </p>
+                )}
 
                 <p className="mt-2 text-[11px] text-muted-foreground">
                     {t('comprobantes.allow_overage')}

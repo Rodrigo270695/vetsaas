@@ -22,6 +22,8 @@
     },
     "ciclos": {
         "mensual": "Monthly",
+        "trimestral": "Quarterly",
+        "semestral": "Semiannual",
         "anual": "Yearly"
     },
     "stats": {

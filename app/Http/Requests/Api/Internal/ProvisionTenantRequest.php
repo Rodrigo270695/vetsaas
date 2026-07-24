@@ -26,7 +26,7 @@ class ProvisionTenantRequest extends FormRequest
             'external_order_id' => ['required', 'string', 'max:120'],
             'order_number' => ['nullable', 'string', 'max:60'],
             'plan_slug' => ['required', 'string', 'max:30'],
-            'ciclo' => ['nullable', 'in:mensual,anual'],
+            'ciclo' => ['nullable', 'in:mensual,trimestral,semestral,anual'],
             'tenant_slug' => ['required', 'string', 'regex:/^[a-z0-9\-]{3,60}$/'],
             'razon_social' => ['required', 'string', 'max:200'],
             'nombre_comercial' => ['nullable', 'string', 'max:150'],

@@ -8,19 +8,19 @@ use App\Models\FelDocument;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\Tenant;
+use App\Support\Subscriptions\SubscriptionCiclo;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Schema;
 use Throwable;
 
 /**
- * Cupo de comprobantes electrónicos del plan (mensual o anual).
+ * Cupo de comprobantes electrónicos del plan según ciclo de facturación.
  *
- * - El cupo incluido mensual viene de `max_comprobantes_mes` (-1 = ilimitado).
- * - Plan anual: cupo = max_comprobantes_mes × 12 en el período de facturación.
+ * - Base mensual: `max_comprobantes_mes` vía PlanLimits (incluye extras/regalos).
+ * - Incluido del periodo: base × meses(ciclo) — mensual 1, trimestral 3, semestral 6, anual 12.
  * - Al superar el cupo se permite seguir emitiendo; cada bloque de 100 extras
- *   suma un cargo adicional (p. ej. S/ 8), aplicable solo en ciclo mensual
- *   según regla comercial acordada (el cálculo se expone en UI).
+ *   suma un cargo (p. ej. S/ 8) en cualquier ciclo.
  */
 final class ComprobantesQuota
 {
@@ -53,7 +53,7 @@ final class ComprobantesQuota
             [$periodStart, $periodEnd] = self::billingPeriod($subscription);
             $used = self::countEmittedBetween($periodStart, $periodEnd);
 
-            $ciclo = $subscription?->ciclo ?? 'mensual';
+            $ciclo = SubscriptionCiclo::normalize($subscription?->ciclo);
             $included = $unlimited ? null : self::includedLimit($monthlyBase, $ciclo);
             $remaining = $included === null ? null : max(0, $included - $used);
 
@@ -61,13 +61,7 @@ final class ComprobantesQuota
                 ? round(min(999.9, ($used / $included) * 100), 1)
                 : null;
 
-            $overage = $ciclo === 'mensual'
-                ? self::overageBreakdown($used, $included)
-                : [
-                    'units' => $included !== null ? max(0, $used - $included) : 0,
-                    'blocks' => 0,
-                    'cost' => 0.0,
-                ];
+            $overage = self::overageBreakdown($used, $included);
 
             return [
                 'enabled' => self::planTieneFacturacion($plan),
@@ -76,6 +70,8 @@ final class ComprobantesQuota
                 'included' => $included,
                 'remaining' => $remaining,
                 'ciclo' => $ciclo,
+                'cycle_months' => SubscriptionCiclo::months($ciclo),
+                'monthly_base' => $unlimited ? null : $monthlyBase,
                 'period_start' => $periodStart->toIso8601String(),
                 'period_end' => $periodEnd->toIso8601String(),
                 'usage_pct' => $usagePct,
@@ -97,11 +93,7 @@ final class ComprobantesQuota
 
     public static function includedLimit(int $monthlyBase, string $ciclo): int
     {
-        if ($ciclo === 'anual') {
-            return $monthlyBase * 12;
-        }
-
-        return $monthlyBase;
+        return max(0, $monthlyBase) * SubscriptionCiclo::months($ciclo);
     }
 
     /**
@@ -165,15 +157,24 @@ final class ComprobantesQuota
             }
         }
 
-        if ($subscription?->ciclo === 'anual') {
+        $ciclo = SubscriptionCiclo::normalize($subscription?->ciclo);
+        $months = SubscriptionCiclo::months($ciclo);
+
+        if ($months >= 12) {
             return [$now->copy()->startOfYear()->startOfDay(), $now->copy()->endOfYear()->endOfDay()];
+        }
+
+        if ($months > 1) {
+            $start = $now->copy()->startOfMonth()->startOfDay();
+
+            return [$start, $start->copy()->addMonthsNoOverflow($months)->subDay()->endOfDay()];
         }
 
         return [$now->copy()->startOfMonth()->startOfDay(), $now->copy()->endOfMonth()->endOfDay()];
     }
 
     /**
-     * Excedente de comprobantes del período en curso (solo planes mensuales).
+     * Excedente de comprobantes del período en curso (cualquier ciclo).
      *
      * @return array<string, mixed>
      */
@@ -189,13 +190,12 @@ final class ComprobantesQuota
             return self::emptyRenewalOverage();
         }
 
-        $ciclo = $snapshot['ciclo'] ?? 'mensual';
-        $applies = $ciclo === 'mensual' && ! ($snapshot['unlimited'] ?? false);
+        $applies = ! ($snapshot['unlimited'] ?? false);
         $cost = $applies ? (float) ($snapshot['overage_cost'] ?? 0) : 0.0;
 
         return [
             'applies' => $applies && $cost > 0,
-            'ciclo' => $ciclo,
+            'ciclo' => $snapshot['ciclo'] ?? null,
             'used' => (int) ($snapshot['used'] ?? 0),
             'included' => $snapshot['included'],
             'overage_units' => (int) ($snapshot['overage_units'] ?? 0),

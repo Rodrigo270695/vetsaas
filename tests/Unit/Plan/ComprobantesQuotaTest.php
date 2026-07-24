@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 use App\Support\Plan\ComprobantesQuota;
 
-it('calcula cupo anual como doce veces el mensual', function (): void {
-    expect(ComprobantesQuota::includedLimit(100, 'anual'))->toBe(1200)
-        ->and(ComprobantesQuota::includedLimit(100, 'mensual'))->toBe(100);
+it('calcula cupo del periodo como base mensual × meses del ciclo', function (): void {
+    expect(ComprobantesQuota::includedLimit(100, 'mensual'))->toBe(100)
+        ->and(ComprobantesQuota::includedLimit(100, 'trimestral'))->toBe(300)
+        ->and(ComprobantesQuota::includedLimit(100, 'semestral'))->toBe(600)
+        ->and(ComprobantesQuota::includedLimit(100, 'anual'))->toBe(1200);
 });
 
 it('calcula cargo adicional por bloques de 100 en exceso', function (): void {
