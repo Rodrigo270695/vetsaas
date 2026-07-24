@@ -50,7 +50,13 @@
     },
     "detail": {
         "edit": "Editar cita",
-        "open_consulta": "Aperturar cita"
+        "open_consulta": "Aperturar cita",
+        "open_hc": "Abrir historia clínica"
+    },
+    "aperturar_hc": {
+        "title": "¿Abrir historia clínica?",
+        "description": "Se marcará la cita de {{paciente}} en atención y se abrirá la HC para el seguimiento de la consulta (nueva o la que ya esté abierta).",
+        "confirm": "Sí, abrir HC"
     },
     "columns": {
         "inicio_at": "Inicio",

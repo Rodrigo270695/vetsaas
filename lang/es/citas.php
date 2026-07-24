@@ -8,6 +8,7 @@ return [
         'deleted' => 'Cita eliminada correctamente.',
         'cancelled' => 'Cita cancelada correctamente.',
         'aperturada' => 'Cita en atención. Completa la consulta.',
+        'aperturada_seguimiento' => 'Cita en atención. Continuando el seguimiento en la consulta abierta.',
         'aperturar_estado_invalido' => 'Solo se pueden aperturar citas en espera (programadas o confirmadas).',
         'whatsapp_queued' => 'WhatsApp de confirmación enviado al propietario.',
         'whatsapp_no_phone' => 'La cita se guardó, pero el propietario no tiene un número de WhatsApp registrado.',

@@ -8,6 +8,7 @@ return [
         'deleted' => 'Appointment deleted successfully.',
         'cancelled' => 'Appointment cancelled successfully.',
         'aperturada' => 'Appointment in progress. Complete the consultation.',
+        'aperturada_seguimiento' => 'Appointment in progress. Continuing follow-up on the open consultation.',
         'aperturar_estado_invalido' => 'Only waiting appointments (scheduled or confirmed) can be started.',
         'whatsapp_queued' => 'WhatsApp confirmation sent to the owner.',
         'whatsapp_no_phone' => 'The appointment was saved, but the owner has no WhatsApp number registered.',

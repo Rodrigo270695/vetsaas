@@ -1,6 +1,7 @@
 import { router, usePage } from '@inertiajs/react';
 import { Clock, MapPin, Pencil, Stethoscope, Trash2, User, XCircle } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -84,6 +85,7 @@ export function CitaDetailModal({
     const { t } = useTranslation(['citas', 'common']);
     const { locale: appLocale, timezone: appTz } = usePage().props;
     const { can } = usePermission();
+    const [confirmAperturarOpen, setConfirmAperturarOpen] = useState(false);
 
     if (!cita) {
         return null;
@@ -98,13 +100,29 @@ export function CitaDetailModal({
         Boolean(cita.paciente_id) &&
         ['programada', 'confirmada'].includes(cita.estado);
 
-    const aperturarConsulta = () => {
+    const canAbrirHcEnAtencion =
+        can('citas.aperturar') &&
+        can('historias-clinicas.create') &&
+        Boolean(cita.paciente_id) &&
+        cita.estado === 'en_atencion';
+
+    const aperturarYAbrirHc = () => {
+        setConfirmAperturarOpen(false);
         onOpenChange(false);
         router.post(`/clinica/citas/${cita.id}/aperturar`);
     };
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
+        <>
+        <Dialog
+            open={open}
+            onOpenChange={(next) => {
+                if (!next) {
+                    setConfirmAperturarOpen(false);
+                }
+                onOpenChange(next);
+            }}
+        >
             <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-md">
                 <div className="border-b border-border/60 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent px-6 pb-4 pt-6">
                     <DialogHeader className="space-y-3 text-left">
@@ -186,16 +204,26 @@ export function CitaDetailModal({
                             <Button
                                 type="button"
                                 className="cursor-pointer gap-2"
-                                onClick={aperturarConsulta}
+                                onClick={() => setConfirmAperturarOpen(true)}
                             >
                                 <Stethoscope className="size-4" />
                                 {t('citas:detail.open_consulta')}
                             </Button>
                         ) : null}
+                        {canAbrirHcEnAtencion ? (
+                            <Button
+                                type="button"
+                                className="cursor-pointer gap-2"
+                                onClick={() => setConfirmAperturarOpen(true)}
+                            >
+                                <Stethoscope className="size-4" />
+                                {t('citas:detail.open_hc')}
+                            </Button>
+                        ) : null}
                         {canUpdate ? (
                             <Button
                                 type="button"
-                                variant={canAperturar ? 'outline' : 'default'}
+                                variant={canAperturar || canAbrirHcEnAtencion ? 'outline' : 'default'}
                                 className="cursor-pointer gap-2"
                                 onClick={() => {
                                     onOpenChange(false);
@@ -240,5 +268,32 @@ export function CitaDetailModal({
                 </DialogFooter>
             </DialogContent>
         </Dialog>
+
+        <Dialog open={confirmAperturarOpen} onOpenChange={setConfirmAperturarOpen}>
+            <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle>{t('citas:aperturar_hc.title')}</DialogTitle>
+                    <DialogDescription>
+                        {t('citas:aperturar_hc.description', {
+                            paciente: displayPacienteCita(cita.paciente),
+                        })}
+                    </DialogDescription>
+                </DialogHeader>
+                <DialogFooter className="gap-2 sm:justify-end">
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setConfirmAperturarOpen(false)}
+                    >
+                        {t('common:actions.cancel')}
+                    </Button>
+                    <Button type="button" className="gap-2" onClick={aperturarYAbrirHc}>
+                        <Stethoscope className="size-4" />
+                        {t('citas:aperturar_hc.confirm')}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+        </>
     );
 }

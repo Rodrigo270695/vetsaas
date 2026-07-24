@@ -50,7 +50,13 @@
     },
     "detail": {
         "edit": "Edit appointment",
-        "open_consulta": "Start consultation"
+        "open_consulta": "Start consultation",
+        "open_hc": "Open clinical record"
+    },
+    "aperturar_hc": {
+        "title": "Open clinical record?",
+        "description": "{{paciente}}'s appointment will be marked in progress and the clinical record will open for follow-up (new visit or the one already open).",
+        "confirm": "Yes, open record"
     },
     "columns": {
         "inicio_at": "Start",
