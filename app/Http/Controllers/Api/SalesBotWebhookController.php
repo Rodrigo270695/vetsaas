@@ -131,6 +131,12 @@ final class SalesBotWebhookController extends Controller
                 return response()->json(['ok' => true, 'armed' => 'facebook:welcome']);
             }
 
+            // Eco del propio bot (OpenWA reenvía fromMe al enviar texto/voz):
+            // NO pausar — si no, el bot queda “pausado” tras cada respuesta automática.
+            if ($this->botService->isBotOutgoingEcho($contact['phone'], $body)) {
+                return response()->json(['ok' => true, 'skipped' => 'fromMe_bot_echo']);
+            }
+
             $conversation = $this->botService->findExistingConversation($contact['phone'], $contact['wa_chat_id']);
 
             if ($conversation !== null && $conversation->bot_active) {

@@ -588,7 +588,104 @@ PROMPT;
         $conversation->pushMessage('assistant', $botReply);
         $conversation->save();
 
+        $this->rememberOutgoingBotMessage((string) $conversation->phone, $botReply);
+
         return $botReply;
+    }
+
+    /**
+     * Marca un envío reciente del bot para que el eco OpenWA (fromMe)
+     * no pause la conversación como si hubiera escrito un humano.
+     */
+    public function rememberOutgoingBotMessage(string $phone, string $body): void
+    {
+        $phone = trim($phone);
+        $normalized = $this->normalizeOutgoingBody($body);
+
+        if ($phone === '' || $normalized === '') {
+            return;
+        }
+
+        Cache::put($this->outgoingBotCacheKey($phone), $normalized, now()->addSeconds(180));
+        Cache::put($this->outgoingBotFlagKey($phone), 1, now()->addSeconds(180));
+    }
+
+    /**
+     * true si el mensaje saliente es eco del bot (no pausar).
+     */
+    public function isBotOutgoingEcho(string $phone, string $body): bool
+    {
+        $phone = trim($phone);
+        if ($phone === '') {
+            return false;
+        }
+
+        // Nota de voz / media: el body puede venir vacío; si acabamos de enviar, es eco.
+        if (trim($body) === '') {
+            return Cache::has($this->outgoingBotFlagKey($phone));
+        }
+
+        $normalized = $this->normalizeOutgoingBody($body);
+        if ($normalized === '') {
+            return Cache::has($this->outgoingBotFlagKey($phone));
+        }
+
+        $cached = Cache::get($this->outgoingBotCacheKey($phone));
+        if (is_string($cached) && $cached !== '' && $this->outgoingBodiesMatch($cached, $normalized)) {
+            return true;
+        }
+
+        $conversation = $this->findExistingConversation($phone);
+        if ($conversation === null) {
+            return false;
+        }
+
+        $messages = is_array($conversation->messages) ? $conversation->messages : [];
+        for ($i = count($messages) - 1; $i >= 0 && $i >= count($messages) - 5; $i--) {
+            $row = $messages[$i] ?? null;
+            if (! is_array($row) || ($row['role'] ?? '') !== 'assistant') {
+                continue;
+            }
+
+            $assistantBody = $this->normalizeOutgoingBody((string) ($row['content'] ?? ''));
+            if ($assistantBody !== '' && $this->outgoingBodiesMatch($assistantBody, $normalized)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function outgoingBotCacheKey(string $phone): string
+    {
+        return 'salesbot_outgoing_body_'.md5($phone);
+    }
+
+    private function outgoingBotFlagKey(string $phone): string
+    {
+        return 'salesbot_outgoing_flag_'.md5($phone);
+    }
+
+    private function normalizeOutgoingBody(string $body): string
+    {
+        $body = trim(preg_replace('/\s+/u', ' ', $body) ?? $body);
+        $body = preg_replace('/^\[reactivación #\d+\]\s*/iu', '', $body) ?? $body;
+
+        return mb_strtolower($body);
+    }
+
+    private function outgoingBodiesMatch(string $a, string $b): bool
+    {
+        if ($a === $b) {
+            return true;
+        }
+
+        $aShort = mb_substr($a, 0, 140);
+        $bShort = mb_substr($b, 0, 140);
+
+        return $aShort === $bShort
+            || ($aShort !== '' && str_contains($b, $aShort))
+            || ($bShort !== '' && str_contains($a, $bShort));
     }
 
     /**
@@ -735,6 +832,7 @@ PROMPT;
             }
 
             $this->messenger->sendText($conversation->wa_chat_id, $reply);
+            $this->rememberOutgoingBotMessage((string) $conversation->phone, $reply);
             $sent = true;
         }
 
@@ -1031,6 +1129,7 @@ PROMPT;
         // Enviar por WhatsApp.
         if ($this->messenger->isReady()) {
             $this->messenger->sendText($conversation->wa_chat_id, $reactivationMsg);
+            $this->rememberOutgoingBotMessage((string) $conversation->phone, $reactivationMsg);
         } else {
             throw new RuntimeException('El messenger OpenWA no está listo.');
         }
