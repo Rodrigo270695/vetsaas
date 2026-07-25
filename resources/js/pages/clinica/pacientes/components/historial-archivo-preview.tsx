@@ -39,7 +39,7 @@ function resolveKind(archivo: HistorialArchivoItem): HistorialArchivoKind {
 }
 
 /**
- * Vista compacta de PDF/imagen en el historial (clic abre el archivo).
+ * Chip compacto de PDF/imagen en el historial (clic abre el archivo).
  */
 export function HistorialArchivoPreview({ archivo, className }: Props) {
     const url = archivo.resultado_archivo_url;
@@ -54,41 +54,42 @@ export function HistorialArchivoPreview({ archivo, className }: Props) {
             href={url}
             target="_blank"
             rel="noopener noreferrer"
+            title={archivo.nombre_examen}
             className={cn(
-                'group flex w-[7.5rem] shrink-0 flex-col gap-1.5 sm:w-32',
+                'group inline-flex max-w-[11rem] shrink-0 items-center gap-1.5 rounded-md border border-border/70 bg-background px-1.5 py-1',
+                'text-left shadow-sm transition hover:border-primary/40 hover:bg-muted/40',
                 className,
             )}
         >
-            <div
+            <span
                 className={cn(
-                    'relative aspect-[3/4] overflow-hidden rounded-lg border border-border/70 bg-muted/40 shadow-sm transition',
-                    'ring-1 ring-black/[0.03] group-hover:border-primary/40 group-hover:shadow-md dark:ring-white/5',
+                    'flex size-7 shrink-0 items-center justify-center overflow-hidden rounded',
+                    kind === 'pdf' && 'bg-rose-500/12 text-rose-700 dark:text-rose-200',
+                    kind === 'image' && 'bg-muted',
+                    kind === 'other' && 'bg-muted text-muted-foreground',
                 )}
             >
                 {kind === 'image' ? (
                     <img
                         src={url}
-                        alt={archivo.nombre_examen}
+                        alt=""
                         className="size-full object-cover"
                         loading="lazy"
                     />
                 ) : kind === 'pdf' ? (
-                    <div className="flex size-full flex-col items-center justify-center gap-2 bg-gradient-to-b from-rose-500/15 to-rose-500/5 p-2 text-rose-800 dark:text-rose-200">
-                        <FileText className="size-8 opacity-90" strokeWidth={1.75} />
-                        <span className="rounded bg-rose-600/90 px-1.5 py-0.5 text-[0.6rem] font-bold tracking-wide text-white">
-                            PDF
-                        </span>
-                    </div>
+                    <FileText className="size-3.5" strokeWidth={2.25} />
                 ) : (
-                    <div className="flex size-full flex-col items-center justify-center gap-2 p-2 text-muted-foreground">
-                        <ImageIcon className="size-8 opacity-70" strokeWidth={1.75} />
-                        <span className="text-[0.6rem] font-semibold uppercase">Archivo</span>
-                    </div>
+                    <ImageIcon className="size-3.5" strokeWidth={2.25} />
                 )}
-            </div>
-            <p className="line-clamp-2 text-center text-[0.7rem] font-medium leading-snug text-foreground">
-                {archivo.nombre_examen}
-            </p>
+            </span>
+            <span className="min-w-0">
+                <span className="block truncate text-[0.7rem] font-medium leading-tight text-foreground">
+                    {archivo.nombre_examen}
+                </span>
+                <span className="block text-[0.6rem] font-semibold uppercase tracking-wide text-muted-foreground">
+                    {kind === 'pdf' ? 'PDF' : kind === 'image' ? 'IMG' : 'Archivo'}
+                </span>
+            </span>
         </a>
     );
 }

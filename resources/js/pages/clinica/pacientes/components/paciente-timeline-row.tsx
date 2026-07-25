@@ -357,7 +357,7 @@ export function PacienteTimelineRow({
                             ) : null}
 
                             {archivosConsulta.length > 0 ? (
-                                <div className="flex gap-2.5 overflow-x-auto pb-0.5 pt-1">
+                                <div className="flex flex-wrap gap-1.5 pt-1">
                                     {archivosConsulta.map((archivo) => (
                                         <HistorialArchivoPreview
                                             key={archivo.id}

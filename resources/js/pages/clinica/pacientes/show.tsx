@@ -199,7 +199,7 @@ export default function PacienteShow({
                                 </div>
                             </div>
                         </header>
-                        <div className="flex gap-3 overflow-x-auto p-4 sm:gap-4 sm:p-5">
+                        <div className="flex flex-wrap gap-2 p-3 sm:p-4">
                             {archivos_subidos.map((archivo) => (
                                 <HistorialArchivoPreview key={archivo.id} archivo={archivo} />
                             ))}
