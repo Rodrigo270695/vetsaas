@@ -31,13 +31,13 @@ final class SalesBotRegisterWebhookCommand extends Command
             return self::FAILURE;
         }
 
-        $this->info("Sesión OpenWA: {$result['session_id']}");
+        $this->info("Sesión OpenWA: {$result['session_name']} ({$result['session_id']})");
         $this->info("URL webhook:   {$result['webhook_url']}");
         $this->info("Webhook id:    {$result['webhook_id']}");
         $this->info("Acción:        {$result['action']}");
 
         if ($result['deleted_duplicates'] > 0) {
-            $this->warn("Duplicados eliminados: {$result['deleted_duplicates']}");
+            $this->warn("Webhooks sales-bot eliminados (huérfanos/duplicados): {$result['deleted_duplicates']}");
         }
 
         $test = $result['test'] ?? null;

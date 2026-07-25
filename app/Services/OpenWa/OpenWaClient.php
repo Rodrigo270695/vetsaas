@@ -241,6 +241,24 @@ final class OpenWaClient
     }
 
     /**
+     * @return list<array<string, mixed>>
+     */
+    public function listAllWebhooks(int $limit = 1000): array
+    {
+        $response = $this->request('get', '/api/webhooks?limit='.$limit);
+
+        if (! is_array($response)) {
+            return [];
+        }
+
+        if (isset($response['data']) && is_array($response['data'])) {
+            return $response['data'];
+        }
+
+        return $response;
+    }
+
+    /**
      * Actualiza un webhook (parcial). Útil para alinear secret/headers.
      *
      * @param  array<string, mixed>  $payload

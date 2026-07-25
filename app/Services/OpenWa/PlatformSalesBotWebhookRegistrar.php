@@ -10,6 +10,9 @@ use RuntimeException;
 /**
  * Alinea el webhook de SalesBot en la sesión OpenWA de plataforma
  * con SALESBOT_WEBHOOK_SECRET (firma HMAC + header legacy).
+ *
+ * También desactiva/borra webhooks sales-bot huérfanos en otras sesiones
+ * (p. ej. UUID viejo con secret distinto).
  */
 final class PlatformSalesBotWebhookRegistrar
 {
@@ -21,8 +24,9 @@ final class PlatformSalesBotWebhookRegistrar
     /**
      * @return array{
      *     session_id: string,
+     *     session_name: string,
      *     webhook_url: string,
-     *     action: 'created'|'updated'|'unchanged',
+     *     action: 'created'|'updated',
      *     webhook_id: string,
      *     deleted_duplicates: int,
      *     test?: array{success?: bool, statusCode?: int, error?: string}
@@ -50,30 +54,60 @@ final class PlatformSalesBotWebhookRegistrar
         }
 
         $sessionId = $session->openwa_session_id;
-        $webhooks = $this->client->listWebhooks($sessionId);
-        $matches = [];
+        $sessionName = $session->openwa_session_name;
+        $all = $this->client->listAllWebhooks();
+        $onTarget = [];
+        $orphans = [];
 
-        foreach ($webhooks as $webhook) {
+        foreach ($all as $webhook) {
             if (! is_array($webhook)) {
                 continue;
             }
 
-            $webhookUrl = (string) ($webhook['url'] ?? '');
-            if ($this->isSalesBotUrl($webhookUrl)) {
-                $matches[] = $webhook;
+            if (! $this->isSalesBotUrl((string) ($webhook['url'] ?? ''))) {
+                continue;
+            }
+
+            $webhookSessionId = (string) ($webhook['sessionId'] ?? '');
+            if ($webhookSessionId === $sessionId) {
+                $onTarget[] = $webhook;
+            } else {
+                $orphans[] = $webhook;
             }
         }
 
         $deletedDuplicates = 0;
-        $action = 'unchanged';
-        $webhookId = '';
 
-        if ($matches === []) {
+        foreach ($orphans as $orphan) {
+            $orphanSessionId = (string) ($orphan['sessionId'] ?? '');
+            $orphanId = (string) ($orphan['id'] ?? '');
+            if ($orphanSessionId === '' || $orphanId === '') {
+                continue;
+            }
+
+            try {
+                $this->client->deleteWebhook($orphanSessionId, $orphanId);
+                $deletedDuplicates++;
+                Log::warning('SalesBot: webhook OpenWA huérfano eliminado', [
+                    'webhook_id' => $orphanId,
+                    'session_id' => $orphanSessionId,
+                    'url' => $orphan['url'] ?? null,
+                ]);
+            } catch (\Throwable $e) {
+                Log::warning('SalesBot: no se pudo borrar webhook huérfano', [
+                    'webhook_id' => $orphanId,
+                    'session_id' => $orphanSessionId,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        if ($onTarget === []) {
             $created = $this->client->registerWebhook($sessionId, $url, $secret);
             $webhookId = (string) ($created['id'] ?? '');
             $action = 'created';
         } else {
-            $primary = array_shift($matches);
+            $primary = array_shift($onTarget);
             $webhookId = (string) ($primary['id'] ?? '');
 
             if ($webhookId === '') {
@@ -91,7 +125,7 @@ final class PlatformSalesBotWebhookRegistrar
             ]);
             $action = 'updated';
 
-            foreach ($matches as $duplicate) {
+            foreach ($onTarget as $duplicate) {
                 $dupId = (string) ($duplicate['id'] ?? '');
                 if ($dupId === '') {
                     continue;
@@ -103,6 +137,7 @@ final class PlatformSalesBotWebhookRegistrar
 
         Log::info('SalesBot: webhook OpenWA alineado', [
             'session_id' => $sessionId,
+            'session_name' => $sessionName,
             'webhook_id' => $webhookId,
             'url' => $url,
             'action' => $action,
@@ -111,6 +146,7 @@ final class PlatformSalesBotWebhookRegistrar
 
         $result = [
             'session_id' => $sessionId,
+            'session_name' => $sessionName,
             'webhook_url' => $url,
             'action' => $action,
             'webhook_id' => $webhookId,
