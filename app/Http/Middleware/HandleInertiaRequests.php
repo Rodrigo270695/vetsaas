@@ -7,6 +7,8 @@ use App\Models\PlatformSetting;
 use App\Models\User;
 use App\Services\InAppAssistant\InAppAssistantService;
 use App\Support\Clinic\ClinicBrandingUrls;
+use App\Support\OpenWa\PlatformWhatsAppPresenter;
+use App\Support\OpenWa\TenantWhatsAppPresenter;
 use App\Support\Plan\PlanLimits;
 use App\Support\Subscriptions\BotIaAccess;
 use App\Support\Subscriptions\TenantSubscriptionSummary;
@@ -76,6 +78,7 @@ class HandleInertiaRequests extends Middleware
                 ],
                 'flash' => null,
                 'tenant_impersonation' => null,
+                'whatsapp_connection' => null,
                 'sidebarOpen' => true,
             ];
         }
@@ -255,7 +258,83 @@ class HandleInertiaRequests extends Middleware
                         : null,
                 ];
             },
+            'whatsapp_connection' => $skipHeavySharedProps
+                ? null
+                : function () use ($tenantContext, $user): ?array {
+                    if (! ($user instanceof User)) {
+                        return null;
+                    }
+
+                    try {
+                        return $this->resolveWhatsAppConnection($tenantContext?->tenant, $user);
+                    } catch (Throwable $e) {
+                        report($e);
+
+                        return null;
+                    }
+                },
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+        ];
+    }
+
+    /**
+     * Estado liviano de WhatsApp (solo DB) para toast global de desconexión.
+     *
+     * @return array{
+     *     scope: 'tenant'|'platform',
+     *     disconnected: bool,
+     *     session_id: string|null,
+     *     status: string|null,
+     *     last_synced_at: string|null,
+     *     manage_url: string|null
+     * }|null
+     */
+    private function resolveWhatsAppConnection(?\App\Models\Tenant $tenant, User $user): ?array
+    {
+        if ($tenant !== null) {
+            if (! $user->can('comunicaciones-cola.view') && ! $user->can('comunicaciones-bot-ia.view')) {
+                return null;
+            }
+
+            $payload = app(TenantWhatsAppPresenter::class)->forTenant($tenant);
+            $session = is_array($payload['session'] ?? null) ? $payload['session'] : null;
+            $status = is_string($session['status'] ?? null) ? $session['status'] : null;
+            $disconnected = $session !== null
+                && ! (bool) ($session['is_ready'] ?? false)
+                && in_array($status, ['disconnected', 'failed'], true);
+
+            return [
+                'scope' => 'tenant',
+                'disconnected' => $disconnected,
+                'session_id' => isset($session['id']) ? (string) $session['id'] : null,
+                'status' => $status,
+                'last_synced_at' => isset($session['last_synced_at']) && is_string($session['last_synced_at'])
+                    ? $session['last_synced_at']
+                    : null,
+                'manage_url' => route('comunicaciones.cola'),
+            ];
+        }
+
+        if (! $user->isPlatformSuperadmin() && ! $user->can('plataforma-suscripciones.view')) {
+            return null;
+        }
+
+        $payload = app(PlatformWhatsAppPresenter::class)->present();
+        $session = is_array($payload['session'] ?? null) ? $payload['session'] : null;
+        $status = is_string($session['status'] ?? null) ? $session['status'] : null;
+        $disconnected = $session !== null
+            && ! (bool) ($session['is_ready'] ?? false)
+            && in_array($status, ['disconnected', 'failed'], true);
+
+        return [
+            'scope' => 'platform',
+            'disconnected' => $disconnected,
+            'session_id' => isset($session['id']) ? (string) $session['id'] : null,
+            'status' => $status,
+            'last_synced_at' => isset($session['last_synced_at']) && is_string($session['last_synced_at'])
+                ? $session['last_synced_at']
+                : null,
+            'manage_url' => route('plataforma.avisos-renovacion.index'),
         ];
     }
 

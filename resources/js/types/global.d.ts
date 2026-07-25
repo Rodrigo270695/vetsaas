@@ -39,6 +39,7 @@ declare module '@inertiajs/core' {
             } | null;
             tenant_modules: import('@/types/tenant-modules').TenantModulesSnapshot | null;
             tenant_impersonation: SharedTenantImpersonation | null;
+            whatsapp_connection: import('@/types/whatsapp-connection').WhatsAppConnectionShared | null;
             [key: string]: unknown;
         };
     }

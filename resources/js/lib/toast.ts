@@ -20,6 +20,8 @@ export type ToastOptions = {
     action?: ToastAction;
     /** Duración en ms. Default = 4000. Usa `Infinity` para que no se cierre. */
     duration?: number;
+    /** Se dispara al cerrar el toast (botón X o dismiss programático). */
+    onDismiss?: () => void;
     /** Posición específica (sobrescribe la global del Toaster). */
     position?:
         | 'top-left'
@@ -51,6 +53,7 @@ function buildSonnerOptions(opts: ToastOptions) {
         description: opts.description,
         duration: opts.duration,
         position: opts.position,
+        onDismiss: opts.onDismiss,
         action: opts.action
             ? {
                   label: opts.action.label,

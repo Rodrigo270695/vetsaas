@@ -138,5 +138,11 @@
         "apply": "Aplicar rango",
         "clear": "Quitar rango",
         "all_dates": "Todas las fechas"
+    },
+    "whatsapp": {
+        "disconnected_title": "WhatsApp desconectado",
+        "disconnected_body_tenant": "El WhatsApp de la clínica se desconectó. Reconéctalo para seguir enviando mensajes y usar el bot.",
+        "disconnected_body_platform": "El WhatsApp de plataforma (Orvae) se desconectó. Reconéctalo para el SalesBot y los avisos.",
+        "reconnect": "Reconectar"
     }
 }

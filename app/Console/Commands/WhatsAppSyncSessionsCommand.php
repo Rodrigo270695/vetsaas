@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\Tenant;
 use App\Services\OpenWa\OpenWaClient;
+use App\Services\OpenWa\PlatformWhatsAppSessionSync;
 use App\Services\OpenWa\TenantWhatsAppSessionSync;
 use App\Services\Subscriptions\TenantSubscriptionAccess;
 use Illuminate\Console\Command;
@@ -12,17 +13,28 @@ class WhatsAppSyncSessionsCommand extends Command
 {
     protected $signature = 'vetsaas:whatsapp-sync-sessions';
 
-    protected $description = 'Crea/sincroniza sesiones OpenWA por tenant (slug = nombre de sesión)';
+    protected $description = 'Crea/sincroniza sesiones OpenWA de plataforma y tenants';
 
     public function handle(
         OpenWaClient $client,
         TenantWhatsAppSessionSync $sync,
+        PlatformWhatsAppSessionSync $platformSync,
         TenantSubscriptionAccess $access,
     ): int {
         if (! $client->isConfigured()) {
             $this->warn('OpenWA deshabilitado o sin OPENWA_API_KEY.');
 
             return self::SUCCESS;
+        }
+
+        $platform = $platformSync->ensure();
+        if ($platform !== null) {
+            $this->line(sprintf(
+                '  [plataforma] %s → %s (%s)',
+                $platform->openwa_session_name,
+                $platform->status,
+                $platform->phone ?? 'sin teléfono',
+            ));
         }
 
         $synced = 0;

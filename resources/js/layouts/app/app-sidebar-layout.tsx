@@ -6,6 +6,7 @@ import { InAppAssistantAnnouncementModal } from '@/components/in-app-assistant/i
 import { OfflineStatusBanner } from '@/components/offline-status-banner';
 import { SubscriptionRenewalReminderModal } from '@/components/subscription-renewal-reminder-modal';
 import { TenantImpersonationBanner } from '@/components/tenant-impersonation-banner';
+import { useWhatsAppDisconnectedToast } from '@/hooks/use-whatsapp-disconnected-toast';
 import type { AppLayoutProps } from '@/types';
 
 /**
@@ -23,6 +24,8 @@ export default function AppSidebarLayout({
     children,
     breadcrumbs = [],
 }: AppLayoutProps) {
+    useWhatsAppDisconnectedToast();
+
     return (
         <AppShell variant="sidebar">
             <AppSidebar />

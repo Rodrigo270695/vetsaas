@@ -138,5 +138,11 @@
         "apply": "Apply range",
         "clear": "Clear range",
         "all_dates": "All dates"
+    },
+    "whatsapp": {
+        "disconnected_title": "WhatsApp disconnected",
+        "disconnected_body_tenant": "Clinic WhatsApp is disconnected. Reconnect it to keep sending messages and use the bot.",
+        "disconnected_body_platform": "Platform WhatsApp (Orvae) is disconnected. Reconnect it for SalesBot and reminders.",
+        "reconnect": "Reconnect"
     }
 }
