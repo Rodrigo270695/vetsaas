@@ -21,7 +21,7 @@ use Illuminate\Support\Facades\Log;
  *
  * Configuración en el panel de OpenWA (wa-admin.vetsaas.orvae.pe):
  *   Webhook URL  : https://app.vetsaas.orvae.pe/api/webhooks/sales-bot
- *   Header       : X-Webhook-Secret: <valor de SALESBOT_WEBHOOK_SECRET>
+ *   Auth         : X-Webhook-Signature / X-OpenWA-Signature (HMAC) o X-Webhook-Secret
  *   Events       : onMessage
  *
  * Payload esperado de OpenWA:
@@ -60,20 +60,16 @@ final class SalesBotWebhookController extends Controller
             return response()->json(['error' => 'Webhook secret not configured'], 503);
         }
 
-        $signature = (string) $request->header('X-Webhook-Signature', '');
-        $legacySecret = (string) $request->header('X-Webhook-Secret', '');
+        if (! $this->verifyWebhookSecret($request, $secret)) {
+            Log::warning('SalesBot webhook 401: firma/secreto no coinciden', [
+                'has_signature' => $request->header('X-Webhook-Signature') !== null
+                    && $request->header('X-Webhook-Signature') !== '',
+                'has_openwa_signature' => $request->header('X-OpenWA-Signature') !== null
+                    && $request->header('X-OpenWA-Signature') !== '',
+                'has_legacy_secret' => $request->header('X-Webhook-Secret') !== null
+                    && $request->header('X-Webhook-Secret') !== '',
+            ]);
 
-        if ($signature !== '') {
-            $rawBody = (string) $request->getContent();
-            $expected = 'sha256='.hash_hmac('sha256', $rawBody, $secret);
-            if (! hash_equals($expected, $signature)) {
-                return response()->json(['error' => 'Unauthorized'], 401);
-            }
-        } elseif ($legacySecret !== '') {
-            if (! hash_equals($secret, $legacySecret)) {
-                return response()->json(['error' => 'Unauthorized'], 401);
-            }
-        } else {
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
@@ -370,5 +366,39 @@ final class SalesBotWebhookController extends Controller
         }
 
         return response()->json(['ok' => true]);
+    }
+
+    private function verifyWebhookSecret(Request $request, string $secret): bool
+    {
+        $signature = (string) $request->header('X-Webhook-Signature', '');
+        $openWaSignature = (string) $request->header('X-OpenWA-Signature', '');
+        $legacySecret = (string) $request->header('X-Webhook-Secret', '');
+
+        $signatureToVerify = $signature !== '' ? $signature : $openWaSignature;
+
+        if ($signatureToVerify !== '') {
+            $rawBody = (string) $request->getContent();
+            $hmac = hash_hmac('sha256', $rawBody, $secret);
+            $expectedPrefixed = 'sha256='.$hmac;
+
+            if (hash_equals($expectedPrefixed, $signatureToVerify)
+                || hash_equals($hmac, $signatureToVerify)) {
+                return true;
+            }
+
+            // Si la firma falla pero el header legacy coincide, aceptar
+            // (OpenWA a veces firma con un secret viejo y aún manda el header).
+            if ($legacySecret !== '' && hash_equals($secret, $legacySecret)) {
+                return true;
+            }
+
+            return false;
+        }
+
+        if ($legacySecret !== '') {
+            return hash_equals($secret, $legacySecret);
+        }
+
+        return false;
     }
 }
