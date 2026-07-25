@@ -241,6 +241,40 @@ final class OpenWaClient
     }
 
     /**
+     * Actualiza un webhook (parcial). Útil para alinear secret/headers.
+     *
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    public function updateWebhook(string $sessionId, string $webhookId, array $payload): array
+    {
+        $response = $this->request('put', '/api/sessions/'.$sessionId.'/webhooks/'.$webhookId, $payload);
+
+        if (! is_array($response)) {
+            throw new RuntimeException('OpenWA no confirmó la actualización del webhook.');
+        }
+
+        return $response;
+    }
+
+    public function deleteWebhook(string $sessionId, string $webhookId): void
+    {
+        $this->request('delete', '/api/sessions/'.$sessionId.'/webhooks/'.$webhookId);
+    }
+
+    /**
+     * Dispara un POST de prueba al URL del webhook (útil para validar auth).
+     *
+     * @return array{success?: bool, statusCode?: int, error?: string}
+     */
+    public function testWebhook(string $sessionId, string $webhookId): array
+    {
+        $response = $this->request('post', '/api/sessions/'.$sessionId.'/webhooks/'.$webhookId.'/test');
+
+        return is_array($response) ? $response : [];
+    }
+
+    /**
      * @return list<array<string, mixed>>
      */
     public function listWebhooks(string $sessionId): array
@@ -583,6 +617,7 @@ final class OpenWaClient
             $response = match ($method) {
                 'get' => $pending->get($url),
                 'post' => $pending->post($url, $body ?? []),
+                'put' => $pending->put($url, $body ?? []),
                 'delete' => $pending->delete($url),
                 default => throw new RuntimeException('Método HTTP no soportado: '.$method),
             };
