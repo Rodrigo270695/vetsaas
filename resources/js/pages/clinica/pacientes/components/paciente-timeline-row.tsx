@@ -19,12 +19,14 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
+import { HistorialArchivoPreview } from './historial-archivo-preview';
 import { formatAtendidoInAppTimezone } from '../../historias-clinicas/format-atendido';
 import type {
     TimelineAplicacionDetalle,
     TimelineConsultaDetalle,
     TimelineConsultaVinculos,
     TimelineItem,
+    TimelineLabLinea,
 } from '../show';
 
 type TimelineRowProps = {
@@ -216,6 +218,13 @@ export function PacienteTimelineRow({
               item.detalle.vinculos.internamientos.length
             : 0;
 
+    const archivosConsulta: TimelineLabLinea[] =
+        item.kind === 'consulta'
+            ? item.detalle.vinculos.laboratorio.flatMap((p) =>
+                  p.lineas.filter((l) => Boolean(l.resultado_archivo_url)),
+              )
+            : [];
+
     return (
         <li className="relative flex gap-3 pb-5 last:pb-0 sm:gap-4">
             {!isLast ? (
@@ -344,6 +353,17 @@ export function PacienteTimelineRow({
                                             tone="teal"
                                         />
                                     ) : null}
+                                </div>
+                            ) : null}
+
+                            {archivosConsulta.length > 0 ? (
+                                <div className="flex gap-2.5 overflow-x-auto pb-0.5 pt-1">
+                                    {archivosConsulta.map((archivo) => (
+                                        <HistorialArchivoPreview
+                                            key={archivo.id}
+                                            archivo={archivo}
+                                        />
+                                    ))}
                                 </div>
                             ) : null}
                         </div>

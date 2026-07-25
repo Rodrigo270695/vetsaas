@@ -1,13 +1,15 @@
-import { useForm } from '@inertiajs/react';
 import { FlaskConical, Loader2, Save } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useEffect, useMemo } from 'react';
+import { useForm } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 import { FormField, FormModal } from '@/components/forms';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Combobox } from '@/components/ui/combobox';
 import type { ComboboxOption } from '@/components/ui/combobox';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 
 export type ConsultaLabOpcion = {
@@ -21,22 +23,14 @@ type Props = {
     onOpenChange: (open: boolean) => void;
     storeUrl: string;
     consultas: readonly ConsultaLabOpcion[];
-    /** Si viene, preselecciona y bloquea esa consulta. */
+    /** Si viene, fuerza vincular a esa consulta. */
     prefillConsultaId?: string | null;
 };
-
-const CONSULTA_NUEVA = '__new__';
 
 function toDateInputValue(d: Date): string {
     const pad = (n: number) => String(n).padStart(2, '0');
 
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-}
-
-function defaultConsultaId(consultas: readonly ConsultaLabOpcion[]): string {
-    const abierta = consultas.find((c) => c.abierta);
-
-    return abierta?.id ?? consultas[0]?.id ?? CONSULTA_NUEVA;
 }
 
 export function LaboratorioRapidoModal({
@@ -49,6 +43,7 @@ export function LaboratorioRapidoModal({
     const { t } = useTranslation(['pacientes', 'common']);
     const { data, setData, post, processing, errors, reset, clearErrors } =
         useForm({
+            vincular_hc: false as boolean,
             consulta_id: '' as string,
             nombre_examen: '',
             fecha: toDateInputValue(new Date()),
@@ -62,18 +57,13 @@ export function LaboratorioRapidoModal({
     );
 
     const consultaOptions = useMemo<ComboboxOption[]>(
-        () => [
-            {
-                value: CONSULTA_NUEVA,
-                label: t('historial.lab_rapido_sin_consulta'),
-            },
-            ...consultas.map((c) => ({
+        () =>
+            consultas.map((c) => ({
                 value: c.id,
                 label: c.abierta
                     ? `${c.label} · ${t('historial.badge_abierta')}`
                     : c.label,
             })),
-        ],
         [consultas, t],
     );
 
@@ -88,9 +78,10 @@ export function LaboratorioRapidoModal({
             consultas.some((c) => c.id === prefillConsultaId)
                 ? prefillConsultaId
                 : null;
-        const defaultId = fromPrefill ?? defaultConsultaId(consultas);
+
         setData({
-            consulta_id: defaultId === CONSULTA_NUEVA ? '' : defaultId,
+            vincular_hc: Boolean(fromPrefill),
+            consulta_id: fromPrefill ?? '',
             nombre_examen: '',
             fecha: toDateInputValue(new Date()),
             descripcion: '',
@@ -150,41 +141,63 @@ export function LaboratorioRapidoModal({
                     <p>{t('historial.lab_rapido_hint')}</p>
                 </div>
 
-                <FormField
-                    id="lab_rapido_consulta"
-                    label={t('historial.lab_rapido_consulta')}
-                    error={errors.consulta_id}
-                >
-                    <Combobox
-                        id="lab_rapido_consulta"
-                        options={consultaOptions}
-                        value={
-                            data.consulta_id === ''
-                                ? CONSULTA_NUEVA
-                                : data.consulta_id
-                        }
-                        onChange={(v) =>
-                            setData(
-                                'consulta_id',
-                                !v || v === CONSULTA_NUEVA ? '' : v,
-                            )
-                        }
-                        placeholder={t(
-                            'historial.lab_rapido_consulta_placeholder',
-                        )}
-                        searchPlaceholder={t(
-                            'historial.lab_rapido_consulta_search',
-                        )}
-                        emptyMessage={t('historial.lab_rapido_consulta_empty')}
+                <div className="flex items-start gap-3 rounded-lg border border-border/60 bg-muted/20 px-3 py-2.5">
+                    <Checkbox
+                        id="lab_rapido_vincular"
+                        checked={data.vincular_hc}
                         disabled={processing || lockedConsulta}
-                        aria-invalid={Boolean(errors.consulta_id)}
+                        onCheckedChange={(checked) => {
+                            const on = checked === true;
+                            setData('vincular_hc', on);
+                            if (!on) {
+                                setData('consulta_id', '');
+                            }
+                        }}
                     />
-                    {lockedConsulta ? (
-                        <p className="mt-1 text-xs text-muted-foreground">
-                            {t('historial.lab_rapido_consulta_fijada')}
+                    <div className="grid gap-0.5">
+                        <Label
+                            htmlFor="lab_rapido_vincular"
+                            className="cursor-pointer text-sm font-medium"
+                        >
+                            {t('historial.lab_rapido_vincular_hc')}
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                            {t('historial.lab_rapido_vincular_hc_hint')}
                         </p>
-                    ) : null}
-                </FormField>
+                    </div>
+                </div>
+
+                {data.vincular_hc ? (
+                    <FormField
+                        id="lab_rapido_consulta"
+                        label={t('historial.lab_rapido_consulta')}
+                        required
+                        error={errors.consulta_id}
+                    >
+                        <Combobox
+                            id="lab_rapido_consulta"
+                            options={consultaOptions}
+                            value={data.consulta_id}
+                            onChange={(v) => setData('consulta_id', v ?? '')}
+                            placeholder={t(
+                                'historial.lab_rapido_consulta_placeholder',
+                            )}
+                            searchPlaceholder={t(
+                                'historial.lab_rapido_consulta_search',
+                            )}
+                            emptyMessage={t(
+                                'historial.lab_rapido_consulta_empty',
+                            )}
+                            disabled={processing || lockedConsulta}
+                            aria-invalid={Boolean(errors.consulta_id)}
+                        />
+                        {lockedConsulta ? (
+                            <p className="mt-1 text-xs text-muted-foreground">
+                                {t('historial.lab_rapido_consulta_fijada')}
+                            </p>
+                        ) : null}
+                    </FormField>
+                ) : null}
 
                 <FormField
                     id="lab_rapido_nombre"

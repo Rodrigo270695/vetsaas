@@ -1,7 +1,7 @@
 {
     "title": "Login sessions",
-    "description": "Login/logout history and live presence per clinic. Without logout, sign-out is marked expired after idle (~120 min).",
-    "history_hint": "Open = Laravel cookie still valid. Closed = logout or idle expiry (manual logout is not required).",
+    "description": "Live presence and navigation flow per clinic.",
+    "description_live_only": "Who is online now and where they navigate. Login history is no longer stored.",
     "search_placeholder": "Search clinic, user, or email…",
     "filter_estado_label": "Session status",
     "filter_plan_label": "Plan",
@@ -18,7 +18,7 @@
     },
     "presence": {
         "title": "Online now",
-        "description": "Open window in the last {{minutes}} min (any plan). View = last heartbeat screen. Separate from login history.",
+        "description": "Open window in the last {{minutes}} min (any plan). View = last heartbeat screen.",
         "empty": "Nobody with an open window now. If flow appears below, they navigated more than {{minutes}} min ago or closed the tab.",
         "columns": {
             "user": "User",
@@ -38,6 +38,9 @@
         "logged_in_at": "Signed in",
         "logged_out_at": "Signed out",
         "user": "User",
+        "clinic": "Clinic",
+        "module": "Module",
+        "last_seen": "Seen",
         "tenant": "Clinic",
         "plan": "Plan",
         "status": "Status",

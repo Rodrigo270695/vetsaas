@@ -1,58 +1,29 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import {
     Activity,
     Building2,
-    CalendarDays,
-    Filter,
-    KeyRound,
     LayoutGrid,
-    LogIn,
     Radio,
     RefreshCw,
-    Store,
-    UserCircle,
     Users,
-    Wallet,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
-    DataPagination,
     DataTable,
-    DataToolbar,
-    EmptyState,
-    FilterChips,
     PageHeader,
     StatBadge,
 } from '@/components/data-page';
-import type { DataTableColumn, FilterChip } from '@/components/data-page';
+import type { DataTableColumn } from '@/components/data-page';
 import { useAutoRefresh } from '@/hooks/use-auto-refresh';
-import { useDataTablePage } from '@/hooks/use-data-table-page';
 import AppLayout from '@/layouts/app-layout';
 import { SectionCard } from '@/pages/configuracion/general/components/section-card';
 import { AtencionDateRangeFilter } from '@/pages/clinica/historias-clinicas/components/atencion-date-range-filter';
-import operaciones from '@/routes/plataforma/operaciones';
 import sesionesLogin from '@/routes/plataforma/sesiones-login';
-import type { Paginated } from '@/types';
 
-type SessionTab = 'en_vivo' | 'flujo' | 'historial';
-
-type SessionLogRow = {
-    id: string;
-    user_name: string;
-    user_email: string;
-    tenant_slug: string;
-    tenant_label: string;
-    plan_codigo: string;
-    is_free: boolean;
-    ip_address: string | null;
-    logged_in_at: string | null;
-    logged_out_at: string | null;
-    logout_reason: string | null;
-    is_open: boolean;
-};
+type SessionTab = 'en_vivo' | 'flujo';
 
 type OnlineUserRow = {
     user_id: string;
@@ -67,30 +38,6 @@ type OnlineUserRow = {
     last_module: string | null;
     last_seen_at: string | null;
     last_path_at: string | null;
-};
-
-type PlanGrupoFilter = 'free' | 'paid' | 'todos';
-type EstadoFilter = 'todos' | 'abiertas' | 'cerradas';
-
-type SessionFilters = {
-    search: string;
-    plan_grupo: PlanGrupoFilter;
-    estado: EstadoFilter;
-    sort: string | null;
-    direction: 'asc' | 'desc' | null;
-    per_page: number;
-    fecha_desde: string;
-    fecha_hasta: string;
-};
-
-type SessionStats = {
-    total: number;
-    abiertas: number;
-    hoy: number;
-    clinicas: number;
-    free: number;
-    paid: number;
-    coincidencias: number;
 };
 
 type PresencePayload = {
@@ -108,21 +55,19 @@ type PresencePayload = {
 };
 
 type Props = {
-    logs: Paginated<SessionLogRow>;
-    filters: SessionFilters;
-    stats: SessionStats;
+    filters: {
+        fecha_desde: string;
+        fecha_hasta: string;
+    };
+    stats: {
+        online: number;
+    };
     presence: PresencePayload;
     fecha_filtro_ui: {
         default_desde: string;
         default_hasta: string;
     };
-    perPageOptions: number[];
-    plan_free_codigo: string;
 };
-
-const DEFAULT_PER_PAGE = 15;
-const DEFAULT_PLAN: PlanGrupoFilter = 'todos';
-const DEFAULT_ESTADO: EstadoFilter = 'todos';
 
 const formatWhen = (value: string | null): string => {
     if (!value) {
@@ -142,7 +87,6 @@ const formatWhen = (value: string | null): string => {
 };
 
 export default function PlataformaSesionesLoginIndex({
-    logs,
     filters,
     stats,
     presence,
@@ -151,355 +95,101 @@ export default function PlataformaSesionesLoginIndex({
     const { t } = useTranslation(['plataforma-sesiones-login', 'common']);
     const [tab, setTab] = useState<SessionTab>('en_vivo');
 
-    const planOptions: readonly FilterChip<PlanGrupoFilter>[] = useMemo(
-        () => [
-            { value: 'free', label: t('filters.plan.free') },
-            { value: 'paid', label: t('filters.plan.paid') },
-            { value: 'todos', label: t('filters.plan.todos') },
-        ],
-        [t],
-    );
-
-    const estadoOptions: readonly FilterChip<EstadoFilter>[] = useMemo(
-        () => [
-            { value: 'todos', label: t('filters.estado.todos') },
-            { value: 'abiertas', label: t('filters.estado.abiertas') },
-            { value: 'cerradas', label: t('filters.estado.cerradas') },
-        ],
-        [t],
-    );
-
-    const {
-        search,
-        setSearch,
-        isLoading,
-        sort,
-        setSort,
-        setPerPage,
-        applyFilter,
-    } = useDataTablePage<{
-        plan_grupo: PlanGrupoFilter;
-        estado: EstadoFilter;
-        fecha_desde: string;
-        fecha_hasta: string;
-    }>({
-        routeUrl: sesionesLogin.index().url,
-        initialFilters: filters,
-        only: ['logs', 'filters', 'stats', 'presence', 'fecha_filtro_ui'],
-        errorMessage: t('toast.load_error'),
-        storageKey: 'vetsaas.plataforma.sesiones-login.prefs',
-        defaults: {
-            per_page: DEFAULT_PER_PAGE,
-            sort: null,
-            direction: null,
-        },
-    });
-
     const { secondsSince, isRefreshing, refresh } = useAutoRefresh({
-        only: ['logs', 'filters', 'stats', 'presence', 'fecha_filtro_ui'],
+        only: ['filters', 'stats', 'presence', 'fecha_filtro_ui'],
         enabled: true,
-        busy: isLoading,
     });
 
-    const activeFiltersCount = useMemo(() => {
-        let count = 0;
-
-        if (filters.search) {
-            count += 1;
-        }
-
-        if (filters.sort && filters.sort !== 'logged_in_at') {
-            count += 1;
-        }
-
-        if (filters.plan_grupo !== DEFAULT_PLAN) {
-            count += 1;
-        }
-
-        if (filters.estado !== DEFAULT_ESTADO) {
-            count += 1;
-        }
-
-        if (
-            filters.fecha_desde !== fecha_filtro_ui.default_desde
-            || filters.fecha_hasta !== fecha_filtro_ui.default_hasta
-        ) {
-            count += 1;
-        }
-
-        if (filters.per_page !== DEFAULT_PER_PAGE) {
-            count += 1;
-        }
-
-        return count;
-    }, [filters, fecha_filtro_ui]);
-
-    const reasonLabel = (reason: string | null): string => {
-        if (reason === 'logout') {
-            return t('reason.logout');
-        }
-
-        if (reason === 'expired') {
-            return t('reason.expired');
-        }
-
-        return t('reason.unknown');
+    const applyFecha = (desde: string, hasta: string) => {
+        router.get(
+            sesionesLogin.index().url,
+            { fecha_desde: desde, fecha_hasta: hasta },
+            {
+                preserveState: true,
+                preserveScroll: true,
+                only: ['filters', 'stats', 'presence', 'fecha_filtro_ui'],
+            },
+        );
     };
 
-    const onlineColumns: DataTableColumn<OnlineUserRow>[] = useMemo(
-        () => [
-            {
-                key: 'user',
-                header: t('presence.columns.user'),
-                cell: (row) => (
-                    <div className="flex min-w-0 flex-col leading-tight">
-                        <span className="truncate text-sm font-semibold">{row.user_name}</span>
-                        <span className="truncate text-xs text-muted-foreground">{row.user_email}</span>
-                    </div>
-                ),
-            },
-            {
-                key: 'tenant',
-                header: t('presence.columns.tenant'),
-                cell: (row) => (
-                    <div className="flex min-w-0 flex-col leading-tight">
-                        <span className="truncate text-sm font-medium">{row.tenant_label ?? '—'}</span>
-                        <span className="truncate font-mono text-xs text-muted-foreground">
-                            {row.tenant_slug ?? '—'}
-                        </span>
-                    </div>
-                ),
-            },
-            {
-                key: 'module',
-                header: t('presence.columns.module'),
-                cell: (row) => (
-                    <StatBadge label={row.last_module ?? '—'} value="" variant="info" />
-                ),
-            },
-            {
-                key: 'path',
-                header: t('presence.columns.path'),
-                cell: (row) => (
-                    <span className="block max-w-72 truncate font-mono text-xs text-muted-foreground" title={row.last_path ?? undefined}>
-                        {row.last_path ?? '—'}
-                    </span>
-                ),
-            },
-            {
-                key: 'seen',
-                header: t('presence.columns.seen'),
-                cell: (row) => (
-                    <span className="text-xs text-muted-foreground">{formatWhen(row.last_seen_at)}</span>
-                ),
-            },
-        ],
-        [t],
-    );
-
-    const columns: DataTableColumn<SessionLogRow>[] = useMemo(
-        () => [
-            {
-                key: 'logged_in_at',
-                header: t('columns.logged_in_at'),
-                sortable: true,
-                cell: (row) => (
-                    <span className="text-xs text-muted-foreground">
-                        {formatWhen(row.logged_in_at)}
-                    </span>
-                ),
-            },
-            {
-                key: 'logged_out_at',
-                header: t('columns.logged_out_at'),
-                sortable: true,
-                cell: (row) =>
-                    row.is_open ? (
-                        <StatBadge label={t('status.open')} value="" variant="warning" />
-                    ) : (
-                        <span className="text-xs text-muted-foreground">
-                            {formatWhen(row.logged_out_at)}
-                        </span>
-                    ),
-            },
-            {
-                key: 'user',
-                header: t('columns.user'),
-                cell: (row) => (
-                    <div className="flex items-center gap-2">
-                        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                            <UserCircle className="size-4" strokeWidth={2.25} />
-                        </span>
-                        <div className="flex min-w-0 flex-col leading-tight">
-                            <span className="truncate text-sm font-semibold text-foreground">
-                                {row.user_name}
-                            </span>
-                            <span className="truncate text-xs text-muted-foreground">
-                                {row.user_email}
-                            </span>
-                        </div>
-                    </div>
-                ),
-            },
-            {
-                key: 'tenant_slug',
-                header: t('columns.tenant'),
-                sortable: true,
-                cell: (row) => (
-                    <div className="flex items-center gap-2">
-                        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
-                            <Store className="size-4" strokeWidth={2.25} />
-                        </span>
-                        <div className="flex min-w-0 flex-col leading-tight">
-                            <span className="truncate text-sm font-semibold text-foreground">
-                                {row.tenant_label}
-                            </span>
-                            <span className="truncate font-mono text-xs text-muted-foreground">
-                                {row.tenant_slug}
-                            </span>
-                        </div>
-                    </div>
-                ),
-            },
-            {
-                key: 'plan_codigo',
-                header: t('columns.plan'),
-                sortable: true,
-                cell: (row) => (
-                    <StatBadge
-                        label={
-                            row.is_free
-                                ? t('plan.free')
-                                : row.plan_codigo === 'unknown'
-                                  ? t('plan.unknown')
-                                  : t('plan.paid')
-                        }
-                        value={row.plan_codigo}
-                        variant={row.is_free ? 'muted' : 'info'}
-                    />
-                ),
-            },
-            {
-                key: 'reason',
-                header: t('columns.reason'),
-                cell: (row) => (
-                    <span className="text-xs text-muted-foreground">
-                        {row.is_open ? '—' : reasonLabel(row.logout_reason)}
-                    </span>
-                ),
-            },
-            {
-                key: 'ip_address',
-                header: t('columns.ip'),
-                cell: (row) => (
-                    <span className="font-mono text-xs text-muted-foreground">
-                        {row.ip_address ?? '—'}
-                    </span>
-                ),
-            },
-        ],
-        [t],
-    );
-
-    const preservedQuery = {
-        search: filters.search || undefined,
-        per_page: filters.per_page,
-        sort: filters.sort ?? undefined,
-        direction: filters.direction ?? undefined,
-        plan_grupo: filters.plan_grupo !== DEFAULT_PLAN ? filters.plan_grupo : undefined,
-        estado: filters.estado !== DEFAULT_ESTADO ? filters.estado : undefined,
-        fecha_desde: filters.fecha_desde,
-        fecha_hasta: filters.fecha_hasta,
-    };
+    const onlineColumns: DataTableColumn<OnlineUserRow>[] = [
+        {
+            id: 'user',
+            header: t('columns.user'),
+            cell: (row) => (
+                <div className="min-w-0">
+                    <p className="truncate font-medium">{row.user_name}</p>
+                    <p className="truncate text-xs text-muted-foreground">{row.user_email}</p>
+                </div>
+            ),
+        },
+        {
+            id: 'tenant',
+            header: t('columns.clinic'),
+            cell: (row) => (
+                <div className="min-w-0">
+                    <p className="truncate text-sm">{row.tenant_label ?? '—'}</p>
+                    <p className="truncate font-mono text-xs text-muted-foreground">
+                        {row.tenant_slug ?? '—'}
+                    </p>
+                </div>
+            ),
+        },
+        {
+            id: 'module',
+            header: t('columns.module'),
+            cell: (row) => (
+                <span className="text-sm">{row.last_module ?? row.last_path ?? '—'}</span>
+            ),
+        },
+        {
+            id: 'seen',
+            header: t('columns.last_seen'),
+            cell: (row) => (
+                <span className="whitespace-nowrap text-xs tabular-nums text-muted-foreground">
+                    {formatWhen(row.last_seen_at)}
+                </span>
+            ),
+        },
+    ];
 
     return (
         <>
             <Head title={t('title')} />
 
-            <div className="flex flex-1 flex-col gap-5 p-4 sm:p-6">
+            <div className="flex flex-col gap-4 p-4 md:p-6">
                 <PageHeader
                     title={t('title')}
-                    description={t('description')}
-                    action={
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <span
-                                className={`inline-block size-2 rounded-full ${
-                                    isRefreshing ? 'animate-ping bg-amber-400' : 'bg-emerald-400'
-                                }`}
-                            />
-                            <span>
-                                {isRefreshing
-                                    ? t('sync.updating')
-                                    : t('sync.updated_ago', { seconds: secondsSince })}
+                    description={t('description_live_only')}
+                    icon={Radio}
+                    actions={
+                        <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-xs text-muted-foreground">
+                                {t('common:auto_refresh.updated_seconds', {
+                                    seconds: secondsSince,
+                                })}
                             </span>
-                            <span className="hidden sm:inline">· {t('sync.interval_hint')}</span>
                             <Button
                                 type="button"
-                                variant="ghost"
+                                variant="outline"
                                 size="sm"
-                                className="h-7 cursor-pointer gap-1 px-2"
-                                onClick={refresh}
+                                className="gap-1.5"
                                 disabled={isRefreshing}
+                                onClick={() => refresh()}
                             >
-                                <RefreshCw className={`size-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-                                {t('sync.refresh_now')}
+                                <RefreshCw
+                                    className={`size-3.5 ${isRefreshing ? 'animate-spin' : ''}`}
+                                />
+                                {t('common:auto_refresh.now')}
                             </Button>
                         </div>
                     }
                     stats={[
                         {
                             label: t('stats.online'),
-                            value: presence.online.length,
-                            variant: presence.online.length > 0 ? 'success' : 'muted',
-                            icon: Users,
-                        },
-                        {
-                            label: t('stats.total'),
-                            value: stats.total,
-                            variant: 'info',
-                            icon: LogIn,
-                        },
-                        {
-                            label: t('stats.abiertas'),
-                            value: stats.abiertas,
-                            variant: 'warning',
-                            icon: Radio,
-                        },
-                        {
-                            label: t('stats.hoy'),
-                            value: stats.hoy,
-                            variant: 'primary',
-                            icon: CalendarDays,
-                        },
-                        {
-                            label: t('stats.clinicas'),
-                            value: stats.clinicas,
+                            value: stats.online,
                             variant: 'success',
-                            icon: Building2,
-                        },
-                        {
-                            label: t('stats.free'),
-                            value: stats.free,
-                            variant: 'muted',
-                            icon: KeyRound,
-                        },
-                        {
-                            label: t('stats.paid'),
-                            value: stats.paid,
-                            variant: 'info',
-                            icon: Wallet,
-                        },
-                        {
-                            label: 'Filtros activos',
-                            value: activeFiltersCount,
-                            variant: 'warning',
-                            icon: Filter,
-                        },
-                        {
-                            label: t('stats.matches'),
-                            value: stats.coincidencias,
-                            variant: 'primary',
-                            icon: Activity,
+                            icon: Users,
                         },
                     ]}
                 />
@@ -509,7 +199,7 @@ export default function PlataformaSesionesLoginIndex({
                     onValueChange={(value) => setTab(value as SessionTab)}
                     className="flex flex-col gap-4"
                 >
-                    <TabsList className="grid h-auto w-full max-w-xl grid-cols-3 gap-1 p-1">
+                    <TabsList className="grid h-auto w-full max-w-md grid-cols-2 gap-1 p-1">
                         <TabsTrigger value="en_vivo" className="cursor-pointer gap-1.5 text-xs sm:text-sm">
                             <Users className="size-3.5 shrink-0" />
                             <span className="truncate">{t('tabs.en_vivo')}</span>
@@ -522,10 +212,6 @@ export default function PlataformaSesionesLoginIndex({
                         <TabsTrigger value="flujo" className="cursor-pointer gap-1.5 text-xs sm:text-sm">
                             <Activity className="size-3.5 shrink-0" />
                             <span className="truncate">{t('tabs.flujo')}</span>
-                        </TabsTrigger>
-                        <TabsTrigger value="historial" className="cursor-pointer gap-1.5 text-xs sm:text-sm">
-                            <LogIn className="size-3.5 shrink-0" />
-                            <span className="truncate">{t('tabs.historial')}</span>
                         </TabsTrigger>
                     </TabsList>
 
@@ -588,9 +274,7 @@ export default function PlataformaSesionesLoginIndex({
                                 defaultHasta={fecha_filtro_ui.default_hasta}
                                 translationNs="plataforma-sesiones-login"
                                 triggerClassName="h-9"
-                                onApply={(desde, hasta) =>
-                                    applyFilter({ fecha_desde: desde, fecha_hasta: hasta })
-                                }
+                                onApply={applyFecha}
                             />
                             <p className="text-xs text-muted-foreground">{t('tabs.flujo_hint')}</p>
                         </div>
@@ -655,81 +339,6 @@ export default function PlataformaSesionesLoginIndex({
                                 )}
                             </SectionCard>
                         </div>
-                    </TabsContent>
-
-                    <TabsContent value="historial" className="mt-0">
-                        <DataTable
-                            columns={columns}
-                            data={logs.data}
-                            rowKey={(row) => row.id}
-                            sort={sort}
-                            onSortChange={setSort}
-                            isLoading={isLoading || isRefreshing}
-                            ariaLiveMessage={t('aria.results_count', {
-                                count: stats.coincidencias,
-                            })}
-                            toolbar={
-                                <div className="flex w-full min-w-0 flex-col gap-2">
-                                    <p className="text-xs text-muted-foreground">{t('history_hint')}</p>
-                                    <DataToolbar
-                                        search={search}
-                                        onSearchChange={setSearch}
-                                        isSearching={isLoading}
-                                        placeholder={t('search_placeholder')}
-                                    >
-                                        <AtencionDateRangeFilter
-                                            desde={filters.fecha_desde}
-                                            hasta={filters.fecha_hasta}
-                                            defaultDesde={fecha_filtro_ui.default_desde}
-                                            defaultHasta={fecha_filtro_ui.default_hasta}
-                                            translationNs="plataforma-sesiones-login"
-                                            triggerClassName="h-9"
-                                            onApply={(desde, hasta) =>
-                                                applyFilter({
-                                                    fecha_desde: desde,
-                                                    fecha_hasta: hasta,
-                                                })
-                                            }
-                                        />
-                                        <FilterChips
-                                            ariaLabel={t('filter_plan_label')}
-                                            value={filters.plan_grupo}
-                                            onChange={(plan_grupo) => applyFilter({ plan_grupo })}
-                                            options={planOptions}
-                                        />
-                                        <FilterChips
-                                            ariaLabel={t('filter_estado_label')}
-                                            value={filters.estado}
-                                            onChange={(estado) => applyFilter({ estado })}
-                                            options={estadoOptions}
-                                        />
-                                    </DataToolbar>
-                                </div>
-                            }
-                            footer={
-                                <DataPagination
-                                    meta={logs}
-                                    onPerPageChange={setPerPage}
-                                    preservedQuery={preservedQuery}
-                                />
-                            }
-                            emptyState={
-                                <EmptyState
-                                    icon={activeFiltersCount > 0 ? Activity : LogIn}
-                                    title={t('empty.title')}
-                                    description={t('empty.description')}
-                                    action={
-                                        activeFiltersCount === 0 ? (
-                                            <Button asChild>
-                                                <Link href={operaciones.index().url}>
-                                                    {t('empty.cta_operaciones')}
-                                                </Link>
-                                            </Button>
-                                        ) : undefined
-                                    }
-                                />
-                            }
-                        />
                     </TabsContent>
                 </Tabs>
             </div>

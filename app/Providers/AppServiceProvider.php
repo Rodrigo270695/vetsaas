@@ -3,7 +3,6 @@
 namespace App\Providers;
 
 use App\Listeners\RecordUserLoginPresence;
-use App\Listeners\RecordUserLogoutPresence;
 use App\Models\User;
 use App\Observers\AuditModelObserver;
 use App\Services\InAppAssistant\InAppAssistantKnowledgeRepository;
@@ -11,7 +10,6 @@ use App\Support\Subscriptions\BotIaAccess;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Events\Login;
-use Illuminate\Auth\Events\Logout;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
@@ -47,7 +45,6 @@ class AppServiceProvider extends ServiceProvider
         $this->registerAuditModelObservers();
 
         Event::listen(Login::class, RecordUserLoginPresence::class);
-        Event::listen(Logout::class, RecordUserLogoutPresence::class);
     }
 
     /**

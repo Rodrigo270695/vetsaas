@@ -1,5 +1,5 @@
 import { Head, Link, usePage } from '@inertiajs/react';
-import { CalendarDays, History } from 'lucide-react';
+import { CalendarDays, FolderOpen, History } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Can } from '@/components/can';
@@ -8,6 +8,7 @@ import clinica from '@/routes/clinica';
 import type { Paciente } from '../propietarios/types';
 import { ClinicalHistoryWhatsAppDialog } from './components/clinical-history-whatsapp-dialog';
 import type { ClinicalHistoryShareTarget } from './components/clinical-history-whatsapp-dialog';
+import { HistorialArchivoPreview } from './components/historial-archivo-preview';
 import { LaboratorioRapidoModal } from './components/laboratorio-rapido-modal';
 import { PacienteHistorialHero } from './components/paciente-historial-hero';
 import { PacienteTimelineRow } from './components/paciente-timeline-row';
@@ -19,6 +20,16 @@ export type TimelineLabLinea = {
     resultado_at: string | null;
     resultado_archivo_url: string | null;
     resultado_archivo_original_name: string | null;
+    archivo_kind?: 'pdf' | 'image' | 'other';
+};
+
+export type HistorialArchivoSubido = {
+    id: string;
+    nombre_examen: string;
+    resultado_at: string | null;
+    resultado_archivo_url: string | null;
+    resultado_archivo_original_name: string | null;
+    archivo_kind: 'pdf' | 'image' | 'other';
 };
 
 export type TimelineConsultaVinculos = {
@@ -86,6 +97,7 @@ type Props = {
     paciente: Paciente;
     timeline: readonly TimelineItem[];
     consultas_para_lab?: readonly { id: string; label: string; abierta: boolean }[];
+    archivos_subidos?: readonly HistorialArchivoSubido[];
     links: {
         nueva_consulta: string;
         nueva_aplicacion: string;
@@ -106,6 +118,7 @@ export default function PacienteShow({
     paciente,
     timeline,
     consultas_para_lab = [],
+    archivos_subidos = [],
     links,
     permisos,
 }: Props) {
@@ -168,6 +181,31 @@ export default function PacienteShow({
                     }}
                     onOpenLaboratorio={() => openLaboratorio(null)}
                 />
+
+                {archivos_subidos.length > 0 ? (
+                    <section className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm ring-1 ring-black/[0.03] dark:ring-white/5">
+                        <header className="flex flex-col gap-2 border-b border-border/50 bg-muted/20 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+                            <div className="flex items-center gap-2.5">
+                                <span className="flex size-9 items-center justify-center rounded-xl bg-sky-500/12 text-sky-700 dark:text-sky-200">
+                                    <FolderOpen className="size-4" strokeWidth={2.25} />
+                                </span>
+                                <div>
+                                    <h2 className="text-base font-semibold text-foreground">
+                                        {t('historial.archivos_subidos_title')}
+                                    </h2>
+                                    <p className="text-xs text-muted-foreground">
+                                        {t('historial.archivos_subidos_hint')}
+                                    </p>
+                                </div>
+                            </div>
+                        </header>
+                        <div className="flex gap-3 overflow-x-auto p-4 sm:gap-4 sm:p-5">
+                            {archivos_subidos.map((archivo) => (
+                                <HistorialArchivoPreview key={archivo.id} archivo={archivo} />
+                            ))}
+                        </div>
+                    </section>
+                ) : null}
 
                 <section className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm ring-1 ring-black/[0.03] dark:ring-white/5">
                     <header className="flex flex-col gap-2 border-b border-border/50 bg-muted/20 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
