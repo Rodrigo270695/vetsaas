@@ -15,6 +15,7 @@ use App\Models\Venta;
 use App\Support\Caja\TicketAnchoMm;
 use App\Support\ConsultaCargo\ConsultaCargoStockSync;
 use App\Support\ConsultaCargo\ConsultaCargoTotales;
+use App\Support\ConsultaCargo\SyncConsultaCargoDesdeExamenes;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -28,6 +29,7 @@ class ConsultaCargoController extends Controller
 {
     public function __construct(
         private readonly ConsultaCargoStockSync $cargoStock,
+        private readonly SyncConsultaCargoDesdeExamenes $syncDesdeExamenes,
     ) {}
     public function show(Request $request, Consulta $consulta): Response
     {
@@ -38,7 +40,7 @@ class ConsultaCargoController extends Controller
             abort(503, 'Configuración de clínica no disponible.');
         }
 
-        ConsultaCargo::query()->firstOrCreate(
+        $cargo = ConsultaCargo::query()->firstOrCreate(
             ['consulta_id' => $consulta->id],
             [
                 'estado' => ConsultaCargo::ESTADO_BORRADOR,
@@ -50,6 +52,8 @@ class ConsultaCargoController extends Controller
                 'updated_by_id' => Auth::id(),
             ],
         );
+
+        $this->syncDesdeExamenes->sync($consulta, $cargo);
 
         $consulta->load([
             'historiaClinica.paciente.propietario:id,nombres,apellidos,razon_social',

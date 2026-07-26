@@ -555,8 +555,7 @@ export function ConsultaFormModal({
                         ) : (
                             <Button
                                 type="button"
-                                variant="secondary"
-                                className="cursor-pointer"
+                                className="cursor-pointer border-0 bg-amber-500 text-white hover:bg-amber-600 focus-visible:ring-amber-500/40 dark:bg-amber-600 dark:hover:bg-amber-500"
                                 disabled={cierreBusy}
                                 onClick={onCerrar}
                             >
