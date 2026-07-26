@@ -83,6 +83,7 @@ export type ConsultaHistoriaRow = {
     objetivo: string | null;
     analisis: string | null;
     plan: string | null;
+    medico_tratante?: string | null;
     peso_kg: string | null;
     temperatura_c: string | null;
     fc_lpm: number | null;
@@ -90,8 +91,21 @@ export type ConsultaHistoriaRow = {
     cerrada_at: string | null;
     created_at: string;
     updated_at: string;
-    /** Plan de medicación vinculado (si existe); usado en el listado para acceso al plan y a «Plan y seguimiento». */
+    /** Plan de medicación vinculado (legado «Plan y seguimiento»). */
     plan_tratamiento: ConsultaPlanTratamientoResumen | null;
+    examenes?: readonly {
+        id: string;
+        servicio_clinico_id: string | null;
+        nombre: string;
+        orden: number;
+    }[];
+    terapia_lineas?: readonly {
+        id: string;
+        farmaco_id: string | null;
+        farmaco_nombre: string;
+        dosis_volumen: string | null;
+        orden: number;
+    }[];
     /** Pre-cuenta / cargos de la consulta (si existe fila en `consulta_cargos`). */
     cargo?: { id: string; estado: string; total: string } | null;
     historia_clinica: {

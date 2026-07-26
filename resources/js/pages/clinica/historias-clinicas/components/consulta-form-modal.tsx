@@ -1,5 +1,5 @@
 import { router, useForm } from '@inertiajs/react';
-import { AlertTriangle, Loader2 } from 'lucide-react';
+import { AlertTriangle, Loader2, Plus, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FormField, FormModal, FormSection } from '@/components/forms';
@@ -18,18 +18,33 @@ import {
 } from './consulta-dictation-bar';
 import { ConsultaEstadoBadge } from './consulta-estado-badge';
 
+export type CatalogoOpcion = { id: string; nombre: string };
+
 export type ConsultaFormModalProps = {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     consulta: ConsultaHistoriaRow | null;
     pacientesOpciones: readonly PacienteHistoriaOpcion[];
-    /** Desde `?nuevo_para_paciente=` en la URL (ficha del paciente / aperturar cita). */
+    serviciosClinicosOpciones?: readonly CatalogoOpcion[];
+    farmacosOpciones?: readonly CatalogoOpcion[];
+    medicoTratanteDefault?: string;
     pacienteIdPrefillNueva?: string | null;
-    /** Motivo opcional desde `?motivo=` (p. ej. al aperturar una cita). */
     motivoPrefillNueva?: string | null;
-    /** Cita vinculada desde `?cita_id=` al aperturar. */
     citaIdPrefillNueva?: string | null;
     puedeCerrarConsulta?: boolean;
+};
+
+type ExamenRow = {
+    key: string;
+    servicio_clinico_id: string;
+    nombre: string;
+};
+
+type TerapiaRow = {
+    key: string;
+    farmaco_id: string;
+    farmaco_nombre: string;
+    dosis_volumen: string;
 };
 
 type FormData = {
@@ -41,13 +56,18 @@ type FormData = {
     objetivo: string;
     analisis: string;
     plan: string;
+    medico_tratante: string;
     peso_kg: string;
     temperatura_c: string;
     fc_lpm: string;
     fr_rpm: string;
+    examenes: ExamenRow[];
+    terapia_lineas: TerapiaRow[];
 };
 
 const controlClass = 'h-10 w-full min-w-0';
+const FARMACOS_STORE = '/clinica/historias-clinicas/farmacos';
+const SERVICIOS_STORE = '/clinica/historias-clinicas/servicios-clinicos-rapido';
 
 function labelPaciente(o: PacienteHistoriaOpcion): string {
     const p = o.propietario;
@@ -73,6 +93,10 @@ function defaultAtendidoLocal(): string {
     return toDatetimeLocalValue(new Date().toISOString());
 }
 
+function newKey(): string {
+    return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
 const emptyForm: FormData = {
     paciente_id: '',
     cita_id: '',
@@ -82,10 +106,13 @@ const emptyForm: FormData = {
     objetivo: '',
     analisis: '',
     plan: '',
+    medico_tratante: '',
     peso_kg: '',
     temperatura_c: '',
     fc_lpm: '',
     fr_rpm: '',
+    examenes: [],
+    terapia_lineas: [],
 };
 
 function numOrNull(s: string): number | null {
@@ -102,6 +129,9 @@ export function ConsultaFormModal({
     onOpenChange,
     consulta,
     pacientesOpciones,
+    serviciosClinicosOpciones = [],
+    farmacosOpciones = [],
+    medicoTratanteDefault = '',
     pacienteIdPrefillNueva = null,
     motivoPrefillNueva = null,
     citaIdPrefillNueva = null,
@@ -116,10 +146,20 @@ export function ConsultaFormModal({
     const { data, setData, post, put, processing, errors, reset, clearErrors, transform, setDefaults } =
         useForm<FormData>(emptyForm);
 
+    const [servicios, setServicios] = useState<CatalogoOpcion[]>([...serviciosClinicosOpciones]);
+    const [farmacos, setFarmacos] = useState<CatalogoOpcion[]>([...farmacosOpciones]);
     const [ownerTouched, setOwnerTouched] = useState(false);
     const [cierreProcessing, setCierreProcessing] = useState(false);
     const isEditRef = useRef(isEdit);
     isEditRef.current = isEdit;
+
+    useEffect(() => {
+        setServicios([...serviciosClinicosOpciones]);
+    }, [serviciosClinicosOpciones]);
+
+    useEffect(() => {
+        setFarmacos([...farmacosOpciones]);
+    }, [farmacosOpciones]);
 
     useEffect(() => {
         transform((raw) => {
@@ -129,7 +169,23 @@ export function ConsultaFormModal({
                 subjetivo: raw.subjetivo.trim() === '' ? null : raw.subjetivo.trim(),
                 objetivo: raw.objetivo.trim() === '' ? null : raw.objetivo.trim(),
                 analisis: raw.analisis.trim() === '' ? null : raw.analisis.trim(),
-                plan: raw.plan.trim() === '' ? null : raw.plan.trim(),
+                plan: null,
+                medico_tratante:
+                    raw.medico_tratante.trim() === '' ? null : raw.medico_tratante.trim(),
+                examenes: raw.examenes
+                    .filter((e) => e.nombre.trim() !== '')
+                    .map((e) => ({
+                        servicio_clinico_id: e.servicio_clinico_id || null,
+                        nombre: e.nombre.trim(),
+                    })),
+                terapia_lineas: raw.terapia_lineas
+                    .filter((l) => l.farmaco_nombre.trim() !== '')
+                    .map((l) => ({
+                        farmaco_id: l.farmaco_id || null,
+                        farmaco_nombre: l.farmaco_nombre.trim(),
+                        dosis_volumen:
+                            l.dosis_volumen.trim() === '' ? null : l.dosis_volumen.trim(),
+                    })),
             };
             const peso = raw.peso_kg.trim();
             next.peso_kg = peso === '' ? null : Number.parseFloat(peso);
@@ -162,7 +218,12 @@ export function ConsultaFormModal({
                 subjetivo: consulta.subjetivo ?? '',
                 objetivo: consulta.objetivo ?? '',
                 analisis: consulta.analisis ?? '',
-                plan: consulta.plan ?? '',
+                plan: '',
+                medico_tratante:
+                    consulta.medico_tratante?.trim() ||
+                    consulta.veterinario?.name ||
+                    medicoTratanteDefault ||
+                    '',
                 peso_kg:
                     consulta.peso_kg != null && consulta.peso_kg !== ''
                         ? String(consulta.peso_kg)
@@ -173,6 +234,17 @@ export function ConsultaFormModal({
                         : '',
                 fc_lpm: consulta.fc_lpm != null ? String(consulta.fc_lpm) : '',
                 fr_rpm: consulta.fr_rpm != null ? String(consulta.fr_rpm) : '',
+                examenes: (consulta.examenes ?? []).map((e) => ({
+                    key: e.id,
+                    servicio_clinico_id: e.servicio_clinico_id ?? '',
+                    nombre: e.nombre,
+                })),
+                terapia_lineas: (consulta.terapia_lineas ?? []).map((l) => ({
+                    key: l.id,
+                    farmaco_id: l.farmaco_id ?? '',
+                    farmaco_nombre: l.farmaco_nombre,
+                    dosis_volumen: l.dosis_volumen ?? '',
+                })),
             });
         } else {
             const pre = pacienteIdPrefillNueva ?? '';
@@ -181,6 +253,7 @@ export function ConsultaFormModal({
                 paciente_id: pre,
                 cita_id: citaIdPrefillNueva?.trim() ? citaIdPrefillNueva.trim() : '',
                 motivo: motivoPrefillNueva?.trim() ? motivoPrefillNueva.trim() : '',
+                medico_tratante: medicoTratanteDefault,
                 atendido_at: defaultAtendidoLocal(),
             });
             if (pre && prefillIdRef.current !== pre) {
@@ -191,7 +264,7 @@ export function ConsultaFormModal({
         setOwnerTouched(false);
         clearErrors();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [open, consulta?.id, pacienteIdPrefillNueva, motivoPrefillNueva, citaIdPrefillNueva]);
+    }, [open, consulta?.id, pacienteIdPrefillNueva, motivoPrefillNueva, citaIdPrefillNueva, medicoTratanteDefault]);
 
     const pacienteComboboxOptions = useMemo<readonly ComboboxOption[]>(
         () =>
@@ -200,6 +273,16 @@ export function ConsultaFormModal({
                 label: labelPaciente(o),
             })),
         [pacientesOpciones],
+    );
+
+    const servicioOptions = useMemo<readonly ComboboxOption[]>(
+        () => servicios.map((s) => ({ value: s.id, label: s.nombre })),
+        [servicios],
+    );
+
+    const farmacoOptions = useMemo<readonly ComboboxOption[]>(
+        () => farmacos.map((f) => ({ value: f.id, label: f.nombre })),
+        [farmacos],
     );
 
     const canSubmit =
@@ -215,7 +298,23 @@ export function ConsultaFormModal({
             subjetivo: raw.subjetivo.trim() === '' ? null : raw.subjetivo.trim(),
             objetivo: raw.objetivo.trim() === '' ? null : raw.objetivo.trim(),
             analisis: raw.analisis.trim() === '' ? null : raw.analisis.trim(),
-            plan: raw.plan.trim() === '' ? null : raw.plan.trim(),
+            plan: null,
+            medico_tratante:
+                raw.medico_tratante.trim() === '' ? null : raw.medico_tratante.trim(),
+            examenes: raw.examenes
+                .filter((e) => e.nombre.trim() !== '')
+                .map((e) => ({
+                    servicio_clinico_id: e.servicio_clinico_id || null,
+                    nombre: e.nombre.trim(),
+                })),
+            terapia_lineas: raw.terapia_lineas
+                .filter((l) => l.farmaco_nombre.trim() !== '')
+                .map((l) => ({
+                    farmaco_id: l.farmaco_id || null,
+                    farmaco_nombre: l.farmaco_nombre.trim(),
+                    dosis_volumen:
+                        l.dosis_volumen.trim() === '' ? null : l.dosis_volumen.trim(),
+                })),
         };
         const peso = raw.peso_kg.trim();
         next.peso_kg = peso === '' ? null : Number.parseFloat(peso);
@@ -239,8 +338,6 @@ export function ConsultaFormModal({
             return;
         }
         const onSuccess = () => {
-            // En edición el backend redirige a Plan y seguimiento;
-            // aquí solo cerramos el modal (Inertia navega con el redirect).
             reset();
             clearErrors();
             onOpenChange(false);
@@ -313,7 +410,6 @@ export function ConsultaFormModal({
             subjetivo: mergeText(prev.subjetivo, fields.subjetivo),
             objetivo: mergeText(prev.objetivo, fields.objetivo),
             analisis: mergeText(prev.analisis, fields.analisis),
-            plan: mergeText(prev.plan, fields.plan),
             peso_kg: prev.peso_kg.trim() === '' && fields.peso_kg ? fields.peso_kg : prev.peso_kg,
             temperatura_c:
                 prev.temperatura_c.trim() === '' && fields.temperatura_c
@@ -323,6 +419,85 @@ export function ConsultaFormModal({
             fr_rpm: prev.fr_rpm.trim() === '' && fields.fr_rpm ? fields.fr_rpm : prev.fr_rpm,
         }));
     };
+
+    const createServicio = (query: string, rowKey: string) => {
+        const nombre = query.trim();
+        if (nombre === '') {
+            return;
+        }
+        const antes = new Set(servicios.map((s) => s.id));
+        router.post(
+            SERVICIOS_STORE,
+            { nombre },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                only: ['servicios_clinicos_opciones'],
+                onSuccess: (page) => {
+                    const props = page.props as {
+                        servicios_clinicos_opciones?: CatalogoOpcion[];
+                    };
+                    const next = props.servicios_clinicos_opciones ?? servicios;
+                    setServicios([...next]);
+                    const nueva = next.find((s) => !antes.has(s.id) && s.nombre === nombre)
+                        ?? next.find((s) => s.nombre.toLowerCase() === nombre.toLowerCase());
+                    if (nueva) {
+                        setData((prev) => ({
+                            ...prev,
+                            examenes: prev.examenes.map((e) =>
+                                e.key === rowKey
+                                    ? {
+                                          ...e,
+                                          servicio_clinico_id: nueva.id,
+                                          nombre: nueva.nombre,
+                                      }
+                                    : e,
+                            ),
+                        }));
+                    }
+                },
+            },
+        );
+    };
+
+    const createFarmaco = (query: string, rowKey: string) => {
+        const nombre = query.trim();
+        if (nombre === '') {
+            return;
+        }
+        const antes = new Set(farmacos.map((f) => f.id));
+        router.post(
+            FARMACOS_STORE,
+            { nombre },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                only: ['farmacos_opciones'],
+                onSuccess: (page) => {
+                    const props = page.props as { farmacos_opciones?: CatalogoOpcion[] };
+                    const next = props.farmacos_opciones ?? farmacos;
+                    setFarmacos([...next]);
+                    const nueva = next.find((f) => !antes.has(f.id))
+                        ?? next.find((f) => f.nombre.toLowerCase() === nombre.toLowerCase());
+                    if (nueva) {
+                        setData((prev) => ({
+                            ...prev,
+                            terapia_lineas: prev.terapia_lineas.map((l) =>
+                                l.key === rowKey
+                                    ? {
+                                          ...l,
+                                          farmaco_id: nueva.id,
+                                          farmaco_nombre: nueva.nombre,
+                                      }
+                                    : l,
+                            ),
+                        }));
+                    }
+                },
+            },
+        );
+    };
+
     const cierreBusy = cierreProcessing || processing;
 
     const onCerrar = () => {
@@ -358,8 +533,7 @@ export function ConsultaFormModal({
     };
 
     return (
-        <>
-            <FormModal
+        <FormModal
             open={open}
             onOpenChange={onOpenChange}
             title={isEdit ? t('form.title_edit') : t('form.title_create')}
@@ -402,14 +576,8 @@ export function ConsultaFormModal({
                     >
                         {t('common:actions.cancel')}
                     </Button>
-                    <Button
-                        type="submit"
-                        disabled={!canSubmit}
-                        className="cursor-pointer gap-2"
-                    >
-                        {processing && (
-                            <Loader2 className="size-4 animate-spin" aria-hidden />
-                        )}
+                    <Button type="submit" disabled={!canSubmit} className="cursor-pointer gap-2">
+                        {processing && <Loader2 className="size-4 animate-spin" aria-hidden />}
                         {isEdit ? t('form.submit_edit') : t('form.submit_create')}
                     </Button>
                 </>
@@ -440,12 +608,8 @@ export function ConsultaFormModal({
                         onFields={(fields) => applyDictationFields(fields)}
                     />
                 ) : null}
-                <FormSection
-                    index={0}
-                    title={t('form.section_main')}
-                    columns={2}
-                    className="gap-4"
-                >
+
+                <FormSection index={0} title={t('form.section_main')} columns={2} className="gap-4">
                     {!isEdit ? (
                         <FormField
                             id="hc-paciente"
@@ -503,28 +667,8 @@ export function ConsultaFormModal({
                             disabled={fieldDisabled}
                         />
                     </FormField>
-                    <FormField
-                        id="hc-motivo"
-                        label={t('form.motivo')}
-                        error={errors.motivo}
-                        className="min-w-0 sm:col-span-2"
-                    >
-                        <Textarea
-                            id="hc-motivo"
-                            value={data.motivo}
-                            onChange={(e) => setData('motivo', e.target.value)}
-                            placeholder={t('form.motivo_placeholder')}
-                            rows={2}
-                            className={`${controlClass} min-h-18 resize-y`}
-                            disabled={fieldDisabled}
-                        />
-                    </FormField>
-                    <FormField
-                        id="hc-peso"
-                        label={t('form.peso_kg')}
-                        error={errors.peso_kg}
-                        className="min-w-0"
-                    >
+
+                    <FormField id="hc-peso" label={t('form.peso_kg')} error={errors.peso_kg} className="min-w-0">
                         <Input
                             id="hc-peso"
                             inputMode="decimal"
@@ -573,15 +717,15 @@ export function ConsultaFormModal({
                             disabled={fieldDisabled}
                         />
                     </FormField>
+
                     <FormField
-                        id="hc-sub"
-                        label={t('form.subjetivo')}
+                        id="hc-anamnesis"
+                        label={t('form.anamnesis')}
                         error={errors.subjetivo}
-                        hint={t('form.soap_hint')}
                         className="min-w-0 sm:col-span-2"
                     >
                         <Textarea
-                            id="hc-sub"
+                            id="hc-anamnesis"
                             value={data.subjetivo}
                             onChange={(e) => setData('subjetivo', e.target.value)}
                             rows={3}
@@ -590,13 +734,13 @@ export function ConsultaFormModal({
                         />
                     </FormField>
                     <FormField
-                        id="hc-obj"
-                        label={t('form.objetivo')}
+                        id="hc-hallazgos"
+                        label={t('form.hallazgos')}
                         error={errors.objetivo}
                         className="min-w-0 sm:col-span-2"
                     >
                         <Textarea
-                            id="hc-obj"
+                            id="hc-hallazgos"
                             value={data.objetivo}
                             onChange={(e) => setData('objetivo', e.target.value)}
                             rows={3}
@@ -604,14 +748,92 @@ export function ConsultaFormModal({
                             disabled={fieldDisabled}
                         />
                     </FormField>
+
+                    <div className="sm:col-span-2 space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                            <p className="text-sm font-medium">{t('form.examenes')}</p>
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className="cursor-pointer gap-1.5"
+                                disabled={fieldDisabled}
+                                onClick={() =>
+                                    setData('examenes', [
+                                        ...data.examenes,
+                                        { key: newKey(), servicio_clinico_id: '', nombre: '' },
+                                    ])
+                                }
+                            >
+                                <Plus className="size-3.5" />
+                                {t('form.examenes_add')}
+                            </Button>
+                        </div>
+                        {data.examenes.length === 0 ? (
+                            <p className="text-xs text-muted-foreground">{t('form.examenes_empty')}</p>
+                        ) : (
+                            <ul className="space-y-2">
+                                {data.examenes.map((row) => (
+                                    <li key={row.key} className="flex items-start gap-2">
+                                        <div className="min-w-0 flex-1">
+                                            <Combobox
+                                                options={servicioOptions}
+                                                value={row.servicio_clinico_id || null}
+                                                onChange={(v) => {
+                                                    const found = servicios.find((s) => s.id === v);
+                                                    setData(
+                                                        'examenes',
+                                                        data.examenes.map((e) =>
+                                                            e.key === row.key
+                                                                ? {
+                                                                      ...e,
+                                                                      servicio_clinico_id: v ?? '',
+                                                                      nombre: found?.nombre ?? e.nombre,
+                                                                  }
+                                                                : e,
+                                                        ),
+                                                    );
+                                                }}
+                                                placeholder={t('form.examenes_placeholder')}
+                                                searchPlaceholder={t('form.examenes_search')}
+                                                emptyMessage={t('form.examenes_empty_search')}
+                                                clearable
+                                                disabled={fieldDisabled}
+                                                onCreateOption={(q) => createServicio(q, row.key)}
+                                                createOptionLabel={(q) =>
+                                                    t('form.examenes_create', { nombre: q })
+                                                }
+                                            />
+                                        </div>
+                                        <Button
+                                            type="button"
+                                            size="icon"
+                                            variant="ghost"
+                                            className="size-9 shrink-0 cursor-pointer text-muted-foreground"
+                                            disabled={fieldDisabled}
+                                            onClick={() =>
+                                                setData(
+                                                    'examenes',
+                                                    data.examenes.filter((e) => e.key !== row.key),
+                                                )
+                                            }
+                                        >
+                                            <Trash2 className="size-4" />
+                                        </Button>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </div>
+
                     <FormField
-                        id="hc-ana"
-                        label={t('form.analisis')}
+                        id="hc-dx"
+                        label={t('form.diagnostico')}
                         error={errors.analisis}
                         className="min-w-0 sm:col-span-2"
                     >
                         <Textarea
-                            id="hc-ana"
+                            id="hc-dx"
                             value={data.analisis}
                             onChange={(e) => setData('analisis', e.target.value)}
                             rows={3}
@@ -619,24 +841,140 @@ export function ConsultaFormModal({
                             disabled={fieldDisabled}
                         />
                     </FormField>
+
+                    <div className="sm:col-span-2 space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                            <p className="text-sm font-medium">{t('form.plan_terapeutico')}</p>
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className="cursor-pointer gap-1.5"
+                                disabled={fieldDisabled}
+                                onClick={() =>
+                                    setData('terapia_lineas', [
+                                        ...data.terapia_lineas,
+                                        {
+                                            key: newKey(),
+                                            farmaco_id: '',
+                                            farmaco_nombre: '',
+                                            dosis_volumen: '',
+                                        },
+                                    ])
+                                }
+                            >
+                                <Plus className="size-3.5" />
+                                {t('form.plan_add')}
+                            </Button>
+                        </div>
+                        {data.terapia_lineas.length === 0 ? (
+                            <p className="text-xs text-muted-foreground">{t('form.plan_empty')}</p>
+                        ) : (
+                            <ul className="space-y-2">
+                                {data.terapia_lineas.map((row) => (
+                                    <li
+                                        key={row.key}
+                                        className="grid gap-2 rounded-lg border border-border/60 bg-muted/15 p-2 sm:grid-cols-[1fr_1fr_auto]"
+                                    >
+                                        <Combobox
+                                            options={farmacoOptions}
+                                            value={row.farmaco_id || null}
+                                            onChange={(v) => {
+                                                const found = farmacos.find((f) => f.id === v);
+                                                setData(
+                                                    'terapia_lineas',
+                                                    data.terapia_lineas.map((l) =>
+                                                        l.key === row.key
+                                                            ? {
+                                                                  ...l,
+                                                                  farmaco_id: v ?? '',
+                                                                  farmaco_nombre:
+                                                                      found?.nombre ?? l.farmaco_nombre,
+                                                              }
+                                                            : l,
+                                                    ),
+                                                );
+                                            }}
+                                            placeholder={t('form.farmaco_placeholder')}
+                                            searchPlaceholder={t('form.farmaco_search')}
+                                            emptyMessage={t('form.farmaco_empty')}
+                                            clearable
+                                            disabled={fieldDisabled}
+                                            onCreateOption={(q) => createFarmaco(q, row.key)}
+                                            createOptionLabel={(q) =>
+                                                t('form.farmaco_create', { nombre: q })
+                                            }
+                                        />
+                                        <Input
+                                            value={row.dosis_volumen}
+                                            onChange={(e) =>
+                                                setData(
+                                                    'terapia_lineas',
+                                                    data.terapia_lineas.map((l) =>
+                                                        l.key === row.key
+                                                            ? { ...l, dosis_volumen: e.target.value }
+                                                            : l,
+                                                    ),
+                                                )
+                                            }
+                                            placeholder={t('form.dosis_placeholder')}
+                                            className={controlClass}
+                                            disabled={fieldDisabled}
+                                        />
+                                        <Button
+                                            type="button"
+                                            size="icon"
+                                            variant="ghost"
+                                            className="size-9 cursor-pointer text-muted-foreground"
+                                            disabled={fieldDisabled}
+                                            onClick={() =>
+                                                setData(
+                                                    'terapia_lineas',
+                                                    data.terapia_lineas.filter((l) => l.key !== row.key),
+                                                )
+                                            }
+                                        >
+                                            <Trash2 className="size-4" />
+                                        </Button>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </div>
+
                     <FormField
-                        id="hc-plan"
-                        label={t('form.plan')}
-                        error={errors.plan}
+                        id="hc-anotaciones"
+                        label={t('form.anotaciones')}
+                        error={errors.motivo}
                         className="min-w-0 sm:col-span-2"
                     >
                         <Textarea
-                            id="hc-plan"
-                            value={data.plan}
-                            onChange={(e) => setData('plan', e.target.value)}
-                            rows={3}
-                            className={`${controlClass} min-h-22 resize-y`}
+                            id="hc-anotaciones"
+                            value={data.motivo}
+                            onChange={(e) => setData('motivo', e.target.value)}
+                            placeholder={t('form.anotaciones_placeholder')}
+                            rows={2}
+                            className={`${controlClass} min-h-18 resize-y`}
+                            disabled={fieldDisabled}
+                        />
+                    </FormField>
+                    <FormField
+                        id="hc-medico"
+                        label={t('form.medico_tratante')}
+                        error={errors.medico_tratante}
+                        className="min-w-0 sm:col-span-2"
+                    >
+                        <Input
+                            id="hc-medico"
+                            value={data.medico_tratante}
+                            onChange={(e) => setData('medico_tratante', e.target.value)}
+                            placeholder={t('form.medico_tratante_placeholder')}
+                            className={controlClass}
                             disabled={fieldDisabled}
                         />
                     </FormField>
                 </FormSection>
             </div>
         </FormModal>
-        </>
     );
 }

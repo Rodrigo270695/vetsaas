@@ -63,7 +63,10 @@ function consultaDetalleTieneContenido(d: TimelineConsultaDetalle): boolean {
                 d.subjetivo ||
                 d.objetivo ||
                 d.analisis ||
-                d.plan,
+                d.plan ||
+                d.motivo ||
+                d.medico_tratante ||
+                (d.examenes && d.examenes.length > 0),
         ) || vinculosConsultaTieneContenido(d.vinculos)
     );
 }
@@ -482,8 +485,24 @@ export function PacienteTimelineRow({
                                             label={t('historial.det_objetivo')}
                                             text={item.detalle.objetivo}
                                         />
+                                        <SoapBlock
+                                            label={t('historial.det_examenes')}
+                                            text={
+                                                item.detalle.examenes && item.detalle.examenes.length > 0
+                                                    ? item.detalle.examenes.join('\n')
+                                                    : null
+                                            }
+                                        />
                                         <SoapBlock label={t('historial.det_analisis')} text={item.detalle.analisis} />
                                         <SoapBlock label={t('historial.det_plan_soap')} text={item.detalle.plan} />
+                                        <SoapBlock
+                                            label={t('historial.det_anotaciones')}
+                                            text={item.detalle.motivo ?? null}
+                                        />
+                                        <SoapBlock
+                                            label={t('historial.det_medico')}
+                                            text={item.detalle.medico_tratante ?? null}
+                                        />
                                     </div>
                                     {vinculosConsultaTieneContenido(item.detalle.vinculos) ? (
                                         <VinculosBlock

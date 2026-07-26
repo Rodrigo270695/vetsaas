@@ -183,6 +183,8 @@ class PacienteController extends Controller
                 $consultas = $hc->consultas()
                     ->with([
                         'veterinario:id,name',
+                        'examenes',
+                        'terapiaLineas',
                         'recetas' => fn ($q) => $q->withCount('lineas')->orderByDesc('emitida_at'),
                         'pedidosLaboratorio' => fn ($q) => $q
                             ->with(['lineas' => fn ($lq) => $lq->orderBy('orden')])
@@ -202,7 +204,9 @@ class PacienteController extends Controller
                         'ocurrido_at' => $at->toIso8601String(),
                         'titulo' => Str::limit(trim((string) ($c->motivo ?? '')), 120) ?: '—',
                         'cerrada' => $c->cerrada_at !== null,
-                        'veterinario' => $c->veterinario?->name,
+                        'veterinario' => trim((string) ($c->medico_tratante ?? '')) !== ''
+                            ? trim((string) $c->medico_tratante)
+                            : $c->veterinario?->name,
                         'historia_url' => route('clinica.historias-clinicas', [
                             'editar_consulta' => $c->id,
                             'atendido_desde' => $at->copy()->startOfMonth()->toDateString(),
@@ -218,7 +222,32 @@ class PacienteController extends Controller
                             'subjetivo' => $this->timelineTextPreview($c->subjetivo, 800),
                             'objetivo' => $this->timelineTextPreview($c->objetivo, 800),
                             'analisis' => $this->timelineTextPreview($c->analisis, 800),
-                            'plan' => $this->timelineTextPreview($c->plan, 800),
+                            'plan' => $this->timelineTextPreview(
+                                $c->terapiaLineas
+                                    ->sortBy('orden')
+                                    ->map(function ($linea): string {
+                                        $nombre = trim((string) ($linea->farmaco_nombre ?? ''));
+                                        $dosis = trim((string) ($linea->dosis_volumen ?? ''));
+                                        if ($nombre === '') {
+                                            return '';
+                                        }
+
+                                        return $dosis !== '' ? $nombre.' — '.$dosis : $nombre;
+                                    })
+                                    ->filter()
+                                    ->implode("\n") ?: $c->plan,
+                                800,
+                            ),
+                            'examenes' => $c->examenes
+                                ->sortBy('orden')
+                                ->pluck('nombre')
+                                ->filter(fn ($n) => trim((string) $n) !== '')
+                                ->values()
+                                ->all(),
+                            'motivo' => $this->timelineTextPreview($c->motivo, 800),
+                            'medico_tratante' => trim((string) ($c->medico_tratante ?? '')) !== ''
+                                ? trim((string) $c->medico_tratante)
+                                : null,
                             'vinculos' => [
                                 'recetas' => $this->timelineRecetasVinculo($user, $c->recetas, $tz),
                                 'laboratorio' => $this->timelineLaboratorioVinculo($user, $c->pedidosLaboratorio, $tz),

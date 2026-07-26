@@ -300,6 +300,12 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
                 ->post('historias-clinicas/consultas', [ConsultaHistoriaController::class, 'store'])
                 ->name('historias-clinicas.consultas.store');
             Route::middleware('permission:historias-clinicas.create|historias-clinicas.update')
+                ->post('historias-clinicas/farmacos', [ConsultaHistoriaController::class, 'storeFarmaco'])
+                ->name('historias-clinicas.farmacos.store');
+            Route::middleware('permission:historias-clinicas.create|historias-clinicas.update')
+                ->post('historias-clinicas/servicios-clinicos-rapido', [ConsultaHistoriaController::class, 'storeServicioClinicoRapido'])
+                ->name('historias-clinicas.servicios-clinicos-rapido.store');
+            Route::middleware('permission:historias-clinicas.create|historias-clinicas.update')
                 ->post('historias-clinicas/consultas/dictar', ConsultaDictationController::class)
                 ->name('historias-clinicas.consultas.dictar');
             Route::middleware('permission:historias-clinicas.update')

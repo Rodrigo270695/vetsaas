@@ -27,6 +27,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property ?\Illuminate\Support\Carbon $cerrada_at
  * @property ?string $cerrada_por_id
  * @property ?string $veterinario_id
+ * @property ?string $medico_tratante
  * @property ?string $created_by_id
  * @property ?string $updated_by_id
  */
@@ -54,6 +55,7 @@ class Consulta extends Model
         'cerrada_at',
         'cerrada_por_id',
         'veterinario_id',
+        'medico_tratante',
         'created_by_id',
         'updated_by_id',
     ];
@@ -115,6 +117,16 @@ class Consulta extends Model
     public function vacunasAplicadas(): HasMany
     {
         return $this->hasMany(VacunaAplicada::class, 'consulta_id');
+    }
+
+    public function examenes(): HasMany
+    {
+        return $this->hasMany(ConsultaExamen::class, 'consulta_id')->orderBy('orden');
+    }
+
+    public function terapiaLineas(): HasMany
+    {
+        return $this->hasMany(ConsultaTerapiaLinea::class, 'consulta_id')->orderBy('orden');
     }
 
     public function planTratamiento(): HasOne

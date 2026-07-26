@@ -37,6 +37,8 @@ class HistorialClinicoPdfBuilder
                 $consultas = $hc->consultas()
                     ->with([
                         'veterinario:id,name',
+                        'examenes',
+                        'terapiaLineas',
                         'recetas:id,consulta_id,estado',
                         'pedidosLaboratorio:id,consulta_id,estado',
                         'cirugias:id,consulta_id,estado,nombre_procedimiento',
@@ -88,11 +90,44 @@ class HistorialClinicoPdfBuilder
             $this->signoLine(__('historial_clinico.label_rr'), $consulta->fr_rpm !== null ? (string) $consulta->fr_rpm.' rpm' : null),
         ]));
 
+        $examenesTxt = $consulta->relationLoaded('examenes')
+            ? $consulta->examenes
+                ->sortBy('orden')
+                ->pluck('nombre')
+                ->filter(fn ($n) => trim((string) $n) !== '')
+                ->values()
+                ->implode("\n")
+            : '';
+
+        $terapiaTxt = $consulta->relationLoaded('terapiaLineas')
+            ? $consulta->terapiaLineas
+                ->sortBy('orden')
+                ->map(function ($linea): string {
+                    $nombre = trim((string) ($linea->farmaco_nombre ?? ''));
+                    $dosis = trim((string) ($linea->dosis_volumen ?? ''));
+                    if ($nombre === '') {
+                        return '';
+                    }
+
+                    return $dosis !== '' ? $nombre.' — '.$dosis : $nombre;
+                })
+                ->filter()
+                ->values()
+                ->implode("\n")
+            : '';
+
+        $planLegacy = trim((string) ($consulta->plan ?? ''));
+        if ($terapiaTxt === '' && $planLegacy !== '') {
+            $terapiaTxt = $planLegacy;
+        }
+
         $soap = array_values(array_filter([
             $this->soapBlock(__('historial_clinico.soap_subjective'), $consulta->subjetivo),
             $this->soapBlock(__('historial_clinico.soap_objective'), $consulta->objetivo),
+            $this->soapBlock(__('historial_clinico.label_exams'), $examenesTxt !== '' ? $examenesTxt : null),
             $this->soapBlock(__('historial_clinico.soap_assessment'), $consulta->analisis),
-            $this->soapBlock(__('historial_clinico.soap_plan'), $consulta->plan),
+            $this->soapBlock(__('historial_clinico.soap_plan'), $terapiaTxt !== '' ? $terapiaTxt : null),
+            $this->soapBlock(__('historial_clinico.label_additional_notes'), $consulta->motivo),
         ]));
 
         $vinculos = array_values(array_filter([
@@ -111,17 +146,19 @@ class HistorialClinicoPdfBuilder
         ]));
 
         $motivo = trim((string) ($consulta->motivo ?? ''));
+        $tituloDx = trim((string) ($consulta->analisis ?? ''));
+        $medico = trim((string) ($consulta->medico_tratante ?? ''));
 
         return [
             'kind' => 'consulta',
             'sort_at' => $at?->toIso8601String() ?? '',
             'fecha' => $this->formatDatetime($at),
             'tipo_label' => __('historial_clinico.kind_consultation'),
-            'titulo' => $motivo !== '' ? $motivo : '—',
+            'titulo' => $tituloDx !== '' ? $tituloDx : ($motivo !== '' ? $motivo : '—'),
             'estado_label' => $consulta->cerrada_at !== null
                 ? __('historial_clinico.status_closed')
                 : __('historial_clinico.status_open'),
-            'veterinario' => $consulta->veterinario?->name,
+            'veterinario' => $medico !== '' ? $medico : $consulta->veterinario?->name,
             'signos' => $signos,
             'soap' => $soap,
             'vinculos' => $vinculos,

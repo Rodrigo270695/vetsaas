@@ -7,16 +7,22 @@ use App\Http\Requests\StoreConsultaHistoriaRequest;
 use App\Http\Requests\UpdateConsultaHistoriaRequest;
 use App\Models\Cita;
 use App\Models\Consulta;
+use App\Models\ConsultaExamen;
+use App\Models\ConsultaTerapiaLinea;
+use App\Models\Farmaco;
 use App\Models\HistoriaClinica;
 use App\Models\Paciente;
+use App\Models\ServicioClinico;
 use App\Support\Pdf\HistorialClinicoPdfBuilder;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\Response as HttpResponse;
@@ -97,6 +103,8 @@ class ConsultaHistoriaController extends Controller
                 'cerradaPor:id,name',
                 'planTratamiento.lineas.producto:id,nombre,unidad,sku',
                 'cargo:id,consulta_id,estado,total',
+                'examenes',
+                'terapiaLineas',
             ]);
 
         if ($canAudit) {
@@ -198,11 +206,25 @@ class ConsultaHistoriaController extends Controller
             ->limit(500)
             ->get(['id', 'nombre', 'propietario_id']);
 
+        $serviciosClinicosOpciones = ServicioClinico::query()
+            ->where('activo', true)
+            ->orderBy('nombre')
+            ->limit(500)
+            ->get(['id', 'nombre']);
+
+        $farmacosOpciones = Farmaco::query()
+            ->orderBy('nombre')
+            ->limit(500)
+            ->get(['id', 'nombre']);
+
         return Inertia::render('clinica/historias-clinicas/index', [
             'consultas' => $consultas,
             'consulta_abrir_editar' => $consultaAbrirEditar,
             'paciente_prefill_nueva_consulta' => $pacientePrefillNuevaConsulta,
             'pacientes_opciones' => $pacientesOpciones,
+            'servicios_clinicos_opciones' => $serviciosClinicosOpciones,
+            'farmacos_opciones' => $farmacosOpciones,
+            'medico_tratante_default' => $request->user()?->name ?? '',
             'filters' => [
                 'search' => $search,
                 'per_page' => $perPage,
@@ -259,6 +281,8 @@ class ConsultaHistoriaController extends Controller
                 'cerradaPor:id,name',
                 'planTratamiento.lineas.producto:id,nombre,unidad,sku',
                 'cargo:id,consulta_id,estado,total',
+                'examenes',
+                'terapiaLineas',
             ]);
 
         if ($canAudit) {
@@ -323,10 +347,16 @@ class ConsultaHistoriaController extends Controller
     {
         $validated = $request->validated();
         $uid = Auth::id();
+        $medicoTratante = isset($validated['medico_tratante'])
+            ? trim((string) $validated['medico_tratante'])
+            : trim((string) ($request->user()?->name ?? ''));
+        $medicoTratante = $medicoTratante !== ''
+            ? Str::limit($medicoTratante, 200, '')
+            : null;
 
         $consultaCreada = null;
 
-        DB::transaction(function () use ($validated, $uid, &$consultaCreada): void {
+        DB::transaction(function () use ($validated, $uid, $medicoTratante, &$consultaCreada): void {
             $historia = HistoriaClinica::query()->firstOrCreate(
                 ['paciente_id' => $validated['paciente_id']],
                 [
@@ -352,7 +382,7 @@ class ConsultaHistoriaController extends Controller
                 'subjetivo' => $validated['subjetivo'] ?? null,
                 'objetivo' => $validated['objetivo'] ?? null,
                 'analisis' => $validated['analisis'] ?? null,
-                'plan' => $validated['plan'] ?? null,
+                'plan' => null,
                 'peso_kg' => $peso === null || $peso === '' ? null : $peso,
                 'temperatura_c' => $temp === null || $temp === '' ? null : $temp,
                 'fc_lpm' => $fc === null || $fc === '' ? null : (int) $fc,
@@ -360,9 +390,13 @@ class ConsultaHistoriaController extends Controller
                 'cerrada_at' => null,
                 'cerrada_por_id' => null,
                 'veterinario_id' => $uid,
+                'medico_tratante' => $medicoTratante,
                 'created_by_id' => $uid,
                 'updated_by_id' => $uid,
             ]);
+
+            $this->syncConsultaExamenes($consultaCreada, $validated['examenes'] ?? []);
+            $this->syncConsultaTerapiaLineas($consultaCreada, $validated['terapia_lineas'] ?? []);
 
             if (is_string($citaId) && $citaId !== '') {
                 Cita::query()
@@ -375,12 +409,6 @@ class ConsultaHistoriaController extends Controller
                     ]);
             }
         });
-
-        if ($consultaCreada !== null && ($request->user()?->can('historias-clinicas-planes.view') ?? false)) {
-            return redirect()
-                ->route('clinica.historias-clinicas.consultas.plan-tratamiento', $consultaCreada)
-                ->with('success', __('historias-clinicas.flash.created_open_plan'));
-        }
 
         return redirect()
             ->route('clinica.historias-clinicas')
@@ -399,8 +427,14 @@ class ConsultaHistoriaController extends Controller
 
         $validated = $request->validated();
         $uid = Auth::id();
+        $medicoTratante = isset($validated['medico_tratante'])
+            ? trim((string) $validated['medico_tratante'])
+            : '';
+        $medicoTratante = $medicoTratante !== ''
+            ? Str::limit($medicoTratante, 200, '')
+            : null;
 
-        DB::transaction(function () use ($consulta, $validated, $uid): void {
+        DB::transaction(function () use ($consulta, $validated, $uid, $medicoTratante): void {
             $peso = $validated['peso_kg'] ?? null;
             $temp = $validated['temperatura_c'] ?? null;
             $fc = $validated['fc_lpm'] ?? null;
@@ -411,7 +445,8 @@ class ConsultaHistoriaController extends Controller
                 'subjetivo' => $validated['subjetivo'] ?? null,
                 'objetivo' => $validated['objetivo'] ?? null,
                 'analisis' => $validated['analisis'] ?? null,
-                'plan' => $validated['plan'] ?? null,
+                'plan' => null,
+                'medico_tratante' => $medicoTratante,
                 'peso_kg' => $peso === null || $peso === '' ? null : $peso,
                 'temperatura_c' => $temp === null || $temp === '' ? null : $temp,
                 'fc_lpm' => $fc === null || $fc === '' ? null : (int) $fc,
@@ -419,17 +454,157 @@ class ConsultaHistoriaController extends Controller
                 'updated_by_id' => $uid,
             ]);
 
+            $this->syncConsultaExamenes($consulta, $validated['examenes'] ?? []);
+            $this->syncConsultaTerapiaLineas($consulta, $validated['terapia_lineas'] ?? []);
         });
-
-        if ($request->user()?->can('historias-clinicas-planes.view') ?? false) {
-            return redirect()
-                ->route('clinica.historias-clinicas.consultas.plan-tratamiento', $consulta)
-                ->with('success', __('historias-clinicas.flash.updated_open_plan'));
-        }
 
         return redirect()
             ->route('clinica.historias-clinicas')
             ->with('success', __('historias-clinicas.flash.updated'));
+    }
+
+    /**
+     * Alta rápida de fármaco (catálogo tenant) desde el combobox creable de HC.
+     */
+    public function storeFarmaco(Request $request): RedirectResponse|JsonResponse
+    {
+        abort_unless($request->user()?->can('historias-clinicas.create')
+            || $request->user()?->can('historias-clinicas.update'), 403);
+
+        $data = $request->validate([
+            'nombre' => ['required', 'string', 'max:200'],
+        ]);
+
+        $nombre = Str::limit(trim($data['nombre']), 200, '');
+        $farmaco = Farmaco::query()
+            ->whereRaw('LOWER(nombre) = ?', [mb_strtolower($nombre)])
+            ->first();
+
+        if ($farmaco === null) {
+            $farmaco = Farmaco::query()->create(['nombre' => $nombre]);
+        }
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'id' => $farmaco->id,
+                'nombre' => $farmaco->nombre,
+            ]);
+        }
+
+        return redirect()->route('clinica.historias-clinicas');
+    }
+
+    /**
+     * Alta rápida de servicio clínico solo con nombre (precio 0, sin categoría).
+     */
+    public function storeServicioClinicoRapido(Request $request): RedirectResponse|JsonResponse
+    {
+        abort_unless($request->user()?->can('historias-clinicas.create')
+            || $request->user()?->can('historias-clinicas.update'), 403);
+
+        $data = $request->validate([
+            'nombre' => ['required', 'string', 'max:200'],
+        ]);
+
+        $nombre = Str::limit(trim($data['nombre']), 200, '');
+        $existente = ServicioClinico::query()
+            ->whereRaw('LOWER(nombre) = ?', [mb_strtolower($nombre)])
+            ->first();
+
+        if ($existente !== null) {
+            $servicio = $existente;
+        } else {
+            $maxOrden = (int) ServicioClinico::query()->max('orden');
+            $servicio = ServicioClinico::query()->create([
+                'nombre' => $nombre,
+                'categoria_id' => null,
+                'precio_lista' => 0,
+                'precio_costo' => null,
+                'moneda' => 'PEN',
+                'duracion_minutos' => null,
+                'activo' => true,
+                'orden' => $maxOrden + 1,
+            ]);
+        }
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'id' => $servicio->id,
+                'nombre' => $servicio->nombre,
+            ]);
+        }
+
+        return redirect()->route('clinica.historias-clinicas');
+    }
+
+    /**
+     * @param  list<array{servicio_clinico_id?: ?string, nombre: string}>  $examenes
+     */
+    private function syncConsultaExamenes(Consulta $consulta, array $examenes): void
+    {
+        $consulta->examenes()->delete();
+
+        $orden = 0;
+        foreach ($examenes as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $nombre = trim((string) ($row['nombre'] ?? ''));
+            if ($nombre === '') {
+                continue;
+            }
+
+            ConsultaExamen::query()->create([
+                'consulta_id' => $consulta->id,
+                'servicio_clinico_id' => isset($row['servicio_clinico_id']) && is_string($row['servicio_clinico_id']) && $row['servicio_clinico_id'] !== ''
+                    ? $row['servicio_clinico_id']
+                    : null,
+                'nombre' => Str::limit($nombre, 500, ''),
+                'orden' => $orden++,
+            ]);
+        }
+    }
+
+    /**
+     * @param  list<array{farmaco_id?: ?string, farmaco_nombre: string, dosis_volumen?: ?string}>  $lineas
+     */
+    private function syncConsultaTerapiaLineas(Consulta $consulta, array $lineas): void
+    {
+        $consulta->terapiaLineas()->delete();
+
+        $orden = 0;
+        foreach ($lineas as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $nombre = trim((string) ($row['farmaco_nombre'] ?? ''));
+            if ($nombre === '') {
+                continue;
+            }
+            $dosis = isset($row['dosis_volumen']) ? trim((string) $row['dosis_volumen']) : '';
+            $farmacoId = isset($row['farmaco_id']) && is_string($row['farmaco_id']) && $row['farmaco_id'] !== ''
+                ? $row['farmaco_id']
+                : null;
+
+            if ($farmacoId === null) {
+                $farmaco = Farmaco::query()
+                    ->whereRaw('LOWER(nombre) = ?', [mb_strtolower($nombre)])
+                    ->first();
+                if ($farmaco === null) {
+                    $farmaco = Farmaco::query()->create(['nombre' => Str::limit($nombre, 200, '')]);
+                }
+                $farmacoId = $farmaco->id;
+                $nombre = $farmaco->nombre;
+            }
+
+            ConsultaTerapiaLinea::query()->create([
+                'consulta_id' => $consulta->id,
+                'farmaco_id' => $farmacoId,
+                'farmaco_nombre' => Str::limit($nombre, 200, ''),
+                'dosis_volumen' => $dosis !== '' ? Str::limit($dosis, 200, '') : null,
+                'orden' => $orden++,
+            ]);
+        }
     }
 
     public function cerrar(Consulta $consulta): RedirectResponse
@@ -577,6 +752,8 @@ class ConsultaHistoriaController extends Controller
         $consulta->load([
             'historiaClinica.paciente.propietario:id,nombres,apellidos,razon_social',
             'veterinario:id,name',
+            'examenes',
+            'terapiaLineas',
             'recetas:id,consulta_id,estado',
             'pedidosLaboratorio:id,consulta_id,estado',
             'cirugias:id,consulta_id,estado,nombre_procedimiento',

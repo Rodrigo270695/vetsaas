@@ -62,6 +62,9 @@ type Props = {
         cita_id?: string | null;
     } | null;
     pacientes_opciones: readonly PacienteHistoriaOpcion[];
+    servicios_clinicos_opciones?: readonly { id: string; nombre: string }[];
+    farmacos_opciones?: readonly { id: string; nombre: string }[];
+    medico_tratante_default?: string;
     filters: ConsultaHistoriaFilters;
     atencion_filtro_ui: AtencionFiltroUi;
     stats: ConsultaHistoriaStats;
@@ -129,6 +132,9 @@ export default function Index({
     consulta_abrir_editar,
     paciente_prefill_nueva_consulta,
     pacientes_opciones,
+    servicios_clinicos_opciones = [],
+    farmacos_opciones = [],
+    medico_tratante_default = '',
     filters,
     atencion_filtro_ui,
     stats,
@@ -139,18 +145,11 @@ export default function Index({
     const canCreate = can('historias-clinicas.create');
     const canUpdate = can('historias-clinicas.update');
     const canDelete = can('historias-clinicas.delete');
-    const canPlanView = can('historias-clinicas-planes.view');
-    const canPlanManage = can('historias-clinicas-planes.manage');
     const canVacunasCreate = can('vacunaciones.create');
     const canCargosView = can('consulta-cargos.view');
     const canSeeAudit = can('audit-trail.view');
     const showRowActions =
-        canUpdate ||
-        canDelete ||
-        canPlanManage ||
-        (canPlanView && paginated.data.some((r) => r.plan_tratamiento)) ||
-        canVacunasCreate ||
-        canCargosView;
+        canUpdate || canDelete || canVacunasCreate || canCargosView;
 
     const {
         search,
@@ -171,6 +170,9 @@ export default function Index({
             'atencion_filtro_ui',
             'stats',
             'pacientes_opciones',
+            'servicios_clinicos_opciones',
+            'farmacos_opciones',
+            'medico_tratante_default',
         ],
         errorMessage: t('toast.load_error'),
         storageKey: 'vetsaas.historias-clinicas.prefs',
@@ -436,7 +438,7 @@ export default function Index({
                 header: t('columns.veterinario'),
                 cell: (row) => (
                     <span className="text-sm text-muted-foreground">
-                        {row.veterinario?.name ?? '—'}
+                        {row.medico_tratante?.trim() || row.veterinario?.name || '—'}
                     </span>
                 ),
             },
@@ -481,8 +483,6 @@ export default function Index({
                             onDelete={openDelete}
                             canUpdate={canUpdate}
                             canDelete={canDelete}
-                            canPlanView={canPlanView}
-                            canPlanManage={canPlanManage}
                             canCargosView={canCargosView}
                         />
                     </div>
@@ -498,8 +498,6 @@ export default function Index({
         showRowActions,
         canUpdate,
         canDelete,
-        canPlanView,
-        canPlanManage,
         canCargosView,
         canVacunasCreate,
         openEdit,
@@ -767,6 +765,9 @@ export default function Index({
                 }}
                 consulta={modal.type === 'edit' ? modal.consulta : null}
                 pacientesOpciones={pacientes_opciones}
+                serviciosClinicosOpciones={servicios_clinicos_opciones}
+                farmacosOpciones={farmacos_opciones}
+                medicoTratanteDefault={medico_tratante_default}
                 pacienteIdPrefillNueva={
                     paciente_prefill_nueva_consulta?.id ?? null
                 }
