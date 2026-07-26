@@ -125,7 +125,7 @@
         "start": "Dictate visit",
         "stop": "Stop and fill",
         "processing": "Processing…",
-        "hint": "Speak anamnesis, findings, diagnosis and vitals. On mobile, record until you press stop; then fields are filled.",
+        "hint": "Speak the visit. Weight, temperature, HR and RR are filled if mentioned; everything else goes only into Anamnesis. On mobile, record until you press stop.",
         "recording": "Recording… speak, then press Stop and fill.",
         "empty": "Not enough audio captured. Try again.",
         "error": "Could not process the dictation. Please try again.",

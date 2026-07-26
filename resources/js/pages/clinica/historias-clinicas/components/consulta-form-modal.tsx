@@ -406,10 +406,8 @@ export function ConsultaFormModal({
 
         setData((prev) => ({
             ...prev,
-            motivo: mergeText(prev.motivo, fields.motivo),
+            // Dictado: solo anamnesis + vitales (el resto del relato va en subjetivo).
             subjetivo: mergeText(prev.subjetivo, fields.subjetivo),
-            objetivo: mergeText(prev.objetivo, fields.objetivo),
-            analisis: mergeText(prev.analisis, fields.analisis),
             peso_kg: prev.peso_kg.trim() === '' && fields.peso_kg ? fields.peso_kg : prev.peso_kg,
             temperatura_c:
                 prev.temperatura_c.trim() === '' && fields.temperatura_c
@@ -755,7 +753,6 @@ export function ConsultaFormModal({
                             <Button
                                 type="button"
                                 size="sm"
-                                variant="outline"
                                 className="cursor-pointer gap-1.5"
                                 disabled={fieldDisabled}
                                 onClick={() =>
@@ -765,7 +762,7 @@ export function ConsultaFormModal({
                                     ])
                                 }
                             >
-                                <Plus className="size-3.5" />
+                                <Plus className="size-3.5" strokeWidth={2.5} />
                                 {t('form.examenes_add')}
                             </Button>
                         </div>
@@ -809,7 +806,7 @@ export function ConsultaFormModal({
                                             type="button"
                                             size="icon"
                                             variant="ghost"
-                                            className="size-9 shrink-0 cursor-pointer text-muted-foreground"
+                                            className="size-9 shrink-0 cursor-pointer"
                                             disabled={fieldDisabled}
                                             onClick={() =>
                                                 setData(
@@ -818,7 +815,7 @@ export function ConsultaFormModal({
                                                 )
                                             }
                                         >
-                                            <Trash2 className="size-4" />
+                                            <Trash2 className="size-4 text-destructive" />
                                         </Button>
                                     </li>
                                 ))}
@@ -848,7 +845,6 @@ export function ConsultaFormModal({
                             <Button
                                 type="button"
                                 size="sm"
-                                variant="outline"
                                 className="cursor-pointer gap-1.5"
                                 disabled={fieldDisabled}
                                 onClick={() =>
@@ -863,7 +859,7 @@ export function ConsultaFormModal({
                                     ])
                                 }
                             >
-                                <Plus className="size-3.5" />
+                                <Plus className="size-3.5" strokeWidth={2.5} />
                                 {t('form.plan_add')}
                             </Button>
                         </div>
@@ -925,7 +921,7 @@ export function ConsultaFormModal({
                                             type="button"
                                             size="icon"
                                             variant="ghost"
-                                            className="size-9 cursor-pointer text-muted-foreground"
+                                            className="size-9 cursor-pointer"
                                             disabled={fieldDisabled}
                                             onClick={() =>
                                                 setData(
@@ -934,7 +930,7 @@ export function ConsultaFormModal({
                                                 )
                                             }
                                         >
-                                            <Trash2 className="size-4" />
+                                            <Trash2 className="size-4 text-destructive" />
                                         </Button>
                                     </li>
                                 ))}

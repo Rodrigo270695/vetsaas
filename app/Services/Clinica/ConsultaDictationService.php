@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
 /**
- * Dictado clínico: audio/texto → campos SOAP + vitales de una consulta.
+ * Dictado clínico: audio/texto → vitales + anamnesis de una consulta.
  */
 final class ConsultaDictationService
 {
@@ -137,16 +137,26 @@ final class ConsultaDictationService
 
         $system = <<<'PROMPT'
 Eres un asistente veterinario clínico. Recibes el dictado oral de un veterinario sobre una consulta.
-Extrae SOLO lo dicho y rellénalo en campos SOAP/vitales en español.
-No inventes diagnósticos ni datos que no estén en el texto.
-Si un campo no aparece, usa null.
+
+Tu ÚNICO trabajo es:
+1) Extraer signos vitales SI se mencionan explícitamente.
+2) Poner TODO el resto del contenido hablado en "subjetivo" (anamnesis).
+
+Reglas estrictas:
+- No inventes datos que no estén en el texto.
+- motivo, objetivo, analisis y plan deben ser SIEMPRE null.
+- No repartas el texto en varios campos clínicos: hallazgos, diagnóstico, plan, motivo, etc. van TODO dentro de subjetivo.
+- Si menciona peso, temperatura, frecuencia cardíaca/FC/pulso o frecuencia respiratoria/FR, extrae el número a su campo.
+- En subjetivo incluye el relato clínico completo (puedes omitir solo las frases que ya quedaron como número de vital, si quieres; o dejarlas también). Lo importante: nada de ese relato debe ir a otro campo de texto.
+- Si un vital no aparece, usa null.
+
 Responde ÚNICAMENTE con JSON válido (sin markdown) con estas claves:
 motivo, subjetivo, objetivo, analisis, plan, peso_kg, temperatura_c, fc_lpm, fr_rpm.
-- motivo: motivo breve de consulta (string|null)
-- subjetivo: anamnesis / lo que reporta el dueño (string|null)
-- objetivo: exploración clínica / hallazgos (string|null)
-- analisis: impresión diagnóstica / análisis (string|null)
-- plan: plan/tratamiento (string|null)
+- motivo: siempre null
+- subjetivo: texto completo del dictado salvo vitales (string|null)
+- objetivo: siempre null
+- analisis: siempre null
+- plan: siempre null
 - peso_kg: número como string, ej. "12.5" (string|null)
 - temperatura_c: número como string, ej. "38.9" (string|null)
 - fc_lpm: entero como string (string|null)
@@ -182,7 +192,7 @@ PROMPT;
             throw new RuntimeException('La IA no devolvió un JSON válido.');
         }
 
-        return $this->normalizeFields($decoded);
+        return $this->normalizeFields($decoded, $transcript);
     }
 
     /**
@@ -199,29 +209,38 @@ PROMPT;
      *     fr_rpm: ?string
      * }
      */
-    private function normalizeFields(array $raw): array
+    private function normalizeFields(array $raw, string $transcriptFallback = ''): array
     {
-        $textKeys = ['motivo', 'subjetivo', 'objetivo', 'analisis', 'plan'];
-        $out = [];
-
-        foreach ($textKeys as $key) {
+        $chunks = [];
+        foreach (['subjetivo', 'motivo', 'objetivo', 'analisis', 'plan'] as $key) {
             $value = $raw[$key] ?? null;
             if (! is_string($value)) {
-                $out[$key] = null;
                 continue;
             }
             $value = trim($value);
-            $out[$key] = $value === '' || strcasecmp($value, 'null') === 0 ? null : $value;
+            if ($value === '' || strcasecmp($value, 'null') === 0) {
+                continue;
+            }
+            $chunks[] = $value;
         }
 
-        foreach (['peso_kg', 'temperatura_c'] as $key) {
-            $out[$key] = $this->normalizeDecimal($raw[$key] ?? null);
-        }
-        foreach (['fc_lpm', 'fr_rpm'] as $key) {
-            $out[$key] = $this->normalizeInt($raw[$key] ?? null);
+        $subjetivo = $chunks === [] ? null : implode("\n", array_values(array_unique($chunks)));
+        if ($subjetivo === null) {
+            $fallback = trim($transcriptFallback);
+            $subjetivo = $fallback !== '' ? $fallback : null;
         }
 
-        return $out;
+        return [
+            'motivo' => null,
+            'subjetivo' => $subjetivo,
+            'objetivo' => null,
+            'analisis' => null,
+            'plan' => null,
+            'peso_kg' => $this->normalizeDecimal($raw['peso_kg'] ?? null),
+            'temperatura_c' => $this->normalizeDecimal($raw['temperatura_c'] ?? null),
+            'fc_lpm' => $this->normalizeInt($raw['fc_lpm'] ?? null),
+            'fr_rpm' => $this->normalizeInt($raw['fr_rpm'] ?? null),
+        ];
     }
 
     private function normalizeDecimal(mixed $value): ?string

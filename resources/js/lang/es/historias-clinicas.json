@@ -125,7 +125,7 @@
         "start": "Dictar consulta",
         "stop": "Detener y rellenar",
         "processing": "Procesando…",
-        "hint": "Habla anamnesis, hallazgos, diagnóstico y vitales. En el móvil graba hasta pulsar detener; luego se rellenan los campos.",
+        "hint": "Habla la consulta. Se rellenan peso, temperatura, FC y FR si los dices; el resto del audio va solo a Anamnesis. En el móvil graba hasta pulsar detener.",
         "recording": "Grabando… habla y luego pulsa Detener y rellenar.",
         "empty": "No capturé suficiente audio. Intenta de nuevo.",
         "error": "No pude procesar el dictado. Inténtalo otra vez.",
