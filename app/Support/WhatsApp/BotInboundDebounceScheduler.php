@@ -6,14 +6,16 @@ namespace App\Support\WhatsApp;
 
 use App\Jobs\ProcessClinicBotInboundBatchJob;
 use App\Jobs\ProcessSalesBotInboundBatchJob;
-use Illuminate\Support\Facades\Config;
 
 /**
- * Encola el procesamiento debounced del lote (SalesBot / ClinicBot).
+ * Agenda el procesamiento debounced del lote (SalesBot / ClinicBot).
  *
- * Con cola real (database/redis) usa delay nativo.
- * Con driver sync, usa afterResponse + sleep para no depender de un worker
- * y aún así agrupar líneas rápidas (y responder 200 a OpenWA de inmediato).
+ * Siempre usa afterResponse + sleep (no la cola database/redis): el chatbot
+ * de WhatsApp no debe depender de `queue:work`. Si el worker está caído,
+ * OpenWA seguiría “conectado” pero el bot nunca respondería.
+ *
+ * afterResponse permite devolver 200 a OpenWA de inmediato (evita retries)
+ * y el sleep agrupa líneas rápidas del cliente en un solo reply.
  */
 final class BotInboundDebounceScheduler
 {
@@ -35,7 +37,7 @@ final class BotInboundDebounceScheduler
             preferVoiceReply: $preferVoiceReply,
         );
 
-        self::dispatch($job, $delaySeconds);
+        self::dispatchAfterResponse($job, $delaySeconds);
     }
 
     public static function scheduleClinic(
@@ -58,23 +60,16 @@ final class BotInboundDebounceScheduler
             clientName: $clientName,
         );
 
-        self::dispatch($job, $delaySeconds);
+        self::dispatchAfterResponse($job, $delaySeconds);
     }
 
-    private static function dispatch(object $job, int $delaySeconds): void
+    private static function dispatchAfterResponse(object $job, int $delaySeconds): void
     {
         $delay = max(1, $delaySeconds);
-        $connection = (string) Config::get('queue.default', 'sync');
 
-        if ($connection === 'sync') {
-            dispatch(function () use ($job, $delay): void {
-                sleep($delay);
-                dispatch_sync($job);
-            })->afterResponse();
-
-            return;
-        }
-
-        dispatch($job)->delay(now()->addSeconds($delay));
+        dispatch(function () use ($job, $delay): void {
+            sleep($delay);
+            dispatch_sync($job);
+        })->afterResponse();
     }
 }
