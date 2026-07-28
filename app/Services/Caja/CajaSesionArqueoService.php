@@ -389,7 +389,7 @@ final class CajaSesionArqueoService
                     ? $venta->metodo_pago
                     : 'otro',
                 'pagos' => $venta->relationLoaded('pagos')
-                    ? $venta->pagos->map(static fn ($p): array => [
+                    ? $venta->pagos->map(fn ($p): array => [
                         'metodo' => (string) $p->metodo,
                         'monto' => $this->money((string) $p->monto),
                     ])->values()->all()
