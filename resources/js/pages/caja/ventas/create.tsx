@@ -615,9 +615,11 @@ export default function Create({
                 metodo: p.metodo,
                 monto: Number(monto.toFixed(2)),
                 monto_recibido:
-                    p.metodo === 'efectivo'
+                    p.metodo === 'efectivo' && esUnico
                         ? Number(String(p.monto_recibido || '').replace(',', '.')) || monto
-                        : null,
+                        : p.metodo === 'efectivo'
+                          ? monto
+                          : null,
             };
         });
 
@@ -745,15 +747,14 @@ export default function Create({
 
     const pagosCuadran = Math.abs(pagosSuma - totales.total) <= 0.01;
 
+    const esSoloEfectivo = form.data.pagos.length === 1 && form.data.pagos[0]?.metodo === 'efectivo';
+    const esMixto = pagoMixtoModo && form.data.pagos.length > 1;
+
     const efectivoPago = form.data.pagos.find((p) => p.metodo === 'efectivo');
-    const efectivoMonto =
-        form.data.pagos.length === 1 && efectivoPago
-            ? totales.total
-            : Number(String(efectivoPago?.monto ?? '0').replace(',', '.')) || 0;
+    // En mixto no pedimos billete/vuelto: se asume exacto. Solo efectivo único usa monto_recibido.
     const efectivoRecibido = Number(String(efectivoPago?.monto_recibido ?? '').replace(',', '.')) || 0;
     const efectivoOk =
-        !efectivoPago ||
-        efectivoRecibido + 0.0001 >= (form.data.pagos.length === 1 ? totales.total : efectivoMonto);
+        !efectivoPago || esMixto || efectivoRecibido + 0.0001 >= totales.total;
 
     const puedeConfirmar =
         puede_vender &&
@@ -763,9 +764,6 @@ export default function Create({
         form.data.pagos.length > 0 &&
         pagosCuadran &&
         efectivoOk;
-
-    const esSoloEfectivo = form.data.pagos.length === 1 && form.data.pagos[0]?.metodo === 'efectivo';
-    const esMixto = pagoMixtoModo && form.data.pagos.length > 1;
 
     const toggleMetodoPago = useCallback(
         (metodo: string) => {
@@ -1593,52 +1591,34 @@ export default function Create({
                                                 ),
                                             );
                                             return (
-                                                <div key={pago.metodo} className="space-y-1">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="w-20 shrink-0 truncate text-[11px] font-medium">
-                                                            {label}
-                                                        </span>
-                                                        <Input
-                                                            className="h-8 flex-1 text-sm tabular-nums"
-                                                            inputMode="decimal"
-                                                            placeholder={String(restante || '')}
-                                                            value={pago.monto}
-                                                            onChange={(e) =>
-                                                                setPagoField(pago.metodo, 'monto', e.target.value)
-                                                            }
-                                                            disabled={!puede_vender}
-                                                        />
-                                                        <button
-                                                            type="button"
-                                                            className="cursor-pointer rounded border border-border/60 px-1.5 py-1 text-[10px] font-semibold text-muted-foreground hover:bg-muted"
-                                                            disabled={!puede_vender || restante <= 0}
-                                                            onClick={() =>
-                                                                setPagoField(
-                                                                    pago.metodo,
-                                                                    'monto',
-                                                                    String(restante),
-                                                                )
-                                                            }
-                                                        >
-                                                            {t('caja:ventas.create.pago_restante')}
-                                                        </button>
-                                                    </div>
-                                                    {pago.metodo === 'efectivo' ? (
-                                                        <Input
-                                                            className="h-8 text-sm tabular-nums"
-                                                            inputMode="decimal"
-                                                            placeholder={t('caja:ventas.create.monto_recibido')}
-                                                            value={pago.monto_recibido}
-                                                            onChange={(e) =>
-                                                                setPagoField(
-                                                                    pago.metodo,
-                                                                    'monto_recibido',
-                                                                    e.target.value,
-                                                                )
-                                                            }
-                                                            disabled={!puede_vender}
-                                                        />
-                                                    ) : null}
+                                                <div key={pago.metodo} className="flex items-center gap-2">
+                                                    <span className="w-20 shrink-0 truncate text-[11px] font-medium">
+                                                        {label}
+                                                    </span>
+                                                    <Input
+                                                        className="h-8 flex-1 text-sm tabular-nums"
+                                                        inputMode="decimal"
+                                                        placeholder={String(restante || '')}
+                                                        value={pago.monto}
+                                                        onChange={(e) =>
+                                                            setPagoField(pago.metodo, 'monto', e.target.value)
+                                                        }
+                                                        disabled={!puede_vender}
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        className="cursor-pointer rounded border border-border/60 px-1.5 py-1 text-[10px] font-semibold text-muted-foreground hover:bg-muted"
+                                                        disabled={!puede_vender || restante <= 0}
+                                                        onClick={() =>
+                                                            setPagoField(
+                                                                pago.metodo,
+                                                                'monto',
+                                                                String(restante),
+                                                            )
+                                                        }
+                                                    >
+                                                        {t('caja:ventas.create.pago_restante')}
+                                                    </button>
                                                 </div>
                                             );
                                         })}
@@ -1868,14 +1848,6 @@ export default function Create({
                                                         ) - totales.total,
                                                     ),
                                                 )}
-                                            </span>
-                                        </div>
-                                    ) : null}
-                                    {esMixto && efectivoPago && efectivoRecibido > 0 ? (
-                                        <div className="flex justify-between gap-2 rounded-md bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-700 dark:text-emerald-400">
-                                            <span>{t('caja:ventas.create.res_vuelto')}</span>
-                                            <span className="font-semibold tabular-nums">
-                                                {formatMoney(Math.max(0, efectivoRecibido - efectivoMonto))}
                                             </span>
                                         </div>
                                     ) : null}
