@@ -46,6 +46,8 @@ class PlatformWhatsAppController extends Controller
         $session = $sync->ensure();
         abort_if($session === null, 422, 'No se pudo crear la sesión de WhatsApp de plataforma.');
 
+        $session = $sync->enableAutoReconnect($session);
+
         if (! $session->isReady()) {
             try {
                 $remote = $client->getSession($session->openwa_session_id);

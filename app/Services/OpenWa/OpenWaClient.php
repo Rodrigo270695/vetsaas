@@ -195,6 +195,40 @@ final class OpenWaClient
     }
 
     /**
+     * Si la sesión está caída, intenta {@see startSession} (sin stop)
+     * para recuperar la auth persistida en OpenWA y evitar re-escanear QR.
+     *
+     * @return array{attempted: bool, remote: ?array<string, mixed>, error: ?string}
+     */
+    public function tryStartIfDown(string $sessionId, string $status): array
+    {
+        if (! in_array($status, ['disconnected', 'failed'], true)) {
+            return ['attempted' => false, 'remote' => null, 'error' => null];
+        }
+
+        try {
+            $this->startSession($sessionId);
+            $remote = $this->getSession($sessionId);
+
+            Log::info('OpenWA reconnect attempted', [
+                'session_id' => $sessionId,
+                'from_status' => $status,
+                'to_status' => $remote['status'] ?? null,
+            ]);
+
+            return ['attempted' => true, 'remote' => $remote, 'error' => null];
+        } catch (\Throwable $e) {
+            Log::warning('OpenWA reconnect failed', [
+                'session_id' => $sessionId,
+                'from_status' => $status,
+                'error' => $e->getMessage(),
+            ]);
+
+            return ['attempted' => true, 'remote' => null, 'error' => $e->getMessage()];
+        }
+    }
+
+    /**
      * Detiene la sesión y desconecta WhatsApp (API desplegada: POST /stop, sin /logout).
      *
      * @return array<string, mixed>

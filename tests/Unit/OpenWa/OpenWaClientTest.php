@@ -65,11 +65,32 @@ it('asume entrega ante OpenWA HTTP 500 en send-text', function (): void {
     expect($result['assumed_delivery'] ?? false)->toBeTrue();
 });
 
-it('detecta errores ambiguos de entrega OpenWA', function (): void {
-    $client = new OpenWaClient;
+it('intenta start si la sesión OpenWA está caída', function (): void {
+    Http::fake([
+        'wa.test/api/sessions/sess-1/start' => Http::response(['status' => 'initializing'], 200),
+        'wa.test/api/sessions/sess-1' => Http::response([
+            'id' => 'sess-1',
+            'status' => 'ready',
+            'phone' => '51999999999',
+        ], 200),
+    ]);
 
-    expect($client->isAmbiguousDeliveryErrorMessage(
-        'OpenWA HTTP 500: {"statusCode":500,"message":"Internal server error"}',
-    ))->toBeTrue()
-        ->and($client->isAmbiguousDeliveryErrorMessage('OpenWA HTTP 400: bad request'))->toBeFalse();
+    $client = new OpenWaClient;
+    $result = $client->tryStartIfDown('sess-1', 'disconnected');
+
+    expect($result['attempted'])->toBeTrue()
+        ->and($result['error'])->toBeNull()
+        ->and($result['remote']['status'] ?? null)->toBe('ready');
+
+    Http::assertSent(fn ($request): bool => $request->method() === 'POST'
+        && $request->url() === 'https://wa.test/api/sessions/sess-1/start');
+});
+
+it('no intenta start si la sesión OpenWA ya está ready', function (): void {
+    Http::fake();
+
+    $result = (new OpenWaClient)->tryStartIfDown('sess-1', 'ready');
+
+    expect($result['attempted'])->toBeFalse();
+    Http::assertNothingSent();
 });

@@ -23,6 +23,7 @@ class PlatformWhatsAppSession extends Model
         'connected_at',
         'last_synced_at',
         'last_error',
+        'auto_reconnect',
     ];
 
     protected function casts(): array
@@ -30,6 +31,7 @@ class PlatformWhatsAppSession extends Model
         return [
             'connected_at' => 'datetime',
             'last_synced_at' => 'datetime',
+            'auto_reconnect' => 'boolean',
         ];
     }
 

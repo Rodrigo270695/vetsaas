@@ -30,13 +30,18 @@ final class TenantWhatsAppSessionAdmin
             throw new RuntimeException('No se pudo obtener la sesión WhatsApp del tenant.');
         }
 
+        $session = $this->sync->enableAutoReconnect($session);
         $sessionId = $session->openwa_session_id;
         $warnings = [];
+        $status = (string) $session->status;
 
-        try {
-            $this->client->stopSession($sessionId);
-        } catch (\Throwable $e) {
-            $warnings[] = 'stop: '.$e->getMessage();
+        // Si ya está caída, solo start (stop forzarían pérdida de auth / re-QR).
+        if (! in_array($status, ['disconnected', 'failed'], true)) {
+            try {
+                $this->client->stopSession($sessionId);
+            } catch (\Throwable $e) {
+                $warnings[] = 'stop: '.$e->getMessage();
+            }
         }
 
         try {
@@ -68,17 +73,11 @@ final class TenantWhatsAppSessionAdmin
         }
 
         try {
-            $this->client->stopSession($session->openwa_session_id);
+            // disconnect marca auto_reconnect=false para que el cron no la reabra.
+            $session = $this->sync->disconnect($session);
         } catch (\Throwable $e) {
-            $session->forceFill([
-                'last_error' => $e->getMessage(),
-                'last_synced_at' => now(),
-            ])->save();
-
             throw new RuntimeException('OpenWA no pudo detener la sesión: '.$e->getMessage(), 0, $e);
         }
-
-        $session = $this->sync->refresh($session);
 
         return $this->withQrProbe($session, []);
     }

@@ -52,17 +52,31 @@ final class PlatformWhatsAppSessionSync
             return $local;
         }
 
+        $status = (string) ($remote['status'] ?? 'created');
+        $wantsReconnect = $local === null || (bool) ($local->auto_reconnect ?? true);
+        $lastError = null;
+
+        if ($wantsReconnect) {
+            $reconnect = $this->client->tryStartIfDown($sessionId, $status);
+            if ($reconnect['remote'] !== null) {
+                $remote = $reconnect['remote'];
+                $status = (string) ($remote['status'] ?? $status);
+            } elseif ($reconnect['attempted'] && is_string($reconnect['error']) && $reconnect['error'] !== '') {
+                $lastError = $reconnect['error'];
+            }
+        }
+
         $payload = [
             'openwa_session_id' => $sessionId,
             'openwa_session_name' => (string) ($remote['name'] ?? $name),
-            'status' => (string) ($remote['status'] ?? 'created'),
+            'status' => $status,
             'phone' => isset($remote['phone']) ? (string) $remote['phone'] : null,
             'push_name' => isset($remote['pushName']) ? (string) $remote['pushName'] : null,
             'connected_at' => filled($remote['connectedAt'] ?? null)
                 ? Carbon::parse($remote['connectedAt'])
                 : null,
             'last_synced_at' => now(),
-            'last_error' => null,
+            'last_error' => $lastError,
         ];
 
         if ($local instanceof PlatformWhatsAppSession) {
@@ -70,6 +84,8 @@ final class PlatformWhatsAppSessionSync
 
             return $local->fresh();
         }
+
+        $payload['auto_reconnect'] = true;
 
         return PlatformWhatsAppSession::query()->create($payload);
     }
@@ -92,6 +108,13 @@ final class PlatformWhatsAppSessionSync
         return $session->fresh();
     }
 
+    public function enableAutoReconnect(PlatformWhatsAppSession $session): PlatformWhatsAppSession
+    {
+        $session->forceFill(['auto_reconnect' => true])->save();
+
+        return $session->fresh();
+    }
+
     public function disconnect(PlatformWhatsAppSession $session): PlatformWhatsAppSession
     {
         try {
@@ -103,11 +126,13 @@ final class PlatformWhatsAppSessionSync
                 'phone' => null,
                 'push_name' => null,
                 'connected_at' => null,
+                'auto_reconnect' => false,
                 'last_synced_at' => now(),
                 'last_error' => null,
             ])->save();
         } catch (\Throwable $e) {
             $session->forceFill([
+                'auto_reconnect' => false,
                 'last_error' => $e->getMessage(),
                 'last_synced_at' => now(),
             ])->save();

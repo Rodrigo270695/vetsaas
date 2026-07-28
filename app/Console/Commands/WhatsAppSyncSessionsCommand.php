@@ -13,7 +13,7 @@ class WhatsAppSyncSessionsCommand extends Command
 {
     protected $signature = 'vetsaas:whatsapp-sync-sessions';
 
-    protected $description = 'Crea/sincroniza sesiones OpenWA de plataforma y tenants';
+    protected $description = 'Sincroniza sesiones OpenWA y reconecta las caídas (plataforma + tenants)';
 
     public function handle(
         OpenWaClient $client,
@@ -30,10 +30,11 @@ class WhatsAppSyncSessionsCommand extends Command
         $platform = $platformSync->ensure();
         if ($platform !== null) {
             $this->line(sprintf(
-                '  [plataforma] %s → %s (%s)',
+                '  [plataforma] %s → %s (%s)%s',
                 $platform->openwa_session_name,
                 $platform->status,
                 $platform->phone ?? 'sin teléfono',
+                $platform->auto_reconnect ? '' : ' [auto-reconnect off]',
             ));
         }
 
@@ -59,10 +60,11 @@ class WhatsAppSyncSessionsCommand extends Command
                 }
 
                 $this->line(sprintf(
-                    '  %s → %s (%s)',
+                    '  %s → %s (%s)%s',
                     $tenant->slug,
                     $session->status,
                     $session->phone ?? 'sin teléfono',
+                    $session->auto_reconnect ? '' : ' [auto-reconnect off]',
                 ));
             });
 

@@ -58,6 +58,8 @@ class TenantWhatsAppController extends Controller
         $session = $sync->ensureForTenant($tenant);
         abort_if($session === null, 422, 'No se pudo crear la sesión de WhatsApp.');
 
+        $session = $sync->enableAutoReconnect($session);
+
         if (! $session->isReady()) {
             try {
                 $remote = $client->getSession($session->openwa_session_id);

@@ -267,13 +267,13 @@ php artisan vetsaas:sync-tenants-from-subscriptions
 
 ### `vetsaas:whatsapp-sync-sessions`
 
-Crea / sincroniza sesiones OpenWA por tenant (`slug` = nombre de sesión). Es lo que alimenta el radar de Operaciones (`created`, `qr_ready`, `ready`, etc.).
+Crea / sincroniza sesiones OpenWA por tenant (`slug` = nombre de sesión) y de plataforma. Si una sesión está `disconnected`/`failed` y tiene `auto_reconnect`, intenta `start` (sin stop) para recuperar la auth persistida y evitar re-escanear QR. Es lo que alimenta el radar de Operaciones (`created`, `qr_ready`, `ready`, etc.).
 
 ```bash
 php artisan vetsaas:whatsapp-sync-sessions
 ```
 
-**Scheduler:** **cada hora**.
+**Scheduler:** **cada 5 minutos**.
 
 ---
 
@@ -496,7 +496,7 @@ Definido en `bootstrap/app.php`:
 | 15:00 | `vetsaas:reactivate-cold-leads --limit=10 --delay=15` |
 | Cada 15 min | `vetsaas:reminders-scan` |
 | Cada 5 min | `vetsaas:notifications-dispatch` |
-| Cada hora | `vetsaas:whatsapp-sync-sessions` |
+| Cada 5 min | `vetsaas:whatsapp-sync-sessions` |
 
 Cron del VPS:
 
