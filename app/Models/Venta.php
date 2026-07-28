@@ -59,6 +59,8 @@ class Venta extends Model
 
     public const FEL_ANULADO = 'anulado';
 
+    public const METODO_MIXTO = 'mixto';
+
     protected $table = 'ventas';
 
     protected $fillable = [
@@ -170,6 +172,11 @@ class Venta extends Model
     public function lineas(): HasMany
     {
         return $this->hasMany(VentaLinea::class, 'venta_id')->orderBy('id');
+    }
+
+    public function pagos(): HasMany
+    {
+        return $this->hasMany(VentaPago::class, 'venta_id')->orderBy('orden')->orderBy('id');
     }
 
     public function felDocument(): BelongsTo

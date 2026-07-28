@@ -321,25 +321,46 @@
             </tfoot>
         </table>
 
-        @if($metodo_pago_label)
+        @if($metodo_pago_label || ! empty($pagos ?? []))
             <hr class="rule">
             <div class="pay-block">
                 <p class="meta-section-title">{{ __('caja.ventas.ticket.section_pago') }}</p>
                 <table class="meta" role="presentation">
-                    <tr>
-                        <td class="lbl">{{ __('caja.ventas.ticket.metodo_pago') }}</td>
-                        <td class="val">{{ $metodo_pago_label }}</td>
-                    </tr>
-                    @if($venta->metodo_pago === 'efectivo' && $venta->monto_recibido !== null)
-                        <tr>
-                            <td class="lbl">{{ __('caja.ventas.ticket.monto_recibido') }}</td>
-                            <td class="val">{{ $moneda }} {{ $venta->monto_recibido }}</td>
-                        </tr>
-                        @if($venta->vuelto !== null)
+                    @if(! empty($pagos ?? []) && count($pagos) > 1)
+                        @foreach($pagos as $pago)
                             <tr>
-                                <td class="lbl">{{ __('caja.ventas.ticket.vuelto') }}</td>
-                                <td class="val">{{ $moneda }} {{ $venta->vuelto }}</td>
+                                <td class="lbl">{{ $pago['metodo_label'] }}</td>
+                                <td class="val">{{ $moneda }} {{ $pago['monto'] }}</td>
                             </tr>
+                            @if(! empty($pago['es_efectivo']) && $pago['monto_recibido'] !== null)
+                                <tr>
+                                    <td class="lbl">{{ __('caja.ventas.ticket.monto_recibido') }}</td>
+                                    <td class="val">{{ $moneda }} {{ $pago['monto_recibido'] }}</td>
+                                </tr>
+                                @if($pago['vuelto'] !== null)
+                                    <tr>
+                                        <td class="lbl">{{ __('caja.ventas.ticket.vuelto') }}</td>
+                                        <td class="val">{{ $moneda }} {{ $pago['vuelto'] }}</td>
+                                    </tr>
+                                @endif
+                            @endif
+                        @endforeach
+                    @else
+                        <tr>
+                            <td class="lbl">{{ __('caja.ventas.ticket.metodo_pago') }}</td>
+                            <td class="val">{{ $metodo_pago_label }}</td>
+                        </tr>
+                        @if($venta->metodo_pago === 'efectivo' && $venta->monto_recibido !== null)
+                            <tr>
+                                <td class="lbl">{{ __('caja.ventas.ticket.monto_recibido') }}</td>
+                                <td class="val">{{ $moneda }} {{ $venta->monto_recibido }}</td>
+                            </tr>
+                            @if($venta->vuelto !== null)
+                                <tr>
+                                    <td class="lbl">{{ __('caja.ventas.ticket.vuelto') }}</td>
+                                    <td class="val">{{ $moneda }} {{ $venta->vuelto }}</td>
+                                </tr>
+                            @endif
                         @endif
                     @endif
                 </table>

@@ -36,4 +36,10 @@ return [
     */
     'platform_session_name' => env('OPENWA_PLATFORM_SESSION_NAME', 'vetsaas-platform'),
 
+    /*
+    | Segundos de espera entre reintentos al reconectar una sesión caída.
+    | En tests se puede poner 0.
+    */
+    'reconnect_poll_seconds' => (int) env('OPENWA_RECONNECT_POLL_SECONDS', 3),
+
 ];

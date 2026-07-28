@@ -197,6 +197,8 @@ final class OpenWaClient
     /**
      * Si la sesión está caída, intenta {@see startSession} (sin stop)
      * para recuperar la auth persistida en OpenWA y evitar re-escanear QR.
+     * Tras el start, espera unos segundos y reconsulta: OpenWA a menudo
+     * pasa por initializing antes de volver a ready.
      *
      * @return array{attempted: bool, remote: ?array<string, mixed>, error: ?string}
      */
@@ -208,7 +210,7 @@ final class OpenWaClient
 
         try {
             $this->startSession($sessionId);
-            $remote = $this->getSession($sessionId);
+            $remote = $this->waitForSessionProgress($sessionId, $status);
 
             Log::info('OpenWA reconnect attempted', [
                 'session_id' => $sessionId,
@@ -226,6 +228,50 @@ final class OpenWaClient
 
             return ['attempted' => true, 'remote' => null, 'error' => $e->getMessage()];
         }
+    }
+
+    /**
+     * Reconsulta la sesión mientras OpenWA arranca tras un start.
+     *
+     * @return array<string, mixed>
+     */
+    private function waitForSessionProgress(string $sessionId, string $fromStatus): array
+    {
+        $remote = $this->getSession($sessionId);
+        $status = (string) ($remote['status'] ?? $fromStatus);
+
+        // Hasta ~12s: initializing/authenticating → ready (o qr_ready si hace falta QR).
+        for ($i = 0; $i < 4; $i++) {
+            if (in_array($status, ['ready', 'qr_ready', 'authenticating'], true)) {
+                break;
+            }
+            if ($status === 'initializing' || in_array($status, ['disconnected', 'failed'], true)) {
+                $wait = max(0, (int) config('openwa.reconnect_poll_seconds', 3));
+                if ($wait > 0) {
+                    sleep($wait);
+                }
+                $remote = $this->getSession($sessionId);
+                $status = (string) ($remote['status'] ?? $status);
+            } else {
+                break;
+            }
+        }
+
+        // Si sigue caída tras el primer start, un segundo intento suave.
+        if (in_array($status, ['disconnected', 'failed'], true)) {
+            try {
+                $this->startSession($sessionId);
+                $wait = max(0, (int) config('openwa.reconnect_poll_seconds', 3));
+                if ($wait > 0) {
+                    sleep($wait);
+                }
+                $remote = $this->getSession($sessionId);
+            } catch (\Throwable) {
+                // Dejamos el último remote conocido.
+            }
+        }
+
+        return $remote;
     }
 
     /**

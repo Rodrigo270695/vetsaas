@@ -315,6 +315,7 @@ class TenantSchemaMigrator
                 && Schema::hasColumn('cfg_clinic_settings', 'recordatorio_vacuna_dias_antes_opciones'),
             '2026_07_21_185000_t120_add_appointment_reminder_intervals_to_cfg_clinic_settings' => Schema::hasTable('cfg_clinic_settings')
                 && Schema::hasColumn('cfg_clinic_settings', 'recordatorio_cita_dias_antes_opciones'),
+            '2026_07_28_120000_t123_create_venta_pagos_table' => Schema::hasTable('venta_pagos'),
             default => false,
         };
     }

@@ -186,6 +186,12 @@ export type VentaDetalle = {
     metodo_pago: string | null;
     monto_recibido: string | null;
     vuelto: string | null;
+    pagos?: readonly {
+        metodo: string;
+        monto: string;
+        monto_recibido: string | null;
+        vuelto: string | null;
+    }[];
     fecha_pago: string | null;
     created_at: string | null;
     notas: string | null;

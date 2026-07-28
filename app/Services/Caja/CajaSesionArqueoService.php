@@ -29,6 +29,7 @@ final class CajaSesionArqueoService
             ->with([
                 'propietario:id,nombres,apellidos,razon_social',
                 'paciente:id,nombre',
+                'pagos',
             ])
             ->where('caja_sesion_id', $sesion->getKey())
             ->orderBy('created_at')
@@ -235,14 +236,36 @@ final class CajaSesionArqueoService
         $buckets['otro'] = ['codigo' => 'otro', 'count' => 0, 'total' => '0.00'];
 
         foreach ($ventas as $venta) {
+            $pagos = $venta->relationLoaded('pagos') ? $venta->pagos : collect();
+            if ($pagos->isNotEmpty()) {
+                $metodosEnVenta = [];
+                foreach ($pagos as $pago) {
+                    $codigo = is_string($pago->metodo) && $pago->metodo !== ''
+                        ? $pago->metodo
+                        : 'otro';
+                    if (! isset($buckets[$codigo])) {
+                        $codigo = 'otro';
+                    }
+                    $buckets[$codigo]['total'] = $this->add(
+                        $buckets[$codigo]['total'],
+                        $this->money((string) $pago->monto),
+                    );
+                    $metodosEnVenta[$codigo] = true;
+                }
+                foreach (array_keys($metodosEnVenta) as $codigo) {
+                    $buckets[$codigo]['count']++;
+                }
+
+                continue;
+            }
+
+            // Fallback ventas sin venta_pagos (legado).
             $codigo = is_string($venta->metodo_pago) && $venta->metodo_pago !== ''
                 ? $venta->metodo_pago
                 : 'otro';
-
-            if (! isset($buckets[$codigo])) {
+            if ($codigo === 'mixto' || ! isset($buckets[$codigo])) {
                 $codigo = 'otro';
             }
-
             $buckets[$codigo]['count']++;
             $buckets[$codigo]['total'] = $this->add(
                 $buckets[$codigo]['total'],
@@ -365,6 +388,12 @@ final class CajaSesionArqueoService
                 'metodo' => is_string($venta->metodo_pago) && $venta->metodo_pago !== ''
                     ? $venta->metodo_pago
                     : 'otro',
+                'pagos' => $venta->relationLoaded('pagos')
+                    ? $venta->pagos->map(static fn ($p): array => [
+                        'metodo' => (string) $p->metodo,
+                        'monto' => $this->money((string) $p->monto),
+                    ])->values()->all()
+                    : [],
                 'comprobante' => $comprobante,
                 'total' => $this->money((string) $venta->total),
                 'estado' => (string) $venta->estado,

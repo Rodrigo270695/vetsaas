@@ -297,7 +297,10 @@ class VentaController extends Controller
                         ->orWhereNotIn('metodo_pago', array_values(array_diff($metodosPermitidos, ['otro'])));
                 });
             } else {
-                $baseQuery->where('metodo_pago', $metodoPago);
+                $baseQuery->where(function ($q) use ($metodoPago): void {
+                    $q->where('metodo_pago', $metodoPago)
+                        ->orWhereHas('pagos', fn ($pq) => $pq->where('metodo', $metodoPago));
+                });
             }
         }
 
@@ -648,6 +651,7 @@ class VentaController extends Controller
         $venta->load([
             'lineas' => fn ($q) => $q->orderBy('id'),
             'lineas.producto:id,sku,unidad',
+            'pagos',
             'propietario:id,nombres,apellidos,razon_social,numero_documento',
             'paciente:id,nombre',
             'creadoPor:id,name',
@@ -696,6 +700,12 @@ class VentaController extends Controller
                 'metodo_pago' => $venta->metodo_pago,
                 'monto_recibido' => $venta->monto_recibido !== null ? (string) $venta->monto_recibido : null,
                 'vuelto' => $venta->vuelto !== null ? (string) $venta->vuelto : null,
+                'pagos' => $venta->pagos->map(static fn ($p): array => [
+                    'metodo' => (string) $p->metodo,
+                    'monto' => (string) $p->monto,
+                    'monto_recibido' => $p->monto_recibido !== null ? (string) $p->monto_recibido : null,
+                    'vuelto' => $p->vuelto !== null ? (string) $p->vuelto : null,
+                ])->values()->all(),
                 'fecha_pago' => $venta->fecha_pago?->toIso8601String(),
                 'created_at' => $venta->created_at?->toIso8601String(),
                 'notas' => $venta->notas,

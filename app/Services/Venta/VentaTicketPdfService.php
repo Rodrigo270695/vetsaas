@@ -28,6 +28,7 @@ final class VentaTicketPdfService
         $venta->loadMissing([
             'felDocument',
             'lineas' => fn ($q) => $q->orderBy('id'),
+            'pagos',
             'propietario:id,nombres,apellidos,razon_social,numero_documento',
             'paciente:id,nombre',
             'creadoPor:id,name',
@@ -48,6 +49,16 @@ final class VentaTicketPdfService
         $metodoPagoLabel = $venta->metodo_pago !== null
             ? __('caja.ventas.ticket.metodo_'.$venta->metodo_pago)
             : null;
+
+        $pagosTicket = $venta->pagos->map(static function ($pago): array {
+            return [
+                'metodo_label' => __('caja.ventas.ticket.metodo_'.$pago->metodo),
+                'monto' => (string) $pago->monto,
+                'monto_recibido' => $pago->monto_recibido !== null ? (string) $pago->monto_recibido : null,
+                'vuelto' => $pago->vuelto !== null ? (string) $pago->vuelto : null,
+                'es_efectivo' => $pago->metodo === 'efectivo',
+            ];
+        })->values()->all();
 
         $lineas = $venta->lineas->map(fn ($ln): array => [
             'descripcion' => $ln->descripcion_snapshot,
@@ -87,6 +98,7 @@ final class VentaTicketPdfService
             'paciente_nombre' => $venta->paciente?->nombre,
             'cajero_nombre' => $venta->creadoPor?->name,
             'metodo_pago_label' => $metodoPagoLabel,
+            'pagos' => $pagosTicket,
             'cpe_numero' => $venta->felDocument?->numero_completo,
             'auto_print' => false,
         ];

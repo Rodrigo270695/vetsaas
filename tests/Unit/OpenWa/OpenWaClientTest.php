@@ -66,13 +66,13 @@ it('asume entrega ante OpenWA HTTP 500 en send-text', function (): void {
 });
 
 it('intenta start si la sesión OpenWA está caída', function (): void {
+    config(['openwa.reconnect_poll_seconds' => 0]);
+
     Http::fake([
         'wa.test/api/sessions/sess-1/start' => Http::response(['status' => 'initializing'], 200),
-        'wa.test/api/sessions/sess-1' => Http::response([
-            'id' => 'sess-1',
-            'status' => 'ready',
-            'phone' => '51999999999',
-        ], 200),
+        'wa.test/api/sessions/sess-1' => Http::sequence()
+            ->push(['id' => 'sess-1', 'status' => 'initializing'], 200)
+            ->push(['id' => 'sess-1', 'status' => 'ready', 'phone' => '51999999999'], 200),
     ]);
 
     $client = new OpenWaClient;

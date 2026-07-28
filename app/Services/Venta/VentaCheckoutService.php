@@ -16,11 +16,13 @@ use App\Models\Producto;
 use App\Models\Tenant;
 use App\Models\Venta;
 use App\Models\VentaLinea;
+use App\Models\VentaPago;
 use App\Services\Fel\FelEmisionVentaService;
 use App\Services\Inventario\InventarioLoteService;
 use App\Support\Fel\ApisunatCredentialResolver;
 use App\Support\PlanCapabilities;
 use App\Support\Venta\DescuentoManualLinea;
+use App\Support\Venta\VentaPagosResolver;
 use App\Support\Venta\VentaTotales;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Facades\DB;
@@ -245,18 +247,11 @@ final class VentaCheckoutService
             $igvMonto = $totales['igv'];
             $total = $totales['total'];
 
-            $metodo = (string) $validated['metodo_pago'];
-            $montoRecibido = null;
-            $vuelto = null;
-            if ($metodo === 'efectivo') {
-                $montoRecibido = round((float) (string) $validated['monto_recibido'], 2);
-                if ($montoRecibido + 0.0001 < $total) {
-                    throw ValidationException::withMessages([
-                        'monto_recibido' => __('caja.ventas.validation.monto_insuficiente'),
-                    ]);
-                }
-                $vuelto = round(max(0, $montoRecibido - $total), 2);
-            }
+            $pagosLineas = VentaPagosResolver::fromValidated($validated, (float) $total);
+            $metodo = VentaPagosResolver::metodoResumen($pagosLineas);
+            $efectivoSnap = VentaPagosResolver::efectivoSnapshot($pagosLineas);
+            $montoRecibido = $efectivoSnap['monto_recibido'];
+            $vuelto = $efectivoSnap['vuelto'];
 
             $anio = (int) now()->year;
             // PostgreSQL no permite FOR UPDATE con agregados (max); se bloquea la última fila del año.
@@ -296,6 +291,21 @@ final class VentaCheckoutService
                 'fel_document_id' => null,
                 'created_by_id' => $user->getAuthIdentifier(),
             ]);
+
+            foreach ($pagosLineas as $orden => $pago) {
+                VentaPago::query()->create([
+                    'venta_id' => $venta->id,
+                    'metodo' => $pago['metodo'],
+                    'monto' => number_format($pago['monto'], 2, '.', ''),
+                    'monto_recibido' => $pago['monto_recibido'] !== null
+                        ? number_format($pago['monto_recibido'], 2, '.', '')
+                        : null,
+                    'vuelto' => $pago['vuelto'] !== null
+                        ? number_format($pago['vuelto'], 2, '.', '')
+                        : null,
+                    'orden' => $orden,
+                ]);
+            }
 
             if ($cargoVinculado !== null) {
                 ConsultaCargo::query()

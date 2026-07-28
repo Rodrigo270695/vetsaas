@@ -45,14 +45,25 @@ class StoreVentaRequest extends FormRequest
             'lineas.*.tipo_linea' => ['nullable', 'string', Rule::in(['servicio', 'producto', 'otro'])],
             'lineas.*.consulta_cargo_linea_id' => ['nullable', 'uuid', 'exists:consulta_cargo_lineas,id'],
             'lineas.*.cantidad' => ['required', 'numeric', 'min:0.001', 'max:999999'],
-            'metodo_pago' => ['required', 'string', Rule::in([
+            'metodo_pago' => ['nullable', 'string', Rule::in([
+                'efectivo',
+                'yape',
+                'plin',
+                'tarjeta',
+                'transferencia',
+                'mixto',
+            ])],
+            'monto_recibido' => ['nullable', 'numeric', 'min:0'],
+            'pagos' => ['nullable', 'array', 'min:1', 'max:5'],
+            'pagos.*.metodo' => ['required_with:pagos', 'string', Rule::in([
                 'efectivo',
                 'yape',
                 'plin',
                 'tarjeta',
                 'transferencia',
             ])],
-            'monto_recibido' => ['nullable', 'numeric', 'min:0'],
+            'pagos.*.monto' => ['required_with:pagos', 'numeric', 'min:0.01'],
+            'pagos.*.monto_recibido' => ['nullable', 'numeric', 'min:0'],
             'notas' => ['nullable', 'string', 'max:2000'],
             'promotion_code' => ['nullable', 'string', 'max:30'],
             'tipo_comprobante_sunat' => ['nullable', 'integer', Rule::in([
@@ -95,6 +106,10 @@ class StoreVentaRequest extends FormRequest
             'lineas.*.descuento_monto' => 'monto de descuento de la línea',
             'metodo_pago' => 'método de pago',
             'monto_recibido' => 'monto recibido',
+            'pagos' => 'pagos',
+            'pagos.*.metodo' => 'método de pago',
+            'pagos.*.monto' => 'monto del pago',
+            'pagos.*.monto_recibido' => 'monto recibido',
             'tipo_comprobante_sunat' => 'tipo de comprobante',
             'grooming_turno_id' => 'turno de grooming',
             'hotel_estancia_id' => 'estancia de hotel',
@@ -126,12 +141,34 @@ class StoreVentaRequest extends FormRequest
                 return;
             }
 
-            if ($this->input('metodo_pago') === 'efectivo') {
+            if ($this->input('metodo_pago') === 'efectivo' && ! is_array($this->input('pagos'))) {
                 $mr = $this->input('monto_recibido');
                 if ($mr === null || $mr === '') {
                     $v->errors()->add('monto_recibido', __('caja.ventas.validation.monto_recibido_efectivo'));
 
                     return;
+                }
+            }
+
+            $pagos = $this->input('pagos');
+            $metodo = $this->input('metodo_pago');
+            if ((! is_array($pagos) || $pagos === []) && (! is_string($metodo) || $metodo === '' || $metodo === 'mixto')) {
+                $v->errors()->add('metodo_pago', __('caja.ventas.validation.pagos_requeridos'));
+
+                return;
+            }
+
+            if (is_array($pagos) && $pagos !== []) {
+                $metodos = [];
+                foreach ($pagos as $idx => $row) {
+                    if (! is_array($row)) {
+                        continue;
+                    }
+                    $m = (string) ($row['metodo'] ?? '');
+                    if ($m !== '' && isset($metodos[$m])) {
+                        $v->errors()->add("pagos.{$idx}.metodo", __('caja.ventas.validation.pago_metodo_duplicado'));
+                    }
+                    $metodos[$m] = true;
                 }
             }
 

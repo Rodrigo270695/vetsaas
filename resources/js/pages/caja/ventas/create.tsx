@@ -176,8 +176,11 @@ export default function Create({
         hotel_estancia_id: null as string | null,
         promotion_code: '',
         lineas: [] as { producto_id: string; cantidad: number }[],
-        metodo_pago: 'efectivo',
-        monto_recibido: '',
+        pagos: [{ metodo: 'efectivo', monto: '', monto_recibido: '' }] as {
+            metodo: string;
+            monto: string;
+            monto_recibido: string;
+        }[],
         notas: '',
     });
 
@@ -596,6 +599,28 @@ export default function Create({
 
     const buildVentaPayload = useCallback(() => {
         const d = form.data;
+        const total = totales.total;
+        const pagosRaw = d.pagos.length > 0 ? d.pagos : [{ metodo: 'efectivo', monto: '', monto_recibido: '' }];
+        const esUnico = pagosRaw.length === 1;
+
+        const pagos = pagosRaw.map((p) => {
+            const monto =
+                esUnico && (p.monto.trim() === '' || Number(String(p.monto).replace(',', '.')) <= 0)
+                    ? total
+                    : Number(String(p.monto).replace(',', '.')) || 0;
+
+            return {
+                metodo: p.metodo,
+                monto: Number(monto.toFixed(2)),
+                monto_recibido:
+                    p.metodo === 'efectivo'
+                        ? Number(String(p.monto_recibido || '').replace(',', '.')) || monto
+                        : null,
+            };
+        });
+
+        const metodo_pago = pagos.length === 1 ? pagos[0].metodo : 'mixto';
+        const efectivo = pagos.find((p) => p.metodo === 'efectivo');
 
         return {
             caja_sesion_id: mi_sesion!.id,
@@ -606,8 +631,9 @@ export default function Create({
             grooming_turno_id: d.grooming_turno_id || null,
             hotel_estancia_id: d.hotel_estancia_id || null,
             promotion_code: d.promotion_code.trim() || null,
-            metodo_pago: d.metodo_pago,
-            monto_recibido: d.metodo_pago === 'efectivo' ? d.monto_recibido : null,
+            metodo_pago,
+            monto_recibido: efectivo ? efectivo.monto_recibido : null,
+            pagos,
             notas: d.notas || null,
             tipo_comprobante_sunat:
                 d.tipo_comprobante_sunat === 0 ? null : d.tipo_comprobante_sunat,
@@ -625,7 +651,7 @@ export default function Create({
                 descuento_monto: l.descuento_monto,
             })),
         };
-    }, [cart, form.data, mi_sesion]);
+    }, [cart, form.data, mi_sesion, totales.total]);
 
     const submit = useCallback(() => {
         if (!puede_vender || !mi_sesion || cart.length === 0) {
@@ -647,7 +673,7 @@ export default function Create({
                         ...prev,
                         paciente_id: null,
                         promotion_code: '',
-                        monto_recibido: '',
+                        pagos: [{ metodo: 'efectivo', monto: '', monto_recibido: '' }],
                         notas: '',
                     }));
                     toastManager.success({
@@ -667,26 +693,7 @@ export default function Create({
             return;
         }
 
-        form.transform((d) => ({
-            ...d,
-            caja_sesion_id: mi_sesion.id,
-            paciente_id: d.paciente_id || null,
-            grooming_turno_id: d.grooming_turno_id || null,
-            hotel_estancia_id: d.hotel_estancia_id || null,
-            promotion_code: d.promotion_code.trim() || null,
-            lineas: cart.map((l) => ({
-                producto_id: l.producto_id,
-                concepto: l.producto_id ? null : l.nombre,
-                precio_lista:
-                    l.precio_venta === '' || l.precio_venta === null ? '0' : String(l.precio_venta),
-                tipo_linea: l.tipo_linea ?? (l.producto_id ? 'producto' : 'servicio'),
-                consulta_cargo_linea_id: l.consulta_cargo_linea_id ?? null,
-                cantidad: l.cantidad,
-                descuento_pct: l.descuento_pct,
-                descuento_monto: l.descuento_monto,
-            })),
-            monto_recibido: d.metodo_pago === 'efectivo' ? d.monto_recibido : null,
-        }));
+        form.transform(() => buildVentaPayload());
 
         form.post(caja.ventas.store.url(), {
             preserveScroll: true,
@@ -724,15 +731,67 @@ export default function Create({
         [cart],
     );
 
+    const pagosSuma = useMemo(() => {
+        const pagos = form.data.pagos;
+        if (pagos.length === 1) {
+            const unico = Number(String(pagos[0].monto).replace(',', '.')) || 0;
+            return unico > 0 ? unico : totales.total;
+        }
+        return pagos.reduce((acc, p) => acc + (Number(String(p.monto).replace(',', '.')) || 0), 0);
+    }, [form.data.pagos, totales.total]);
+
+    const pagosCuadran = Math.abs(pagosSuma - totales.total) <= 0.01;
+
+    const efectivoPago = form.data.pagos.find((p) => p.metodo === 'efectivo');
+    const efectivoMonto =
+        form.data.pagos.length === 1 && efectivoPago
+            ? totales.total
+            : Number(String(efectivoPago?.monto ?? '0').replace(',', '.')) || 0;
+    const efectivoRecibido = Number(String(efectivoPago?.monto_recibido ?? '').replace(',', '.')) || 0;
+    const efectivoOk =
+        !efectivoPago ||
+        efectivoRecibido + 0.0001 >= (form.data.pagos.length === 1 ? totales.total : efectivoMonto);
+
     const puedeConfirmar =
         puede_vender &&
         cart.length > 0 &&
         !cartSinStock &&
         form.data.propietario_id &&
-        (form.data.metodo_pago !== 'efectivo' ||
-            Number(String(form.data.monto_recibido).replace(',', '.')) >= totales.total - 0.0001);
+        form.data.pagos.length > 0 &&
+        pagosCuadran &&
+        efectivoOk;
 
-    const esEfectivo = form.data.metodo_pago === 'efectivo';
+    const esSoloEfectivo = form.data.pagos.length === 1 && form.data.pagos[0]?.metodo === 'efectivo';
+    const esMixto = form.data.pagos.length > 1;
+
+    const toggleMetodoPago = useCallback(
+        (metodo: string) => {
+            form.setData((prev) => {
+                const exists = prev.pagos.some((p) => p.metodo === metodo);
+                let next = exists
+                    ? prev.pagos.filter((p) => p.metodo !== metodo)
+                    : [...prev.pagos, { metodo, monto: '', monto_recibido: '' }];
+                if (next.length === 0) {
+                    next = [{ metodo: 'efectivo', monto: '', monto_recibido: '' }];
+                }
+                if (next.length === 1) {
+                    next = [{ ...next[0], monto: '' }];
+                }
+                return { ...prev, pagos: next };
+            });
+        },
+        [form],
+    );
+
+    const setPagoField = useCallback(
+        (metodo: string, field: 'monto' | 'monto_recibido', value: string) => {
+            form.setData((prev) => ({
+                ...prev,
+                pagos: prev.pagos.map((p) => (p.metodo === metodo ? { ...p, [field]: value } : p)),
+            }));
+        },
+        [form],
+    );
 
     const erroresFormulario = useMemo(
         () =>
@@ -1423,28 +1482,132 @@ export default function Create({
                         <PosPanel compact title={t('caja:ventas.create.card_pago')} icon={CreditCard}>
                             <div className="space-y-2.5">
                                 <div className="space-y-1">
-                                    <Label className="text-[11px] text-muted-foreground">{t('caja:ventas.create.metodo_pago')}</Label>
+                                    <Label className="text-[11px] text-muted-foreground">
+                                        {t('caja:ventas.create.metodo_pago')}
+                                        <span className="ml-1 font-normal opacity-70">
+                                            ({t('caja:ventas.create.pago_mixto_hint')})
+                                        </span>
+                                    </Label>
                                     <div className="grid grid-cols-5 gap-1">
-                                        {paymentMethods.map(({ value, label, icon: PMIcon }) => (
-                                            <button
-                                                key={value}
-                                                type="button"
-                                                disabled={!puede_vender}
-                                                onClick={() => form.setData('metodo_pago', value)}
-                                                className={cn(
-                                                    'flex flex-col items-center gap-0.5 rounded-md border px-0.5 py-1.5 text-center transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                                                    puede_vender ? 'cursor-pointer' : 'cursor-not-allowed opacity-50',
-                                                    form.data.metodo_pago === value
-                                                        ? 'border-primary bg-primary/10 text-primary shadow-sm'
-                                                        : 'border-border/50 bg-muted/20 text-muted-foreground hover:border-primary/30 hover:text-foreground',
-                                                )}
-                                            >
-                                                <PMIcon className="size-3.5" aria-hidden />
-                                                <span className="w-full truncate text-[9px] font-medium leading-tight">{label}</span>
-                                            </button>
-                                        ))}
+                                        {paymentMethods.map(({ value, label, icon: PMIcon }) => {
+                                            const activo = form.data.pagos.some((p) => p.metodo === value);
+                                            return (
+                                                <button
+                                                    key={value}
+                                                    type="button"
+                                                    disabled={!puede_vender}
+                                                    onClick={() => toggleMetodoPago(value)}
+                                                    className={cn(
+                                                        'flex flex-col items-center gap-0.5 rounded-md border px-0.5 py-1.5 text-center transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                                                        puede_vender
+                                                            ? 'cursor-pointer'
+                                                            : 'cursor-not-allowed opacity-50',
+                                                        activo
+                                                            ? 'border-primary bg-primary/10 text-primary shadow-sm'
+                                                            : 'border-border/50 bg-muted/20 text-muted-foreground hover:border-primary/30 hover:text-foreground',
+                                                    )}
+                                                >
+                                                    <PMIcon className="size-3.5" aria-hidden />
+                                                    <span className="w-full truncate text-[9px] font-medium leading-tight">
+                                                        {label}
+                                                    </span>
+                                                </button>
+                                            );
+                                        })}
                                     </div>
                                 </div>
+
+                                {esMixto ? (
+                                    <div className="space-y-1.5 rounded-lg border border-border/50 bg-muted/10 p-2">
+                                        {form.data.pagos.map((pago) => {
+                                            const label =
+                                                paymentMethods.find((m) => m.value === pago.metodo)?.label ??
+                                                pago.metodo;
+                                            const restante = Math.max(
+                                                0,
+                                                Number(
+                                                    (
+                                                        totales.total -
+                                                        form.data.pagos
+                                                            .filter((p) => p.metodo !== pago.metodo)
+                                                            .reduce(
+                                                                (a, p) =>
+                                                                    a +
+                                                                    (Number(String(p.monto).replace(',', '.')) ||
+                                                                        0),
+                                                                0,
+                                                            )
+                                                    ).toFixed(2),
+                                                ),
+                                            );
+                                            return (
+                                                <div key={pago.metodo} className="space-y-1">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="w-20 shrink-0 truncate text-[11px] font-medium">
+                                                            {label}
+                                                        </span>
+                                                        <Input
+                                                            className="h-8 flex-1 text-sm tabular-nums"
+                                                            inputMode="decimal"
+                                                            placeholder={String(restante || '')}
+                                                            value={pago.monto}
+                                                            onChange={(e) =>
+                                                                setPagoField(pago.metodo, 'monto', e.target.value)
+                                                            }
+                                                            disabled={!puede_vender}
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            className="cursor-pointer rounded border border-border/60 px-1.5 py-1 text-[10px] font-semibold text-muted-foreground hover:bg-muted"
+                                                            disabled={!puede_vender || restante <= 0}
+                                                            onClick={() =>
+                                                                setPagoField(
+                                                                    pago.metodo,
+                                                                    'monto',
+                                                                    String(restante),
+                                                                )
+                                                            }
+                                                        >
+                                                            {t('caja:ventas.create.pago_restante')}
+                                                        </button>
+                                                    </div>
+                                                    {pago.metodo === 'efectivo' ? (
+                                                        <Input
+                                                            className="h-8 text-sm tabular-nums"
+                                                            inputMode="decimal"
+                                                            placeholder={t('caja:ventas.create.monto_recibido')}
+                                                            value={pago.monto_recibido}
+                                                            onChange={(e) =>
+                                                                setPagoField(
+                                                                    pago.metodo,
+                                                                    'monto_recibido',
+                                                                    e.target.value,
+                                                                )
+                                                            }
+                                                            disabled={!puede_vender}
+                                                        />
+                                                    ) : null}
+                                                </div>
+                                            );
+                                        })}
+                                        <div
+                                            className={cn(
+                                                'flex justify-between text-[11px] tabular-nums',
+                                                pagosCuadran
+                                                    ? 'text-muted-foreground'
+                                                    : 'font-semibold text-destructive',
+                                            )}
+                                        >
+                                            <span>{t('caja:ventas.create.pago_suma')}</span>
+                                            <span>
+                                                {formatMoney(pagosSuma)} / {formatMoney(totales.total)}
+                                            </span>
+                                        </div>
+                                        {form.errors.pagos ? (
+                                            <p className="text-[11px] text-destructive">{form.errors.pagos}</p>
+                                        ) : null}
+                                    </div>
+                                ) : null}
 
                                 <div className="grid grid-cols-2 gap-2">
                                     <div className="min-w-0 space-y-1">
@@ -1456,11 +1619,13 @@ export default function Create({
                                             className="h-8 font-mono text-xs uppercase"
                                             placeholder={t('caja:ventas.create.promotion_code_ph')}
                                             value={form.data.promotion_code}
-                                            onChange={(e) => form.setData('promotion_code', e.target.value.toUpperCase())}
+                                            onChange={(e) =>
+                                                form.setData('promotion_code', e.target.value.toUpperCase())
+                                            }
                                             disabled={!puede_vender}
                                         />
                                     </div>
-                                    {!esEfectivo ? (
+                                    {!esSoloEfectivo ? (
                                         <div className="min-w-0 space-y-1">
                                             <Label htmlFor="notas" className="text-[11px] text-muted-foreground">
                                                 {t('caja:ventas.create.notas')}
@@ -1477,89 +1642,122 @@ export default function Create({
                                     ) : null}
                                 </div>
 
-                                {/* ── Monto recibido (efectivo) ── */}
-                                {esEfectivo ? (() => {
-                                    const montoActual = Number(String(form.data.monto_recibido).replace(',', '.')) || 0;
-                                    const faltaMonto = cart.length > 0 && montoActual < totales.total - 0.0001;
-                                    const billetes = [10, 20, 50, 100, 200];
+                                {esSoloEfectivo
+                                    ? (() => {
+                                          const montoActual =
+                                              Number(
+                                                  String(form.data.pagos[0]?.monto_recibido ?? '').replace(
+                                                      ',',
+                                                      '.',
+                                                  ),
+                                              ) || 0;
+                                          const faltaMonto =
+                                              cart.length > 0 && montoActual < totales.total - 0.0001;
+                                          const billetes = [10, 20, 50, 100, 200];
 
-                                    return (
-                                        <div
-                                            className={cn(
-                                                'rounded-lg border p-2.5 transition-all duration-300',
-                                                faltaMonto
-                                                    ? 'border-emerald-400 bg-emerald-50 shadow-sm shadow-emerald-200/60 dark:border-emerald-500/60 dark:bg-emerald-950/30 dark:shadow-emerald-900/30'
-                                                    : 'border-border/50 bg-muted/10',
-                                            )}
-                                        >
-                                            <div className="mb-1.5 flex items-center justify-between gap-2">
-                                                <Label
-                                                    htmlFor="monto_recibido"
-                                                    className={cn(
-                                                        'text-[11px] font-semibold transition-colors',
-                                                        faltaMonto ? 'text-emerald-700 dark:text-emerald-400' : 'text-muted-foreground',
-                                                    )}
-                                                >
-                                                    {faltaMonto ? '⚠ Ingresa el monto recibido' : t('caja:ventas.create.monto_recibido')}
-                                                </Label>
-                                                {cart.length > 0 ? (
-                                                    <button
-                                                        type="button"
-                                                        disabled={!puede_vender}
-                                                        onClick={() => form.setData('monto_recibido', String(totales.total))}
-                                                        className="cursor-pointer rounded-md bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-                                                    >
-                                                        Exacto
-                                                    </button>
-                                                ) : null}
-                                            </div>
+                                          return (
+                                              <div
+                                                  className={cn(
+                                                      'rounded-lg border p-2.5 transition-all duration-300',
+                                                      faltaMonto
+                                                          ? 'border-emerald-400 bg-emerald-50 shadow-sm shadow-emerald-200/60 dark:border-emerald-500/60 dark:bg-emerald-950/30 dark:shadow-emerald-900/30'
+                                                          : 'border-border/50 bg-muted/10',
+                                                  )}
+                                              >
+                                                  <div className="mb-1.5 flex items-center justify-between gap-2">
+                                                      <Label
+                                                          htmlFor="monto_recibido"
+                                                          className={cn(
+                                                              'text-[11px] font-semibold transition-colors',
+                                                              faltaMonto
+                                                                  ? 'text-emerald-700 dark:text-emerald-400'
+                                                                  : 'text-muted-foreground',
+                                                          )}
+                                                      >
+                                                          {faltaMonto
+                                                              ? t('caja:ventas.create.monto_recibido_hint')
+                                                              : t('caja:ventas.create.monto_recibido')}
+                                                      </Label>
+                                                      {cart.length > 0 ? (
+                                                          <button
+                                                              type="button"
+                                                              disabled={!puede_vender}
+                                                              onClick={() =>
+                                                                  setPagoField(
+                                                                      'efectivo',
+                                                                      'monto_recibido',
+                                                                      String(totales.total),
+                                                                  )
+                                                              }
+                                                              className="cursor-pointer rounded-md bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                                                          >
+                                                              Exacto
+                                                          </button>
+                                                      ) : null}
+                                                  </div>
 
-                                            <Input
-                                                id="monto_recibido"
-                                                className={cn(
-                                                    'h-9 text-sm font-semibold tabular-nums transition-all',
-                                                    faltaMonto
-                                                        ? 'border-emerald-400 bg-white ring-2 ring-emerald-300/60 focus-visible:ring-emerald-400 dark:bg-emerald-950/40 dark:ring-emerald-500/40'
-                                                        : '',
-                                                )}
-                                                inputMode="decimal"
-                                                placeholder={formatMoney(totales.total)}
-                                                value={form.data.monto_recibido}
-                                                onChange={(e) => form.setData('monto_recibido', e.target.value)}
-                                                disabled={!puede_vender}
-                                            />
+                                                  <Input
+                                                      id="monto_recibido"
+                                                      className={cn(
+                                                          'h-9 text-sm font-semibold tabular-nums transition-all',
+                                                          faltaMonto
+                                                              ? 'border-emerald-400 bg-white ring-2 ring-emerald-300/60 focus-visible:ring-emerald-400 dark:bg-emerald-950/40 dark:ring-emerald-500/40'
+                                                              : '',
+                                                      )}
+                                                      inputMode="decimal"
+                                                      placeholder={formatMoney(totales.total)}
+                                                      value={form.data.pagos[0]?.monto_recibido ?? ''}
+                                                      onChange={(e) =>
+                                                          setPagoField(
+                                                              'efectivo',
+                                                              'monto_recibido',
+                                                              e.target.value,
+                                                          )
+                                                      }
+                                                      disabled={!puede_vender}
+                                                  />
 
-                                            {/* Billetes rápidos */}
-                                            {cart.length > 0 ? (
-                                                <div className="mt-2 flex flex-wrap gap-1">
-                                                    {billetes.map((b) => {
-                                                        const suficiente = b >= totales.total - 0.0001;
-                                                        return (
-                                                            <button
-                                                                key={b}
-                                                                type="button"
-                                                                disabled={!puede_vender}
-                                                                onClick={() => form.setData('monto_recibido', String(b))}
-                                                                className={cn(
-                                                                    'flex-1 cursor-pointer rounded-md border px-1.5 py-1 text-center text-[10px] font-semibold tabular-nums transition-all disabled:cursor-not-allowed disabled:opacity-50',
-                                                                    suficiente
-                                                                        ? 'border-emerald-400/60 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-400'
-                                                                        : 'border-border/50 bg-background text-muted-foreground hover:bg-muted/40',
-                                                                )}
-                                                            >
-                                                                S/{b}
-                                                            </button>
-                                                        );
-                                                    })}
-                                                </div>
-                                            ) : null}
+                                                  {cart.length > 0 ? (
+                                                      <div className="mt-2 flex flex-wrap gap-1">
+                                                          {billetes.map((b) => {
+                                                              const suficiente = b >= totales.total - 0.0001;
+                                                              return (
+                                                                  <button
+                                                                      key={b}
+                                                                      type="button"
+                                                                      disabled={!puede_vender}
+                                                                      onClick={() =>
+                                                                          setPagoField(
+                                                                              'efectivo',
+                                                                              'monto_recibido',
+                                                                              String(b),
+                                                                          )
+                                                                      }
+                                                                      className={cn(
+                                                                          'flex-1 cursor-pointer rounded-md border px-1.5 py-1 text-center text-[10px] font-semibold tabular-nums transition-all disabled:cursor-not-allowed disabled:opacity-50',
+                                                                          suficiente
+                                                                              ? 'border-emerald-400/60 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-400'
+                                                                              : 'border-border/50 bg-background text-muted-foreground hover:bg-muted/40',
+                                                                      )}
+                                                                  >
+                                                                      S/{b}
+                                                                  </button>
+                                                              );
+                                                          })}
+                                                      </div>
+                                                  ) : null}
 
-                                            {form.errors.monto_recibido ? (
-                                                <p className="mt-1 text-[11px] text-destructive">{form.errors.monto_recibido}</p>
-                                            ) : null}
-                                        </div>
-                                    );
-                                })() : null}
+                                                  {form.errors.monto_recibido ||
+                                                  form.errors['pagos.0.monto_recibido'] ? (
+                                                      <p className="mt-1 text-[11px] text-destructive">
+                                                          {form.errors.monto_recibido ||
+                                                              form.errors['pagos.0.monto_recibido']}
+                                                      </p>
+                                                  ) : null}
+                                              </div>
+                                          );
+                                      })()
+                                    : null}
 
                                 <div
                                     className={cn(
@@ -1568,7 +1766,9 @@ export default function Create({
                                     )}
                                 >
                                     <div className="flex justify-between gap-2 text-[11px]">
-                                        <span className="text-muted-foreground">{t('caja:ventas.create.res_subtotal')}</span>
+                                        <span className="text-muted-foreground">
+                                            {t('caja:ventas.create.res_subtotal')}
+                                        </span>
                                         <span className="tabular-nums">{formatMoney(totales.subtotal)}</span>
                                     </div>
                                     <div className="flex justify-between gap-2 text-[11px]">
@@ -1580,7 +1780,9 @@ export default function Create({
                                     {'discount' in totales && totales.discount > 0 ? (
                                         <div className="flex justify-between gap-2 text-[11px] text-emerald-700 dark:text-emerald-400">
                                             <span>{t('caja:ventas.create.res_descuento')}</span>
-                                            <span className="tabular-nums">− {formatMoney(totales.discount)}</span>
+                                            <span className="tabular-nums">
+                                                − {formatMoney(totales.discount)}
+                                            </span>
                                         </div>
                                     ) : null}
                                     {promoPreview?.promotion_name ? (
@@ -1592,28 +1794,42 @@ export default function Create({
                                         </p>
                                     ) : null}
                                     <div className="flex items-baseline justify-between gap-2 border-t border-primary/15 pt-1.5">
-                                        <span className="text-xs font-semibold">{t('caja:ventas.create.res_total')}</span>
+                                        <span className="text-xs font-semibold">
+                                            {t('caja:ventas.create.res_total')}
+                                        </span>
                                         <span className="text-lg font-bold tabular-nums text-primary">
                                             {formatMoney(totales.total)}
                                         </span>
                                     </div>
-                                    {esEfectivo && form.data.monto_recibido ? (
+                                    {esSoloEfectivo && form.data.pagos[0]?.monto_recibido ? (
                                         <div className="flex justify-between gap-2 rounded-md bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-700 dark:text-emerald-400">
                                             <span>{t('caja:ventas.create.res_vuelto')}</span>
                                             <span className="font-semibold tabular-nums">
                                                 {formatMoney(
                                                     Math.max(
                                                         0,
-                                                        Number(String(form.data.monto_recibido).replace(',', '.')) -
-                                                            totales.total,
+                                                        Number(
+                                                            String(form.data.pagos[0].monto_recibido).replace(
+                                                                ',',
+                                                                '.',
+                                                            ),
+                                                        ) - totales.total,
                                                     ),
                                                 )}
                                             </span>
                                         </div>
                                     ) : null}
+                                    {esMixto && efectivoPago && efectivoRecibido > 0 ? (
+                                        <div className="flex justify-between gap-2 rounded-md bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-700 dark:text-emerald-400">
+                                            <span>{t('caja:ventas.create.res_vuelto')}</span>
+                                            <span className="font-semibold tabular-nums">
+                                                {formatMoney(Math.max(0, efectivoRecibido - efectivoMonto))}
+                                            </span>
+                                        </div>
+                                    ) : null}
                                 </div>
 
-                                {!esEfectivo ? (
+                                {!esSoloEfectivo ? (
                                     <Textarea
                                         id="notas-full"
                                         rows={2}

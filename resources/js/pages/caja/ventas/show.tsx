@@ -57,6 +57,7 @@ const METODO_PAGO_KEYS: Record<string, string> = {
     plin: 'caja:ventas.create.mp_plin',
     tarjeta: 'caja:ventas.create.mp_tarjeta',
     transferencia: 'caja:ventas.create.mp_transferencia',
+    mixto: 'caja:ventas.create.mp_mixto',
 };
 
 function buildA4FromTicket(ticketUrl: string): string {
@@ -530,6 +531,20 @@ export default function Show({
                                         <dt className="text-muted-foreground">{t('caja:ventas.show.metodo_pago')}</dt>
                                         <dd className="text-right">{metodoLabel}</dd>
                                     </div>
+                                    {venta.pagos && venta.pagos.length > 1
+                                        ? venta.pagos.map((pago) => (
+                                              <div key={pago.metodo} className="flex justify-between gap-3 text-xs">
+                                                  <dt className="text-muted-foreground">
+                                                      {t(METODO_PAGO_KEYS[pago.metodo] ?? pago.metodo, {
+                                                          defaultValue: pago.metodo,
+                                                      })}
+                                                  </dt>
+                                                  <dd className="text-right tabular-nums">
+                                                      {formatMonto(pago.monto, venta.moneda, i18n.language)}
+                                                  </dd>
+                                              </div>
+                                          ))
+                                        : null}
                                     {venta.cliente_doc ? (
                                         <div className="flex justify-between gap-3">
                                             <dt className="text-muted-foreground">{t('caja:ventas.show.doc_cliente')}</dt>
