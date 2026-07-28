@@ -164,6 +164,8 @@ export default function Create({
     const [catalogTab, setCatalogTab] = useState<'productos' | 'servicios'>('productos');
     const [productoRapidoOpen, setProductoRapidoOpen] = useState(false);
     const [servicioRapidoOpen, setServicioRapidoOpen] = useState(false);
+    /** Opt-in: modo multi-método. Por defecto el clic reemplaza el método (radio). */
+    const [pagoMixtoModo, setPagoMixtoModo] = useState(false);
 
     const form = useForm({
         caja_sesion_id: mi_sesion?.id ?? '',
@@ -669,6 +671,7 @@ export default function Create({
                     setCart([]);
                     setHits([]);
                     setQProducto('');
+                    setPagoMixtoModo(false);
                     form.setData((prev) => ({
                         ...prev,
                         paciente_id: null,
@@ -762,11 +765,22 @@ export default function Create({
         efectivoOk;
 
     const esSoloEfectivo = form.data.pagos.length === 1 && form.data.pagos[0]?.metodo === 'efectivo';
-    const esMixto = form.data.pagos.length > 1;
+    const esMixto = pagoMixtoModo && form.data.pagos.length > 1;
 
     const toggleMetodoPago = useCallback(
         (metodo: string) => {
             form.setData((prev) => {
+                if (!pagoMixtoModo) {
+                    if (prev.pagos.length === 1 && prev.pagos[0]?.metodo === metodo) {
+                        return prev;
+                    }
+
+                    return {
+                        ...prev,
+                        pagos: [{ metodo, monto: '', monto_recibido: '' }],
+                    };
+                }
+
                 const exists = prev.pagos.some((p) => p.metodo === metodo);
                 let next = exists
                     ? prev.pagos.filter((p) => p.metodo !== metodo)
@@ -780,8 +794,23 @@ export default function Create({
                 return { ...prev, pagos: next };
             });
         },
-        [form],
+        [form, pagoMixtoModo],
     );
+
+    const activarPagoMixto = useCallback(() => {
+        setPagoMixtoModo(true);
+    }, []);
+
+    const salirPagoMixto = useCallback(() => {
+        setPagoMixtoModo(false);
+        form.setData((prev) => {
+            const keep = prev.pagos[0] ?? { metodo: 'efectivo', monto: '', monto_recibido: '' };
+            return {
+                ...prev,
+                pagos: [{ metodo: keep.metodo, monto: '', monto_recibido: '' }],
+            };
+        });
+    }, [form]);
 
     const setPagoField = useCallback(
         (metodo: string, field: 'monto' | 'monto_recibido', value: string) => {
@@ -1484,9 +1513,11 @@ export default function Create({
                                 <div className="space-y-1">
                                     <Label className="text-[11px] text-muted-foreground">
                                         {t('caja:ventas.create.metodo_pago')}
-                                        <span className="ml-1 font-normal opacity-70">
-                                            ({t('caja:ventas.create.pago_mixto_hint')})
-                                        </span>
+                                        {pagoMixtoModo ? (
+                                            <span className="ml-1 font-normal opacity-70">
+                                                ({t('caja:ventas.create.pago_mixto_hint')})
+                                            </span>
+                                        ) : null}
                                     </Label>
                                     <div className="grid grid-cols-5 gap-1">
                                         {paymentMethods.map(({ value, label, icon: PMIcon }) => {
@@ -1515,6 +1546,27 @@ export default function Create({
                                             );
                                         })}
                                     </div>
+                                    {puede_vender ? (
+                                        <div className="pt-0.5">
+                                            {pagoMixtoModo ? (
+                                                <button
+                                                    type="button"
+                                                    onClick={salirPagoMixto}
+                                                    className="cursor-pointer text-[11px] font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                                                >
+                                                    {t('caja:ventas.create.pago_un_solo_metodo')}
+                                                </button>
+                                            ) : (
+                                                <button
+                                                    type="button"
+                                                    onClick={activarPagoMixto}
+                                                    className="cursor-pointer text-[11px] font-medium text-primary underline-offset-2 hover:underline"
+                                                >
+                                                    {t('caja:ventas.create.dividir_pago')}
+                                                </button>
+                                            )}
+                                        </div>
+                                    ) : null}
                                 </div>
 
                                 {esMixto ? (
