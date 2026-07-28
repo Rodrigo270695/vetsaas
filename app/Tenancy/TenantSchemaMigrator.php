@@ -315,6 +315,12 @@ class TenantSchemaMigrator
                 && Schema::hasColumn('cfg_clinic_settings', 'recordatorio_vacuna_dias_antes_opciones'),
             '2026_07_21_185000_t120_add_appointment_reminder_intervals_to_cfg_clinic_settings' => Schema::hasTable('cfg_clinic_settings')
                 && Schema::hasColumn('cfg_clinic_settings', 'recordatorio_cita_dias_antes_opciones'),
+            '2026_07_22_190000_t121_add_arqueo_json_to_caja_sesiones' => Schema::hasTable('caja_sesiones')
+                && Schema::hasColumn('caja_sesiones', 'arqueo_json'),
+            '2026_07_23_200000_t122_create_caja_egresos_table' => Schema::hasTable('caja_egresos'),
+            '2026_07_25_200000_t116_consulta_flujo_clinico_v2' => Schema::hasTable('farmacos')
+                && Schema::hasTable('consulta_examenes')
+                && Schema::hasTable('consulta_terapia_lineas'),
             '2026_07_28_120000_t123_create_venta_pagos_table' => Schema::hasTable('venta_pagos'),
             default => false,
         };

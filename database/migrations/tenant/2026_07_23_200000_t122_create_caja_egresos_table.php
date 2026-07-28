@@ -9,6 +9,10 @@ return new class extends TenantMigration
     public function up(): void
     {
         $this->runInTenant(function (): void {
+            if (Schema::hasTable('caja_egresos')) {
+                return;
+            }
+
             Schema::create('caja_egresos', function (Blueprint $table): void {
                 $table->uuid('id')->primary();
                 $table->foreignUuid('caja_sesion_id')
