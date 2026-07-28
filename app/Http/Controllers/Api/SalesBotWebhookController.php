@@ -7,6 +7,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Services\OpenWa\PlatformWhatsAppMessenger;
 use App\Services\Sales\SalesBotService;
+use App\Support\WhatsApp\BotInboundDebounceScheduler;
+use App\Support\WhatsApp\BotInboundDebouncer;
 use App\Support\WhatsApp\WhatsAppContactResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -190,13 +192,12 @@ final class SalesBotWebhookController extends Controller
             return response()->json(['ok' => true, 'skipped' => 'human_handoff']);
         }
 
-        // ── Deduplicación por message ID ──────────────────────────────────
+        // ── Deduplicación atómica por message ID (evita retries OpenWA en paralelo) ─
         if ($messageId !== '') {
             $cacheKey = 'salesbot_msg_'.md5($messageId);
-            if (\Illuminate\Support\Facades\Cache::has($cacheKey)) {
+            if (! \Illuminate\Support\Facades\Cache::add($cacheKey, 1, 120)) {
                 return response()->json(['ok' => true, 'skipped' => 'duplicate']);
             }
-            \Illuminate\Support\Facades\Cache::put($cacheKey, 1, 60);
         }
 
         // ── Soporte de audios (Whisper) ────────────────────────────────────
@@ -296,76 +297,27 @@ final class SalesBotWebhookController extends Controller
             );
         }
 
-        // ── 5. Generar respuesta con IA ───────────────────────────────────
-        try {
-            $reply = $this->botService->reply($conversation, $body);
-        } catch (\Throwable $e) {
-            Log::error('SalesBot reply error', [
-                'phone'   => $phone,
-                'message' => $e->getMessage(),
-            ]);
+        // ── 5. Buffer + debounce: esperar a que el cliente termine de escribir ─
+        // Varias líneas rápidas / retries OpenWA → un solo reply de IA.
+        $channelKey = 'sales|'.$phone.'|'.$waChatId;
+        $debounced = BotInboundDebouncer::sales()->push($channelKey, $body, $messageId !== '' ? $messageId : null);
 
-            // Fallback amigable si OpenAI falla: no dejar al prospecto sin respuesta.
-            $reply = "Hola 👋 Gracias por escribir. Dame un momento y te respondo enseguida.";
-        }
+        BotInboundDebounceScheduler::scheduleSales(
+            channelKey: $channelKey,
+            generation: $debounced['generation'],
+            conversationId: (string) $conversation->id,
+            waChatId: $waChatId,
+            phone: $phone,
+            preferVoiceReply: $isAudio,
+            delaySeconds: $debounced['delay_seconds'],
+        );
 
-        $product = $this->botService->resolveConversationProduct($conversation);
-
-        // ── 5b. Detectar auto-pausa por preguntas fuera de tema ───────────
-        // Si el bot respondió con la frase de despedida (3+ preguntas off-topic),
-        // pausamos el bot automáticamente para no seguir consumiendo tokens.
-        $offTopicSignal = 'Parece que no es el mejor momento';
-        if ($product === SalesBotService::PRODUCT_VETSAAS && str_contains($reply, $offTopicSignal)) {
-            $conversation->pauseBotAuto();
-            $conversation->activation_trigger = 'auto-pausa:off-topic';
-            $conversation->save();
-            Log::info('SalesBot auto-paused: off-topic', ['phone' => $phone]);
-        }
-
-        // ── 5c. Handoff a administrador (páginas web) ─────────────────────
-        if ($this->botService->shouldPauseForAdminHandoff($reply, $product)) {
-            $conversation->pauseBotManually();
-            $conversation->activation_trigger = 'handoff:admin';
-            $conversation->save();
-            Log::info('SalesBot paused for admin handoff', ['phone' => $phone, 'product' => $product]);
-        }
-
-        // ── 6. Enviar respuesta por WhatsApp ──────────────────────────────
-        // Si el lead mandó audio → responder con nota de voz (TTS).
-        // Si mandó texto → responder con texto.
-        try {
-            if ($this->messenger->isReady()) {
-                $respondedWithVoice = false;
-
-                if ($isAudio && config('salesbot.tts_enabled') && config('salesbot.audio_enabled')) {
-                    try {
-                        $audioReply = $this->botService->textToSpeech($reply);
-                        $this->messenger->sendVoice($waChatId, $audioReply);
-                        $respondedWithVoice = true;
-                        Log::info('SalesBot responded with voice', ['phone' => $phone]);
-                    } catch (\Throwable $ttsError) {
-                        // Si TTS falla, caer de vuelta a texto para no dejar al lead sin respuesta.
-                        Log::warning('SalesBot TTS failed, falling back to text', [
-                            'phone' => $phone,
-                            'error' => $ttsError->getMessage(),
-                        ]);
-                    }
-                }
-
-                if (! $respondedWithVoice) {
-                    $this->messenger->sendText($waChatId, $reply);
-                }
-            } else {
-                Log::warning('SalesBot: messenger no está listo, respuesta no enviada.', ['phone' => $phone]);
-            }
-        } catch (\Throwable $e) {
-            Log::error('SalesBot send error', [
-                'phone'   => $phone,
-                'message' => $e->getMessage(),
-            ]);
-        }
-
-        return response()->json(['ok' => true]);
+        return response()->json([
+            'ok' => true,
+            'queued' => true,
+            'debounce_seconds' => $debounced['delay_seconds'],
+            'buffered' => $debounced['count'],
+        ]);
     }
 
     private function verifyWebhookSecret(Request $request, string $secret): bool

@@ -92,11 +92,11 @@ final class ClinicBotWebhookGuard
         string $chatId,
         string $body,
     ): bool {
+        $ttl = (int) config('bot-ia.dedupe_ttl_seconds', 120);
+
         if ($messageId !== '') {
-            $idKey = 'clinicbot_msg_'.md5($messageId);
-            if (Cache::has($idKey)) {
-                return true;
-            }
+            // add() atómico: el primero gana; retries paralelos de OpenWA pierden.
+            return ! Cache::add('clinicbot_msg_'.md5($messageId), 1, $ttl);
         }
 
         $trimmed = trim($body);
@@ -105,11 +105,8 @@ final class ClinicBotWebhookGuard
         }
 
         $fingerprintKey = 'clinicbot_in_'.md5($sessionId.'|'.$chatId.'|'.$this->fingerprint($trimmed));
-        if (Cache::has($fingerprintKey)) {
-            return true;
-        }
 
-        return false;
+        return ! Cache::add($fingerprintKey, 1, $ttl);
     }
 
     public function rememberInbound(

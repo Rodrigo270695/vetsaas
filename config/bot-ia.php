@@ -27,6 +27,13 @@ return [
     'reply_cooldown_seconds' => (int) env('BOT_IA_REPLY_COOLDOWN_SECONDS', 15),
 
     /*
+    | Esperar N segundos de silencio del cliente antes de responder (agrupa
+    | varias líneas / mensajes rápidos en un solo reply de IA).
+    */
+    'message_debounce_seconds' => (int) env('BOT_IA_MESSAGE_DEBOUNCE_SECONDS', 4),
+    'message_debounce_max_messages' => (int) env('BOT_IA_MESSAGE_DEBOUNCE_MAX_MESSAGES', 12),
+
+    /*
     | URL pública del webhook (para registrar en OpenWA por sesión de clínica).
     | Ej: https://app.vetsaas.orvae.pe/api/webhooks/clinic-bot
     */

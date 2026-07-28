@@ -91,4 +91,11 @@ return [
     'tts_model'   => env('SALESBOT_TTS_MODEL', 'tts-1'),
     'tts_voice'   => env('SALESBOT_TTS_VOICE', 'nova'),
 
+    /*
+    | Esperar N segundos de silencio del prospecto antes de responder (agrupa
+    | varias líneas / mensajes rápidos en un solo reply de IA).
+    */
+    'message_debounce_seconds' => (int) env('SALESBOT_MESSAGE_DEBOUNCE_SECONDS', 4),
+    'message_debounce_max_messages' => (int) env('SALESBOT_MESSAGE_DEBOUNCE_MAX_MESSAGES', 12),
+
 ];

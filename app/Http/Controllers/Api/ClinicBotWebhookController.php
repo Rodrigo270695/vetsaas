@@ -9,15 +9,15 @@ use App\Models\ClinicSetting;
 use App\Models\TenantWhatsAppSession;
 use App\Services\ClinicBot\ClinicBotService;
 use App\Services\OpenWa\TenantWhatsAppMessenger;
-use App\Support\Audit\AuditActor;
 use App\Support\ClinicBot\ClinicBotWebhookGuard;
 use App\Support\Subscriptions\SubscriptionBotIaAddon;
+use App\Support\WhatsApp\BotInboundDebounceScheduler;
+use App\Support\WhatsApp\BotInboundDebouncer;
 use App\Support\WhatsApp\WhatsAppContactResolver;
 use App\Tenancy\TenantManager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use Throwable;
 
 /**
  * Webhook OpenWA para el asistente IA de clínicas (sesiones por tenant).
@@ -136,6 +136,7 @@ final class ClinicBotWebhookController extends Controller
             $clientName,
             $openWaSessionId,
             $messageId,
+            $tenant,
         ): JsonResponse {
             if ($body === '' && ! in_array($type, ['ptt', 'audio'], true)) {
                 return response()->json(['ok' => true, 'skipped' => 'empty_body']);
@@ -161,10 +162,6 @@ final class ClinicBotWebhookController extends Controller
                 return response()->json(['ok' => true, 'skipped' => 'assistant_globally_off']);
             }
 
-            if ($this->guard->isRateLimited($openWaSessionId, $waChatId)) {
-                return response()->json(['ok' => true, 'skipped' => 'rate_limited']);
-            }
-
             $conversation = $this->botService->findOrCreateConversation($phone, $waChatId, $clientName);
             $this->botService->syncContactMetadata($conversation, $phone, $waChatId, $clientName);
 
@@ -176,51 +173,30 @@ final class ClinicBotWebhookController extends Controller
                 $conversation->resumeBot();
             }
 
-            try {
-                $reply = AuditActor::runAsBotIa(
-                    $phone,
-                    fn (): string => $this->botService->reply($conversation, $body),
-                );
-            } catch (Throwable $e) {
-                Log::error('ClinicBot reply error', [
-                    'phone' => $phone,
-                    'error' => $e->getMessage(),
-                ]);
+            $channelKey = 'clinic|'.$tenant->slug.'|'.$openWaSessionId.'|'.$waChatId;
+            $debounced = BotInboundDebouncer::clinic()->push(
+                $channelKey,
+                $body,
+                $messageId !== '' ? $messageId : null,
+            );
 
-                // Solo se disculpa cuando la IA no pudo generar respuesta.
-                if ($this->guard->shouldNotifyUserOfFailure($e)) {
-                    try {
-                        $errorReply = ClinicBotWebhookGuard::ERROR_REPLY;
-                        $this->messenger->sendTextWithDeliveryFallback($waSession, $waChatId, $errorReply);
-                        $this->guard->rememberOutbound($openWaSessionId, $waChatId, $errorReply);
-                    } catch (Throwable) {
-                        // ignore secondary failure
-                    }
-                }
+            BotInboundDebounceScheduler::scheduleClinic(
+                channelKey: $channelKey,
+                generation: $debounced['generation'],
+                tenantSlug: (string) $tenant->slug,
+                openWaSessionId: $openWaSessionId,
+                waChatId: $waChatId,
+                phone: $phone,
+                clientName: $clientName,
+                delaySeconds: $debounced['delay_seconds'],
+            );
 
-                return response()->json(['ok' => false, 'error' => 'reply_failed']);
-            }
-
-            try {
-                // Con fallback: si OpenWA responde tarde (timeout / 5xx tardío)
-                // la respuesta normalmente ya salió. Y si el envío falla de
-                // verdad, NO se manda el mensaje de disculpa: llegaría junto a
-                // una respuesta que sí se entregó y confunde al cliente.
-                $this->messenger->sendTextWithDeliveryFallback($waSession, $waChatId, $reply);
-                $this->guard->rememberOutbound($openWaSessionId, $waChatId, $reply);
-                $this->guard->markReplied($openWaSessionId, $waChatId);
-
-                Log::info('ClinicBot responded', ['phone' => $phone]);
-
-                return response()->json(['ok' => true, 'replied' => true]);
-            } catch (Throwable $e) {
-                Log::error('ClinicBot send error', [
-                    'phone' => $phone,
-                    'error' => $e->getMessage(),
-                ]);
-
-                return response()->json(['ok' => false, 'error' => 'reply_failed']);
-            }
+            return response()->json([
+                'ok' => true,
+                'queued' => true,
+                'debounce_seconds' => $debounced['delay_seconds'],
+                'buffered' => $debounced['count'],
+            ]);
         });
     }
 
