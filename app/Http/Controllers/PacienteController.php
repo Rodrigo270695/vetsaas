@@ -37,6 +37,7 @@ use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\Response as HttpResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Throwable;
 
 class PacienteController extends Controller
 {
@@ -763,6 +764,14 @@ class PacienteController extends Controller
 
         if ($previous && $previous !== $path && $disk->exists($previous)) {
             $disk->delete($previous);
+        }
+
+        if (in_array($paciente->petpass_status, ['registered', 'lost', 'pending'], true)) {
+            try {
+                app(\App\Services\PetPass\AlmaPetHandoffClient::class)->syncAnimalPhoto($paciente->fresh() ?? $paciente);
+            } catch (Throwable) {
+                // No bloquear el guardado de ficha si AlmaPet no responde.
+            }
         }
     }
 

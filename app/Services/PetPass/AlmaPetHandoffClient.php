@@ -12,6 +12,7 @@ use App\Services\OpenWa\TenantWhatsAppMessenger;
 use App\Services\OpenWa\TenantWhatsAppSessionSync;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use RuntimeException;
 use Throwable;
@@ -137,6 +138,7 @@ final class AlmaPetHandoffClient
                 'color' => $paciente->color,
                 'birth_date' => $paciente->fecha_nacimiento?->toDateString(),
                 'notes' => $paciente->notas,
+                ...$this->animalPhotoPayload($paciente),
             ],
         ];
 
@@ -212,6 +214,88 @@ final class AlmaPetHandoffClient
             'registration_id' => $registrationId,
             'whatsapp_sent' => $wa['sent'],
             'whatsapp_error' => $wa['error'],
+        ];
+    }
+
+    /**
+     * Empuja la foto del paciente a AlmaPet (útil si el chip ya estaba registrado).
+     */
+    public function syncAnimalPhoto(Paciente $paciente): bool
+    {
+        if (! $this->isEnabled()) {
+            return false;
+        }
+
+        $photo = $this->animalPhotoPayload($paciente);
+        if ($photo === []) {
+            return false;
+        }
+
+        $tenant = current_tenant();
+        if ($tenant === null) {
+            return false;
+        }
+
+        $path = (string) config('petpass.sync_photo_path', '/api/v1/handoff/sync-photo');
+        $url = rtrim((string) config('petpass.base_url'), '/').$path;
+
+        try {
+            $response = Http::timeout((int) config('petpass.timeout_seconds', 15))
+                ->acceptJson()
+                ->asJson()
+                ->withHeaders([
+                    'X-AlmaPet-Handoff-Secret' => (string) config('petpass.handoff_secret'),
+                ])
+                ->post($url, [
+                    'vetsaas_tenant_id' => (string) $tenant->id(),
+                    'vetsaas_paciente_id' => (string) $paciente->id,
+                    'animal' => $photo,
+                ]);
+        } catch (Throwable $e) {
+            Log::warning('AlmaPet sync photo failed', ['error' => $e->getMessage()]);
+
+            return false;
+        }
+
+        return $response->successful();
+    }
+
+    /**
+     * @return array{photo_base64?: string, photo_mime?: string}
+     */
+    private function animalPhotoPayload(Paciente $paciente): array
+    {
+        $path = trim((string) ($paciente->foto_path ?? ''));
+        if ($path === '') {
+            return [];
+        }
+
+        $disk = Storage::disk('public');
+        if (! $disk->exists($path)) {
+            return [];
+        }
+
+        $binary = $disk->get($path);
+        if ($binary === null || $binary === '') {
+            return [];
+        }
+
+        // Evitar payloads enormes (> ~1.8MB base64 ≈ 1.3MB archivo)
+        if (strlen($binary) > 1_300_000) {
+            return [];
+        }
+
+        $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+        $mime = match ($ext) {
+            'png' => 'image/png',
+            'webp' => 'image/webp',
+            'gif' => 'image/gif',
+            default => 'image/jpeg',
+        };
+
+        return [
+            'photo_base64' => base64_encode($binary),
+            'photo_mime' => $mime,
         ];
     }
 

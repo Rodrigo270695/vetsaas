@@ -20,6 +20,27 @@ final class PacientePetPassController extends Controller
 
         $wantsJson = $request->expectsJson() || $request->ajax();
 
+        // Si ya está vinculado, solo re-sincroniza la foto (arregla carnets sin imagen).
+        if (in_array($paciente->petpass_status, ['registered', 'lost', 'pending'], true)) {
+            $synced = $client->syncAnimalPhoto($paciente);
+            $message = $synced
+                ? 'Foto sincronizada con AlmaPet ID. Recarga el carnet digital.'
+                : 'El paciente ya está en AlmaPet ID. No había foto local para sincronizar.';
+
+            if ($wantsJson) {
+                return response()->json([
+                    'ok' => $synced,
+                    'photo_synced' => $synced,
+                    'public_code' => $paciente->petpass_public_code,
+                    'message' => $message,
+                ]);
+            }
+
+            return redirect()
+                ->route('clinica.pacientes.show', $paciente)
+                ->with($synced ? 'success' : 'error', $message);
+        }
+
         try {
             $result = $client->registerWithoutCharge($paciente);
         } catch (ValidationException $e) {
