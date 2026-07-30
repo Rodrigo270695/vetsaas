@@ -74,6 +74,7 @@ final class AlmaPetWebhookController extends Controller
             }
 
             match ($event) {
+                'petpass.pending', 'almapet.pending' => $this->applyPending($paciente, $data),
                 'petpass.registered', 'almapet.registered' => $this->applyRegistered($paciente, $data),
                 'petpass.lost', 'almapet.lost' => $this->applyLost($paciente, $data),
                 'petpass.recovered', 'almapet.recovered' => $this->applyRecovered($paciente, $data),
@@ -83,6 +84,20 @@ final class AlmaPetWebhookController extends Controller
         });
 
         return response()->json(['ok' => true]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function applyPending(Paciente $paciente, array $data): void
+    {
+        $paciente->forceFill([
+            'petpass_status' => 'pending',
+            'petpass_registration_id' => isset($data['registration_id']) ? (string) $data['registration_id'] : $paciente->petpass_registration_id,
+            'petpass_public_code' => isset($data['public_code']) ? (string) $data['public_code'] : $paciente->petpass_public_code,
+            'petpass_certificate_url' => isset($data['activate_url']) ? (string) $data['activate_url'] : $paciente->petpass_certificate_url,
+            'petpass_lost_at' => null,
+        ])->save();
     }
 
     /**

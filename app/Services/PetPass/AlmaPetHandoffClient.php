@@ -7,17 +7,25 @@ namespace App\Services\PetPass;
 use App\Models\ClinicSetting;
 use App\Models\Paciente;
 use App\Models\Tenant;
+use App\Models\TenantWhatsAppSession;
+use App\Services\OpenWa\TenantWhatsAppMessenger;
+use App\Services\OpenWa\TenantWhatsAppSessionSync;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use RuntimeException;
 use Throwable;
 
 /**
- * Cliente HTTP hacia AlmaPet ID (creación de handoff one-time).
+ * Cliente HTTP hacia AlmaPet ID: alta sin cobro + aviso WhatsApp del tenant.
  */
 final class AlmaPetHandoffClient
 {
+    public function __construct(
+        private readonly TenantWhatsAppMessenger $whatsApp,
+        private readonly TenantWhatsAppSessionSync $sessionSync,
+    ) {}
+
     public function isEnabled(): bool
     {
         return (bool) config('petpass.enabled', false)
@@ -26,9 +34,15 @@ final class AlmaPetHandoffClient
     }
 
     /**
-     * @return array{token: string, url: string, expires_at: string}
+     * @return array{
+     *     activate_url: string,
+     *     public_code: string,
+     *     registration_id: string|int|null,
+     *     whatsapp_sent: bool,
+     *     whatsapp_error: string|null
+     * }
      */
-    public function createHandoff(Paciente $paciente): array
+    public function registerWithoutCharge(Paciente $paciente): array
     {
         if (! $this->isEnabled()) {
             throw ValidationException::withMessages([
@@ -75,7 +89,6 @@ final class AlmaPetHandoffClient
             ]);
         }
 
-        // DNI peruano: 8 dígitos
         if (in_array(strtolower($docType), ['dni', '1'], true) && ! preg_match('/^\d{8}$/', $docNumber)) {
             throw ValidationException::withMessages([
                 'petpass' => 'El DNI del titular debe tener 8 dígitos. Corrígelo en la ficha del propietario.',
@@ -127,7 +140,8 @@ final class AlmaPetHandoffClient
             ],
         ];
 
-        $url = rtrim((string) config('petpass.base_url'), '/').(string) config('petpass.handoff_path');
+        $registerPath = (string) config('petpass.register_path', '/api/v1/handoff/register');
+        $url = rtrim((string) config('petpass.base_url'), '/').$registerPath;
 
         try {
             $response = Http::timeout((int) config('petpass.timeout_seconds', 15))
@@ -146,20 +160,14 @@ final class AlmaPetHandoffClient
             ]);
         }
 
-        if ($response->redirect()) {
-            throw ValidationException::withMessages([
-                'petpass' => 'AlmaPet ID redirigió el handoff (HTTP '.$response->status().' → '.($response->header('Location') ?: 'sin Location').'). Revisa PETPASS_BASE_URL='.$url,
-            ]);
-        }
-
         if (! $response->successful()) {
             $message = $this->extractErrorMessage($response)
                 ?? match ($response->status()) {
-                    401, 403 => 'AlmaPet ID rechazó la clave de handoff (PETPASS_HANDOFF_SECRET no coincide con ALMAPET_HANDOFF_SECRET).',
-                    404 => 'Endpoint de handoff no encontrado. Debe ser POST '.$url,
-                    422 => 'AlmaPet ID rechazó los datos del paciente (revisa microchip, email y documento del titular).',
-                    503 => 'Handoff no configurado en AlmaPet (ALMAPET_HANDOFF_SECRET vacío en el VPS).',
-                    default => 'No se pudo iniciar el registro en AlmaPet ID (HTTP '.$response->status().').',
+                    401, 403 => 'AlmaPet ID rechazó la clave de handoff (PETPASS_HANDOFF_SECRET).',
+                    404 => 'Endpoint de registro no encontrado: POST '.$url,
+                    422 => 'AlmaPet ID rechazó los datos del paciente.',
+                    503 => 'Handoff no configurado en AlmaPet.',
+                    default => 'No se pudo registrar en AlmaPet ID (HTTP '.$response->status().').',
                 };
 
             throw ValidationException::withMessages([
@@ -169,36 +177,127 @@ final class AlmaPetHandoffClient
 
         $data = $this->decodeJsonBody($response);
         if ($data === null) {
-            $preview = Str::limit(trim(preg_replace('/\s+/', ' ', $response->body()) ?? ''), 160);
-
             throw ValidationException::withMessages([
-                'petpass' => 'AlmaPet ID no devolvió JSON en '.$url.' (HTTP '.$response->status().'). '.$preview,
+                'petpass' => 'AlmaPet ID no devolvió JSON válido.',
             ]);
         }
 
-        $handoffUrl = $data['url'] ?? (is_array($data['data'] ?? null) ? ($data['data']['url'] ?? null) : null);
-        if (! is_string($handoffUrl) || blank($handoffUrl)) {
+        $activateUrl = (string) ($data['activate_url'] ?? '');
+        $publicCode = (string) ($data['public_code'] ?? '');
+        $registrationId = $data['registration_id'] ?? null;
+
+        if ($activateUrl === '' || $publicCode === '') {
             throw ValidationException::withMessages([
-                'petpass' => 'Respuesta inválida de AlmaPet ID (sin url). Keys: '.implode(', ', array_keys($data)).'. HTTP '.$response->status(),
+                'petpass' => 'Respuesta incompleta de AlmaPet ID (sin activate_url/public_code).',
             ]);
         }
-
-        $nested = is_array($data['data'] ?? null) ? $data['data'] : [];
 
         $paciente->forceFill([
             'petpass_status' => 'pending',
+            'petpass_registration_id' => $registrationId !== null ? (string) $registrationId : $paciente->petpass_registration_id,
+            'petpass_public_code' => $publicCode,
+            'petpass_certificate_url' => $activateUrl,
         ])->save();
 
+        $wa = $this->sendOwnerWhatsApp(
+            $tenantModel ?? Tenant::query()->findOrFail($tenant->id()),
+            $paciente,
+            $clinicName,
+            $activateUrl,
+        );
+
         return [
-            'token' => (string) ($data['token'] ?? $nested['token'] ?? ''),
-            'url' => $handoffUrl,
-            'expires_at' => (string) ($data['expires_at'] ?? $nested['expires_at'] ?? ''),
+            'activate_url' => $activateUrl,
+            'public_code' => $publicCode,
+            'registration_id' => $registrationId,
+            'whatsapp_sent' => $wa['sent'],
+            'whatsapp_error' => $wa['error'],
         ];
     }
 
     /**
-     * Decodifica el body aunque Content-Type / BOM confundan a Http::json().
-     *
+     * @return array{sent: bool, error: string|null}
+     */
+    private function sendOwnerWhatsApp(
+        Tenant $tenant,
+        Paciente $paciente,
+        string $clinicName,
+        string $activateUrl,
+    ): array {
+        $phone = preg_replace('/\D+/', '', (string) ($paciente->propietario?->telefono ?? '')) ?? '';
+        if (strlen($phone) < 9) {
+            return ['sent' => false, 'error' => 'El titular no tiene un teléfono válido para WhatsApp.'];
+        }
+
+        if (! str_starts_with($phone, '51') && strlen($phone) === 9) {
+            $phone = '51'.$phone;
+        }
+
+        $chatId = $phone.'@c.us';
+        $petName = (string) ($paciente->nombre ?: 'tu mascota');
+        $support = (string) config('petpass.support_phone_display', '976 809 804');
+
+        $message = "🐾 *AlmaPet ID*\n"
+            ."Tu mascota *{$petName}* ya fue registrada por *{$clinicName}*.\n\n"
+            ."✅ Estado: pendiente de activación\n"
+            ."💳 Carnet digital: *S/ 25*\n"
+            ."🪪 Carnet físico (opcional): *+S/ 30*\n\n"
+            ."👉 Activa aquí (crea tu cuenta o inicia sesión):\n"
+            ."{$activateUrl}\n\n"
+            ."🛟 Soporte AlmaPet: *{$support}*";
+
+        try {
+            $session = $this->resolveReadySession($tenant);
+            if ($session === null) {
+                return ['sent' => false, 'error' => 'WhatsApp de la clínica no está conectado.'];
+            }
+
+            $this->whatsApp->sendTextWithDeliveryFallback($session, $chatId, $message);
+
+            return ['sent' => true, 'error' => null];
+        } catch (Throwable $e) {
+            Log::warning('AlmaPet WhatsApp notify failed', [
+                'tenant' => $tenant->slug,
+                'error' => $e->getMessage(),
+            ]);
+
+            return ['sent' => false, 'error' => $e->getMessage()];
+        }
+    }
+
+    private function resolveReadySession(Tenant $tenant): ?TenantWhatsAppSession
+    {
+        $session = TenantWhatsAppSession::query()
+            ->where('tenant_id', $tenant->id)
+            ->first();
+
+        if ($session === null) {
+            $session = $this->sessionSync->ensureForTenant($tenant);
+        } elseif (! $session->isReady()) {
+            $session = $this->sessionSync->refresh($session);
+        }
+
+        return $session instanceof TenantWhatsAppSession && $session->isReady()
+            ? $session
+            : null;
+    }
+
+    /**
+     * @deprecated Use registerWithoutCharge
+     * @return array{token: string, url: string, expires_at: string}
+     */
+    public function createHandoff(Paciente $paciente): array
+    {
+        $result = $this->registerWithoutCharge($paciente);
+
+        return [
+            'token' => '',
+            'url' => $result['activate_url'],
+            'expires_at' => '',
+        ];
+    }
+
+    /**
      * @return array<string, mixed>|null
      */
     private function decodeJsonBody(\Illuminate\Http\Client\Response $response): ?array
@@ -213,11 +312,9 @@ final class AlmaPetHandoffClient
             return null;
         }
 
-        // UTF-8 BOM u otros bytes antes del JSON rompen json_decode.
         $raw = preg_replace('/^\xEF\xBB\xBF/', '', $raw) ?? $raw;
         $raw = trim($raw);
 
-        // Si hubo notice/warning pegado al body, quédate con el objeto JSON.
         if ($raw !== '' && ($raw[0] ?? '') !== '{') {
             $pos = strpos($raw, '{');
             if ($pos !== false) {
@@ -230,9 +327,6 @@ final class AlmaPetHandoffClient
         return is_array($decoded) ? $decoded : null;
     }
 
-    /**
-     * @return string|null
-     */
     private function extractErrorMessage(\Illuminate\Http\Client\Response $response): ?string
     {
         $payload = $this->decodeJsonBody($response);

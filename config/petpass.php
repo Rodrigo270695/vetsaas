@@ -19,10 +19,19 @@ return [
         return $path !== '' ? $path : '/api/v1/handoff';
     })(),
 
+    // Alta directa sin cobro (dueño activa después).
+    'register_path' => (static function (): string {
+        $path = trim((string) env('PETPASS_REGISTER_PATH', '/api/v1/handoff/register'));
+
+        return $path !== '' ? $path : '/api/v1/handoff/register';
+    })(),
+
     'handoff_secret' => (string) env('PETPASS_HANDOFF_SECRET', env('ALMAPET_HANDOFF_SECRET', '')),
 
     'webhook_secret' => (string) env('PETPASS_WEBHOOK_SECRET', env('ALMAPET_WEBHOOK_SECRET', '')),
 
     'timeout_seconds' => (int) env('PETPASS_HTTP_TIMEOUT', 15),
+
+    'support_phone_display' => env('PETPASS_SUPPORT_PHONE_DISPLAY', '976 809 804'),
 
 ];
