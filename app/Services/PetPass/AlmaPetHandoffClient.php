@@ -51,9 +51,9 @@ final class AlmaPetHandoffClient
         }
 
         $microchip = preg_replace('/\D+/', '', (string) ($paciente->microchip ?? '')) ?? '';
-        if (strlen($microchip) < 9) {
+        if (strlen($microchip) !== 15) {
             throw ValidationException::withMessages([
-                'microchip' => 'El paciente necesita un microchip válido para registrarlo en AlmaPet ID.',
+                'microchip' => 'El microchip debe tener exactamente 15 dígitos para registrarlo en AlmaPet ID.',
             ]);
         }
 

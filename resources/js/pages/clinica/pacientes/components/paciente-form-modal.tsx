@@ -33,6 +33,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { enqueueIfOffline, isOfflineMode } from '@/lib/offline/enqueue-if-offline';
 import { useOfflineSync } from '@/hooks/use-offline-sync';
 import { toastManager } from '@/lib/toast';
+import { cn } from '@/lib/utils';
 import pacientes from '@/routes/clinica/pacientes';
 import propPacientes from '@/routes/clinica/propietarios/pacientes';
 import type { Paciente, PropietarioOpcion } from '../../propietarios/types';
@@ -282,8 +283,11 @@ export function PacienteFormModal({
             })),
         [propietariosOpciones],
     );
+    const microchipDigits = data.microchip.replace(/\D+/g, '');
+    const microchipOk = microchipDigits.length === 0 || microchipDigits.length === 15;
     const canSubmit =
         data.nombre.trim().length > 0 &&
+        microchipOk &&
         !processing &&
         (!needsOwnerSelect || data.propietario_id.length > 0);
 
@@ -667,13 +671,37 @@ export function PacienteFormModal({
                         label={t('form.microchip')}
                         error={errors.microchip}
                         className="min-w-0"
+                        hint={t('form.microchip_hint')}
                     >
-                        <Input
-                            id="pac-chip"
-                            value={data.microchip}
-                            onChange={(e) => setData('microchip', e.target.value)}
-                            className={controlClass}
-                        />
+                        <div className="relative">
+                            <Input
+                                id="pac-chip"
+                                inputMode="numeric"
+                                autoComplete="off"
+                                maxLength={15}
+                                placeholder={t('form.microchip_ph')}
+                                value={data.microchip}
+                                onChange={(e) => {
+                                    const digits = e.target.value.replace(/\D+/g, '').slice(0, 15);
+                                    setData('microchip', digits);
+                                }}
+                                className={cn(controlClass, 'pr-14 font-mono tabular-nums tracking-wide')}
+                                aria-describedby="pac-chip-count"
+                            />
+                            <span
+                                id="pac-chip-count"
+                                className={cn(
+                                    'pointer-events-none absolute top-1/2 right-2.5 -translate-y-1/2 text-[11px] tabular-nums',
+                                    data.microchip.length === 0
+                                        ? 'text-muted-foreground/70'
+                                        : data.microchip.length === 15
+                                          ? 'font-medium text-emerald-600 dark:text-emerald-400'
+                                          : 'font-medium text-amber-600 dark:text-amber-400',
+                                )}
+                            >
+                                {data.microchip.length}/15
+                            </span>
+                        </div>
                     </FormField>
                     <FormField
                         id="pac-color"

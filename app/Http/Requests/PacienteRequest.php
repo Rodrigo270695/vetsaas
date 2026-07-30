@@ -28,7 +28,7 @@ class PacienteRequest extends FormRequest
             'sexo' => ['nullable', 'string', 'size:1', Rule::in(['M', 'H', 'U'])],
             'fecha_nacimiento' => ['nullable', 'date'],
             'peso_kg' => ['nullable', 'numeric', 'min:0', 'max:999.99'],
-            'microchip' => ['nullable', 'string', 'max:64'],
+            'microchip' => ['nullable', 'string', 'size:15', 'regex:/^\d{15}$/'],
             'color' => ['nullable', 'string', 'max:80'],
             'esterilizado' => ['nullable', 'boolean'],
             'notas' => ['nullable', 'string', 'max:5000'],
@@ -43,6 +43,14 @@ class PacienteRequest extends FormRequest
         return $rules;
     }
 
+    public function messages(): array
+    {
+        return [
+            'microchip.size' => 'El microchip debe tener exactamente 15 dígitos.',
+            'microchip.regex' => 'El microchip debe tener exactamente 15 dígitos numéricos.',
+        ];
+    }
+
     protected function prepareForValidation(): void
     {
         $routePropietario = $this->route('propietario');
@@ -53,6 +61,13 @@ class PacienteRequest extends FormRequest
         } elseif (is_string($routePropietario) && $routePropietario !== '') {
             $this->merge([
                 'propietario_id' => $routePropietario,
+            ]);
+        }
+
+        if ($this->has('microchip')) {
+            $digits = preg_replace('/\D+/', '', (string) $this->input('microchip')) ?? '';
+            $this->merge([
+                'microchip' => $digits === '' ? null : $digits,
             ]);
         }
 

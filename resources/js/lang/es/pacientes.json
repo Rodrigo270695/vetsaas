@@ -112,6 +112,8 @@
         "fecha_nacimiento": "Fecha de nacimiento",
         "peso_kg": "Peso (kg)",
         "microchip": "Microchip",
+        "microchip_ph": "15 dígitos",
+        "microchip_hint": "Opcional. Si lo indicas, debe tener exactamente 15 números.",
         "color": "Color / señas",
         "esterilizado": "Esterilizado",
         "esterilizado_unknown": "Sin indicar",

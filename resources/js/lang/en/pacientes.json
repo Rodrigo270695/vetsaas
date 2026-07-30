@@ -112,6 +112,8 @@
         "fecha_nacimiento": "Date of birth",
         "peso_kg": "Weight (kg)",
         "microchip": "Microchip",
+        "microchip_ph": "15 digits",
+        "microchip_hint": "Optional. If provided, it must be exactly 15 digits.",
         "color": "Color / markings",
         "esterilizado": "Neutered / spayed",
         "esterilizado_unknown": "Not specified",
