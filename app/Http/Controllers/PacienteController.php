@@ -390,10 +390,10 @@ class PacienteController extends Controller
                     && $paciente->propietario_id
                     ? route('clinica.propietarios.show', $paciente->propietario_id)
                     : null,
-                // Solo tras pago/activación del dueño (status registered|lost), no con la URL de activación.
-                'petpass_certificado' => in_array($paciente->petpass_status, ['registered', 'lost'], true)
-                    && filled($paciente->petpass_certificate_url)
-                    ? $paciente->petpass_certificate_url
+                // La clínica solo ve el perfil público; el carnet digital es del propietario.
+                'petpass_perfil_publico' => in_array($paciente->petpass_status, ['registered', 'lost'], true)
+                    && filled($paciente->petpass_public_code)
+                    ? rtrim((string) config('petpass.base_url'), '/').'/p/'.$paciente->petpass_public_code
                     : null,
             ],
             'permisos' => [

@@ -168,7 +168,7 @@
         "action_petpass_register": "Register in AlmaPet ID",
         "action_petpass_registering": "Registering in AlmaPet…",
         "action_petpass_needs_document": "Add owner ID document",
-        "action_petpass_certificate": "View AlmaPet certificate",
+        "action_petpass_public_profile": "View AlmaPet public profile",
         "petpass_start_error": "Could not register in AlmaPet ID.",
         "petpass_opened_tab": "AlmaPet ID opened in a new tab.",
         "petpass_registered_pending": "Registered in AlmaPet (pending owner activation).",

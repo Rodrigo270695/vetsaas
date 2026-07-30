@@ -36,7 +36,7 @@ type Props = {
         laboratorio_rapido?: string | null;
         petpass_registrar?: string | null;
         petpass_propietario?: string | null;
-        petpass_certificado?: string | null;
+        petpass_perfil_publico?: string | null;
     };
     permisos: {
         consultas_crear: boolean;
@@ -427,11 +427,11 @@ export function PacienteHistorialHero({
                             </a>
                         </Button>
                     ) : null}
-                    {!isPublic && links.petpass_certificado ? (
+                    {!isPublic && links.petpass_perfil_publico ? (
                         <Button type="button" size="sm" variant="outline" className="gap-2" asChild>
-                            <a href={links.petpass_certificado} target="_blank" rel="noopener noreferrer">
+                            <a href={links.petpass_perfil_publico} target="_blank" rel="noopener noreferrer">
                                 <ExternalLink className="size-4" strokeWidth={2.25} />
-                                {t('historial.action_petpass_certificate')}
+                                {t('historial.action_petpass_public_profile')}
                             </a>
                         </Button>
                     ) : null}

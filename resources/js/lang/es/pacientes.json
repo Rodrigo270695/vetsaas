@@ -168,7 +168,7 @@
         "action_petpass_register": "Registrar en AlmaPet ID",
         "action_petpass_registering": "Registrando en AlmaPet…",
         "action_petpass_needs_document": "Completar DNI del titular",
-        "action_petpass_certificate": "Ver certificado AlmaPet",
+        "action_petpass_public_profile": "Ver perfil público AlmaPet",
         "petpass_start_error": "No se pudo registrar en AlmaPet ID.",
         "petpass_opened_tab": "AlmaPet ID se abrió en otra pestaña.",
         "petpass_registered_pending": "Registrado en AlmaPet (pendiente de activación del dueño).",
