@@ -58,7 +58,7 @@ final class AlmaPetHandoffClient
             ]);
         }
 
-        if (in_array($paciente->petpass_status, ['registered', 'lost'], true)) {
+        if (in_array($paciente->petpass_status, ['pending', 'registered', 'lost'], true)) {
             throw ValidationException::withMessages([
                 'petpass' => 'Este paciente ya está vinculado a AlmaPet ID.',
             ]);
@@ -198,7 +198,8 @@ final class AlmaPetHandoffClient
             'petpass_status' => 'pending',
             'petpass_registration_id' => $registrationId !== null ? (string) $registrationId : $paciente->petpass_registration_id,
             'petpass_public_code' => $publicCode,
-            'petpass_certificate_url' => $activateUrl,
+            // activate_url va por WhatsApp; el certificado solo tras el pago.
+            'petpass_certificate_url' => null,
         ])->save();
 
         $wa = $this->sendOwnerWhatsApp(
@@ -249,6 +250,7 @@ final class AlmaPetHandoffClient
                 ->post($url, [
                     'vetsaas_tenant_id' => (string) $tenant->id(),
                     'vetsaas_paciente_id' => (string) $paciente->id,
+                    'public_code' => (string) ($paciente->petpass_public_code ?? ''),
                     'animal' => $photo,
                 ]);
         } catch (Throwable $e) {

@@ -95,7 +95,8 @@ final class AlmaPetWebhookController extends Controller
             'petpass_status' => 'pending',
             'petpass_registration_id' => isset($data['registration_id']) ? (string) $data['registration_id'] : $paciente->petpass_registration_id,
             'petpass_public_code' => isset($data['public_code']) ? (string) $data['public_code'] : $paciente->petpass_public_code,
-            'petpass_certificate_url' => isset($data['activate_url']) ? (string) $data['activate_url'] : $paciente->petpass_certificate_url,
+            // No usar activate_url como certificado; el carnet aparece tras el pago.
+            'petpass_certificate_url' => null,
             'petpass_lost_at' => null,
         ])->save();
     }

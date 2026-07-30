@@ -380,17 +380,19 @@ class PacienteController extends Controller
                 'petpass_registrar' => $canPetPassRegister
                     && $ownerHasDocument
                     && filled($paciente->microchip)
-                    && ! in_array($paciente->petpass_status, ['registered', 'lost'], true)
+                    && ! in_array($paciente->petpass_status, ['pending', 'registered', 'lost'], true)
                     ? route('clinica.pacientes.petpass.registrar', $paciente)
                     : null,
                 'petpass_propietario' => $canPetPassRegister
                     && ! $ownerHasDocument
                     && filled($paciente->microchip)
-                    && ! in_array($paciente->petpass_status, ['registered', 'lost'], true)
+                    && ! in_array($paciente->petpass_status, ['pending', 'registered', 'lost'], true)
                     && $paciente->propietario_id
                     ? route('clinica.propietarios.show', $paciente->propietario_id)
                     : null,
-                'petpass_certificado' => filled($paciente->petpass_certificate_url)
+                // Solo tras pago/activación del dueño (status registered|lost), no con la URL de activación.
+                'petpass_certificado' => in_array($paciente->petpass_status, ['registered', 'lost'], true)
+                    && filled($paciente->petpass_certificate_url)
                     ? $paciente->petpass_certificate_url
                     : null,
             ],
