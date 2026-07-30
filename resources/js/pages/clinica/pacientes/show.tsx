@@ -208,7 +208,7 @@ export default function PacienteShow({
                             ))}
                         </div>
                     </section>
-                ) : null}
+                    ) : null}
 
                 <section className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm ring-1 ring-black/[0.03] dark:ring-white/5">
                     <header className="flex flex-col gap-2 border-b border-border/50 bg-muted/20 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
