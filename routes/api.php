@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AlmaPetWebhookController;
 use App\Http\Controllers\Api\ClinicBotWebhookController;
 use App\Http\Controllers\Api\Internal\SaasProvisionController;
 use App\Http\Controllers\Api\Public\TenantShowcaseController;
+use App\Http\Controllers\Api\Public\VetSaaSMarketingController;
 use App\Http\Controllers\Api\SalesBotWebhookController;
 use App\Http\Middleware\VerifyOrvaeProvisionSignature;
 use Illuminate\Support\Facades\Route;
@@ -70,6 +71,10 @@ Route::post('webhooks/almapet', [AlmaPetWebhookController::class, 'handle'])
 Route::get('public/vetsaas/showcase', [TenantShowcaseController::class, 'index'])
     ->middleware('throttle:60,1')
     ->name('api.public.vetsaas.showcase');
+
+Route::get('public/vetsaas/marketing', VetSaaSMarketingController::class)
+    ->middleware('throttle:60,1')
+    ->name('api.public.vetsaas.marketing');
 
 /*
 | TODO — Rutas futuras por producto (Opción A):
