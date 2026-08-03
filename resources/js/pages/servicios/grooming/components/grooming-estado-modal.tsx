@@ -16,6 +16,7 @@ import { FormField, FormModal } from '@/components/forms';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import type { GroomingTurnoRow } from '../types';
 
 export type GroomingEstadoTarget =
@@ -79,11 +80,13 @@ export function GroomingEstadoModal({
         estado: string;
         telefono: string;
         notificar_whatsapp: boolean;
+        observacion: string;
         fotos: File[];
     }>({
         estado: target ?? '',
         telefono: defaultPhone,
         notificar_whatsapp: notificationEnabled,
+        observacion: '',
         fotos: [],
     });
 
@@ -111,6 +114,7 @@ export function GroomingEstadoModal({
             estado: target,
             telefono: defaultPhone,
             notificar_whatsapp: notificationEnabled,
+            observacion: '',
             fotos: [],
         });
         form.clearErrors();
@@ -214,6 +218,7 @@ export function GroomingEstadoModal({
         form.transform(() => ({
             estado: target,
             telefono: form.data.telefono,
+            observacion: form.data.observacion.trim() || null,
             notificar_whatsapp:
                 notificationEnabled &&
                 (isAutoWhatsApp(target)
@@ -425,6 +430,27 @@ export function GroomingEstadoModal({
                             <p className="text-xs text-destructive">{form.errors.fotos}</p>
                         ) : null}
                     </div>
+                ) : null}
+
+                {isPhotoFlow(target) ? (
+                    <FormField
+                        id="grooming-estado-observacion"
+                        label={t('estado_flow.observacion')}
+                        error={form.errors.observacion}
+                        hint={t('estado_flow.observacion_hint')}
+                    >
+                        <Textarea
+                            id="grooming-estado-observacion"
+                            rows={3}
+                            className="min-h-[4.5rem] resize-y"
+                            placeholder={t('estado_flow.observacion_placeholder')}
+                            value={form.data.observacion}
+                            disabled={form.processing}
+                            onChange={(e) =>
+                                form.setData('observacion', e.target.value)
+                            }
+                        />
+                    </FormField>
                 ) : null}
 
                 <FormField

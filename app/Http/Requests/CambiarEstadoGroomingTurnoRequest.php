@@ -22,6 +22,13 @@ class CambiarEstadoGroomingTurnoRequest extends FormRequest
                 'notificar_whatsapp' => filter_var($v, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? true,
             ]);
         }
+
+        if ($this->has('observacion')) {
+            $obs = trim((string) $this->input('observacion'));
+            $this->merge([
+                'observacion' => $obs === '' ? null : $obs,
+            ]);
+        }
     }
 
     /**
@@ -38,6 +45,7 @@ class CambiarEstadoGroomingTurnoRequest extends FormRequest
             ])],
             'telefono' => ['nullable', 'string', 'max:20'],
             'notificar_whatsapp' => ['nullable', 'boolean'],
+            'observacion' => ['nullable', 'string', 'max:5000'],
             'fotos' => ['nullable', 'array', 'max:8'],
             'fotos.*' => ['image', 'max:5120', 'mimes:jpg,jpeg,png,webp'],
         ];

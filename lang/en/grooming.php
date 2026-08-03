@@ -20,6 +20,13 @@ return [
         'whatsapp_no_phone' => 'The owner does not have a valid WhatsApp phone number.',
         'whatsapp_fallo' => 'Could not send the photos via WhatsApp.',
     ],
+    'observacion' => [
+        'en_proceso' => 'In progress',
+        'completada' => 'Completed',
+        'cancelada' => 'Cancelled',
+        'no_asistio' => 'No-show',
+        'generica' => 'Note',
+    ],
     'servicios' => [
         'flash' => [
             'created' => 'Grooming service created.',

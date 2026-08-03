@@ -333,6 +333,20 @@ class GroomingTurnoController extends Controller
         $notificar = $setting->notificarGroomingWhatsAppActivo($nuevoEstado)
             && (($data['notificar_whatsapp'] ?? true) === true);
 
+        $observacion = isset($data['observacion']) ? trim((string) $data['observacion']) : '';
+        if ($observacion !== '') {
+            $etiqueta = match ($nuevoEstado) {
+                GroomingTurno::ESTADO_EN_PROCESO => __('grooming.observacion.en_proceso'),
+                GroomingTurno::ESTADO_COMPLETADA => __('grooming.observacion.completada'),
+                GroomingTurno::ESTADO_CANCELADA => __('grooming.observacion.cancelada'),
+                GroomingTurno::ESTADO_NO_ASISTIO => __('grooming.observacion.no_asistio'),
+                default => __('grooming.observacion.generica'),
+            };
+            $bloque = '['.$etiqueta.']'."\n".$observacion;
+            $previas = trim((string) ($groomingTurno->notas ?? ''));
+            $groomingTurno->notas = $previas === '' ? $bloque : $previas."\n\n".$bloque;
+        }
+
         $groomingTurno->estado = $nuevoEstado;
         $groomingTurno->updated_by_id = Auth::id();
         $groomingTurno->save();

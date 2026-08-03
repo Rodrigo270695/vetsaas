@@ -81,6 +81,7 @@
         "title": "Appointment details",
         "description": "Service summary, owner and process photos.",
         "telefono": "Phone",
+        "notas": "Notes and observations",
         "fotos": "Process photos",
         "fotos_empty": "This appointment has no photos yet."
     },
@@ -98,6 +99,9 @@
         "disabled_by_settings": "This notification is disabled in General settings → Notifications.",
         "notify_label": "Notify owner via WhatsApp",
         "notify_hint": "Includes the status update and any photos you upload.",
+        "observacion": "Notes",
+        "observacion_placeholder": "E.g. matted coat, sensitive skin, shampoo reaction…",
+        "observacion_hint": "Optional. It will appear in the appointment detail.",
         "en_proceso": {
             "title": "Start grooming",
             "description": "Mark the appointment as in progress. You can upload photos and notify the owner.",

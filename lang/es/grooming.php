@@ -20,6 +20,13 @@ return [
         'whatsapp_no_phone' => 'El propietario no tiene un teléfono válido para WhatsApp.',
         'whatsapp_fallo' => 'No se pudo enviar las fotos por WhatsApp.',
     ],
+    'observacion' => [
+        'en_proceso' => 'En proceso',
+        'completada' => 'Completada',
+        'cancelada' => 'Cancelada',
+        'no_asistio' => 'No asistió',
+        'generica' => 'Observación',
+    ],
     'servicios' => [
         'flash' => [
             'created' => 'Servicio de grooming creado.',

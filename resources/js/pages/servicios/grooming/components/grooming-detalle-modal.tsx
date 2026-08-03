@@ -147,7 +147,7 @@ export function GroomingDetalleModal({ open, onOpenChange, turno }: Props) {
 
                     {turno.notas ? (
                         <div>
-                            <p className="text-xs text-muted-foreground">{t('form.notas')}</p>
+                            <p className="text-xs text-muted-foreground">{t('detalle.notas')}</p>
                             <p className="mt-0.5 whitespace-pre-wrap text-sm">{turno.notas}</p>
                         </div>
                     ) : null}

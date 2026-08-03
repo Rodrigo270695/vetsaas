@@ -81,6 +81,7 @@
         "title": "Detalle del turno",
         "description": "Resumen del servicio, propietario y fotos del proceso.",
         "telefono": "Teléfono",
+        "notas": "Notas y observaciones",
         "fotos": "Fotos del proceso",
         "fotos_empty": "Este turno no tiene fotos registradas."
     },
@@ -98,6 +99,9 @@
         "disabled_by_settings": "Este aviso está desactivado en Configuración general → Notificaciones.",
         "notify_label": "Notificar al propietario por WhatsApp",
         "notify_hint": "Incluye el aviso del estado y las fotos que subas.",
+        "observacion": "Observación",
+        "observacion_placeholder": "Ej.: pelaje enredado, piel sensible, reacción al champú…",
+        "observacion_hint": "Opcional. Quedará registrada en el detalle del turno.",
         "en_proceso": {
             "title": "Iniciar grooming",
             "description": "Marca el turno como en proceso. Puedes subir fotos y avisar al propietario.",
