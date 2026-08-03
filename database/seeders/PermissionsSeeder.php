@@ -48,6 +48,7 @@ class PermissionsSeeder extends Seeder
         'hospitalizacion' => ['view', 'create', 'update', 'delete'],
 
         // ───── Servicios ─────
+        'servicios-agenda' => ['view'],
         'grooming' => ['view', 'create', 'update', 'delete'],
         'hotel' => ['view', 'create', 'update', 'delete'],
 

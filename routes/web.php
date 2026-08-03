@@ -500,7 +500,8 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
     // ===== Servicios (datos tenant) =====
     Route::prefix('servicios')->name('servicios.')->group(function () {
         Route::middleware('tenant.required')->group(function () {
-            Route::get('agenda', [ServiciosAgendaController::class, 'index'])
+            Route::middleware('permission:servicios-agenda.view')
+                ->get('agenda', [ServiciosAgendaController::class, 'index'])
                 ->name('agenda');
             Route::middleware('permission:grooming.view')
                 ->get('grooming', [GroomingTurnoController::class, 'index'])

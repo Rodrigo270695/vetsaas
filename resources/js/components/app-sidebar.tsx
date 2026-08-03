@@ -174,7 +174,7 @@ function useNavConfig(): { singles: NavItem[]; groups: NavGroup[] } {
                             title: t('items.agenda_servicios'),
                             href: '/servicios/agenda',
                             icon: CalendarDays,
-                            permission: ['grooming.view', 'hotel.view'],
+                            permission: 'servicios-agenda.view',
                         },
                         {
                             title: t('items.grooming'),

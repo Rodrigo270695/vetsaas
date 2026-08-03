@@ -78,6 +78,7 @@ class TenantRolesSeeder extends Seeder
                 'hospitalizacion.view', 'hospitalizacion.create', 'hospitalizacion.update', 'hospitalizacion.delete',
 
                 // Servicios
+                'servicios-agenda.view',
                 'grooming.view', 'grooming.create', 'grooming.update', 'grooming.delete',
                 'hotel.view', 'hotel.create', 'hotel.update', 'hotel.delete',
 
@@ -273,6 +274,7 @@ class TenantRolesSeeder extends Seeder
                 'citas.view',
 
                 // Su módulo principal
+                'servicios-agenda.view',
                 'grooming.view', 'grooming.create', 'grooming.update',
 
                 // A veces el grooming overlaps con hotelería

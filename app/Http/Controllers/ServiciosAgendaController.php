@@ -26,17 +26,12 @@ class ServiciosAgendaController extends Controller
     public function index(Request $request, TenantManager $tenants): InertiaResponse
     {
         $user = $request->user();
-        abort_unless(
-            ($user?->can('grooming.view') ?? false) || ($user?->can('hotel.view') ?? false),
-            403,
-        );
+        abort_unless($user?->can('servicios-agenda.view') ?? false, 403);
 
         /** @var Tenant|null $tenant */
         $tenant = $tenants->current()?->tenant;
-        $groomingEnabled = TenantModuleAccess::isEnabled($tenant, 'grooming')
-            && ($user?->can('grooming.view') ?? false);
-        $hotelEnabled = TenantModuleAccess::isEnabled($tenant, 'hotel')
-            && ($user?->can('hotel.view') ?? false);
+        $groomingEnabled = TenantModuleAccess::isEnabled($tenant, 'grooming');
+        $hotelEnabled = TenantModuleAccess::isEnabled($tenant, 'hotel');
 
         abort_unless($groomingEnabled || $hotelEnabled, 403);
 
