@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/react';
-import { Banknote, MoreHorizontal, Pencil, Syringe, Trash2 } from 'lucide-react';
+import { Banknote, ClipboardList, MoreHorizontal, Pencil, Syringe, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,6 +18,8 @@ export type ConsultaRowActionsProps = {
     onDelete: (c: ConsultaHistoriaRow) => void;
     canUpdate: boolean;
     canDelete: boolean;
+    canPlanView: boolean;
+    canPlanManage: boolean;
     canCargosView: boolean;
 };
 
@@ -27,11 +29,16 @@ export function ConsultaRowActions({
     onDelete,
     canUpdate,
     canDelete,
+    canPlanView,
+    canPlanManage,
     canCargosView,
 }: ConsultaRowActionsProps) {
     const { t } = useTranslation(['historias-clinicas', 'common']);
     const { can } = usePermission();
     const canVacunasCreate = can('vacunaciones.create');
+
+    const showPlanEntry =
+        canPlanManage || (canPlanView && consulta.plan_tratamiento !== null);
 
     const pacienteId = consulta.historia_clinica.paciente?.id;
 
@@ -45,9 +52,13 @@ export function ConsultaRowActions({
               })
             : null;
 
-    if (!canUpdate && !canDelete && !canVacunasCreate && !canCargosView) {
+    if (!canUpdate && !canDelete && !showPlanEntry && !canVacunasCreate && !canCargosView) {
         return null;
     }
+
+    const goPlan = () => {
+        router.visit(clinica.historiasClinicas.consultas.planTratamiento.url(consulta.id));
+    };
 
     const goCargos = () => {
         router.visit(clinica.historiasClinicas.consultas.cargos.show.url(consulta.id));
@@ -67,6 +78,12 @@ export function ConsultaRowActions({
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
+                {showPlanEntry && (
+                    <DropdownMenuItem className="cursor-pointer gap-2" onClick={goPlan}>
+                        <ClipboardList className="size-4" strokeWidth={2.25} />
+                        {t('actions.plan_tratamiento')}
+                    </DropdownMenuItem>
+                )}
                 {canCargosView && (
                     <DropdownMenuItem className="cursor-pointer gap-2" onClick={goCargos}>
                         <Banknote className="size-4" strokeWidth={2.25} />

@@ -145,11 +145,18 @@ export default function Index({
     const canCreate = can('historias-clinicas.create');
     const canUpdate = can('historias-clinicas.update');
     const canDelete = can('historias-clinicas.delete');
+    const canPlanView = can('historias-clinicas-planes.view');
+    const canPlanManage = can('historias-clinicas-planes.manage');
     const canVacunasCreate = can('vacunaciones.create');
     const canCargosView = can('consulta-cargos.view');
     const canSeeAudit = can('audit-trail.view');
     const showRowActions =
-        canUpdate || canDelete || canVacunasCreate || canCargosView;
+        canUpdate ||
+        canDelete ||
+        canPlanManage ||
+        (canPlanView && paginated.data.some((r) => r.plan_tratamiento)) ||
+        canVacunasCreate ||
+        canCargosView;
 
     const {
         search,
@@ -483,6 +490,8 @@ export default function Index({
                             onDelete={openDelete}
                             canUpdate={canUpdate}
                             canDelete={canDelete}
+                            canPlanView={canPlanView}
+                            canPlanManage={canPlanManage}
                             canCargosView={canCargosView}
                         />
                     </div>
@@ -498,6 +507,8 @@ export default function Index({
         showRowActions,
         canUpdate,
         canDelete,
+        canPlanView,
+        canPlanManage,
         canCargosView,
         canVacunasCreate,
         openEdit,
