@@ -58,6 +58,7 @@ use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SalesBotConversationController;
 use App\Http\Controllers\SalesBotKnowledgeController;
 use App\Http\Controllers\SedeController;
+use App\Http\Controllers\ServiciosAgendaController;
 use App\Http\Controllers\StockInventarioController;
 use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\SubscriptionPaymentController;
@@ -499,6 +500,8 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
     // ===== Servicios (datos tenant) =====
     Route::prefix('servicios')->name('servicios.')->group(function () {
         Route::middleware('tenant.required')->group(function () {
+            Route::get('agenda', [ServiciosAgendaController::class, 'index'])
+                ->name('agenda');
             Route::middleware('permission:grooming.view')
                 ->get('grooming', [GroomingTurnoController::class, 'index'])
                 ->name('grooming');

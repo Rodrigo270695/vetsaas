@@ -1,0 +1,58 @@
+{
+    "title": "Services schedule",
+    "description": "Grooming and hotel calendar. Managing an item opens its module.",
+    "search_placeholder": "Search by patient, owner or details…",
+    "actions": {
+        "new": "New booking",
+        "new_short": "New",
+        "create_first": "Schedule first service"
+    },
+    "stats": {
+        "total": "Total this month",
+        "grooming": "Grooming",
+        "hotel": "Hotel"
+    },
+    "tipo": {
+        "grooming": "Grooming",
+        "hotel": "Hotel"
+    },
+    "tipo_picker": {
+        "title": "Which service to schedule?",
+        "description": "Pick a type. The form will show that service’s fields.",
+        "grooming_hint": "Bath, trim and styling",
+        "hotel_hint": "Boarding with check-in/out"
+    },
+    "calendar": {
+        "today": "Today",
+        "prev_month": "Previous month",
+        "next_month": "Next month",
+        "more": "more",
+        "click_day_hint": "Click a day to see its schedule. Use + or a time slot to book grooming or hotel.",
+        "pick_month": "Go to month",
+        "pick_year": "Go to year",
+        "day_agenda": "Day agenda",
+        "day_empty": "No services scheduled",
+        "day_count_one": "{{count}} service",
+        "day_count_other": "{{count}} services",
+        "schedule_day": "Schedule on this day",
+        "schedule_at": "Schedule at {{hour}}",
+        "weekdays": {
+            "mon": "Mon",
+            "tue": "Tue",
+            "wed": "Wed",
+            "thu": "Thu",
+            "fri": "Fri",
+            "sat": "Sat",
+            "sun": "Sun"
+        }
+    },
+    "toast": {
+        "load_error": "Could not load the services schedule."
+    },
+    "empty": {
+        "no_results_title": "No results",
+        "no_results_description": "Try clearing search or changing the month.",
+        "no_records_title": "Empty schedule",
+        "no_records_description": "Book grooming or hotel here; managing opens the module."
+    }
+}

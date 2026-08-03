@@ -72,6 +72,10 @@ export type GroomingFormModalProps = {
     servicioDuraciones: Readonly<Record<string, number>>;
     pacientesOpciones: readonly PacienteGroomingOpcion[];
     sedesOpciones: readonly SedeGroomingOpcion[];
+    /** Prefill al crear desde la agenda (fecha YYYY-MM-DD, hora HH:mm). */
+    prefill?: { fecha?: string; hora?: string } | null;
+    /** Tras guardar, volver a la agenda de servicios. */
+    fromAgenda?: boolean;
 };
 
 type FormShape = {
@@ -93,13 +97,21 @@ function emptyForm(
     sedes: readonly SedeGroomingOpcion[],
     catalogoPersonalizado: boolean,
     servicios: readonly GroomingServicioRow[],
+    prefill?: { fecha?: string; hora?: string } | null,
 ): FormShape {
     const slugDefault = 'bano_higienico';
     const firstServicio = servicios.find((s) => s.activo) ?? servicios[0];
+    let inicioAt = toDatetimeLocalValue(new Date());
+    if (prefill?.fecha) {
+        const hora = prefill.hora && /^\d{2}:\d{2}$/.test(prefill.hora)
+            ? prefill.hora
+            : '09:00';
+        inicioAt = `${prefill.fecha}T${hora}`;
+    }
 
     return {
         paciente_id: '',
-        inicio_at: toDatetimeLocalValue(new Date()),
+        inicio_at: inicioAt,
         duracion_minutos: catalogoPersonalizado
             ? String(firstServicio?.duracion_minutos ?? 60)
             : String(duraciones[slugDefault] ?? 60),
@@ -137,6 +149,8 @@ export function GroomingFormModal({
     servicioDuraciones,
     pacientesOpciones,
     sedesOpciones,
+    prefill = null,
+    fromAgenda = false,
 }: GroomingFormModalProps) {
     const { t } = useTranslation(['grooming', 'common', 'offline']);
     const { refreshPending } = useOfflineSync();
@@ -200,6 +214,7 @@ export function GroomingFormModal({
                 responsable_id:
                     r.responsable_id != null && r.responsable_id !== '' ? r.responsable_id : null,
                 sede_id: r.sede_id != null && r.sede_id !== '' ? r.sede_id : null,
+                ...(fromAgenda ? { from_agenda: true } : {}),
             };
 
             if (catalogoPersonalizado) {
@@ -216,7 +231,7 @@ export function GroomingFormModal({
             return base;
         });
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [catalogoPersonalizado, fromAgenda]);
 
     useEffect(() => {
         if (!open) {
@@ -235,13 +250,14 @@ export function GroomingFormModal({
                     sedesOpciones,
                     catalogoPersonalizado,
                     serviciosOpciones,
+                    prefill,
                 ),
             );
         }
 
         setDefaults();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [open, turno?.id, defaultResponsableId, turno, sedesOpciones, catalogoPersonalizado, serviciosOpciones]);
+    }, [open, turno?.id, defaultResponsableId, turno, sedesOpciones, catalogoPersonalizado, serviciosOpciones, prefill?.fecha, prefill?.hora]);
 
     const pacienteComboboxOptions: ComboboxOption[] = pacientesOpciones.map((p) => ({
         value: p.id,

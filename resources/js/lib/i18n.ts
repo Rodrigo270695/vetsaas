@@ -13,6 +13,7 @@ import cirugiaEn from '@/lang/en/cirugia.json';
 import hospitalizacionEn from '@/lang/en/hospitalizacion.json';
 import groomingEn from '@/lang/en/grooming.json';
 import hotelEn from '@/lang/en/hotel.json';
+import serviciosAgendaEn from '@/lang/en/servicios-agenda.json';
 import citasEn from '@/lang/en/citas.json';
 import cobrosEn from '@/lang/en/cobros.json';
 import configSuscripcionEn from '@/lang/en/config-suscripcion.json';
@@ -67,6 +68,7 @@ import cirugiaEs from '@/lang/es/cirugia.json';
 import hospitalizacionEs from '@/lang/es/hospitalizacion.json';
 import groomingEs from '@/lang/es/grooming.json';
 import hotelEs from '@/lang/es/hotel.json';
+import serviciosAgendaEs from '@/lang/es/servicios-agenda.json';
 import citasEs from '@/lang/es/citas.json';
 import cobrosEs from '@/lang/es/cobros.json';
 import configSuscripcionEs from '@/lang/es/config-suscripcion.json';
@@ -176,6 +178,7 @@ const resources = {
         hospitalizacion: hospitalizacionEs,
         grooming: groomingEs,
         hotel: hotelEs,
+        'servicios-agenda': serviciosAgendaEs,
         'consulta-cargos': consultaCargosEs,
         recetas: recetasEs,
         laboratorio: laboratorioEs,
@@ -232,6 +235,7 @@ const resources = {
         hospitalizacion: hospitalizacionEn,
         grooming: groomingEn,
         hotel: hotelEn,
+        'servicios-agenda': serviciosAgendaEn,
         'consulta-cargos': consultaCargosEn,
         recetas: recetasEn,
         laboratorio: laboratorioEn,
@@ -297,6 +301,7 @@ void i18n
             'hospitalizacion',
             'grooming',
             'hotel',
+            'servicios-agenda',
             'consulta-cargos',
             'recetas',
             'laboratorio',

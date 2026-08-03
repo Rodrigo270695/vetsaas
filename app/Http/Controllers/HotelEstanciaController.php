@@ -225,9 +225,14 @@ class HotelEstanciaController extends Controller
         $notifier->notify($estancia, HotelEstancia::ESTADO_PROGRAMADA);
 
         return redirect()
-            ->route('servicios.hotel', $request->only([
-                'search', 'per_page', 'sort', 'direction', 'hotel_desde', 'hotel_hasta',
-            ]))
+            ->route(
+                $request->boolean('from_agenda') ? 'servicios.agenda' : 'servicios.hotel',
+                $request->boolean('from_agenda')
+                    ? $request->only(['search', 'mes'])
+                    : $request->only([
+                        'search', 'per_page', 'sort', 'direction', 'hotel_desde', 'hotel_hasta',
+                    ]),
+            )
             ->with('success', __('hotel.flash.created'));
     }
 

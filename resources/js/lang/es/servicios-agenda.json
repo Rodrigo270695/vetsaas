@@ -1,0 +1,58 @@
+{
+    "title": "Agenda de servicios",
+    "description": "Calendario de grooming y hotel. Al gestionar, abre el módulo correspondiente.",
+    "search_placeholder": "Buscar por paciente, propietario o detalle…",
+    "actions": {
+        "new": "Nueva reserva",
+        "new_short": "Nueva",
+        "create_first": "Agendar primer servicio"
+    },
+    "stats": {
+        "total": "Total en mes",
+        "grooming": "Grooming",
+        "hotel": "Hotel"
+    },
+    "tipo": {
+        "grooming": "Grooming",
+        "hotel": "Hotel"
+    },
+    "tipo_picker": {
+        "title": "¿Qué servicio agendar?",
+        "description": "Elige el tipo. Se abrirá el formulario con los campos de ese servicio.",
+        "grooming_hint": "Baño, corte y estética",
+        "hotel_hint": "Hospedaje e ingreso/egreso"
+    },
+    "calendar": {
+        "today": "Hoy",
+        "prev_month": "Mes anterior",
+        "next_month": "Mes siguiente",
+        "more": "más",
+        "click_day_hint": "Haz clic en un día para ver su agenda. Usa el + o un horario para agendar grooming u hotel.",
+        "pick_month": "Ir a un mes",
+        "pick_year": "Ir a un año",
+        "day_agenda": "Agenda del día",
+        "day_empty": "Sin servicios programados",
+        "day_count_one": "{{count}} servicio",
+        "day_count_other": "{{count}} servicios",
+        "schedule_day": "Agendar en este día",
+        "schedule_at": "Agendar a las {{hour}}",
+        "weekdays": {
+            "mon": "Lun",
+            "tue": "Mar",
+            "wed": "Mié",
+            "thu": "Jue",
+            "fri": "Vie",
+            "sat": "Sáb",
+            "sun": "Dom"
+        }
+    },
+    "toast": {
+        "load_error": "No se pudo cargar la agenda de servicios."
+    },
+    "empty": {
+        "no_results_title": "Sin resultados",
+        "no_results_description": "Prueba a limpiar la búsqueda o cambiar de mes.",
+        "no_records_title": "Agenda vacía",
+        "no_records_description": "Agenda grooming u hotel desde aquí; al gestionar se abre el módulo."
+    }
+}

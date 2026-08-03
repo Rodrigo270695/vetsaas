@@ -252,9 +252,14 @@ class GroomingTurnoController extends Controller
         $wa = $this->tryNotifyAgenda($turno, $sender, 'programado');
 
         $redirect = redirect()
-            ->route('servicios.grooming', $request->only([
-                'search', 'per_page', 'sort', 'direction', 'grooming_desde', 'grooming_hasta',
-            ]));
+            ->route(
+                $request->boolean('from_agenda') ? 'servicios.agenda' : 'servicios.grooming',
+                $request->boolean('from_agenda')
+                    ? $request->only(['search', 'mes'])
+                    : $request->only([
+                        'search', 'per_page', 'sort', 'direction', 'grooming_desde', 'grooming_hasta',
+                    ]),
+            );
 
         if ($wa === 'ok') {
             return $redirect->with('success', __('grooming.flash.created_whatsapp'));

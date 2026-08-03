@@ -171,6 +171,12 @@ function useNavConfig(): { singles: NavItem[]; groups: NavGroup[] } {
                     context: 'tenant',
                     items: [
                         {
+                            title: t('items.agenda_servicios'),
+                            href: '/servicios/agenda',
+                            icon: CalendarDays,
+                            permission: ['grooming.view', 'hotel.view'],
+                        },
+                        {
                             title: t('items.grooming'),
                             href: '/servicios/grooming',
                             icon: Sparkles,

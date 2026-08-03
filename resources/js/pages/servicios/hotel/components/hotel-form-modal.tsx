@@ -80,6 +80,8 @@ export type HotelFormModalProps = {
     tipoGrupos: readonly HotelTipoGrupo[];
     pacientesOpciones: readonly PacienteHotelOpcion[];
     sedesOpciones: readonly SedeHotelOpcion[];
+    prefill?: { fecha?: string; hora?: string } | null;
+    fromAgenda?: boolean;
 };
 
 type FormShape = {
@@ -100,12 +102,20 @@ function emptyForm(
     sedes: readonly SedeHotelOpcion[],
     catalogoPersonalizado: boolean,
     hotelTipos: readonly HotelTipoRow[],
+    prefill?: { fecha?: string; hora?: string } | null,
 ): FormShape {
     const firstTipo = hotelTipos.find((t) => t.activo) ?? hotelTipos[0];
+    let ingresoAt = toDatetimeLocalValue(new Date());
+    if (prefill?.fecha) {
+        const hora = prefill.hora && /^\d{2}:\d{2}$/.test(prefill.hora)
+            ? prefill.hora
+            : '12:00';
+        ingresoAt = `${prefill.fecha}T${hora}`;
+    }
 
     return {
         paciente_id: '',
-        ingreso_at: toDatetimeLocalValue(new Date()),
+        ingreso_at: ingresoAt,
         egreso_at: '',
         tipo_estancia: catalogoPersonalizado ? '' : 'habitacion_estandar',
         hotel_tipo_id: firstTipo?.id ?? '',
@@ -140,6 +150,8 @@ export function HotelFormModal({
     tipoGrupos,
     pacientesOpciones,
     sedesOpciones,
+    prefill = null,
+    fromAgenda = false,
 }: HotelFormModalProps) {
     const { t } = useTranslation(['hotel', 'common', 'offline']);
     const { refreshPending } = useOfflineSync();
@@ -148,7 +160,7 @@ export function HotelFormModal({
 
     const { data, setData, post, put, processing, errors, clearErrors, transform, setDefaults } =
         useForm<FormShape>(
-            emptyForm(defaultResponsableId, sedesOpciones, catalogoPersonalizado, hotelTipos),
+            emptyForm(defaultResponsableId, sedesOpciones, catalogoPersonalizado, hotelTipos, prefill),
         );
 
     const tiposActivos = useMemo(() => hotelTipos.filter((row) => row.activo), [hotelTipos]);
@@ -186,6 +198,7 @@ export function HotelFormModal({
                 responsable_id:
                     r.responsable_id != null && r.responsable_id !== '' ? r.responsable_id : null,
                 sede_id: r.sede_id != null && r.sede_id !== '' ? r.sede_id : null,
+                ...(fromAgenda ? { from_agenda: true } : {}),
             };
 
             if (catalogoPersonalizado) {
@@ -208,7 +221,7 @@ export function HotelFormModal({
             return base;
         });
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [catalogoPersonalizado, fromAgenda]);
 
     useEffect(() => {
         if (!open) {
@@ -220,12 +233,20 @@ export function HotelFormModal({
         if (estancia !== null) {
             setData(fromEstancia(estancia, defaultResponsableId));
         } else {
-            setData(emptyForm(defaultResponsableId, sedesOpciones, catalogoPersonalizado, hotelTipos));
+            setData(
+                emptyForm(
+                    defaultResponsableId,
+                    sedesOpciones,
+                    catalogoPersonalizado,
+                    hotelTipos,
+                    prefill,
+                ),
+            );
         }
 
         setDefaults();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [open, estancia?.id, defaultResponsableId, estancia, sedesOpciones, catalogoPersonalizado, hotelTipos]);
+    }, [open, estancia?.id, defaultResponsableId, estancia, sedesOpciones, catalogoPersonalizado, hotelTipos, prefill?.fecha, prefill?.hora]);
 
     const pacienteComboboxOptions: ComboboxOption[] = pacientesOpciones.map((p) => ({
         value: p.id,
