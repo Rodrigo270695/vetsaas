@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Auth\BootstrapLoginController;
 use App\Http\Controllers\ConsultaHistoriaController;
 use App\Http\Controllers\LaboratorioController;
 use App\Http\Controllers\PacienteController;
@@ -31,6 +32,11 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::middleware(['tenant.required'])->group(function (): void {
+    Route::get('auth/bienvenida/{token}', BootstrapLoginController::class)
+        ->where('token', '[A-Za-z0-9]{40,128}')
+        ->middleware(['throttle:20,1'])
+        ->name('tenant.auth.bootstrap');
+
     Route::middleware(['signed', 'throttle:60,1'])
         ->prefix('documentos-publicos')
         ->name('tenant.public.clinical-history.')

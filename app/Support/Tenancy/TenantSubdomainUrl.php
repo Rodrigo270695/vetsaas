@@ -52,4 +52,12 @@ final class TenantSubdomainUrl
     {
         return self::build($tenant, self::loginPath());
     }
+
+    /**
+     * URL one-shot de primer ingreso (Orvae → subdominio → cambiar contraseña).
+     */
+    public static function bootstrapLogin(Tenant $tenant, string $plainToken): string
+    {
+        return self::build($tenant, '/auth/bienvenida/'.$plainToken);
+    }
 }

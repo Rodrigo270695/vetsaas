@@ -26,10 +26,12 @@ use Spatie\Permission\Traits\HasRoles;
     'password',
     'is_active',
     'must_change_password',
+    'bootstrap_login_token',
+    'bootstrap_login_expires_at',
     'last_login_at',
     'created_by_id',
 ])]
-#[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
+#[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token', 'bootstrap_login_token'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
@@ -50,6 +52,7 @@ class User extends Authenticatable
             'two_factor_confirmed_at' => 'datetime',
             'is_active' => 'boolean',
             'must_change_password' => 'boolean',
+            'bootstrap_login_expires_at' => 'datetime',
             'last_login_at' => 'datetime',
             'last_seen_at' => 'datetime',
             'last_path_at' => 'datetime',

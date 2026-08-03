@@ -29,6 +29,7 @@ beforeEach(function (): void {
         'orvae.provision.max_skew_seconds' => 300,
         'orvae.tenant.domain' => 'vetsaas.test',
         'orvae.tenant.scheme' => 'http',
+        'tenant.root_domain' => 'vetsaas.test',
     ]);
 
     $this->seed(PermissionsSeeder::class);
@@ -100,7 +101,12 @@ it('provisiona tenant con payload anidado estilo Orvae checkout', function (): v
 
     $response->assertCreated()
         ->assertJsonPath('tenant.slug', $slug)
-        ->assertJsonStructure(['login_url', 'academy_url', 'tenant_slug']);
+        ->assertJsonStructure(['login_url', 'academy_url', 'tenant_slug', 'bootstrap_url']);
+
+    $bootstrapUrl = $response->json('bootstrap_url');
+    expect($bootstrapUrl)->toBeString()->not->toBeEmpty();
+    expect($bootstrapUrl)->toContain('/auth/bienvenida/');
+    expect($bootstrapUrl)->not->toContain('signature=');
 
     $tenant = Tenant::query()->where('slug', $slug)->first();
     expect($tenant)->not->toBeNull();
@@ -112,6 +118,8 @@ it('provisiona tenant con payload anidado estilo Orvae checkout', function (): v
         ->first();
     expect($user)->not->toBeNull();
     expect($user->hasRole('admin_clinica'))->toBeTrue();
+    expect($user->must_change_password)->toBeTrue();
+    expect($user->bootstrap_login_token)->not->toBeNull();
 });
 
 it('es idempotente con la misma X-Idempotency-Key', function (): void {

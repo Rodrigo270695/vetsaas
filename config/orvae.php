@@ -37,6 +37,6 @@ return [
         // Deprecado: usar config('tenant.root_domain'). Se mantiene por compatibilidad.
         'domain' => env('VETSAAS_TENANT_DOMAIN', env('TENANT_ROOT_DOMAIN', 'vetsaas.orvae.pe')),
         'login_path' => env('VETSAAS_TENANT_LOGIN_PATH', '/login'),
+        'bootstrap_ttl_hours' => (int) env('VETSAAS_BOOTSTRAP_TTL_HOURS', 48),
     ],
-
 ];

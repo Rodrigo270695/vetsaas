@@ -87,6 +87,35 @@ class TenantProvisioner
         return TenantSubdomainUrl::login($tenant);
     }
 
+    /**
+     * Emite (o renueva) el token one-shot y devuelve la URL absoluta de bienvenida.
+     */
+    public function issueBootstrapLoginUrl(Tenant $tenant, User $user): string
+    {
+        $plain = Str::random(64);
+        $ttlHours = max(1, (int) config('orvae.tenant.bootstrap_ttl_hours', 48));
+
+        $user->forceFill([
+            'bootstrap_login_token' => hash('sha256', $plain),
+            'bootstrap_login_expires_at' => now()->addHours($ttlHours),
+        ])->save();
+
+        return TenantSubdomainUrl::bootstrapLogin($tenant, $plain);
+    }
+
+    public function buildBootstrapLoginUrl(Tenant $tenant, User $user): string
+    {
+        return $this->issueBootstrapLoginUrl($tenant, $user);
+    }
+
+    public function findAdminUser(Tenant $tenant): ?User
+    {
+        return User::query()
+            ->where('tenant_id', $tenant->id)
+            ->whereRaw('LOWER(email) = ?', [strtolower(trim((string) $tenant->email_admin))])
+            ->first();
+    }
+
     private function guardDriver(): void
     {
         if (DB::getDriverName() !== 'pgsql') {

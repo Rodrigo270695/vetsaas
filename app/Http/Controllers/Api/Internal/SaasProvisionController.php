@@ -53,6 +53,10 @@ class SaasProvisionController extends Controller
         }
 
         $loginUrl = $this->provisioner->buildLoginUrl($tenant);
+        $admin = $this->provisioner->findAdminUser($tenant);
+        $bootstrapUrl = $admin !== null
+            ? $this->provisioner->issueBootstrapLoginUrl($tenant, $admin)
+            : null;
 
         Log::info('orvae.provision: tenant creado', [
             'tenant_id' => $tenant->id,
@@ -74,6 +78,7 @@ class SaasProvisionController extends Controller
             ],
             'login_url' => $loginUrl,
             'academy_url' => $loginUrl,
+            'bootstrap_url' => $bootstrapUrl,
             'tenant_slug' => $tenant->slug,
         ];
 
