@@ -280,17 +280,6 @@ final class VentaDesdeCargoPrefill
             'paciente.propietario:id,nombres,apellidos,razon_social',
         ]);
 
-        $sesion = CajaSesion::query()
-            ->where('estado', CajaSesion::ESTADO_ABIERTA)
-            ->where('opened_by_id', Auth::id())
-            ->first();
-
-        if ($sesion === null) {
-            throw ValidationException::withMessages([
-                'caja' => __('caja.ventas.desde_cargo.validation.sin_sesion'),
-            ]);
-        }
-
         $paciente = $turno->paciente;
         $propietario = $paciente->propietario;
         if ($propietario === null) {
@@ -386,17 +375,6 @@ final class VentaDesdeCargoPrefill
             'paciente:id,nombre,propietario_id',
             'paciente.propietario:id,nombres,apellidos,razon_social',
         ]);
-
-        $sesion = CajaSesion::query()
-            ->where('estado', CajaSesion::ESTADO_ABIERTA)
-            ->where('opened_by_id', Auth::id())
-            ->first();
-
-        if ($sesion === null) {
-            throw ValidationException::withMessages([
-                'caja' => __('caja.ventas.desde_cargo.validation.sin_sesion'),
-            ]);
-        }
 
         $paciente = $estancia->paciente;
         $propietario = $paciente->propietario;
