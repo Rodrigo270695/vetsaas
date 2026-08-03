@@ -10,15 +10,27 @@ use Illuminate\Support\Facades\Cache;
 
 /**
  * Payload público para la landing Orvae de VetSaaS (planes + conteo clínicas).
+ * Los planes se diferencian por cantidades; los módulos están en todos.
  */
 final class VetSaaSPublicMarketingService
 {
+    /** @var list<string> */
+    private const LIMIT_KEYS = [
+        'max_sedes',
+        'max_usuarios',
+        'max_pacientes',
+        'max_propietarios',
+        'max_productos',
+        'max_comprobantes_mes',
+    ];
+
     /**
      * @return array{
      *     clinics_count: int,
      *     clinics_display: int,
      *     clinics_label: string,
-     *     plans: list<array<string, mixed>>
+     *     plans: list<array<string, mixed>>,
+     *     comparison: list<array<string, string>>
      * }
      */
     public function payload(): array
@@ -26,12 +38,15 @@ final class VetSaaSPublicMarketingService
         return Cache::remember('vetsaas.public.marketing', 600, function (): array {
             $count = $this->activeClinicsCount();
             $display = self::marketingDisplayCount($count);
+            $plans = $this->publicPlans();
 
             return [
                 'clinics_count' => $count,
                 'clinics_display' => $display,
                 'clinics_label' => $display.'+',
-                'plans' => $this->publicPlans(),
+                'plans' => $plans,
+                'comparison' => $this->buildComparison($plans),
+                'modules_note' => 'Todos los módulos (historia clínica, agenda, inventario, grooming, hotel, laboratorio, caja) están incluidos en todos los planes. Lo que cambia es la cantidad.',
             ];
         });
     }
@@ -41,9 +56,6 @@ final class VetSaaSPublicMarketingService
         Cache::forget('vetsaas.public.marketing');
     }
 
-    /**
-     * 42 → 100, 100 → 100, 101 → 200 (siempre un bucket de 100 por encima del tramo real).
-     */
     public static function marketingDisplayCount(int $actual): int
     {
         if ($actual <= 0) {
@@ -84,14 +96,22 @@ final class VetSaaSPublicMarketingService
                 ];
             }
 
+            $limits = [];
+            foreach (self::LIMIT_KEYS as $key) {
+                $limits[$key] = is_int($features[$key]['int'] ?? null)
+                    ? (int) $features[$key]['int']
+                    : 0;
+            }
+
             $rows[] = [
                 'codigo' => $plan->codigo,
                 'nombre' => $plan->nombre,
                 'descripcion' => $plan->descripcion,
                 'badge' => $plan->badge,
                 'color_hex' => $plan->color_hex,
+                'limits' => $limits,
                 'features' => $features,
-                'highlights' => $this->marketingHighlights($plan->codigo, $features),
+                'highlights' => $this->marketingHighlights($plan->codigo, $limits),
             ];
         }
 
@@ -99,64 +119,62 @@ final class VetSaaSPublicMarketingService
     }
 
     /**
-     * @param  array<string, array{int: mixed, bool: mixed, str: mixed}>  $features
+     * @param  list<array<string, mixed>>  $plans
+     * @return list<array<string, string>>
+     */
+    private function buildComparison(array $plans): array
+    {
+        $labels = [
+            'max_sedes' => 'Sedes',
+            'max_usuarios' => 'Usuarios',
+            'max_pacientes' => 'Pacientes',
+            'max_propietarios' => 'Propietarios',
+            'max_productos' => 'Productos',
+            'max_comprobantes_mes' => 'Comprobantes SUNAT / mes',
+        ];
+
+        $byCodigo = [];
+        foreach ($plans as $plan) {
+            $codigo = strtolower((string) ($plan['codigo'] ?? ''));
+            if ($codigo !== '') {
+                $byCodigo[$codigo] = is_array($plan['limits'] ?? null) ? $plan['limits'] : [];
+            }
+        }
+
+        $codigos = array_values(array_intersect(
+            ['free', 'starter', 'pro', 'clinica'],
+            array_keys($byCodigo),
+        ));
+        if ($codigos === []) {
+            $codigos = array_keys($byCodigo);
+        }
+
+        $rows = [];
+        foreach ($labels as $key => $label) {
+            $row = ['key' => $key, 'label' => $label];
+            foreach ($codigos as $codigo) {
+                $row[$codigo] = $this->formatLimit((int) ($byCodigo[$codigo][$key] ?? 0));
+            }
+            $rows[] = $row;
+        }
+
+        return $rows;
+    }
+
+    /**
+     * @param  array<string, int>  $limits
      * @return list<string>
      */
-    private function marketingHighlights(string $codigo, array $features): array
+    private function marketingHighlights(string $codigo, array $limits): array
     {
-        $lines = [];
+        $lines = ['Todos los módulos incluidos'];
 
-        $usuarios = $features['max_usuarios']['int'] ?? null;
-        $lines[] = $this->limitLine('Usuarios', $usuarios);
-
-        $pacientes = $features['max_pacientes']['int'] ?? null;
-        $lines[] = $this->limitLine('Pacientes', $pacientes);
-
-        $citas = $features['max_citas_mes']['int'] ?? null;
-        $lines[] = $this->limitLine('Citas / mes', $citas);
-
-        if (($features['historia_clinica']['bool'] ?? false) === true) {
-            $lines[] = 'Historia clínica SOAP';
-        }
-
-        if (($features['modulo_stock']['bool'] ?? false) === true) {
-            $lines[] = 'Inventario y stock';
-        }
-
-        if (($features['modulo_grooming']['bool'] ?? false) === true) {
-            $lines[] = 'Grooming';
-        }
-
-        if (($features['modulo_laboratorio']['bool'] ?? false) === true) {
-            $lines[] = 'Laboratorio';
-        }
-
-        if (($features['modulo_guarderia']['bool'] ?? false) === true) {
-            $lines[] = 'Hotel / guardería';
-        }
-
-        if (($features['factura_electronica']['bool'] ?? false) === true) {
-            $lines[] = 'Facturación electrónica SUNAT';
-        }
-
-        $wa = $features['max_wa_mes']['int'] ?? null;
-        if (is_int($wa) && $wa === -1) {
-            $lines[] = 'WhatsApp ilimitado';
-        } elseif (is_int($wa) && $wa > 0) {
-            $lines[] = "WhatsApp ({$wa}/mes)";
-        }
-
-        if (($features['multi_sede']['bool'] ?? false) === true) {
-            $lines[] = 'Multi-sede';
-        }
-
-        $soporte = (string) ($features['soporte_tipo']['str'] ?? '');
-        $lines[] = match ($soporte) {
-            'whatsapp_prioritario' => 'Soporte WhatsApp prioritario',
-            'whatsapp' => 'Soporte por WhatsApp',
-            'email' => 'Soporte por correo',
-            default => 'Documentación de ayuda',
-        };
+        $lines[] = $this->limitLine('Sedes', $limits['max_sedes'] ?? 0);
+        $lines[] = $this->limitLine('Usuarios', $limits['max_usuarios'] ?? 0);
+        $lines[] = $this->limitLine('Pacientes', $limits['max_pacientes'] ?? 0);
+        $lines[] = $this->limitLine('Propietarios', $limits['max_propietarios'] ?? 0);
+        $lines[] = $this->limitLine('Productos', $limits['max_productos'] ?? 0);
+        $lines[] = $this->limitLine('Comprobantes SUNAT / mes', $limits['max_comprobantes_mes'] ?? 0);
 
         if ($codigo === 'free') {
             array_unshift($lines, 'Actívate gratis en minutos');
@@ -167,15 +185,15 @@ final class VetSaaSPublicMarketingService
 
     private function limitLine(string $label, mixed $value): string
     {
-        if (! is_int($value) && ! is_float($value)) {
-            return $label;
+        return $label.': '.$this->formatLimit((int) $value);
+    }
+
+    private function formatLimit(int $value): string
+    {
+        if ($value === -1) {
+            return 'Ilimitado';
         }
 
-        $n = (int) $value;
-        if ($n === -1) {
-            return "{$label} ilimitados";
-        }
-
-        return "{$label}: ".number_format($n, 0, '.', ',');
+        return number_format($value, 0, '.', ',');
     }
 }
