@@ -127,8 +127,9 @@ export default function Index({
     turno_abrir_editar,
     grooming_whatsapp_preferences,
 }: Props) {
-    const { t } = useTranslation(['grooming', 'common']);
-    const { locale: appLocale, timezone: appTz } = usePage().props;
+    const { t, i18n } = useTranslation(['grooming', 'common']);
+    const { timezone: appTz } = usePage().props;
+    const dateLocale = i18n.language;
     const { can } = usePermission();
     const canCreate = can('grooming.create');
     const canUpdate = can('grooming.update');
@@ -250,7 +251,7 @@ export default function Index({
                 sortable: true,
                 cell: (row) => (
                     <span className="whitespace-nowrap text-sm">
-                        {formatAtendidoInAppTimezone(row.inicio_at, appLocale, appTz)}
+                        {formatAtendidoInAppTimezone(row.inicio_at, dateLocale, appTz)}
                     </span>
                 ),
             },
@@ -395,7 +396,7 @@ export default function Index({
         }
 
         return base;
-    }, [t, appLocale, appTz, canSeeAudit, showRowActions, canUpdate, canDelete, canCobrarGrooming, grooming_catalogo_personalizado, openEdit, openDelete, openEstado, openDetalle]);
+    }, [t, dateLocale, appTz, canSeeAudit, showRowActions, canUpdate, canDelete, canCobrarGrooming, grooming_catalogo_personalizado, openEdit, openDelete, openEstado, openDetalle]);
 
     return (
         <>

@@ -560,9 +560,12 @@ class VentaController extends Controller
         try {
             $desdeCargo = $prefill->buildFromGrooming($groomingTurno);
         } catch (ValidationException $e) {
+            $first = collect($e->errors())->flatten()->first();
+
             return redirect()
                 ->route('servicios.grooming')
-                ->withErrors($e->errors());
+                ->withErrors($e->errors())
+                ->with('error', is_string($first) ? $first : __('caja.ventas.grooming.turno_invalido'));
         }
 
         $miSesion = CajaSesion::query()

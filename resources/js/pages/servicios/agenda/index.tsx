@@ -7,7 +7,6 @@ import {
     Scissors,
 } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
-import type { FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     AgendaMonthCalendar,
@@ -15,10 +14,10 @@ import {
     shiftMes,
     type AgendaEvent,
 } from '@/components/agenda/agenda-month-calendar';
-import { PageHeader } from '@/components/data-page';
+import { DataToolbar, PageHeader } from '@/components/data-page';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { useAutoRefresh } from '@/hooks/use-auto-refresh';
+import { useDataTablePage } from '@/hooks/use-data-table-page';
 import { usePermission } from '@/hooks/use-permission';
 import servicios from '@/routes/servicios';
 import { GroomingFormModal } from '../grooming/components/grooming-form-modal';
@@ -73,6 +72,8 @@ type ModalState =
     | { type: 'grooming'; prefill?: ServicioAgendaFormPrefill }
     | { type: 'hotel'; prefill?: ServicioAgendaFormPrefill };
 
+type AgendaTableExtra = Pick<ServicioAgendaFilters, 'mes'>;
+
 export default function ServiciosAgendaIndex({
     eventos,
     filters,
@@ -99,31 +100,21 @@ export default function ServiciosAgendaIndex({
         (capabilities.grooming_create && can('grooming.create')) ||
         (capabilities.hotel_create && can('hotel.create'));
 
-    const [search, setSearch] = useState(filters.search ?? '');
-    const [isLoading, setIsLoading] = useState(false);
-    const [modal, setModal] = useState<ModalState>({ type: 'idle' });
+    const { search, setSearch, isLoading, applyFilter } =
+        useDataTablePage<AgendaTableExtra>({
+            routeUrl: servicios.agenda.url(),
+            initialFilters: filters,
+            only: ['eventos', 'filters', 'stats', 'agenda_filtro_ui'],
+            errorMessage: t('toast.load_error'),
+            storageKey: 'vetsaas.servicios-agenda.prefs',
+            defaults: {
+                per_page: 10,
+                sort: null,
+                direction: null,
+            },
+        });
 
-    const applyQuery = useCallback(
-        (patch: Partial<ServicioAgendaFilters>) => {
-            setIsLoading(true);
-            router.get(
-                servicios.agenda.url({
-                    query: {
-                        search: patch.search ?? filters.search,
-                        mes: patch.mes ?? filters.mes,
-                    },
-                }),
-                {},
-                {
-                    preserveState: true,
-                    preserveScroll: true,
-                    only: ['eventos', 'filters', 'stats', 'agenda_filtro_ui'],
-                    onFinish: () => setIsLoading(false),
-                },
-            );
-        },
-        [filters.mes, filters.search],
-    );
+    const [modal, setModal] = useState<ModalState>({ type: 'idle' });
 
     const {
         secondsSince,
@@ -146,34 +137,36 @@ export default function ServiciosAgendaIndex({
 
     const onPickTipo = useCallback(
         (tipo: ServicioAgendaTipo) => {
-            const prefill =
-                modal.type === 'pick' ? modal.prefill : undefined;
+            const prefill = modal.type === 'pick' ? modal.prefill : undefined;
             setModal({ type: tipo, prefill });
         },
         [modal],
     );
 
-    const onSelectEvent = useCallback((event: AgendaEvent) => {
-        const raw = eventos.find((e) => e.id === event.id);
-        if (!raw) {
-            return;
-        }
+    const onSelectEvent = useCallback(
+        (event: AgendaEvent) => {
+            const raw = eventos.find((e) => e.id === event.id);
+            if (!raw) {
+                return;
+            }
 
-        if (raw.tipo === 'grooming') {
+            if (raw.tipo === 'grooming') {
+                router.visit(
+                    servicios.grooming.url({
+                        query: { editar_grooming_turno: raw.id },
+                    }),
+                );
+                return;
+            }
+
             router.visit(
-                servicios.grooming.url({
-                    query: { editar_grooming_turno: raw.id },
+                servicios.hotel.url({
+                    query: { editar_hotel_estancia: raw.id },
                 }),
             );
-            return;
-        }
-
-        router.visit(
-            servicios.hotel.url({
-                query: { editar_hotel_estancia: raw.id },
-            }),
-        );
-    }, [eventos]);
+        },
+        [eventos],
+    );
 
     const agendaEvents = useMemo(
         (): AgendaEvent[] =>
@@ -181,10 +174,14 @@ export default function ServiciosAgendaIndex({
                 id: e.id,
                 inicio_at: e.inicio_at,
                 title: e.titulo,
-                subtitle: [e.tipo === 'grooming' ? t('tipo.grooming') : t('tipo.hotel'), e.subtitulo]
+                subtitle: [
+                    e.tipo === 'grooming' ? t('tipo.grooming') : t('tipo.hotel'),
+                    e.subtitulo,
+                ]
                     .filter(Boolean)
                     .join(' · '),
-                accentClass: e.tipo === 'grooming' ? GROOMING_ACCENT : HOTEL_ACCENT,
+                accentClass:
+                    e.tipo === 'grooming' ? GROOMING_ACCENT : HOTEL_ACCENT,
             })),
         [eventos, t],
     );
@@ -236,20 +233,14 @@ export default function ServiciosAgendaIndex({
     );
 
     const goMes = useCallback(
-        (mes: string) => applyQuery({ mes }),
-        [applyQuery],
-    );
-
-    const submitSearch = useCallback(
-        (e: FormEvent) => {
-            e.preventDefault();
-            applyQuery({ search: search.trim() });
-        },
-        [applyQuery, search],
+        (mes: string) => applyFilter({ mes }),
+        [applyFilter],
     );
 
     const prefill =
-        modal.type === 'grooming' || modal.type === 'hotel' || modal.type === 'pick'
+        modal.type === 'grooming' ||
+        modal.type === 'hotel' ||
+        modal.type === 'pick'
             ? modal.prefill
             : null;
 
@@ -273,9 +264,12 @@ export default function ServiciosAgendaIndex({
                                     />
                                     {isRefreshing
                                         ? t('common:auto_refresh.updating')
-                                        : t('common:auto_refresh.updated_seconds', {
-                                              seconds: secondsSince,
-                                          })}
+                                        : t(
+                                              'common:auto_refresh.updated_seconds',
+                                              {
+                                                  seconds: secondsSince,
+                                              },
+                                          )}
                                     <button
                                         type="button"
                                         onClick={refreshNow}
@@ -330,25 +324,19 @@ export default function ServiciosAgendaIndex({
                     />
                 </div>
 
-                <form
-                    onSubmit={submitSearch}
-                    className="flex flex-col gap-3 sm:flex-row sm:items-center"
-                >
-                    <Input
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        placeholder={t('search_placeholder')}
-                        className="h-10 max-w-xl"
-                    />
-                    <Button type="submit" variant="secondary" className="cursor-pointer">
-                        {t('common:actions.search', { defaultValue: 'Buscar' })}
-                    </Button>
-                </form>
+                <DataToolbar
+                    search={search}
+                    onSearchChange={setSearch}
+                    isLoading={isLoading}
+                    placeholder={t('search_placeholder')}
+                />
 
                 <AgendaMonthCalendar
                     events={agendaEvents}
                     mes={mesActivo}
-                    timeZone={typeof appTz === 'string' ? appTz : 'America/Lima'}
+                    timeZone={
+                        typeof appTz === 'string' ? appTz : 'America/Lima'
+                    }
                     horaInicio={agenda_horario.hora_inicio}
                     horaFin={agenda_horario.hora_fin}
                     isLoading={isLoading || isRefreshing}

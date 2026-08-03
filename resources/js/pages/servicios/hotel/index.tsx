@@ -106,8 +106,9 @@ export default function Index({
     stats,
     estancia_abrir_editar,
 }: Props) {
-    const { t } = useTranslation(['hotel', 'common']);
-    const { locale: appLocale, timezone: appTz } = usePage().props;
+    const { t, i18n } = useTranslation(['hotel', 'common']);
+    const { timezone: appTz } = usePage().props;
+    const dateLocale = i18n.language;
     const { can } = usePermission();
     const canCreate = can('hotel.create');
     const canUpdate = can('hotel.update');
@@ -205,7 +206,7 @@ export default function Index({
                 sortable: true,
                 cell: (row) => (
                     <span className="whitespace-nowrap text-sm">
-                        {formatAtendidoInAppTimezone(row.ingreso_at, appLocale, appTz)}
+                        {formatAtendidoInAppTimezone(row.ingreso_at, dateLocale, appTz)}
                     </span>
                 ),
             },
@@ -215,7 +216,7 @@ export default function Index({
                 cell: (row) => (
                     <span className="whitespace-nowrap text-sm text-muted-foreground">
                         {row.egreso_at
-                            ? formatAtendidoInAppTimezone(row.egreso_at, appLocale, appTz)
+                            ? formatAtendidoInAppTimezone(row.egreso_at, dateLocale, appTz)
                             : '—'}
                     </span>
                 ),
@@ -344,7 +345,7 @@ export default function Index({
         return base;
     }, [
         t,
-        appLocale,
+        dateLocale,
         appTz,
         canSeeAudit,
         showRowActions,

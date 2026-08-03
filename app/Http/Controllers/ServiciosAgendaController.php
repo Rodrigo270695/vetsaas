@@ -200,6 +200,9 @@ class ServiciosAgendaController extends Controller
             'filters' => [
                 'search' => $search,
                 'mes' => $mes,
+                'per_page' => 10,
+                'sort' => null,
+                'direction' => null,
             ],
             'agenda_filtro_ui' => [
                 'default_mes' => $defaultMes,

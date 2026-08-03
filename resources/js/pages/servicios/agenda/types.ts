@@ -1,3 +1,5 @@
+import type { BaseFilters } from '@/hooks/use-data-table-page';
+
 export type ServicioAgendaTipo = 'grooming' | 'hotel';
 
 export type ServicioAgendaEvento = {
@@ -22,8 +24,7 @@ export type ServicioAgendaEvento = {
     sede?: { id: string; nombre: string; codigo: string } | null;
 };
 
-export type ServicioAgendaFilters = {
-    search: string;
+export type ServicioAgendaFilters = BaseFilters & {
     mes: string;
 };
 
