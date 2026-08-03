@@ -10,7 +10,7 @@ use Spatie\Permission\Models\Permission;
 use Spatie\Permission\PermissionRegistrar;
 
 /**
- * Crea (o re-sincroniza) los **roles base de cada clínica/tenant**.
+ * Crea (o actualiza con cuidado) los **roles base de cada clínica/tenant**.
  *
  * Coinciden con los roles definidos en `vetsaas_db.md` §5.1:
  *
@@ -24,13 +24,21 @@ use Spatie\Permission\PermissionRegistrar;
  *
  *   - **Por tenant**: cada clínica tiene sus propias filas de roles
  *     (`roles.tenant_id`). Cambiar permisos en A no afecta a B.
- *   - **Idempotente**: `firstOrCreate` por (tenant_id, name) + `syncPermissions()`.
- *   - Roles protegidos vía `Role::BASE_CLINIC_ROLES` (no eliminables/renombrables).
+ *   - **Roles personalizados**: NO se tocan (solo los nombres en `ROLES`).
+ *   - **Por defecto aditivo**: solo **añade** permisos del catálogo base que
+ *     falten. **No quita** lo que el tenant configuró en Roles y permisos.
+ *   - **`$forceSync = true`**: `syncPermissions` (pisa customizaciones del
+ *     rol base). Solo vía `vetsaas:reset-tenant-roles` o provision consciente.
  *   - Depende de `PermissionsSeeder` (los permisos deben existir antes).
  *
- * Uso:
- *   - `php artisan db:seed --class=TenantRolesSeeder` → siembra todos los tenants.
- *   - `(new TenantRolesSeeder)->seedForTenant($tenantId)` → un tenant concreto.
+ * Uso seguro (permiso nuevo en prod):
+ *   - `php artisan db:seed --class=PermissionsSeeder`
+ *   - `php artisan db:seed --class=TenantRolesSeeder`
+ *   - `php artisan db:seed --class=SuperadminSeeder`
+ *   - `php artisan permission:cache-reset`
+ *
+ * Uso destructivo (restaura matriz base):
+ *   - `php artisan vetsaas:reset-tenant-roles --force`
  */
 class TenantRolesSeeder extends Seeder
 {
@@ -39,7 +47,9 @@ class TenantRolesSeeder extends Seeder
      *
      * Cada entrada incluye:
      *   - `description`: texto humano para mostrar en el listado.
-     *   - `permissions`: lista de permisos por defecto que se sincronizarán.
+     *   - `permissions`: permisos por defecto del catálogo base.
+     *     En modo normal solo se **añaden** los que falten; con `$forceSync`
+     *     se reemplaza la matriz completa del rol base.
      *
      * Si un permiso listado todavía no existe en BD (ej. olvidaste correr
      * `PermissionsSeeder` antes), simplemente se ignora — se asignan solo
@@ -299,9 +309,13 @@ class TenantRolesSeeder extends Seeder
     }
 
     /**
-     * Crea/sincroniza los roles base para un tenant concreto.
+     * Crea/actualiza los roles base para un tenant concreto.
+     *
+     * @param  bool  $forceSync  Si true, `syncPermissions` (pisa customizaciones
+     *                           del rol base). Si false (default), solo añade
+     *                           permisos del catálogo que aún no tenga el rol.
      */
-    public function seedForTenant(string $tenantId): void
+    public function seedForTenant(string $tenantId, bool $forceSync = false): void
     {
         $guard = config('auth.defaults.guard', 'web');
 
@@ -358,14 +372,30 @@ class TenantRolesSeeder extends Seeder
                     ));
                 }
 
-                $role->syncPermissions($perms);
+                if ($forceSync) {
+                    $role->syncPermissions($perms);
+                    $this->command?->info(sprintf(
+                        'Rol `%s` reseteado (sync) para tenant %s (%d permisos).',
+                        $name,
+                        $tenantId,
+                        count($perms),
+                    ));
+                } else {
+                    $existing = $role->permissions->pluck('name')->all();
+                    $toAdd = array_values(array_diff($perms, $existing));
 
-                $this->command?->info(sprintf(
-                    'Rol `%s` listo para tenant %s (%d permisos).',
-                    $name,
-                    $tenantId,
-                    count($perms),
-                ));
+                    if ($toAdd !== []) {
+                        $role->givePermissionTo($toAdd);
+                    }
+
+                    $this->command?->info(sprintf(
+                        'Rol `%s` listo para tenant %s (+%d nuevos, %d actuales; sin quitar customizaciones).',
+                        $name,
+                        $tenantId,
+                        count($toAdd),
+                        count($existing) + count($toAdd),
+                    ));
+                }
             }
 
             app(PermissionRegistrar::class)->forgetCachedPermissions();

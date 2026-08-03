@@ -18,11 +18,22 @@ use Spatie\Permission\PermissionRegistrar;
 /**
  * Resetea roles base + pivotes de TODOS los tenants (o uno con --slug).
  *
+ * ⚠️ Destructivo sobre roles base: vuelve a la matriz del seeder (pisa
+ * personalizaciones de admin_clinica, recepcionista, etc.). Los roles
+ * personalizados del tenant no se eliminan, pero los usuarios se
+ * reasignan a nombres de rol válidos.
+ *
  * Uso en producción tras activar Spatie Teams / 403 masivos:
  *   php artisan down
  *   php artisan vetsaas:reset-tenant-roles --force
  *   php artisan permission:cache-reset
  *   php artisan up
+ *
+ * Para solo añadir un permiso nuevo sin pisar customizaciones:
+ *   php artisan db:seed --class=PermissionsSeeder
+ *   php artisan db:seed --class=TenantRolesSeeder
+ *   php artisan db:seed --class=SuperadminSeeder
+ *   php artisan permission:cache-reset
  */
 final class ResetTenantRolesCommand extends Command
 {
@@ -116,7 +127,7 @@ final class ResetTenantRolesCommand extends Command
             setPermissionsTeamId($tenantId);
 
             try {
-                $seeder->seedForTenant($tenantId);
+                $seeder->seedForTenant($tenantId, forceSync: true);
 
                 $availableNames = Role::query()
                     ->where($teamKey, $tenantId)
