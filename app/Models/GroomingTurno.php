@@ -100,7 +100,7 @@ class GroomingTurno extends Model
      */
     public function urlCobrarEnCaja(): ?string
     {
-        if (! $this->permiteCargosPreCuenta() || $this->venta_id !== null) {
+        if (! $this->permiteCargosPreCuenta()) {
             return null;
         }
 
@@ -108,13 +108,14 @@ class GroomingTurno extends Model
             ? $this->cargo
             : $this->cargo()->first();
 
-        if ($cargo === null
-            || $cargo->estado !== ConsultaCargo::ESTADO_CONFIRMADO
-            || $cargo->venta_id !== null) {
-            return null;
+        // Pre-cuenta: se puede cobrar mientras el cargo esté confirmado y sin venta.
+        if ($cargo !== null
+            && $cargo->estado === ConsultaCargo::ESTADO_CONFIRMADO
+            && $cargo->venta_id === null) {
+            return route('caja.ventas.create-desde-grooming', ['grooming_turno' => $this], absolute: false);
         }
 
-        return route('caja.ventas.create-desde-grooming', ['grooming_turno' => $this], absolute: false);
+        return null;
     }
 
     /**

@@ -65,7 +65,6 @@ export function HotelRowActions({
             : null;
     const urlCobrarFallback =
         canCobrar &&
-        estancia.venta_id == null &&
         ESTADOS_CARGOS.has(estancia.estado) &&
         estancia.cargo?.estado === 'confirmado' &&
         estancia.cargo.venta_id == null

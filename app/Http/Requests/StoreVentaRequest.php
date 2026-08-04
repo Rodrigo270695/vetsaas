@@ -201,7 +201,8 @@ class StoreVentaRequest extends FormRequest
 
                     return;
                 }
-                if ($turno->venta_id !== null) {
+                // Con pre-cuenta confirmada, el cobro se valida por cargo.venta_id (arriba).
+                if (! $cargoListo && $turno->venta_id !== null) {
                     $v->errors()->add('grooming_turno_id', __('caja.ventas.grooming.ya_cobrado'));
 
                     return;
@@ -234,7 +235,7 @@ class StoreVentaRequest extends FormRequest
 
                     return;
                 }
-                if ($estancia->venta_id !== null) {
+                if (! $cargoListo && $estancia->venta_id !== null) {
                     $v->errors()->add('hotel_estancia_id', __('caja.ventas.hotel.ya_cobrado'));
 
                     return;

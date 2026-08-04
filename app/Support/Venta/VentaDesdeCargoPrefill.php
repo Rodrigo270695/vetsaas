@@ -263,12 +263,6 @@ final class VentaDesdeCargoPrefill
      */
     public function buildFromGrooming(GroomingTurno $turno): array
     {
-        if ($turno->venta_id !== null) {
-            throw ValidationException::withMessages([
-                'grooming' => __('caja.ventas.grooming.ya_cobrado'),
-            ]);
-        }
-
         $turno->load([
             'paciente' => fn ($q) => $q->withTrashed()->select('id', 'nombre', 'propietario_id'),
             'paciente.propietario' => fn ($q) => $q->withTrashed()->select('id', 'nombres', 'apellidos', 'razon_social'),
@@ -297,6 +291,7 @@ final class VentaDesdeCargoPrefill
                 ]);
             }
 
+            // Fuente de verdad del cobro por pre-cuenta: cargo.venta_id (no turno.venta_id).
             if ($cargo->venta_id !== null) {
                 throw ValidationException::withMessages([
                     'grooming' => __('caja.ventas.desde_cargo.validation.ya_cobrado'),
@@ -358,6 +353,13 @@ final class VentaDesdeCargoPrefill
                 'cargo_total' => (string) $cargo->total,
                 'lineas_iniciales' => $lineasIniciales,
             ];
+        }
+
+        // Flujo legacy (sin pre-cuenta): el cobro vive en el turno.
+        if ($turno->venta_id !== null) {
+            throw ValidationException::withMessages([
+                'grooming' => __('caja.ventas.grooming.ya_cobrado'),
+            ]);
         }
 
         if ($turno->estado !== GroomingTurno::ESTADO_COMPLETADA) {
@@ -437,12 +439,6 @@ final class VentaDesdeCargoPrefill
      */
     public function buildFromHotelEstancia(HotelEstancia $estancia): array
     {
-        if ($estancia->venta_id !== null) {
-            throw ValidationException::withMessages([
-                'hotel' => __('caja.ventas.hotel.ya_cobrado'),
-            ]);
-        }
-
         $estancia->load([
             'paciente' => fn ($q) => $q->withTrashed()->select('id', 'nombre', 'propietario_id'),
             'paciente.propietario' => fn ($q) => $q->withTrashed()->select('id', 'nombres', 'apellidos', 'razon_social'),
@@ -471,6 +467,7 @@ final class VentaDesdeCargoPrefill
                 ]);
             }
 
+            // Fuente de verdad del cobro por pre-cuenta: cargo.venta_id (no estancia.venta_id).
             if ($cargo->venta_id !== null) {
                 throw ValidationException::withMessages([
                     'hotel' => __('caja.ventas.desde_cargo.validation.ya_cobrado'),
@@ -532,6 +529,13 @@ final class VentaDesdeCargoPrefill
                 'cargo_total' => (string) $cargo->total,
                 'lineas_iniciales' => $lineasIniciales,
             ];
+        }
+
+        // Flujo legacy (sin pre-cuenta): el cobro vive en la estancia.
+        if ($estancia->venta_id !== null) {
+            throw ValidationException::withMessages([
+                'hotel' => __('caja.ventas.hotel.ya_cobrado'),
+            ]);
         }
 
         if ($estancia->estado !== HotelEstancia::ESTADO_COMPLETADA) {

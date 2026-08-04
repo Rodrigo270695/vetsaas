@@ -82,7 +82,7 @@ final class VentaCheckoutService
                         ->whereNull('venta_id')
                         ->exists();
                 if ($groomingTurnoLocked === null
-                    || $groomingTurnoLocked->venta_id !== null
+                    || (! $cargoGroomingListo && $groomingTurnoLocked->venta_id !== null)
                     || (! $cargoGroomingListo && $groomingTurnoLocked->estado !== GroomingTurno::ESTADO_COMPLETADA)) {
                     throw ValidationException::withMessages([
                         'grooming_turno_id' => __('caja.ventas.grooming.turno_invalido'),
@@ -107,7 +107,7 @@ final class VentaCheckoutService
                         ->whereNull('venta_id')
                         ->exists();
                 if ($hotelEstanciaLocked === null
-                    || $hotelEstanciaLocked->venta_id !== null
+                    || (! $cargoHotelListo && $hotelEstanciaLocked->venta_id !== null)
                     || (! $cargoHotelListo && $hotelEstanciaLocked->estado !== HotelEstancia::ESTADO_COMPLETADA)) {
                     throw ValidationException::withMessages([
                         'hotel_estancia_id' => __('caja.ventas.hotel.estancia_invalida'),

@@ -96,7 +96,7 @@ class HotelEstancia extends Model
      */
     public function urlCobrarEnCaja(): ?string
     {
-        if (! $this->permiteCargosPreCuenta() || $this->venta_id !== null) {
+        if (! $this->permiteCargosPreCuenta()) {
             return null;
         }
 
@@ -104,13 +104,13 @@ class HotelEstancia extends Model
             ? $this->cargo
             : $this->cargo()->first();
 
-        if ($cargo === null
-            || $cargo->estado !== ConsultaCargo::ESTADO_CONFIRMADO
-            || $cargo->venta_id !== null) {
-            return null;
+        if ($cargo !== null
+            && $cargo->estado === ConsultaCargo::ESTADO_CONFIRMADO
+            && $cargo->venta_id === null) {
+            return route('caja.ventas.create-desde-hotel', ['hotel_estancia' => $this], absolute: false);
         }
 
-        return route('caja.ventas.create-desde-hotel', ['hotel_estancia' => $this], absolute: false);
+        return null;
     }
 
     public function nochesSugeridasParaVenta(): int

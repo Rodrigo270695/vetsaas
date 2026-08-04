@@ -56,7 +56,6 @@ export function GroomingRowActions({
         typeof turno.url_cobrar === 'string' && turno.url_cobrar !== '' ? turno.url_cobrar : null;
     const urlCobrarFallback =
         canCobrar &&
-        turno.venta_id == null &&
         (turno.estado === 'en_proceso' || turno.estado === 'completada') &&
         turno.cargo?.estado === 'confirmado' &&
         turno.cargo.venta_id == null
