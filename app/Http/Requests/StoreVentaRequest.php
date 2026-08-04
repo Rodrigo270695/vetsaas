@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Models\CajaSesion;
 use App\Models\ClinicSetting;
+use App\Models\ConsultaCargo;
 use App\Models\FelSerie;
 use App\Models\GroomingTurno;
 use App\Models\HotelEstancia;
@@ -188,7 +189,14 @@ class StoreVentaRequest extends FormRequest
 
                     return;
                 }
-                if ($turno->estado !== GroomingTurno::ESTADO_COMPLETADA) {
+
+                $cargoListo = ConsultaCargo::query()
+                    ->where('grooming_turno_id', $turno->id)
+                    ->where('estado', ConsultaCargo::ESTADO_CONFIRMADO)
+                    ->whereNull('venta_id')
+                    ->exists();
+
+                if (! $cargoListo && $turno->estado !== GroomingTurno::ESTADO_COMPLETADA) {
                     $v->errors()->add('grooming_turno_id', __('caja.ventas.grooming.no_completado'));
 
                     return;
@@ -214,7 +222,14 @@ class StoreVentaRequest extends FormRequest
 
                     return;
                 }
-                if ($estancia->estado !== HotelEstancia::ESTADO_COMPLETADA) {
+
+                $cargoListo = ConsultaCargo::query()
+                    ->where('hotel_estancia_id', $estancia->id)
+                    ->where('estado', ConsultaCargo::ESTADO_CONFIRMADO)
+                    ->whereNull('venta_id')
+                    ->exists();
+
+                if (! $cargoListo && $estancia->estado !== HotelEstancia::ESTADO_COMPLETADA) {
                     $v->errors()->add('hotel_estancia_id', __('caja.ventas.hotel.no_completado'));
 
                     return;

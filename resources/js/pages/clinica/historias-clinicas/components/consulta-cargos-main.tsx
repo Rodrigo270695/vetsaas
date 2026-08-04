@@ -1,4 +1,4 @@
-import { Link } from '@inertiajs/react';
+import { Link, router } from '@inertiajs/react';
 import {
     ArrowLeft,
     AlertTriangle,
@@ -288,8 +288,14 @@ function StatusBanners({
                 icon={Wallet}
                 tone="warning"
                 action={
-                    <Button asChild variant="outline" size="sm" className="h-7 text-xs">
-                        <Link href={cobro.url_sesiones_caja}>{t('cobro.abrir_sesion_cta')}</Link>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-7 text-xs"
+                        onClick={() => router.visit(cobro.url_sesiones_caja)}
+                    >
+                        {t('cobro.abrir_sesion_cta')}
                     </Button>
                 }
             >
@@ -303,8 +309,13 @@ function StatusBanners({
                 icon={Wallet}
                 tone="primary"
                 action={
-                    <Button asChild size="sm" className="h-7 text-xs">
-                        <Link href={cobro.url_cobrar}>{t('cobro.cobrar_cta')}</Link>
+                    <Button
+                        type="button"
+                        size="sm"
+                        className="h-7 text-xs"
+                        onClick={() => router.visit(cobro.url_cobrar)}
+                    >
+                        {t('cobro.cobrar_cta')}
                     </Button>
                 }
             >

@@ -121,6 +121,7 @@ class GroomingTurnoController extends Controller
                 'sede:id,nombre,codigo',
                 'groomingServicio:id,nombre',
                 'fotos',
+                'cargo:id,grooming_turno_id,estado,venta_id',
             ]);
 
         if ($canAudit) {

@@ -91,8 +91,8 @@ class GroomingCargoController extends Controller
                 'venta_numero' => $ventaVinculada?->numero,
                 'puede_cobrar' => $puedeCobrarPorPermiso && $sesionCajaAbierta,
                 'requiere_sesion_caja' => $puedeCobrarPorPermiso && ! $sesionCajaAbierta,
-                'url_cobrar' => route('caja.ventas.create-desde-grooming', ['grooming_turno' => $groomingTurno]),
-                'url_sesiones_caja' => route('caja.sesiones.index'),
+                'url_cobrar' => route('caja.ventas.create-desde-grooming', ['grooming_turno' => $groomingTurno], absolute: false),
+                'url_sesiones_caja' => route('caja.sesiones.index', absolute: false),
             ],
             'clinic_billing' => [
                 'moneda' => $cfg->moneda,

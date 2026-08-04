@@ -106,6 +106,7 @@ class HotelEstanciaController extends Controller
                 'paciente.propietario:id,nombres,apellidos,razon_social',
                 'responsable:id,name',
                 'sede:id,nombre,codigo',
+                'cargo:id,hotel_estancia_id,estado,venta_id',
             ]);
 
         if ($canAudit) {

@@ -1,4 +1,4 @@
-import { Link } from '@inertiajs/react';
+import { Link, router } from '@inertiajs/react';
 import {
     Ban,
     CheckCircle2,
@@ -9,6 +9,7 @@ import {
     Receipt,
     Trash2,
     UserX,
+    Wallet,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
@@ -49,6 +50,16 @@ export function GroomingRowActions({
         (canUpdate || canCobrar) &&
         (turno.estado === 'en_proceso' || turno.estado === 'completada');
     const urlCargos = puedeVerCargos ? `/servicios/grooming/${turno.id}/cargos` : null;
+
+    const puedeCobrarEnCaja =
+        canCobrar &&
+        (turno.estado === 'en_proceso' || turno.estado === 'completada') &&
+        turno.venta_id == null &&
+        turno.cargo?.estado === 'confirmado' &&
+        turno.cargo.venta_id == null;
+    const urlCobrar = puedeCobrarEnCaja
+        ? `/caja/ventas/desde-grooming/${turno.id}`
+        : null;
 
     const puedeIniciar =
         canUpdate && (turno.estado === 'programada' || turno.estado === 'confirmada');
@@ -101,6 +112,18 @@ export function GroomingRowActions({
                     <span className="hidden lg:inline">{t('actions.completar')}</span>
                 </Button>
             ) : null}
+            {urlCobrar ? (
+                <Button
+                    type="button"
+                    variant="default"
+                    size="sm"
+                    className="h-8 gap-1.5 bg-emerald-600 text-white hover:bg-emerald-700"
+                    onClick={() => router.visit(urlCobrar)}
+                >
+                    <Wallet className="size-3.5" aria-hidden />
+                    <span className="hidden lg:inline">{t('actions.cobrar')}</span>
+                </Button>
+            ) : null}
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <Button
@@ -123,6 +146,14 @@ export function GroomingRowActions({
                             <Link href={urlCargos} className="flex cursor-pointer items-center gap-2">
                                 <Receipt className="size-4" strokeWidth={2.25} />
                                 {t('actions.cargos')}
+                            </Link>
+                        </DropdownMenuItem>
+                    ) : null}
+                    {urlCobrar ? (
+                        <DropdownMenuItem asChild>
+                            <Link href={urlCobrar} className="flex cursor-pointer items-center gap-2">
+                                <Wallet className="size-4" strokeWidth={2.25} />
+                                {t('actions.cobrar')}
                             </Link>
                         </DropdownMenuItem>
                     ) : null}

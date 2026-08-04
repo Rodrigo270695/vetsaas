@@ -9,6 +9,7 @@ import {
     Receipt,
     Trash2,
     UserX,
+    Wallet,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
@@ -57,6 +58,16 @@ export function HotelRowActions({
         (canUpdate || canCobrar) && ESTADOS_CARGOS.has(estancia.estado);
     const urlCargos = puedeVerCargos ? `/servicios/hotel/${estancia.id}/cargos` : null;
 
+    const puedeCobrarEnCaja =
+        canCobrar &&
+        ESTADOS_CARGOS.has(estancia.estado) &&
+        estancia.venta_id == null &&
+        estancia.cargo?.estado === 'confirmado' &&
+        estancia.cargo.venta_id == null;
+    const urlCobrar = puedeCobrarEnCaja
+        ? `/caja/ventas/desde-hotel/${estancia.id}`
+        : null;
+
     const puedeConfirmar = canUpdate && estancia.estado === 'programada';
     const puedeIngresar = canUpdate && estancia.estado === 'confirmada';
     const puedeCompletar = canUpdate && estancia.estado === 'en_estancia';
@@ -73,7 +84,7 @@ export function HotelRowActions({
         );
     };
 
-    if (!canUpdate && !canDelete && !urlCargos && !canDiarios) {
+    if (!canUpdate && !canDelete && !urlCargos && !urlCobrar && !canDiarios) {
         return null;
     }
 
@@ -115,6 +126,18 @@ export function HotelRowActions({
                     <span className="hidden lg:inline">{t('actions.completar')}</span>
                 </Button>
             ) : null}
+            {urlCobrar ? (
+                <Button
+                    type="button"
+                    variant="default"
+                    size="sm"
+                    className="h-8 gap-1.5 bg-emerald-600 text-white hover:bg-emerald-700"
+                    onClick={() => router.visit(urlCobrar)}
+                >
+                    <Wallet className="size-3.5" aria-hidden />
+                    <span className="hidden lg:inline">{t('actions.cobrar')}</span>
+                </Button>
+            ) : null}
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <Button
@@ -142,6 +165,14 @@ export function HotelRowActions({
                             <Link href={urlCargos} className="flex cursor-pointer items-center gap-2">
                                 <Receipt className="size-4 shrink-0" strokeWidth={2.25} />
                                 {t('actions.cargos')}
+                            </Link>
+                        </DropdownMenuItem>
+                    ) : null}
+                    {urlCobrar ? (
+                        <DropdownMenuItem asChild>
+                            <Link href={urlCobrar} className="flex cursor-pointer items-center gap-2">
+                                <Wallet className="size-4 shrink-0" strokeWidth={2.25} />
+                                {t('actions.cobrar')}
                             </Link>
                         </DropdownMenuItem>
                     ) : null}

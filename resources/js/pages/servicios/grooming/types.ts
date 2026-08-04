@@ -96,6 +96,11 @@ export type GroomingTurnoRow = {
     sede: { id: string; nombre: string; codigo: string } | null;
     venta_id: string | null;
     fotos?: GroomingTurnoFoto[];
+    cargo?: {
+        id: string;
+        estado: string;
+        venta_id: string | null;
+    } | null;
     creado_por?: AuditUser | null;
     actualizado_por?: AuditUser | null;
 };

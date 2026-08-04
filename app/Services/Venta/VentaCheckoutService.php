@@ -75,9 +75,15 @@ final class VentaCheckoutService
             $groomingId = $validated['grooming_turno_id'] ?? null;
             if (is_string($groomingId) && $groomingId !== '') {
                 $groomingTurnoLocked = GroomingTurno::query()->whereKey($groomingId)->lockForUpdate()->first();
+                $cargoGroomingListo = $groomingTurnoLocked !== null
+                    && ConsultaCargo::query()
+                        ->where('grooming_turno_id', $groomingTurnoLocked->id)
+                        ->where('estado', ConsultaCargo::ESTADO_CONFIRMADO)
+                        ->whereNull('venta_id')
+                        ->exists();
                 if ($groomingTurnoLocked === null
                     || $groomingTurnoLocked->venta_id !== null
-                    || $groomingTurnoLocked->estado !== GroomingTurno::ESTADO_COMPLETADA) {
+                    || (! $cargoGroomingListo && $groomingTurnoLocked->estado !== GroomingTurno::ESTADO_COMPLETADA)) {
                     throw ValidationException::withMessages([
                         'grooming_turno_id' => __('caja.ventas.grooming.turno_invalido'),
                     ]);
@@ -94,9 +100,15 @@ final class VentaCheckoutService
             $hotelEstanciaId = $validated['hotel_estancia_id'] ?? null;
             if (is_string($hotelEstanciaId) && $hotelEstanciaId !== '') {
                 $hotelEstanciaLocked = HotelEstancia::query()->whereKey($hotelEstanciaId)->lockForUpdate()->first();
+                $cargoHotelListo = $hotelEstanciaLocked !== null
+                    && ConsultaCargo::query()
+                        ->where('hotel_estancia_id', $hotelEstanciaLocked->id)
+                        ->where('estado', ConsultaCargo::ESTADO_CONFIRMADO)
+                        ->whereNull('venta_id')
+                        ->exists();
                 if ($hotelEstanciaLocked === null
                     || $hotelEstanciaLocked->venta_id !== null
-                    || $hotelEstanciaLocked->estado !== HotelEstancia::ESTADO_COMPLETADA) {
+                    || (! $cargoHotelListo && $hotelEstanciaLocked->estado !== HotelEstancia::ESTADO_COMPLETADA)) {
                     throw ValidationException::withMessages([
                         'hotel_estancia_id' => __('caja.ventas.hotel.estancia_invalida'),
                     ]);
