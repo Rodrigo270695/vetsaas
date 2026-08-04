@@ -99,14 +99,6 @@ export function GroomingRowActions({
                     <span className="hidden lg:inline">{t('actions.completar')}</span>
                 </Button>
             ) : null}
-            {urlCargos ? (
-                <Button variant="default" size="sm" className="h-8 gap-1.5" asChild>
-                    <Link href={urlCargos}>
-                        <Receipt className="size-3.5" aria-hidden />
-                        {t('actions.cargos')}
-                    </Link>
-                </Button>
-            ) : null}
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <Button
