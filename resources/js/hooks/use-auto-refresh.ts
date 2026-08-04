@@ -1,7 +1,7 @@
 import { router } from '@inertiajs/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-const DEFAULT_INTERVAL_MS = 15_000;
+const DEFAULT_INTERVAL_MS = 60_000;
 
 type Options = {
     only: string[];

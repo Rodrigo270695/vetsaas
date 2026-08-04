@@ -218,7 +218,6 @@ export function NavMainCollapsible({
                         >
                             <Link
                                 href={item.href}
-                                prefetch
                                 onClick={closeMobileSidebar}
                             >
                                 {item.icon && <item.icon />}
@@ -308,7 +307,6 @@ function NavSubItem({
         >
             <LinkComponent
                 href={item.href}
-                prefetch
                 onClick={onNavigate}
                 data-active={active}
                 className={cn(

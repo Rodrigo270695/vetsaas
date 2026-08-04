@@ -22,7 +22,7 @@
         "retry": "Retry"
     },
     "auto_refresh": {
-        "every": "Automatic refresh every 15s",
+        "every": "Automatic refresh every 60s",
         "updating": "Updating…",
         "updated_seconds": "Updated {{seconds}}s ago",
         "now": "Refresh now"

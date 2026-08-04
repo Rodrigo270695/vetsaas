@@ -7,11 +7,9 @@ import {
     useState,
     type ReactNode,
 } from 'react';
-import { router } from '@inertiajs/react';
 import { fetchOfflineBootstrap } from '@/lib/offline/api';
 import { saveCajaBootstrap, saveClinicaBootstrap, saveConfiguracionBootstrap, saveInventarioBootstrap, saveServiciosBootstrap } from '@/lib/offline/cache';
 import { isIndexedDbSupported } from '@/lib/offline/idb';
-import { OFFLINE_PATHS } from '@/lib/offline/offline-routes';
 import { flushOfflineOutbox, getPendingSummary } from '@/lib/offline/sync-engine';
 import { subscribePendingCount } from '@/lib/offline/sync-coordinator';
 import type { CajaBootstrapCache, ClinicaBootstrapCache, ConfiguracionBootstrapCache, InventarioBootstrapCache, ServiciosBootstrapCache } from '@/lib/offline/types';
@@ -25,12 +23,6 @@ type OfflineSyncContextValue = {
 };
 
 const OfflineSyncContext = createContext<OfflineSyncContextValue | null>(null);
-
-function prefetchOfflineWithInertia(): void {
-    for (const path of OFFLINE_PATHS) {
-        router.prefetch(path);
-    }
-}
 
 async function refreshBootstrapCaches(): Promise<void> {
     await Promise.all([
@@ -98,8 +90,9 @@ export function OfflineSyncProvider({ children }: { children: ReactNode }) {
         const onOnline = () => {
             setIsOnline(true);
             void syncNow();
+            // Solo bootstrap IndexedDB. Antes: router.prefetch de 30–40 listados
+            // en paralelo saturaba PHP-FPM (~5 s TTFB incluso en heartbeat).
             void refreshBootstrapCaches();
-            prefetchOfflineWithInertia();
         };
         const onOffline = () => setIsOnline(false);
 
@@ -108,7 +101,6 @@ export function OfflineSyncProvider({ children }: { children: ReactNode }) {
 
         if (navigator.onLine) {
             void refreshBootstrapCaches();
-            prefetchOfflineWithInertia();
         }
 
         return () => {
