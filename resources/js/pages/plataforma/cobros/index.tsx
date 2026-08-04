@@ -550,12 +550,15 @@ params.set('plan_id', filters.plan_id);
                 header: t('cobros:columns.pasarela'),
                 sortable: true,
                 cell: (p) => (
-                    <div className="flex flex-col leading-tight">
+                    <div className="flex max-w-[7.5rem] flex-col leading-tight">
                         <span className="text-xs font-medium">
                             {p.pasarela ?? '—'}
                         </span>
                         {p.pasarela_transaction_id && (
-                            <span className="truncate font-mono text-[10px] text-muted-foreground">
+                            <span
+                                className="block truncate font-mono text-[10px] text-muted-foreground"
+                                title={p.pasarela_transaction_id}
+                            >
                                 {p.pasarela_transaction_id}
                             </span>
                         )}
