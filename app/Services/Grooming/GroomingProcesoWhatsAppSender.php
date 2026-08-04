@@ -64,7 +64,13 @@ final class GroomingProcesoWhatsAppSender
                 $clinicName, $ownerName, $petName, $servicioLabel, $inicioAt,
             )
             : $this->messages->groomingTurnoProgramado(
-                $clinicName, $ownerName, $petName, $servicioLabel, $inicioAt,
+                $clinicName,
+                $ownerName,
+                $petName,
+                $servicioLabel,
+                $inicioAt,
+                $turno->tieneAdelanto() ? (string) $turno->adelanto_monto : null,
+                $turno->tieneAdelanto() ? (string) ($clinic->moneda ?: 'PEN') : null,
             );
 
         $result = $this->client->sendTextWithDeliveryFallback(
