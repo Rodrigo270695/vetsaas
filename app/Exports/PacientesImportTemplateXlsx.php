@@ -156,19 +156,29 @@ class PacientesImportTemplateXlsx
 
         $propRows = Propietario::query()
             ->where('activo', true)
-            ->whereNotNull('numero_documento')
-            ->where('numero_documento', '!=', '')
             ->orderBy('nombres')
             ->limit(400)
             ->get(['tipo_documento', 'numero_documento', 'nombres', 'apellidos', 'razon_social'])
             ->map(function (Propietario $p): array {
-                $doc = trim(($p->tipo_documento ? $p->tipo_documento.' ' : '').(string) $p->numero_documento);
                 $nombre = $p->displayName();
+                $num = trim((string) ($p->numero_documento ?? ''));
+
+                if ($num !== '') {
+                    $doc = trim(($p->tipo_documento ? $p->tipo_documento.' ' : '').$num);
+
+                    return [
+                        'codigo' => $num,
+                        'nombre' => $nombre,
+                        'referencia' => (string) ($p->tipo_documento ?: 'DOC'),
+                        'valor' => $doc,
+                    ];
+                }
 
                 return [
-                    'codigo' => (string) $p->numero_documento,
+                    'codigo' => 'SIN-DOC',
                     'nombre' => $nombre,
-                    'valor' => $doc,
+                    'referencia' => 'Sin documento — vincular por nombre',
+                    'valor' => $nombre,
                 ];
             })
             ->all();
@@ -176,7 +186,8 @@ class PacientesImportTemplateXlsx
         if ($propRows === []) {
             $propRows = [[
                 'codigo' => '',
-                'nombre' => '(Sin propietarios con documento — impórtalos primero)',
+                'nombre' => '(Sin propietarios — créalos primero)',
+                'referencia' => '',
                 'valor' => '',
             ]];
         } else {
@@ -237,7 +248,7 @@ class PacientesImportTemplateXlsx
     }
 
     /**
-     * @param  list<array{codigo: string, nombre: string, valor: string}>  $rows
+     * @param  list<array{codigo: string, nombre: string, referencia?: string, valor: string}>  $rows
      */
     private function writeBlock(Worksheet $sheet, int $startRow, string $title, array $rows): int
     {
@@ -256,6 +267,7 @@ class PacientesImportTemplateXlsx
         foreach ($rows as $item) {
             $sheet->setCellValueExplicit("A{$r}", $item['codigo'], DataType::TYPE_STRING);
             $sheet->setCellValue("B{$r}", $item['nombre']);
+            $sheet->setCellValue("C{$r}", $item['referencia'] ?? '');
             $sheet->setCellValue("D{$r}", $item['valor']);
             $r++;
         }
@@ -287,7 +299,7 @@ class PacientesImportTemplateXlsx
         ]);
         $sheet->setCellValue(
             'A2',
-            'propietario_documento* debe coincidir con un titular existente (lista Catalogos → PROPIETARIOS). fecha_nacimiento: usa DD/MM/AAAA (ej. 15/01/2022).',
+            'propietario_documento* debe coincidir con un titular de Catalogos → PROPIETARIOS: con DNI usa el documento; sin DNI elige el nombre completo. fecha_nacimiento: DD/MM/AAAA.',
         );
         $sheet->mergeCells('A2:C2');
         $sheet->getStyle('A2')->applyFromArray([
@@ -299,7 +311,7 @@ class PacientesImportTemplateXlsx
             [
                 ['Campo', 'Obligatorio', 'Cómo completarlo'],
                 ['nombre*', 'Sí', 'Nombre de la mascota'],
-                ['propietario_documento*', 'Sí', 'Lista PROPIETARIOS o número de documento del titular'],
+                ['propietario_documento*', 'Sí', 'Con doc: DNI/RUC… Sin doc: nombre y apellido (lista PROPIETARIOS)'],
                 ['activo*', 'Sí', 'Lista SI / NO'],
                 ['especie', 'No', 'Lista o texto libre'],
                 ['raza', 'No', 'Lista o texto libre'],

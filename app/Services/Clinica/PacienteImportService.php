@@ -77,20 +77,39 @@ final class PacienteImportService
         }
 
         $propietarios = Propietario::query()
-            ->whereNotNull('numero_documento')
-            ->where('numero_documento', '!=', '')
-            ->get(['id', 'tipo_documento', 'numero_documento']);
+            ->where('activo', true)
+            ->get(['id', 'tipo_documento', 'numero_documento', 'nombres', 'apellidos', 'razon_social']);
 
         /** @var array<string, string> */
         $byNumero = [];
         /** @var array<string, string> */
         $byTipoNumero = [];
+        /** @var array<string, string> nombres normalizados → id (solo sin documento) */
+        $byNombreSinDoc = [];
+        /** @var array<string, true> */
+        $nombreSinDocAmbiguo = [];
+
         foreach ($propietarios as $p) {
-            $num = mb_strtolower(trim((string) $p->numero_documento));
-            $tipo = mb_strtoupper(trim((string) ($p->tipo_documento ?? '')));
-            $byNumero[$num] = (string) $p->id;
-            $byTipoNumero[mb_strtolower($tipo.' '.$num)] = (string) $p->id;
-            $byTipoNumero[mb_strtolower($tipo.'|'.$num)] = (string) $p->id;
+            $num = trim((string) ($p->numero_documento ?? ''));
+            if ($num !== '') {
+                $numKey = mb_strtolower($num);
+                $tipo = mb_strtoupper(trim((string) ($p->tipo_documento ?? '')));
+                $byNumero[$numKey] = (string) $p->id;
+                $byTipoNumero[mb_strtolower($tipo.' '.$numKey)] = (string) $p->id;
+                $byTipoNumero[mb_strtolower($tipo.'|'.$numKey)] = (string) $p->id;
+                continue;
+            }
+
+            $nameKey = $this->normalizePersonName($p->displayName());
+            if ($nameKey === '') {
+                continue;
+            }
+            if (isset($byNombreSinDoc[$nameKey]) || isset($nombreSinDocAmbiguo[$nameKey])) {
+                unset($byNombreSinDoc[$nameKey]);
+                $nombreSinDocAmbiguo[$nameKey] = true;
+                continue;
+            }
+            $byNombreSinDoc[$nameKey] = (string) $p->id;
         }
 
         $userId = Auth::id();
@@ -162,14 +181,24 @@ final class PacienteImportService
                 continue;
             }
 
-            $propietarioId = $this->resolvePropietarioId($propRaw, $byNumero, $byTipoNumero);
+            $propietarioId = $this->resolvePropietarioId(
+                $propRaw,
+                $byNumero,
+                $byTipoNumero,
+                $byNombreSinDoc,
+                $nombreSinDocAmbiguo,
+            );
             if ($propietarioId === null) {
                 $failed++;
+                $nameKey = $this->normalizePersonName($propRaw);
+                $message = isset($nombreSinDocAmbiguo[$nameKey])
+                    ? 'Hay varios propietarios sin documento con el nombre «'.$propRaw.'». Usa un documento o desambigua el nombre.'
+                    : 'Propietario no encontrado: «'.$propRaw.'». Con DNI usa el documento; sin DNI el nombre exacto de la lista.';
                 $results[] = [
                     'row' => $excelRow,
                     'nombre' => $nombre,
                     'status' => 'error',
-                    'message' => 'Propietario no encontrado: «'.$propRaw.'».',
+                    'message' => $message,
                 ];
                 continue;
             }
@@ -297,8 +326,19 @@ final class PacienteImportService
      * @param  array<string, string>  $byNumero
      * @param  array<string, string>  $byTipoNumero
      */
-    private function resolvePropietarioId(string $raw, array $byNumero, array $byTipoNumero): ?string
-    {
+    /**
+     * @param  array<string, string>  $byNumero
+     * @param  array<string, string>  $byTipoNumero
+     * @param  array<string, string>  $byNombreSinDoc
+     * @param  array<string, true>  $nombreSinDocAmbiguo
+     */
+    private function resolvePropietarioId(
+        string $raw,
+        array $byNumero,
+        array $byTipoNumero,
+        array $byNombreSinDoc,
+        array $nombreSinDocAmbiguo,
+    ): ?string {
         $key = mb_strtolower(trim($raw));
         if ($key === '') {
             return null;
@@ -319,9 +359,29 @@ final class PacienteImportService
             return $byNumero[mb_strtolower($num)] ?? null;
         }
 
-        $soloNum = preg_replace('/\D+/', '', $key) ?: $key;
+        $soloNum = preg_replace('/\D+/', '', $key) ?: '';
+        if ($soloNum !== '' && isset($byNumero[mb_strtolower($soloNum)])) {
+            return $byNumero[mb_strtolower($soloNum)];
+        }
+        if (isset($byNumero[$key])) {
+            return $byNumero[$key];
+        }
 
-        return $byNumero[mb_strtolower($soloNum)] ?? $byNumero[$key] ?? null;
+        // Sin documento: amarre por nombre y apellido
+        $nameKey = $this->normalizePersonName($raw);
+        if ($nameKey === '' || isset($nombreSinDocAmbiguo[$nameKey])) {
+            return null;
+        }
+
+        return $byNombreSinDoc[$nameKey] ?? null;
+    }
+
+    private function normalizePersonName(string $name): string
+    {
+        $n = mb_strtolower(trim($name));
+        $n = preg_replace('/\s+/u', ' ', $n) ?? $n;
+
+        return $n;
     }
 
     /**
