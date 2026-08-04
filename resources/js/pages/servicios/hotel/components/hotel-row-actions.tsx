@@ -130,18 +130,6 @@ export function HotelRowActions({
                     <span className="hidden lg:inline">{t('actions.completar')}</span>
                 </Button>
             ) : null}
-            {urlCargos ? (
-                <Link
-                    href={urlCargos}
-                    className={cn(
-                        buttonVariants({ variant: 'outline', size: 'sm' }),
-                        'h-8 gap-1.5 no-underline',
-                    )}
-                >
-                    <Receipt className="size-3.5" aria-hidden />
-                    <span className="hidden lg:inline">{t('actions.cargos')}</span>
-                </Link>
-            ) : null}
             {urlCobrar ? (
                 <a
                     href={urlCobrar}
