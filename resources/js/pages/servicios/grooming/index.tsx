@@ -120,6 +120,7 @@ export default function Index({
     grooming_servicio_grupos,
     grooming_servicio_duraciones,
     pacientes_opciones,
+    usuarios_opciones,
     sedes_opciones,
     filters,
     grooming_filtro_ui,
@@ -518,6 +519,7 @@ export default function Index({
                 servicioGrupos={grooming_servicio_grupos}
                 servicioDuraciones={grooming_servicio_duraciones}
                 pacientesOpciones={pacientes_opciones}
+                usuariosOpciones={usuarios_opciones}
                 sedesOpciones={sedes_opciones}
             />
 

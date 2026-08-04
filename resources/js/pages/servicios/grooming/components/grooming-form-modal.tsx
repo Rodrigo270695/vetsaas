@@ -28,6 +28,7 @@ import type {
     GroomingTurnoRow,
     PacienteGroomingOpcion,
     SedeGroomingOpcion,
+    UsuarioGroomingOpcion,
 } from '../types';
 
 const controlClass = 'h-10 w-full min-w-0';
@@ -71,6 +72,7 @@ export type GroomingFormModalProps = {
     servicioGrupos: readonly GroomingServicioGrupo[];
     servicioDuraciones: Readonly<Record<string, number>>;
     pacientesOpciones: readonly PacienteGroomingOpcion[];
+    usuariosOpciones: readonly UsuarioGroomingOpcion[];
     sedesOpciones: readonly SedeGroomingOpcion[];
     /** Prefill al crear desde la agenda (fecha YYYY-MM-DD, hora HH:mm). */
     prefill?: { fecha?: string; hora?: string } | null;
@@ -148,6 +150,7 @@ export function GroomingFormModal({
     servicioGrupos,
     servicioDuraciones,
     pacientesOpciones,
+    usuariosOpciones,
     sedesOpciones,
     prefill = null,
     fromAgenda = false,
@@ -263,6 +266,20 @@ export function GroomingFormModal({
         value: p.id,
         label: `${p.nombre} · ${displayPropietario(p.propietario) || '—'}`,
     }));
+
+    const responsableOptions = useMemo(() => {
+        const list = [...usuariosOpciones];
+        const selectedId = data.responsable_id;
+
+        if (selectedId != null && selectedId !== '' && !list.some((u) => u.id === selectedId)) {
+            list.unshift({
+                id: selectedId,
+                name: turno?.responsable?.name ?? selectedId,
+            });
+        }
+
+        return list;
+    }, [usuariosOpciones, data.responsable_id, turno?.responsable?.name]);
 
     const buildCreatePayload = (raw: FormShape): Record<string, unknown> => {
         const dm = raw.duracion_minutos.trim();
@@ -523,6 +540,36 @@ export function GroomingFormModal({
                         minutes: String(servicioDuraciones[data.servicio] ?? 60),
                     })}
                 </p>
+
+                <FormField
+                    id="gf-responsable"
+                    label={t('form.responsable')}
+                    error={errors.responsable_id as string | undefined}
+                >
+                    <Select
+                        value={data.responsable_id ?? '__none__'}
+                        onValueChange={(v) =>
+                            setData('responsable_id', v === '__none__' ? null : v)
+                        }
+                        disabled={processing}
+                    >
+                        <SelectTrigger
+                            id="gf-responsable"
+                            className={controlClass}
+                            aria-invalid={Boolean(errors.responsable_id)}
+                        >
+                            <SelectValue placeholder={t('form.responsable_placeholder')} />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-72">
+                            <SelectItem value="__none__">{t('form.responsable_placeholder')}</SelectItem>
+                            {responsableOptions.map((u) => (
+                                <SelectItem key={u.id} value={u.id} className="text-sm">
+                                    {u.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </FormField>
 
                 {isEdit ? (
                     <p className="rounded-md border border-border/60 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">

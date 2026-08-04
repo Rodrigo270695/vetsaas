@@ -14,6 +14,7 @@ use App\Models\HotelTipoEstancia;
 use App\Models\Paciente;
 use App\Models\Sede;
 use App\Models\Tenant;
+use App\Models\User;
 use App\Support\Tenancy\TenantModuleAccess;
 use App\Tenancy\TenantManager;
 use Illuminate\Http\Request;
@@ -165,6 +166,12 @@ class ServiciosAgendaController extends Controller
             ->get(['id', 'nombre', 'propietario_id']);
 
         $tenantId = tenant_id();
+        $usuariosOpciones = User::query()
+            ->where('tenant_id', $tenantId)
+            ->orderBy('name')
+            ->limit(200)
+            ->get(['id', 'name']);
+
         $sedesOpciones = Sede::query()
             ->where('tenant_id', $tenantId)
             ->where('activa', true)
@@ -218,6 +225,7 @@ class ServiciosAgendaController extends Controller
                 'hotel_create' => $hotelEnabled && ($user?->can('hotel.create') ?? false),
             ],
             'pacientes_opciones' => $pacientesOpciones,
+            'usuarios_opciones' => $usuariosOpciones,
             'sedes_opciones' => $sedesOpciones,
             'grooming_catalogo_personalizado' => $groomingCatalogoPersonalizado,
             'grooming_servicios' => $groomingServicios,

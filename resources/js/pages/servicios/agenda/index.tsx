@@ -26,6 +26,7 @@ import type {
     GroomingServicioRow,
     PacienteGroomingOpcion,
     SedeGroomingOpcion,
+    UsuarioGroomingOpcion,
 } from '../grooming/types';
 import { HotelFormModal } from '../hotel/components/hotel-form-modal';
 import type {
@@ -51,6 +52,7 @@ type Props = {
     stats: { total: number; grooming: number; hotel: number };
     capabilities: ServicioAgendaCapabilities;
     pacientes_opciones: readonly PacienteGroomingOpcion[];
+    usuarios_opciones: readonly UsuarioGroomingOpcion[];
     sedes_opciones: readonly SedeGroomingOpcion[];
     grooming_catalogo_personalizado: boolean;
     grooming_servicios: readonly GroomingServicioRow[];
@@ -82,6 +84,7 @@ export default function ServiciosAgendaIndex({
     stats,
     capabilities,
     pacientes_opciones,
+    usuarios_opciones,
     sedes_opciones,
     grooming_catalogo_personalizado,
     grooming_servicios,
@@ -382,6 +385,7 @@ export default function ServiciosAgendaIndex({
                 servicioGrupos={grooming_servicio_grupos}
                 servicioDuraciones={grooming_servicio_duraciones}
                 pacientesOpciones={pacientes_opciones}
+                usuariosOpciones={usuarios_opciones}
                 sedesOpciones={sedes_opciones}
                 prefill={prefill}
                 fromAgenda
