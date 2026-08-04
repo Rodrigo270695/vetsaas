@@ -244,6 +244,43 @@ export default function Index({ snapshot, can_manage }: Props) {
                 ? t('performance.hint_webhooks_only')
                 : null;
 
+    const loadThreshold = snapshot.performance.load_alert_threshold;
+    const hitLimit = snapshot.performance.clinic_bot.rate_limit_per_minute;
+    const hitWarn = Math.max(1, Math.floor(hitLimit * 0.7));
+
+    const loadBadgeVariant = (
+        load: number | null,
+    ): 'success' | 'warning' | 'danger' | 'muted' => {
+        if (load === null) return 'muted';
+        if (load >= loadThreshold * 2) return 'danger';
+        if (load >= loadThreshold) return 'warning';
+        return 'success';
+    };
+
+    const hits1m = snapshot.performance.clinic_bot.hits_1m;
+    const hits5m = snapshot.performance.clinic_bot.hits_5m;
+    const hits1mVariant: 'success' | 'warning' | 'danger' =
+        snapshot.performance.clinic_bot.circuit_open || hits1m > hitLimit
+            ? 'danger'
+            : hits1m >= hitWarn
+              ? 'warning'
+              : 'success';
+    const hits5mAvg = hits5m / 5;
+    const hits5mVariant: 'success' | 'warning' | 'danger' =
+        hits5mAvg > hitLimit
+            ? 'danger'
+            : hits5mAvg >= hitWarn
+              ? 'warning'
+              : 'success';
+    const skippedVariant: 'success' | 'warning' | 'muted' =
+        hits1m === 0
+            ? 'success'
+            : snapshot.performance.clinic_bot.skipped_1m >= hitWarn
+              ? 'warning'
+              : 'success';
+    const processedVariant: 'success' | 'muted' =
+        snapshot.performance.clinic_bot.processed_1m > 0 ? 'success' : 'muted';
+
     const runBackup = () => {
         setBackupRunning(true);
         router.post(operaciones.backups.run.url(), {}, {
@@ -426,11 +463,9 @@ export default function Index({ snapshot, can_manage }: Props) {
                                         ? String(snapshot.performance.load_1)
                                         : '—'
                                 }
-                                variant={
-                                    snapshot.performance.load_high
-                                        ? 'warning'
-                                        : 'muted'
-                                }
+                                variant={loadBadgeVariant(
+                                    snapshot.performance.load_1,
+                                )}
                             />
                             <StatBadge
                                 label={t('performance.load_5')}
@@ -439,26 +474,19 @@ export default function Index({ snapshot, can_manage }: Props) {
                                         ? String(snapshot.performance.load_5)
                                         : '—'
                                 }
-                                variant="muted"
+                                variant={loadBadgeVariant(
+                                    snapshot.performance.load_5,
+                                )}
                             />
                             <StatBadge
                                 label={t('performance.hits_1m')}
-                                value={String(
-                                    snapshot.performance.clinic_bot.hits_1m,
-                                )}
-                                variant={
-                                    snapshot.performance.clinic_bot
-                                        .high_traffic
-                                        ? 'warning'
-                                        : 'muted'
-                                }
+                                value={String(hits1m)}
+                                variant={hits1mVariant}
                             />
                             <StatBadge
                                 label={t('performance.hits_5m')}
-                                value={String(
-                                    snapshot.performance.clinic_bot.hits_5m,
-                                )}
-                                variant="muted"
+                                value={String(hits5m)}
+                                variant={hits5mVariant}
                             />
                             <StatBadge
                                 label={t('performance.processed_1m')}
@@ -466,7 +494,7 @@ export default function Index({ snapshot, can_manage }: Props) {
                                     snapshot.performance.clinic_bot
                                         .processed_1m,
                                 )}
-                                variant="muted"
+                                variant={processedVariant}
                             />
                             <StatBadge
                                 label={t('performance.skipped_1m')}
@@ -474,14 +502,11 @@ export default function Index({ snapshot, can_manage }: Props) {
                                     snapshot.performance.clinic_bot
                                         .skipped_1m,
                                 )}
-                                variant="muted"
+                                variant={skippedVariant}
                             />
                             <StatBadge
                                 label={t('performance.rate_limit')}
-                                value={String(
-                                    snapshot.performance.clinic_bot
-                                        .rate_limit_per_minute,
-                                )}
+                                value={String(hitLimit)}
                                 variant="muted"
                             />
                             <StatBadge
