@@ -60,11 +60,16 @@ final class ClinicBotWebhookController extends Controller
             return response()->json(['ok' => true, 'skipped' => 'outgoing_event']);
         }
 
+        // Filtrar ANTES de DB/tenancy: OpenWA dispara presence/typing/ack a granel.
+        // En prod llegó a ~90% del access.log y saturó PHP-FPM (load ~34).
+        $esEventoMensaje = in_array($event, ['message.received', 'onMessage', 'message'], true);
+        if (! $esEventoMensaje) {
+            return response()->json(['ok' => true, 'skipped' => 'not_message_event']);
+        }
+
         $fromMe = (bool) ($data['fromMe'] ?? $data['from_me'] ?? false);
         $type = (string) ($data['type'] ?? 'chat');
         $body = trim((string) ($data['body'] ?? $data['content'] ?? $data['text'] ?? ''));
-
-        $esEventoMensaje = in_array($event, ['message.received', 'onMessage', 'message'], true);
 
         $openWaSessionId = (string) ($payload['sessionId'] ?? $data['sessionId'] ?? '');
 
@@ -85,10 +90,6 @@ final class ClinicBotWebhookController extends Controller
         $subscription = $tenant->subscriptions()->orderByDesc('created_at')->first();
         if (! SubscriptionBotIaAddon::isActive($subscription)) {
             return response()->json(['ok' => true, 'skipped' => 'bot_ia_inactive']);
-        }
-
-        if (! $esEventoMensaje) {
-            return response()->json(['ok' => true, 'skipped' => 'not_message_event']);
         }
 
         if ($this->guard->isLikelyOutgoingMessage($data, $fromMe)) {
