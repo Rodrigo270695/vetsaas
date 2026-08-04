@@ -380,7 +380,7 @@ export default function Index({ snapshot, can_manage }: Props) {
                                         ? t('common:auto_refresh.updating')
                                         : t(
                                               'common:auto_refresh.updated_seconds',
-                                              { count: secondsSince },
+                                              { seconds: secondsSince },
                                           )}
                                 </Button>
                             </div>
