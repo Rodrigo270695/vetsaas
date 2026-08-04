@@ -63,7 +63,8 @@
         "subtotal": "Subtotal (sin IGV):",
         "igv": "IGV:",
         "total": "Total:",
-        "hint_refresh": "Los totales se actualizan al guardar."
+        "hint_refresh": "Los totales se actualizan al guardar.",
+        "hint_live": "El resumen se actualiza al editar las líneas. Confirma para guardar."
     },
     "confirmar": "Confirmar pre-cuenta",
     "editar_precuenta": "Editar pre-cuenta",

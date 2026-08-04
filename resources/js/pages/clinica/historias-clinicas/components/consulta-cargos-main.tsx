@@ -17,6 +17,7 @@ import {
     Wallet,
 } from 'lucide-react';
 import type { FormEvent, ReactNode } from 'react';
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Can } from '@/components/can';
 import { PageHeader } from '@/components/data-page';
@@ -57,6 +58,50 @@ type LineaApi = {
     descuento_importe: string;
     producto?: { id: string; nombre: string; sku: string | null; unidad: string | null } | null;
 };
+
+/** Misma lógica que ConsultaCargoTotales (PHP). */
+function totalesDesdeLineas(
+    lineas: LineaForm[],
+    precioIncluyeIgv: boolean,
+    igvPorcentaje: number,
+): { subtotal_sin_igv: string; igv_importe: string; total: string } {
+    let sumaBruta = 0;
+    for (const ln of lineas) {
+        const cant = Number(String(ln.cantidad).replace(',', '.')) || 0;
+        const pu = Number(String(ln.precio_unitario).replace(',', '.')) || 0;
+        const desc = Number(String(ln.descuento_importe ?? '0').replace(',', '.')) || 0;
+        sumaBruta += Math.max(0, cant * pu - desc);
+    }
+    sumaBruta = Math.round(sumaBruta * 100) / 100;
+    const tasa = Math.max(0, igvPorcentaje);
+
+    let sub: number;
+    let igv: number;
+    let total: number;
+
+    if (precioIncluyeIgv) {
+        total = sumaBruta;
+        if (tasa <= 0) {
+            sub = total;
+            igv = 0;
+        } else {
+            sub = Math.round((total / (1 + tasa / 100)) * 100) / 100;
+            igv = Math.round((total - sub) * 100) / 100;
+        }
+    } else {
+        sub = sumaBruta;
+        igv = Math.round(sub * (tasa / 100) * 100) / 100;
+        total = Math.round((sub + igv) * 100) / 100;
+    }
+
+    const fmt = (v: number) => v.toFixed(2);
+
+    return {
+        subtotal_sin_igv: fmt(sub),
+        igv_importe: fmt(igv),
+        total: fmt(total),
+    };
+}
 
 export type ConsultaCargosMainProps = {
     title: string;
@@ -334,6 +379,30 @@ export function ConsultaCargosMain({
 
     const notasVisibles = puedeEditar || Boolean(data.notas?.trim());
 
+    const totalesMostrar = useMemo(() => {
+        if (puedeEditar) {
+            return totalesDesdeLineas(
+                data.lineas,
+                clinic_billing.precio_incluye_igv,
+                clinic_billing.igv_porcentaje,
+            );
+        }
+
+        return {
+            subtotal_sin_igv: cargo.subtotal_sin_igv,
+            igv_importe: cargo.igv_importe,
+            total: cargo.total,
+        };
+    }, [
+        puedeEditar,
+        data.lineas,
+        clinic_billing.precio_incluye_igv,
+        clinic_billing.igv_porcentaje,
+        cargo.subtotal_sin_igv,
+        cargo.igv_importe,
+        cargo.total,
+    ]);
+
     const totalesPanel = (
         <aside className="rounded-xl border border-sky-200/70 bg-linear-to-br from-sky-50 via-card to-emerald-50/60 p-4 shadow-sm dark:border-sky-800/50 dark:from-sky-950/30 dark:via-card dark:to-emerald-950/20 lg:sticky lg:top-4">
             <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-sky-700 dark:text-sky-300">
@@ -342,22 +411,30 @@ export function ConsultaCargosMain({
             <dl className="space-y-1.5 text-sm">
                 <div className="flex justify-between gap-3">
                     <dt className="text-muted-foreground">{t('totales.subtotal')}</dt>
-                    <dd className="font-medium tabular-nums">{formatMonto(cargo.subtotal_sin_igv, cargo.moneda)}</dd>
+                    <dd className="font-medium tabular-nums">
+                        {formatMonto(totalesMostrar.subtotal_sin_igv, cargo.moneda)}
+                    </dd>
                 </div>
                 <div className="flex justify-between gap-3">
                     <dt className="text-muted-foreground">
                         {t('totales.igv')} ({clinic_billing.igv_porcentaje}%)
                     </dt>
-                    <dd className="font-medium tabular-nums">{formatMonto(cargo.igv_importe, cargo.moneda)}</dd>
+                    <dd className="font-medium tabular-nums">
+                        {formatMonto(totalesMostrar.igv_importe, cargo.moneda)}
+                    </dd>
                 </div>
                 <div className="flex justify-between gap-3 border-t border-border/40 pt-2">
                     <dt className="font-semibold text-foreground">{t('totales.total')}</dt>
                     <dd className="text-base font-semibold tabular-nums text-primary">
-                        {formatMonto(cargo.total, cargo.moneda)}
+                        {formatMonto(totalesMostrar.total, cargo.moneda)}
                     </dd>
                 </div>
             </dl>
-            <p className="mt-2.5 text-[0.7rem] leading-snug text-muted-foreground">{t('totales.hint_refresh')}</p>
+            {puedeEditar ? (
+                <p className="mt-2.5 text-[0.7rem] leading-snug text-muted-foreground">
+                    {t('totales.hint_live')}
+                </p>
+            ) : null}
             {puedeEditar ? (
                 <div className="mt-4">
                     <Button

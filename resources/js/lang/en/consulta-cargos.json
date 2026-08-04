@@ -63,7 +63,8 @@
         "subtotal": "Subtotal (excl. VAT):",
         "igv": "VAT:",
         "total": "Total:",
-        "hint_refresh": "Totals refresh when you save."
+        "hint_refresh": "Totals refresh when you save.",
+        "hint_live": "The summary updates as you edit lines. Confirm to save."
     },
     "confirmar": "Confirm pre-invoice",
     "editar_precuenta": "Edit pre-invoice",
