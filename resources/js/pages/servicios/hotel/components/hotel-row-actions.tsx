@@ -59,10 +59,19 @@ export function HotelRowActions({
         (canUpdate || canCobrar) && ESTADOS_CARGOS.has(estancia.estado);
     const urlCargos = puedeVerCargos ? `/servicios/hotel/${estancia.id}/cargos` : null;
 
-    const urlCobrar =
+    const urlCobrarFromServer =
         typeof estancia.url_cobrar === 'string' && estancia.url_cobrar !== ''
             ? estancia.url_cobrar
             : null;
+    const urlCobrarFallback =
+        canCobrar &&
+        estancia.venta_id == null &&
+        ESTADOS_CARGOS.has(estancia.estado) &&
+        estancia.cargo?.estado === 'confirmado' &&
+        estancia.cargo.venta_id == null
+            ? `/caja/ventas/desde-hotel/${estancia.id}`
+            : null;
+    const urlCobrar = urlCobrarFromServer ?? urlCobrarFallback;
 
     const puedeConfirmar = canUpdate && estancia.estado === 'programada';
     const puedeIngresar = canUpdate && estancia.estado === 'confirmada';

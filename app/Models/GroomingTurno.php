@@ -106,7 +106,7 @@ class GroomingTurno extends Model
 
         $cargo = $this->relationLoaded('cargo')
             ? $this->cargo
-            : $this->cargo()->first(['id', 'estado', 'venta_id', 'grooming_turno_id']);
+            : $this->cargo()->first();
 
         if ($cargo === null
             || $cargo->estado !== ConsultaCargo::ESTADO_CONFIRMADO

@@ -121,7 +121,7 @@ class GroomingTurnoController extends Controller
                 'sede:id,nombre,codigo',
                 'groomingServicio:id,nombre',
                 'fotos',
-                'cargo:id,grooming_turno_id,estado,venta_id',
+                'cargo',
             ]);
 
         if ($canAudit) {
@@ -169,13 +169,11 @@ class GroomingTurnoController extends Controller
         $puedeEnlaceCobrar = ($request->user()?->can('ventas.create') ?? false)
             && ($request->user()?->can('grooming.view') ?? false);
 
-        $turnos->getCollection()->transform(function (GroomingTurno $turno) use ($puedeEnlaceCobrar): GroomingTurno {
-            $turno->setAttribute(
-                'url_cobrar',
-                $puedeEnlaceCobrar ? $turno->urlCobrarEnCaja() : null,
-            );
+        $turnos->through(function (GroomingTurno $turno) use ($puedeEnlaceCobrar): array {
+            $row = $turno->toArray();
+            $row['url_cobrar'] = $puedeEnlaceCobrar ? $turno->urlCobrarEnCaja() : null;
 
-            return $turno;
+            return $row;
         });
 
         $totalEnRango = GroomingTurno::query()

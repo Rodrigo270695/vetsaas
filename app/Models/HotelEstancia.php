@@ -102,7 +102,7 @@ class HotelEstancia extends Model
 
         $cargo = $this->relationLoaded('cargo')
             ? $this->cargo
-            : $this->cargo()->first(['id', 'estado', 'venta_id', 'hotel_estancia_id']);
+            : $this->cargo()->first();
 
         if ($cargo === null
             || $cargo->estado !== ConsultaCargo::ESTADO_CONFIRMADO

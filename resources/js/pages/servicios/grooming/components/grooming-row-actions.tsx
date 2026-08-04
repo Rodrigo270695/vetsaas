@@ -52,10 +52,17 @@ export function GroomingRowActions({
         (turno.estado === 'en_proceso' || turno.estado === 'completada');
     const urlCargos = puedeVerCargos ? `/servicios/grooming/${turno.id}/cargos` : null;
 
-    const urlCobrar =
-        typeof turno.url_cobrar === 'string' && turno.url_cobrar !== ''
-            ? turno.url_cobrar
+    const urlCobrarFromServer =
+        typeof turno.url_cobrar === 'string' && turno.url_cobrar !== '' ? turno.url_cobrar : null;
+    const urlCobrarFallback =
+        canCobrar &&
+        turno.venta_id == null &&
+        (turno.estado === 'en_proceso' || turno.estado === 'completada') &&
+        turno.cargo?.estado === 'confirmado' &&
+        turno.cargo.venta_id == null
+            ? `/caja/ventas/desde-grooming/${turno.id}`
             : null;
+    const urlCobrar = urlCobrarFromServer ?? urlCobrarFallback;
 
     const puedeIniciar =
         canUpdate && (turno.estado === 'programada' || turno.estado === 'confirmada');

@@ -562,11 +562,28 @@ class VentaController extends Controller
             $desdeCargo = $prefill->buildFromGrooming($groomingTurno);
         } catch (ValidationException $e) {
             $first = collect($e->errors())->flatten()->first();
+            $message = is_string($first) ? $first : __('caja.ventas.grooming.turno_invalido');
+
+            Log::warning('createDesdeGrooming: prefill rechazado', [
+                'grooming_turno_id' => $groomingTurno->id,
+                'estado' => $groomingTurno->estado,
+                'errors' => $e->errors(),
+            ]);
+
+            // No volver a cargos (parece un “reload” vacío). Abrir POS y mostrar el error.
+            return redirect()
+                ->route('caja.ventas.create')
+                ->with('error', $message);
+        } catch (Throwable $e) {
+            report($e);
+            Log::error('createDesdeGrooming: error inesperado', [
+                'grooming_turno_id' => $groomingTurno->id,
+                'message' => $e->getMessage(),
+            ]);
 
             return redirect()
-                ->route('servicios.grooming.cargos.show', ['grooming_turno' => $groomingTurno])
-                ->withErrors($e->errors())
-                ->with('error', is_string($first) ? $first : __('caja.ventas.grooming.turno_invalido'));
+                ->route('caja.ventas.create')
+                ->with('error', __('caja.ventas.grooming.turno_invalido'));
         }
 
         $miSesion = CajaSesion::query()
@@ -615,11 +632,27 @@ class VentaController extends Controller
             $desdeCargo = $prefill->buildFromHotelEstancia($hotelEstancia);
         } catch (ValidationException $e) {
             $first = collect($e->errors())->flatten()->first();
+            $message = is_string($first) ? $first : __('caja.ventas.hotel.estancia_invalida');
+
+            Log::warning('createDesdeHotel: prefill rechazado', [
+                'hotel_estancia_id' => $hotelEstancia->id,
+                'estado' => $hotelEstancia->estado,
+                'errors' => $e->errors(),
+            ]);
 
             return redirect()
-                ->route('servicios.hotel.cargos.show', ['hotel_estancia' => $hotelEstancia])
-                ->withErrors($e->errors())
-                ->with('error', is_string($first) ? $first : __('caja.ventas.hotel.estancia_invalida'));
+                ->route('caja.ventas.create')
+                ->with('error', $message);
+        } catch (Throwable $e) {
+            report($e);
+            Log::error('createDesdeHotel: error inesperado', [
+                'hotel_estancia_id' => $hotelEstancia->id,
+                'message' => $e->getMessage(),
+            ]);
+
+            return redirect()
+                ->route('caja.ventas.create')
+                ->with('error', __('caja.ventas.hotel.estancia_invalida'));
         }
 
         $miSesion = CajaSesion::query()

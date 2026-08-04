@@ -106,7 +106,7 @@ class HotelEstanciaController extends Controller
                 'paciente.propietario:id,nombres,apellidos,razon_social',
                 'responsable:id,name',
                 'sede:id,nombre,codigo',
-                'cargo:id,hotel_estancia_id,estado,venta_id',
+                'cargo',
             ]);
 
         if ($canAudit) {
@@ -154,13 +154,11 @@ class HotelEstanciaController extends Controller
         $puedeEnlaceCobrar = ($request->user()?->can('ventas.create') ?? false)
             && ($request->user()?->can('hotel.view') ?? false);
 
-        $estancias->getCollection()->transform(function (HotelEstancia $estancia) use ($puedeEnlaceCobrar): HotelEstancia {
-            $estancia->setAttribute(
-                'url_cobrar',
-                $puedeEnlaceCobrar ? $estancia->urlCobrarEnCaja() : null,
-            );
+        $estancias->through(function (HotelEstancia $estancia) use ($puedeEnlaceCobrar): array {
+            $row = $estancia->toArray();
+            $row['url_cobrar'] = $puedeEnlaceCobrar ? $estancia->urlCobrarEnCaja() : null;
 
-            return $estancia;
+            return $row;
         });
 
         $totalEnRango = HotelEstancia::query()
