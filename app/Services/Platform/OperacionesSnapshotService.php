@@ -11,6 +11,7 @@ use App\Models\SubscriptionPayment;
 use App\Models\Tenant;
 use App\Models\TenantWhatsAppSession;
 use App\Services\OpenWa\OpenWaClient;
+use App\Support\ClinicBot\ClinicBotWebhookTrafficGuard;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Throwable;
@@ -28,6 +29,7 @@ final class OperacionesSnapshotService
         private readonly OpenWaClient $openWa,
         private readonly DatabaseBackupService $backups,
         private readonly PresenceSnapshotService $presence,
+        private readonly ClinicBotWebhookTrafficGuard $clinicBotTraffic,
     ) {}
 
     /**
@@ -40,6 +42,7 @@ final class OperacionesSnapshotService
 
         return [
             'health' => $this->health(),
+            'performance' => $this->performance(),
             'credentials' => [
                 'openwa' => $this->openWa->isConfigured(),
                 'assistant_daily_limit' => $setting->assistantDailyLimit(),
@@ -74,6 +77,71 @@ final class OperacionesSnapshotService
             'database' => $databaseOk,
             'checked_at' => Carbon::now()->toIso8601String(),
             'queue_default' => (string) config('queue.default', 'sync'),
+        ];
+    }
+
+    /**
+     * Radar de carga del host + tráfico clinic-bot (sin shell a PHP-FPM).
+     *
+     * @return array{
+     *     load_1: float|null,
+     *     load_5: float|null,
+     *     load_15: float|null,
+     *     load_alert_threshold: float,
+     *     load_high: bool,
+     *     clinic_bot: array{
+     *         circuit_open: bool,
+     *         circuit_opened_at: string|null,
+     *         hits_1m: int,
+     *         hits_5m: int,
+     *         skipped_1m: int,
+     *         processed_1m: int,
+     *         rate_limit_per_minute: int,
+     *         high_traffic: bool
+     *     },
+     *     status: 'ok'|'high_traffic'|'circuit_open'|'load_high',
+     *     php_fpm_hint: string|null
+     * }
+     */
+    private function performance(): array
+    {
+        $loads = function_exists('sys_getloadavg') ? sys_getloadavg() : false;
+        $load1 = is_array($loads) && isset($loads[0]) ? round((float) $loads[0], 2) : null;
+        $load5 = is_array($loads) && isset($loads[1]) ? round((float) $loads[1], 2) : null;
+        $load15 = is_array($loads) && isset($loads[2]) ? round((float) $loads[2], 2) : null;
+
+        $loadThreshold = (float) config('bot-ia.ops_load_alert_threshold', 8);
+        $loadHigh = $load1 !== null && $load1 >= $loadThreshold;
+
+        $clinicBot = $this->clinicBotTraffic->snapshot();
+
+        $status = 'ok';
+        if ($clinicBot['circuit_open']) {
+            $status = 'circuit_open';
+        } elseif ($clinicBot['high_traffic']) {
+            $status = 'high_traffic';
+        } elseif ($loadHigh) {
+            $status = 'load_high';
+        }
+
+        $hint = null;
+        if ($loadHigh && ($clinicBot['high_traffic'] || $clinicBot['circuit_open'])) {
+            $hint = 'load_and_webhooks';
+        } elseif ($loadHigh) {
+            $hint = 'load_only';
+        } elseif ($clinicBot['circuit_open'] || $clinicBot['high_traffic']) {
+            $hint = 'webhooks_only';
+        }
+
+        return [
+            'load_1' => $load1,
+            'load_5' => $load5,
+            'load_15' => $load15,
+            'load_alert_threshold' => $loadThreshold,
+            'load_high' => $loadHigh,
+            'clinic_bot' => $clinicBot,
+            'status' => $status,
+            'php_fpm_hint' => $hint,
         ];
     }
 

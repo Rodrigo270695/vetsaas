@@ -10,6 +10,7 @@ use App\Models\TenantWhatsAppSession;
 use App\Services\ClinicBot\ClinicBotService;
 use App\Services\OpenWa\TenantWhatsAppMessenger;
 use App\Support\ClinicBot\ClinicBotWebhookGuard;
+use App\Support\ClinicBot\ClinicBotWebhookTrafficGuard;
 use App\Support\Subscriptions\SubscriptionBotIaAddon;
 use App\Support\WhatsApp\BotInboundDebounceScheduler;
 use App\Support\WhatsApp\BotInboundDebouncer;
@@ -33,6 +34,7 @@ final class ClinicBotWebhookController extends Controller
         private readonly WhatsAppContactResolver $contactResolver,
         private readonly TenantManager $tenants,
         private readonly ClinicBotWebhookGuard $guard,
+        private readonly ClinicBotWebhookTrafficGuard $traffic,
     ) {}
 
     public function handle(Request $request): JsonResponse
@@ -52,11 +54,21 @@ final class ClinicBotWebhookController extends Controller
             return response()->json(['ok' => false, 'reason' => 'clinic-bot disabled']);
         }
 
+        if ($this->traffic->shouldRejectAfterHit()) {
+            return response()->json([
+                'ok' => false,
+                'reason' => 'circuit_open',
+                'message' => 'Clinic bot webhook temporarily shedding load',
+            ], 429);
+        }
+
         $payload = $request->all();
         $data = is_array($payload['data'] ?? null) ? $payload['data'] : $payload;
 
         $event = (string) ($payload['event'] ?? $payload['type'] ?? '');
         if ($this->guard->isOutgoingEvent($event)) {
+            $this->traffic->recordSkipped();
+
             return response()->json(['ok' => true, 'skipped' => 'outgoing_event']);
         }
 
@@ -64,6 +76,8 @@ final class ClinicBotWebhookController extends Controller
         // En prod llegó a ~90% del access.log y saturó PHP-FPM (load ~34).
         $esEventoMensaje = in_array($event, ['message.received', 'onMessage', 'message'], true);
         if (! $esEventoMensaje) {
+            $this->traffic->recordSkipped();
+
             return response()->json(['ok' => true, 'skipped' => 'not_message_event']);
         }
 
@@ -79,16 +93,22 @@ final class ClinicBotWebhookController extends Controller
             ->first();
 
         if ($waSession === null || ! $waSession->isReady()) {
+            $this->traffic->recordSkipped();
+
             return response()->json(['ok' => true, 'skipped' => 'unknown_or_not_ready_session']);
         }
 
         $tenant = $waSession->tenant;
         if ($tenant === null) {
+            $this->traffic->recordSkipped();
+
             return response()->json(['ok' => true, 'skipped' => 'tenant_missing']);
         }
 
         $subscription = $tenant->subscriptions()->orderByDesc('created_at')->first();
         if (! SubscriptionBotIaAddon::isActive($subscription)) {
+            $this->traffic->recordSkipped();
+
             return response()->json(['ok' => true, 'skipped' => 'bot_ia_inactive']);
         }
 
@@ -107,24 +127,34 @@ final class ClinicBotWebhookController extends Controller
         $clientName = $contact['prospect_name'];
 
         if (str_ends_with($waChatId, '@g.us')) {
+            $this->traffic->recordSkipped();
+
             return response()->json(['ok' => true, 'skipped' => 'group']);
         }
 
         if ($phone === '') {
+            $this->traffic->recordSkipped();
+
             return response()->json(['ok' => false, 'reason' => 'no phone'], 422);
         }
 
         $messageId = (string) ($data['id'] ?? '');
 
         if ($this->guard->isDuplicateInbound($openWaSessionId, $messageId, $waChatId, $body)) {
+            $this->traffic->recordSkipped();
+
             return response()->json(['ok' => true, 'skipped' => 'duplicate']);
         }
 
         if ($this->guard->shouldSkipOutboundEcho($openWaSessionId, $waChatId, $body)) {
+            $this->traffic->recordSkipped();
+
             return response()->json(['ok' => true, 'skipped' => 'outbound_echo']);
         }
 
         if ($this->guard->isBotGeneratedIncomingText($body)) {
+            $this->traffic->recordSkipped();
+
             return response()->json(['ok' => true, 'skipped' => 'bot_echo']);
         }
 
@@ -140,11 +170,15 @@ final class ClinicBotWebhookController extends Controller
             $tenant,
         ): JsonResponse {
             if ($body === '' && ! in_array($type, ['ptt', 'audio'], true)) {
+                $this->traffic->recordSkipped();
+
                 return response()->json(['ok' => true, 'skipped' => 'empty_body']);
             }
 
             if ($body === '' && in_array($type, ['ptt', 'audio'], true)) {
                 if (! ClinicSetting::current()->isBotIaResponding()) {
+                    $this->traffic->recordSkipped();
+
                     return response()->json(['ok' => true, 'skipped' => 'assistant_globally_off']);
                 }
 
@@ -153,6 +187,7 @@ final class ClinicBotWebhookController extends Controller
                 $this->guard->rememberOutbound($openWaSessionId, $waChatId, $audioReply);
                 $this->guard->markReplied($openWaSessionId, $waChatId);
                 $this->guard->rememberInbound($openWaSessionId, $messageId, $waChatId, $body);
+                $this->traffic->recordProcessed();
 
                 return response()->json(['ok' => true, 'skipped' => 'audio_not_supported']);
             }
@@ -160,6 +195,8 @@ final class ClinicBotWebhookController extends Controller
             $this->guard->rememberInbound($openWaSessionId, $messageId, $waChatId, $body);
 
             if (! ClinicSetting::current()->isBotIaResponding()) {
+                $this->traffic->recordSkipped();
+
                 return response()->json(['ok' => true, 'skipped' => 'assistant_globally_off']);
             }
 
@@ -168,6 +205,8 @@ final class ClinicBotWebhookController extends Controller
 
             if (! $conversation->bot_active) {
                 if ($conversation->isManuallyPaused()) {
+                    $this->traffic->recordSkipped();
+
                     return response()->json(['ok' => true, 'skipped' => 'paused_manual']);
                 }
 
@@ -191,6 +230,8 @@ final class ClinicBotWebhookController extends Controller
                 clientName: $clientName,
                 delaySeconds: $debounced['delay_seconds'],
             );
+
+            $this->traffic->recordProcessed();
 
             return response()->json([
                 'ok' => true,
@@ -239,6 +280,8 @@ final class ClinicBotWebhookController extends Controller
         if ($body !== '' && $openWaSessionId !== '' && $waChatId !== '') {
             $this->guard->rememberOutbound($openWaSessionId, $waChatId, $body);
         }
+
+        $this->traffic->recordSkipped();
 
         return response()->json(['ok' => true, 'skipped' => 'fromMe']);
     }

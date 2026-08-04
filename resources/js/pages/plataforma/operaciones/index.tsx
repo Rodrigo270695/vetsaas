@@ -4,6 +4,7 @@ import {
     AlertTriangle,
     CheckCircle2,
     Database,
+    Gauge,
     HardDrive,
     KeyRound,
     Loader2,
@@ -20,6 +21,7 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PageHeader, StatBadge } from '@/components/data-page';
 import { Button } from '@/components/ui/button';
+import { useAutoRefresh } from '@/hooks/use-auto-refresh';
 import { usePermission } from '@/hooks/use-permission';
 import AppLayout from '@/layouts/app-layout';
 import { SectionCard } from '@/pages/configuracion/general/components/section-card';
@@ -36,6 +38,25 @@ type Snapshot = {
         database: boolean;
         checked_at: string;
         queue_default: string;
+    };
+    performance: {
+        load_1: number | null;
+        load_5: number | null;
+        load_15: number | null;
+        load_alert_threshold: number;
+        load_high: boolean;
+        clinic_bot: {
+            circuit_open: boolean;
+            circuit_opened_at: string | null;
+            hits_1m: number;
+            hits_5m: number;
+            skipped_1m: number;
+            processed_1m: number;
+            rate_limit_per_minute: number;
+            high_traffic: boolean;
+        };
+        status: 'ok' | 'high_traffic' | 'circuit_open' | 'load_high';
+        php_fpm_hint: 'load_and_webhooks' | 'load_only' | 'webhooks_only' | null;
     };
     credentials: {
         openwa: boolean;
@@ -186,6 +207,11 @@ export default function Index({ snapshot, can_manage }: Props) {
     const [retryingAll, setRetryingAll] = useState(false);
     const [backupRunning, setBackupRunning] = useState(false);
 
+    const { secondsSince, isRefreshing, refresh: refreshNow } = useAutoRefresh({
+        only: ['snapshot'],
+        intervalMs: 60_000,
+    });
+
     const alertCount = useMemo(() => {
         let n = 0;
         if (!snapshot.health.ok) n += 1;
@@ -195,8 +221,28 @@ export default function Index({ snapshot, can_manage }: Props) {
         n += snapshot.cobros.fallidos_7d;
         n += snapshot.failed_jobs.total;
         if (snapshot.backups.stale || snapshot.backups.ok === false) n += 1;
+        if (snapshot.performance.status !== 'ok') n += 1;
         return n;
     }, [snapshot]);
+
+    const performanceStatusLabel = t(
+        `performance.status_${snapshot.performance.status}`,
+    );
+    const performanceVariant =
+        snapshot.performance.status === 'ok'
+            ? 'success'
+            : snapshot.performance.status === 'circuit_open'
+              ? 'danger'
+              : 'warning';
+
+    const performanceHint =
+        snapshot.performance.php_fpm_hint === 'load_and_webhooks'
+            ? t('performance.hint_load_and_webhooks')
+            : snapshot.performance.php_fpm_hint === 'load_only'
+              ? t('performance.hint_load_only')
+              : snapshot.performance.php_fpm_hint === 'webhooks_only'
+                ? t('performance.hint_webhooks_only')
+                : null;
 
     const runBackup = () => {
         setBackupRunning(true);
@@ -299,6 +345,137 @@ export default function Index({ snapshot, can_manage }: Props) {
                                 variant="info"
                             />
                         </div>
+                    </SectionCard>
+
+                    <SectionCard
+                        title={t('performance.title')}
+                        description={t('performance.description')}
+                        icon={Gauge}
+                        badge={
+                            <div className="flex flex-wrap items-center gap-2">
+                                <StatBadge
+                                    label={performanceStatusLabel}
+                                    value=""
+                                    variant={performanceVariant}
+                                    icon={
+                                        snapshot.performance.status === 'ok'
+                                            ? CheckCircle2
+                                            : AlertTriangle
+                                    }
+                                />
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="gap-1.5"
+                                    disabled={isRefreshing}
+                                    onClick={() => refreshNow()}
+                                >
+                                    {isRefreshing ? (
+                                        <Loader2 className="size-3.5 animate-spin" />
+                                    ) : (
+                                        <RefreshCw className="size-3.5" />
+                                    )}
+                                    {isRefreshing
+                                        ? t('common:auto_refresh.updating')
+                                        : t(
+                                              'common:auto_refresh.updated_seconds',
+                                              { count: secondsSince },
+                                          )}
+                                </Button>
+                            </div>
+                        }
+                    >
+                        <div className="flex flex-wrap gap-2">
+                            <StatBadge
+                                label={t('performance.load_1')}
+                                value={
+                                    snapshot.performance.load_1 !== null
+                                        ? String(snapshot.performance.load_1)
+                                        : '—'
+                                }
+                                variant={
+                                    snapshot.performance.load_high
+                                        ? 'warning'
+                                        : 'muted'
+                                }
+                            />
+                            <StatBadge
+                                label={t('performance.load_5')}
+                                value={
+                                    snapshot.performance.load_5 !== null
+                                        ? String(snapshot.performance.load_5)
+                                        : '—'
+                                }
+                                variant="muted"
+                            />
+                            <StatBadge
+                                label={t('performance.hits_1m')}
+                                value={String(
+                                    snapshot.performance.clinic_bot.hits_1m,
+                                )}
+                                variant={
+                                    snapshot.performance.clinic_bot
+                                        .high_traffic
+                                        ? 'warning'
+                                        : 'muted'
+                                }
+                            />
+                            <StatBadge
+                                label={t('performance.hits_5m')}
+                                value={String(
+                                    snapshot.performance.clinic_bot.hits_5m,
+                                )}
+                                variant="muted"
+                            />
+                            <StatBadge
+                                label={t('performance.processed_1m')}
+                                value={String(
+                                    snapshot.performance.clinic_bot
+                                        .processed_1m,
+                                )}
+                                variant="muted"
+                            />
+                            <StatBadge
+                                label={t('performance.skipped_1m')}
+                                value={String(
+                                    snapshot.performance.clinic_bot
+                                        .skipped_1m,
+                                )}
+                                variant="muted"
+                            />
+                            <StatBadge
+                                label={t('performance.rate_limit')}
+                                value={String(
+                                    snapshot.performance.clinic_bot
+                                        .rate_limit_per_minute,
+                                )}
+                                variant="muted"
+                            />
+                            <StatBadge
+                                label={t('performance.circuit')}
+                                value={
+                                    snapshot.performance.clinic_bot
+                                        .circuit_open
+                                        ? t('performance.circuit_open')
+                                        : t('performance.circuit_closed')
+                                }
+                                variant={
+                                    snapshot.performance.clinic_bot
+                                        .circuit_open
+                                        ? 'danger'
+                                        : 'success'
+                                }
+                            />
+                        </div>
+                        {performanceHint ? (
+                            <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+                                {performanceHint}
+                            </p>
+                        ) : null}
+                        <p className="mt-2 text-[11px] text-muted-foreground">
+                            {t('performance.auto_refresh')}
+                        </p>
                     </SectionCard>
 
                     <SectionCard

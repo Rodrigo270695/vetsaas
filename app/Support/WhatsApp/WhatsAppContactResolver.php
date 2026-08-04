@@ -6,6 +6,7 @@ namespace App\Support\WhatsApp;
 
 use App\Services\OpenWa\OpenWaClient;
 use App\Services\OpenWa\PlatformWhatsAppSessionSync;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -138,8 +139,20 @@ final class WhatsAppContactResolver
             return null;
         }
 
+        $cacheKey = 'openwa:contact:'.md5($resolvedSessionId.'|'.$waChatId);
+        $cached = Cache::get($cacheKey);
+        if (is_array($cached)) {
+            return $cached;
+        }
+
         try {
-            return $this->client->getContact($resolvedSessionId, $waChatId);
+            $contact = $this->client->getContact($resolvedSessionId, $waChatId);
+            if (is_array($contact) && $contact !== []) {
+                $ttl = max(3600, (int) config('bot-ia.lid_contact_cache_ttl_seconds', 86400));
+                Cache::put($cacheKey, $contact, $ttl);
+            }
+
+            return $contact;
         } catch (\Throwable $e) {
             Log::debug('OpenWA getContact failed', [
                 'chatId' => $waChatId,

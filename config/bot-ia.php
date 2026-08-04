@@ -45,4 +45,22 @@ return [
     */
     'activation_whatsapp_phone' => env('BOT_IA_ACTIVATION_WHATSAPP_PHONE', '51976809804'),
     'activation_whatsapp_display' => env('BOT_IA_ACTIVATION_WHATSAPP_DISPLAY', '976 809 804'),
+
+    /*
+    | Circuit breaker del webhook clinic-bot (protección anti-flood OpenWA).
+    | Si hits/min > webhook_rate_limit_per_minute → 429 sin DB durante TTL.
+    */
+    'webhook_circuit_enabled' => (bool) env('BOT_IA_WEBHOOK_CIRCUIT_ENABLED', true),
+    'webhook_rate_limit_per_minute' => (int) env('BOT_IA_WEBHOOK_RATE_LIMIT_PER_MINUTE', 120),
+    'webhook_circuit_ttl_seconds' => (int) env('BOT_IA_WEBHOOK_CIRCUIT_TTL_SECONDS', 300),
+
+    /*
+    | Umbral de load average (1 min) para alerta en Plataforma › Operaciones.
+    */
+    'ops_load_alert_threshold' => (float) env('BOT_IA_OPS_LOAD_ALERT_THRESHOLD', 8),
+
+    /*
+    | Cache de resolución @lid → contacto OpenWA (segundos).
+    */
+    'lid_contact_cache_ttl_seconds' => (int) env('BOT_IA_LID_CONTACT_CACHE_TTL_SECONDS', 86400),
 ];

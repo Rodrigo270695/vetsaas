@@ -11,6 +11,28 @@
         "database": "Base de datos",
         "queue": "Cola por defecto"
     },
+    "performance": {
+        "title": "Rendimiento y webhooks",
+        "description": "Load del VPS y tráfico del webhook clinic-bot (protección anti-flood).",
+        "status_ok": "OK",
+        "status_high_traffic": "Alto tráfico",
+        "status_circuit_open": "Circuito abierto",
+        "status_load_high": "Load alto",
+        "load_1": "Load 1 min",
+        "load_5": "Load 5 min",
+        "hits_1m": "Hits bot 1 min",
+        "hits_5m": "Hits bot 5 min",
+        "processed_1m": "Procesados 1 min",
+        "skipped_1m": "Omitidos 1 min",
+        "rate_limit": "Límite / min",
+        "circuit": "Circuit breaker",
+        "circuit_open": "Abierto",
+        "circuit_closed": "Cerrado",
+        "hint_load_and_webhooks": "Load alto y webhooks pesados: revisa OpenWA / rate-limit nginx. PHP-FPM puede estar en cola.",
+        "hint_load_only": "Load alto: otro proceso en el VPS (Node/OpenWA, Chromium, etc.) puede estar consumiendo CPU.",
+        "hint_webhooks_only": "Tráfico clinic-bot elevado o circuito abierto. El bot se está protegiendo solo; no hace falta reiniciar FPM.",
+        "auto_refresh": "Actualización automática cada 60 s"
+    },
     "credentials": {
         "title": "Credenciales globales",
         "description": "Integraciones compartidas por todas las clínicas.",

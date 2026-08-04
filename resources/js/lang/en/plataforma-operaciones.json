@@ -11,6 +11,28 @@
         "database": "Database",
         "queue": "Default queue"
     },
+    "performance": {
+        "title": "Performance & webhooks",
+        "description": "Host load average and clinic-bot webhook traffic (anti-flood protection).",
+        "status_ok": "OK",
+        "status_high_traffic": "High traffic",
+        "status_circuit_open": "Circuit open",
+        "status_load_high": "High load",
+        "load_1": "Load 1 min",
+        "load_5": "Load 5 min",
+        "hits_1m": "Bot hits 1 min",
+        "hits_5m": "Bot hits 5 min",
+        "processed_1m": "Processed 1 min",
+        "skipped_1m": "Skipped 1 min",
+        "rate_limit": "Limit / min",
+        "circuit": "Circuit breaker",
+        "circuit_open": "Open",
+        "circuit_closed": "Closed",
+        "hint_load_and_webhooks": "High load and heavy webhooks: check OpenWA / nginx rate-limit. PHP-FPM may be queued.",
+        "hint_load_only": "High load: another VPS process (Node/OpenWA, Chromium, etc.) may be using CPU.",
+        "hint_webhooks_only": "Elevated clinic-bot traffic or open circuit. The bot is shedding load automatically.",
+        "auto_refresh": "Auto-refresh every 60s"
+    },
     "credentials": {
         "title": "Global credentials",
         "description": "Integrations shared by every clinic.",

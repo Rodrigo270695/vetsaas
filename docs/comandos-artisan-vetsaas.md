@@ -314,6 +314,61 @@ php artisan vetsaas:clinic-bot-register-webhooks --slug=mi-clinica
 
 ---
 
+### Protección anti-flood clinic-bot (OpenWA) + Operaciones
+
+Si OpenWA dispara demasiados webhooks (presence/typing/acks), PHP-FPM se satura y **toda** la app (Agenda, caja, heartbeat) se pone lenta (~5–6 s).
+
+**Capas:**
+
+1. **Laravel** — early-filter de eventos no-mensaje + circuit breaker (`ClinicBotWebhookTrafficGuard`). Si hits/min &gt; `BOT_IA_WEBHOOK_RATE_LIMIT_PER_MINUTE` (default 120), responde `429` sin DB durante `BOT_IA_WEBHOOK_CIRCUIT_TTL_SECONDS` (default 300).
+2. **Operaciones** — card *Rendimiento y webhooks* (load 1/5, hits 1m/5m, circuito). Auto-refresh 60 s.
+3. **Nginx** — rate-limit al reactivar el bot (ver abajo).
+
+**Emergencia (corte duro, ya usado en incidentes):**
+
+```nginx
+# /etc/nginx/sites-enabled/vetsaas.orvae.pe  (dentro del server)
+location = /api/webhooks/clinic-bot {
+    return 204;
+}
+```
+
+```bash
+sudo nginx -t && sudo systemctl reload nginx
+sudo systemctl restart php8.3-fpm
+uptime
+```
+
+**Reactivar el bot con seguridad (quitar `return 204`):**
+
+1. Desplegar código con circuit breaker + early-filter.
+2. En `http {}` o `/etc/nginx/conf.d/limit-clinicbot.conf`:
+
+```nginx
+limit_req_zone $binary_remote_addr zone=clinicbot:10m rate=5r/s;
+```
+
+3. En el `server` de vetsaas, reemplazar el `return 204` por:
+
+```nginx
+location = /api/webhooks/clinic-bot {
+    limit_req zone=clinicbot burst=40 nodelay;
+    try_files $uri /index.php?$query_string;
+}
+```
+
+(ajusta el `try_files` / `fastcgi_pass` al mismo patrón que el resto del sitio).
+
+```bash
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+4. Vigilar **Plataforma → Operaciones** 10–15 min (load + hits + circuito). Si el circuito se abre o el load sube otra vez, vuelve al `return 204` y revisa eventos que OpenWA está enviando.
+
+**Env útiles:** `BOT_IA_WEBHOOK_CIRCUIT_ENABLED`, `BOT_IA_WEBHOOK_RATE_LIMIT_PER_MINUTE`, `BOT_IA_WEBHOOK_CIRCUIT_TTL_SECONDS`, `BOT_IA_OPS_LOAD_ALERT_THRESHOLD`.
+
+---
+
 ## Bot de ventas y leads
 
 ### Panel web (recomendado)
