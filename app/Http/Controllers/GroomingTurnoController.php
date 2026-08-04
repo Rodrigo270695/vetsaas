@@ -17,6 +17,7 @@ use App\Models\Sede;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\Grooming\GroomingProcesoWhatsAppSender;
+use App\Services\Venta\VentaCheckoutService;
 use App\Support\Grooming\GroomingTurnoServicioRules;
 use App\Support\WhatsApp\WhatsAppChatId;
 use App\Tenancy\TenantManager;
@@ -24,9 +25,11 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
 use Throwable;
@@ -253,13 +256,56 @@ class GroomingTurnoController extends Controller
     public function store(
         StoreGroomingTurnoRequest $request,
         GroomingProcesoWhatsAppSender $sender,
+        VentaCheckoutService $checkout,
     ): RedirectResponse {
-        $data = GroomingTurnoServicioRules::normalizarParaPersistencia($request->validated());
+        $validated = $request->validated();
+        $adelantoMonto = $validated['adelanto_monto'] ?? null;
+        $adelantoMetodo = $validated['adelanto_metodo_pago'] ?? null;
+        $adelantoRecibido = $validated['adelanto_monto_recibido'] ?? null;
+        unset(
+            $validated['adelanto_monto'],
+            $validated['adelanto_metodo_pago'],
+            $validated['adelanto_monto_recibido'],
+            $validated['from_agenda'],
+        );
+
+        $data = GroomingTurnoServicioRules::normalizarParaPersistencia($validated);
         $data['estado'] = GroomingTurno::ESTADO_PROGRAMADA;
         $data['created_by_id'] = Auth::id();
         $data['updated_by_id'] = Auth::id();
 
-        $turno = GroomingTurno::query()->create($data);
+        $conAdelanto = is_numeric($adelantoMonto) && (float) $adelantoMonto >= 0.01;
+
+        try {
+            $turno = DB::transaction(function () use (
+                $data,
+                $conAdelanto,
+                $adelantoMonto,
+                $adelantoMetodo,
+                $adelantoRecibido,
+                $checkout,
+                $request,
+            ): GroomingTurno {
+                $turno = GroomingTurno::query()->create($data);
+
+                if ($conAdelanto) {
+                    $checkout->registrarAdelantoGrooming(
+                        $turno,
+                        [
+                            'monto' => $adelantoMonto,
+                            'metodo_pago' => $adelantoMetodo,
+                            'monto_recibido' => $adelantoRecibido,
+                            'notas' => null,
+                        ],
+                        $request->user(),
+                    );
+                }
+
+                return $turno->fresh() ?? $turno;
+            });
+        } catch (ValidationException $e) {
+            throw $e;
+        }
 
         $wa = $this->tryNotifyAgenda($turno, $sender, 'programado');
 
@@ -272,6 +318,18 @@ class GroomingTurnoController extends Controller
                         'search', 'per_page', 'sort', 'direction', 'grooming_desde', 'grooming_hasta',
                     ]),
             );
+
+        if ($conAdelanto) {
+            if ($wa === 'ok') {
+                return $redirect->with('success', __('grooming.flash.created_adelanto_whatsapp'));
+            }
+
+            if ($wa === 'fail') {
+                return $redirect->with('warning', __('grooming.flash.created_adelanto_sin_whatsapp'));
+            }
+
+            return $redirect->with('success', __('grooming.flash.created_adelanto'));
+        }
 
         if ($wa === 'ok') {
             return $redirect->with('success', __('grooming.flash.created_whatsapp'));

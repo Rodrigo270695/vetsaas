@@ -91,7 +91,12 @@ type FormShape = {
     notas: string;
     responsable_id: string | null;
     sede_id: string | null;
+    adelanto_monto: string;
+    adelanto_metodo_pago: string;
+    adelanto_monto_recibido: string;
 };
+
+const ADELANTO_METODOS = ['efectivo', 'yape', 'plin', 'tarjeta', 'transferencia'] as const;
 
 function emptyForm(
     defaultResponsableId: string | null,
@@ -123,6 +128,9 @@ function emptyForm(
         notas: '',
         responsable_id: defaultResponsableId,
         sede_id: resolveDefaultSedeId(sedes),
+        adelanto_monto: '',
+        adelanto_metodo_pago: 'efectivo',
+        adelanto_monto_recibido: '',
     };
 }
 
@@ -138,6 +146,9 @@ function fromTurno(t: GroomingTurnoRow, defaultResponsableId: string | null): Fo
         notas: t.notas ?? '',
         responsable_id: t.responsable_id ?? defaultResponsableId,
         sede_id: t.sede_id,
+        adelanto_monto: '',
+        adelanto_metodo_pago: 'efectivo',
+        adelanto_monto_recibido: '',
     };
 }
 
@@ -155,7 +166,7 @@ export function GroomingFormModal({
     prefill = null,
     fromAgenda = false,
 }: GroomingFormModalProps) {
-    const { t } = useTranslation(['grooming', 'common', 'offline']);
+    const { t } = useTranslation(['grooming', 'common', 'offline', 'caja']);
     const { refreshPending } = useOfflineSync();
     const authUser = usePage().props.auth?.user as { id?: string } | undefined;
     const defaultResponsableId = authUser?.id ?? null;
@@ -219,6 +230,16 @@ export function GroomingFormModal({
                 sede_id: r.sede_id != null && r.sede_id !== '' ? r.sede_id : null,
                 ...(fromAgenda ? { from_agenda: true } : {}),
             };
+
+            const adelantoRaw = r.adelanto_monto.trim().replace(',', '.');
+            const adelantoNum = adelantoRaw === '' ? NaN : Number(adelantoRaw);
+            if (!Number.isNaN(adelantoNum) && adelantoNum >= 0.01) {
+                base.adelanto_monto = Number(adelantoNum.toFixed(2));
+                base.adelanto_metodo_pago = r.adelanto_metodo_pago;
+                const recibidoRaw = r.adelanto_monto_recibido.trim().replace(',', '.');
+                base.adelanto_monto_recibido =
+                    recibidoRaw === '' ? null : Number(Number(recibidoRaw).toFixed(2));
+            }
 
             if (catalogoPersonalizado) {
                 base.grooming_servicio_id = r.grooming_servicio_id;
@@ -300,6 +321,16 @@ export function GroomingFormModal({
                 raw.responsable_id != null && raw.responsable_id !== '' ? raw.responsable_id : null,
             sede_id: raw.sede_id != null && raw.sede_id !== '' ? raw.sede_id : null,
         };
+
+        const adelantoRaw = raw.adelanto_monto.trim().replace(',', '.');
+        const adelantoNum = adelantoRaw === '' ? NaN : Number(adelantoRaw);
+        if (!Number.isNaN(adelantoNum) && adelantoNum >= 0.01) {
+            base.adelanto_monto = Number(adelantoNum.toFixed(2));
+            base.adelanto_metodo_pago = raw.adelanto_metodo_pago;
+            const recibidoRaw = raw.adelanto_monto_recibido.trim().replace(',', '.');
+            base.adelanto_monto_recibido =
+                recibidoRaw === '' ? null : Number(Number(recibidoRaw).toFixed(2));
+        }
 
         if (catalogoPersonalizado) {
             base.grooming_servicio_id = raw.grooming_servicio_id;
@@ -590,6 +621,85 @@ export function GroomingFormModal({
                         disabled={processing}
                     />
                 </FormField>
+
+                {!isEdit ? (
+                    <div className="grid gap-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
+                        <div>
+                            <p className="text-sm font-medium text-foreground">{t('adelanto.title')}</p>
+                            <p className="text-xs text-muted-foreground">{t('adelanto.hint')}</p>
+                        </div>
+                        <FormField
+                            id="gf-adelanto-monto"
+                            label={t('adelanto.monto')}
+                            error={errors.adelanto_monto as string | undefined}
+                        >
+                            <Input
+                                id="gf-adelanto-monto"
+                                type="number"
+                                min={0}
+                                step="0.01"
+                                className={controlClass}
+                                value={data.adelanto_monto}
+                                onChange={(e) => setData('adelanto_monto', e.target.value)}
+                                placeholder="0.00"
+                                aria-invalid={Boolean(errors.adelanto_monto)}
+                                disabled={processing}
+                            />
+                        </FormField>
+                        {data.adelanto_monto.trim() !== '' ? (
+                            <>
+                                <FormField
+                                    id="gf-adelanto-metodo"
+                                    label={t('adelanto.metodo')}
+                                    required
+                                    error={errors.adelanto_metodo_pago as string | undefined}
+                                >
+                                    <Select
+                                        value={data.adelanto_metodo_pago}
+                                        onValueChange={(v) => setData('adelanto_metodo_pago', v)}
+                                        disabled={processing}
+                                    >
+                                        <SelectTrigger
+                                            id="gf-adelanto-metodo"
+                                            className={controlClass}
+                                            aria-invalid={Boolean(errors.adelanto_metodo_pago)}
+                                        >
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {ADELANTO_METODOS.map((m) => (
+                                                <SelectItem key={m} value={m}>
+                                                    {t(`caja:ventas.create.mp_${m}`, { defaultValue: m })}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </FormField>
+                                {data.adelanto_metodo_pago === 'efectivo' ? (
+                                    <FormField
+                                        id="gf-adelanto-recibido"
+                                        label={t('adelanto.monto_recibido')}
+                                        error={errors.adelanto_monto_recibido as string | undefined}
+                                    >
+                                        <Input
+                                            id="gf-adelanto-recibido"
+                                            type="number"
+                                            min={0}
+                                            step="0.01"
+                                            className={controlClass}
+                                            value={data.adelanto_monto_recibido}
+                                            onChange={(e) =>
+                                                setData('adelanto_monto_recibido', e.target.value)
+                                            }
+                                            placeholder={t('adelanto.monto_recibido_hint')}
+                                            disabled={processing}
+                                        />
+                                    </FormField>
+                                ) : null}
+                            </>
+                        ) : null}
+                    </div>
+                ) : null}
 
                 <SedeFormField
                     id="gf-sede"

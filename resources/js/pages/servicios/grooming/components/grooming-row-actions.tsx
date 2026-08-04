@@ -125,18 +125,6 @@ export function GroomingRowActions({
                     <span className="hidden lg:inline">{t('actions.completar')}</span>
                 </Button>
             ) : null}
-            {puedeAdelanto ? (
-                <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-8 gap-1.5 border-amber-500/40 bg-amber-500/10 text-amber-800 hover:bg-amber-500/15 hover:text-amber-900 dark:border-amber-400/40 dark:bg-amber-400/10 dark:text-amber-200"
-                    onClick={() => onAdelanto(turno)}
-                >
-                    <Banknote className="size-3.5" aria-hidden />
-                    <span className="hidden lg:inline">{t('actions.adelanto')}</span>
-                </Button>
-            ) : null}
             {urlCobrar ? (
                 <a
                     href={urlCobrar}

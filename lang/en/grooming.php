@@ -3,8 +3,11 @@
 return [
     'flash' => [
         'created' => 'Grooming appointment saved successfully.',
+        'created_adelanto' => 'Appointment saved and deposit collected at the register.',
         'created_whatsapp' => 'Appointment saved and owner notified via WhatsApp.',
+        'created_adelanto_whatsapp' => 'Appointment, deposit, and WhatsApp notification recorded.',
         'created_sin_whatsapp' => 'Appointment saved, but WhatsApp notification failed.',
+        'created_adelanto_sin_whatsapp' => 'Appointment and deposit saved, but WhatsApp notification failed.',
         'updated' => 'Grooming appointment updated successfully.',
         'updated_whatsapp' => 'Appointment updated and owner notified via WhatsApp.',
         'updated_sin_whatsapp' => 'Appointment updated, but WhatsApp notification failed.',
@@ -19,6 +22,9 @@ return [
         'whatsapp_sin_fotos' => 'There are no pending photos to send.',
         'whatsapp_no_phone' => 'The owner does not have a valid WhatsApp phone number.',
         'whatsapp_fallo' => 'Could not send the photos via WhatsApp.',
+    ],
+    'validation' => [
+        'adelanto_sin_permiso' => 'You do not have permission to collect deposits at the register.',
     ],
     'observacion' => [
         'en_proceso' => 'In progress',

@@ -3,8 +3,11 @@
 return [
     'flash' => [
         'created' => 'Turno de grooming registrado correctamente.',
+        'created_adelanto' => 'Turno registrado y adelanto cobrado en caja.',
         'created_whatsapp' => 'Turno registrado y propietario notificado por WhatsApp.',
+        'created_adelanto_whatsapp' => 'Turno, adelanto en caja y notificación WhatsApp registrados.',
         'created_sin_whatsapp' => 'Turno registrado, pero no se pudo notificar por WhatsApp.',
+        'created_adelanto_sin_whatsapp' => 'Turno y adelanto registrados, pero no se pudo notificar por WhatsApp.',
         'updated' => 'Turno de grooming actualizado correctamente.',
         'updated_whatsapp' => 'Turno actualizado y propietario notificado por WhatsApp.',
         'updated_sin_whatsapp' => 'Turno actualizado, pero no se pudo notificar por WhatsApp.',
@@ -19,6 +22,9 @@ return [
         'whatsapp_sin_fotos' => 'No hay fotos pendientes para enviar.',
         'whatsapp_no_phone' => 'El propietario no tiene un teléfono válido para WhatsApp.',
         'whatsapp_fallo' => 'No se pudo enviar las fotos por WhatsApp.',
+    ],
+    'validation' => [
+        'adelanto_sin_permiso' => 'No tienes permiso para cobrar adelantos en caja.',
     ],
     'observacion' => [
         'en_proceso' => 'En proceso',
