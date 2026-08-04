@@ -270,12 +270,18 @@ final class VentaDesdeCargoPrefill
         }
 
         $turno->load([
-            'paciente:id,nombre,propietario_id',
-            'paciente.propietario:id,nombres,apellidos,razon_social',
+            'paciente' => fn ($q) => $q->withTrashed()->select('id', 'nombre', 'propietario_id'),
+            'paciente.propietario' => fn ($q) => $q->withTrashed()->select('id', 'nombres', 'apellidos', 'razon_social'),
             'cargo.lineas' => fn ($q) => $q->orderBy('orden'),
         ]);
 
         $paciente = $turno->paciente;
+        if ($paciente === null) {
+            throw ValidationException::withMessages([
+                'grooming' => __('caja.ventas.grooming.turno_invalido'),
+            ]);
+        }
+
         $propietario = $paciente->propietario;
         if ($propietario === null) {
             throw ValidationException::withMessages([
@@ -308,12 +314,6 @@ final class VentaDesdeCargoPrefill
                 ->where('opened_by_id', Auth::id())
                 ->first();
 
-            if ($sesion === null) {
-                throw ValidationException::withMessages([
-                    'caja' => __('caja.ventas.desde_cargo.validation.sin_sesion'),
-                ]);
-            }
-
             $productoIds = $cargo->lineas
                 ->pluck('producto_id')
                 ->filter()
@@ -321,7 +321,7 @@ final class VentaDesdeCargoPrefill
                 ->values()
                 ->all();
 
-            $stocks = $productoIds === []
+            $stocks = ($sesion === null || $productoIds === [])
                 ? []
                 : DB::table('existencias_sede')
                     ->where('sede_id', $sesion->sede_id)
@@ -444,12 +444,18 @@ final class VentaDesdeCargoPrefill
         }
 
         $estancia->load([
-            'paciente:id,nombre,propietario_id',
-            'paciente.propietario:id,nombres,apellidos,razon_social',
+            'paciente' => fn ($q) => $q->withTrashed()->select('id', 'nombre', 'propietario_id'),
+            'paciente.propietario' => fn ($q) => $q->withTrashed()->select('id', 'nombres', 'apellidos', 'razon_social'),
             'cargo.lineas' => fn ($q) => $q->orderBy('orden'),
         ]);
 
         $paciente = $estancia->paciente;
+        if ($paciente === null) {
+            throw ValidationException::withMessages([
+                'hotel' => __('caja.ventas.hotel.estancia_invalida'),
+            ]);
+        }
+
         $propietario = $paciente->propietario;
         if ($propietario === null) {
             throw ValidationException::withMessages([
@@ -482,12 +488,6 @@ final class VentaDesdeCargoPrefill
                 ->where('opened_by_id', Auth::id())
                 ->first();
 
-            if ($sesion === null) {
-                throw ValidationException::withMessages([
-                    'caja' => __('caja.ventas.desde_cargo.validation.sin_sesion'),
-                ]);
-            }
-
             $productoIds = $cargo->lineas
                 ->pluck('producto_id')
                 ->filter()
@@ -495,7 +495,7 @@ final class VentaDesdeCargoPrefill
                 ->values()
                 ->all();
 
-            $stocks = $productoIds === []
+            $stocks = ($sesion === null || $productoIds === [])
                 ? []
                 : DB::table('existencias_sede')
                     ->where('sede_id', $sesion->sede_id)

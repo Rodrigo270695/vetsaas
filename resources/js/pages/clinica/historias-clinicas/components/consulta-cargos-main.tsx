@@ -1,4 +1,4 @@
-import { Link, router } from '@inertiajs/react';
+import { Link } from '@inertiajs/react';
 import {
     ArrowLeft,
     AlertTriangle,
@@ -22,7 +22,7 @@ import { useTranslation } from 'react-i18next';
 import { Can } from '@/components/can';
 import { PageHeader } from '@/components/data-page';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { FormField } from '@/components/forms';
 import { Input } from '@/components/ui/input';
 import {
@@ -288,15 +288,15 @@ function StatusBanners({
                 icon={Wallet}
                 tone="warning"
                 action={
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-7 text-xs"
-                        onClick={() => router.visit(cobro.url_sesiones_caja)}
+                    <a
+                        href={cobro.url_sesiones_caja}
+                        className={cn(
+                            buttonVariants({ variant: 'outline', size: 'sm' }),
+                            'h-7 text-xs no-underline',
+                        )}
                     >
                         {t('cobro.abrir_sesion_cta')}
-                    </Button>
+                    </a>
                 }
             >
                 {t('cobro.sin_sesion_caja')}
@@ -309,14 +309,12 @@ function StatusBanners({
                 icon={Wallet}
                 tone="primary"
                 action={
-                    <Button
-                        type="button"
-                        size="sm"
-                        className="h-7 text-xs"
-                        onClick={() => router.visit(cobro.url_cobrar)}
+                    <a
+                        href={cobro.url_cobrar}
+                        className={cn(buttonVariants({ size: 'sm' }), 'h-7 text-xs no-underline')}
                     >
                         {t('cobro.cobrar_cta')}
-                    </Button>
+                    </a>
                 }
             >
                 {t('cobro.alert_body')}

@@ -95,6 +95,8 @@ export type GroomingTurnoRow = {
     responsable: { id: string; name: string } | null;
     sede: { id: string; nombre: string; codigo: string } | null;
     venta_id: string | null;
+    /** URL POS precargada (solo si pre-cuenta confirmada y permisos). */
+    url_cobrar?: string | null;
     fotos?: GroomingTurnoFoto[];
     cargo?: {
         id: string;

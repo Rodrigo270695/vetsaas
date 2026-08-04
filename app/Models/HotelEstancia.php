@@ -91,6 +91,28 @@ class HotelEstancia extends Model
         ], true);
     }
 
+    /**
+     * URL relativa al POS precargado, o null si la pre-cuenta no está lista para cobrar.
+     */
+    public function urlCobrarEnCaja(): ?string
+    {
+        if (! $this->permiteCargosPreCuenta() || $this->venta_id !== null) {
+            return null;
+        }
+
+        $cargo = $this->relationLoaded('cargo')
+            ? $this->cargo
+            : $this->cargo()->first(['id', 'estado', 'venta_id', 'hotel_estancia_id']);
+
+        if ($cargo === null
+            || $cargo->estado !== ConsultaCargo::ESTADO_CONFIRMADO
+            || $cargo->venta_id !== null) {
+            return null;
+        }
+
+        return route('caja.ventas.create-desde-hotel', ['hotel_estancia' => $this], absolute: false);
+    }
+
     public function nochesSugeridasParaVenta(): int
     {
         $in = $this->ingreso_at->copy()->startOfDay();

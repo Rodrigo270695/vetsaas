@@ -135,8 +135,7 @@ export default function Index({
     const canUpdate = can('grooming.update');
     const canDelete = can('grooming.delete');
     const canSeeAudit = can('audit-trail.view');
-    const canCobrarGrooming =
-        can('ventas.create') && can('consulta-cargos.cobrar') && can('grooming.view');
+    const canCobrarGrooming = can('ventas.create') && can('grooming.view');
     const showRowActions = true;
 
     const { search, setSearch, isLoading, sort, setSort, setPerPage, applyFilter } =

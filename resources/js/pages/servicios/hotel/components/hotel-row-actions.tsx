@@ -12,7 +12,7 @@ import {
     Wallet,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -20,6 +20,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { cn } from '@/lib/utils';
 import type { HotelEstanciaRow } from '../types';
 
 export type HotelEstadoTarget =
@@ -58,15 +59,10 @@ export function HotelRowActions({
         (canUpdate || canCobrar) && ESTADOS_CARGOS.has(estancia.estado);
     const urlCargos = puedeVerCargos ? `/servicios/hotel/${estancia.id}/cargos` : null;
 
-    const puedeCobrarEnCaja =
-        canCobrar &&
-        ESTADOS_CARGOS.has(estancia.estado) &&
-        estancia.venta_id == null &&
-        estancia.cargo?.estado === 'confirmado' &&
-        estancia.cargo.venta_id == null;
-    const urlCobrar = puedeCobrarEnCaja
-        ? `/caja/ventas/desde-hotel/${estancia.id}`
-        : null;
+    const urlCobrar =
+        typeof estancia.url_cobrar === 'string' && estancia.url_cobrar !== ''
+            ? estancia.url_cobrar
+            : null;
 
     const puedeConfirmar = canUpdate && estancia.estado === 'programada';
     const puedeIngresar = canUpdate && estancia.estado === 'confirmada';
@@ -127,16 +123,16 @@ export function HotelRowActions({
                 </Button>
             ) : null}
             {urlCobrar ? (
-                <Button
-                    type="button"
-                    variant="default"
-                    size="sm"
-                    className="h-8 gap-1.5 bg-emerald-600 text-white hover:bg-emerald-700"
-                    onClick={() => router.visit(urlCobrar)}
+                <a
+                    href={urlCobrar}
+                    className={cn(
+                        buttonVariants({ size: 'sm' }),
+                        'h-8 gap-1.5 bg-emerald-600 text-white no-underline hover:bg-emerald-700 hover:text-white',
+                    )}
                 >
                     <Wallet className="size-3.5" aria-hidden />
                     <span className="hidden lg:inline">{t('actions.cobrar')}</span>
-                </Button>
+                </a>
             ) : null}
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -170,10 +166,10 @@ export function HotelRowActions({
                     ) : null}
                     {urlCobrar ? (
                         <DropdownMenuItem asChild>
-                            <Link href={urlCobrar} className="flex cursor-pointer items-center gap-2">
+                            <a href={urlCobrar} className="flex cursor-pointer items-center gap-2">
                                 <Wallet className="size-4 shrink-0" strokeWidth={2.25} />
                                 {t('actions.cobrar')}
-                            </Link>
+                            </a>
                         </DropdownMenuItem>
                     ) : null}
                     {canUpdate ? (

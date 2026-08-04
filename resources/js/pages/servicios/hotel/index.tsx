@@ -114,8 +114,7 @@ export default function Index({
     const canUpdate = can('hotel.update');
     const canDelete = can('hotel.delete');
     const canSeeAudit = can('audit-trail.view');
-    const canCobrarHotel =
-        can('ventas.create') && can('consulta-cargos.cobrar') && can('hotel.view');
+    const canCobrarHotel = can('ventas.create') && can('hotel.view');
     const canVerDiarios = can('hotel.view');
     const showRowActions = canUpdate || canDelete || canCobrarHotel || canVerDiarios;
 

@@ -96,6 +96,28 @@ class GroomingTurno extends Model
     }
 
     /**
+     * URL relativa al POS precargado, o null si la pre-cuenta no está lista para cobrar.
+     */
+    public function urlCobrarEnCaja(): ?string
+    {
+        if (! $this->permiteCargosPreCuenta() || $this->venta_id !== null) {
+            return null;
+        }
+
+        $cargo = $this->relationLoaded('cargo')
+            ? $this->cargo
+            : $this->cargo()->first(['id', 'estado', 'venta_id', 'grooming_turno_id']);
+
+        if ($cargo === null
+            || $cargo->estado !== ConsultaCargo::ESTADO_CONFIRMADO
+            || $cargo->venta_id !== null) {
+            return null;
+        }
+
+        return route('caja.ventas.create-desde-grooming', ['grooming_turno' => $this], absolute: false);
+    }
+
+    /**
      * Texto de línea de venta (concepto) según el tipo de servicio del turno.
      */
     public function descripcionParaVenta(): string

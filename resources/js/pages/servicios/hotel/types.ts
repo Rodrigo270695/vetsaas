@@ -82,6 +82,8 @@ export type HotelEstanciaRow = {
     responsable: { id: string; name: string } | null;
     sede: { id: string; nombre: string; codigo: string } | null;
     venta_id: string | null;
+    /** URL POS precargada (solo si pre-cuenta confirmada y permisos). */
+    url_cobrar?: string | null;
     cargo?: {
         id: string;
         estado: string;

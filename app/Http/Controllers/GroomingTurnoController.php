@@ -166,6 +166,18 @@ class GroomingTurnoController extends Controller
 
         $turnos = $query->paginate($perPage)->withQueryString();
 
+        $puedeEnlaceCobrar = ($request->user()?->can('ventas.create') ?? false)
+            && ($request->user()?->can('grooming.view') ?? false);
+
+        $turnos->getCollection()->transform(function (GroomingTurno $turno) use ($puedeEnlaceCobrar): GroomingTurno {
+            $turno->setAttribute(
+                'url_cobrar',
+                $puedeEnlaceCobrar ? $turno->urlCobrarEnCaja() : null,
+            );
+
+            return $turno;
+        });
+
         $totalEnRango = GroomingTurno::query()
             ->whereBetween('inicio_at', [$inicioRango, $finRango])
             ->count();

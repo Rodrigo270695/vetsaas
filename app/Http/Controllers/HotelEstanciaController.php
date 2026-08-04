@@ -151,6 +151,18 @@ class HotelEstanciaController extends Controller
 
         $estancias = $query->paginate($perPage)->withQueryString();
 
+        $puedeEnlaceCobrar = ($request->user()?->can('ventas.create') ?? false)
+            && ($request->user()?->can('hotel.view') ?? false);
+
+        $estancias->getCollection()->transform(function (HotelEstancia $estancia) use ($puedeEnlaceCobrar): HotelEstancia {
+            $estancia->setAttribute(
+                'url_cobrar',
+                $puedeEnlaceCobrar ? $estancia->urlCobrarEnCaja() : null,
+            );
+
+            return $estancia;
+        });
+
         $totalEnRango = HotelEstancia::query()
             ->whereBetween('ingreso_at', [$inicioRango, $finRango])
             ->count();
