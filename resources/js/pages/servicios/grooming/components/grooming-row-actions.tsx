@@ -1,6 +1,7 @@
 import { Link } from '@inertiajs/react';
 import {
     Ban,
+    Banknote,
     CheckCircle2,
     Eye,
     MoreHorizontal,
@@ -30,6 +31,7 @@ export type GroomingRowActionsProps = {
     onDelete: (t: GroomingTurnoRow) => void;
     onEstado: (t: GroomingTurnoRow, target: GroomingEstadoTarget) => void;
     onDetalle: (t: GroomingTurnoRow) => void;
+    onAdelanto: (t: GroomingTurnoRow) => void;
     canUpdate: boolean;
     canDelete: boolean;
     canCobrar: boolean;
@@ -41,6 +43,7 @@ export function GroomingRowActions({
     onDelete,
     onEstado,
     onDetalle,
+    onAdelanto,
     canUpdate,
     canDelete,
     canCobrar,
@@ -62,6 +65,14 @@ export function GroomingRowActions({
             ? `/caja/ventas/desde-grooming/${turno.id}`
             : null;
     const urlCobrar = urlCobrarFromServer ?? urlCobrarFallback;
+
+    const puedeAdelanto =
+        canCobrar &&
+        (turno.puede_adelanto === true ||
+            (turno.adelanto_venta_id == null &&
+                turno.venta_id == null &&
+                turno.cargo?.venta_id == null &&
+                !['cancelada', 'no_asistio'].includes(turno.estado)));
 
     const puedeIniciar =
         canUpdate && (turno.estado === 'programada' || turno.estado === 'confirmada');
@@ -114,6 +125,18 @@ export function GroomingRowActions({
                     <span className="hidden lg:inline">{t('actions.completar')}</span>
                 </Button>
             ) : null}
+            {puedeAdelanto ? (
+                <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 gap-1.5 border-amber-500/40 bg-amber-500/10 text-amber-800 hover:bg-amber-500/15 hover:text-amber-900 dark:border-amber-400/40 dark:bg-amber-400/10 dark:text-amber-200"
+                    onClick={() => onAdelanto(turno)}
+                >
+                    <Banknote className="size-3.5" aria-hidden />
+                    <span className="hidden lg:inline">{t('actions.adelanto')}</span>
+                </Button>
+            ) : null}
             {urlCobrar ? (
                 <a
                     href={urlCobrar}
@@ -149,6 +172,15 @@ export function GroomingRowActions({
                                 <Receipt className="size-4" strokeWidth={2.25} />
                                 {t('actions.cargos')}
                             </Link>
+                        </DropdownMenuItem>
+                    ) : null}
+                    {puedeAdelanto ? (
+                        <DropdownMenuItem
+                            className="cursor-pointer gap-2"
+                            onClick={() => onAdelanto(turno)}
+                        >
+                            <Banknote className="size-4" strokeWidth={2.25} />
+                            {t('actions.adelanto')}
                         </DropdownMenuItem>
                     ) : null}
                     {urlCobrar ? (

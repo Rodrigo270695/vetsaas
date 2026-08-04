@@ -214,6 +214,11 @@ export default function Create({
 
         desdeCargoInicializado.current = true;
 
+        let adelantoRestante = Number(desdeCargo.adelanto_monto ?? 0);
+        if (!Number.isFinite(adelantoRestante) || adelantoRestante < 0) {
+            adelantoRestante = 0;
+        }
+
         const lineasCart: CartLine[] = desdeCargo.lineas_iniciales.map((ln, idx) => {
             const tieneProducto = Boolean(ln.producto_id);
             const stock = parseStock(ln.stock_sede);
@@ -229,6 +234,15 @@ export default function Create({
                       ? `hotel-svc:${hotelId}:${idx}`
                       : `svc:${idx}`;
 
+            const qty = Number(ln.cantidad) || 1;
+            const precio = Number(ln.precio_lista) || 0;
+            const lineGross = Math.round(qty * precio * 100) / 100;
+            let descuentoMonto = 0;
+            if (adelantoRestante > 0.009 && lineGross > 0) {
+                descuentoMonto = Math.min(adelantoRestante, lineGross);
+                adelantoRestante = Math.round((adelantoRestante - descuentoMonto) * 100) / 100;
+            }
+
             return {
                 key: lineKey,
                 producto_id: ln.producto_id,
@@ -237,10 +251,10 @@ export default function Create({
                 nombre: ln.concepto,
                 unidad: tieneProducto ? 'und' : t('caja:ventas.desde_cargo.linea_servicio'),
                 precio_venta: ln.precio_lista,
-                descuento_tipo: 'porcentaje',
+                descuento_tipo: descuentoMonto > 0 ? 'monto' : 'porcentaje',
                 descuento_pct: 0,
-                descuento_monto: 0,
-                cantidad: Number(ln.cantidad) || 1,
+                descuento_monto: descuentoMonto,
+                cantidad: qty,
                 stock_disponible: tieneProducto ? stock : 999999,
                 omitir_stock: !tieneProducto,
             };
@@ -762,8 +776,8 @@ export default function Create({
         !cartSinStock &&
         form.data.propietario_id &&
         form.data.pagos.length > 0 &&
-        pagosCuadran &&
-        efectivoOk;
+        (totales.total <= 0.009 || pagosCuadran) &&
+        (totales.total <= 0.009 || efectivoOk);
 
     const toggleMetodoPago = useCallback(
         (metodo: string) => {
@@ -919,6 +933,21 @@ export default function Create({
                                             moneda: clinica.moneda,
                                             total: desdeCargo.cargo_total,
                                         }),
+                                    })}
+                                </AlertDescription>
+                            </Alert>
+                        ) : null}
+                        {desdeCargo?.adelanto_monto != null && Number(desdeCargo.adelanto_monto) > 0 ? (
+                            <Alert className="border-amber-500/30 bg-amber-500/5">
+                                <Banknote className="size-4 text-amber-700 dark:text-amber-300" aria-hidden />
+                                <AlertTitle>{t('caja:ventas.desde_cargo.adelanto_title')}</AlertTitle>
+                                <AlertDescription>
+                                    {t('caja:ventas.desde_cargo.adelanto_body', {
+                                        monto: t('caja:ventas.desde_cargo.banner_total', {
+                                            moneda: clinica.moneda,
+                                            total: Number(desdeCargo.adelanto_monto).toFixed(2),
+                                        }),
+                                        numero: desdeCargo.adelanto_venta_numero ?? '—',
                                     })}
                                 </AlertDescription>
                             </Alert>

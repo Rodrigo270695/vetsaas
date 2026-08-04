@@ -35,6 +35,222 @@ final class VentaCheckoutService
     ) {}
 
     /**
+     * Registra una venta de adelanto (anticipo) ligada a un turno de grooming.
+     * No marca el cobro final del turno ni del cargo.
+     *
+     * @param  array{caja_sesion_id: string, monto: float|string, metodo_pago: string, monto_recibido?: float|string|null, notas?: string|null}  $validated
+     */
+    public function registrarAdelantoGrooming(
+        GroomingTurno $turno,
+        array $validated,
+        Authenticatable $user,
+    ): Venta {
+        $clinic = ClinicSetting::current();
+        $igvPct = (float) (string) $clinic->igv_porcentaje;
+        $precioIncluyeIgv = (bool) $clinic->precio_incluye_igv;
+        $moneda = (string) $clinic->moneda;
+        if ($moneda !== 'PEN' && $moneda !== 'USD') {
+            $moneda = 'PEN';
+        }
+
+        return DB::transaction(function () use ($turno, $validated, $user, $igvPct, $precioIncluyeIgv, $moneda): Venta {
+            $turnoLocked = GroomingTurno::query()
+                ->whereKey($turno->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $turnoLocked->load([
+                'paciente' => fn ($q) => $q->withTrashed()->select('id', 'nombre', 'propietario_id'),
+                'paciente.propietario' => fn ($q) => $q->withTrashed()->select('id'),
+                'cargo:id,grooming_turno_id,venta_id',
+            ]);
+
+            if (! $turnoLocked->permiteAdelanto()) {
+                throw ValidationException::withMessages([
+                    'grooming_turno_id' => __('caja.ventas.grooming.adelanto_no_permitido'),
+                ]);
+            }
+
+            $paciente = $turnoLocked->paciente;
+            $propietarioId = $paciente?->propietario_id;
+            if ($paciente === null || ! is_string($propietarioId) || $propietarioId === '') {
+                throw ValidationException::withMessages([
+                    'grooming_turno_id' => __('caja.ventas.grooming.sin_propietario'),
+                ]);
+            }
+
+            $sesionId = $validated['caja_sesion_id'] ?? null;
+            if (is_string($sesionId) && $sesionId !== '') {
+                $sesion = CajaSesion::query()
+                    ->whereKey($sesionId)
+                    ->lockForUpdate()
+                    ->firstOrFail();
+            } else {
+                $sesion = CajaSesion::query()
+                    ->where('estado', CajaSesion::ESTADO_ABIERTA)
+                    ->where('opened_by_id', $user->getAuthIdentifier())
+                    ->lockForUpdate()
+                    ->first();
+                if ($sesion === null) {
+                    throw ValidationException::withMessages([
+                        'caja_sesion_id' => __('caja.ventas.desde_cargo.validation.sin_sesion'),
+                    ]);
+                }
+            }
+
+            if (! $sesion->estaAbierta() || (string) $sesion->opened_by_id !== (string) $user->getAuthIdentifier()) {
+                throw ValidationException::withMessages([
+                    'caja_sesion_id' => __('caja.ventas.validation.sesion_invalida'),
+                ]);
+            }
+
+            $monto = round((float) (string) $validated['monto'], 2);
+            if ($monto < 0.01) {
+                throw ValidationException::withMessages([
+                    'monto' => __('caja.ventas.grooming.adelanto_monto_invalido'),
+                ]);
+            }
+
+            $concepto = mb_substr(
+                __('caja.ventas.grooming.adelanto_concepto', [
+                    'servicio' => $turnoLocked->descripcionParaVenta(),
+                    'paciente' => $paciente->nombre,
+                ]),
+                0,
+                300,
+            );
+
+            $cantidad = 1.0;
+            $precioLista = $monto;
+            if ($precioIncluyeIgv) {
+                $divisorIgv = 1 + ($igvPct / 100);
+                $lineGross = $monto;
+                $lineSub = $divisorIgv > 0 ? round($lineGross / $divisorIgv, 2) : $lineGross;
+                $puSinIgv = round($lineSub / $cantidad, 4);
+            } else {
+                $puSinIgv = round($precioLista, 4);
+                $lineSub = round($cantidad * $puSinIgv, 2);
+            }
+
+            $lineasCalc = [[
+                'producto_id' => null,
+                'tipo_linea' => 'servicio',
+                'consulta_cargo_linea_id' => null,
+                'descripcion_snapshot' => $concepto,
+                'igv_tipo_snapshot' => 'gravado',
+                'cantidad' => $cantidad,
+                'precio_lista' => $precioLista,
+                'precio_unitario' => $puSinIgv,
+                'descuento_pct' => 0.0,
+                'subtotal' => $lineSub,
+                'promotion_id' => null,
+            ]];
+
+            $totales = VentaTotales::fromLineas($lineasCalc, $igvPct, $precioIncluyeIgv);
+            $total = (float) $totales['total'];
+
+            $pagosPayload = [
+                'metodo_pago' => $validated['metodo_pago'],
+                'monto_recibido' => $validated['monto_recibido'] ?? null,
+                'pagos' => [[
+                    'metodo' => $validated['metodo_pago'],
+                    'monto' => $total,
+                    'monto_recibido' => $validated['monto_recibido'] ?? null,
+                ]],
+            ];
+            $pagosLineas = VentaPagosResolver::fromValidated($pagosPayload, $total);
+            $metodo = VentaPagosResolver::metodoResumen($pagosLineas);
+            $efectivoSnap = VentaPagosResolver::efectivoSnapshot($pagosLineas);
+
+            $anio = (int) now()->year;
+            $ultimaVentaAnio = Venta::withTrashed()
+                ->where('anio', $anio)
+                ->orderByDesc('correlativo')
+                ->lockForUpdate()
+                ->first();
+            $correlativo = ((int) ($ultimaVentaAnio?->correlativo ?? 0)) + 1;
+            $numero = sprintf('VTA-%d-%05d', $anio, $correlativo);
+
+            $notas = trim((string) ($validated['notas'] ?? ''));
+            $notaAdelanto = __('caja.ventas.grooming.adelanto_nota_venta');
+            $notasFinal = $notas !== '' ? $notaAdelanto.' '.$notas : $notaAdelanto;
+
+            $venta = Venta::query()->create([
+                'numero' => $numero,
+                'anio' => $anio,
+                'correlativo' => $correlativo,
+                'propietario_id' => $propietarioId,
+                'paciente_id' => $paciente->id,
+                'consulta_id' => null,
+                'consulta_cargo_id' => null,
+                'caja_sesion_id' => $sesion->id,
+                'sede_id' => $sesion->sede_id,
+                'moneda' => $moneda,
+                'estado' => Venta::ESTADO_PAGADO,
+                'subtotal' => number_format((float) $totales['subtotal'], 2, '.', ''),
+                'igv_monto' => number_format((float) $totales['igv'], 2, '.', ''),
+                'descuento_monto' => '0.00',
+                'promotion_id' => null,
+                'promotion_name_snapshot' => null,
+                'total' => number_format($total, 2, '.', ''),
+                'metodo_pago' => $metodo,
+                'monto_recibido' => $efectivoSnap['monto_recibido'] !== null
+                    ? number_format($efectivoSnap['monto_recibido'], 2, '.', '')
+                    : null,
+                'vuelto' => $efectivoSnap['vuelto'] !== null
+                    ? number_format($efectivoSnap['vuelto'], 2, '.', '')
+                    : null,
+                'fecha_pago' => now(),
+                'notas' => mb_substr($notasFinal, 0, 2000),
+                'fel_estado' => Venta::FEL_SIN_CPE,
+                'tipo_comprobante_sunat' => null,
+                'fel_document_id' => null,
+                'created_by_id' => $user->getAuthIdentifier(),
+            ]);
+
+            foreach ($pagosLineas as $orden => $pago) {
+                VentaPago::query()->create([
+                    'venta_id' => $venta->id,
+                    'metodo' => $pago['metodo'],
+                    'monto' => number_format($pago['monto'], 2, '.', ''),
+                    'monto_recibido' => $pago['monto_recibido'] !== null
+                        ? number_format($pago['monto_recibido'], 2, '.', '')
+                        : null,
+                    'vuelto' => $pago['vuelto'] !== null
+                        ? number_format($pago['vuelto'], 2, '.', '')
+                        : null,
+                    'orden' => $orden,
+                ]);
+            }
+
+            foreach ($lineasCalc as $lc) {
+                VentaLinea::query()->create([
+                    'venta_id' => $venta->id,
+                    'tipo_linea' => $lc['tipo_linea'],
+                    'producto_id' => null,
+                    'consulta_cargo_linea_id' => null,
+                    'descripcion_snapshot' => $lc['descripcion_snapshot'],
+                    'igv_tipo_snapshot' => $lc['igv_tipo_snapshot'],
+                    'cantidad' => number_format($lc['cantidad'], 3, '.', ''),
+                    'precio_unitario' => number_format($lc['precio_unitario'], 4, '.', ''),
+                    'descuento_pct' => '0.00',
+                    'subtotal' => number_format($lc['subtotal'], 2, '.', ''),
+                    'promotion_id' => null,
+                ]);
+            }
+
+            $turnoLocked->update([
+                'adelanto_venta_id' => $venta->id,
+                'adelanto_monto' => number_format($monto, 2, '.', ''),
+                'adelanto_at' => now(),
+                'updated_by_id' => $user->getAuthIdentifier(),
+            ]);
+
+            return $venta->fresh(['lineas', 'pagos']);
+        });
+    }
+
+    /**
      * Registra una venta pagada, líneas, correlativo y salidas de inventario.
      *
      * @param  array<string, mixed>  $validated
@@ -242,6 +458,11 @@ final class VentaCheckoutService
                 $precioIncluyeIgv,
             );
 
+            if ($groomingTurnoLocked !== null && $groomingTurnoLocked->tieneAdelanto()) {
+                $adelanto = (float) (string) $groomingTurnoLocked->adelanto_monto;
+                $validated['lineas'] = $this->inyectarDescuentoAdelanto($validated['lineas'], $adelanto);
+            }
+
             $manualResult = DescuentoManualLinea::apply(
                 $promoResult->lineas,
                 $validated['lineas'],
@@ -260,7 +481,9 @@ final class VentaCheckoutService
             $total = $totales['total'];
 
             $pagosLineas = VentaPagosResolver::fromValidated($validated, (float) $total);
-            $metodo = VentaPagosResolver::metodoResumen($pagosLineas);
+            $metodo = $pagosLineas === []
+                ? 'adelanto'
+                : VentaPagosResolver::metodoResumen($pagosLineas);
             $efectivoSnap = VentaPagosResolver::efectivoSnapshot($pagosLineas);
             $montoRecibido = $efectivoSnap['monto_recibido'];
             $vuelto = $efectivoSnap['vuelto'];
@@ -475,6 +698,39 @@ final class VentaCheckoutService
             'consulta_id' => $cargo->consulta_id ?? (is_string($consultaId) && $consultaId !== '' ? $consultaId : null),
             'consulta_cargo_id' => $cargo->id,
         ];
+    }
+
+    /**
+     * Reparte el adelanto como descuento_monto sobre las líneas (precio lista × cantidad).
+     *
+     * @param  list<array<string, mixed>>  $lineas
+     * @return list<array<string, mixed>>
+     */
+    private function inyectarDescuentoAdelanto(array $lineas, float $adelanto): array
+    {
+        $restante = round(max(0, $adelanto), 2);
+        if ($restante < 0.01) {
+            return $lineas;
+        }
+
+        foreach ($lineas as $i => $row) {
+            if ($restante < 0.01) {
+                break;
+            }
+            $qty = (float) (string) ($row['cantidad'] ?? 0);
+            $precio = (float) (string) ($row['precio_lista'] ?? 0);
+            $lineGross = round($qty * $precio, 2);
+            $existing = (float) (string) ($row['descuento_monto'] ?? 0);
+            $capacidad = max(0, round($lineGross - $existing, 2));
+            if ($capacidad < 0.01) {
+                continue;
+            }
+            $aplicar = min($restante, $capacidad);
+            $lineas[$i]['descuento_monto'] = round($existing + $aplicar, 2);
+            $restante = round($restante - $aplicar, 2);
+        }
+
+        return $lineas;
     }
 
     private function precioUnitarioSinIgv(float $precioLista, float $igvPct, bool $precioIncluyeIgv): float

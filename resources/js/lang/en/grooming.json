@@ -16,12 +16,26 @@
         "new_short": "New",
         "create_first": "Create first appointment",
         "cobrar": "Collect",
+        "adelanto": "Deposit",
         "cargos": "Charges / pre-bill",
         "iniciar": "Start",
         "completar": "Complete",
         "detalle": "Details",
         "cancelar_turno": "Cancel appointment",
         "no_asistio": "No-show"
+    },
+    "adelanto": {
+        "title": "Record deposit",
+        "description": "Cash-register advance for {{paciente}}. It will be deducted when collecting the service.",
+        "monto": "Deposit amount",
+        "metodo": "Payment method",
+        "monto_recibido": "Amount received (cash)",
+        "monto_recibido_hint": "Optional; leave empty to assume exact amount",
+        "notas": "Notes",
+        "submit": "Collect deposit",
+        "hint": "Requires an open cash session. Creates an advance sale (does not close the service charge).",
+        "badge": "Deposit {{monto}}",
+        "ya_registrado": "Deposit collected"
     },
     "columns": {
         "inicio_at": "Start",

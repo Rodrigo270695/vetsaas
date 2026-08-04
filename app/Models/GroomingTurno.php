@@ -28,6 +28,9 @@ use Illuminate\Support\Carbon;
  * @property ?string $created_by_id
  * @property ?string $updated_by_id
  * @property ?string $venta_id
+ * @property ?string $adelanto_venta_id
+ * @property ?string $adelanto_monto
+ * @property ?\Illuminate\Support\Carbon $adelanto_at
  */
 class GroomingTurno extends Model
 {
@@ -73,6 +76,9 @@ class GroomingTurno extends Model
         'created_by_id',
         'updated_by_id',
         'venta_id',
+        'adelanto_venta_id',
+        'adelanto_monto',
+        'adelanto_at',
     ];
 
     protected function casts(): array
@@ -80,6 +86,8 @@ class GroomingTurno extends Model
         return [
             'inicio_at' => 'datetime',
             'duracion_minutos' => 'integer',
+            'adelanto_monto' => 'decimal:2',
+            'adelanto_at' => 'datetime',
         ];
     }
 
@@ -116,6 +124,35 @@ class GroomingTurno extends Model
         }
 
         return null;
+    }
+
+    public function permiteAdelanto(): bool
+    {
+        if ($this->adelanto_venta_id !== null || $this->venta_id !== null) {
+            return false;
+        }
+
+        $cargo = $this->relationLoaded('cargo')
+            ? $this->cargo
+            : $this->cargo()->first();
+
+        if ($cargo !== null && $cargo->venta_id !== null) {
+            return false;
+        }
+
+        return in_array($this->estado, [
+            self::ESTADO_PROGRAMADA,
+            self::ESTADO_CONFIRMADA,
+            self::ESTADO_EN_PROCESO,
+            self::ESTADO_COMPLETADA,
+        ], true);
+    }
+
+    public function tieneAdelanto(): bool
+    {
+        return $this->adelanto_venta_id !== null
+            && $this->adelanto_monto !== null
+            && (float) (string) $this->adelanto_monto > 0;
     }
 
     /**
@@ -189,6 +226,11 @@ class GroomingTurno extends Model
     public function venta(): BelongsTo
     {
         return $this->belongsTo(Venta::class, 'venta_id');
+    }
+
+    public function adelantoVenta(): BelongsTo
+    {
+        return $this->belongsTo(Venta::class, 'adelanto_venta_id');
     }
 
     public function creadoPor(): BelongsTo

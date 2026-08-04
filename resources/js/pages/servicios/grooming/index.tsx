@@ -23,6 +23,7 @@ import { GroomingDetalleModal } from './components/grooming-detalle-modal';
 import { GroomingEstadoModal  } from './components/grooming-estado-modal';
 import type {GroomingEstadoTarget} from './components/grooming-estado-modal';
 import { GroomingFormModal } from './components/grooming-form-modal';
+import { GroomingAdelantoModal } from './components/grooming-adelanto-modal';
 import { GroomingRowActions } from './components/grooming-row-actions';
 import type {
     GroomingFilters,
@@ -62,6 +63,7 @@ type ModalState =
     | { type: 'edit'; turno: GroomingTurnoRow }
     | { type: 'delete'; turno: GroomingTurnoRow }
     | { type: 'detalle'; turno: GroomingTurnoRow }
+    | { type: 'adelanto'; turno: GroomingTurnoRow }
     | { type: 'estado'; turno: GroomingTurnoRow; target: GroomingEstadoTarget };
 
 const DEFAULT_PER_PAGE = 10;
@@ -180,6 +182,10 @@ export default function Index({
         (row: GroomingTurnoRow) => setModal({ type: 'detalle', turno: row }),
         [],
     );
+    const openAdelanto = useCallback(
+        (row: GroomingTurnoRow) => setModal({ type: 'adelanto', turno: row }),
+        [],
+    );
 
     const openedTurnoEditarRef = useRef<string | null>(null);
     useEffect(() => {
@@ -285,12 +291,27 @@ export default function Index({
                 header: t('columns.estado'),
                 sortable: true,
                 cell: (row) => (
-                    <Badge
-                        variant={estadoBadgeVariant(row.estado)}
-                        className="whitespace-nowrap text-[0.65rem] font-normal"
-                    >
-                        {t(`estado.${row.estado}`, { defaultValue: row.estado })}
-                    </Badge>
+                    <div className="flex flex-col items-start gap-1">
+                        <Badge
+                            variant={estadoBadgeVariant(row.estado)}
+                            className="whitespace-nowrap text-[0.65rem] font-normal"
+                        >
+                            {t(`estado.${row.estado}`, { defaultValue: row.estado })}
+                        </Badge>
+                        {row.adelanto_monto != null && Number(row.adelanto_monto) > 0 ? (
+                            <Badge
+                                variant="outline"
+                                className="whitespace-nowrap border-amber-500/40 bg-amber-500/10 text-[0.65rem] font-normal text-amber-800 dark:text-amber-200"
+                            >
+                                {t('adelanto.badge', {
+                                    monto: Number(row.adelanto_monto).toLocaleString(undefined, {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2,
+                                    }),
+                                })}
+                            </Badge>
+                        ) : null}
+                    </div>
                 ),
             },
             {
@@ -386,6 +407,7 @@ export default function Index({
                             onDelete={openDelete}
                             onEstado={openEstado}
                             onDetalle={openDetalle}
+                            onAdelanto={openAdelanto}
                             canUpdate={canUpdate}
                             canDelete={canDelete}
                             canCobrar={canCobrarGrooming}
@@ -397,7 +419,7 @@ export default function Index({
         }
 
         return base;
-    }, [t, dateLocale, appTz, canSeeAudit, showRowActions, canUpdate, canDelete, canCobrarGrooming, grooming_catalogo_personalizado, openEdit, openDelete, openEstado, openDetalle]);
+    }, [t, dateLocale, appTz, canSeeAudit, showRowActions, canUpdate, canDelete, canCobrarGrooming, grooming_catalogo_personalizado, openEdit, openDelete, openEstado, openDetalle, openAdelanto]);
 
     return (
         <>
@@ -531,6 +553,16 @@ export default function Index({
                     }
                 }}
                 turno={modal.type === 'delete' ? modal.turno : null}
+            />
+
+            <GroomingAdelantoModal
+                open={modal.type === 'adelanto'}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        closeModal();
+                    }
+                }}
+                turno={modal.type === 'adelanto' ? modal.turno : null}
             />
 
             <GroomingEstadoModal

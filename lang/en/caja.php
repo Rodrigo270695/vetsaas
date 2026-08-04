@@ -49,6 +49,11 @@ return [
             'ya_cobrado' => 'This grooming appointment already has a recorded sale.',
             'sin_propietario' => 'The patient has no linked owner; cannot open checkout.',
             'turno_invalido' => 'The grooming appointment is not valid for this sale.',
+            'adelanto_no_permitido' => 'This appointment cannot take a deposit (already has one, is paid, or cancelled).',
+            'adelanto_monto_invalido' => 'Enter a deposit amount greater than zero.',
+            'adelanto_concepto' => 'Grooming deposit · :servicio · :paciente',
+            'adelanto_nota_venta' => 'Grooming advance payment (deposit).',
+            'adelanto_registrado' => 'Deposit :numero recorded (:monto).',
         ],
         'hotel' => [
             'no_completado' => 'Mark the stay as «Completed» before collecting at the register.',

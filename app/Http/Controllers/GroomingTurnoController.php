@@ -172,6 +172,7 @@ class GroomingTurnoController extends Controller
         $turnos->through(function (GroomingTurno $turno) use ($puedeEnlaceCobrar): array {
             $row = $turno->toArray();
             $row['url_cobrar'] = $puedeEnlaceCobrar ? $turno->urlCobrarEnCaja() : null;
+            $row['puede_adelanto'] = $puedeEnlaceCobrar && $turno->permiteAdelanto();
 
             return $row;
         });

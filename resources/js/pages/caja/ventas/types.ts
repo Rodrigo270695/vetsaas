@@ -118,6 +118,8 @@ export type DesdeCargoPrefill = {
     paciente_nombre: string | null;
     consulta_atendido_at: string | null;
     cargo_total: string;
+    adelanto_monto?: string | null;
+    adelanto_venta_numero?: string | null;
     lineas_iniciales: LineaInicialDesdeCargo[];
 };
 

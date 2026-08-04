@@ -785,6 +785,10 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware(['permission:ventas.create', 'permission:grooming.view'])
             ->get('ventas/desde-grooming/{grooming_turno}', [VentaController::class, 'createDesdeGrooming'])
             ->name('ventas.create-desde-grooming');
+        Route::middleware(['permission:ventas.create', 'permission:grooming.view'])
+            ->post('ventas/adelanto-grooming/{grooming_turno}', [VentaController::class, 'storeAdelantoGrooming'])
+            ->whereUuid('grooming_turno')
+            ->name('ventas.adelanto-grooming');
         Route::middleware(['permission:ventas.create', 'permission:hotel.view', 'tenant.module:hotel'])
             ->get('ventas/desde-hotel/{hotel_estancia}', [VentaController::class, 'createDesdeHotel'])
             ->name('ventas.create-desde-hotel');

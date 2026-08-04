@@ -326,6 +326,8 @@
             "banner_title": "Cobro de pre-cuenta clínica",
             "banner_body": "Líneas cargadas desde la consulta de {{paciente}} ({{fecha}}). Total pre-cuenta: {{total}}.",
             "banner_total": "{{moneda}} {{total}}",
+            "adelanto_title": "Adelanto aplicado",
+            "adelanto_body": "Se descontó el adelanto {{monto}} (venta {{numero}}) del total a cobrar.",
             "cliente_bloqueado": "Cliente y paciente vienen de la pre-cuenta confirmada.",
             "linea_servicio": "Servicio",
             "sin_stock_aplica": "Sin control de stock"

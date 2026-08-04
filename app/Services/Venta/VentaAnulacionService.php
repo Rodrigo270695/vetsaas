@@ -132,6 +132,14 @@ final class VentaAnulacionService
             ->where('venta_id', $venta->id)
             ->update(['venta_id' => null]);
 
+        GroomingTurno::query()
+            ->where('adelanto_venta_id', $venta->id)
+            ->update([
+                'adelanto_venta_id' => null,
+                'adelanto_monto' => null,
+                'adelanto_at' => null,
+            ]);
+
         HotelEstancia::query()
             ->where('venta_id', $venta->id)
             ->update(['venta_id' => null]);

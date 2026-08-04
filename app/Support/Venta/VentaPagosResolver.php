@@ -18,6 +18,11 @@ final class VentaPagosResolver
      */
     public static function fromValidated(array $validated, float $totalVenta): array
     {
+        $totalVenta = round($totalVenta, 2);
+        if ($totalVenta <= 0.009) {
+            return [];
+        }
+
         $raw = $validated['pagos'] ?? null;
         if (! is_array($raw) || $raw === []) {
             $metodo = (string) ($validated['metodo_pago'] ?? '');

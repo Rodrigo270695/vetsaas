@@ -322,6 +322,10 @@ class TenantSchemaMigrator
                 && Schema::hasTable('consulta_examenes')
                 && Schema::hasTable('consulta_terapia_lineas'),
             '2026_07_28_120000_t123_create_venta_pagos_table' => Schema::hasTable('venta_pagos'),
+            '2026_08_04_100000_t124_grooming_adelanto' => Schema::hasTable('grooming_turnos')
+                && Schema::hasColumn('grooming_turnos', 'adelanto_venta_id')
+                && Schema::hasColumn('grooming_turnos', 'adelanto_monto')
+                && Schema::hasColumn('grooming_turnos', 'adelanto_at'),
             default => false,
         };
     }

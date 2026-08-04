@@ -267,6 +267,7 @@ final class VentaDesdeCargoPrefill
             'paciente' => fn ($q) => $q->withTrashed()->select('id', 'nombre', 'propietario_id'),
             'paciente.propietario' => fn ($q) => $q->withTrashed()->select('id', 'nombres', 'apellidos', 'razon_social'),
             'cargo.lineas' => fn ($q) => $q->orderBy('orden'),
+            'adelantoVenta:id,numero',
         ]);
 
         $paciente = $turno->paciente;
@@ -351,6 +352,8 @@ final class VentaDesdeCargoPrefill
                 'paciente_nombre' => $paciente->nombre,
                 'consulta_atendido_at' => $turno->inicio_at->toIso8601String(),
                 'cargo_total' => (string) $cargo->total,
+                'adelanto_monto' => $turno->tieneAdelanto() ? (string) $turno->adelanto_monto : null,
+                'adelanto_venta_numero' => $turno->tieneAdelanto() ? ($turno->adelantoVenta?->numero) : null,
                 'lineas_iniciales' => $lineasIniciales,
             ];
         }
@@ -398,6 +401,8 @@ final class VentaDesdeCargoPrefill
             'paciente_nombre' => $paciente->nombre,
             'consulta_atendido_at' => $turno->inicio_at->toIso8601String(),
             'cargo_total' => $precioLista,
+            'adelanto_monto' => $turno->tieneAdelanto() ? (string) $turno->adelanto_monto : null,
+            'adelanto_venta_numero' => $turno->tieneAdelanto() ? ($turno->adelantoVenta?->numero) : null,
             'lineas_iniciales' => [
                 [
                     'producto_id' => null,

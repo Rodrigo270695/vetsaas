@@ -326,6 +326,8 @@
             "banner_title": "Clinical pre-invoice checkout",
             "banner_body": "Lines loaded from {{paciente}}'s visit ({{fecha}}). Pre-invoice total: {{total}}.",
             "banner_total": "{{moneda}} {{total}}",
+            "adelanto_title": "Deposit applied",
+            "adelanto_body": "Deposit {{monto}} (sale {{numero}}) was deducted from the amount due.",
             "cliente_bloqueado": "Customer and patient come from the confirmed pre-invoice.",
             "linea_servicio": "Service",
             "sin_stock_aplica": "No stock control"

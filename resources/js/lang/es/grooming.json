@@ -16,12 +16,26 @@
         "new_short": "Nuevo",
         "create_first": "Crear primer turno",
         "cobrar": "Cobrar",
+        "adelanto": "Adelanto",
         "cargos": "Cargos / pre-cuenta",
         "iniciar": "Iniciar",
         "completar": "Completar",
         "detalle": "Detalle",
         "cancelar_turno": "Cancelar turno",
         "no_asistio": "No asistió"
+    },
+    "adelanto": {
+        "title": "Registrar adelanto",
+        "description": "Anticipo en caja para {{paciente}}. Se descontará al cobrar el servicio.",
+        "monto": "Monto del adelanto",
+        "metodo": "Método de pago",
+        "monto_recibido": "Monto recibido (efectivo)",
+        "monto_recibido_hint": "Opcional; si lo dejas vacío se asume el monto exacto",
+        "notas": "Notas",
+        "submit": "Cobrar adelanto",
+        "hint": "Requiere sesión de caja abierta. Genera una venta de anticipo (no cierra el cobro del servicio).",
+        "badge": "Adelanto {{monto}}",
+        "ya_registrado": "Adelanto cobrado"
     },
     "columns": {
         "inicio_at": "Inicio",

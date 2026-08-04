@@ -8,6 +8,7 @@ use App\Http\Controllers\Concerns\LogsAuditExports;
 use App\Http\Requests\AnularVentaRequest;
 use App\Http\Requests\ProductoRapidoVentaRequest;
 use App\Http\Requests\PropietarioRequest;
+use App\Http\Requests\StoreGroomingAdelantoRequest;
 use App\Http\Requests\StoreVentaRequest;
 use App\Models\CajaSesion;
 use App\Models\ClinicSetting;
@@ -612,6 +613,30 @@ class VentaController extends Controller
             ...$this->buildCreatePayload($miSesion, $sedeNombre, $clinic, $tenantModel, $propietarios),
             'desde_cargo' => $desdeCargo,
         ]);
+    }
+
+    public function storeAdelantoGrooming(
+        StoreGroomingAdelantoRequest $request,
+        GroomingTurno $groomingTurno,
+        VentaCheckoutService $checkout,
+    ): RedirectResponse {
+        $venta = $checkout->registrarAdelantoGrooming(
+            $groomingTurno,
+            $request->validated(),
+            $request->user(),
+        );
+
+        $moneda = $venta->moneda ?: 'PEN';
+        $montoFmt = number_format((float) (string) $venta->total, 2, '.', ',').' '.$moneda;
+
+        return redirect()
+            ->route('servicios.grooming', $request->only([
+                'search', 'per_page', 'sort', 'direction', 'grooming_desde', 'grooming_hasta',
+            ]))
+            ->with('success', __('caja.ventas.grooming.adelanto_registrado', [
+                'numero' => $venta->numero,
+                'monto' => $montoFmt,
+            ]));
     }
 
     public function createDesdeHotel(

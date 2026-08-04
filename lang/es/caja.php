@@ -49,6 +49,11 @@ return [
             'ya_cobrado' => 'Este turno de grooming ya tiene un cobro registrado.',
             'sin_propietario' => 'El paciente no tiene propietario vinculado; no se puede cobrar en caja.',
             'turno_invalido' => 'El turno de grooming no es válido para esta venta.',
+            'adelanto_no_permitido' => 'Este turno no admite adelanto (ya tiene anticipo, está cobrado o cancelado).',
+            'adelanto_monto_invalido' => 'Indica un monto de adelanto mayor a cero.',
+            'adelanto_concepto' => 'Adelanto grooming · :servicio · :paciente',
+            'adelanto_nota_venta' => 'Venta de adelanto (anticipo) de grooming.',
+            'adelanto_registrado' => 'Adelanto :numero registrado (:monto).',
         ],
         'hotel' => [
             'no_completado' => 'Marca la estancia como «Completada» antes de cobrar en caja.',
