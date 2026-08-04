@@ -6,9 +6,9 @@ import {
     MoreHorizontal,
     Pencil,
     Play,
+    Receipt,
     Trash2,
     UserX,
-    Wallet,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
@@ -45,10 +45,8 @@ export function GroomingRowActions({
 }: GroomingRowActionsProps) {
     const { t } = useTranslation(['grooming', 'common']);
 
-    const puedeCobrar =
-        canCobrar && turno.estado === 'completada' && turno.venta_id === null && Boolean(turno.paciente?.propietario);
-
-    const urlCobrar = puedeCobrar ? `/caja/ventas/desde-grooming/${turno.id}` : null;
+    const puedeVerCargos = canUpdate || canCobrar;
+    const urlCargos = puedeVerCargos ? `/servicios/grooming/${turno.id}/cargos` : null;
 
     const puedeIniciar =
         canUpdate && (turno.estado === 'programada' || turno.estado === 'confirmada');
@@ -101,11 +99,11 @@ export function GroomingRowActions({
                     <span className="hidden lg:inline">{t('actions.completar')}</span>
                 </Button>
             ) : null}
-            {urlCobrar ? (
+            {urlCargos ? (
                 <Button variant="default" size="sm" className="h-8 gap-1.5" asChild>
-                    <Link href={urlCobrar}>
-                        <Wallet className="size-3.5" aria-hidden />
-                        {t('actions.cobrar')}
+                    <Link href={urlCargos}>
+                        <Receipt className="size-3.5" aria-hidden />
+                        {t('actions.cargos')}
                     </Link>
                 </Button>
             ) : null}
@@ -126,6 +124,14 @@ export function GroomingRowActions({
                         <Eye className="size-4" strokeWidth={2.25} />
                         {t('actions.detalle')}
                     </DropdownMenuItem>
+                    {urlCargos ? (
+                        <DropdownMenuItem asChild>
+                            <Link href={urlCargos} className="flex cursor-pointer items-center gap-2">
+                                <Receipt className="size-4" strokeWidth={2.25} />
+                                {t('actions.cargos')}
+                            </Link>
+                        </DropdownMenuItem>
+                    ) : null}
                     {canUpdate ? (
                         <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => onEdit(turno)}>
                             <Pencil className="size-4" strokeWidth={2.25} />

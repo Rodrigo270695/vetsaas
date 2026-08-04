@@ -563,7 +563,7 @@ class VentaController extends Controller
             $first = collect($e->errors())->flatten()->first();
 
             return redirect()
-                ->route('servicios.grooming')
+                ->route('servicios.grooming.cargos.show', ['grooming_turno' => $groomingTurno])
                 ->withErrors($e->errors())
                 ->with('error', is_string($first) ? $first : __('caja.ventas.grooming.turno_invalido'));
         }
@@ -612,9 +612,12 @@ class VentaController extends Controller
         try {
             $desdeCargo = $prefill->buildFromHotelEstancia($hotelEstancia);
         } catch (ValidationException $e) {
+            $first = collect($e->errors())->flatten()->first();
+
             return redirect()
-                ->route('servicios.hotel')
-                ->withErrors($e->errors());
+                ->route('servicios.hotel.cargos.show', ['hotel_estancia' => $hotelEstancia])
+                ->withErrors($e->errors())
+                ->with('error', is_string($first) ? $first : __('caja.ventas.hotel.estancia_invalida'));
         }
 
         $miSesion = CajaSesion::query()

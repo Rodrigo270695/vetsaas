@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
@@ -152,6 +153,11 @@ class HotelEstancia extends Model
     public function diarios(): HasMany
     {
         return $this->hasMany(HotelEstanciaDiario::class, 'hotel_estancia_id')->orderBy('fecha');
+    }
+
+    public function cargo(): HasOne
+    {
+        return $this->hasOne(ConsultaCargo::class, 'hotel_estancia_id');
     }
 
     public function creadoPor(): BelongsTo

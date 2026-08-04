@@ -24,10 +24,12 @@ use App\Http\Controllers\FelAnulacionHistorialController;
 use App\Http\Controllers\FelDocumentController;
 use App\Http\Controllers\FelSerieController;
 use App\Http\Controllers\GeoController;
+use App\Http\Controllers\GroomingCargoController;
 use App\Http\Controllers\GroomingInsumoController;
 use App\Http\Controllers\GroomingServicioController;
 use App\Http\Controllers\GroomingTurnoController;
 use App\Http\Controllers\HospitalizacionController;
+use App\Http\Controllers\HotelCargoController;
 use App\Http\Controllers\HotelEstanciaController;
 use App\Http\Controllers\HotelTipoEstanciaController;
 use App\Http\Controllers\InAppAssistantAnnouncementController;
@@ -542,6 +544,32 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
                 ->delete('grooming/servicios/{groomingServicio}', [GroomingServicioController::class, 'destroy'])
                 ->whereUuid('groomingServicio')
                 ->name('grooming.servicios.destroy');
+
+            Route::middleware('permission:consulta-cargos.view|grooming.view')
+                ->get('grooming/{grooming_turno}/cargos', [GroomingCargoController::class, 'show'])
+                ->whereUuid('grooming_turno')
+                ->name('grooming.cargos.show');
+            Route::middleware('permission:consulta-cargos.view|consulta-cargos.manage|productos.view|grooming.view')
+                ->get('grooming/{grooming_turno}/cargos/productos-buscar', [GroomingCargoController::class, 'productosBuscar'])
+                ->whereUuid('grooming_turno')
+                ->name('grooming.cargos.productos-buscar');
+            Route::middleware('permission:consulta-cargos.view|consulta-cargos.manage|productos.view|grooming.view')
+                ->get('grooming/{grooming_turno}/cargos/servicios-buscar', [GroomingCargoController::class, 'serviciosBuscar'])
+                ->whereUuid('grooming_turno')
+                ->name('grooming.cargos.servicios-buscar');
+            Route::middleware('permission:consulta-cargos.view|grooming.view')
+                ->get('grooming/{grooming_turno}/cargos/ticket', [GroomingCargoController::class, 'ticket'])
+                ->whereUuid('grooming_turno')
+                ->name('grooming.cargos.ticket');
+            Route::middleware('permission:consulta-cargos.manage|grooming.update')
+                ->match(['put', 'patch'], 'grooming/{grooming_turno}/cargos', [GroomingCargoController::class, 'update'])
+                ->whereUuid('grooming_turno')
+                ->name('grooming.cargos.update');
+            Route::middleware('permission:consulta-cargos.manage|grooming.update')
+                ->post('grooming/{grooming_turno}/cargos/confirmar', [GroomingCargoController::class, 'confirmar'])
+                ->whereUuid('grooming_turno')
+                ->name('grooming.cargos.confirmar');
+
             Route::middleware(['permission:hotel.view', 'tenant.module:hotel'])
                 ->get('hotel', [HotelEstanciaController::class, 'index'])
                 ->name('hotel');
@@ -574,6 +602,31 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             Route::middleware(['permission:hotel.update', 'tenant.module:hotel'])
                 ->delete('hotel/{hotel_estancia}/diarios/{hotel_estancia_diario}', [HotelEstanciaController::class, 'diariosDestroy'])
                 ->name('hotel.diarios.destroy');
+
+            Route::middleware(['permission:consulta-cargos.view|hotel.view', 'tenant.module:hotel'])
+                ->get('hotel/{hotel_estancia}/cargos', [HotelCargoController::class, 'show'])
+                ->whereUuid('hotel_estancia')
+                ->name('hotel.cargos.show');
+            Route::middleware(['permission:consulta-cargos.view|consulta-cargos.manage|productos.view|hotel.view', 'tenant.module:hotel'])
+                ->get('hotel/{hotel_estancia}/cargos/productos-buscar', [HotelCargoController::class, 'productosBuscar'])
+                ->whereUuid('hotel_estancia')
+                ->name('hotel.cargos.productos-buscar');
+            Route::middleware(['permission:consulta-cargos.view|consulta-cargos.manage|productos.view|hotel.view', 'tenant.module:hotel'])
+                ->get('hotel/{hotel_estancia}/cargos/servicios-buscar', [HotelCargoController::class, 'serviciosBuscar'])
+                ->whereUuid('hotel_estancia')
+                ->name('hotel.cargos.servicios-buscar');
+            Route::middleware(['permission:consulta-cargos.view|hotel.view', 'tenant.module:hotel'])
+                ->get('hotel/{hotel_estancia}/cargos/ticket', [HotelCargoController::class, 'ticket'])
+                ->whereUuid('hotel_estancia')
+                ->name('hotel.cargos.ticket');
+            Route::middleware(['permission:consulta-cargos.manage|hotel.update', 'tenant.module:hotel'])
+                ->match(['put', 'patch'], 'hotel/{hotel_estancia}/cargos', [HotelCargoController::class, 'update'])
+                ->whereUuid('hotel_estancia')
+                ->name('hotel.cargos.update');
+            Route::middleware(['permission:consulta-cargos.manage|hotel.update', 'tenant.module:hotel'])
+                ->post('hotel/{hotel_estancia}/cargos/confirmar', [HotelCargoController::class, 'confirmar'])
+                ->whereUuid('hotel_estancia')
+                ->name('hotel.cargos.confirmar');
         });
     });
 

@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { ClipboardList, MoreHorizontal, Pencil, Trash2, Wallet } from 'lucide-react';
+import { ClipboardList, MoreHorizontal, Pencil, Receipt, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import {
@@ -33,15 +33,10 @@ export function HotelRowActions({
 }: HotelRowActionsProps) {
     const { t } = useTranslation(['hotel', 'common']);
 
-    const puedeCobrar =
-        canCobrar &&
-        estancia.estado === 'completada' &&
-        estancia.venta_id === null &&
-        Boolean(estancia.paciente?.propietario);
+    const puedeVerCargos = canUpdate || canCobrar;
+    const urlCargos = puedeVerCargos ? `/servicios/hotel/${estancia.id}/cargos` : null;
 
-    const urlCobrar = puedeCobrar ? `/caja/ventas/desde-hotel/${estancia.id}` : null;
-
-    if (!canUpdate && !canDelete && !urlCobrar && !canDiarios) {
+    if (!canUpdate && !canDelete && !urlCargos && !canDiarios) {
         return null;
     }
 
@@ -65,17 +60,17 @@ export function HotelRowActions({
                         {t('actions.diarios')}
                     </DropdownMenuItem>
                 ) : null}
-                {urlCobrar ? (
+                {urlCargos ? (
                     <DropdownMenuItem asChild>
-                        <Link href={urlCobrar} className="flex cursor-pointer items-center gap-2">
-                            <Wallet className="size-4 shrink-0" strokeWidth={2.25} />
-                            {t('actions.cobrar')}
+                        <Link href={urlCargos} className="flex cursor-pointer items-center gap-2">
+                            <Receipt className="size-4 shrink-0" strokeWidth={2.25} />
+                            {t('actions.cargos')}
                         </Link>
                     </DropdownMenuItem>
                 ) : null}
                 {canUpdate ? (
                     <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => onEdit(estancia)}>
-                        <Pencil className="size-4" strokeWidth={2.25} />
+                        <Pencil className="size-4 shrink-0" strokeWidth={2.25} />
                         {t('common:actions.edit')}
                     </DropdownMenuItem>
                 ) : null}
@@ -84,7 +79,7 @@ export function HotelRowActions({
                         className="cursor-pointer gap-2 text-destructive focus:text-destructive"
                         onClick={() => onDelete(estancia)}
                     >
-                        <Trash2 className="size-4" strokeWidth={2.25} />
+                        <Trash2 className="size-4 shrink-0" strokeWidth={2.25} />
                         {t('common:actions.delete')}
                     </DropdownMenuItem>
                 ) : null}

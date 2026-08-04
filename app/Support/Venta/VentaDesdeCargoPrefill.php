@@ -263,12 +263,6 @@ final class VentaDesdeCargoPrefill
      */
     public function buildFromGrooming(GroomingTurno $turno): array
     {
-        if ($turno->estado !== GroomingTurno::ESTADO_COMPLETADA) {
-            throw ValidationException::withMessages([
-                'grooming' => __('caja.ventas.grooming.no_completado'),
-            ]);
-        }
-
         if ($turno->venta_id !== null) {
             throw ValidationException::withMessages([
                 'grooming' => __('caja.ventas.grooming.ya_cobrado'),
@@ -278,6 +272,7 @@ final class VentaDesdeCargoPrefill
         $turno->load([
             'paciente:id,nombre,propietario_id',
             'paciente.propietario:id,nombres,apellidos,razon_social',
+            'cargo.lineas' => fn ($q) => $q->orderBy('orden'),
         ]);
 
         $paciente = $turno->paciente;
@@ -285,6 +280,89 @@ final class VentaDesdeCargoPrefill
         if ($propietario === null) {
             throw ValidationException::withMessages([
                 'grooming' => __('caja.ventas.grooming.sin_propietario'),
+            ]);
+        }
+
+        $cargo = $turno->cargo;
+        if ($cargo !== null) {
+            if ($cargo->estado !== ConsultaCargo::ESTADO_CONFIRMADO) {
+                throw ValidationException::withMessages([
+                    'grooming' => __('caja.ventas.desde_cargo.validation.no_confirmado'),
+                ]);
+            }
+
+            if ($cargo->venta_id !== null) {
+                throw ValidationException::withMessages([
+                    'grooming' => __('caja.ventas.desde_cargo.validation.ya_cobrado'),
+                ]);
+            }
+
+            if ($cargo->lineas->isEmpty()) {
+                throw ValidationException::withMessages([
+                    'grooming' => __('caja.ventas.desde_cargo.validation.sin_lineas'),
+                ]);
+            }
+
+            $sesion = CajaSesion::query()
+                ->where('estado', CajaSesion::ESTADO_ABIERTA)
+                ->where('opened_by_id', Auth::id())
+                ->first();
+
+            if ($sesion === null) {
+                throw ValidationException::withMessages([
+                    'caja' => __('caja.ventas.desde_cargo.validation.sin_sesion'),
+                ]);
+            }
+
+            $productoIds = $cargo->lineas
+                ->pluck('producto_id')
+                ->filter()
+                ->unique()
+                ->values()
+                ->all();
+
+            $stocks = $productoIds === []
+                ? []
+                : DB::table('existencias_sede')
+                    ->where('sede_id', $sesion->sede_id)
+                    ->whereIn('producto_id', $productoIds)
+                    ->pluck('cantidad', 'producto_id')
+                    ->all();
+
+            $lineasIniciales = $cargo->lineas->map(function (ConsultaCargoLinea $ln) use ($stocks): array {
+                $stock = '0';
+                if ($ln->producto_id !== null) {
+                    $stock = (string) ($stocks[$ln->producto_id] ?? '0');
+                }
+
+                return [
+                    'producto_id' => $ln->producto_id,
+                    'tipo_linea' => $ln->tipo_linea,
+                    'concepto' => $ln->concepto,
+                    'cantidad' => (string) $ln->cantidad,
+                    'precio_lista' => (string) $ln->precio_unitario,
+                    'stock_sede' => $stock,
+                    'consulta_cargo_linea_id' => $ln->id,
+                ];
+            })->values()->all();
+
+            return [
+                'consulta_id' => null,
+                'consulta_cargo_id' => $cargo->id,
+                'grooming_turno_id' => $turno->id,
+                'hotel_estancia_id' => null,
+                'propietario_id' => (string) $propietario->id,
+                'paciente_id' => $paciente->id,
+                'paciente_nombre' => $paciente->nombre,
+                'consulta_atendido_at' => $turno->inicio_at->toIso8601String(),
+                'cargo_total' => (string) $cargo->total,
+                'lineas_iniciales' => $lineasIniciales,
+            ];
+        }
+
+        if ($turno->estado !== GroomingTurno::ESTADO_COMPLETADA) {
+            throw ValidationException::withMessages([
+                'grooming' => __('caja.ventas.grooming.no_completado'),
             ]);
         }
 
@@ -359,12 +437,6 @@ final class VentaDesdeCargoPrefill
      */
     public function buildFromHotelEstancia(HotelEstancia $estancia): array
     {
-        if ($estancia->estado !== HotelEstancia::ESTADO_COMPLETADA) {
-            throw ValidationException::withMessages([
-                'hotel' => __('caja.ventas.hotel.no_completado'),
-            ]);
-        }
-
         if ($estancia->venta_id !== null) {
             throw ValidationException::withMessages([
                 'hotel' => __('caja.ventas.hotel.ya_cobrado'),
@@ -374,6 +446,7 @@ final class VentaDesdeCargoPrefill
         $estancia->load([
             'paciente:id,nombre,propietario_id',
             'paciente.propietario:id,nombres,apellidos,razon_social',
+            'cargo.lineas' => fn ($q) => $q->orderBy('orden'),
         ]);
 
         $paciente = $estancia->paciente;
@@ -381,6 +454,89 @@ final class VentaDesdeCargoPrefill
         if ($propietario === null) {
             throw ValidationException::withMessages([
                 'hotel' => __('caja.ventas.hotel.sin_propietario'),
+            ]);
+        }
+
+        $cargo = $estancia->cargo;
+        if ($cargo !== null) {
+            if ($cargo->estado !== ConsultaCargo::ESTADO_CONFIRMADO) {
+                throw ValidationException::withMessages([
+                    'hotel' => __('caja.ventas.desde_cargo.validation.no_confirmado'),
+                ]);
+            }
+
+            if ($cargo->venta_id !== null) {
+                throw ValidationException::withMessages([
+                    'hotel' => __('caja.ventas.desde_cargo.validation.ya_cobrado'),
+                ]);
+            }
+
+            if ($cargo->lineas->isEmpty()) {
+                throw ValidationException::withMessages([
+                    'hotel' => __('caja.ventas.desde_cargo.validation.sin_lineas'),
+                ]);
+            }
+
+            $sesion = CajaSesion::query()
+                ->where('estado', CajaSesion::ESTADO_ABIERTA)
+                ->where('opened_by_id', Auth::id())
+                ->first();
+
+            if ($sesion === null) {
+                throw ValidationException::withMessages([
+                    'caja' => __('caja.ventas.desde_cargo.validation.sin_sesion'),
+                ]);
+            }
+
+            $productoIds = $cargo->lineas
+                ->pluck('producto_id')
+                ->filter()
+                ->unique()
+                ->values()
+                ->all();
+
+            $stocks = $productoIds === []
+                ? []
+                : DB::table('existencias_sede')
+                    ->where('sede_id', $sesion->sede_id)
+                    ->whereIn('producto_id', $productoIds)
+                    ->pluck('cantidad', 'producto_id')
+                    ->all();
+
+            $lineasIniciales = $cargo->lineas->map(function (ConsultaCargoLinea $ln) use ($stocks): array {
+                $stock = '0';
+                if ($ln->producto_id !== null) {
+                    $stock = (string) ($stocks[$ln->producto_id] ?? '0');
+                }
+
+                return [
+                    'producto_id' => $ln->producto_id,
+                    'tipo_linea' => $ln->tipo_linea,
+                    'concepto' => $ln->concepto,
+                    'cantidad' => (string) $ln->cantidad,
+                    'precio_lista' => (string) $ln->precio_unitario,
+                    'stock_sede' => $stock,
+                    'consulta_cargo_linea_id' => $ln->id,
+                ];
+            })->values()->all();
+
+            return [
+                'consulta_id' => null,
+                'consulta_cargo_id' => $cargo->id,
+                'grooming_turno_id' => null,
+                'hotel_estancia_id' => $estancia->id,
+                'propietario_id' => (string) $propietario->id,
+                'paciente_id' => $paciente->id,
+                'paciente_nombre' => $paciente->nombre,
+                'consulta_atendido_at' => $estancia->ingreso_at->toIso8601String(),
+                'cargo_total' => (string) $cargo->total,
+                'lineas_iniciales' => $lineasIniciales,
+            ];
+        }
+
+        if ($estancia->estado !== HotelEstancia::ESTADO_COMPLETADA) {
+            throw ValidationException::withMessages([
+                'hotel' => __('caja.ventas.hotel.no_completado'),
             ]);
         }
 
