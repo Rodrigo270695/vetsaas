@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Hotel\HotelCatalogoMode;
 use App\Hotel\HotelCatalogoTipoEstancia;
+use App\Http\Requests\CambiarEstadoHotelEstanciaRequest;
 use App\Http\Requests\StoreHotelEstanciaDiarioRequest;
 use App\Http\Requests\StoreHotelEstanciaRequest;
 use App\Http\Requests\UpdateHotelEstanciaRequest;
@@ -273,6 +274,22 @@ class HotelEstanciaController extends Controller
                 'search', 'per_page', 'sort', 'direction', 'hotel_desde', 'hotel_hasta',
             ]))
             ->with('success', __('hotel.flash.deleted'));
+    }
+
+    public function cambiarEstado(
+        CambiarEstadoHotelEstanciaRequest $request,
+        HotelEstancia $hotelEstancia,
+        HotelWhatsAppNotifier $notifier,
+    ): RedirectResponse {
+        $nuevoEstado = (string) $request->validated('estado');
+
+        $hotelEstancia->estado = $nuevoEstado;
+        $hotelEstancia->updated_by_id = Auth::id();
+        $hotelEstancia->save();
+
+        $notifier->notify($hotelEstancia, $nuevoEstado);
+
+        return back()->with('success', __('hotel.flash.estado_updated'));
     }
 
     public function diariosIndex(Request $request, HotelEstancia $hotelEstancia): JsonResponse

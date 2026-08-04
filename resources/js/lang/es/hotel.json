@@ -17,7 +17,12 @@
         "create_first": "Crear primera estancia",
         "cobrar": "Cobrar",
         "cargos": "Cargos / pre-cuenta",
-        "diarios": "Bitácora diaria"
+        "diarios": "Bitácora diaria",
+        "confirmar": "Confirmar",
+        "en_estancia": "En estancia",
+        "completar": "Completar",
+        "cancelar": "Cancelar estancia",
+        "no_presento": "No se presentó"
     },
     "columns": {
         "ingreso_at": "Ingreso",

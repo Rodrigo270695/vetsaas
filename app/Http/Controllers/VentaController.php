@@ -556,6 +556,7 @@ class VentaController extends Controller
         $user = $request->user();
         abort_if($user === null, 403);
         abort_unless($user->can('ventas.create') && $user->can('grooming.view'), 403);
+        abort_unless($groomingTurno->permiteCargosPreCuenta(), 403);
 
         try {
             $desdeCargo = $prefill->buildFromGrooming($groomingTurno);
@@ -608,6 +609,7 @@ class VentaController extends Controller
 
         $tenantModel = $tenants->current()?->tenant;
         abort_unless(TenantModuleAccess::isEnabled($tenantModel, 'hotel'), 404);
+        abort_unless($hotelEstancia->permiteCargosPreCuenta(), 403);
 
         try {
             $desdeCargo = $prefill->buildFromHotelEstancia($hotelEstancia);

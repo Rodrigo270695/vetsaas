@@ -579,6 +579,10 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             Route::middleware(['permission:hotel.update', 'tenant.module:hotel'])
                 ->match(['put', 'patch'], 'hotel/{hotel_estancia}', [HotelEstanciaController::class, 'update'])
                 ->name('hotel.update');
+            Route::middleware(['permission:hotel.update', 'tenant.module:hotel'])
+                ->post('hotel/{hotel_estancia}/estado', [HotelEstanciaController::class, 'cambiarEstado'])
+                ->whereUuid('hotel_estancia')
+                ->name('hotel.estado');
             Route::middleware(['permission:hotel.delete', 'tenant.module:hotel'])
                 ->delete('hotel/{hotel_estancia}', [HotelEstanciaController::class, 'destroy'])
                 ->name('hotel.destroy');

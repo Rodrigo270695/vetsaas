@@ -82,6 +82,15 @@ class HotelEstancia extends Model
         ];
     }
 
+    public function permiteCargosPreCuenta(): bool
+    {
+        return in_array($this->estado, [
+            self::ESTADO_CONFIRMADA,
+            self::ESTADO_EN_ESTANCIA,
+            self::ESTADO_COMPLETADA,
+        ], true);
+    }
+
     public function nochesSugeridasParaVenta(): int
     {
         $in = $this->ingreso_at->copy()->startOfDay();

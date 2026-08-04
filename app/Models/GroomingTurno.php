@@ -87,6 +87,14 @@ class GroomingTurno extends Model
         'servicio_label',
     ];
 
+    public function permiteCargosPreCuenta(): bool
+    {
+        return in_array($this->estado, [
+            self::ESTADO_EN_PROCESO,
+            self::ESTADO_COMPLETADA,
+        ], true);
+    }
+
     /**
      * Texto de línea de venta (concepto) según el tipo de servicio del turno.
      */

@@ -35,6 +35,7 @@ class HotelCargoController extends Controller
     public function show(Request $request, HotelEstancia $hotelEstancia): Response
     {
         $this->ensurePuedeVer($request);
+        abort_unless($hotelEstancia->permiteCargosPreCuenta(), 403);
 
         $cfg = ClinicSetting::query()->first();
         if ($cfg === null) {
@@ -106,6 +107,7 @@ class HotelCargoController extends Controller
     public function ticket(Request $request, HotelEstancia $hotelEstancia): View
     {
         $this->ensurePuedeVer($request);
+        abort_unless($hotelEstancia->permiteCargosPreCuenta(), 403);
 
         $cfg = ClinicSetting::query()->first();
         if ($cfg === null) {
@@ -206,6 +208,7 @@ class HotelCargoController extends Controller
     public function update(UpsertConsultaCargoRequest $request, HotelEstancia $hotelEstancia): RedirectResponse
     {
         $this->ensurePuedeVer($request);
+        abort_unless($hotelEstancia->permiteCargosPreCuenta(), 403);
 
         $cargo = ConsultaCargo::query()->where('hotel_estancia_id', $hotelEstancia->id)->first();
         if ($cargo === null || ! $cargo->esBorrador()) {
@@ -262,6 +265,7 @@ class HotelCargoController extends Controller
     {
         $user = $request->user();
         $this->ensurePuedeVer($request);
+        abort_unless($hotelEstancia->permiteCargosPreCuenta(), 403);
 
         $cargo = ConsultaCargo::query()->where('hotel_estancia_id', $hotelEstancia->id)->first();
         if ($cargo === null || $cargo->venta_id !== null) {

@@ -45,7 +45,9 @@ export function GroomingRowActions({
 }: GroomingRowActionsProps) {
     const { t } = useTranslation(['grooming', 'common']);
 
-    const puedeVerCargos = canUpdate || canCobrar;
+    const puedeVerCargos =
+        (canUpdate || canCobrar) &&
+        (turno.estado === 'en_proceso' || turno.estado === 'completada');
     const urlCargos = puedeVerCargos ? `/servicios/grooming/${turno.id}/cargos` : null;
 
     const puedeIniciar =

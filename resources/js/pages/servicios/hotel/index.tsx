@@ -338,7 +338,7 @@ export default function Index({
                         />
                     </div>
                 ),
-                className: 'w-12',
+                className: 'w-52',
             });
         }
 

@@ -35,6 +35,7 @@ class GroomingCargoController extends Controller
     public function show(Request $request, GroomingTurno $groomingTurno): Response
     {
         $this->ensurePuedeVer($request);
+        abort_unless($groomingTurno->permiteCargosPreCuenta(), 403);
 
         $cfg = ClinicSetting::query()->first();
         if ($cfg === null) {
@@ -105,6 +106,7 @@ class GroomingCargoController extends Controller
     public function ticket(Request $request, GroomingTurno $groomingTurno): View
     {
         $this->ensurePuedeVer($request);
+        abort_unless($groomingTurno->permiteCargosPreCuenta(), 403);
 
         $cfg = ClinicSetting::query()->first();
         if ($cfg === null) {
@@ -205,6 +207,7 @@ class GroomingCargoController extends Controller
     public function update(UpsertConsultaCargoRequest $request, GroomingTurno $groomingTurno): RedirectResponse
     {
         $this->ensurePuedeVer($request);
+        abort_unless($groomingTurno->permiteCargosPreCuenta(), 403);
 
         $cargo = ConsultaCargo::query()->where('grooming_turno_id', $groomingTurno->id)->first();
         if ($cargo === null || ! $cargo->esBorrador()) {
@@ -261,6 +264,7 @@ class GroomingCargoController extends Controller
     {
         $user = $request->user();
         $this->ensurePuedeVer($request);
+        abort_unless($groomingTurno->permiteCargosPreCuenta(), 403);
 
         $cargo = ConsultaCargo::query()->where('grooming_turno_id', $groomingTurno->id)->first();
         if ($cargo === null || $cargo->venta_id !== null) {

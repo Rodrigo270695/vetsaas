@@ -5,6 +5,7 @@ return [
         'created' => 'Estancia de hotel/guardería registrada correctamente.',
         'updated' => 'Estancia actualizada correctamente.',
         'deleted' => 'Estancia eliminada correctamente.',
+        'estado_updated' => 'Estado de la estancia actualizado.',
     ],
     'tipos' => [
         'flash' => [

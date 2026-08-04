@@ -17,7 +17,12 @@
         "create_first": "Create first stay",
         "cobrar": "Collect payment",
         "cargos": "Charges / pre-bill",
-        "diarios": "Daily log"
+        "diarios": "Daily log",
+        "confirmar": "Confirm",
+        "en_estancia": "Check in",
+        "completar": "Complete",
+        "cancelar": "Cancel stay",
+        "no_presento": "No-show"
     },
     "columns": {
         "ingreso_at": "Check-in",
