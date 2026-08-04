@@ -3,15 +3,12 @@
 namespace App\Http\Requests;
 
 use App\Grooming\GroomingCatalogoServicio;
-use App\Http\Requests\Concerns\AssignsAuthenticatedResponsable;
 use App\Support\Grooming\GroomingTurnoServicioRules;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class UpdateGroomingTurnoRequest extends FormRequest
 {
-    use AssignsAuthenticatedResponsable;
-
     public function authorize(): bool
     {
         return $this->user()?->can('grooming.update') ?? false;
@@ -47,8 +44,6 @@ class UpdateGroomingTurnoRequest extends FormRequest
         if ($out !== []) {
             $this->merge($out);
         }
-
-        $this->stripResponsableFromUpdate();
     }
 
     /**
@@ -64,6 +59,13 @@ class UpdateGroomingTurnoRequest extends FormRequest
                 'uuid',
                 Rule::exists('pacientes', 'id')->where(
                     fn ($q) => $q->where('activo', true),
+                ),
+            ],
+            'responsable_id' => [
+                'nullable',
+                'uuid',
+                Rule::exists('users', 'id')->where(
+                    fn ($q) => $q->where('tenant_id', $tenantId),
                 ),
             ],
             'sede_id' => [
