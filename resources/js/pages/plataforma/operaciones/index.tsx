@@ -353,6 +353,38 @@ export default function Index({ snapshot, can_manage }: Props) {
                         icon={Gauge}
                         badge={
                             <div className="flex flex-wrap items-center gap-2">
+                                <div
+                                    className="flex items-center gap-1.5 rounded-full border border-border/60 bg-muted/40 px-2.5 py-1"
+                                    title={t('performance.semaforo')}
+                                    aria-label={performanceStatusLabel}
+                                >
+                                    <span
+                                        className={`size-2.5 rounded-full ${
+                                            snapshot.performance.status ===
+                                            'ok'
+                                                ? 'bg-emerald-500 ring-2 ring-emerald-500/30'
+                                                : 'bg-emerald-500/25'
+                                        }`}
+                                    />
+                                    <span
+                                        className={`size-2.5 rounded-full ${
+                                            snapshot.performance.status ===
+                                                'high_traffic' ||
+                                            snapshot.performance.status ===
+                                                'load_high'
+                                                ? 'bg-amber-500 ring-2 ring-amber-500/30'
+                                                : 'bg-amber-500/25'
+                                        }`}
+                                    />
+                                    <span
+                                        className={`size-2.5 rounded-full ${
+                                            snapshot.performance.status ===
+                                            'circuit_open'
+                                                ? 'bg-red-500 ring-2 ring-red-500/30'
+                                                : 'bg-red-500/25'
+                                        }`}
+                                    />
+                                </div>
                                 <StatBadge
                                     label={performanceStatusLabel}
                                     value=""
@@ -473,9 +505,21 @@ export default function Index({ snapshot, can_manage }: Props) {
                                 {performanceHint}
                             </p>
                         ) : null}
-                        <p className="mt-2 text-[11px] text-muted-foreground">
-                            {t('performance.auto_refresh')}
-                        </p>
+                        <div className="mt-3 space-y-1 text-[11px] leading-relaxed text-muted-foreground">
+                            <p>
+                                {snapshot.performance.status === 'ok'
+                                    ? t('performance.legend_green')
+                                    : snapshot.performance.status ===
+                                        'circuit_open'
+                                      ? t('performance.legend_red')
+                                      : t('performance.legend_yellow', {
+                                            threshold:
+                                                snapshot.performance
+                                                    .load_alert_threshold,
+                                        })}
+                            </p>
+                            <p>{t('performance.auto_refresh')}</p>
+                        </div>
                     </SectionCard>
 
                     <SectionCard
