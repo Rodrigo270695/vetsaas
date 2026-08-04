@@ -66,6 +66,7 @@ export type HotelEstanciaRow = {
     tipo_estancia: string;
     tipo_detalle: string | null;
     hotel_tipo_id: string | null;
+    hotel_tipo?: { id: string; nombre: string } | null;
     notas: string | null;
     created_at: string;
     updated_at: string;

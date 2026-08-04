@@ -251,9 +251,15 @@ export default function Index({
                 key: 'tipo_estancia',
                 header: t('columns.tipo_estancia'),
                 cell: (row) => {
-                    const label = t(`tipos_estancia.items.${row.tipo_estancia}.label`, {
-                        defaultValue: row.tipo_estancia,
-                    });
+                    const tipoCatalogo =
+                        row.hotel_tipo?.nombre ??
+                        hotel_tipos.find((tipo) => tipo.id === (row.hotel_tipo_id ?? row.tipo_estancia))
+                            ?.nombre;
+                    const label =
+                        tipoCatalogo ??
+                        t(`tipos_estancia.items.${row.tipo_estancia}.label`, {
+                            defaultValue: row.tipo_estancia,
+                        });
                     const showDetalle =
                         row.tipo_estancia === 'otro_personalizado' &&
                         row.tipo_detalle != null &&
@@ -338,7 +344,7 @@ export default function Index({
                         />
                     </div>
                 ),
-                className: 'w-52',
+                className: 'w-64 min-w-52',
             });
         }
 
@@ -353,6 +359,7 @@ export default function Index({
         canDelete,
         canCobrarHotel,
         canVerDiarios,
+        hotel_tipos,
         openEdit,
         openDelete,
         openDiarios,

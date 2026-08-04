@@ -106,7 +106,8 @@ class HotelEstanciaController extends Controller
                 'paciente.propietario:id,nombres,apellidos,razon_social',
                 'responsable:id,name',
                 'sede:id,nombre,codigo',
-                'cargo',
+                'hotelTipo:id,nombre',
+                'cargo:id,hotel_estancia_id,estado,venta_id',
             ]);
 
         if ($canAudit) {
@@ -156,6 +157,14 @@ class HotelEstanciaController extends Controller
 
         $estancias->through(function (HotelEstancia $estancia) use ($puedeEnlaceCobrar): array {
             $row = $estancia->toArray();
+            $cargo = $estancia->cargo;
+            $row['cargo'] = $cargo === null
+                ? null
+                : [
+                    'id' => $cargo->id,
+                    'estado' => $cargo->estado,
+                    'venta_id' => $cargo->venta_id,
+                ];
             $row['url_cobrar'] = $puedeEnlaceCobrar ? $estancia->urlCobrarEnCaja() : null;
 
             return $row;
