@@ -42,10 +42,14 @@ final class PrecuentasPendientesLister
             ->where('estado', ConsultaCargo::ESTADO_CONFIRMADO)
             ->where('total', '>', 0)
             ->with([
-                'consulta.paciente.propietario:id,nombres,apellidos,razon_social',
-                'groomingTurno.paciente.propietario:id,nombres,apellidos,razon_social',
-                'hotelEstancia.paciente.propietario:id,nombres,apellidos,razon_social',
-                'internamiento.paciente.propietario:id,nombres,apellidos,razon_social',
+                'consulta.historiaClinica.paciente' => fn ($q) => $q->withTrashed()->select('id', 'nombre', 'propietario_id'),
+                'consulta.historiaClinica.paciente.propietario' => fn ($q) => $q->withTrashed()->select('id', 'nombres', 'apellidos', 'razon_social'),
+                'groomingTurno.paciente' => fn ($q) => $q->withTrashed()->select('id', 'nombre', 'propietario_id'),
+                'groomingTurno.paciente.propietario' => fn ($q) => $q->withTrashed()->select('id', 'nombres', 'apellidos', 'razon_social'),
+                'hotelEstancia.paciente' => fn ($q) => $q->withTrashed()->select('id', 'nombre', 'propietario_id'),
+                'hotelEstancia.paciente.propietario' => fn ($q) => $q->withTrashed()->select('id', 'nombres', 'apellidos', 'razon_social'),
+                'internamiento.paciente' => fn ($q) => $q->withTrashed()->select('id', 'nombre', 'propietario_id'),
+                'internamiento.paciente.propietario' => fn ($q) => $q->withTrashed()->select('id', 'nombres', 'apellidos', 'razon_social'),
             ])
             ->orderByDesc('updated_at')
             ->limit(100);
@@ -126,7 +130,7 @@ final class PrecuentasPendientesLister
 
         if ($cargo->consulta_id && $canConsulta) {
             $consulta = $cargo->consulta;
-            $pac = $consulta?->paciente;
+            $pac = $consulta?->historiaClinica?->paciente;
             $prop = $pac?->propietario;
 
             return [

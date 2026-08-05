@@ -889,15 +889,21 @@ export default function Create({
                     {!desdeCargo && puede_vender ? (
                         <Button
                             type="button"
-                            variant="outline"
                             size="sm"
-                            className="h-7 shrink-0 gap-1.5 px-2 text-[11px]"
+                            className="h-8 shrink-0 gap-1.5 border border-amber-600/30 bg-amber-500 px-2.5 text-[11px] font-semibold text-amber-950 shadow-sm hover:bg-amber-400 dark:border-amber-400/40 dark:bg-amber-500 dark:text-amber-950 dark:hover:bg-amber-400"
+                            title={t('caja:ventas.create.precuentas_hint')}
                             onClick={() => setPrecuentasOpen(true)}
                         >
-                            <ClipboardList className="size-3.5" aria-hidden />
-                            <span className="hidden sm:inline">
+                            <ClipboardList className="size-3.5 shrink-0" aria-hidden />
+                            <span className="max-w-[11rem] truncate sm:max-w-none">
                                 {t('caja:ventas.create.precuentas_cta')}
                             </span>
+                            <Badge
+                                variant="secondary"
+                                className="h-4 border-0 bg-amber-950/15 px-1 text-[9px] font-bold uppercase tracking-wide text-amber-950"
+                            >
+                                {t('caja:ventas.create.precuentas_nuevo')}
+                            </Badge>
                         </Button>
                     ) : null}
                     {puede_vender && mi_sesion ? (
