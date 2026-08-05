@@ -40,6 +40,7 @@ use App\Support\Fel\FelSerieResolver;
 use App\Support\Inventario\UnidadMedidaOpciones;
 use App\Support\PlanCapabilities;
 use App\Support\Tenancy\TenantModuleAccess;
+use App\Support\Venta\PrecuentasPendientesLister;
 use App\Support\Venta\VentaDesdeCargoPrefill;
 use App\Support\WhatsApp\WhatsAppChatId;
 use App\Tenancy\TenantManager;
@@ -1234,6 +1235,16 @@ class VentaController extends Controller
             ->get(['id', 'nombre']);
 
         return response()->json(['data' => $rows]);
+    }
+
+    /**
+     * Pre-cuentas confirmadas pendientes de cobro (consulta / grooming / hotel / hospitalización).
+     */
+    public function precuentasPendientes(Request $request, PrecuentasPendientesLister $lister): JsonResponse
+    {
+        return response()->json([
+            'data' => $lister->list($request),
+        ]);
     }
 
     public function buscarProductos(Request $request): JsonResponse

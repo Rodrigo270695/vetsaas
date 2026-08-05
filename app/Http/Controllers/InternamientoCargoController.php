@@ -12,6 +12,7 @@ use App\Models\Producto;
 use App\Models\User;
 use App\Models\Venta;
 use App\Support\Caja\TicketAnchoMm;
+use App\Support\ConsultaCargo\ConsultaCargoActivoResolver;
 use App\Support\ConsultaCargo\ConsultaCargoStockSync;
 use App\Support\ConsultaCargo\ConsultaCargoTotales;
 use Illuminate\Http\JsonResponse;
@@ -39,17 +40,10 @@ class InternamientoCargoController extends Controller
             abort(503, 'Configuración de clínica no disponible.');
         }
 
-        ConsultaCargo::query()->firstOrCreate(
-            ['internamiento_id' => $internamiento->id],
-            [
-                'estado' => ConsultaCargo::ESTADO_BORRADOR,
-                'moneda' => $cfg->moneda,
-                'subtotal_sin_igv' => 0,
-                'igv_importe' => 0,
-                'total' => 0,
-                'created_by_id' => Auth::id(),
-                'updated_by_id' => Auth::id(),
-            ],
+        ConsultaCargoActivoResolver::resolveOrCreate(
+            'internamiento_id',
+            $internamiento->id,
+            $cfg,
         );
 
         $internamiento->load([
@@ -209,7 +203,11 @@ class InternamientoCargoController extends Controller
     {
         $this->ensurePuedeVer($request);
 
-        $cargo = ConsultaCargo::query()->where('internamiento_id', $internamiento->id)->first();
+        $cargo = ConsultaCargo::query()
+            ->where('internamiento_id', $internamiento->id)
+            ->whereNull('venta_id')
+            ->orderByDesc('updated_at')
+            ->first();
         if ($cargo === null || ! $cargo->esBorrador()) {
             return redirect()
                 ->route('clinica.hospitalizacion.cargos.show', $internamiento)
@@ -265,8 +263,12 @@ class InternamientoCargoController extends Controller
         $user = $request->user();
         $this->ensurePuedeVer($request);
 
-        $cargo = ConsultaCargo::query()->where('internamiento_id', $internamiento->id)->first();
-        if ($cargo === null || $cargo->venta_id !== null) {
+        $cargo = ConsultaCargo::query()
+            ->where('internamiento_id', $internamiento->id)
+            ->whereNull('venta_id')
+            ->orderByDesc('updated_at')
+            ->first();
+        if ($cargo === null) {
             return redirect()
                 ->route('clinica.hospitalizacion.cargos.show', $internamiento)
                 ->with('error', __('consulta-cargos.flash.ya_cobrado_no_editable'));

@@ -14,6 +14,7 @@ use App\Models\Producto;
 use App\Models\User;
 use App\Models\Venta;
 use App\Support\Caja\TicketAnchoMm;
+use App\Support\ConsultaCargo\ConsultaCargoActivoResolver;
 use App\Support\ConsultaCargo\ConsultaCargoStockSync;
 use App\Support\ConsultaCargo\ConsultaCargoTotales;
 use Illuminate\Http\JsonResponse;
@@ -42,17 +43,10 @@ class GroomingCargoController extends Controller
             abort(503, 'Configuración de clínica no disponible.');
         }
 
-        $cargo = ConsultaCargo::query()->firstOrCreate(
-            ['grooming_turno_id' => $groomingTurno->id],
-            [
-                'estado' => ConsultaCargo::ESTADO_BORRADOR,
-                'moneda' => $cfg->moneda,
-                'subtotal_sin_igv' => 0,
-                'igv_importe' => 0,
-                'total' => 0,
-                'created_by_id' => Auth::id(),
-                'updated_by_id' => Auth::id(),
-            ],
+        $cargo = ConsultaCargoActivoResolver::resolveOrCreate(
+            'grooming_turno_id',
+            $groomingTurno->id,
+            $cfg,
         );
 
         $this->seedLineaInicialSiVacio($cargo, $groomingTurno, $cfg);
@@ -209,7 +203,11 @@ class GroomingCargoController extends Controller
         $this->ensurePuedeVer($request);
         abort_unless($groomingTurno->permiteCargosPreCuenta(), 403);
 
-        $cargo = ConsultaCargo::query()->where('grooming_turno_id', $groomingTurno->id)->first();
+        $cargo = ConsultaCargo::query()
+            ->where('grooming_turno_id', $groomingTurno->id)
+            ->whereNull('venta_id')
+            ->orderByDesc('updated_at')
+            ->first();
         if ($cargo === null || ! $cargo->esBorrador()) {
             return redirect()
                 ->route('servicios.grooming.cargos.show', $groomingTurno)
@@ -266,8 +264,12 @@ class GroomingCargoController extends Controller
         $this->ensurePuedeVer($request);
         abort_unless($groomingTurno->permiteCargosPreCuenta(), 403);
 
-        $cargo = ConsultaCargo::query()->where('grooming_turno_id', $groomingTurno->id)->first();
-        if ($cargo === null || $cargo->venta_id !== null) {
+        $cargo = ConsultaCargo::query()
+            ->where('grooming_turno_id', $groomingTurno->id)
+            ->whereNull('venta_id')
+            ->orderByDesc('updated_at')
+            ->first();
+        if ($cargo === null) {
             return redirect()
                 ->route('servicios.grooming.cargos.show', $groomingTurno)
                 ->with('error', __('consulta-cargos.flash.ya_cobrado_no_editable'));

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\ConsultaCargo\ConsultaCargoActivoResolver;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -113,6 +114,6 @@ class Internamiento extends Model
 
     public function cargo(): HasOne
     {
-        return $this->hasOne(ConsultaCargo::class, 'internamiento_id');
+        return ConsultaCargoActivoResolver::pendingHasOne($this, 'internamiento_id');
     }
 }

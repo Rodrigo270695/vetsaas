@@ -326,6 +326,8 @@ class TenantSchemaMigrator
                 && Schema::hasColumn('grooming_turnos', 'adelanto_venta_id')
                 && Schema::hasColumn('grooming_turnos', 'adelanto_monto')
                 && Schema::hasColumn('grooming_turnos', 'adelanto_at'),
+            // Fingerprint vía tabla migrations del tenant (drop unique no es trivial de detectar).
+            '2026_08_04_180000_t125_consulta_cargos_multi_precuenta' => false,
             default => false,
         };
     }

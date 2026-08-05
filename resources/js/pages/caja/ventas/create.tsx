@@ -3,6 +3,7 @@ import {
     ArrowLeft,
     Banknote,
     Building2,
+    ClipboardList,
     CreditCard,
     Loader2,
     Minus,
@@ -39,6 +40,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import AppLayout from '@/layouts/app-layout';
 import { PropietarioFormModal } from '@/pages/clinica/propietarios/components/propietario-form-modal';
+import { PrecuentasPendientesModal } from './components/precuentas-pendientes-modal';
 import { ProductoRapidoDialog, ServicioRapidoDialog } from './components/registro-rapido-dialogs';
 import { toastManager } from '@/lib/toast';
 import { loadCajaBootstrap, searchCachedProductos } from '@/lib/offline/cache';
@@ -164,6 +166,7 @@ export default function Create({
     const [catalogTab, setCatalogTab] = useState<'productos' | 'servicios'>('productos');
     const [productoRapidoOpen, setProductoRapidoOpen] = useState(false);
     const [servicioRapidoOpen, setServicioRapidoOpen] = useState(false);
+    const [precuentasOpen, setPrecuentasOpen] = useState(false);
     /** Opt-in: modo multi-método. Por defecto el clic reemplaza el método (radio). */
     const [pagoMixtoModo, setPagoMixtoModo] = useState(false);
 
@@ -883,6 +886,20 @@ export default function Create({
                             </p>
                         ) : null}
                     </div>
+                    {!desdeCargo && puede_vender ? (
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-7 shrink-0 gap-1.5 px-2 text-[11px]"
+                            onClick={() => setPrecuentasOpen(true)}
+                        >
+                            <ClipboardList className="size-3.5" aria-hidden />
+                            <span className="hidden sm:inline">
+                                {t('caja:ventas.create.precuentas_cta')}
+                            </span>
+                        </Button>
+                    ) : null}
                     {puede_vender && mi_sesion ? (
                         <span
                             className="flex max-w-[45%] shrink-0 items-center gap-1 rounded-full border border-emerald-500/25 bg-emerald-500/8 px-2 py-0.5 text-[10px] font-medium text-emerald-700 dark:text-emerald-400 sm:max-w-none"
@@ -1968,6 +1985,13 @@ export default function Create({
                 initialNombre={servicioConcepto || qServicio}
                 initialPrecio={servicioPrecio}
                 onCreated={(s) => addServicioFromTarifa(s)}
+            />
+
+            <PrecuentasPendientesModal
+                open={precuentasOpen}
+                onOpenChange={setPrecuentasOpen}
+                listUrl={caja.ventas.precuentasPendientes.url()}
+                disabled={!puede_vender}
             />
         </>
     );

@@ -14,6 +14,7 @@ use App\Models\Producto;
 use App\Models\User;
 use App\Models\Venta;
 use App\Support\Caja\TicketAnchoMm;
+use App\Support\ConsultaCargo\ConsultaCargoActivoResolver;
 use App\Support\ConsultaCargo\ConsultaCargoStockSync;
 use App\Support\ConsultaCargo\ConsultaCargoTotales;
 use Illuminate\Http\JsonResponse;
@@ -42,17 +43,10 @@ class HotelCargoController extends Controller
             abort(503, 'Configuración de clínica no disponible.');
         }
 
-        $cargo = ConsultaCargo::query()->firstOrCreate(
-            ['hotel_estancia_id' => $hotelEstancia->id],
-            [
-                'estado' => ConsultaCargo::ESTADO_BORRADOR,
-                'moneda' => $cfg->moneda,
-                'subtotal_sin_igv' => 0,
-                'igv_importe' => 0,
-                'total' => 0,
-                'created_by_id' => Auth::id(),
-                'updated_by_id' => Auth::id(),
-            ],
+        $cargo = ConsultaCargoActivoResolver::resolveOrCreate(
+            'hotel_estancia_id',
+            $hotelEstancia->id,
+            $cfg,
         );
 
         $this->seedLineaInicialSiVacio($cargo, $hotelEstancia, $cfg);
@@ -210,7 +204,11 @@ class HotelCargoController extends Controller
         $this->ensurePuedeVer($request);
         abort_unless($hotelEstancia->permiteCargosPreCuenta(), 403);
 
-        $cargo = ConsultaCargo::query()->where('hotel_estancia_id', $hotelEstancia->id)->first();
+        $cargo = ConsultaCargo::query()
+            ->where('hotel_estancia_id', $hotelEstancia->id)
+            ->whereNull('venta_id')
+            ->orderByDesc('updated_at')
+            ->first();
         if ($cargo === null || ! $cargo->esBorrador()) {
             return redirect()
                 ->route('servicios.hotel.cargos.show', $hotelEstancia)
@@ -267,8 +265,12 @@ class HotelCargoController extends Controller
         $this->ensurePuedeVer($request);
         abort_unless($hotelEstancia->permiteCargosPreCuenta(), 403);
 
-        $cargo = ConsultaCargo::query()->where('hotel_estancia_id', $hotelEstancia->id)->first();
-        if ($cargo === null || $cargo->venta_id !== null) {
+        $cargo = ConsultaCargo::query()
+            ->where('hotel_estancia_id', $hotelEstancia->id)
+            ->whereNull('venta_id')
+            ->orderByDesc('updated_at')
+            ->first();
+        if ($cargo === null) {
             return redirect()
                 ->route('servicios.hotel.cargos.show', $hotelEstancia)
                 ->with('error', __('consulta-cargos.flash.ya_cobrado_no_editable'));

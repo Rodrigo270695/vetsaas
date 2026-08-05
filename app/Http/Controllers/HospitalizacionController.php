@@ -244,12 +244,16 @@ class HospitalizacionController extends Controller
 
         $cargoInternamiento = ConsultaCargo::query()
             ->where('internamiento_id', $internamiento->id)
+            ->whereNull('venta_id')
+            ->orderByDesc('updated_at')
             ->first(['id', 'estado', 'total', 'moneda', 'venta_id']);
 
         $cargoConsulta = null;
         if ($internamiento->consulta_id !== null) {
             $cargoConsulta = ConsultaCargo::query()
                 ->where('consulta_id', $internamiento->consulta_id)
+                ->whereNull('venta_id')
+                ->orderByDesc('updated_at')
                 ->first(['id', 'estado', 'total', 'moneda', 'venta_id']);
         }
 

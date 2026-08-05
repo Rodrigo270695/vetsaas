@@ -13,6 +13,7 @@ use App\Models\Sede;
 use App\Models\User;
 use App\Models\Venta;
 use App\Support\Caja\TicketAnchoMm;
+use App\Support\ConsultaCargo\ConsultaCargoActivoResolver;
 use App\Support\ConsultaCargo\ConsultaCargoStockSync;
 use App\Support\ConsultaCargo\ConsultaCargoTotales;
 use App\Support\ConsultaCargo\SyncConsultaCargoDesdeExamenes;
@@ -40,17 +41,10 @@ class ConsultaCargoController extends Controller
             abort(503, 'Configuración de clínica no disponible.');
         }
 
-        $cargo = ConsultaCargo::query()->firstOrCreate(
-            ['consulta_id' => $consulta->id],
-            [
-                'estado' => ConsultaCargo::ESTADO_BORRADOR,
-                'moneda' => $cfg->moneda,
-                'subtotal_sin_igv' => 0,
-                'igv_importe' => 0,
-                'total' => 0,
-                'created_by_id' => Auth::id(),
-                'updated_by_id' => Auth::id(),
-            ],
+        $cargo = ConsultaCargoActivoResolver::resolveOrCreate(
+            'consulta_id',
+            $consulta->id,
+            $cfg,
         );
 
         $this->syncDesdeExamenes->sync($consulta, $cargo);
@@ -204,7 +198,11 @@ class ConsultaCargoController extends Controller
     {
         $this->ensurePuedeVerConsulta($request, $consulta);
 
-        $cargo = ConsultaCargo::query()->where('consulta_id', $consulta->id)->first();
+        $cargo = ConsultaCargo::query()
+            ->where('consulta_id', $consulta->id)
+            ->whereNull('venta_id')
+            ->orderByDesc('updated_at')
+            ->first();
         if ($cargo === null || ! $cargo->esBorrador()) {
             return redirect()
                 ->route('clinica.historias-clinicas.consultas.cargos.show', $consulta)
@@ -260,8 +258,12 @@ class ConsultaCargoController extends Controller
         $user = $request->user();
         $this->ensurePuedeVerConsulta($request, $consulta);
 
-        $cargo = ConsultaCargo::query()->where('consulta_id', $consulta->id)->first();
-        if ($cargo === null || $cargo->venta_id !== null) {
+        $cargo = ConsultaCargo::query()
+            ->where('consulta_id', $consulta->id)
+            ->whereNull('venta_id')
+            ->orderByDesc('updated_at')
+            ->first();
+        if ($cargo === null) {
             return redirect()
                 ->route('clinica.historias-clinicas.consultas.cargos.show', $consulta)
                 ->with('error', __('consulta-cargos.flash.ya_cobrado_no_editable'));
