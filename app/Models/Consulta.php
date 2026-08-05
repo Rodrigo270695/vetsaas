@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Support\ConsultaCargo\ConsultaCargoActivoResolver;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -157,6 +156,7 @@ class Consulta extends Model
 
     public function cargo(): HasOne
     {
-        return ConsultaCargoActivoResolver::pendingHasOne($this, 'consulta_id');
+        return $this->hasOne(ConsultaCargo::class, 'consulta_id')
+            ->whereNull('venta_id');
     }
 }

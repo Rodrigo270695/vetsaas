@@ -6,7 +6,6 @@ namespace App\Support\ConsultaCargo;
 
 use App\Models\ClinicSetting;
 use App\Models\ConsultaCargo;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 
 /**
@@ -40,17 +39,5 @@ final class ConsultaCargoActivoResolver
             'created_by_id' => Auth::id(),
             'updated_by_id' => Auth::id(),
         ]);
-    }
-
-    /**
-     * Relación HasOne: solo cargo pendiente de cobro (sin venta).
-     */
-    public static function pendingHasOne(Model $owner, string $foreignKey): \Illuminate\Database\Eloquent\Relations\HasOne
-    {
-        return $owner->hasOne(ConsultaCargo::class, $foreignKey)
-            ->ofMany(
-                ['updated_at' => 'max'],
-                fn ($query) => $query->whereNull('venta_id'),
-            );
     }
 }

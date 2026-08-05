@@ -4,7 +4,6 @@ namespace App\Models;
 
 use App\Hotel\HotelCatalogoMode;
 use App\Hotel\HotelCatalogoTipoEstancia;
-use App\Support\ConsultaCargo\ConsultaCargoActivoResolver;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -189,7 +188,8 @@ class HotelEstancia extends Model
 
     public function cargo(): HasOne
     {
-        return ConsultaCargoActivoResolver::pendingHasOne($this, 'hotel_estancia_id');
+        return $this->hasOne(ConsultaCargo::class, 'hotel_estancia_id')
+            ->whereNull('venta_id');
     }
 
     public function creadoPor(): BelongsTo

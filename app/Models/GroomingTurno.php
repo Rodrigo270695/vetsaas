@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use App\Grooming\GroomingCatalogoServicio;
-use App\Support\ConsultaCargo\ConsultaCargoActivoResolver;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -251,6 +250,9 @@ class GroomingTurno extends Model
 
     public function cargo(): HasOne
     {
-        return ConsultaCargoActivoResolver::pendingHasOne($this, 'grooming_turno_id');
+        // Solo precuenta pendiente; cobradas (venta_id) quedan históricas.
+        // Sin ofMany: a lo sumo una pendiente (unique parcial / unique histórico).
+        return $this->hasOne(ConsultaCargo::class, 'grooming_turno_id')
+            ->whereNull('venta_id');
     }
 }
