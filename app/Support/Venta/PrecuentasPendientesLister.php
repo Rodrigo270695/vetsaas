@@ -8,7 +8,6 @@ use App\Models\ConsultaCargo;
 use App\Support\Tenancy\TenantModuleAccess;
 use App\Tenancy\TenantManager;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
 
 /**
  * Lista pre-cuentas confirmadas pendientes de cobro para el POS.
@@ -37,25 +36,29 @@ final class PrecuentasPendientesLister
             return [];
         }
 
-        $q = ConsultaCargo::query()
-            ->whereNull('venta_id')
-            ->where('estado', ConsultaCargo::ESTADO_CONFIRMADO)
-            ->where('total', '>', 0)
-            ->with([
-                'consulta.historiaClinica.paciente' => fn ($q) => $q->withTrashed()->select('id', 'nombre', 'propietario_id'),
-                'consulta.historiaClinica.paciente.propietario' => fn ($q) => $q->withTrashed()->select('id', 'nombres', 'apellidos', 'razon_social'),
-                'groomingTurno.paciente' => fn ($q) => $q->withTrashed()->select('id', 'nombre', 'propietario_id'),
-                'groomingTurno.paciente.propietario' => fn ($q) => $q->withTrashed()->select('id', 'nombres', 'apellidos', 'razon_social'),
-                'hotelEstancia.paciente' => fn ($q) => $q->withTrashed()->select('id', 'nombre', 'propietario_id'),
-                'hotelEstancia.paciente.propietario' => fn ($q) => $q->withTrashed()->select('id', 'nombres', 'apellidos', 'razon_social'),
-                'internamiento.paciente' => fn ($q) => $q->withTrashed()->select('id', 'nombre', 'propietario_id'),
-                'internamiento.paciente.propietario' => fn ($q) => $q->withTrashed()->select('id', 'nombres', 'apellidos', 'razon_social'),
-            ])
-            ->orderByDesc('updated_at')
-            ->limit(100);
+        try {
+            $cargos = ConsultaCargo::query()
+                ->whereNull('venta_id')
+                ->where('estado', ConsultaCargo::ESTADO_CONFIRMADO)
+                ->where('total', '>', 0)
+                ->with([
+                    'consulta.historiaClinica.paciente' => fn ($q) => $q->withTrashed(),
+                    'consulta.historiaClinica.paciente.propietario' => fn ($q) => $q->withTrashed(),
+                    'groomingTurno.paciente' => fn ($q) => $q->withTrashed(),
+                    'groomingTurno.paciente.propietario' => fn ($q) => $q->withTrashed(),
+                    'hotelEstancia.paciente' => fn ($q) => $q->withTrashed(),
+                    'hotelEstancia.paciente.propietario' => fn ($q) => $q->withTrashed(),
+                    'internamiento.paciente' => fn ($q) => $q->withTrashed(),
+                    'internamiento.paciente.propietario' => fn ($q) => $q->withTrashed(),
+                ])
+                ->orderByDesc('updated_at')
+                ->limit(100)
+                ->get();
+        } catch (\Throwable $e) {
+            report($e);
 
-        /** @var Collection<int, ConsultaCargo> $cargos */
-        $cargos = $q->get();
+            return [];
+        }
 
         $canConsulta = $user->can('consulta-cargos.cobrar');
         $canGrooming = $user->can('grooming.view');
@@ -65,9 +68,13 @@ final class PrecuentasPendientesLister
 
         $out = [];
         foreach ($cargos as $cargo) {
-            $row = $this->mapCargo($cargo, $canConsulta, $canGrooming, $canHotel, $canInternamiento);
-            if ($row !== null) {
-                $out[] = $row;
+            try {
+                $row = $this->mapCargo($cargo, $canConsulta, $canGrooming, $canHotel, $canInternamiento);
+                if ($row !== null) {
+                    $out[] = $row;
+                }
+            } catch (\Throwable $e) {
+                report($e);
             }
         }
 

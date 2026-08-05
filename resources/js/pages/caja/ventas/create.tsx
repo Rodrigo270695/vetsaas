@@ -889,23 +889,17 @@ export default function Create({
                     {!desdeCargo && puede_vender ? (
                         <Button
                             type="button"
-                            variant="outline"
                             size="sm"
-                            className="group relative h-8 shrink-0 gap-1.5 overflow-hidden border-emerald-500/35 bg-emerald-500/8 px-2.5 text-[11px] font-medium text-emerald-800 hover:bg-emerald-500/15 dark:border-emerald-400/35 dark:bg-emerald-500/10 dark:text-emerald-300 dark:hover:bg-emerald-500/20"
+                            className="h-8 shrink-0 gap-1.5 rounded-md bg-emerald-600 px-2.5 text-[11px] font-semibold text-white shadow-sm hover:bg-emerald-500 dark:bg-emerald-600 dark:hover:bg-emerald-500"
                             title={t('caja:ventas.create.precuentas_hint')}
                             onClick={() => setPrecuentasOpen(true)}
                         >
-                            <span
-                                className="pointer-events-none absolute inset-y-0 left-0 w-1 bg-emerald-500"
-                                aria-hidden
-                            />
-                            <ClipboardList className="size-3.5 shrink-0 text-emerald-600 transition-transform group-hover:scale-105 dark:text-emerald-400" aria-hidden />
-                            <span className="max-w-[11rem] truncate sm:max-w-none">
+                            <ClipboardList className="size-3.5 shrink-0" aria-hidden />
+                            <span className="max-w-[10rem] truncate sm:max-w-none">
                                 {t('caja:ventas.create.precuentas_cta')}
                             </span>
-                            <span className="relative flex size-1.5 shrink-0">
-                                <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400/70 opacity-60" />
-                                <span className="relative inline-flex size-1.5 rounded-full bg-emerald-500" />
+                            <span className="rounded bg-white/20 px-1 py-px text-[9px] font-bold uppercase tracking-wide text-white">
+                                {t('caja:ventas.create.precuentas_nuevo')}
                             </span>
                         </Button>
                     ) : null}

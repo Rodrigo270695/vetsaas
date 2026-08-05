@@ -436,7 +436,7 @@
             "desde_cargo_titulo": "Cobro desde pre-cuenta",
             "precuentas_cta": "Cobrar precuentas",
             "precuentas_nuevo": "Nuevo",
-            "precuentas_hint": "Función nueva: trae al cobro precuentas confirmadas de consulta, grooming, hotel u hospitalización.",
+            "precuentas_hint": "Función nueva: elige una precuenta confirmada (consulta, grooming, hotel u hospitalización) y cárgala al cobro.",
             "precuentas_title": "Cargos y precuentas pendientes",
             "precuentas_desc": "Pre-cuentas confirmadas sin cobro. Haz clic para cargarlas en esta venta. Las ya cobradas no aparecen.",
             "precuentas_cargando": "Cargando precuentas…",
