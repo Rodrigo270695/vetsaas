@@ -1,5 +1,6 @@
 import { router } from '@inertiajs/react';
-import { ClipboardList, Loader2 } from 'lucide-react';
+import { BedDouble, ClipboardList, Loader2, Scissors, Stethoscope } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
@@ -11,10 +12,13 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { cn } from '@/lib/utils';
+
+export type PrecuentaOrigen = 'consulta' | 'grooming' | 'hotel' | 'internamiento';
 
 export type PrecuentaPendiente = {
     id: string;
-    origen: 'consulta' | 'grooming' | 'hotel' | 'internamiento';
+    origen: PrecuentaOrigen;
     origen_id: string;
     origen_label: string;
     propietario_id: string | null;
@@ -31,6 +35,32 @@ type Props = {
     onOpenChange: (open: boolean) => void;
     listUrl: string;
     disabled?: boolean;
+};
+
+const ORIGEN_UI: Record<
+    PrecuentaOrigen,
+    { icon: LucideIcon; badgeClass: string; i18nKey: string }
+> = {
+    consulta: {
+        icon: Stethoscope,
+        badgeClass: 'border-sky-500/30 bg-sky-500/10 text-sky-800 dark:text-sky-300',
+        i18nKey: 'caja:ventas.create.precuentas_origen_consulta',
+    },
+    grooming: {
+        icon: Scissors,
+        badgeClass: 'border-violet-500/30 bg-violet-500/10 text-violet-800 dark:text-violet-300',
+        i18nKey: 'caja:ventas.create.precuentas_origen_grooming',
+    },
+    hotel: {
+        icon: BedDouble,
+        badgeClass: 'border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-300',
+        i18nKey: 'caja:ventas.create.precuentas_origen_hotel',
+    },
+    internamiento: {
+        icon: ClipboardList,
+        badgeClass: 'border-rose-500/30 bg-rose-500/10 text-rose-800 dark:text-rose-300',
+        i18nKey: 'caja:ventas.create.precuentas_origen_internamiento',
+    },
 };
 
 function readXsrfToken(): string {
@@ -148,6 +178,9 @@ export function PrecuentasPendientesModal({ open, onOpenChange, listUrl, disable
                             <ul className="flex flex-col gap-1.5 pb-2">
                                 {rows.map((row) => {
                                     const busy = navigatingId === row.id;
+                                    const ui = ORIGEN_UI[row.origen] ?? ORIGEN_UI.consulta;
+                                    const Icon = ui.icon;
+                                    const origenLabel = t(ui.i18nKey, { defaultValue: row.origen_label });
 
                                     return (
                                         <li key={row.id}>
@@ -160,8 +193,15 @@ export function PrecuentasPendientesModal({ open, onOpenChange, listUrl, disable
                                             >
                                                 <div className="min-w-0 flex-1">
                                                     <div className="flex flex-wrap items-center gap-1.5">
-                                                        <Badge variant="secondary" className="text-[10px]">
-                                                            {row.origen_label}
+                                                        <Badge
+                                                            variant="outline"
+                                                            className={cn(
+                                                                'gap-1 border text-[10px] font-semibold',
+                                                                ui.badgeClass,
+                                                            )}
+                                                        >
+                                                            <Icon className="size-3" aria-hidden />
+                                                            {origenLabel}
                                                         </Badge>
                                                         <span className="text-[10px] text-muted-foreground">
                                                             {formatWhen(row.confirmado_at, i18n.language)}

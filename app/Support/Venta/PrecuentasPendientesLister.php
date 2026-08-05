@@ -144,7 +144,7 @@ final class PrecuentasPendientesLister
                 'id' => $cargo->id,
                 'origen' => 'consulta',
                 'origen_id' => $cargo->consulta_id,
-                'origen_label' => 'Consulta',
+                'origen_label' => 'Historia clínica',
                 'propietario_id' => $prop?->id,
                 'propietario_nombre' => $prop?->displayName(),
                 'paciente_nombre' => $pac?->nombre,
