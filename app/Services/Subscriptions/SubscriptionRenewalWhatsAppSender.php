@@ -11,6 +11,7 @@ use App\Services\OpenWa\PlatformWhatsAppMessenger;
 use App\Support\Subscriptions\SubscriptionRenewalBilling;
 use App\Support\WhatsApp\WhatsAppChatId;
 use Carbon\CarbonInterface;
+use Throwable;
 
 /**
  * Envío manual del link de renovación (soporte), sin reglas de día ni pago cubierto.
@@ -26,6 +27,24 @@ final class SubscriptionRenewalWhatsAppSender
      * @return array{ok: bool, error: string|null, message: string|null, destinatario: string|null}
      */
     public function sendManual(Subscription $subscription, ?CarbonInterface $now = null): array
+    {
+        try {
+            return $this->sendManualOrFail($subscription, $now);
+        } catch (Throwable $e) {
+            report($e);
+
+            return $this->fail(
+                app()->hasDebugModeEnabled()
+                    ? 'No se pudo enviar: '.$e->getMessage()
+                    : 'No se pudo enviar el WhatsApp. Revisa la sesión de plataforma y el log.',
+            );
+        }
+    }
+
+    /**
+     * @return array{ok: bool, error: string|null, message: string|null, destinatario: string|null}
+     */
+    private function sendManualOrFail(Subscription $subscription, ?CarbonInterface $now = null): array
     {
         $now ??= now();
         $subscription->loadMissing(['tenant', 'plan']);
@@ -66,7 +85,7 @@ final class SubscriptionRenewalWhatsAppSender
 
         try {
             $this->messenger->sendText($chatId, $message);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             return $this->fail(
                 app()->hasDebugModeEnabled()
                     ? 'No se pudo enviar: '.$e->getMessage()
@@ -74,14 +93,19 @@ final class SubscriptionRenewalWhatsAppSender
             );
         }
 
-        SubscriptionRenewalReminder::query()->create([
-            'subscription_id' => $subscription->id,
-            'reminder_kind' => SubscriptionRenewalReminder::KIND_MANUAL,
-            'anchor_at' => $anchor,
-            'channel' => SubscriptionRenewalReminder::CHANNEL_WHATSAPP,
-            'destinatario' => $chatId,
-            'sent_at' => now(),
-        ]);
+        // Reenvíos manuales con el mismo ancla no deben romper por UNIQUE.
+        SubscriptionRenewalReminder::query()->updateOrCreate(
+            [
+                'subscription_id' => $subscription->id,
+                'reminder_kind' => SubscriptionRenewalReminder::KIND_MANUAL,
+                'anchor_at' => $anchor,
+            ],
+            [
+                'channel' => SubscriptionRenewalReminder::CHANNEL_WHATSAPP,
+                'destinatario' => $chatId,
+                'sent_at' => now(),
+            ],
+        );
 
         return [
             'ok' => true,

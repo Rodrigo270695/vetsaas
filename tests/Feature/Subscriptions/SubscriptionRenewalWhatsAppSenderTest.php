@@ -73,6 +73,15 @@ it('envía manualmente el link aunque no sea día de aviso', function (): void {
 
     $reminder = SubscriptionRenewalReminder::query()->first();
     expect($reminder?->reminder_kind)->toBe(SubscriptionRenewalReminder::KIND_MANUAL);
+
+    // Segundo envío manual (mismo ancla) no debe romper por UNIQUE.
+    $messenger->shouldReceive('isReady')->andReturn(true);
+    $messenger->shouldReceive('sendText')->once()->andReturn(['id' => 'wa-manual-2']);
+
+    $again = app(SubscriptionRenewalWhatsAppSender::class)->sendManual($subscription->fresh());
+
+    expect($again['ok'])->toBeTrue()
+        ->and(SubscriptionRenewalReminder::query()->count())->toBe(1);
 });
 
 it('usa texto de vencido cuando el período ya pasó', function (): void {
