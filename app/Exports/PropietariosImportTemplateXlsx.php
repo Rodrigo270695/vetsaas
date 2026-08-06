@@ -110,10 +110,10 @@ class PropietariosImportTemplateXlsx
                 'Ejemplo Ana',
                 'Pérez',
                 'DNI',
-                '12345678',
+                '012345678',
                 '',
                 'ejemplo@correo.com',
-                '999999999',
+                '0999999999',
                 '',
                 'Av. Ejemplo 123',
                 '',
@@ -133,10 +133,10 @@ class PropietariosImportTemplateXlsx
                 'Ejemplo Ana',
                 'Pérez',
                 'DNI',
-                '12345678',
+                '012345678',
                 '',
                 'ejemplo@correo.com',
-                '999999999',
+                '0999999999',
                 '',
                 'Av. Ejemplo 123',
                 '',
@@ -158,8 +158,8 @@ class PropietariosImportTemplateXlsx
             $excelRow = self::DATA_START_ROW + $rowOffset;
             foreach ($example as $i => $value) {
                 $col = Coordinate::stringFromColumnIndex($i + 1);
-                // fecha_nacimiento = columna O (índice 14)
-                if ($i === 14) {
+                // Texto forzado: documento (D), teléfonos (G/H), fecha (O), microchip (Q)
+                if (in_array($i, [3, 6, 7, 14, 16], true)) {
                     $sheet->setCellValueExplicit("{$col}{$excelRow}", $value, DataType::TYPE_STRING);
                 } else {
                     $sheet->setCellValue("{$col}{$excelRow}", $value);
@@ -167,9 +167,12 @@ class PropietariosImportTemplateXlsx
             }
         }
 
-        $sheet->getStyle('O'.self::DATA_START_ROW.':O'.self::DATA_END_ROW)
-            ->getNumberFormat()
-            ->setFormatCode('@');
+        // Evitar que Excel quite ceros a la izquierda en documento / teléfonos / microchip / fecha
+        foreach (['D', 'G', 'H', 'O', 'Q'] as $textCol) {
+            $sheet->getStyle("{$textCol}".self::DATA_START_ROW.":{$textCol}".self::DATA_END_ROW)
+                ->getNumberFormat()
+                ->setFormatCode('@');
+        }
 
         $sheet->getStyle('A'.self::DATA_START_ROW.":{$lastCol}".self::DATA_END_ROW)->applyFromArray([
             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'FBF7F0']],
@@ -181,11 +184,12 @@ class PropietariosImportTemplateXlsx
         if ($this->catalogRanges['tipos']['start'] > 0) {
             $this->applyListValidation($sheet, 'C', 'TIPOS_DOC_LISTA', true);
         }
+        // Especie y raza: lista sugerida, pero se permiten valores nuevos
         if ($this->catalogRanges['especies']['start'] > 0) {
-            $this->applyListValidation($sheet, 'L', 'ESPECIES_LISTA', true);
+            $this->applyListValidation($sheet, 'L', 'ESPECIES_LISTA', true, allowOtherValues: true);
         }
         if ($this->catalogRanges['razas']['start'] > 0) {
-            $this->applyListValidation($sheet, 'M', 'RAZAS_LISTA', true);
+            $this->applyListValidation($sheet, 'M', 'RAZAS_LISTA', true, allowOtherValues: true);
         }
         $this->applyListValidation($sheet, 'N', 'SEXOS_LISTA', true);
         $this->applyListValidation($sheet, 'S', 'SI_NO_LISTA', true);
@@ -285,16 +289,27 @@ class PropietariosImportTemplateXlsx
         return $r;
     }
 
-    private function applyListValidation(Worksheet $sheet, string $column, string $namedRange, bool $allowBlank = false): void
-    {
+    private function applyListValidation(
+        Worksheet $sheet,
+        string $column,
+        string $namedRange,
+        bool $allowBlank = false,
+        bool $allowOtherValues = false,
+    ): void {
         $v = new DataValidation();
         $v->setType(DataValidation::TYPE_LIST);
-        $v->setErrorStyle(DataValidation::STYLE_STOP);
+        $v->setErrorStyle(
+            $allowOtherValues
+                ? DataValidation::STYLE_INFORMATION
+                : DataValidation::STYLE_STOP,
+        );
         $v->setAllowBlank($allowBlank);
         $v->setShowDropDown(true);
-        $v->setShowErrorMessage(true);
-        $v->setErrorTitle('Valor no válido');
-        $v->setError('Selecciona un valor de la lista (hoja Catalogos).');
+        $v->setShowErrorMessage(! $allowOtherValues);
+        if (! $allowOtherValues) {
+            $v->setErrorTitle('Valor no válido');
+            $v->setError('Selecciona un valor de la lista (hoja Catalogos).');
+        }
         $v->setFormula1("={$namedRange}");
         $sheet->setDataValidation("{$column}".self::DATA_START_ROW.":{$column}".self::DATA_END_ROW, $v);
     }
@@ -314,10 +329,10 @@ class PropietariosImportTemplateXlsx
             ['Obligatorios', 'nombres*, paciente_nombre*, activo*'],
             ['Dueño existente', 'Si el documento ya existe en VetSaaS, se reutiliza y solo se crea la mascota.'],
             ['Dueño nuevo', 'Se crea el propietario y la mascota en la misma fila.'],
-            ['Documento', 'tipo_documento + numero_documento (recomendado). Sin doc se puede, pero el amarre es menos fiable.'],
+            ['Documento', 'tipo_documento + numero_documento (recomendado). Escribe el número como texto para no perder ceros al inicio.'],
             ['Sexo', 'M = macho, H = hembra, U = desconocido'],
             ['Fecha', 'DD/MM/AAAA (ej. 15/01/2022). Déjala como texto.'],
-            ['Especie / raza', 'Puedes escribir valores nuevos; quedarán disponibles en el sistema.'],
+            ['Especie / raza', 'Puedes escribir valores nuevos (no hace falta que estén en Catalogos); quedarán en el sistema.'],
             ['Ejemplos', 'Borra las filas que empiezan con «Ejemplo» antes de importar.'],
             ['Máximo', '500 filas de datos por archivo.'],
         ];
