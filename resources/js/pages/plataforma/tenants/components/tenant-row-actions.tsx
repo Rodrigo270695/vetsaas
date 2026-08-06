@@ -4,6 +4,7 @@ import {
     ExternalLink,
     Gauge,
     Globe,
+    KeyRound,
     LayoutGrid,
     Lock,
     MessageCircle,
@@ -36,6 +37,7 @@ export type TenantRowActionsProps = {
     onSuspend: (tenant: Tenant) => void;
     onResume: (tenant: Tenant) => void;
     onChangeSlug?: (tenant: Tenant) => void;
+    onRecoverAdmin?: (tenant: Tenant) => void;
     onEnterSupport?: (tenant: Tenant) => void;
     onRestartWhatsApp?: (tenant: Tenant) => void;
     onStopWhatsApp?: (tenant: Tenant) => void;
@@ -59,6 +61,7 @@ export function TenantRowActions({
     onSuspend,
     onResume,
     onChangeSlug,
+    onRecoverAdmin,
     onEnterSupport,
     onRestartWhatsApp,
     onStopWhatsApp,
@@ -91,6 +94,11 @@ export function TenantRowActions({
     const showChangeSlug =
         canUpdate &&
         typeof onChangeSlug === 'function' &&
+        !isCancelled;
+
+    const showRecoverAdmin =
+        canUpdate &&
+        typeof onRecoverAdmin === 'function' &&
         !isCancelled;
 
     const showWhatsAppActions =
@@ -199,8 +207,18 @@ export function TenantRowActions({
                     </>
                 ) : null}
 
-                {(showEdit || showChangeSlug || showSuspend || showResume || showDelete) && (
+                {(showEdit || showChangeSlug || showRecoverAdmin || showSuspend || showResume || showDelete) && (
                     <DropdownMenuSeparator />
+                )}
+
+                {showRecoverAdmin && (
+                    <DropdownMenuItem
+                        onSelect={() => onRecoverAdmin?.(tenant)}
+                        className="cursor-pointer gap-2"
+                    >
+                        <KeyRound className="size-4" strokeWidth={2.25} />
+                        {t('tenants:row.recover_admin')}
+                    </DropdownMenuItem>
                 )}
 
                 {showChangeSlug && (

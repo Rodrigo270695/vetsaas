@@ -44,6 +44,7 @@ import { TenantChangeSlugDialog } from './components/tenant-change-slug-dialog';
 import { TenantDeleteDialog } from './components/tenant-delete-dialog';
 import { TenantFormModal } from './components/tenant-form-modal';
 import { TenantLogoPreview } from './components/tenant-logo-preview';
+import { TenantRecoverAdminDialog } from './components/tenant-recover-admin-dialog';
 import { TenantRowActions } from './components/tenant-row-actions';
 import { TenantSuspendDialog } from './components/tenant-suspend-dialog';
 import type {
@@ -78,6 +79,7 @@ type ModalState =
     | { type: 'suspend'; tenant: Tenant }
     | { type: 'resume'; tenant: Tenant }
     | { type: 'change-slug'; tenant: Tenant }
+    | { type: 'recover-admin'; tenant: Tenant }
     | { type: 'bulk-delete' };
 
 const DEFAULT_PER_PAGE = 10;
@@ -262,6 +264,10 @@ export default function Index({
     );
     const openChangeSlug = useCallback(
         (tenant: Tenant) => setModal({ type: 'change-slug', tenant }),
+        [],
+    );
+    const openRecoverAdmin = useCallback(
+        (tenant: Tenant) => setModal({ type: 'recover-admin', tenant }),
         [],
     );
     const openBulkDelete = useCallback(
@@ -476,6 +482,7 @@ export default function Index({
                             onSuspend={openSuspend}
                             onResume={openResume}
                             onChangeSlug={openChangeSlug}
+                            onRecoverAdmin={openRecoverAdmin}
                             onEnterSupport={enterSupport}
                             onRestartWhatsApp={restartWhatsApp}
                             onStopWhatsApp={stopWhatsApp}
@@ -515,6 +522,7 @@ export default function Index({
         openSuspend,
         openResume,
         openChangeSlug,
+        openRecoverAdmin,
     ]);
 
     return (
@@ -737,6 +745,14 @@ export default function Index({
                     if (!open) closeModal();
                 }}
                 tenant={modal.type === 'change-slug' ? modal.tenant : null}
+            />
+
+            <TenantRecoverAdminDialog
+                open={modal.type === 'recover-admin'}
+                onOpenChange={(open) => {
+                    if (!open) closeModal();
+                }}
+                tenant={modal.type === 'recover-admin' ? modal.tenant : null}
             />
 
             <TenantBulkDeleteDialog

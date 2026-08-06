@@ -4,12 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Exports\TenantsXlsxExport;
 use App\Http\Requests\ChangeTenantSlugRequest;
+use App\Http\Requests\RecoverTenantAdminAccessRequest;
 use App\Http\Requests\TenantRequest;
 use App\Models\Departamento;
 use App\Models\Plan;
 use App\Models\Tenant;
 use App\Support\Clinic\ClinicBrandingUrls;
 use App\Services\OpenWa\OpenWaClient;
+use App\Services\Tenancy\TenantAdminAccessRecoverer;
 use App\Services\Tenancy\TenantSlugChangeService;
 use App\Tenancy\TenantManager;
 use Illuminate\Database\Eloquent\Builder;
@@ -378,6 +380,39 @@ class TenantController extends Controller
         }
 
         return back()->with('success', $message);
+    }
+
+    /**
+     * Corrige el correo de login del admin_clinica y asigna una contraseña
+     * temporal (soporte SaaS cuando el correo es inválido o no puede resetear).
+     */
+    public function recoverAdminAccess(
+        RecoverTenantAdminAccessRequest $request,
+        Tenant $tenant,
+        TenantAdminAccessRecoverer $recoverer,
+    ): RedirectResponse {
+        if ($tenant->estado === 'cancelled') {
+            throw ValidationException::withMessages([
+                'email' => 'No se puede recuperar el acceso de un tenant cancelado.',
+            ]);
+        }
+
+        $data = $request->validated();
+        $result = $recoverer->recover(
+            $tenant,
+            (string) $data['email'],
+            (string) $data['password'],
+            (bool) ($data['must_change_password'] ?? true),
+        );
+
+        return back()->with(
+            'success',
+            sprintf(
+                'Acceso del admin actualizado: %s → %s. Ya puede iniciar sesión con la nueva contraseña.',
+                $result['previous_email'],
+                $result['user']->email,
+            ),
+        );
     }
 
     public function destroy(Tenant $tenant, TenantManager $manager): RedirectResponse

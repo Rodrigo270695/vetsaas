@@ -45,6 +45,7 @@
         "limits": "Límites extras",
         "open_subdomain": "Abrir subdominio",
         "enter_support": "Entrar como soporte",
+        "recover_admin": "Recuperar acceso admin",
         "whatsapp_restart": "Reiniciar WhatsApp",
         "whatsapp_stop": "Detener WhatsApp",
         "whatsapp_status": "WhatsApp: {{status}}",
@@ -133,6 +134,19 @@
         "notify_hint": "El subdominio anterior dejará de funcionar de inmediato.",
         "confirm": "Cambiar subdominio",
         "loading": "Guardando…"
+    },
+    "recover_admin": {
+        "title": "Recuperar acceso del admin",
+        "description": "Corrige el correo de login y asigna una contraseña nueva para el admin de {{clinic}}. Úsalo si el correo es inválido o no puede usar «olvidé mi contraseña».",
+        "current_email": "Correo actual en el tenant",
+        "fields": {
+            "email": "Correo válido (login)",
+            "password": "Nueva contraseña",
+            "password_hint": "Mínimo 8 caracteres. Compártela por un canal seguro.",
+            "password_confirmation": "Confirmar contraseña",
+            "must_change_password": "Obligar a cambiar la contraseña en el próximo inicio de sesión"
+        },
+        "submit": "Guardar acceso"
     },
     "bulk": {
         "selected_singular": "tenant seleccionado",

@@ -45,6 +45,7 @@
         "limits": "Limit extras",
         "open_subdomain": "Open subdomain",
         "enter_support": "Enter as support",
+        "recover_admin": "Recover admin access",
         "whatsapp_restart": "Restart WhatsApp",
         "whatsapp_stop": "Stop WhatsApp",
         "whatsapp_status": "WhatsApp: {{status}}",
@@ -133,6 +134,19 @@
         "notify_hint": "The previous subdomain will stop working immediately.",
         "confirm": "Change subdomain",
         "loading": "Saving…"
+    },
+    "recover_admin": {
+        "title": "Recover admin access",
+        "description": "Fix the login email and set a new password for the admin of {{clinic}}. Use this when the email is invalid or they can’t use forgot password.",
+        "current_email": "Current email on the tenant",
+        "fields": {
+            "email": "Valid email (login)",
+            "password": "New password",
+            "password_hint": "At least 8 characters. Share it through a secure channel.",
+            "password_confirmation": "Confirm password",
+            "must_change_password": "Require password change on next login"
+        },
+        "submit": "Save access"
     },
     "bulk": {
         "selected_singular": "tenant selected",
