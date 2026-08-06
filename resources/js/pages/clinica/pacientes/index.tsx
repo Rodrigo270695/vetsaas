@@ -7,7 +7,6 @@ import {
     PowerOff,
     ScreenShare,
     Trash2,
-    Upload,
     UserCircle,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -17,7 +16,6 @@ import { Can } from '@/components/can';
 import {
     BulkAction,
     BulkActionBar,
-    BulkImportModal,
     DataPagination,
     DataTable,
     DataToolbar,
@@ -68,8 +66,7 @@ type ModalState =
     | { type: 'create' }
     | { type: 'edit'; paciente: Paciente }
     | { type: 'delete'; paciente: Paciente }
-    | { type: 'bulk-delete' }
-    | { type: 'bulk' };
+    | { type: 'bulk-delete' };
 
 const DEFAULT_PER_PAGE = 10;
 const DEFAULT_ESTADO: PacienteEstadoFilter = 'todos';
@@ -457,50 +454,6 @@ export default function Index({
                                             <span className="inline-flex">
                                                 <Button
                                                     type="button"
-                                                    variant="outline"
-                                                    onClick={() =>
-                                                        setModal({
-                                                            type: 'bulk',
-                                                        })
-                                                    }
-                                                    disabled={
-                                                        patientsLimitReached
-                                                    }
-                                                    className="cursor-pointer gap-2"
-                                                >
-                                                    <Upload
-                                                        className="size-4"
-                                                        strokeWidth={2.5}
-                                                    />
-                                                    <span className="hidden sm:inline">
-                                                        {t(
-                                                            'actions.bulk_import',
-                                                        )}
-                                                    </span>
-                                                    <span className="sm:hidden">
-                                                        {t(
-                                                            'actions.bulk_import_short',
-                                                        )}
-                                                    </span>
-                                                </Button>
-                                            </span>
-                                        </TooltipTrigger>
-                                        {patientsLimitReached ? (
-                                            <TooltipContent
-                                                side="bottom"
-                                                className="max-w-xs"
-                                            >
-                                                {t('plan_limit.max_pacientes')}
-                                            </TooltipContent>
-                                        ) : null}
-                                    </Tooltip>
-                                </Can>
-                                <Can permission="pacientes.create">
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <span className="inline-flex">
-                                                <Button
-                                                    type="button"
                                                     data-tour-id="pacientes-create"
                                                     onClick={openCreate}
                                                     disabled={
@@ -654,24 +607,6 @@ export default function Index({
                 }}
                 ids={Array.from(selection.selectedIds)}
                 onCompleted={() => selection.clear()}
-            />
-
-            <BulkImportModal
-                open={modal.type === 'bulk'}
-                onOpenChange={(open) => {
-                    if (!open) {
-                        closeModal();
-                    }
-                }}
-                translationNs="pacientes"
-                templateUrl="/clinica/pacientes/plantilla-importacion"
-                importUrl="/clinica/pacientes/importar"
-                reloadOnly={[
-                    'pacientes',
-                    'filters',
-                    'stats',
-                    'propietarios_opciones',
-                ]}
             />
 
             {canBulkDelete && (

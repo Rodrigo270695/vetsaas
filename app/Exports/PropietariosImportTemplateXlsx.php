@@ -2,6 +2,7 @@
 
 namespace App\Exports;
 
+use App\Support\Pacientes\PacienteEspecieRazaCatalogo;
 use App\Support\PropietarioTipoDocumento;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
@@ -14,21 +15,35 @@ use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
+/**
+ * Plantilla unificada: una fila = una mascota.
+ * Si un dueño tiene varias mascotas, se repiten sus datos en varias filas.
+ */
 class PropietariosImportTemplateXlsx
 {
     /** @var list<string> */
     public const HEADERS = [
         'nombres*',
-        'activo*',
+        'apellidos',
         'tipo_documento',
         'numero_documento',
-        'apellidos',
         'razon_social',
         'email',
         'telefono',
         'telefono_alt',
         'direccion',
-        'notas',
+        'notas_propietario',
+        'paciente_nombre*',
+        'especie',
+        'raza',
+        'sexo',
+        'fecha_nacimiento (DD/MM/AAAA)',
+        'peso_kg',
+        'microchip',
+        'color',
+        'esterilizado',
+        'activo*',
+        'notas_paciente',
     ];
 
     private const HEADER_ROW = 1;
@@ -37,10 +52,13 @@ class PropietariosImportTemplateXlsx
 
     private const DATA_END_ROW = 501;
 
-    /** @var array{tipos: array{start: int, end: int}, si_no: array{start: int, end: int}} */
+    /** @var array{tipos: array{start: int, end: int}, si_no: array{start: int, end: int}, especies: array{start: int, end: int}, razas: array{start: int, end: int}, sexos: array{start: int, end: int}} */
     private array $catalogRanges = [
         'tipos' => ['start' => 0, 'end' => -1],
         'si_no' => ['start' => 0, 'end' => -1],
+        'especies' => ['start' => 0, 'end' => -1],
+        'razas' => ['start' => 0, 'end' => -1],
+        'sexos' => ['start' => 0, 'end' => -1],
     ];
 
     public function streamTo(string $output = 'php://output'): void
@@ -48,19 +66,19 @@ class PropietariosImportTemplateXlsx
         $spreadsheet = new Spreadsheet();
         $spreadsheet->getProperties()
             ->setCreator('VetSaaS')
-            ->setTitle('Plantilla importación de propietarios')
-            ->setSubject('Carga masiva de propietarios');
+            ->setTitle('Plantilla importación dueños y mascotas')
+            ->setSubject('Carga masiva unificada de propietarios y pacientes');
 
         $catalogos = $spreadsheet->getActiveSheet();
         $catalogos->setTitle('Catalogos');
         $this->fillCatalogosSheet($spreadsheet, $catalogos);
 
         $sheet = $spreadsheet->createSheet(0);
-        $sheet->setTitle('Propietarios');
+        $sheet->setTitle('Importacion');
         $this->fillDataSheet($sheet);
 
         $this->buildGuideSheet($spreadsheet);
-        $spreadsheet->setActiveSheetIndexByName('Propietarios');
+        $spreadsheet->setActiveSheetIndexByName('Importacion');
 
         (new Xlsx($spreadsheet))->save($output);
         $spreadsheet->disconnectWorksheets();
@@ -87,22 +105,71 @@ class PropietariosImportTemplateXlsx
             ],
         ]);
 
-        $example = [
-            'Ejemplo Juan',
-            'SI',
-            'DNI',
-            '12345678',
-            'Pérez',
-            '',
-            'ejemplo@correo.com',
-            '999999999',
-            '',
-            'Av. Ejemplo 123',
-            'Fila de ejemplo — bórrala',
+        $examples = [
+            [
+                'Ejemplo Ana',
+                'Pérez',
+                'DNI',
+                '12345678',
+                '',
+                'ejemplo@correo.com',
+                '999999999',
+                '',
+                'Av. Ejemplo 123',
+                '',
+                'Max',
+                'Perro',
+                'Mestizo',
+                'M',
+                '15/01/2022',
+                '12.5',
+                '',
+                'Marrón',
+                'NO',
+                'SI',
+                'Primera mascota — fila de ejemplo, bórrala',
+            ],
+            [
+                'Ejemplo Ana',
+                'Pérez',
+                'DNI',
+                '12345678',
+                '',
+                'ejemplo@correo.com',
+                '999999999',
+                '',
+                'Av. Ejemplo 123',
+                '',
+                'Luna',
+                'Gato',
+                'Europeo común',
+                'H',
+                '20/03/2021',
+                '4.2',
+                '',
+                'Gris',
+                'SI',
+                'SI',
+                'Misma dueña, otra mascota — bórrala',
+            ],
         ];
-        foreach ($example as $i => $value) {
-            $sheet->setCellValue(Coordinate::stringFromColumnIndex($i + 1).self::DATA_START_ROW, $value);
+
+        foreach ($examples as $rowOffset => $example) {
+            $excelRow = self::DATA_START_ROW + $rowOffset;
+            foreach ($example as $i => $value) {
+                $col = Coordinate::stringFromColumnIndex($i + 1);
+                // fecha_nacimiento = columna O (índice 14)
+                if ($i === 14) {
+                    $sheet->setCellValueExplicit("{$col}{$excelRow}", $value, DataType::TYPE_STRING);
+                } else {
+                    $sheet->setCellValue("{$col}{$excelRow}", $value);
+                }
+            }
         }
+
+        $sheet->getStyle('O'.self::DATA_START_ROW.':O'.self::DATA_END_ROW)
+            ->getNumberFormat()
+            ->setFormatCode('@');
 
         $sheet->getStyle('A'.self::DATA_START_ROW.":{$lastCol}".self::DATA_END_ROW)->applyFromArray([
             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'FBF7F0']],
@@ -111,10 +178,18 @@ class PropietariosImportTemplateXlsx
             ],
         ]);
 
-        $this->applyListValidation($sheet, 'B', 'SI_NO_LISTA');
         if ($this->catalogRanges['tipos']['start'] > 0) {
             $this->applyListValidation($sheet, 'C', 'TIPOS_DOC_LISTA', true);
         }
+        if ($this->catalogRanges['especies']['start'] > 0) {
+            $this->applyListValidation($sheet, 'L', 'ESPECIES_LISTA', true);
+        }
+        if ($this->catalogRanges['razas']['start'] > 0) {
+            $this->applyListValidation($sheet, 'M', 'RAZAS_LISTA', true);
+        }
+        $this->applyListValidation($sheet, 'N', 'SEXOS_LISTA', true);
+        $this->applyListValidation($sheet, 'S', 'SI_NO_LISTA', true);
+        $this->applyListValidation($sheet, 'T', 'SI_NO_LISTA');
 
         foreach (range(1, count($headers)) as $i) {
             $sheet->getColumnDimension(Coordinate::stringFromColumnIndex($i))->setAutoSize(true);
@@ -126,6 +201,7 @@ class PropietariosImportTemplateXlsx
     private function fillCatalogosSheet(Spreadsheet $spreadsheet, Worksheet $sheet): void
     {
         $sheet->getTabColor()->setRGB('1F6E4A');
+
         $tipoRows = array_map(
             static fn (string $t): array => ['codigo' => $t, 'nombre' => $t, 'valor' => $t],
             PropietarioTipoDocumento::VALUES,
@@ -140,6 +216,28 @@ class PropietariosImportTemplateXlsx
         $row = $this->writeBlock($sheet, $row + 2, 'SI_NO', $siNo);
         $this->catalogRanges['si_no'] = ['start' => $row - count($siNo), 'end' => $row - 1];
 
+        $especies = array_map(
+            static fn (string $e): array => ['codigo' => $e, 'nombre' => $e, 'valor' => $e],
+            PacienteEspecieRazaCatalogo::especies(),
+        );
+        $row = $this->writeBlock($sheet, $row + 2, 'ESPECIES', $especies);
+        $this->catalogRanges['especies'] = ['start' => $row - count($especies), 'end' => $row - 1];
+
+        $razas = array_map(
+            static fn (string $r): array => ['codigo' => $r, 'nombre' => $r, 'valor' => $r],
+            PacienteEspecieRazaCatalogo::razas(),
+        );
+        $row = $this->writeBlock($sheet, $row + 2, 'RAZAS', $razas);
+        $this->catalogRanges['razas'] = ['start' => $row - count($razas), 'end' => $row - 1];
+
+        $sexos = [
+            ['codigo' => 'M', 'nombre' => 'Macho', 'valor' => 'M'],
+            ['codigo' => 'H', 'nombre' => 'Hembra', 'valor' => 'H'],
+            ['codigo' => 'U', 'nombre' => 'Desconocido', 'valor' => 'U'],
+        ];
+        $row = $this->writeBlock($sheet, $row + 2, 'SEXOS', $sexos);
+        $this->catalogRanges['sexos'] = ['start' => $row - count($sexos), 'end' => $row - 1];
+
         foreach (['A', 'B', 'C', 'D'] as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
@@ -148,6 +246,16 @@ class PropietariosImportTemplateXlsx
         $spreadsheet->addNamedRange(new NamedRange('TIPOS_DOC_LISTA', $sheet, '$D$'.$t['start'].':$D$'.$t['end']));
         $s = $this->catalogRanges['si_no'];
         $spreadsheet->addNamedRange(new NamedRange('SI_NO_LISTA', $sheet, '$D$'.$s['start'].':$D$'.$s['end']));
+        $e = $this->catalogRanges['especies'];
+        if ($e['start'] > 0) {
+            $spreadsheet->addNamedRange(new NamedRange('ESPECIES_LISTA', $sheet, '$D$'.$e['start'].':$D$'.$e['end']));
+        }
+        $r = $this->catalogRanges['razas'];
+        if ($r['start'] > 0) {
+            $spreadsheet->addNamedRange(new NamedRange('RAZAS_LISTA', $sheet, '$D$'.$r['start'].':$D$'.$r['end']));
+        }
+        $x = $this->catalogRanges['sexos'];
+        $spreadsheet->addNamedRange(new NamedRange('SEXOS_LISTA', $sheet, '$D$'.$x['start'].':$D$'.$x['end']));
     }
 
     /**
@@ -195,34 +303,34 @@ class PropietariosImportTemplateXlsx
     {
         $sheet = $spreadsheet->createSheet();
         $sheet->setTitle('Campos obligatorios');
-        $sheet->setCellValue('A1', 'Campos de la hoja Propietarios');
+        $sheet->setCellValue('A1', 'Carga unificada: dueño + mascota');
         $sheet->getStyle('A1')->applyFromArray([
-            'font' => ['bold' => true, 'size' => 14, 'color' => ['rgb' => '1F6E4A']],
+            'font' => ['bold' => true, 'size' => 13, 'color' => ['rgb' => '1F6E4A']],
         ]);
-        $sheet->fromArray(
-            [
-                ['Campo', 'Obligatorio', 'Cómo completarlo'],
-                ['nombres*', 'Sí', 'Texto'],
-                ['activo*', 'Sí', 'Lista SI / NO'],
-                ['tipo_documento', 'No', 'Lista: DNI, RUC, CE, PAS, OTR'],
-                ['numero_documento', 'No', 'Único junto con el tipo'],
-                ['apellidos', 'No', 'Texto'],
-                ['razon_social', 'No', 'Texto'],
-                ['email', 'No', 'Email válido'],
-                ['telefono', 'No', 'Texto'],
-                ['telefono_alt', 'No', 'Texto'],
-                ['direccion', 'No', 'Texto'],
-                ['notas', 'No', 'Texto'],
-            ],
-            null,
-            'A3',
-        );
-        $sheet->getStyle('A3:C3')->applyFromArray([
-            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
-            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '1F6E4A']],
-        ]);
-        foreach (['A', 'B', 'C'] as $col) {
-            $sheet->getColumnDimension($col)->setAutoSize(true);
+
+        $lines = [
+            ['', ''],
+            ['Regla', 'Una fila = una mascota. Si un dueño tiene 2 mascotas, usa 2 filas con el mismo documento.'],
+            ['Obligatorios', 'nombres*, paciente_nombre*, activo*'],
+            ['Dueño existente', 'Si el documento ya existe en VetSaaS, se reutiliza y solo se crea la mascota.'],
+            ['Dueño nuevo', 'Se crea el propietario y la mascota en la misma fila.'],
+            ['Documento', 'tipo_documento + numero_documento (recomendado). Sin doc se puede, pero el amarre es menos fiable.'],
+            ['Sexo', 'M = macho, H = hembra, U = desconocido'],
+            ['Fecha', 'DD/MM/AAAA (ej. 15/01/2022). Déjala como texto.'],
+            ['Especie / raza', 'Puedes escribir valores nuevos; quedarán disponibles en el sistema.'],
+            ['Ejemplos', 'Borra las filas que empiezan con «Ejemplo» antes de importar.'],
+            ['Máximo', '500 filas de datos por archivo.'],
+        ];
+
+        $r = 3;
+        foreach ($lines as [$k, $v]) {
+            $sheet->setCellValue("A{$r}", $k);
+            $sheet->setCellValue("B{$r}", $v);
+            $sheet->getStyle("A{$r}")->getFont()->setBold(true);
+            $r++;
         }
+
+        $sheet->getColumnDimension('A')->setWidth(22);
+        $sheet->getColumnDimension('B')->setWidth(90);
     }
 }

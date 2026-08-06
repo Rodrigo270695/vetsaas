@@ -318,7 +318,7 @@ class PropietarioController extends Controller
 
     public function downloadImportTemplate(): StreamedResponse
     {
-        $filename = 'plantilla_propietarios_'.now()->format('Y-m-d').'.xlsx';
+        $filename = 'plantilla_duenos_y_mascotas_'.now()->format('Y-m-d').'.xlsx';
 
         return response()->streamDownload(function (): void {
             (new PropietariosImportTemplateXlsx)->streamTo('php://output');
