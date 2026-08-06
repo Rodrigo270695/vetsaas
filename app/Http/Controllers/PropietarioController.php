@@ -298,8 +298,11 @@ class PropietarioController extends Controller
             $query->where('activo', false);
         }
 
-        $filename = 'propietarios-'.now()->format('Ymd-His').'.xlsx';
-        $exporter = new PropietariosXlsxExport;
+        $includeMascotas = $request->boolean('include_mascotas');
+
+        $filename = ($includeMascotas ? 'propietarios-mascotas-' : 'propietarios-')
+            .now()->format('Ymd-His').'.xlsx';
+        $exporter = new PropietariosXlsxExport($includeMascotas);
 
         $this->auditExport('propietarios', $filename);
 

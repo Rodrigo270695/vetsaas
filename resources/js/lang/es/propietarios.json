@@ -37,6 +37,13 @@
         "row_label": "Fila {{row}}: {{nombre}}",
         "error_generic": "No se pudo importar el archivo. Inténtalo de nuevo."
     },
+    "export": {
+        "title": "Exportar a Excel",
+        "description": "Se exportarán los propietarios según los filtros actuales.",
+        "include_pets": "Incluir mascotas",
+        "include_pets_hint": "Una fila por mascota; si el dueño no tiene, sale igual con columnas vacías.",
+        "download": "Descargar"
+    },
     "bulk": {
         "selected_singular": "propietario seleccionado",
         "selected_plural": "propietarios seleccionados"

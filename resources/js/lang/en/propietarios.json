@@ -37,6 +37,13 @@
         "row_label": "Row {{row}}: {{nombre}}",
         "error_generic": "Could not import the file. Please try again."
     },
+    "export": {
+        "title": "Export to Excel",
+        "description": "Owners matching the current filters will be exported.",
+        "include_pets": "Include pets",
+        "include_pets_hint": "One row per pet; owners without pets still appear with empty pet columns.",
+        "download": "Download"
+    },
     "bulk": {
         "selected_singular": "owner selected",
         "selected_plural": "owners selected"

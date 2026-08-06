@@ -42,6 +42,7 @@ import { dashboard } from '@/routes';
 import type { Paginated } from '@/types';
 import { PropietarioBulkDeleteDialog } from './components/propietario-bulk-delete-dialog';
 import { PropietarioDeleteDialog } from './components/propietario-delete-dialog';
+import { PropietarioExportDialog } from './components/propietario-export-dialog';
 import { PropietarioFormModal } from './components/propietario-form-modal';
 import { PropietarioRowActions } from './components/propietario-row-actions';
 import type {
@@ -72,7 +73,8 @@ type ModalState =
     | { type: 'edit'; propietario: Propietario }
     | { type: 'delete'; propietario: Propietario }
     | { type: 'bulk-delete' }
-    | { type: 'bulk' };
+    | { type: 'bulk' }
+    | { type: 'export' };
 
 const DEFAULT_PER_PAGE = 10;
 const DEFAULT_ESTADO: PropietarioEstadoFilter = 'todos';
@@ -302,11 +304,14 @@ export default function Index({ propietarios: paginated, filters, stats, departa
                     action={
                         <div className="flex flex-row items-center gap-2">
                             {canExport && (
-                                <Button asChild variant="outline" className="cursor-pointer gap-2">
-                                    <a href={exportUrl} download>
-                                        <Download className="size-4" strokeWidth={2.5} />
-                                        <span className="hidden sm:inline">{t('common:actions.export_xlsx')}</span>
-                                    </a>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    className="cursor-pointer gap-2"
+                                    onClick={() => setModal({ type: 'export' })}
+                                >
+                                    <Download className="size-4" strokeWidth={2.5} />
+                                    <span className="hidden sm:inline">{t('common:actions.export_xlsx')}</span>
                                 </Button>
                             )}
                             <Can permission="propietarios.create">
@@ -439,6 +444,14 @@ export default function Index({ propietarios: paginated, filters, stats, departa
                 }}
                 ids={Array.from(selection.selectedIds)}
                 onCompleted={() => selection.clear()}
+            />
+
+            <PropietarioExportDialog
+                open={modal.type === 'export'}
+                onOpenChange={(open) => {
+                    if (!open) closeModal();
+                }}
+                exportUrl={exportUrl}
             />
 
             <BulkImportModal
