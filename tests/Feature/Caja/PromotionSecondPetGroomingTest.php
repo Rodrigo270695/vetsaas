@@ -95,8 +95,18 @@ afterEach(function (): void {
 it('aplica 50% en segunda mascota grooming el mismo día', function (): void {
     $this->actingAs($this->cajero);
 
-    $promo = Promotion::query()->where('condition_type', Promotion::CONDITION_SECOND_PET_GROOMING)->first();
-    expect($promo)->not->toBeNull();
+    $promo = Promotion::query()->create([
+        'name' => '2ª mascota grooming −50%',
+        'description' => 'Test promo segunda mascota',
+        'discount_type' => Promotion::DISCOUNT_PCT_LINE,
+        'value' => '50.00',
+        'scope' => Promotion::SCOPE_GROOMING,
+        'condition_type' => Promotion::CONDITION_SECOND_PET_GROOMING,
+        'auto_apply' => true,
+        'is_active' => true,
+        'priority' => 10,
+        'uses_count' => 0,
+    ]);
 
     $turno1 = GroomingTurno::query()->create([
         'paciente_id' => $this->scenario['paciente']->id,

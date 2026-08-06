@@ -2,9 +2,7 @@
 
 use App\Database\Migrations\TenantMigration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Str;
 
 return new class extends TenantMigration
 {
@@ -60,27 +58,6 @@ return new class extends TenantMigration
                     ->constrained('promotions')
                     ->nullOnDelete();
             });
-
-            DB::table('promotions')->insert([
-                'id' => (string) Str::uuid(),
-                'name' => '2ª mascota grooming −50%',
-                'code' => null,
-                'description' => 'Si el cliente ya pagó un baño grooming hoy para otra mascota, este servicio tiene 50% de descuento.',
-                'discount_type' => 'pct_line',
-                'value' => '50.00',
-                'scope' => 'grooming',
-                'condition_type' => 'second_pet_grooming',
-                'grooming_service_slug' => null,
-                'auto_apply' => true,
-                'is_active' => true,
-                'valid_from' => null,
-                'valid_until' => null,
-                'max_uses' => null,
-                'uses_count' => 0,
-                'priority' => 10,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
         });
     }
 
