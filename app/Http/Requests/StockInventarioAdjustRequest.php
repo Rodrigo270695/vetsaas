@@ -12,13 +12,13 @@ class StockInventarioAdjustRequest extends FormRequest
         $user = $this->user();
 
         return $user !== null
-            && $user->tenant_id !== null
+            && resolve_clinic_tenant_id() !== null
             && $user->can('stock.adjust');
     }
 
     public function rules(): array
     {
-        $tenantId = $this->user()?->tenant_id;
+        $tenantId = resolve_clinic_tenant_id();
         if ($tenantId === null) {
             return [
                 'producto_id' => ['prohibited'],

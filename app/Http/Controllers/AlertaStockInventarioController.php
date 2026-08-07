@@ -44,8 +44,7 @@ class AlertaStockInventarioController extends Controller
 
     public function alertas(Request $request): Response
     {
-        $tenantId = $request->user()?->tenant_id;
-        abort_if($tenantId === null, 403);
+        $tenantId = clinic_tenant_id();
 
         $ctx = $this->resolveListContext($request);
 
@@ -486,7 +485,7 @@ class AlertaStockInventarioController extends Controller
             $directionSql = 'asc';
         }
 
-        $tenantId = $request->user()?->tenant_id;
+        $tenantId = resolve_clinic_tenant_id();
         $sedesActivas = Sede::query()
             ->where('tenant_id', $tenantId)
             ->where('activa', true)

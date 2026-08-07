@@ -34,8 +34,7 @@ class CajaSesionController extends Controller
 
     public function index(Request $request): InertiaResponse
     {
-        $tenantId = $request->user()?->tenant_id;
-        abort_if($tenantId === null, 403);
+        $tenantId = clinic_tenant_id();
 
         $search = trim((string) $request->string('search', ''));
         $perPageRequested = (int) $request->integer('per_page', 10);
@@ -307,8 +306,7 @@ class CajaSesionController extends Controller
     ): Response|StreamedResponse {
         $this->authorizeSesionAccess($cajaSesion);
 
-        $tenantId = $request->user()?->tenant_id;
-        abort_if($tenantId === null, 403);
+        $tenantId = clinic_tenant_id();
 
         $cajaSesion->loadMissing(['abiertaPor:id,name', 'cerradaPor:id,name']);
 

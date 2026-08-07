@@ -38,9 +38,10 @@ class ConsultaPlanTratamientoController extends Controller
     public function productosMedicamento(Request $request): JsonResponse
     {
         $user = $request->user();
-        abort_unless($user !== null && $user->tenant_id !== null, 403);
+        $tenantId = resolve_clinic_tenant_id();
+        abort_unless($user !== null && $tenantId !== null, 403);
 
-        $sedeId = $this->resolveSedeIdParaStock($request, (string) $user->tenant_id);
+        $sedeId = $this->resolveSedeIdParaStock($request, $tenantId);
 
         $forProductId = trim((string) $request->query('for_product_id', ''));
         if ($forProductId !== '' && Str::isUuid($forProductId)) {
@@ -180,7 +181,7 @@ class ConsultaPlanTratamientoController extends Controller
         }
 
         $validated = $request->validated();
-        $sedeId = $this->resolveSedeIdParaStock($request, (string) $request->user()?->tenant_id);
+        $sedeId = $this->resolveSedeIdParaStock($request, (string) (resolve_clinic_tenant_id() ?? ''));
         app(SyncConsultaPlanTratamiento::class)->handle($consulta, $validated, Auth::id(), $sedeId !== '' ? $sedeId : null);
 
         return redirect()

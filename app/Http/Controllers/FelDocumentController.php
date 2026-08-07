@@ -34,8 +34,7 @@ class FelDocumentController extends Controller
 
     public function index(Request $request): Response
     {
-        $tenantId = $request->user()?->tenant_id;
-        abort_if($tenantId === null, 403);
+        $tenantId = clinic_tenant_id();
 
         $search = trim((string) $request->string('search', ''));
         $perPageRequested = (int) $request->integer('per_page', 15);

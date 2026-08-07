@@ -222,7 +222,7 @@ class ClinicSettingRequest extends FormRequest
                 return;
             }
 
-            $tenantId = $this->user()?->tenant_id;
+            $tenantId = resolve_clinic_tenant_id();
             if ($tenantId === null) {
                 $v->errors()->add('emite_comprobantes_sunat', __('config_clinic.validation.emite_sin_tenant'));
 

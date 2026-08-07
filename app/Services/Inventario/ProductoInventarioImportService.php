@@ -122,7 +122,7 @@ final class ProductoInventarioImportService
             ->mapWithKeys(fn (CategoriaProducto $c) => [mb_strtolower((string) $c->id) => (string) $c->id])
             ->all();
 
-        $tenantId = Auth::user()?->tenant_id;
+        $tenantId = resolve_clinic_tenant_id();
         $sedesQuery = Sede::query()
             ->where('activa', true)
             ->whereNull('deleted_at');

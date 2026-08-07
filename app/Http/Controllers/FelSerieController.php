@@ -14,8 +14,7 @@ class FelSerieController extends Controller
 {
     public function index(Request $request): Response
     {
-        $tenantId = $request->user()?->tenant_id;
-        abort_if($tenantId === null, 403);
+        $tenantId = clinic_tenant_id();
 
         $sedesOpciones = Sede::query()
             ->where('tenant_id', $tenantId)
@@ -81,8 +80,7 @@ class FelSerieController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $tenantId = $request->user()?->tenant_id;
-        abort_if($tenantId === null, 403);
+        $tenantId = clinic_tenant_id();
 
         $data = $request->validate([
             'sede_id'            => [

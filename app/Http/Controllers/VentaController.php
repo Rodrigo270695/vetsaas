@@ -97,7 +97,7 @@ class VentaController extends Controller
 
         $ventas = $listQuery->paginate($ctx['per_page'])->withQueryString();
 
-        $tenantId = $request->user()?->tenant_id;
+        $tenantId = resolve_clinic_tenant_id();
         $sedeIds = $ventas->pluck('sede_id')->unique()->filter()->all();
         $sedeNombres = Sede::query()
             ->where('tenant_id', $tenantId)
@@ -222,8 +222,7 @@ class VentaController extends Controller
      */
     private function resolveVentasListaContext(Request $request): array
     {
-        $tenantId = $request->user()?->tenant_id;
-        abort_if($tenantId === null, 403);
+        $tenantId = clinic_tenant_id();
 
         $search = trim((string) $request->string('search', ''));
         $perPageRequested = (int) $request->integer('per_page', 15);
@@ -430,8 +429,7 @@ class VentaController extends Controller
 
     public function create(Request $request, TenantManager $tenants): Response
     {
-        $tenantId = $request->user()?->tenant_id;
-        abort_if($tenantId === null, 403);
+        $tenantId = clinic_tenant_id();
 
         $miSesion = CajaSesion::query()
             ->where('estado', CajaSesion::ESTADO_ABIERTA)
@@ -712,8 +710,7 @@ class VentaController extends Controller
 
     public function show(Request $request, Venta $venta): Response
     {
-        $tenantId = $request->user()?->tenant_id;
-        abort_if($tenantId === null, 403);
+        $tenantId = clinic_tenant_id();
 
         $venta->load([
             'lineas' => fn ($q) => $q->orderBy('id'),
@@ -874,8 +871,7 @@ class VentaController extends Controller
      */
     public function ticket(Request $request, Venta $venta, VentaTicketPdfService $ticketPdf): View
     {
-        $tenantId = $request->user()?->tenant_id;
-        abort_if($tenantId === null, 403);
+        $tenantId = clinic_tenant_id();
 
         $cfg = ClinicSetting::current();
         $tenantModel = app(TenantManager::class)->current()?->tenant;

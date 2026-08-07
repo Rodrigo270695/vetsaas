@@ -76,7 +76,7 @@ class StoreVentaRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $tenant = Tenant::query()->find($this->user()?->tenant_id);
+        $tenant = Tenant::query()->find(resolve_clinic_tenant_id());
         $clinic = ClinicSetting::current();
         $puedeElegirSunat = PlanCapabilities::facturaElectronica($tenant)
             && (bool) $clinic->emite_comprobantes_sunat;

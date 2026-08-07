@@ -14,7 +14,7 @@ class StoreCajaSesionRequest extends FormRequest
 
     public function rules(): array
     {
-        $tenantId = $this->user()?->tenant_id;
+        $tenantId = resolve_clinic_tenant_id();
 
         return [
             'sede_id' => [

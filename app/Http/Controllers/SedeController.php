@@ -23,7 +23,7 @@ class SedeController extends Controller
      */
     private function tenantIdOrAbort(Request $request): string
     {
-        $id = tenant_id() ?? $request->user()?->tenant_id;
+        $id = resolve_clinic_tenant_id();
         abort_if($id === null || $id === '', 403, 'Solo usuarios de clínica pueden gestionar sedes.');
 
         return (string) $id;

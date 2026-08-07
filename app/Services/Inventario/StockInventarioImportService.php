@@ -96,7 +96,7 @@ final class StockInventarioImportService
             ];
         }
 
-        $tenantId = Auth::user()?->tenant_id;
+        $tenantId = resolve_clinic_tenant_id();
         $sedesQuery = Sede::query()
             ->where('activa', true)
             ->whereNull('deleted_at');

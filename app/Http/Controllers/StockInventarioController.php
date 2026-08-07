@@ -40,8 +40,7 @@ class StockInventarioController extends Controller
 
     public function index(Request $request): Response
     {
-        $tenantId = $request->user()?->tenant_id;
-        abort_if($tenantId === null, 403);
+        $tenantId = clinic_tenant_id();
 
         $search = trim((string) $request->string('search', ''));
         $perPageRequested = (int) $request->integer('per_page', 10);
@@ -204,8 +203,7 @@ class StockInventarioController extends Controller
     {
         abort_unless($request->user()?->can('stock.view'), 403);
 
-        $tenantId = $request->user()?->tenant_id;
-        abort_if($tenantId === null, 403);
+        $tenantId = clinic_tenant_id();
 
         $resolved = $this->resolveSedeForExport($request, $tenantId);
         abort_if($resolved === null, 422, 'No hay sedes activas para exportar stock.');

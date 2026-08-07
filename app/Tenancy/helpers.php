@@ -35,6 +35,35 @@ if (! function_exists('tenant_id')) {
     }
 }
 
+if (! function_exists('resolve_clinic_tenant_id')) {
+    /**
+     * Tenant de clínica del request: host (subdominio / modo soporte)
+     * o, en su defecto, `users.tenant_id` del usuario de clínica.
+     *
+     * El superadmin en impersonación tiene `users.tenant_id = null`, pero
+     * el {@see TenantManager} sí tiene el tenant del host.
+     */
+    function resolve_clinic_tenant_id(): ?string
+    {
+        $id = tenant_id() ?? auth()->user()?->tenant_id;
+
+        return is_string($id) && $id !== '' ? $id : null;
+    }
+}
+
+if (! function_exists('clinic_tenant_id')) {
+    /**
+     * Igual que {@see resolve_clinic_tenant_id()} pero aborta 403 si no hay clínica.
+     */
+    function clinic_tenant_id(): string
+    {
+        $id = resolve_clinic_tenant_id();
+        abort_if($id === null, 403, 'Solo se puede operar en contexto de clínica.');
+
+        return $id;
+    }
+}
+
 if (! function_exists('is_public_demo_tenant')) {
     /**
      * Tenant público de demostración (slug fijo `demo`).
