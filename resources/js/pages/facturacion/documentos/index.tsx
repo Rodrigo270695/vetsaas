@@ -1,5 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
-import { Eye, FileText, MessageCircle } from 'lucide-react';
+import { Download, Eye, FileText, MessageCircle } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -141,7 +141,7 @@ function formatMonto(amount: string, moneda: string, locale: string): string {
 }
 
 export default function Index({ documentos: paginated, filters, documento_filtro_ui, stats }: Props) {
-    const { t } = useTranslation('facturacion-documentos');
+    const { t } = useTranslation(['facturacion-documentos', 'common']);
     const [whatsappDocumento, setWhatsappDocumento] = useState<DocumentoWhatsAppRow | null>(null);
 
     const { search, setSearch, isLoading, sort, setSort, setPerPage, applyFilter } =
@@ -182,6 +182,43 @@ export default function Index({ documentos: paginated, filters, documento_filtro
 
         return n;
     }, [documento_filtro_ui.fuera_del_mes_actual, estado, metodoPago, filters.search]);
+
+    const exportUrl = useMemo(() => {
+        const params = new URLSearchParams();
+
+        if (filters.search) {
+            params.set('search', filters.search);
+        }
+
+        if (filters.sort) {
+            params.set('sort', filters.sort);
+        }
+
+        if (filters.direction) {
+            params.set('direction', filters.direction);
+        }
+
+        if (estado !== DEFAULT_ESTADO) {
+            params.set('estado', estado);
+        }
+
+        if (metodoPago !== DEFAULT_METODO) {
+            params.set('metodo_pago', metodoPago);
+        }
+
+        params.set('fecha_desde', filters.fecha_desde);
+        params.set('fecha_hasta', filters.fecha_hasta);
+
+        return `${ROUTE_URL}/export?${params.toString()}`;
+    }, [
+        estado,
+        filters.direction,
+        filters.fecha_desde,
+        filters.fecha_hasta,
+        filters.search,
+        filters.sort,
+        metodoPago,
+    ]);
 
     const estadoOptions: readonly FilterChip<DocumentoEstadoFiltro>[] = useMemo(
         () => [
@@ -362,6 +399,24 @@ export default function Index({ documentos: paginated, filters, documento_filtro
                             variant: 'default',
                         },
                     ]}
+                    action={
+                        <Button
+                            asChild
+                            variant="outline"
+                            className="h-10 shrink-0 cursor-pointer gap-2 px-3 font-normal"
+                        >
+                            <a href={exportUrl} download>
+                                <Download
+                                    className="size-4 shrink-0 opacity-70"
+                                    strokeWidth={2.5}
+                                    aria-hidden
+                                />
+                                <span className="hidden sm:inline">
+                                    {t('common:actions.export_xlsx')}
+                                </span>
+                            </a>
+                        </Button>
+                    }
                 />
 
                 <DataTable

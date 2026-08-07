@@ -19,7 +19,6 @@ use App\Http\Controllers\ConsultaDictationController;
 use App\Http\Controllers\ConsultaHistoriaController;
 use App\Http\Controllers\ConsultaPlanTratamientoController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\ReporteFinancieroController;
 use App\Http\Controllers\FelAnulacionHistorialController;
 use App\Http\Controllers\FelDocumentController;
 use App\Http\Controllers\FelSerieController;
@@ -56,6 +55,7 @@ use App\Http\Controllers\PromotionController;
 use App\Http\Controllers\PropietarioController;
 use App\Http\Controllers\ProveedorInventarioController;
 use App\Http\Controllers\RecetaController;
+use App\Http\Controllers\ReporteFinancieroController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SalesBotConversationController;
 use App\Http\Controllers\SalesBotKnowledgeController;
@@ -863,6 +863,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             ->get('documentos', [FelDocumentController::class, 'index'])
             ->name('documentos');
         Route::middleware('permission:documentos.view')
+            ->get('documentos/export', [FelDocumentController::class, 'exportExcel'])
+            ->name('documentos.export');
+        Route::middleware('permission:documentos.view')
             ->get('documentos/{felDocument}/download-xml', [FelDocumentController::class, 'downloadXml'])
             ->whereUuid('felDocument')
             ->name('documentos.download-xml');
@@ -896,7 +899,6 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             ->get('resumenes', [FelAnulacionHistorialController::class, 'resumenes'])
             ->name('resumenes');
     });
-
 
     // ===== Comunicaciones (schema del tenant: cola, WhatsApp por clínica) =====
     Route::prefix('comunicaciones')->name('comunicaciones.')->middleware('tenant.required')->group(function () {

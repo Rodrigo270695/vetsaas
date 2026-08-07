@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\FelDocumentsXlsxExport;
+use App\Http\Controllers\Concerns\LogsAuditExports;
 use App\Models\ClinicSetting;
 use App\Models\FelDocument;
 use App\Models\FelSerie;
@@ -12,6 +14,7 @@ use App\Services\Fel\FelDocumentWhatsAppSender;
 use App\Support\Fel\FelDocumentApisunatModeResolver;
 use App\Support\Fel\FelDocumentPdfUrls;
 use App\Support\WhatsApp\WhatsAppChatId;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -23,6 +26,8 @@ use Throwable;
 
 class FelDocumentController extends Controller
 {
+    use LogsAuditExports;
+
     private const PER_PAGE_OPTIONS = [10, 15, 20, 25, 50, 100];
 
     private const SORTABLE_COLUMNS = [
@@ -32,102 +37,23 @@ class FelDocumentController extends Controller
         'estado',
     ];
 
+    private const METODOS_PAGO = ['efectivo', 'yape', 'plin', 'tarjeta', 'transferencia', 'otro'];
+
     public function index(Request $request): Response
     {
         $tenantId = clinic_tenant_id();
 
-        $search = trim((string) $request->string('search', ''));
-        $perPageRequested = (int) $request->integer('per_page', 15);
-        $perPage = in_array($perPageRequested, self::PER_PAGE_OPTIONS, true) ? $perPageRequested : 15;
+        $ctx = $this->resolveDocumentosContext($request);
+        $perPage = $ctx['per_page'];
+        $sortValid = $ctx['sort_valid'];
+        $directionValid = $ctx['direction_valid'];
+        $documentoFiltroUi = $ctx['documento_filtro_ui'];
 
-        $sort = (string) $request->string('sort', '');
-        $direction = strtolower((string) $request->string('direction', 'desc'));
-        $sortValid = in_array($sort, self::SORTABLE_COLUMNS, true);
-        $directionValid = in_array($direction, ['asc', 'desc'], true);
-        $directionSql = $directionValid ? $direction : 'desc';
-
-        $estado = (string) $request->string('estado', 'todos');
-        if (! in_array($estado, ['todos', FelDocument::ESTADO_EMITIDO, FelDocument::ESTADO_ANULADO, FelDocument::ESTADO_RECHAZADO, FelDocument::ESTADO_PENDIENTE], true)) {
-            $estado = 'todos';
-        }
-
-        $metodosPermitidos = ['efectivo', 'yape', 'plin', 'tarjeta', 'transferencia', 'otro'];
-        $metodoPago = (string) $request->string('metodo_pago', 'todos');
-        if (! in_array($metodoPago, ['todos', ...$metodosPermitidos], true)) {
-            $metodoPago = 'todos';
-        }
-
-        $tz = config('app.timezone');
-        $now = now($tz);
-        $hoy = $now->toDateString();
-        $defaultDesde = $hoy;
-        $defaultHasta = $hoy;
-
-        $fechaDesde = $this->parseDateParam($request->query('fecha_desde'));
-        $fechaHasta = $this->parseDateParam($request->query('fecha_hasta'));
-
-        if ($fechaDesde === null || $fechaHasta === null) {
-            $fechaDesde = $defaultDesde;
-            $fechaHasta = $defaultHasta;
-            $fueraDelMesActual = false;
-        } else {
-            if ($fechaDesde > $fechaHasta) {
-                [$fechaDesde, $fechaHasta] = [$fechaHasta, $fechaDesde];
-            }
-            $fueraDelMesActual = ($fechaDesde !== $defaultDesde) || ($fechaHasta !== $defaultHasta);
-        }
-
-        $documentoFiltroUi = [
-            'default_desde' => $defaultDesde,
-            'default_hasta' => $defaultHasta,
-            'fuera_del_mes_actual' => $fueraDelMesActual,
-        ];
-
-        $query = FelDocument::query()
+        $query = $this->buildDocumentosQuery($ctx)
             ->with([
                 'venta:id,numero,sede_id,estado,propietario_id,metodo_pago',
                 'venta.propietario:id,nombres,apellidos,razon_social,telefono',
             ]);
-
-        if ($search !== '') {
-            $like = '%'.addcslashes($search, '%_\\').'%';
-            $query->where(function ($q) use ($like): void {
-                $q->where('numero_completo', 'ILIKE', $like)
-                    ->orWhere('receptor_nombre', 'ILIKE', $like)
-                    ->orWhere('receptor_num_doc', 'ILIKE', $like)
-                    ->orWhereHas('venta', fn ($vq) => $vq->where('numero', 'ILIKE', $like));
-            });
-        }
-
-        if ($estado !== 'todos') {
-            $query->where('estado', $estado);
-        }
-
-        if ($metodoPago !== 'todos') {
-            if ($metodoPago === 'otro') {
-                $query->whereHas('venta', function ($vq) use ($metodosPermitidos): void {
-                    $vq->where(function ($q) use ($metodosPermitidos): void {
-                        $q->whereNull('metodo_pago')
-                            ->orWhere('metodo_pago', '')
-                            ->orWhereNotIn('metodo_pago', array_values(array_diff($metodosPermitidos, ['otro'])));
-                    });
-                });
-            } else {
-                $query->whereHas('venta', fn ($vq) => $vq->where('metodo_pago', $metodoPago));
-            }
-        }
-
-        $query->whereRaw('DATE(COALESCE(emitido_at, created_at)) >= ?', [$fechaDesde])
-            ->whereRaw('DATE(COALESCE(emitido_at, created_at)) <= ?', [$fechaHasta]);
-
-        if ($sortValid) {
-            $query->orderBy($sort, $directionSql);
-            if ($sort !== 'emitido_at') {
-                $query->orderByDesc('emitido_at');
-            }
-        } else {
-            $query->orderByDesc('emitido_at')->orderByDesc('created_at');
-        }
 
         $documentos = $query->paginate($perPage)->withQueryString();
 
@@ -180,14 +106,14 @@ class FelDocumentController extends Controller
         return Inertia::render('facturacion/documentos/index', [
             'documentos' => $documentos,
             'filters' => [
-                'search' => $search,
+                'search' => $ctx['search'],
                 'per_page' => $perPage,
-                'sort' => $sortValid ? $sort : null,
-                'direction' => $sortValid && $directionValid ? $direction : null,
-                'estado' => $estado,
-                'metodo_pago' => $metodoPago,
-                'fecha_desde' => $fechaDesde,
-                'fecha_hasta' => $fechaHasta,
+                'sort' => $sortValid ? $ctx['sort'] : null,
+                'direction' => $sortValid && $directionValid ? $ctx['direction'] : null,
+                'estado' => $ctx['estado'],
+                'metodo_pago' => $ctx['metodo_pago'],
+                'fecha_desde' => $ctx['fecha_desde'],
+                'fecha_hasta' => $ctx['fecha_hasta'],
             ],
             'documento_filtro_ui' => $documentoFiltroUi,
             'stats' => [
@@ -196,6 +122,41 @@ class FelDocumentController extends Controller
                 'coincidencias' => $documentos->total(),
             ],
         ]);
+    }
+
+    /**
+     * Exporta el listado filtrado de comprobantes a XLSX para cruces contables.
+     */
+    public function exportExcel(Request $request): StreamedResponse
+    {
+        abort_unless($request->user()?->can('documentos.view'), 403);
+
+        clinic_tenant_id();
+
+        $ctx = $this->resolveDocumentosContext($request);
+
+        $query = $this->buildDocumentosQuery($ctx)
+            ->with([
+                'venta:id,numero,sede_id,estado,metodo_pago',
+                'venta.sede:id,nombre,codigo',
+            ]);
+
+        $filename = 'comprobantes-'.now()->format('Ymd-His').'.xlsx';
+        $exporter = new FelDocumentsXlsxExport;
+
+        $this->auditExport('documentos', $filename);
+
+        return response()->streamDownload(
+            function () use ($exporter, $query): void {
+                $exporter->streamTo($query);
+            },
+            $filename,
+            [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'Cache-Control' => 'no-store, no-cache, must-revalidate',
+                'Pragma' => 'no-cache',
+            ],
+        );
     }
 
     public function downloadXml(
@@ -353,6 +314,137 @@ class FelDocumentController extends Controller
         }
     }
 
+    /**
+     * Filtros compartidos entre el listado Inertia y la exportación XLSX.
+     *
+     * @return array{
+     *     search: string,
+     *     per_page: int,
+     *     sort: string,
+     *     sort_valid: bool,
+     *     direction: string,
+     *     direction_valid: bool,
+     *     direction_sql: string,
+     *     estado: string,
+     *     metodo_pago: string,
+     *     fecha_desde: string,
+     *     fecha_hasta: string,
+     *     documento_filtro_ui: array{default_desde: string, default_hasta: string, fuera_del_mes_actual: bool},
+     * }
+     */
+    private function resolveDocumentosContext(Request $request): array
+    {
+        $search = trim((string) $request->string('search', ''));
+        $perPageRequested = (int) $request->integer('per_page', 15);
+        $perPage = in_array($perPageRequested, self::PER_PAGE_OPTIONS, true) ? $perPageRequested : 15;
+
+        $sort = (string) $request->string('sort', '');
+        $direction = strtolower((string) $request->string('direction', 'desc'));
+        $sortValid = in_array($sort, self::SORTABLE_COLUMNS, true);
+        $directionValid = in_array($direction, ['asc', 'desc'], true);
+        $directionSql = $directionValid ? $direction : 'desc';
+
+        $estado = (string) $request->string('estado', 'todos');
+        if (! in_array($estado, ['todos', FelDocument::ESTADO_EMITIDO, FelDocument::ESTADO_ANULADO, FelDocument::ESTADO_RECHAZADO, FelDocument::ESTADO_PENDIENTE], true)) {
+            $estado = 'todos';
+        }
+
+        $metodoPago = (string) $request->string('metodo_pago', 'todos');
+        if (! in_array($metodoPago, ['todos', ...self::METODOS_PAGO], true)) {
+            $metodoPago = 'todos';
+        }
+
+        $hoy = now(config('app.timezone'))->toDateString();
+        $defaultDesde = $hoy;
+        $defaultHasta = $hoy;
+
+        $fechaDesde = $this->parseDateParam($request->query('fecha_desde'));
+        $fechaHasta = $this->parseDateParam($request->query('fecha_hasta'));
+
+        if ($fechaDesde === null || $fechaHasta === null) {
+            $fechaDesde = $defaultDesde;
+            $fechaHasta = $defaultHasta;
+            $fueraDelMesActual = false;
+        } else {
+            if ($fechaDesde > $fechaHasta) {
+                [$fechaDesde, $fechaHasta] = [$fechaHasta, $fechaDesde];
+            }
+            $fueraDelMesActual = ($fechaDesde !== $defaultDesde) || ($fechaHasta !== $defaultHasta);
+        }
+
+        return [
+            'search' => $search,
+            'per_page' => $perPage,
+            'sort' => $sort,
+            'sort_valid' => $sortValid,
+            'direction' => $direction,
+            'direction_valid' => $directionValid,
+            'direction_sql' => $directionSql,
+            'estado' => $estado,
+            'metodo_pago' => $metodoPago,
+            'fecha_desde' => $fechaDesde,
+            'fecha_hasta' => $fechaHasta,
+            'documento_filtro_ui' => [
+                'default_desde' => $defaultDesde,
+                'default_hasta' => $defaultHasta,
+                'fuera_del_mes_actual' => $fueraDelMesActual,
+            ],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $ctx
+     * @return Builder<FelDocument>
+     */
+    private function buildDocumentosQuery(array $ctx): Builder
+    {
+        $query = FelDocument::query();
+
+        $search = (string) $ctx['search'];
+        if ($search !== '') {
+            $like = '%'.addcslashes($search, '%_\\').'%';
+            $query->where(function ($q) use ($like): void {
+                $q->where('numero_completo', 'ILIKE', $like)
+                    ->orWhere('receptor_nombre', 'ILIKE', $like)
+                    ->orWhere('receptor_num_doc', 'ILIKE', $like)
+                    ->orWhereHas('venta', fn ($vq) => $vq->where('numero', 'ILIKE', $like));
+            });
+        }
+
+        if ($ctx['estado'] !== 'todos') {
+            $query->where('estado', $ctx['estado']);
+        }
+
+        $metodoPago = (string) $ctx['metodo_pago'];
+        if ($metodoPago !== 'todos') {
+            if ($metodoPago === 'otro') {
+                $query->whereHas('venta', function ($vq): void {
+                    $vq->where(function ($q): void {
+                        $q->whereNull('metodo_pago')
+                            ->orWhere('metodo_pago', '')
+                            ->orWhereNotIn('metodo_pago', array_values(array_diff(self::METODOS_PAGO, ['otro'])));
+                    });
+                });
+            } else {
+                $query->whereHas('venta', fn ($vq) => $vq->where('metodo_pago', $metodoPago));
+            }
+        }
+
+        $query->whereRaw('DATE(COALESCE(emitido_at, created_at)) >= ?', [$ctx['fecha_desde']])
+            ->whereRaw('DATE(COALESCE(emitido_at, created_at)) <= ?', [$ctx['fecha_hasta']]);
+
+        if ($ctx['sort_valid']) {
+            $query->orderBy((string) $ctx['sort'], (string) $ctx['direction_sql']);
+            if ($ctx['sort'] !== 'emitido_at') {
+                $query->orderByDesc('emitido_at');
+            }
+        } else {
+            $query->orderByDesc('emitido_at')->orderByDesc('created_at');
+        }
+
+        return $query;
+    }
+
     private function authorizeDocument(FelDocument $felDocument): void
     {
         abort_unless(request()->user()?->can('documentos.view'), 403);
@@ -367,12 +459,12 @@ class FelDocumentController extends Controller
     ): StreamedResponse|RedirectResponse {
         try {
             $content = $lucodeFiles->descargar($felDocument, ClinicSetting::current(), $tipo);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             return back()->with('error', 'No se pudo descargar el archivo: '.$e->getMessage());
         }
 
         return response()->streamDownload(
-            fn () => print($content),
+            fn () => print ($content),
             $filename,
             ['Content-Type' => $mime],
         );
