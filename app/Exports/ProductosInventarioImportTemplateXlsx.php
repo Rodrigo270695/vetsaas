@@ -5,7 +5,6 @@ namespace App\Exports;
 use App\Models\CategoriaProducto;
 use App\Models\Sede;
 use App\Support\Inventario\UnidadMedidaOpciones;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
@@ -15,6 +14,7 @@ use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
@@ -69,7 +69,7 @@ class ProductosInventarioImportTemplateXlsx
 
     public function streamTo(string $output = 'php://output'): void
     {
-        $spreadsheet = new Spreadsheet();
+        $spreadsheet = new Spreadsheet;
         $spreadsheet->getProperties()
             ->setCreator('VetSaaS')
             ->setTitle('Plantilla importación de productos')
@@ -148,6 +148,13 @@ class ProductosInventarioImportTemplateXlsx
                 $sheet->setCellValue("{$col}".self::DATA_START_ROW, $value);
             }
         }
+
+        // Columna fecha_vencimiento: texto en todo el rango de carga para que Excel
+        // no convierta 1/11/2026 a serial con locale US (11 ene).
+        $fechaCol = Coordinate::stringFromColumnIndex(count($headers));
+        $sheet->getStyle("{$fechaCol}".self::DATA_START_ROW.":{$fechaCol}".self::DATA_END_ROW)
+            ->getNumberFormat()
+            ->setFormatCode(NumberFormat::FORMAT_TEXT);
 
         $sheet->getStyle('A'.self::DATA_START_ROW.":{$lastCol}".self::DATA_END_ROW)->applyFromArray([
             'fill' => [
@@ -328,7 +335,7 @@ class ProductosInventarioImportTemplateXlsx
             $sheet->setCellValueExplicit(
                 "A{$r}",
                 $item['codigo'],
-                \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING,
+                DataType::TYPE_STRING,
             );
             $sheet->setCellValue("B{$r}", $item['nombre']);
             $sheet->setCellValue("C{$r}", '');
@@ -384,7 +391,7 @@ class ProductosInventarioImportTemplateXlsx
         string $namedRange,
         bool $allowBlank = false,
     ): void {
-        $validation = new DataValidation();
+        $validation = new DataValidation;
         $validation->setType(DataValidation::TYPE_LIST);
         $validation->setErrorStyle(DataValidation::STYLE_STOP);
         $validation->setAllowBlank($allowBlank);
@@ -415,7 +422,7 @@ class ProductosInventarioImportTemplateXlsx
 
         $sheet->setCellValue(
             'A2',
-            'Los campos con * son obligatorios. Stock inicial es opcional: si pones sede y cantidad_inicial se crea entrada con lote/vencimiento. Fechas: usa DD/MM/AAAA (ej. 31/12/2027).',
+            'Los campos con * son obligatorios. Stock inicial es opcional: si pones sede y cantidad_inicial se crea entrada con lote/vencimiento. Fechas: siempre DD/MM/AAAA (ej. 1/11/2026 = 1 de noviembre de 2026; 31/12/2027). La columna va como texto para que Excel no cambie el orden día/mes.',
         );
         $sheet->mergeCells('A2:C2');
         $sheet->getStyle('A2')->applyFromArray([
@@ -441,7 +448,7 @@ class ProductosInventarioImportTemplateXlsx
                 ['sede', 'Condicional', 'Lista SEDES. Requerida si hay cantidad_inicial'],
                 ['cantidad_inicial', 'Condicional', 'Número > 0. Requiere sede'],
                 ['numero_lote', 'No', 'Texto (opcional con stock inicial)'],
-                ['fecha_vencimiento', 'No', 'Formato DD/MM/AAAA (ej. 31/12/2027). También acepta AAAA-MM-DD'],
+                ['fecha_vencimiento', 'No', 'Formato DD/MM/AAAA (ej. 1/11/2026 = 1 nov 2026). También AAAA-MM-DD. Escribir como texto.'],
             ],
             null,
             'A4',

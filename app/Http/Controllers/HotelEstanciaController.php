@@ -49,9 +49,9 @@ class HotelEstanciaController extends Controller
         $directionValid = in_array($direction, ['asc', 'desc'], true);
 
         $tz = config('app.timezone');
-        $now = now($tz);
-        $defaultDesde = $now->copy()->startOfMonth()->toDateString();
-        $defaultHasta = $now->copy()->endOfMonth()->toDateString();
+        $hoy = now($tz)->toDateString();
+        $defaultDesde = $hoy;
+        $defaultHasta = $hoy;
 
         $hotelDesde = $this->parseDateParam($request->query('hotel_desde'));
         $hotelHasta = $this->parseDateParam($request->query('hotel_hasta'));

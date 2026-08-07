@@ -56,6 +56,8 @@ export type ComboboxProps = {
  *     opciones en cascada (útil en formularios dependientes).
  *   - `disabled`: bloquea cuando el padre aún no fue seleccionado.
  *   - Soporte completo de teclado (arrow keys, enter, escape).
+ *   - Al escribir, la lista vuelve al tope (cmdk hace scrollIntoView al
+ *     ítem destacado y dejaba los matches arriba fuera de vista).
  */
 export function Combobox({
     options,
@@ -78,6 +80,7 @@ export function Combobox({
 }: ComboboxProps) {
     const [open, setOpen] = React.useState(false);
     const [search, setSearch] = React.useState('');
+    const listRef = React.useRef<HTMLDivElement>(null);
 
     const selected = React.useMemo(
         () => options.find((opt) => opt.value === value) ?? null,
@@ -103,6 +106,28 @@ export function Combobox({
             setSearch('');
         }
     }, [open]);
+
+    // cmdk llama scrollIntoView al ítem seleccionado en un useEffect hijo.
+    // Tras filtrar, ese scroll deja la lista a media altura y el match queda
+    // arriba: forzamos scrollTop=0 después de que cmdk haya actuado.
+    React.useEffect(() => {
+        if (!open) {
+            return;
+        }
+
+        const list = listRef.current;
+        if (!list) {
+            return;
+        }
+
+        list.scrollTop = 0;
+
+        const frame = requestAnimationFrame(() => {
+            list.scrollTop = 0;
+        });
+
+        return () => cancelAnimationFrame(frame);
+    }, [search, open]);
 
     const handleClear = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -184,9 +209,10 @@ export function Combobox({
                 <Command>
                     <CommandInput
                         placeholder={searchPlaceholder}
-                        onValueChange={creatable || onCreateOption != null ? setSearch : undefined}
+                        value={search}
+                        onValueChange={setSearch}
                     />
-                    <CommandList>
+                    <CommandList ref={listRef}>
                         <CommandEmpty>{emptyMessage}</CommandEmpty>
                         {canCreate ? (
                             <CommandGroup>

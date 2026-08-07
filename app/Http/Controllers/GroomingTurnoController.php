@@ -61,9 +61,9 @@ class GroomingTurnoController extends Controller
         $directionValid = in_array($direction, ['asc', 'desc'], true);
 
         $tz = config('app.timezone');
-        $now = now($tz);
-        $defaultDesde = $now->copy()->startOfMonth()->toDateString();
-        $defaultHasta = $now->copy()->endOfMonth()->toDateString();
+        $hoy = now($tz)->toDateString();
+        $defaultDesde = $hoy;
+        $defaultHasta = $hoy;
 
         $groomingDesde = $this->parseDateParam($request->query('grooming_desde'));
         $groomingHasta = $this->parseDateParam($request->query('grooming_hasta'));

@@ -5,14 +5,16 @@ namespace App\Services\Inventario;
 use App\Models\CategoriaProducto;
 use App\Models\Producto;
 use App\Models\Sede;
-use App\Services\Inventario\InventarioLoteService;
 use App\Support\Inventario\UnidadMedidaOpciones;
 use App\Support\Plan\PlanLimits;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use Throwable;
 
 final class ProductoInventarioImportService
@@ -183,6 +185,7 @@ final class ProductoInventarioImportService
                         ? 'Fila vacía (sin nombre).'
                         : 'Fila de ejemplo omitida.',
                 ];
+
                 continue;
             }
 
@@ -195,6 +198,7 @@ final class ProductoInventarioImportService
                     'status' => 'error',
                     'message' => 'Se alcanzó el máximo de '.self::MAX_ROWS.' filas por importación.',
                 ];
+
                 continue;
             }
 
@@ -206,6 +210,7 @@ final class ProductoInventarioImportService
                     'status' => 'error',
                     'message' => PlanLimits::message('max_productos'),
                 ];
+
                 continue;
             }
 
@@ -224,6 +229,7 @@ final class ProductoInventarioImportService
                     'status' => 'error',
                     'message' => "Unidad «{$unidadRaw}» no válida. Usa la lista de Catalogos → UNIDADES.",
                 ];
+
                 continue;
             }
 
@@ -244,6 +250,7 @@ final class ProductoInventarioImportService
                         'status' => 'error',
                         'message' => "Categoría «{$categoriaRaw}» no encontrada. Usa la lista de Catalogos → CATEGORIAS.",
                     ];
+
                     continue;
                 }
             }
@@ -259,6 +266,7 @@ final class ProductoInventarioImportService
                         'status' => 'error',
                         'message' => "SKU «{$sku}» duplicado en el archivo (fila {$skusInFile[$skuKey]}).",
                     ];
+
                     continue;
                 }
                 if (Producto::query()->where('sku', $sku)->exists()) {
@@ -269,6 +277,7 @@ final class ProductoInventarioImportService
                         'status' => 'error',
                         'message' => "SKU «{$sku}» ya existe en el catálogo.",
                     ];
+
                     continue;
                 }
                 $skusInFile[$skuKey] = $excelRow;
@@ -286,6 +295,7 @@ final class ProductoInventarioImportService
                     'status' => 'error',
                     'message' => 'Precio o stock mínimo inválido (usa número ≥ 0).',
                 ];
+
                 continue;
             }
 
@@ -303,9 +313,10 @@ final class ProductoInventarioImportService
             $numeroLote = ($data['numero_lote'] ?? ($data['lote'] ?? '')) !== ''
                 ? mb_substr((string) ($data['numero_lote'] ?? $data['lote']), 0, 128)
                 : null;
-            // Valor crudo: Excel suele devolver fechas como serial numérico, no como texto.
+            // Preferir el texto mostrado en Excel (DD/MM/AAAA). El serial numérico
+            // depende del locale y convierte 1/11/2026 en 11-ene si el PC está en US.
             $fechaVencimientoRaw = $fechaColIndex !== null
-                ? ($cells[$fechaColIndex] ?? null)
+                ? $this->rawFechaFromCell($sheet, $fechaColIndex, $excelRow)
                 : ($data['fecha_vencimiento'] ?? ($data['vencimiento'] ?? null));
 
             $sedeId = null;
@@ -319,6 +330,7 @@ final class ProductoInventarioImportService
                         'status' => 'error',
                         'message' => 'Stock inicial requiere sede y cantidad_inicial juntos.',
                     ];
+
                     continue;
                 }
 
@@ -331,6 +343,7 @@ final class ProductoInventarioImportService
                         'status' => 'error',
                         'message' => 'Sede no encontrada o inactiva: «'.$sedeRaw.'».',
                     ];
+
                     continue;
                 }
 
@@ -343,6 +356,7 @@ final class ProductoInventarioImportService
                         'status' => 'error',
                         'message' => 'cantidad_inicial debe ser un número mayor que 0.',
                     ];
+
                     continue;
                 }
             }
@@ -358,6 +372,7 @@ final class ProductoInventarioImportService
                         'status' => 'error',
                         'message' => 'fecha_vencimiento inválida. Usa DD/MM/AAAA (ej. 31/12/2027).',
                     ];
+
                     continue;
                 }
             }
@@ -514,6 +529,29 @@ final class ProductoInventarioImportService
         return null;
     }
 
+    /**
+     * Lee la celda de vencimiento priorizando el texto visible (DD/MM/AAAA).
+     *
+     * Excel con locale US guarda 1/11/2026 como serial del 11 de enero; al usar
+     * ese serial se pierde la intención del usuario. El valor formateado conserva
+     * lo escrito y lo interpretamos siempre como día/mes/año.
+     */
+    private function rawFechaFromCell(Worksheet $sheet, int $colIndex0, int $excelRow): mixed
+    {
+        $cell = $sheet->getCell(Coordinate::stringFromColumnIndex($colIndex0 + 1).$excelRow);
+        $formatted = trim((string) $cell->getFormattedValue());
+
+        if ($formatted !== '' && preg_match('/\d{1,4}\s*[\/\-.]\s*\d{1,2}\s*[\/\-.]\s*\d{1,4}/', $formatted) === 1) {
+            if (preg_match('/^(\d{1,4}[\/\-.]\d{1,2}[\/\-.]\d{1,4})/', $formatted, $m) === 1) {
+                return $m[1];
+            }
+
+            return $formatted;
+        }
+
+        return $cell->getValue();
+    }
+
     private function isBlankDateValue(mixed $value): bool
     {
         if ($value === null) {
@@ -528,7 +566,10 @@ final class ProductoInventarioImportService
     }
 
     /**
-     * Normaliza fechas desde Excel (texto DD/MM/AAAA, YYYY-MM-DD o serial de Excel).
+     * Normaliza fechas para BD (Y-m-d).
+     *
+     * Regla de negocio (Perú): textos d/m/Y o d-m-Y se leen siempre como día/mes/año.
+     * Ej.: 1/11/2026 → 2026-11-01. También acepta YYYY-MM-DD y serial Excel (fallback).
      */
     private function parseDate(mixed $value): ?string
     {
@@ -540,36 +581,18 @@ final class ProductoInventarioImportService
             return $value->format('Y-m-d');
         }
 
-        // Serial de Excel (número de días desde 1899-12-30).
-        if (is_int($value) || is_float($value) || (is_string($value) && preg_match('/^\d+(\.\d+)?$/', trim($value)) === 1)) {
-            $serial = (float) $value;
-            // Rango razonable ~1950–2100 (seriales ~18000–73000).
-            if ($serial >= 18000 && $serial <= 73000) {
-                try {
-                    return \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($serial)->format('Y-m-d');
-                } catch (Throwable) {
-                    // sigue con parseo textual
-                }
-            }
-        }
-
         $v = trim((string) $value);
+
         // Quitar hora si Excel la añadió: "31/12/2027 0:00:00"
         if (preg_match('/^(\d{1,4}[\/\-.]\d{1,2}[\/\-.]\d{1,4})/', $v, $onlyDate) === 1) {
             $v = $onlyDate[1];
         }
 
-        // Preferido: DD/MM/AAAA
+        // Preferido y estricto: DD/MM/AAAA (también D/M/YYYY).
         if (preg_match('/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/', $v, $m) === 1) {
             $day = (int) $m[1];
             $month = (int) $m[2];
             $year = (int) $m[3];
-            if ($day > 12 && $month <= 12) {
-                // Claramente día/mes
-            } elseif ($month > 12 && $day <= 12) {
-                // Intercambiar si viniera MM/DD por error de locale
-                [$day, $month] = [$month, $day];
-            }
             if (! checkdate($month, $day, $year)) {
                 return null;
             }
@@ -577,7 +600,8 @@ final class ProductoInventarioImportService
             return sprintf('%04d-%02d-%02d', $year, $month, $day);
         }
 
-        if (preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $v, $m) === 1) {
+        // Variante AAAA/MM/DD o AAAA-MM-DD con separadores mixtos.
+        if (preg_match('/^(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})$/', $v, $m) === 1) {
             $year = (int) $m[1];
             $month = (int) $m[2];
             $day = (int) $m[3];
@@ -588,7 +612,19 @@ final class ProductoInventarioImportService
             return sprintf('%04d-%02d-%02d', $year, $month, $day);
         }
 
-        // No usar Carbon::parse con números sueltos (genera años inválidos → overflow en Postgres).
+        // Serial de Excel solo si no hay texto con barras (último recurso).
+        if (is_int($value) || is_float($value) || preg_match('/^\d+(\.\d+)?$/', $v) === 1) {
+            $serial = (float) $value;
+            // Rango razonable ~1950–2100 (seriales ~18000–73000).
+            if ($serial >= 18000 && $serial <= 73000) {
+                try {
+                    return ExcelDate::excelToDateTimeObject($serial)->format('Y-m-d');
+                } catch (Throwable) {
+                    return null;
+                }
+            }
+        }
+
         return null;
     }
 
