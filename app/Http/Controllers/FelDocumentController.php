@@ -55,6 +55,8 @@ class FelDocumentController extends Controller
                 'venta.propietario:id,nombres,apellidos,razon_social,telefono',
             ]);
 
+        $montoFiltrado = round((float) ((clone $query)->reorder()->sum('total') ?? 0), 2);
+
         $documentos = $query->paginate($perPage)->withQueryString();
 
         $sedeIds = $documentos->getCollection()
@@ -120,6 +122,8 @@ class FelDocumentController extends Controller
                 'total' => FelDocument::query()->count(),
                 'emitidos' => FelDocument::query()->where('estado', FelDocument::ESTADO_EMITIDO)->count(),
                 'coincidencias' => $documentos->total(),
+                'monto_total' => number_format($montoFiltrado, 2, '.', ''),
+                'moneda' => 'PEN',
             ],
         ]);
     }

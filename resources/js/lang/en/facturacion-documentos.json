@@ -1,4 +1,10 @@
 {
+    "stats": {
+        "monto_total": "Total amount",
+        "total": "Total registered",
+        "emitidos": "Issued",
+        "coincidencias": "Matches"
+    },
     "date_filter": {
         "placeholder": "Date range (issue date)",
         "aria": "Filter by receipt issue date",

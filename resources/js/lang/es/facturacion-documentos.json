@@ -1,4 +1,10 @@
 {
+    "stats": {
+        "monto_total": "Monto total",
+        "total": "Total registrados",
+        "emitidos": "Emitidos",
+        "coincidencias": "Coincidencias"
+    },
     "date_filter": {
         "placeholder": "Rango de fechas (emisión)",
         "aria": "Filtrar por fecha de emisión del comprobante",

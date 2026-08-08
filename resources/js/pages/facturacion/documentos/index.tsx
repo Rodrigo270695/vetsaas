@@ -74,6 +74,9 @@ type Props = {
         total: number;
         emitidos: number;
         coincidencias: number;
+        /** Suma de `total` de los CPE que cumplen los filtros actuales. */
+        monto_total: string;
+        moneda: string;
     };
 };
 
@@ -141,7 +144,7 @@ function formatMonto(amount: string, moneda: string, locale: string): string {
 }
 
 export default function Index({ documentos: paginated, filters, documento_filtro_ui, stats }: Props) {
-    const { t } = useTranslation(['facturacion-documentos', 'common']);
+    const { t, i18n } = useTranslation(['facturacion-documentos', 'common']);
     const [whatsappDocumento, setWhatsappDocumento] = useState<DocumentoWhatsAppRow | null>(null);
 
     const { search, setSearch, isLoading, sort, setSort, setPerPage, applyFilter } =
@@ -391,10 +394,19 @@ export default function Index({ documentos: paginated, filters, documento_filtro
                     title="Comprobantes emitidos"
                     description="Historial de boletas y facturas electrónicas enviadas a SUNAT vía APISUNAT."
                     stats={[
-                        { label: 'Total registrados', value: stats.total, variant: 'muted' },
-                        { label: 'Emitidos', value: stats.emitidos, variant: 'primary' },
                         {
-                            label: 'Coincidencias',
+                            label: t('stats.monto_total'),
+                            value: formatMonto(
+                                stats.monto_total ?? '0',
+                                stats.moneda ?? 'PEN',
+                                i18n.language,
+                            ),
+                            variant: 'success',
+                        },
+                        { label: t('stats.total'), value: stats.total, variant: 'muted' },
+                        { label: t('stats.emitidos'), value: stats.emitidos, variant: 'primary' },
+                        {
+                            label: t('stats.coincidencias'),
                             value: stats.coincidencias,
                             variant: 'default',
                         },
