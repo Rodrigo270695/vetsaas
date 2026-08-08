@@ -436,11 +436,27 @@ export default function Index({
                     title={t('caja:sesiones.title')}
                     description={t('caja:sesiones.description')}
                     stats={[
-                        { label: t('caja:sesiones.stats.total'), value: stats.total, variant: 'info', icon: Wallet },
+                        {
+                            label: t('caja:sesiones.stats.suma_ventas'),
+                            value: formatMonto(stats.suma_ventas ?? '0', stats.moneda ?? 'PEN', i18n.language),
+                            variant: 'success',
+                            icon: Wallet,
+                        },
+                        {
+                            label: t('caja:sesiones.stats.suma_apertura'),
+                            value: formatMonto(stats.suma_apertura ?? '0', stats.moneda ?? 'PEN', i18n.language),
+                            variant: 'info',
+                        },
+                        {
+                            label: t('caja:sesiones.stats.suma_cierre'),
+                            value: formatMonto(stats.suma_cierre ?? '0', stats.moneda ?? 'PEN', i18n.language),
+                            variant: 'primary',
+                        },
+                        { label: t('caja:sesiones.stats.total'), value: stats.total, variant: 'info' },
                         { label: t('caja:sesiones.stats.abiertas'), value: stats.abiertas, variant: 'success', icon: CircleDot },
                         { label: t('caja:sesiones.stats.cerradas'), value: stats.cerradas, variant: 'warning', icon: Lock as LucideIcon },
                         { label: t('caja:sesiones.stats.filters'), value: activeFiltersCount, variant: 'warning', icon: SlidersHorizontal },
-                        { label: t('caja:sesiones.stats.matches'), value: stats.coincidencias, variant: 'primary', icon: ScreenShare },
+                        { label: t('caja:sesiones.stats.matches'), value: stats.coincidencias, variant: 'muted', icon: ScreenShare },
                     ]}
                     action={
                         <Can permission="caja-sesiones.open">

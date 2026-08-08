@@ -7,6 +7,7 @@ use App\Http\Requests\StoreCajaSesionRequest;
 use App\Models\CajaSesion;
 use App\Models\ClinicSetting;
 use App\Models\Sede;
+use App\Models\Venta;
 use App\Services\Caja\CajaSesionArqueoPdfService;
 use App\Services\Caja\CajaSesionArqueoService;
 use App\Support\Caja\TicketAnchoMm;
@@ -127,6 +128,20 @@ class CajaSesionController extends Controller
             $query->orderByDesc('opened_at');
         }
 
+        $moneyBase = (clone $query)->reorder();
+        $moneyRow = (clone $moneyBase)
+            ->toBase()
+            ->selectRaw(
+                'COALESCE(SUM(saldo_apertura), 0) as suma_apertura,
+                 COALESCE(SUM(saldo_cierre_efectivo), 0) as suma_cierre'
+            )
+            ->first();
+
+        $sumaVentas = (float) Venta::query()
+            ->whereIn('caja_sesion_id', (clone $moneyBase)->select('caja_sesiones.id'))
+            ->whereIn('estado', [Venta::ESTADO_PAGADO, Venta::ESTADO_PARCIAL])
+            ->sum('total');
+
         $sesiones = $query->paginate($perPage)->withQueryString();
 
         $sedeNombres = Sede::query()
@@ -182,6 +197,10 @@ class CajaSesionController extends Controller
                 'abiertas' => $abiertasCount,
                 'cerradas' => $cerradasCount,
                 'coincidencias' => $sesiones->total(),
+                'moneda' => 'PEN',
+                'suma_apertura' => number_format((float) ($moneyRow->suma_apertura ?? 0), 2, '.', ''),
+                'suma_cierre' => number_format((float) ($moneyRow->suma_cierre ?? 0), 2, '.', ''),
+                'suma_ventas' => number_format(round($sumaVentas, 2), 2, '.', ''),
             ],
             'sin_sedes' => $sedesActivas->isEmpty(),
             'ticket_ancho_mm' => TicketAnchoMm::normalize(

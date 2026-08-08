@@ -12,7 +12,10 @@
             "abiertas": "Open",
             "cerradas": "Closed",
             "filters": "Active filters",
-            "matches": "Matches"
+            "matches": "Matches",
+            "suma_apertura": "Opening float",
+            "suma_cierre": "Closing cash",
+            "suma_ventas": "Sales in range"
         },
         "columns": {
             "sede": "Branch",
@@ -187,7 +190,8 @@
             "parcial": "Partial",
             "anulado": "Voided",
             "cpe_emitidos": "CPE issued",
-            "matches": "Matches"
+            "matches": "Matches",
+            "monto_total": "Total amount"
         },
         "columns": {
             "numero": "Number",

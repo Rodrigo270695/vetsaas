@@ -12,7 +12,10 @@
             "abiertas": "Abiertas",
             "cerradas": "Cerradas",
             "filters": "Filtros activos",
-            "matches": "Coincidencias"
+            "matches": "Coincidencias",
+            "suma_apertura": "Saldo apertura",
+            "suma_cierre": "Efectivo cierre",
+            "suma_ventas": "Ventas del periodo"
         },
         "columns": {
             "sede": "Sede",
@@ -187,7 +190,8 @@
             "parcial": "Parcial",
             "anulado": "Anulado",
             "cpe_emitidos": "CPE emitidos",
-            "matches": "Coincidencias"
+            "matches": "Coincidencias",
+            "monto_total": "Monto total"
         },
         "columns": {
             "numero": "Número",

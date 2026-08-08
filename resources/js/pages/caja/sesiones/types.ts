@@ -46,6 +46,10 @@ export type CajaSesionStats = {
     abiertas: number;
     cerradas: number;
     coincidencias: number;
+    moneda: string;
+    suma_apertura: string;
+    suma_cierre: string;
+    suma_ventas: string;
 };
 
 export type SedeOpcion = {

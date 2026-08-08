@@ -95,6 +95,8 @@ class VentaController extends Controller
             $this->applyVentasSearchFilter($listQuery, $ctx['search']);
         }
 
+        $montoFiltrado = round((float) ((clone $listQuery)->reorder()->sum('total') ?? 0), 2);
+
         $ventas = $listQuery->paginate($ctx['per_page'])->withQueryString();
 
         $tenantId = resolve_clinic_tenant_id();
@@ -139,6 +141,8 @@ class VentaController extends Controller
             'stats' => [
                 ...$ctx['stats_summary'],
                 'coincidencias' => $ventas->total(),
+                'monto_total' => number_format($montoFiltrado, 2, '.', ''),
+                'moneda' => 'PEN',
             ],
         ]);
     }

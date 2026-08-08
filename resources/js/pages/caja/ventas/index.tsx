@@ -357,7 +357,13 @@ export default function Index({ ventas: paginated, filters, stats, venta_filtro_
 
     const headerStats = useMemo((): PageHeaderStat[] => {
         const items: PageHeaderStat[] = [
-            { label: t('caja:ventas.stats.total'), value: stats.total, variant: 'info', icon: ReceiptText },
+            {
+                label: t('caja:ventas.stats.monto_total'),
+                value: formatMonto(stats.monto_total ?? '0', stats.moneda ?? 'PEN', i18n.language),
+                variant: 'success',
+                icon: ReceiptText,
+            },
+            { label: t('caja:ventas.stats.total'), value: stats.total, variant: 'info' },
             { label: t('caja:ventas.stats.pagado'), value: stats.pagado, variant: 'success' },
             { label: t('caja:ventas.stats.pendiente'), value: stats.pendiente, variant: 'warning' },
         ];
@@ -393,7 +399,7 @@ export default function Index({ ventas: paginated, filters, stats, venta_filtro_
         );
 
         return items;
-    }, [stats, t]);
+    }, [stats, t, i18n.language]);
 
     return (
         <>

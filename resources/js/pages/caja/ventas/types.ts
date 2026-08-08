@@ -73,6 +73,9 @@ export type VentasIndexProps = {
         anulado: number;
         cpe_emitidos: number;
         coincidencias: number;
+        /** Suma de `total` de las ventas que cumplen los filtros actuales. */
+        monto_total: string;
+        moneda: string;
     };
 };
 
