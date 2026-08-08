@@ -254,13 +254,14 @@ export function RolePermissionsModal({
                 onFinish: () => setProcessing(false),
                 onSuccess: () => onOpenChange(false),
                 onError: (errors) => {
-                    // Inertia pone los errores de validación bajo la clave
-                    // del campo. Para `updatePermissions` el backend usa
-                    // `permissions`. Si existe, lo mostramos tal cual; si no,
-                    // caemos al texto genérico.
+                    // Laravel puede devolver `permissions` o `permissions.0`
+                    // (Rule::in por ítem). Mostramos el primero útil.
+                    const record = errors as Record<string, string | undefined>;
                     const specific =
-                        (errors as Record<string, string | undefined>)
-                            ?.permissions ?? undefined;
+                        record.permissions ??
+                        Object.values(record).find(
+                            (value) => typeof value === 'string' && value.length > 0,
+                        );
                     toastManager.error({
                         title: specific ?? t('common:feedback.save_error'),
                     });

@@ -83,9 +83,9 @@ type NavMainCollapsibleProps = {
 function matchesContext(
     context: NavContext | undefined,
     hasTenant: boolean,
-    isSuperadmin: boolean,
 ): boolean {
-    if (isSuperadmin) return true;
+    // Sin bypass por rol: en panel central no mostrar menús de clínica
+    // (y viceversa). El superadmin también respeta el contexto del host.
     if (!context || context === 'both') return true;
     if (context === 'tenant') return hasTenant;
     if (context === 'central') return !hasTenant;
@@ -99,7 +99,7 @@ export function NavMainCollapsible({
 }: NavMainCollapsibleProps) {
     const { isCurrentUrl, isCurrentOrParentUrl, currentUrl } = useCurrentUrl();
     const { isMobile, setOpenMobile } = useSidebar();
-    const { can, isSuperadmin } = usePermission();
+    const { can, permissions } = usePermission();
     const { t } = useTranslation('nav');
     const page = usePage();
     const tenant = page.props.tenant;
@@ -135,7 +135,7 @@ export function NavMainCollapsible({
             return false;
         }
 
-        if (!isItemImplemented(item) || !matchesContext(item.context, hasTenant, isSuperadmin)) {
+        if (!isItemImplemented(item) || !matchesContext(item.context, hasTenant)) {
             return false;
         }
 
@@ -159,7 +159,7 @@ export function NavMainCollapsible({
     const visibleSingles = useMemo(
         () => singles.filter(itemVisible),
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [singles, hasTenant, isSuperadmin, botIaActive, hasComunicacionesAccess],
+        [singles, hasTenant, permissions, botIaActive, hasComunicacionesAccess],
     );
 
     const visibleGroups = useMemo(() => {
@@ -175,13 +175,13 @@ export function NavMainCollapsible({
             }))
             .filter((group) => {
                 if (group.permission && !can(group.permission)) return false;
-                if (!matchesContext(group.context, hasTenant, isSuperadmin)) {
+                if (!matchesContext(group.context, hasTenant)) {
                     return false;
                 }
                 return group.items.length > 0;
             });
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [groups, hasTenant, isSuperadmin, botIaActive, hasComunicacionesAccess]);
+    }, [groups, hasTenant, permissions, botIaActive, hasComunicacionesAccess]);
 
     const initialOpenMap = useMemo(() => {
         const map: Record<string, boolean> = {};

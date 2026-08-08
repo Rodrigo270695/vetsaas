@@ -119,7 +119,9 @@ final class ClinicAdminScope
      * permiso seguiría existiendo en BD y debe poder volver a marcarse.
      * La autorización real es el middleware `roles.update`.
      *
-     * En panel central: se limita a lo que el editor ya tiene (superadmin).
+     * En panel central: catálogo completo `guard=web` (mismo criterio).
+     * Limitar a `getAllPermissions()` del editor desincroniza el catálogo
+     * UI vs `Rule::in` y hace fallar el guardado del rol superadmin.
      *
      * @return list<string>
      */
@@ -129,13 +131,15 @@ final class ClinicAdminScope
             return [];
         }
 
+        $query = Permission::query()
+            ->where('guard_name', 'web')
+            ->orderBy('name');
+
         if (! self::isClinicContext()) {
-            return $editor->getAllPermissions()->pluck('name')->all();
+            return $query->pluck('name')->values()->all();
         }
 
-        return Permission::query()
-            ->where('guard_name', 'web')
-            ->orderBy('name')
+        return $query
             ->pluck('name')
             ->filter(static fn (string $name): bool => self::isTenantAssignablePermission($name))
             ->values()
