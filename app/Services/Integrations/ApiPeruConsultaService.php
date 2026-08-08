@@ -6,6 +6,7 @@ namespace App\Services\Integrations;
 
 use App\Support\Integrations\ApiPeruEndpointCatalog;
 use RuntimeException;
+use Throwable;
 
 /**
  * Proxy genérico hacia endpoints ApiPerú whitelisteados (explorador plataforma).
@@ -51,6 +52,125 @@ final class ApiPeruConsultaService
     }
 
     /**
+     * Ejecuta en secuencia los endpoints de un perfil UX (persona, empresa…).
+     * Cada falló parcial se reporta sin abortar el resto.
+     *
+     * @param  array<string, mixed>  $payload
+     * @return array{
+     *     profile: string,
+     *     label: string,
+     *     subject: string|null,
+     *     ok_count: int,
+     *     fail_count: int,
+     *     results: array<string, array{ok: bool, label: string, data?: mixed, time?: float|int|null, message?: string, code?: string|null}>
+     * }
+     */
+    public function consultarPerfil(string $profileId, array $payload): array
+    {
+        $profile = ApiPeruEndpointCatalog::findProfile($profileId);
+        if ($profile === null) {
+            throw new RuntimeException('Perfil de consulta no permitido.');
+        }
+
+        $results = [];
+        $ok = 0;
+        $fail = 0;
+
+        foreach ($profile['endpoint_keys'] as $endpointKey) {
+            $label = $profile['tab_labels'][$endpointKey]
+                ?? (ApiPeruEndpointCatalog::find($endpointKey)['label'] ?? $endpointKey);
+
+            $endpointPayload = $this->payloadForEndpoint($endpointKey, $payload);
+
+            try {
+                $hit = $this->consultar($endpointKey, $endpointPayload);
+                $results[$endpointKey] = [
+                    'ok' => true,
+                    'label' => $label,
+                    'data' => $hit['data'],
+                    'time' => $hit['time'] ?? null,
+                ];
+                $ok++;
+            } catch (ApiPeruConsultaException $e) {
+                $results[$endpointKey] = [
+                    'ok' => false,
+                    'label' => $label,
+                    'message' => $e->getMessage(),
+                    'code' => $e->errorCode,
+                ];
+                $fail++;
+            } catch (Throwable $e) {
+                $results[$endpointKey] = [
+                    'ok' => false,
+                    'label' => $label,
+                    'message' => $e->getMessage(),
+                    'code' => null,
+                ];
+                $fail++;
+            }
+        }
+
+        $subject = null;
+        if (isset($payload['ruc']) && is_string($payload['ruc']) && $payload['ruc'] !== '') {
+            $subject = 'RUC '.$payload['ruc'];
+        } elseif (isset($payload['dni']) && is_string($payload['dni']) && $payload['dni'] !== '') {
+            $subject = 'DNI '.$payload['dni'];
+        } elseif (isset($payload['placa']) && is_string($payload['placa']) && $payload['placa'] !== '') {
+            $subject = 'Placa '.strtoupper($payload['placa']);
+        } elseif (isset($payload['fecha']) && is_string($payload['fecha']) && $payload['fecha'] !== '') {
+            $subject = 'Fecha '.$payload['fecha'];
+        }
+
+        return [
+            'profile' => $profileId,
+            'label' => (string) $profile['label'],
+            'subject' => $subject,
+            'ok_count' => $ok,
+            'fail_count' => $fail,
+            'results' => $results,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private function payloadForEndpoint(string $endpointKey, array $payload): array
+    {
+        return match ($endpointKey) {
+            'dni', 'dni_ruc', 'licencia' => [
+                'dni' => $payload['dni'] ?? '',
+            ],
+            'ruc', 'ruc_sunat', 'ruc_contacto', 'ruc_ssco', 'ruc_deuda_coactiva',
+            'ruc_representantes', 'ruc_establecimientos_anexos', 'ruc_domicilio_fiscal', 'ruc_trabajadores' => [
+                'ruc' => $payload['ruc'] ?? '',
+            ],
+            'tipo_de_cambio' => [
+                'fecha' => $payload['fecha'] ?? '',
+            ],
+            'comisiones_afp' => [],
+            'cpe' => [
+                'ruc_emisor' => $payload['ruc_emisor'] ?? '',
+                'codigo_tipo_documento' => $payload['codigo_tipo_documento'] ?? '',
+                'serie' => $payload['serie'] ?? '',
+                'numero' => $payload['numero'] ?? '',
+                'fecha_de_emision' => $payload['fecha_de_emision'] ?? '',
+                'monto' => $payload['monto'] ?? '',
+            ],
+            'placa' => [
+                'placa' => $payload['placa'] ?? '',
+            ],
+            'ubigeo' => [
+                'ubigeo' => $payload['q'] ?? ($payload['ubigeo'] ?? ''),
+            ],
+            'puertos', 'aeropuertos' => [
+                'nombre' => $payload['q'] ?? ($payload['nombre'] ?? ''),
+            ],
+            default => $payload,
+        };
+    }
+
+    /**
      * @param  array<string, mixed>  $endpoint
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed>
@@ -60,6 +180,22 @@ final class ApiPeruConsultaService
         $fields = $endpoint['fields'] ?? [];
         if (! is_array($fields)) {
             return [];
+        }
+
+        // Endpoints sin campos definidos (AFP, listados abiertos): pasar payload limpio.
+        if ($fields === []) {
+            $clean = [];
+            foreach ($payload as $key => $value) {
+                if (! is_string($key)) {
+                    continue;
+                }
+                if ($value === null || (is_string($value) && trim($value) === '')) {
+                    continue;
+                }
+                $clean[$key] = is_string($value) ? trim($value) : $value;
+            }
+
+            return $clean;
         }
 
         $body = [];

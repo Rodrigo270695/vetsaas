@@ -9,20 +9,15 @@ export type ApiPeruField = {
     pattern: string | null;
 };
 
-export type ApiPeruEndpoint = {
-    key: string;
-    label: string;
-    description: string;
-    path: string;
-    docs_url: string | null;
-    fields: ApiPeruField[];
-};
-
-export type ApiPeruGroup = {
+export type ApiPeruProfile = {
     id: string;
     label: string;
     description: string;
-    endpoints: ApiPeruEndpoint[];
+    icon: string;
+    primary_field: ApiPeruField | null;
+    extra_fields: ApiPeruField[];
+    endpoint_keys: string[];
+    tab_labels: Record<string, string>;
 };
 
 export type ApiPeruMeta = {
@@ -32,22 +27,24 @@ export type ApiPeruMeta = {
 };
 
 export type ApiPeruIndexProps = {
-    groups: ApiPeruGroup[];
+    profiles: ApiPeruProfile[];
     meta: ApiPeruMeta;
 };
 
-export type ApiPeruConsultaSuccess = {
-    success: true;
-    data: {
-        success: boolean;
-        data: unknown;
-        time?: number | null;
-        raw?: unknown;
-    };
+export type ApiPeruPerfilResultItem = {
+    ok: boolean;
+    label: string;
+    data?: unknown;
+    time?: number | null;
+    message?: string;
+    code?: string | null;
 };
 
-export type ApiPeruConsultaError = {
-    success: false;
-    message?: string;
-    code?: string;
+export type ApiPeruPerfilPayload = {
+    profile: string;
+    label: string;
+    subject: string | null;
+    ok_count: number;
+    fail_count: number;
+    results: Record<string, ApiPeruPerfilResultItem>;
 };

@@ -1,62 +1,33 @@
 import { Head } from '@inertiajs/react';
-import {
-    Building2,
-    CarFront,
-    ExternalLink,
-    FileText,
-    IdCard,
-    Landmark,
-    MapPinned,
-    WalletCards,
-} from 'lucide-react';
-import type { LucideIcon, ReactNode } from 'react';
+import { ExternalLink, Landmark } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PageHeader } from '@/components/data-page';
 import AppLayout from '@/layouts/app-layout';
-import { cn } from '@/lib/utils';
-import { ComprobantesTab } from './components/tabs/comprobantes-tab';
-import { FinanzasTab } from './components/tabs/finanzas-tab';
-import { IdentidadTab } from './components/tabs/identidad-tab';
-import { RucDetalleTab } from './components/tabs/ruc-detalle-tab';
-import { UbicacionTab } from './components/tabs/ubicacion-tab';
-import { VehiculosTab } from './components/tabs/vehiculos-tab';
-import type { ApiPeruGroup, ApiPeruIndexProps } from './types';
+import { ApiPeruDetailModal } from './components/apiperu-detail-modal';
+import { ApiPeruHubCard } from './components/apiperu-hub-card';
+import type { ApiPeruIndexProps, ApiPeruPerfilPayload } from './types';
 
-const TAB_ICONS: Record<string, LucideIcon> = {
-    identidad: IdCard,
-    ruc_detalle: Building2,
-    finanzas: WalletCards,
-    comprobantes: FileText,
-    vehiculos: CarFront,
-    ubicacion: MapPinned,
-};
-
-function findGroup(groups: ApiPeruGroup[], id: string): ApiPeruGroup | null {
-    return groups.find((g) => g.id === id) ?? null;
-}
-
-export default function PlataformaApiPeruIndex({ groups, meta }: ApiPeruIndexProps) {
+export default function PlataformaApiPeruIndex({ profiles, meta }: ApiPeruIndexProps) {
     const { t } = useTranslation(['plataforma-apiperu', 'common']);
-    const [tab, setTab] = useState(groups[0]?.id ?? 'identidad');
-    const consultarUrl = '/plataforma/apiperu/consultar';
+    const [detail, setDetail] = useState<ApiPeruPerfilPayload | null>(null);
+    const [modalOpen, setModalOpen] = useState(false);
+    const consultarUrl = '/plataforma/apiperu/consultar-perfil';
     const disabled = !meta.token_configured;
 
-    const endpointCount = useMemo(
-        () => groups.reduce((acc, g) => acc + g.endpoints.length, 0),
-        [groups],
+    const sourceCount = useMemo(
+        () => profiles.reduce((acc, p) => acc + p.endpoint_keys.length, 0),
+        [profiles],
     );
 
-    const identidad = findGroup(groups, 'identidad');
-    const rucDetalle = findGroup(groups, 'ruc_detalle');
-    const finanzas = findGroup(groups, 'finanzas');
-    const comprobantes = findGroup(groups, 'comprobantes');
-    const vehiculos = findGroup(groups, 'vehiculos');
-    const ubicacion = findGroup(groups, 'ubicacion');
+    const openResult = (payload: ApiPeruPerfilPayload) => {
+        setDetail(payload);
+        setModalOpen(true);
+    };
 
     return (
         <>
@@ -68,13 +39,13 @@ export default function PlataformaApiPeruIndex({ groups, meta }: ApiPeruIndexPro
                     description={t('description')}
                     stats={[
                         {
-                            label: t('stats.endpoints'),
-                            value: endpointCount,
+                            label: t('stats.hubs'),
+                            value: profiles.length,
                             variant: 'primary',
                         },
                         {
-                            label: t('stats.groups'),
-                            value: groups.length,
+                            label: t('stats.sources'),
+                            value: sourceCount,
                             variant: 'muted',
                         },
                     ]}
@@ -120,93 +91,29 @@ export default function PlataformaApiPeruIndex({ groups, meta }: ApiPeruIndexPro
                     </Alert>
                 )}
 
-                <Tabs value={tab} onValueChange={setTab} className="gap-4">
-                    <div className="-mx-1 overflow-x-auto px-1 pb-1">
-                        <TabsList className="h-auto w-max min-w-full flex-wrap justify-start gap-1 bg-muted/70 p-1 sm:min-w-0 sm:w-full">
-                            {groups.map((group) => {
-                                const Icon = TAB_ICONS[group.id] ?? IdCard;
-
-                                return (
-                                    <TabsTrigger
-                                        key={group.id}
-                                        value={group.id}
-                                        className={cn(
-                                            'h-9 shrink-0 gap-1.5 px-3 text-xs sm:text-sm',
-                                            'data-[state=active]:bg-background data-[state=active]:text-primary',
-                                        )}
-                                    >
-                                        <Icon className="size-3.5 shrink-0" aria-hidden />
-                                        <span>{group.label}</span>
-                                        <span className="rounded bg-muted-foreground/15 px-1.5 py-0.5 text-[10px] tabular-nums text-muted-foreground">
-                                            {group.endpoints.length}
-                                        </span>
-                                    </TabsTrigger>
-                                );
-                            })}
-                        </TabsList>
-                    </div>
-
-                    {identidad ? (
-                        <TabsContent value="identidad">
-                            <IdentidadTab
-                                group={identidad}
-                                consultarUrl={consultarUrl}
-                                disabled={disabled}
-                            />
-                        </TabsContent>
-                    ) : null}
-
-                    {rucDetalle ? (
-                        <TabsContent value="ruc_detalle">
-                            <RucDetalleTab
-                                group={rucDetalle}
-                                consultarUrl={consultarUrl}
-                                disabled={disabled}
-                            />
-                        </TabsContent>
-                    ) : null}
-
-                    {finanzas ? (
-                        <TabsContent value="finanzas">
-                            <FinanzasTab
-                                group={finanzas}
-                                consultarUrl={consultarUrl}
-                                disabled={disabled}
-                            />
-                        </TabsContent>
-                    ) : null}
-
-                    {comprobantes ? (
-                        <TabsContent value="comprobantes">
-                            <ComprobantesTab
-                                group={comprobantes}
-                                consultarUrl={consultarUrl}
-                                disabled={disabled}
-                            />
-                        </TabsContent>
-                    ) : null}
-
-                    {vehiculos ? (
-                        <TabsContent value="vehiculos">
-                            <VehiculosTab
-                                group={vehiculos}
-                                consultarUrl={consultarUrl}
-                                disabled={disabled}
-                            />
-                        </TabsContent>
-                    ) : null}
-
-                    {ubicacion ? (
-                        <TabsContent value="ubicacion">
-                            <UbicacionTab
-                                group={ubicacion}
-                                consultarUrl={consultarUrl}
-                                disabled={disabled}
-                            />
-                        </TabsContent>
-                    ) : null}
-                </Tabs>
+                <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                    {profiles.map((profile) => (
+                        <ApiPeruHubCard
+                            key={profile.id}
+                            profile={profile}
+                            consultarUrl={consultarUrl}
+                            disabled={disabled}
+                            onResult={openResult}
+                        />
+                    ))}
+                </div>
             </div>
+
+            <ApiPeruDetailModal
+                open={modalOpen}
+                onOpenChange={(open) => {
+                    setModalOpen(open);
+                    if (!open) {
+                        setDetail(null);
+                    }
+                }}
+                payload={detail}
+            />
         </>
     );
 }

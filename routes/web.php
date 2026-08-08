@@ -1180,6 +1180,10 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             ->post('apiperu/consultar', [PlataformaApiPeruController::class, 'consultar'])
             ->middleware('throttle:30,1')
             ->name('apiperu.consultar');
+        Route::middleware('permission:plataforma-operaciones.view')
+            ->post('apiperu/consultar-perfil', [PlataformaApiPeruController::class, 'consultarPerfil'])
+            ->middleware('throttle:20,1')
+            ->name('apiperu.consultar-perfil');
 
         Route::middleware('permission:plataforma-tenants.view')
             ->get('tenants', [TenantController::class, 'index'])

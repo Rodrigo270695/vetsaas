@@ -1,9 +1,9 @@
 {
     "title": "ApiPeru",
-    "description": "ApiPeru lookup explorer: identity, RUC details, finance, invoices, vehicles/MTC and location.",
+    "description": "Unified lookups: one DNI or RUC opens the full file (identity, representatives, debts, finance…). Results open in a tabbed modal.",
     "stats": {
-        "endpoints": "Endpoints",
-        "groups": "Categories"
+        "hubs": "Lookups",
+        "sources": "Sources"
     },
     "meta": {
         "token_ok": "Token configured",
@@ -14,6 +14,6 @@
         "token_title": "Token not configured",
         "token_body": "Set {{env}} on the server to run lookups. The token is never exposed to the browser.",
         "ready_title": "Ready to query",
-        "ready_body": "Requests are sent from the server with your Bearer token. Each call uses ApiPeru plan quota."
+        "ready_body": "Each hub hits several ApiPeru sources at once. Exchange rates use the date; AFP fees need no params and appear in the same modal."
     }
 }

@@ -319,6 +319,139 @@ final class ApiPeruEndpointCatalog
     }
 
     /**
+     * Perfiles UX: una consulta dispara varios endpoints relacionados.
+     *
+     * @return list<array{
+     *     id: string,
+     *     label: string,
+     *     description: string,
+     *     icon: string,
+     *     primary_field: array{name: string, label: string, type: string, required: bool, placeholder: string|null, hint: string|null, max_length: int|null, pattern: string|null}|null,
+     *     extra_fields: list<array{name: string, label: string, type: string, required: bool, placeholder: string|null, hint: string|null, max_length: int|null, pattern: string|null}>,
+     *     endpoint_keys: list<string>,
+     *     tab_labels: array<string, string>,
+     * }>
+     */
+    public static function profiles(): array
+    {
+        return [
+            [
+                'id' => 'persona',
+                'label' => 'Persona (DNI)',
+                'description' => 'Con un DNI obtienes identidad, cruce DNI–RUC y licencia de conducir.',
+                'icon' => 'id_card',
+                'primary_field' => self::field('dni', 'DNI', 'text', true, '12345678', '8 dígitos', 8, '^\d{8}$'),
+                'extra_fields' => [],
+                'endpoint_keys' => ['dni', 'dni_ruc', 'licencia'],
+                'tab_labels' => [
+                    'dni' => 'Identidad',
+                    'dni_ruc' => 'RUC vinculado',
+                    'licencia' => 'Licencia MTC',
+                ],
+            ],
+            [
+                'id' => 'empresa',
+                'label' => 'Empresa (RUC)',
+                'description' => 'Un RUC abre ficha completa: general, contacto, representantes, anexos, deudas y más.',
+                'icon' => 'building',
+                'primary_field' => self::field('ruc', 'RUC', 'text', true, '20100070970', '11 dígitos', 11, '^\d{11}$'),
+                'extra_fields' => [],
+                'endpoint_keys' => [
+                    'ruc',
+                    'ruc_sunat',
+                    'ruc_contacto',
+                    'ruc_representantes',
+                    'ruc_establecimientos_anexos',
+                    'ruc_domicilio_fiscal',
+                    'ruc_deuda_coactiva',
+                    'ruc_ssco',
+                    'ruc_trabajadores',
+                ],
+                'tab_labels' => [
+                    'ruc' => 'General',
+                    'ruc_sunat' => 'SUNAT',
+                    'ruc_contacto' => 'Contacto',
+                    'ruc_representantes' => 'Representantes',
+                    'ruc_establecimientos_anexos' => 'Establecimientos',
+                    'ruc_domicilio_fiscal' => 'Domicilio',
+                    'ruc_deuda_coactiva' => 'Deuda coactiva',
+                    'ruc_ssco' => 'SSCO',
+                    'ruc_trabajadores' => 'Trabajadores',
+                ],
+            ],
+            [
+                'id' => 'finanzas',
+                'label' => 'Finanzas',
+                'description' => 'Tipo de cambio SBS (por fecha) y comisiones AFP vigentes en una sola vista.',
+                'icon' => 'wallet',
+                'primary_field' => self::field('fecha', 'Fecha tipo de cambio', 'date', true, null, 'Solo aplica al tipo de cambio. Las AFP no piden fecha.', null, null),
+                'extra_fields' => [],
+                'endpoint_keys' => ['tipo_de_cambio', 'comisiones_afp'],
+                'tab_labels' => [
+                    'tipo_de_cambio' => 'Tipo de cambio',
+                    'comisiones_afp' => 'Comisiones AFP',
+                ],
+            ],
+            [
+                'id' => 'comprobante',
+                'label' => 'Comprobante CPE',
+                'description' => 'Valida un comprobante electrónico ante SUNAT.',
+                'icon' => 'file',
+                'primary_field' => null,
+                'extra_fields' => [
+                    self::field('ruc_emisor', 'RUC emisor', 'text', true, '20100070970', '11 dígitos', 11, '^\d{11}$'),
+                    self::field('codigo_tipo_documento', 'Tipo CPE', 'text', true, '01', '01 Factura, 03 Boleta, 07 NC…', 2, null),
+                    self::field('serie', 'Serie', 'text', true, 'F001', 'Ej. F001 / B001', 4, null),
+                    self::field('numero', 'Número', 'text', true, '1', 'Correlativo', 8, null),
+                    self::field('fecha_de_emision', 'Fecha emisión', 'date', true, null, 'AAAA-MM-DD', null, null),
+                    self::field('monto', 'Monto total', 'text', true, '100.00', 'Total del CPE', 16, null),
+                ],
+                'endpoint_keys' => ['cpe'],
+                'tab_labels' => [
+                    'cpe' => 'Resultado CPE',
+                ],
+            ],
+            [
+                'id' => 'vehiculo',
+                'label' => 'Vehículo (placa)',
+                'description' => 'Ficha técnica por placa (marca, modelo, año, VIN). Consume 2 consultas del plan.',
+                'icon' => 'car',
+                'primary_field' => self::field('placa', 'Placa', 'text', true, 'ABC123', '6 a 7 caracteres', 7, '^[A-Za-z0-9]{6,7}$'),
+                'extra_fields' => [],
+                'endpoint_keys' => ['placa'],
+                'tab_labels' => [
+                    'placa' => 'Ficha técnica',
+                ],
+            ],
+            [
+                'id' => 'ubicacion',
+                'label' => 'Ubicación',
+                'description' => 'Ubigeo, puertos y aeropuertos con un término de búsqueda.',
+                'icon' => 'map',
+                'primary_field' => self::field('q', 'Búsqueda', 'text', false, 'Lima / Callao / 150101', 'Código o nombre (opcional)', 80, null),
+                'extra_fields' => [],
+                'endpoint_keys' => ['ubigeo', 'puertos', 'aeropuertos'],
+                'tab_labels' => [
+                    'ubigeo' => 'Ubigeos',
+                    'puertos' => 'Puertos',
+                    'aeropuertos' => 'Aeropuertos',
+                ],
+            ],
+        ];
+    }
+
+    public static function findProfile(string $id): ?array
+    {
+        foreach (self::profiles() as $profile) {
+            if ($profile['id'] === $id) {
+                return $profile;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * @param  list<array{name: string, label: string, type: string, required: bool, placeholder: string|null, hint: string|null, max_length: int|null, pattern: string|null}>  $fields
      * @return array{key: string, label: string, description: string, path: string, docs_url: string|null, fields: list<array<string, mixed>>}
      */

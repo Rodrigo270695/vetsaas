@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\RespondsToApiPeruConsulta;
 use App\Http\Requests\PlataformaApiPeruConsultaRequest;
+use App\Http\Requests\PlataformaApiPeruPerfilRequest;
 use App\Services\Integrations\ApiPeruConsultaService;
 use App\Support\Integrations\ApiPeruEndpointCatalog;
 use Illuminate\Http\JsonResponse;
@@ -24,7 +25,7 @@ class PlataformaApiPeruController extends Controller
         $baseUrl = rtrim((string) config('services.apiperu.base_url', 'https://apiperu.dev/api'), '/');
 
         return Inertia::render('plataforma/apiperu/index', [
-            'groups' => ApiPeruEndpointCatalog::groups(),
+            'profiles' => ApiPeruEndpointCatalog::profiles(),
             'meta' => [
                 'token_configured' => $tokenConfigured,
                 'base_url' => $baseUrl,
@@ -43,6 +44,22 @@ class PlataformaApiPeruController extends Controller
 
         return $this->consultaApiPeruResponse(
             fn (): array => $service->consultar($endpoint, $payload),
+        );
+    }
+
+    /**
+     * Consulta agrupada (persona / empresa / finanzas…): varios endpoints de un golpe.
+     */
+    public function consultarPerfil(
+        PlataformaApiPeruPerfilRequest $request,
+        ApiPeruConsultaService $service,
+    ): JsonResponse {
+        $profile = (string) $request->validated('profile');
+        /** @var array<string, mixed> $payload */
+        $payload = $request->validated('payload') ?? [];
+
+        return $this->consultaApiPeruResponse(
+            fn (): array => $service->consultarPerfil($profile, $payload),
         );
     }
 }

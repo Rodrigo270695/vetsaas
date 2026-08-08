@@ -1,9 +1,9 @@
 {
     "title": "ApiPerú",
-    "description": "Explorador de consultas a ApiPerú: identidad, RUC detalle, finanzas, comprobantes, vehículos/MTC y ubicación.",
+    "description": "Consulta unificada: un DNI o RUC abre la ficha completa (identidad, representantes, deudas, finanzas…). Los resultados salen en un modal con pestañas.",
     "stats": {
-        "endpoints": "Endpoints",
-        "groups": "Categorías"
+        "hubs": "Consultas",
+        "sources": "Fuentes"
     },
     "meta": {
         "token_ok": "Token configurado",
@@ -14,6 +14,6 @@
         "token_title": "Falta configurar el token",
         "token_body": "Define {{env}} en el servidor para poder consultar. El token nunca se expone al navegador.",
         "ready_title": "Listo para consultar",
-        "ready_body": "Las peticiones salen desde el servidor con tu Bearer token. Cada consulta consume cupo de tu plan ApiPerú."
+        "ready_body": "Cada hub dispara varias fuentes de ApiPerú de un golpe. El tipo de cambio usa la fecha; las comisiones AFP no requieren parámetros y se incluyen en el mismo modal."
     }
 }
