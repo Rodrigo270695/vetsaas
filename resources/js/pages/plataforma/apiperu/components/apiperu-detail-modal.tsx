@@ -42,6 +42,17 @@ export function ApiPeruDetailModal({ open, onOpenChange, payload }: Props) {
 
     const activeTab = keys.includes(tab) ? tab : firstOk;
 
+    useEffect(() => {
+        if (!activeTab) {
+            return;
+        }
+
+        const trigger = document.querySelector<HTMLElement>(
+            `[data-slot="tabs-trigger"][data-state="active"]`,
+        );
+        trigger?.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: 'smooth' });
+    }, [activeTab]);
+
     if (!payload) {
         return null;
     }
@@ -73,8 +84,8 @@ export function ApiPeruDetailModal({ open, onOpenChange, payload }: Props) {
                 </div>
 
                 <Tabs value={activeTab} onValueChange={setTab} className="gap-3">
-                    <ApiPeruSwipeTabs>
-                        <TabsList className="h-auto w-max min-w-full justify-start gap-1 bg-muted/70 p-1">
+                    <ApiPeruSwipeTabs remountKey={`${payload.profile}:${payload.subject ?? ''}:${keys.length}`}>
+                        <TabsList className="h-auto w-max justify-start gap-1 bg-muted/70 p-1">
                             {keys.map((key) => {
                                 const item = payload.results[key];
                                 if (!item) {
@@ -101,7 +112,7 @@ export function ApiPeruDetailModal({ open, onOpenChange, payload }: Props) {
                                                 aria-hidden
                                             />
                                         )}
-                                        {item.label}
+                                        <span className="whitespace-nowrap">{item.label}</span>
                                     </TabsTrigger>
                                 );
                             })}
@@ -117,7 +128,11 @@ export function ApiPeruDetailModal({ open, onOpenChange, payload }: Props) {
                         return (
                             <TabsContent key={key} value={key} className="outline-none">
                                 {item.ok ? (
-                                    <ApiPeruResultViewer data={item.data} timeMs={item.time} />
+                                    <ApiPeruResultViewer
+                                        data={item.data}
+                                        timeMs={item.time}
+                                        endpointKey={key}
+                                    />
                                 ) : (
                                     <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm">
                                         <p className="font-medium text-foreground">{item.label}</p>
