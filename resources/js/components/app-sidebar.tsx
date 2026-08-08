@@ -364,30 +364,36 @@ function useNavConfig(): { singles: NavItem[]; groups: NavGroup[] } {
                 {
                     title: t('groups.configuracion'),
                     icon: Cog,
-                    context: 'tenant',
+                    // Visible también en panel central (roles / usuarios de plataforma).
+                    // Ítems operativos de clínica llevan context: 'tenant'.
+                    context: 'both',
                     items: [
                         {
                             title: t('items.ayuda'),
                             href: '/configuracion/ayuda',
                             icon: CircleHelp,
+                            context: 'tenant',
                         },
                         {
                             title: t('items.general'),
                             href: '/configuracion/general',
                             icon: SlidersHorizontal,
                             permission: 'config-general.view',
+                            context: 'tenant',
                         },
                         {
                             title: t('items.suscripcion'),
                             href: '/configuracion/suscripcion',
                             icon: CreditCard,
                             permission: 'config-general.view',
+                            context: 'tenant',
                         },
                         {
                             title: t('items.sedes'),
                             href: '/configuracion/sedes',
                             icon: Building2,
                             permission: 'sedes.view',
+                            context: 'tenant',
                         },
                         {
                             title: t('items.roles'),
@@ -400,18 +406,21 @@ function useNavConfig(): { singles: NavItem[]; groups: NavGroup[] } {
                             href: '/configuracion/horarios',
                             icon: Clock,
                             permission: 'horarios.view',
+                            context: 'tenant',
                         },
                         {
                             title: t('items.bloqueos'),
                             href: '/configuracion/bloqueos',
                             icon: CalendarOff,
                             permission: 'bloqueos.view',
+                            context: 'tenant',
                         },
                         {
                             title: t('items.tarifas'),
                             href: '/configuracion/tarifas',
                             icon: BarChart3,
                             permission: 'tarifas.view',
+                            context: 'tenant',
                         },
                         {
                             title: t('items.usuarios'),
@@ -424,6 +433,7 @@ function useNavConfig(): { singles: NavItem[]; groups: NavGroup[] } {
                             href: '/auditoria/logs',
                             icon: ScrollText,
                             permission: 'auditoria-logs.view',
+                            context: 'tenant',
                         },
                     ],
                 },
