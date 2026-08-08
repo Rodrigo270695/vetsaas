@@ -14,6 +14,6 @@
         "token_title": "Falta configurar el token",
         "token_body": "Define {{env}} en el servidor para poder consultar. El token nunca se expone al navegador.",
         "ready_title": "Listo para consultar",
-        "ready_body": "Cada hub dispara varias fuentes de ApiPerú de un golpe. El tipo de cambio usa la fecha; las comisiones AFP no requieren parámetros y se incluyen en el mismo modal."
+        "ready_body": "Cada hub dispara varias fuentes de ApiPerú. Si ves «X con error», no es un % del RUC/DNI: son endpoints que fallaron (ruta, plan o API caída). Identidad/RUC general puede estar OK aunque otra pestaña falle."
     }
 }

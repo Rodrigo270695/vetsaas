@@ -25,10 +25,11 @@ final class ApiPeruConsultaService
         }
 
         $body = $this->normalizePayload($endpoint, $payload);
+        $path = (string) $endpoint['path'];
 
-        $response = ApiPeruHttp::client()->post($endpoint['path'], $body);
+        $response = ApiPeruHttp::client()->post($path, $body);
 
-        ApiPeruHttp::assertSuccessful($response);
+        ApiPeruHttp::assertSuccessful($response, $path);
 
         $json = $response->json();
         if (! is_array($json)) {
@@ -148,7 +149,9 @@ final class ApiPeruConsultaService
             'tipo_de_cambio' => [
                 'fecha' => $payload['fecha'] ?? '',
             ],
-            'comisiones_afp' => [],
+            'comisiones_afp' => [
+                'periodo' => $this->periodoFromPayload($payload),
+            ],
             'cpe' => [
                 'ruc_emisor' => $payload['ruc_emisor'] ?? '',
                 'codigo_tipo_documento' => $payload['codigo_tipo_documento'] ?? '',
@@ -168,6 +171,24 @@ final class ApiPeruConsultaService
             ],
             default => $payload,
         };
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function periodoFromPayload(array $payload): string
+    {
+        $periodo = trim((string) ($payload['periodo'] ?? ''));
+        if (preg_match('/^\d{4}-\d{2}$/', $periodo) === 1) {
+            return $periodo;
+        }
+
+        $fecha = trim((string) ($payload['fecha'] ?? ''));
+        if (preg_match('/^(\d{4}-\d{2})/', $fecha, $m) === 1) {
+            return $m[1];
+        }
+
+        return now()->format('Y-m');
     }
 
     /**

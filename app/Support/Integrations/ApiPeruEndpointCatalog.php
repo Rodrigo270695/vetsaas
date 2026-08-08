@@ -70,7 +70,7 @@ final class ApiPeruEndpointCatalog
                         key: 'ruc_sunat',
                         label: 'Consulta RUC SUNAT',
                         description: 'Consulta RUC con detalle ampliado de SUNAT.',
-                        path: '/ruc_sunat',
+                        path: '/ruc-sunat',
                         docsUrl: 'https://docs.apiperu.dev/',
                         fields: [
                             self::field('ruc', 'RUC', 'text', true, '20100070970', '11 dígitos', 11, '^\d{11}$'),
@@ -80,7 +80,7 @@ final class ApiPeruEndpointCatalog
                         key: 'dni_ruc',
                         label: 'Consulta DNI – RUC',
                         description: 'Verifica si un DNI tiene RUC asociado.',
-                        path: '/dni_ruc',
+                        path: '/dni-ruc',
                         docsUrl: 'https://docs.apiperu.dev/enpoints/consulta-dni-ruc',
                         fields: [
                             self::field('dni', 'DNI', 'text', true, '12345678', '8 dígitos', 8, '^\d{8}$'),
@@ -97,7 +97,7 @@ final class ApiPeruEndpointCatalog
                         key: 'ruc_contacto',
                         label: 'RUC Contacto',
                         description: 'Datos de contacto del contribuyente.',
-                        path: '/ruc_contacto',
+                        path: '/ruc-contacto',
                         docsUrl: 'https://docs.apiperu.dev/',
                         fields: [
                             self::field('ruc', 'RUC', 'text', true, '20100070970', '11 dígitos', 11, '^\d{11}$'),
@@ -107,7 +107,7 @@ final class ApiPeruEndpointCatalog
                         key: 'ruc_ssco',
                         label: 'RUC SSCO',
                         description: 'Información SSCO asociada al RUC.',
-                        path: '/ruc_ssco',
+                        path: '/ruc-ssco',
                         docsUrl: 'https://docs.apiperu.dev/',
                         fields: [
                             self::field('ruc', 'RUC', 'text', true, '20100070970', '11 dígitos', 11, '^\d{11}$'),
@@ -117,7 +117,7 @@ final class ApiPeruEndpointCatalog
                         key: 'ruc_deuda_coactiva',
                         label: 'RUC Deuda coactiva',
                         description: 'Deudas coactivas reportadas para el RUC.',
-                        path: '/ruc_deuda_coactiva',
+                        path: '/ruc-deuda-coactiva',
                         docsUrl: 'https://docs.apiperu.dev/',
                         fields: [
                             self::field('ruc', 'RUC', 'text', true, '20100070970', '11 dígitos', 11, '^\d{11}$'),
@@ -127,7 +127,7 @@ final class ApiPeruEndpointCatalog
                         key: 'ruc_representantes',
                         label: 'RUC Representantes',
                         description: 'Representantes legales del RUC.',
-                        path: '/ruc_representantes',
+                        path: '/ruc-representantes',
                         docsUrl: 'https://docs.apiperu.dev/enpoints/consulta-ruc-representantes',
                         fields: [
                             self::field('ruc', 'RUC', 'text', true, '20100070970', '11 dígitos', 11, '^\d{11}$'),
@@ -137,7 +137,7 @@ final class ApiPeruEndpointCatalog
                         key: 'ruc_establecimientos_anexos',
                         label: 'RUC Establecimientos anexos',
                         description: 'Locales / anexos registrados en SUNAT.',
-                        path: '/ruc_establecimientos_anexos',
+                        path: '/ruc-establecimientos-anexos',
                         docsUrl: 'https://docs.apiperu.dev/enpoints/consulta-ruc-establecimientos',
                         fields: [
                             self::field('ruc', 'RUC', 'text', true, '20100070970', '11 dígitos', 11, '^\d{11}$'),
@@ -147,8 +147,8 @@ final class ApiPeruEndpointCatalog
                         key: 'ruc_domicilio_fiscal',
                         label: 'RUC Domicilio fiscal',
                         description: 'Domicilio fiscal del contribuyente.',
-                        path: '/ruc_domicilio_fiscal',
-                        docsUrl: 'https://docs.apiperu.dev/',
+                        path: '/ruc-domicilio-fiscal',
+                        docsUrl: 'https://docs.apiperu.dev/enpoints/consulta-ruc-domicilio-fiscal',
                         fields: [
                             self::field('ruc', 'RUC', 'text', true, '20100070970', '11 dígitos', 11, '^\d{11}$'),
                         ],
@@ -157,7 +157,7 @@ final class ApiPeruEndpointCatalog
                         key: 'ruc_trabajadores',
                         label: 'RUC Trabajadores',
                         description: 'Información de trabajadores asociada al RUC.',
-                        path: '/ruc_trabajadores',
+                        path: '/ruc-trabajadores',
                         docsUrl: 'https://docs.apiperu.dev/',
                         fields: [
                             self::field('ruc', 'RUC', 'text', true, '20100070970', '11 dígitos', 11, '^\d{11}$'),
@@ -174,7 +174,7 @@ final class ApiPeruEndpointCatalog
                         key: 'tipo_de_cambio',
                         label: 'Tipo de cambio',
                         description: 'Tipo de cambio oficial por fecha (USD / EUR).',
-                        path: '/tipo_de_cambio',
+                        path: '/tipo-de-cambio',
                         docsUrl: 'https://docs.apiperu.dev/enpoints/consulta-tipo-de-cambio',
                         fields: [
                             self::field('fecha', 'Fecha', 'date', true, null, 'Formato AAAA-MM-DD', null, null),
@@ -184,9 +184,11 @@ final class ApiPeruEndpointCatalog
                         key: 'comisiones_afp',
                         label: 'Comisiones AFP',
                         description: 'Comisiones de AFP vigentes.',
-                        path: '/comisiones_afp',
-                        docsUrl: 'https://docs.apiperu.dev/',
-                        fields: [],
+                        path: '/comisiones-afp',
+                        docsUrl: 'https://docs.apiperu.dev/referencia/comisiones-afp',
+                        fields: [
+                            self::field('periodo', 'Periodo', 'text', true, '2026-07', 'Formato AAAA-MM', 7, '^\d{4}-\d{2}$'),
+                        ],
                     ),
                 ],
             ],
@@ -214,7 +216,7 @@ final class ApiPeruEndpointCatalog
                         key: 'cpe_multiple',
                         label: 'Consulta CPE múltiple',
                         description: 'Valida varios CPE en una sola petición (JSON array en el campo comprobantes).',
-                        path: '/cpe_multiple',
+                        path: '/cpe-multiple',
                         docsUrl: 'https://docs.apiperu.dev/enpoints/consulta-cpe-multiple',
                         fields: [
                             self::field(
@@ -240,10 +242,10 @@ final class ApiPeruEndpointCatalog
                         key: 'licencia',
                         label: 'Licencia de conducir',
                         description: 'Consulta licencia MTC.',
-                        path: '/licencia',
+                        path: '/licencia-conducir',
                         docsUrl: 'https://docs.apiperu.dev/',
                         fields: [
-                            self::field('dni', 'DNI', 'text', true, '12345678', '8 dígitos del titular', 8, '^\d{8}$'),
+                            self::field('dni', 'DNI', 'text', true, '12345678', '8 dígitos del titular. Requiere plan que incluya Vehículos/MTC.', 8, '^\d{8}$'),
                         ],
                     ),
                     self::endpoint(
@@ -384,7 +386,7 @@ final class ApiPeruEndpointCatalog
                 'label' => 'Finanzas',
                 'description' => 'Tipo de cambio SBS (por fecha) y comisiones AFP vigentes en una sola vista.',
                 'icon' => 'wallet',
-                'primary_field' => self::field('fecha', 'Fecha tipo de cambio', 'date', true, null, 'Solo aplica al tipo de cambio. Las AFP no piden fecha.', null, null),
+                'primary_field' => self::field('fecha', 'Fecha', 'date', true, null, 'Se usa para tipo de cambio (AAAA-MM-DD) y, del mismo valor, el periodo AFP (AAAA-MM).', null, null),
                 'extra_fields' => [],
                 'endpoint_keys' => ['tipo_de_cambio', 'comisiones_afp'],
                 'tab_labels' => [

@@ -14,6 +14,6 @@
         "token_title": "Token not configured",
         "token_body": "Set {{env}} on the server to run lookups. The token is never exposed to the browser.",
         "ready_title": "Ready to query",
-        "ready_body": "Each hub hits several ApiPeru sources at once. Exchange rates use the date; AFP fees need no params and appear in the same modal."
+        "ready_body": "Each hub hits several ApiPerú sources. «X with error» is not a % on the RUC/DNI — it counts endpoints that failed (path, plan, or API down). Identity/general RUC can still be OK while another tab fails."
     }
 }

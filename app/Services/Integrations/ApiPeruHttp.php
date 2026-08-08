@@ -28,19 +28,36 @@ final class ApiPeruHttp
             ->baseUrl($base);
     }
 
-    public static function assertSuccessful(Response $response): void
+    public static function assertSuccessful(Response $response, ?string $path = null): void
     {
         if ($response->successful()) {
             return;
         }
 
         $status = $response->status();
+        $pathHint = $path !== null && $path !== '' ? " (ruta {$path})" : '';
 
         if ($status === 429) {
             throw new ApiPeruConsultaException(
                 __('propietarios.consulta.rate_limit'),
                 429,
                 'rate_limit',
+            );
+        }
+
+        if ($status === 404) {
+            throw new ApiPeruConsultaException(
+                'ApiPerú no encontró este endpoint'.$pathHint.'. Suele ser ruta incorrecta o un servicio que no está en tu plan.',
+                404,
+                'not_found',
+            );
+        }
+
+        if ($status === 402 || $status === 403) {
+            throw new ApiPeruConsultaException(
+                'Tu plan ApiPerú no incluye este servicio o no tienes cupo'.$pathHint.'.',
+                $status,
+                'plan_restricted',
             );
         }
 
@@ -53,7 +70,7 @@ final class ApiPeruHttp
         }
 
         throw new ApiPeruConsultaException(
-            __('propietarios.consulta.error_generico', ['status' => $status]),
+            __('propietarios.consulta.error_generico', ['status' => $status]).$pathHint,
             422,
             'api_error',
         );

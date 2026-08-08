@@ -64,7 +64,7 @@ export function ApiPeruDetailModal({ open, onOpenChange, payload }: Props) {
             size="xl"
             blockDismiss={false}
             title={payload.subject ? `${payload.label} · ${payload.subject}` : payload.label}
-            description={`${payload.ok_count} ok · ${payload.fail_count} con error · ${keys.length} fuentes`}
+            description={`${payload.ok_count} fuentes OK · ${payload.fail_count} sin datos (ruta/plan/API) · ${keys.length} en total`}
             footer={
                 <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                     Cerrar
@@ -72,6 +72,11 @@ export function ApiPeruDetailModal({ open, onOpenChange, payload }: Props) {
             }
         >
             <div className="flex flex-col gap-4">
+                <div className="rounded-lg border border-border/50 bg-muted/30 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+                    Los contadores no son un % de error del DNI/RUC: cada pestaña es una consulta
+                    distinta a ApiPerú. Si una falla (404, plan o caída del servicio), las demás
+                    pueden seguir OK.
+                </div>
                 <div className="flex flex-wrap gap-2">
                     <Badge variant="default" className="font-normal">
                         {payload.ok_count} correctas
