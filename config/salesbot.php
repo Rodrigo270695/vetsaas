@@ -38,7 +38,7 @@ return [
     /*
     | Tokens para respuestas del flujo Orvae páginas web (mensaje inicial con 3 planes).
     */
-    'max_tokens_paginas_web' => (int) env('SALESBOT_MAX_TOKENS_PAGINAS_WEB', 550),
+    'max_tokens_paginas_web' => (int) env('SALESBOT_MAX_TOKENS_PAGINAS_WEB', 400),
 
     /*
     | Temperatura de la IA (0 = determinista, 1 = creativo).
