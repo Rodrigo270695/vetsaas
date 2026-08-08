@@ -23,6 +23,7 @@ import plataformaAuditoriaSeguridadEn from '@/lang/en/plataforma-auditoria-segur
 import plataformaOperacionesEn from '@/lang/en/plataforma-operaciones.json';
 import plataformaSesionesLoginEn from '@/lang/en/plataforma-sesiones-login.json';
 import plataformaApiperuEn from '@/lang/en/plataforma-apiperu.json';
+import plataformaUsoPlanesEn from '@/lang/en/plataforma-uso-planes.json';
 import dashboardEn from '@/lang/en/dashboard.json';
 import onboardingEn from '@/lang/en/onboarding.json';
 import descuentosPromocionesEn from '@/lang/en/descuentos-promociones.json';
@@ -79,6 +80,7 @@ import plataformaAuditoriaSeguridadEs from '@/lang/es/plataforma-auditoria-segur
 import plataformaOperacionesEs from '@/lang/es/plataforma-operaciones.json';
 import plataformaSesionesLoginEs from '@/lang/es/plataforma-sesiones-login.json';
 import plataformaApiperuEs from '@/lang/es/plataforma-apiperu.json';
+import plataformaUsoPlanesEs from '@/lang/es/plataforma-uso-planes.json';
 import dashboardEs from '@/lang/es/dashboard.json';
 import onboardingEs from '@/lang/es/onboarding.json';
 import descuentosPromocionesEs from '@/lang/es/descuentos-promociones.json';
@@ -162,6 +164,7 @@ const resources = {
         'plataforma-operaciones': plataformaOperacionesEs,
         'plataforma-sesiones-login': plataformaSesionesLoginEs,
         'plataforma-apiperu': plataformaApiperuEs,
+        'plataforma-uso-planes': plataformaUsoPlanesEs,
         dashboard: dashboardEs,
         onboarding: onboardingEs,
         auth: authEs,
@@ -220,6 +223,7 @@ const resources = {
         'plataforma-operaciones': plataformaOperacionesEn,
         'plataforma-sesiones-login': plataformaSesionesLoginEn,
         'plataforma-apiperu': plataformaApiperuEn,
+        'plataforma-uso-planes': plataformaUsoPlanesEn,
         dashboard: dashboardEn,
         onboarding: onboardingEn,
         auth: authEn,
@@ -288,6 +292,7 @@ void i18n
             'plataforma-operaciones',
             'plataforma-sesiones-login',
             'plataforma-apiperu',
+            'plataforma-uso-planes',
             'dashboard',
             'onboarding',
             'auth',

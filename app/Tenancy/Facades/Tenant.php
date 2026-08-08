@@ -29,6 +29,7 @@ use Illuminate\Support\Facades\Facade;
  * @method static \App\Tenancy\TenantContext resolveById(string $id, ?\Illuminate\Database\ConnectionInterface $connection = null)
  * @method static void forget(?\Illuminate\Database\ConnectionInterface $connection = null)
  * @method static mixed runForSlug(string $slug, callable $callback)
+ * @method static mixed runForTenant(\App\Models\Tenant $tenant, callable $callback, bool $enforceAccess = true)
  * @method static void flushCacheFor(\App\Models\Tenant $tenant)
  *
  * @see TenantManager

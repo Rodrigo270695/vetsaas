@@ -1,0 +1,82 @@
+{
+    "title": "Uso de planes",
+    "description": "Consumo de límites de cada tenant de pago (misma lectura que Mi suscripción).",
+    "search_placeholder": "Buscar por clínica, slug o RUC…",
+    "filters": {
+        "all": "Todos",
+        "over": "Al límite",
+        "warning": "Cerca",
+        "caution": "Atención",
+        "ok": "Normal"
+    },
+    "stats": {
+        "total": "Tenants de pago",
+        "over": "Al límite",
+        "warning": "Cerca del límite",
+        "caution": "Atención",
+        "ok": "Normal"
+    },
+    "empty": {
+        "title": "Sin tenants de pago",
+        "description": "No hay clínicas con suscripción activa o en gracia en un plan de pago."
+    },
+    "empty_filter": {
+        "title": "Sin resultados",
+        "description": "Ningún tenant coincide con la búsqueda o el semáforo seleccionado."
+    },
+    "columns": {
+        "tenant": "Clínica",
+        "plan": "Plan",
+        "status": "Semáforo",
+        "summary": "Resumen"
+    },
+    "summary_over": "{{count}} al límite",
+    "summary_warning": "{{count}} cerca",
+    "summary_ok": "Dentro de límites",
+    "error_row": "No se pudo leer el uso",
+    "expand": "Ver detalle",
+    "collapse": "Ocultar detalle",
+    "limites_link": "Ajustar límites",
+    "comprobantes": {
+        "title": "Comprobantes",
+        "usage": "{{used}} de {{limit}}",
+        "usage_unlimited": "{{used}} emitidos (ilimitado)",
+        "remaining": "Quedan {{count}}",
+        "overage": "Excedente: {{blocks}} bloque(s) · S/. {{cost}}"
+    },
+    "usage": {
+        "usage": "{{used}} de {{limit}}",
+        "usage_unlimited": "{{used}} registrados (ilimitado)",
+        "remaining": "Quedan {{count}}",
+        "includes_extra": "Incluye +{{count}} de cortesía",
+        "includes_paid": "Incluye +{{count}} adicional (+S/. {{amount}} / mes)",
+        "unlimited_hint": "Sin tope en este plan.",
+        "features": {
+            "max_sedes": "Sedes",
+            "max_usuarios": "Usuarios",
+            "max_pacientes": "Pacientes",
+            "max_propietarios": "Propietarios",
+            "max_productos": "Productos"
+        },
+        "semaphore": {
+            "unlimited": "Ilimitado",
+            "ok": "Normal",
+            "caution": "Atención",
+            "warning": "Cerca del límite",
+            "over": "Límite alcanzado"
+        }
+    },
+    "estado": {
+        "active": "Activa",
+        "grace": "Gracia",
+        "trial": "Trial",
+        "suspended": "Suspendida",
+        "cancelled": "Cancelada"
+    },
+    "ciclo": {
+        "mensual": "Mensual",
+        "trimestral": "Trimestral",
+        "semestral": "Semestral",
+        "anual": "Anual"
+    }
+}

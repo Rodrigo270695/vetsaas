@@ -23,6 +23,7 @@ import {
     FileX,
     FlaskConical,
     Folder,
+    Gauge,
     Hash,
     CircleHelp,
     Headset,
@@ -483,6 +484,12 @@ function useNavConfig(): { singles: NavItem[]; groups: NavGroup[] } {
                             title: t('items.suscripciones'),
                             href: '/plataforma/suscripciones',
                             icon: Repeat,
+                            permission: 'plataforma-suscripciones.view',
+                        },
+                        {
+                            title: t('items.uso_planes'),
+                            href: '/plataforma/uso-planes',
+                            icon: Gauge,
                             permission: 'plataforma-suscripciones.view',
                         },
                         {

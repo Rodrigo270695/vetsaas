@@ -1,0 +1,82 @@
+{
+    "title": "Plan usage",
+    "description": "Feature limit usage for every paying tenant (same data as My subscription).",
+    "search_placeholder": "Search by clinic, slug or tax ID…",
+    "filters": {
+        "all": "All",
+        "over": "At limit",
+        "warning": "Near limit",
+        "caution": "Caution",
+        "ok": "OK"
+    },
+    "stats": {
+        "total": "Paying tenants",
+        "over": "At limit",
+        "warning": "Near limit",
+        "caution": "Caution",
+        "ok": "OK"
+    },
+    "empty": {
+        "title": "No paying tenants",
+        "description": "There are no clinics with an active or grace subscription on a paid plan."
+    },
+    "empty_filter": {
+        "title": "No results",
+        "description": "No tenant matches the search or selected semaphore."
+    },
+    "columns": {
+        "tenant": "Clinic",
+        "plan": "Plan",
+        "status": "Semaphore",
+        "summary": "Summary"
+    },
+    "summary_over": "{{count}} at limit",
+    "summary_warning": "{{count}} near limit",
+    "summary_ok": "Within limits",
+    "error_row": "Could not read usage",
+    "expand": "Show detail",
+    "collapse": "Hide detail",
+    "limites_link": "Adjust limits",
+    "comprobantes": {
+        "title": "Receipts",
+        "usage": "{{used}} of {{limit}}",
+        "usage_unlimited": "{{used}} issued (unlimited)",
+        "remaining": "{{count}} left",
+        "overage": "Overage: {{blocks}} block(s) · S/. {{cost}}"
+    },
+    "usage": {
+        "usage": "{{used}} of {{limit}}",
+        "usage_unlimited": "{{used}} registered (unlimited)",
+        "remaining": "{{count}} left",
+        "includes_extra": "Includes +{{count}} complimentary",
+        "includes_paid": "Includes +{{count}} extra (+S/. {{amount}} / mo)",
+        "unlimited_hint": "No cap on this plan.",
+        "features": {
+            "max_sedes": "Branches",
+            "max_usuarios": "Users",
+            "max_pacientes": "Patients",
+            "max_propietarios": "Owners",
+            "max_productos": "Products"
+        },
+        "semaphore": {
+            "unlimited": "Unlimited",
+            "ok": "OK",
+            "caution": "Caution",
+            "warning": "Near limit",
+            "over": "Limit reached"
+        }
+    },
+    "estado": {
+        "active": "Active",
+        "grace": "Grace",
+        "trial": "Trial",
+        "suspended": "Suspended",
+        "cancelled": "Cancelled"
+    },
+    "ciclo": {
+        "mensual": "Monthly",
+        "trimestral": "Quarterly",
+        "semestral": "Semiannual",
+        "anual": "Annual"
+    }
+}

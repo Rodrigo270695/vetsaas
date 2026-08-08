@@ -49,6 +49,7 @@ use App\Http\Controllers\PlataformaSecurityAuditController;
 use App\Http\Controllers\PlataformaUserAuthSessionController;
 use App\Http\Controllers\PlatformRenewalReminderController;
 use App\Http\Controllers\PlatformSettingController;
+use App\Http\Controllers\PlatformTenantUsageController;
 use App\Http\Controllers\PlatformWhatsAppController;
 use App\Http\Controllers\PresenceHeartbeatController;
 use App\Http\Controllers\ProductoInventarioController;
@@ -1265,6 +1266,10 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:plataforma-planes.delete')
             ->delete('planes/{plan}', [PlanController::class, 'destroy'])
             ->name('planes.destroy');
+
+        Route::middleware('permission:plataforma-suscripciones.view')
+            ->get('uso-planes', [PlatformTenantUsageController::class, 'index'])
+            ->name('uso-planes.index');
 
         // ── Suscripciones (panel de operación / cobranza interna) ──
         Route::middleware('permission:plataforma-suscripciones.view')

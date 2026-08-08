@@ -149,6 +149,47 @@ class TenantManager
     }
 
     /**
+     * Ejecuta un callback con un tenant montado (por modelo).
+     *
+     * @template T
+     *
+     * @param  callable(TenantContext): T  $callback
+     * @return T
+     */
+    public function runForTenant(Tenant $tenant, callable $callback, bool $enforceAccess = true): mixed
+    {
+        $previous = $this->current;
+
+        if ($enforceAccess) {
+            $context = $this->bootstrap($tenant);
+        } else {
+            $schema = $this->safeSchemaName($tenant);
+
+            if ($schema === null) {
+                throw new TenantNotFoundException((string) ($tenant->slug ?? $tenant->getKey()));
+            }
+
+            $this->applySearchPath($schema);
+            $context = $this->current = new TenantContext(
+                tenant: $tenant,
+                schema: $schema,
+                slug: (string) ($tenant->slug ?? ''),
+            );
+        }
+
+        try {
+            return $callback($context);
+        } finally {
+            if ($previous !== null) {
+                $this->applySearchPath($previous->schema);
+                $this->current = $previous;
+            } else {
+                $this->forget();
+            }
+        }
+    }
+
+    /**
      * Ejecuta un callback con un tenant temporal "montado".
      *
      * Garantiza que aunque la callback lance excepción, el search_path
