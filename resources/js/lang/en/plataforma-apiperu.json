@@ -1,0 +1,19 @@
+{
+    "title": "ApiPeru",
+    "description": "ApiPeru lookup explorer: identity, RUC details, finance, invoices, vehicles/MTC and location.",
+    "stats": {
+        "endpoints": "Endpoints",
+        "groups": "Categories"
+    },
+    "meta": {
+        "token_ok": "Token configured",
+        "token_missing": "No token",
+        "docs": "Documentation"
+    },
+    "alert": {
+        "token_title": "Token not configured",
+        "token_body": "Set {{env}} on the server to run lookups. The token is never exposed to the browser.",
+        "ready_title": "Ready to query",
+        "ready_body": "Requests are sent from the server with your Bearer token. Each call uses ApiPeru plan quota."
+    }
+}

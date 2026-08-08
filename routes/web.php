@@ -42,6 +42,7 @@ use App\Http\Controllers\OfflineSyncController;
 use App\Http\Controllers\PacienteController;
 use App\Http\Controllers\PacientePetPassController;
 use App\Http\Controllers\PlanController;
+use App\Http\Controllers\PlataformaApiPeruController;
 use App\Http\Controllers\PlataformaImpersonationAuditController;
 use App\Http\Controllers\PlataformaOperacionesController;
 use App\Http\Controllers\PlataformaSecurityAuditController;
@@ -1171,6 +1172,14 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:plataforma-operaciones.view')
             ->get('sesiones-login', [PlataformaUserAuthSessionController::class, 'index'])
             ->name('sesiones-login.index');
+
+        Route::middleware('permission:plataforma-operaciones.view')
+            ->get('apiperu', [PlataformaApiPeruController::class, 'index'])
+            ->name('apiperu.index');
+        Route::middleware('permission:plataforma-operaciones.view')
+            ->post('apiperu/consultar', [PlataformaApiPeruController::class, 'consultar'])
+            ->middleware('throttle:30,1')
+            ->name('apiperu.consultar');
 
         Route::middleware('permission:plataforma-tenants.view')
             ->get('tenants', [TenantController::class, 'index'])

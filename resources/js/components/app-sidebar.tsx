@@ -29,6 +29,7 @@ import {
     History,
     Home,
     KeyRound,
+    Landmark,
     LayoutGrid,
     LineChart,
     Megaphone,
@@ -446,6 +447,12 @@ function useNavConfig(): { singles: NavItem[]; groups: NavGroup[] } {
                             title: t('items.sesiones_login'),
                             href: '/plataforma/sesiones-login',
                             icon: KeyRound,
+                            permission: 'plataforma-operaciones.view',
+                        },
+                        {
+                            title: t('items.apiperu'),
+                            href: '/plataforma/apiperu',
+                            icon: Landmark,
                             permission: 'plataforma-operaciones.view',
                         },
                         {

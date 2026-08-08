@@ -1,0 +1,19 @@
+{
+    "title": "ApiPerú",
+    "description": "Explorador de consultas a ApiPerú: identidad, RUC detalle, finanzas, comprobantes, vehículos/MTC y ubicación.",
+    "stats": {
+        "endpoints": "Endpoints",
+        "groups": "Categorías"
+    },
+    "meta": {
+        "token_ok": "Token configurado",
+        "token_missing": "Sin token",
+        "docs": "Documentación"
+    },
+    "alert": {
+        "token_title": "Falta configurar el token",
+        "token_body": "Define {{env}} en el servidor para poder consultar. El token nunca se expone al navegador.",
+        "ready_title": "Listo para consultar",
+        "ready_body": "Las peticiones salen desde el servidor con tu Bearer token. Cada consulta consume cupo de tu plan ApiPerú."
+    }
+}

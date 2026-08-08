@@ -22,6 +22,7 @@ import plataformaAuditoriaSoporteEn from '@/lang/en/plataforma-auditoria-soporte
 import plataformaAuditoriaSeguridadEn from '@/lang/en/plataforma-auditoria-seguridad.json';
 import plataformaOperacionesEn from '@/lang/en/plataforma-operaciones.json';
 import plataformaSesionesLoginEn from '@/lang/en/plataforma-sesiones-login.json';
+import plataformaApiperuEn from '@/lang/en/plataforma-apiperu.json';
 import dashboardEn from '@/lang/en/dashboard.json';
 import onboardingEn from '@/lang/en/onboarding.json';
 import descuentosPromocionesEn from '@/lang/en/descuentos-promociones.json';
@@ -77,6 +78,7 @@ import plataformaAuditoriaSoporteEs from '@/lang/es/plataforma-auditoria-soporte
 import plataformaAuditoriaSeguridadEs from '@/lang/es/plataforma-auditoria-seguridad.json';
 import plataformaOperacionesEs from '@/lang/es/plataforma-operaciones.json';
 import plataformaSesionesLoginEs from '@/lang/es/plataforma-sesiones-login.json';
+import plataformaApiperuEs from '@/lang/es/plataforma-apiperu.json';
 import dashboardEs from '@/lang/es/dashboard.json';
 import onboardingEs from '@/lang/es/onboarding.json';
 import descuentosPromocionesEs from '@/lang/es/descuentos-promociones.json';
@@ -159,6 +161,7 @@ const resources = {
         'plataforma-auditoria-seguridad': plataformaAuditoriaSeguridadEs,
         'plataforma-operaciones': plataformaOperacionesEs,
         'plataforma-sesiones-login': plataformaSesionesLoginEs,
+        'plataforma-apiperu': plataformaApiperuEs,
         dashboard: dashboardEs,
         onboarding: onboardingEs,
         auth: authEs,
@@ -216,6 +219,7 @@ const resources = {
         'plataforma-auditoria-seguridad': plataformaAuditoriaSeguridadEn,
         'plataforma-operaciones': plataformaOperacionesEn,
         'plataforma-sesiones-login': plataformaSesionesLoginEn,
+        'plataforma-apiperu': plataformaApiperuEn,
         dashboard: dashboardEn,
         onboarding: onboardingEn,
         auth: authEn,
@@ -283,6 +287,7 @@ void i18n
             'plataforma-auditoria-seguridad',
             'plataforma-operaciones',
             'plataforma-sesiones-login',
+            'plataforma-apiperu',
             'dashboard',
             'onboarding',
             'auth',
