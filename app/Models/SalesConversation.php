@@ -27,9 +27,11 @@ use Illuminate\Database\Eloquent\Model;
  * @property \Illuminate\Support\Carbon|null $meet_at              fecha/hora del tour Meet
  * @property string|null $meet_link
  * @property string|null $google_event_id
- * @property string|null $meet_status          proposed | confirmed
+ * @property string|null $meet_status          proposed | confirmed | completed | no_show | cancelled
  * @property \Illuminate\Support\Carbon|null $meet_proposed_at
  * @property \Illuminate\Support\Carbon|null $meet_notified_at
+ * @property \Illuminate\Support\Carbon|null $meet_completed_at
+ * @property string|null $meet_outcome_note
  * @property bool        $converted           true = lead convirtió (no reactivar más)
  * @property \Illuminate\Support\Carbon|null $lost_at             fecha en que se cerró como perdido
  * @property \Illuminate\Support\Carbon|null $last_message_at
@@ -63,8 +65,27 @@ final class SalesConversation extends Model
         'meet_status',
         'meet_proposed_at',
         'meet_notified_at',
+        'meet_completed_at',
+        'meet_outcome_note',
         'converted',
         'lost_at',
+    ];
+
+    public const MEET_STATUS_PROPOSED = 'proposed';
+
+    public const MEET_STATUS_CONFIRMED = 'confirmed';
+
+    public const MEET_STATUS_COMPLETED = 'completed';
+
+    public const MEET_STATUS_NO_SHOW = 'no_show';
+
+    public const MEET_STATUS_CANCELLED = 'cancelled';
+
+    /** @var list<string> */
+    public const MEET_CLOSED_STATUSES = [
+        self::MEET_STATUS_COMPLETED,
+        self::MEET_STATUS_NO_SHOW,
+        self::MEET_STATUS_CANCELLED,
     ];
 
     protected function casts(): array
@@ -82,9 +103,15 @@ final class SalesConversation extends Model
             'meet_at'              => 'datetime',
             'meet_proposed_at'     => 'datetime',
             'meet_notified_at'     => 'datetime',
+            'meet_completed_at'    => 'datetime',
             'converted'            => 'boolean',
             'lost_at'              => 'datetime',
         ];
+    }
+
+    public function isMeetClosed(): bool
+    {
+        return in_array($this->meet_status, self::MEET_CLOSED_STATUSES, true);
     }
 
     /**

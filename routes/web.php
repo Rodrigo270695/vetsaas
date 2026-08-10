@@ -1334,6 +1334,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             ->get('salesbot-meetings', [SalesBotMeetingController::class, 'index'])
             ->name('salesbot-meetings.index');
         Route::middleware('permission:salesbot-knowledge.update')
+            ->post('salesbot-meetings/{conversation}/status', [SalesBotMeetingController::class, 'updateStatus'])
+            ->name('salesbot-meetings.update-status');
+        Route::middleware('permission:salesbot-knowledge.update')
             ->get('google-calendar/connect', [GoogleCalendarOAuthController::class, 'connect'])
             ->name('google-calendar.connect');
         Route::middleware('permission:salesbot-knowledge.update')

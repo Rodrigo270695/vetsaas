@@ -1,6 +1,15 @@
-import { Head } from '@inertiajs/react';
-import { CalendarDays, ExternalLink, Video } from 'lucide-react';
-import { useMemo } from 'react';
+import { Head, router } from '@inertiajs/react';
+import {
+    CalendarDays,
+    CheckCircle2,
+    ExternalLink,
+    MoreHorizontal,
+    RotateCcw,
+    UserX,
+    Video,
+    XCircle,
+} from 'lucide-react';
+import { useMemo, useState, type FormEvent } from 'react';
 import {
     DataPagination,
     DataTable,
@@ -12,24 +21,55 @@ import {
 } from '@/components/data-page';
 import type { DataTableColumn, FilterChip } from '@/components/data-page';
 import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { useDataTablePage } from '@/hooks/use-data-table-page';
 import AppLayout from '@/layouts/app-layout';
+import { cn } from '@/lib/utils';
 import type { Paginated } from '@/types';
+
+type MeetStatus = 'proposed' | 'confirmed' | 'completed' | 'no_show' | 'cancelled' | string | null;
 
 type Meeting = {
     id: string;
     phone: string;
     prospect_name: string | null;
-    meet_status: string | null;
+    meet_status: MeetStatus;
     meet_at: string | null;
     meet_proposed_at: string | null;
     meet_link: string | null;
     google_event_id: string | null;
     meet_notified_at: string | null;
+    meet_completed_at: string | null;
+    meet_outcome_note: string | null;
     last_message_at: string | null;
+    needs_close: boolean;
 };
 
-type EstadoFilter = 'confirmadas' | 'propuestas' | 'proximas' | 'todas';
+type CloseStatus = 'completed' | 'no_show' | 'cancelled';
+
+type EstadoFilter =
+    | 'confirmadas'
+    | 'propuestas'
+    | 'proximas'
+    | 'por_cerrar'
+    | 'realizadas'
+    | 'todas';
 
 type Props = {
     meetings: Paginated<Meeting>;
@@ -44,6 +84,8 @@ type Props = {
         confirmadas: number;
         propuestas: number;
         proximas: number;
+        por_cerrar: number;
+        realizadas: number;
         coincidencias: number;
     };
 };
@@ -67,6 +109,44 @@ const formatPhone = (phone: string): string => {
     return phone;
 };
 
+const isClosed = (status: MeetStatus): boolean =>
+    status === 'completed' || status === 'no_show' || status === 'cancelled';
+
+const statusLabel = (row: Meeting): { label: string; variant: 'success' | 'warning' | 'info' | 'default' | 'danger' } => {
+    if (row.meet_status === 'completed') {
+        return { label: 'Realizada', variant: 'success' };
+    }
+    if (row.meet_status === 'no_show') {
+        return { label: 'No asistió', variant: 'danger' };
+    }
+    if (row.meet_status === 'cancelled') {
+        return { label: 'Cancelada', variant: 'default' };
+    }
+    if (row.meet_status === 'proposed') {
+        return { label: 'Pendiente confirmación', variant: 'warning' };
+    }
+    if (row.needs_close) {
+        return { label: 'Por cerrar', variant: 'warning' };
+    }
+    if (row.meet_link && (row.meet_status === 'confirmed' || !row.meet_status)) {
+        return { label: 'Confirmada', variant: 'success' };
+    }
+
+    return { label: row.meet_status || '—', variant: 'default' };
+};
+
+const closeTitles: Record<CloseStatus, string> = {
+    completed: 'Marcar como realizada',
+    no_show: 'Marcar como no asistió',
+    cancelled: 'Cancelar reunión',
+};
+
+const closeDescriptions: Record<CloseStatus, string> = {
+    completed: 'El tour se llevó a cabo. Puedes dejar una nota breve del resultado.',
+    no_show: 'La hora llegó y el lead no entró a la reunión.',
+    cancelled: 'La reunión no se hará / se canceló.',
+};
+
 export default function SalesBotMeetingsIndex({ meetings, filters, stats }: Props) {
     const { search, setSearch, isLoading, setPerPage, applyFilter } = useDataTablePage<{
         estado: EstadoFilter;
@@ -79,11 +159,53 @@ export default function SalesBotMeetingsIndex({ meetings, filters, stats }: Prop
         defaults: { per_page: DEFAULT_PER_PAGE, sort: null, direction: null },
     });
 
+    const [dialogMeeting, setDialogMeeting] = useState<Meeting | null>(null);
+    const [dialogStatus, setDialogStatus] = useState<CloseStatus>('completed');
+    const [note, setNote] = useState('');
+    const [processing, setProcessing] = useState(false);
+    const [formError, setFormError] = useState<string | null>(null);
+
+    const openCloseDialog = (meeting: Meeting, status: CloseStatus): void => {
+        setDialogMeeting(meeting);
+        setDialogStatus(status);
+        setNote(meeting.meet_outcome_note ?? '');
+        setFormError(null);
+    };
+
+    const submitStatus = (meetingId: string, status: string, outcomeNote: string | null): void => {
+        setProcessing(true);
+        setFormError(null);
+        router.post(
+            `/plataforma/salesbot-meetings/${meetingId}/status`,
+            { status, note: outcomeNote },
+            {
+                preserveScroll: true,
+                only: ['meetings', 'filters', 'stats'],
+                onFinish: () => setProcessing(false),
+                onSuccess: () => {
+                    setDialogMeeting(null);
+                    setNote('');
+                },
+                onError: (errs) => {
+                    setFormError(errs.status ?? errs.note ?? 'No se pudo actualizar el estado.');
+                },
+            },
+        );
+    };
+
+    const onDialogSubmit = (event: FormEvent<HTMLFormElement>): void => {
+        event.preventDefault();
+        if (!dialogMeeting) return;
+        submitStatus(dialogMeeting.id, dialogStatus, note.trim() === '' ? null : note.trim());
+    };
+
     const estadoOptions: FilterChip[] = useMemo(
         () => [
             { value: 'confirmadas', label: `Confirmadas ${stats.confirmadas}` },
             { value: 'propuestas', label: `Propuestas ${stats.propuestas}` },
             { value: 'proximas', label: `Próximas ${stats.proximas}` },
+            { value: 'por_cerrar', label: `Por cerrar ${stats.por_cerrar}` },
+            { value: 'realizadas', label: `Cerradas ${stats.realizadas}` },
             { value: 'todas', label: 'Todas' },
         ],
         [stats],
@@ -112,6 +234,11 @@ export default function SalesBotMeetingsIndex({ meetings, filters, stats }: Prop
                     <div className="text-sm">
                         <p>{formatWhen(row.meet_at ?? row.meet_proposed_at)}</p>
                         <p className="text-xs text-muted-foreground">Hora Perú</p>
+                        {row.meet_completed_at && (
+                            <p className="mt-0.5 text-xs text-muted-foreground">
+                                Cerrada: {formatWhen(row.meet_completed_at)}
+                            </p>
+                        )}
                     </div>
                 ),
             },
@@ -119,15 +246,17 @@ export default function SalesBotMeetingsIndex({ meetings, filters, stats }: Prop
                 key: 'meet_status',
                 header: 'Estado',
                 cell: (row) => {
-                    if (row.meet_link && (row.meet_status === 'confirmed' || !row.meet_status)) {
-                        return <StatBadge label="Confirmada" value="" variant="success" />;
-                    }
-                    if (row.meet_status === 'proposed') {
-                        return (
-                            <StatBadge label="Pendiente confirmación" value="" variant="warning" />
-                        );
-                    }
-                    return <StatBadge label={row.meet_status || '—'} value="" variant="default" />;
+                    const badge = statusLabel(row);
+                    return (
+                        <div className="space-y-1">
+                            <StatBadge label={badge.label} value="" variant={badge.variant} />
+                            {row.meet_outcome_note && (
+                                <p className="max-w-56 truncate text-xs text-muted-foreground" title={row.meet_outcome_note}>
+                                    {row.meet_outcome_note}
+                                </p>
+                            )}
+                        </div>
+                    );
                 },
             },
             {
@@ -152,6 +281,78 @@ export default function SalesBotMeetingsIndex({ meetings, filters, stats }: Prop
                         <span className="text-xs text-muted-foreground">Sin link aún</span>
                     ),
             },
+            {
+                key: 'actions',
+                header: 'Acciones',
+                cell: (row) => {
+                    const canClose = Boolean(row.meet_link) && !isClosed(row.meet_status);
+                    const canReopen = isClosed(row.meet_status);
+
+                    if (!canClose && !canReopen) {
+                        return <span className="text-xs text-muted-foreground">—</span>;
+                    }
+
+                    return (
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className={cn(
+                                        'size-8',
+                                        row.needs_close && 'text-amber-600 dark:text-amber-400',
+                                    )}
+                                    aria-label="Acciones de reunión"
+                                >
+                                    <MoreHorizontal className="size-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-52">
+                                {canClose && (
+                                    <>
+                                        <DropdownMenuItem
+                                            className="cursor-pointer gap-2"
+                                            onClick={() => openCloseDialog(row, 'completed')}
+                                        >
+                                            <CheckCircle2 className="size-4" />
+                                            Realizada
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                            className="cursor-pointer gap-2"
+                                            onClick={() => openCloseDialog(row, 'no_show')}
+                                        >
+                                            <UserX className="size-4" />
+                                            No asistió
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                            className="cursor-pointer gap-2"
+                                            onClick={() => openCloseDialog(row, 'cancelled')}
+                                        >
+                                            <XCircle className="size-4" />
+                                            Cancelar
+                                        </DropdownMenuItem>
+                                    </>
+                                )}
+                                {canReopen && (
+                                    <>
+                                        {canClose && <DropdownMenuSeparator />}
+                                        <DropdownMenuItem
+                                            className="cursor-pointer gap-2"
+                                            onClick={() =>
+                                                submitStatus(row.id, 'confirmed', row.meet_outcome_note)
+                                            }
+                                        >
+                                            <RotateCcw className="size-4" />
+                                            Reabrir
+                                        </DropdownMenuItem>
+                                    </>
+                                )}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    );
+                },
+            },
         ],
         [],
     );
@@ -162,7 +363,7 @@ export default function SalesBotMeetingsIndex({ meetings, filters, stats }: Prop
             <div className="flex h-full flex-1 flex-col gap-4 p-4 md:p-6">
                 <PageHeader
                     title="Reuniones agendadas"
-                    description="Tours Meet propuestos y confirmados por el bot de ventas."
+                    description="Tours Meet propuestos, confirmados y cerrados por el bot de ventas."
                     stats={[
                         {
                             label: 'Confirmadas',
@@ -170,13 +371,13 @@ export default function SalesBotMeetingsIndex({ meetings, filters, stats }: Prop
                             variant: 'success',
                         },
                         {
-                            label: 'Propuestas',
-                            value: String(stats.propuestas),
+                            label: 'Por cerrar',
+                            value: String(stats.por_cerrar),
                             variant: 'warning',
                         },
                         {
-                            label: 'Próximas',
-                            value: String(stats.proximas),
+                            label: 'Cerradas',
+                            value: String(stats.realizadas),
                             variant: 'info',
                         },
                         {
@@ -229,6 +430,59 @@ export default function SalesBotMeetingsIndex({ meetings, filters, stats }: Prop
                     }
                 />
             </div>
+
+            <Dialog
+                open={dialogMeeting !== null}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setDialogMeeting(null);
+                        setFormError(null);
+                    }
+                }}
+            >
+                <DialogContent className="sm:max-w-md">
+                    <form onSubmit={onDialogSubmit} className="flex flex-col gap-4">
+                        <DialogHeader>
+                            <DialogTitle>{closeTitles[dialogStatus]}</DialogTitle>
+                            <DialogDescription>
+                                {dialogMeeting
+                                    ? `${dialogMeeting.prospect_name || 'Lead'} · ${formatWhen(dialogMeeting.meet_at)}`
+                                    : ''}
+                                <span className="mt-1 block">{closeDescriptions[dialogStatus]}</span>
+                            </DialogDescription>
+                        </DialogHeader>
+
+                        <div className="flex flex-col gap-1.5">
+                            <Label htmlFor="meet-outcome-note">Nota (opcional)</Label>
+                            <Textarea
+                                id="meet-outcome-note"
+                                value={note}
+                                onChange={(e) => setNote(e.target.value)}
+                                maxLength={500}
+                                rows={3}
+                                placeholder="Ej. Interesado, pide demo / No contestó…"
+                            />
+                            {formError && (
+                                <p className="text-xs text-red-600 dark:text-red-400">{formError}</p>
+                            )}
+                        </div>
+
+                        <DialogFooter>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setDialogMeeting(null)}
+                                disabled={processing}
+                            >
+                                Volver
+                            </Button>
+                            <Button type="submit" disabled={processing}>
+                                {processing ? 'Guardando…' : 'Confirmar'}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
         </>
     );
 }

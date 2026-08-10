@@ -4,8 +4,12 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\UpdateSalesBotMeetingStatusRequest;
 use App\Models\SalesConversation;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Carbon\CarbonInterface;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -15,6 +19,9 @@ use Inertia\Response;
 final class SalesBotMeetingController extends Controller
 {
     private const PER_PAGE_OPTIONS = [10, 15, 25, 50];
+
+    /** Minutos tras meet_at para considerar que ya debería cerrarse. */
+    private const CLOSE_GRACE_MINUTES = 60;
 
     public function index(Request $request): Response
     {
@@ -26,32 +33,25 @@ final class SalesBotMeetingController extends Controller
             $perPage = 15;
         }
 
+        $graceBefore = now()->subMinutes(self::CLOSE_GRACE_MINUTES);
+
         $query = SalesConversation::query()
             ->where(function ($q): void {
                 $q->whereNotNull('meet_link')
                     ->orWhereNotNull('meet_proposed_at')
-                    ->orWhere('meet_status', 'proposed')
-                    ->orWhere('meet_status', 'confirmed');
+                    ->orWhere('meet_status', SalesConversation::MEET_STATUS_PROPOSED)
+                    ->orWhere('meet_status', SalesConversation::MEET_STATUS_CONFIRMED)
+                    ->orWhereIn('meet_status', SalesConversation::MEET_CLOSED_STATUSES);
             });
 
-        if ($estado === 'confirmadas') {
-            $query->whereNotNull('meet_link')
-                ->where(function ($q): void {
-                    $q->where('meet_status', 'confirmed')
-                        ->orWhereNull('meet_status');
-                });
-        } elseif ($estado === 'propuestas') {
-            $query->where('meet_status', 'proposed')->whereNull('meet_link');
-        } elseif ($estado === 'proximas') {
-            $query->whereNotNull('meet_link')
-                ->where('meet_at', '>=', now()->subHour());
-        }
+        $this->applyEstadoFilter($query, $estado, $graceBefore);
 
         if ($search !== '') {
             $query->where(function ($q) use ($search): void {
                 $q->where('phone', 'ilike', "%{$search}%")
                     ->orWhere('prospect_name', 'ilike', "%{$search}%")
-                    ->orWhere('meet_link', 'ilike', "%{$search}%");
+                    ->orWhere('meet_link', 'ilike', "%{$search}%")
+                    ->orWhere('meet_outcome_note', 'ilike', "%{$search}%");
             });
         }
 
@@ -73,24 +73,29 @@ final class SalesBotMeetingController extends Controller
                 'meet_link' => $c->meet_link,
                 'google_event_id' => $c->google_event_id,
                 'meet_notified_at' => $c->meet_notified_at?->toIso8601String(),
+                'meet_completed_at' => $c->meet_completed_at
+                    ? $c->meet_completed_at->timezone('America/Lima')->toIso8601String()
+                    : null,
+                'meet_outcome_note' => $c->meet_outcome_note,
                 'last_message_at' => $c->last_message_at?->toIso8601String(),
+                'needs_close' => $this->needsClose($c, $graceBefore),
             ]);
 
         $stats = [
-            'confirmadas' => SalesConversation::query()
-                ->whereNotNull('meet_link')
-                ->where(function ($q): void {
-                    $q->where('meet_status', 'confirmed')
-                        ->orWhereNull('meet_status');
-                })
-                ->count(),
+            'confirmadas' => $this->baseOpenConfirmedQuery()->count(),
             'propuestas' => SalesConversation::query()
-                ->where('meet_status', 'proposed')
+                ->where('meet_status', SalesConversation::MEET_STATUS_PROPOSED)
                 ->whereNull('meet_link')
                 ->count(),
-            'proximas' => SalesConversation::query()
-                ->whereNotNull('meet_link')
-                ->where('meet_at', '>=', now()->subHour())
+            'proximas' => $this->baseOpenConfirmedQuery()
+                ->where('meet_at', '>=', $graceBefore)
+                ->count(),
+            'por_cerrar' => $this->baseOpenConfirmedQuery()
+                ->whereNotNull('meet_at')
+                ->where('meet_at', '<', $graceBefore)
+                ->count(),
+            'realizadas' => SalesConversation::query()
+                ->whereIn('meet_status', SalesConversation::MEET_CLOSED_STATUSES)
                 ->count(),
             'coincidencias' => $meetings->total(),
         ];
@@ -106,5 +111,134 @@ final class SalesBotMeetingController extends Controller
             ],
             'stats' => $stats,
         ]);
+    }
+
+    public function updateStatus(
+        UpdateSalesBotMeetingStatusRequest $request,
+        SalesConversation $conversation,
+    ): RedirectResponse {
+        $status = (string) $request->validated('status');
+        $note = $request->validated('note');
+        $note = is_string($note) ? trim($note) : null;
+        if ($note === '') {
+            $note = null;
+        }
+
+        if ($conversation->meet_link === null && $status !== SalesConversation::MEET_STATUS_CANCELLED) {
+            return back()->withErrors([
+                'status' => 'Solo se pueden cerrar reuniones con Meet confirmado.',
+            ]);
+        }
+
+        if ($status === SalesConversation::MEET_STATUS_CONFIRMED) {
+            $conversation->meet_status = SalesConversation::MEET_STATUS_CONFIRMED;
+            $conversation->meet_completed_at = null;
+            $conversation->meet_outcome_note = $note;
+            $conversation->save();
+
+            return back()->with('success', 'Reunión reabierta como confirmada.');
+        }
+
+        $conversation->meet_status = $status;
+        $conversation->meet_completed_at = now();
+        $conversation->meet_outcome_note = $note;
+        $conversation->save();
+
+        $label = match ($status) {
+            SalesConversation::MEET_STATUS_COMPLETED => 'marcada como realizada',
+            SalesConversation::MEET_STATUS_NO_SHOW => 'marcada como no asistió',
+            default => 'marcada como cancelada',
+        };
+
+        return back()->with('success', "Reunión {$label}.");
+    }
+
+    /**
+     * @param  Builder<SalesConversation>  $query
+     */
+    private function applyEstadoFilter(Builder $query, string $estado, CarbonInterface $graceBefore): void
+    {
+        if ($estado === 'confirmadas') {
+            $this->constrainOpenConfirmed($query);
+
+            return;
+        }
+
+        if ($estado === 'propuestas') {
+            $query->where('meet_status', SalesConversation::MEET_STATUS_PROPOSED)
+                ->whereNull('meet_link');
+
+            return;
+        }
+
+        if ($estado === 'proximas') {
+            $this->constrainOpenConfirmed($query)
+                ->where('meet_at', '>=', $graceBefore);
+
+            return;
+        }
+
+        if ($estado === 'por_cerrar') {
+            $this->constrainOpenConfirmed($query)
+                ->whereNotNull('meet_at')
+                ->where('meet_at', '<', $graceBefore);
+
+            return;
+        }
+
+        if ($estado === 'realizadas') {
+            $query->whereIn('meet_status', SalesConversation::MEET_CLOSED_STATUSES);
+
+            return;
+        }
+
+        // todas: sin filtro extra de estado
+    }
+
+    /**
+     * @return Builder<SalesConversation>
+     */
+    private function baseOpenConfirmedQuery(): Builder
+    {
+        return $this->constrainOpenConfirmed(SalesConversation::query());
+    }
+
+    /**
+     * @param  Builder<SalesConversation>  $query
+     * @return Builder<SalesConversation>
+     */
+    private function constrainOpenConfirmed(Builder $query): Builder
+    {
+        return $query
+            ->whereNotNull('meet_link')
+            ->where(function ($q): void {
+                $q->where('meet_status', SalesConversation::MEET_STATUS_CONFIRMED)
+                    ->orWhereNull('meet_status');
+            })
+            ->where(function ($q): void {
+                $q->whereNull('meet_status')
+                    ->orWhereNotIn('meet_status', SalesConversation::MEET_CLOSED_STATUSES);
+            });
+    }
+
+    private function needsClose(SalesConversation $conversation, CarbonInterface $graceBefore): bool
+    {
+        if ($conversation->meet_link === null || $conversation->meet_at === null) {
+            return false;
+        }
+
+        if ($conversation->isMeetClosed()) {
+            return false;
+        }
+
+        $status = $conversation->meet_status;
+
+        if ($status !== null
+            && $status !== SalesConversation::MEET_STATUS_CONFIRMED
+        ) {
+            return false;
+        }
+
+        return $conversation->meet_at->lt($graceBefore);
     }
 }
