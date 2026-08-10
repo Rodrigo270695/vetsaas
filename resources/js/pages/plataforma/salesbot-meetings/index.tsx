@@ -52,7 +52,11 @@ const DEFAULT_PER_PAGE = 15;
 
 const formatWhen = (iso: string | null): string => {
     if (!iso) return '—';
-    return new Date(iso).toLocaleString('es-PE', { dateStyle: 'medium', timeStyle: 'short' });
+    return new Date(iso).toLocaleString('es-PE', {
+        timeZone: 'America/Lima',
+        dateStyle: 'medium',
+        timeStyle: 'short',
+    });
 };
 
 const formatPhone = (phone: string): string => {

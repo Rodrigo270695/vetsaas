@@ -64,8 +64,12 @@ final class SalesBotMeetingController extends Controller
                 'phone' => $c->phone,
                 'prospect_name' => $c->prospect_name,
                 'meet_status' => $c->meet_status,
-                'meet_at' => $c->meet_at?->toIso8601String(),
-                'meet_proposed_at' => $c->meet_proposed_at?->toIso8601String(),
+                'meet_at' => $c->meet_at
+                    ? $c->meet_at->timezone('America/Lima')->toIso8601String()
+                    : null,
+                'meet_proposed_at' => $c->meet_proposed_at
+                    ? $c->meet_proposed_at->timezone('America/Lima')->toIso8601String()
+                    : null,
                 'meet_link' => $c->meet_link,
                 'google_event_id' => $c->google_event_id,
                 'meet_notified_at' => $c->meet_notified_at?->toIso8601String(),

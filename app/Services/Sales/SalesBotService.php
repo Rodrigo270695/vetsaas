@@ -659,11 +659,11 @@ PROMPT;
             return $clean;
         }
 
-        $conversation->meet_proposed_at = $startsAt->utc();
+        $conversation->meet_proposed_at = $startsAt;
         $conversation->meet_status = 'proposed';
         // Aún no hay Meet real.
         if ($conversation->meet_link === null) {
-            $conversation->meet_at = $startsAt->utc();
+            $conversation->meet_at = $startsAt;
         }
 
         return $clean;
@@ -723,8 +723,8 @@ PROMPT;
                 : 'Tuve un detalle creando el Meet. Te confirmo el link en un momento 😊';
         }
 
-        $conversation->meet_at = $startsAt->utc();
-        $conversation->meet_proposed_at = $conversation->meet_proposed_at ?? $startsAt->utc();
+        $conversation->meet_at = $startsAt;
+        $conversation->meet_proposed_at = $conversation->meet_proposed_at ?? $startsAt;
         $conversation->meet_link = $event['meet_link'];
         $conversation->google_event_id = $event['event_id'] !== '' ? $event['event_id'] : null;
         $conversation->meet_status = 'confirmed';
