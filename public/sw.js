@@ -1,8 +1,8 @@
 /**
  * Service Worker VetSaaS — Fase 8 offline (+ centro de sync /offline/cola).
  */
-const STATIC_CACHE = 'vetsaas-static-v12';
-const INERTIA_OFFLINE_CACHE = 'vetsaas-inertia-offline-v12';
+const STATIC_CACHE = 'vetsaas-static-v13';
+const INERTIA_OFFLINE_CACHE = 'vetsaas-inertia-offline-v13';
 const OFFLINE_PREFIXES = [
     '/offline',
     '/caja',
@@ -195,6 +195,8 @@ self.addEventListener('push', (event) => {
         icon: '/icons/pwa/icon-192.png',
         badge: '/icons/pwa/icon-192.png',
         tag: payload.tag || 'vetsaas',
+        renotify: true,
+        requireInteraction: false,
         data: {
             url: payload.url || '/plataforma/salesbot-meetings',
         },

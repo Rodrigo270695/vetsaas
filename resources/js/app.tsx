@@ -86,8 +86,14 @@ window.addEventListener('unhandledrejection', (event) => {
 
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js').catch(() => {
-            /* sin SW la app sigue funcionando */
-        });
+        navigator.serviceWorker
+            .register('/sw.js')
+            .then((registration) => {
+                // Asegura que el SW con listeners push quede activo.
+                void registration.update();
+            })
+            .catch(() => {
+                /* sin SW la app sigue funcionando */
+            });
     });
 }

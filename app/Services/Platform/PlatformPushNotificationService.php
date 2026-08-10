@@ -83,21 +83,31 @@ final class PlatformPushNotificationService
         if ($subscriptions->isEmpty()) {
             Log::info('Web push omitido: nadie del superadmin tiene campana activa', [
                 'tag' => $tag,
+                'staff_user_ids' => $users->pluck('id')->all(),
             ]);
 
             return;
         }
 
         try {
-            $webPush = new WebPush([
-                'VAPID' => [
-                    'subject' => (string) config('webpush.vapid.subject'),
-                    'publicKey' => (string) config('webpush.vapid.public_key'),
-                    'privateKey' => (string) config('webpush.vapid.private_key'),
+            $webPush = new WebPush(
+                [
+                    'VAPID' => [
+                        'subject' => (string) config('webpush.vapid.subject'),
+                        'publicKey' => (string) config('webpush.vapid.public_key'),
+                        'privateKey' => (string) config('webpush.vapid.private_key'),
+                    ],
                 ],
-            ]);
+                [
+                    'TTL' => 300,
+                    'urgency' => 'high',
+                ],
+            );
         } catch (Throwable $e) {
-            Log::error('Web push init failed', ['error' => $e->getMessage()]);
+            Log::error('Web push init failed', [
+                'tag' => $tag,
+                'error' => $e->getMessage(),
+            ]);
 
             return;
         }
@@ -116,11 +126,17 @@ final class PlatformPushNotificationService
             );
         }
 
+        $sent = 0;
+        $failed = 0;
+
         foreach ($webPush->flush() as $report) {
             if ($report->isSuccess()) {
+                $sent++;
+
                 continue;
             }
 
+            $failed++;
             $endpoint = $report->getRequest()?->getUri()?->__toString();
             if (is_string($endpoint) && $endpoint !== '') {
                 PushSubscription::query()->where('endpoint', $endpoint)->delete();
@@ -131,5 +147,12 @@ final class PlatformPushNotificationService
                 'reason' => $report->getReason(),
             ]);
         }
+
+        Log::info('Web push enviado', [
+            'tag' => $tag,
+            'subscriptions' => $subscriptions->count(),
+            'sent' => $sent,
+            'failed' => $failed,
+        ]);
     }
 }

@@ -19,15 +19,69 @@ import { cn } from '@/lib/utils';
  */
 export function PushNotificationPrompt() {
     const [mounted, setMounted] = useState(false);
-    const { supported, permission, subscribed, swReady, loading, error, enable, disable } =
-        usePushNotifications();
+    const {
+        browserSupported,
+        configured,
+        permission,
+        subscribed,
+        swReady,
+        loading,
+        error,
+        enable,
+        disable,
+    } = usePushNotifications();
 
     useEffect(() => {
         setMounted(true);
     }, []);
 
-    if (!mounted || !supported) {
+    if (!mounted) {
         return null;
+    }
+
+    if (!browserSupported) {
+        return (
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="relative size-9 shrink-0 text-muted-foreground"
+                        aria-label="Push no soportado"
+                        disabled
+                    >
+                        <BellOff className="size-4 text-amber-600 dark:text-amber-400" />
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-xs text-xs">
+                    Este navegador no soporta Web Push
+                </TooltipContent>
+            </Tooltip>
+        );
+    }
+
+    if (!configured) {
+        return (
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="relative size-9 shrink-0 text-muted-foreground"
+                        aria-label="Push sin configurar"
+                        disabled
+                    >
+                        <BellOff className="size-4 text-amber-600 dark:text-amber-400" />
+                        <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-amber-500 ring-2 ring-background" />
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-xs text-xs">
+                    Falta configurar VAPID en el .env del servidor (php artisan config:clear)
+                </TooltipContent>
+            </Tooltip>
+        );
     }
 
     const needsAttention = !subscribed && permission !== 'denied';

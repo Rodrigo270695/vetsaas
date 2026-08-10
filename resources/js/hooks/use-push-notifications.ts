@@ -14,6 +14,8 @@ type PushShared = {
 };
 
 type UsePushNotificationsResult = {
+    browserSupported: boolean;
+    configured: boolean;
     supported: boolean;
     permission: NotificationPermission | 'unsupported';
     subscribed: boolean;
@@ -26,15 +28,17 @@ type UsePushNotificationsResult = {
 
 export function usePushNotifications(): UsePushNotificationsResult {
     const { push } = usePage().props as { push?: PushShared | null };
+    const browserSupported = isPushSupported();
+    const configured = Boolean(push?.enabled && push?.vapidPublicKey);
     const [permission, setPermission] = useState<NotificationPermission | 'unsupported'>(
-        isPushSupported() ? Notification.permission : 'unsupported',
+        browserSupported ? Notification.permission : 'unsupported',
     );
     const [subscribed, setSubscribed] = useState(false);
     const [swReady, setSwReady] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const supported = isPushSupported() && Boolean(push?.enabled && push?.vapidPublicKey);
+    const supported = browserSupported && configured;
 
     useEffect(() => {
         if (!supported) {
@@ -50,6 +54,9 @@ export function usePushNotifications(): UsePushNotificationsResult {
                 if (cancelled) {
                     return;
                 }
+
+                // Fuerza actualización del SW para tomar listeners de push nuevos.
+                void registration.update();
 
                 const existing = await registration.pushManager.getSubscription();
                 setSubscribed(existing !== null);
@@ -70,8 +77,13 @@ export function usePushNotifications(): UsePushNotificationsResult {
     }, [supported]);
 
     const enable = useCallback(async () => {
-        if (!supported || !push?.vapidPublicKey) {
-            setError('Las notificaciones push no están configuradas en el servidor.');
+        if (!browserSupported) {
+            setError('Este navegador no soporta notificaciones push.');
+            return;
+        }
+
+        if (!configured || !push?.vapidPublicKey) {
+            setError('Faltan VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY en el servidor.');
             return;
         }
 
@@ -80,6 +92,7 @@ export function usePushNotifications(): UsePushNotificationsResult {
 
         try {
             const registration = await waitForServiceWorker();
+            void registration.update();
             const result = await Notification.requestPermission();
             setPermission(result);
 
@@ -97,7 +110,7 @@ export function usePushNotifications(): UsePushNotificationsResult {
         } finally {
             setLoading(false);
         }
-    }, [push?.vapidPublicKey, supported]);
+    }, [browserSupported, configured, push?.vapidPublicKey]);
 
     const disable = useCallback(async () => {
         setLoading(true);
@@ -115,6 +128,8 @@ export function usePushNotifications(): UsePushNotificationsResult {
     }, []);
 
     return {
+        browserSupported,
+        configured,
         supported,
         permission,
         subscribed,
