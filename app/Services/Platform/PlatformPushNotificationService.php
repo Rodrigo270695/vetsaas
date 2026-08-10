@@ -70,6 +70,14 @@ final class PlatformPushNotificationService
             return;
         }
 
+        if (! class_exists(WebPush::class)) {
+            Log::error('Web push omitido: falta minishlink/web-push en vendor (composer install)', [
+                'tag' => $tag,
+            ]);
+
+            return;
+        }
+
         if ($users->isEmpty()) {
             Log::warning('Web push omitido: sin staff de plataforma', ['tag' => $tag]);
 
