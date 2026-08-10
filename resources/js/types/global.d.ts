@@ -40,6 +40,7 @@ declare module '@inertiajs/core' {
             tenant_modules: import('@/types/tenant-modules').TenantModulesSnapshot | null;
             tenant_impersonation: SharedTenantImpersonation | null;
             whatsapp_connection: import('@/types/whatsapp-connection').WhatsAppConnectionShared | null;
+            push: { enabled: boolean; vapidPublicKey: string | null } | null;
             [key: string]: unknown;
         };
     }

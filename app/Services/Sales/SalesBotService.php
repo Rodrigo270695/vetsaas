@@ -9,6 +9,7 @@ use App\Models\SalesBotKnowledge;
 use App\Models\SalesConversation;
 use App\Services\Google\GoogleCalendarMeetService;
 use App\Services\OpenWa\PlatformWhatsAppMessenger;
+use App\Services\Platform\PlatformPushNotificationService;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -59,6 +60,7 @@ final class SalesBotService
     public function __construct(
         private readonly PlatformWhatsAppMessenger $messenger,
         private readonly GoogleCalendarMeetService $googleCalendar,
+        private readonly PlatformPushNotificationService $platformPush,
     ) {}
 
     /**
@@ -269,15 +271,19 @@ Frases naturales:
 - "¿Qué día y hora te queda bien? Yo me adapto a tu agenda."
 - "Dime un horario que te acomode (hoy o esta semana) y lo coordinamos."
 
-Cuando el prospecto YA dio un día y hora claros (ej. "mañana a las 4", "el jueves 11am"):
-1. Confirma en lenguaje natural (sin inventar el link tú mismo).
-2. En UNA línea aparte al FINAL de tu respuesta, pon EXACTAMENTE este marcador (hora 24h, zona Perú):
+FLUJO OBLIGATORIO (2 pasos — NUNCA saltes la confirmación):
+A) El prospecto propone día/hora claros → CONFIRMA en lenguaje natural y pregunta:
+   "¿Confirmamos el tour para [día] a las [hora]?"
+   Al FINAL agrega EXACTAMENTE (hora 24h, Perú):
+   <<<MEET_PROPOSE YYYY-MM-DD HH:MM>>>
+   Todavía NO digas que ya hay link de Meet.
+B) El prospecto confirma (sí, ok, dale, confirmo, perfecto, va) → confirma el agendado y al FINAL:
    <<<MEET YYYY-MM-DD HH:MM>>>
-   Ejemplo: si hoy es 2026-08-10 y dice "mañana a las 4pm" → <<<MEET 2026-08-11 16:00>>>
-3. NO inventes ni pegues un link de Meet: el sistema lo genera y lo agrega solo.
-4. Si el horario es ambiguo ("en la tarde", "cuando puedas") → aclara con UNA pregunta; NO pongas el marcador.
+   (usa la misma fecha/hora propuesta o la última acordada)
+   NO inventes ni pegues un link de Meet: el sistema lo genera y lo agrega solo.
 
-Si pide video grabado y no hay → ofrece demo interactiva YA + pregunta si prefiere además un tour en vivo en el horario que él elija.
+Si el horario es ambiguo ("en la tarde") → aclara con UNA pregunta; NO pongas marcadores.
+Si pide video grabado y no hay → demo YA + pregunta si prefiere tour en vivo en SU horario.
 
 ---
 
@@ -315,9 +321,9 @@ Señales de intención de compra (activar PASO 6 de inmediato):
    Frase modelo (adapta el tono, no copies siempre igual):
    "O si tienes unos 15 a 20 min, con gusto te doy un tour del sistema y lo vemos juntos."
    Pregunta qué día/hora le queda bien a ÉL/ELLA.
-   Cuando confirme fecha+hora → usa el marcador <<<MEET YYYY-MM-DD HH:MM>>> (ver sección REUNIÓN).
+   Primero <<<MEET_PROPOSE ...>>> (pedir confirmación). Solo tras el "sí" del cliente → <<<MEET ...>>>.
 15. Tras enviar la demo: 1 pregunta corta tipo "¿Pudiste entrar?" está bien. El sistema hará un follow-up solo a los ~5–10 min si no responde; tú no bombardees ahora.
-16. NUNCA inventes URLs de Meet ni digas "te mando el link" sin el marcador MEET cuando ya hay horario concreto.
+16. NUNCA inventes URLs de Meet. NUNCA crees el Meet sin confirmación explícita del cliente.
 
 ## AUTONOMÍA Y HUMANIDAD
 - Habla como asesor real de WhatsApp, no como FAQ. Varía el inicio: "Dale", "Buena", "Entiendo", "Perfecto".
@@ -629,38 +635,51 @@ PROMPT;
     }
 
     /**
-     * Detecta <<<MEET YYYY-MM-DD HH:MM>>>, crea Google Meet y deja el link en el mensaje.
+     * Marcadores:
+     * - <<<MEET_PROPOSE YYYY-MM-DD HH:MM>>> → guarda propuesta (pide confirmación al lead)
+     * - <<<MEET YYYY-MM-DD HH:MM>>> → crea Google Meet + notifica Rodrigo (WhatsApp + push)
      */
     public function attachMeetLinkIfRequested(SalesConversation $conversation, string $reply): string
     {
-        if (! preg_match('/<<<\s*MEET\s+(\d{4}-\d{2}-\d{2})\s+(\d{1,2}:\d{2})\s*>>>/iu', $reply, $m)) {
+        $reply = $this->handleMeetProposeMarker($conversation, $reply);
+
+        return $this->handleMeetConfirmMarker($conversation, $reply);
+    }
+
+    private function handleMeetProposeMarker(SalesConversation $conversation, string $reply): string
+    {
+        if (! preg_match('/<<<\s*MEET_PROPOSE\s+(\d{4}-\d{2}-\d{2})\s+(\d{1,2}:\d{2})\s*>>>/iu', $reply, $m)) {
             return $reply;
         }
 
-        $clean = trim(preg_replace('/<<<\s*MEET\s+\d{4}-\d{2}-\d{2}\s+\d{1,2}:\d{2}\s*>>>/iu', '', $reply) ?? $reply);
-        $clean = trim(preg_replace("/\n{3,}/u", "\n\n", $clean) ?? $clean);
+        $clean = $this->stripMeetMarkers($reply);
+        $startsAt = $this->parseMeetDateTime($m[1], $m[2]);
 
+        if ($startsAt === null) {
+            return $clean;
+        }
+
+        $conversation->meet_proposed_at = $startsAt->utc();
+        $conversation->meet_status = 'proposed';
+        // Aún no hay Meet real.
+        if ($conversation->meet_link === null) {
+            $conversation->meet_at = $startsAt->utc();
+        }
+
+        return $clean;
+    }
+
+    private function handleMeetConfirmMarker(SalesConversation $conversation, string $reply): string
+    {
+        if (! preg_match('/<<<\s*MEET(?!_PROPOSE)\s+(\d{4}-\d{2}-\d{2})\s+(\d{1,2}:\d{2})\s*>>>/iu', $reply, $m)) {
+            return $reply;
+        }
+
+        $clean = $this->stripMeetMarkers($reply);
+        $startsAt = $this->parseMeetDateTime($m[1], $m[2]);
         $tz = (string) config('google-calendar.timezone', config('app.timezone', 'America/Lima'));
-        $date = $m[1];
-        $time = $m[2];
-        if (preg_match('/^\d:\d{2}$/', $time)) {
-            $time = '0'.$time;
-        }
 
-        try {
-            $startsAt = CarbonImmutable::createFromFormat('Y-m-d H:i', "{$date} {$time}", $tz);
-        } catch (Throwable) {
-            Log::warning('SalesBot MEET marker fecha inválida', [
-                'phone' => $conversation->phone,
-                'marker' => $m[0],
-            ]);
-
-            return $clean !== ''
-                ? $clean."\n\nDame un momento y te confirmo el link de la reunión 😊"
-                : 'Dame un momento y te confirmo el link de la reunión 😊';
-        }
-
-        if ($startsAt === false) {
+        if ($startsAt === null) {
             return $clean !== ''
                 ? $clean."\n\nDame un momento y te confirmo el link de la reunión 😊"
                 : 'Dame un momento y te confirmo el link de la reunión 😊';
@@ -705,8 +724,12 @@ PROMPT;
         }
 
         $conversation->meet_at = $startsAt->utc();
+        $conversation->meet_proposed_at = $conversation->meet_proposed_at ?? $startsAt->utc();
         $conversation->meet_link = $event['meet_link'];
         $conversation->google_event_id = $event['event_id'] !== '' ? $event['event_id'] : null;
+        $conversation->meet_status = 'confirmed';
+
+        $this->notifyStaffAboutConfirmedMeet($conversation, $startsAt, $event['meet_link']);
 
         $whenHuman = $startsAt->locale('es')->isoFormat('dddd D [de] MMMM, HH:mm');
         $meetLine = "Listo ✅ Nos vemos el {$whenHuman} (hora Perú).\nEntra aquí: {$event['meet_link']}";
@@ -716,6 +739,84 @@ PROMPT;
         }
 
         return $clean."\n\n".$meetLine;
+    }
+
+    private function stripMeetMarkers(string $reply): string
+    {
+        $clean = preg_replace('/<<<\s*MEET_PROPOSE\s+\d{4}-\d{2}-\d{2}\s+\d{1,2}:\d{2}\s*>>>/iu', '', $reply) ?? $reply;
+        $clean = preg_replace('/<<<\s*MEET(?!_PROPOSE)\s+\d{4}-\d{2}-\d{2}\s+\d{1,2}:\d{2}\s*>>>/iu', '', $clean) ?? $clean;
+        $clean = trim(preg_replace("/\n{3,}/u", "\n\n", $clean) ?? $clean);
+
+        return $clean;
+    }
+
+    private function parseMeetDateTime(string $date, string $time): ?CarbonImmutable
+    {
+        $tz = (string) config('google-calendar.timezone', config('app.timezone', 'America/Lima'));
+        if (preg_match('/^\d:\d{2}$/', $time)) {
+            $time = '0'.$time;
+        }
+
+        try {
+            $startsAt = CarbonImmutable::createFromFormat('Y-m-d H:i', "{$date} {$time}", $tz);
+        } catch (Throwable) {
+            return null;
+        }
+
+        return $startsAt instanceof CarbonImmutable ? $startsAt : null;
+    }
+
+    private function notifyStaffAboutConfirmedMeet(
+        SalesConversation $conversation,
+        CarbonImmutable $startsAt,
+        string $meetLink,
+    ): void {
+        $name = trim((string) ($conversation->prospect_name ?? ''));
+        $leadLabel = $name !== '' ? $name : 'Lead';
+        $phone = (string) $conversation->phone;
+        $whenHuman = $startsAt->locale('es')->isoFormat('dddd D [de] MMMM [a las] HH:mm');
+
+        $whatsappBody = implode("\n", [
+            '📅 *Nueva reunión VetSaaS confirmada*',
+            '',
+            "👤 Lead: *{$leadLabel}*",
+            "📱 WhatsApp: +{$phone}",
+            "🕐 Horario: *{$whenHuman}* (Perú)",
+            "⏱️ Duración: ~15–20 min",
+            "🔗 Meet: {$meetLink}",
+            '',
+            '¡Éxito con el tour! 🐾✨',
+        ]);
+
+        try {
+            $notifyPhone = $this->normalizeLeadPhone((string) config('salesbot.meet_notify_whatsapp', '51976709811'));
+            if ($notifyPhone !== '' && $this->messenger->isReady()) {
+                $chatId = $notifyPhone.'@c.us';
+                $this->messenger->sendText($chatId, $whatsappBody);
+                $this->rememberOutgoingBotMessage($notifyPhone, $whatsappBody);
+            }
+        } catch (Throwable $e) {
+            Log::error('SalesBot meet WhatsApp notify failed', [
+                'error' => $e->getMessage(),
+                'conversation_id' => $conversation->id,
+            ]);
+        }
+
+        try {
+            $this->platformPush->notifyPlatformStaff([
+                'title' => '📅 Reunión VetSaaS confirmada',
+                'body' => "{$leadLabel} · {$whenHuman}",
+                'url' => '/plataforma/salesbot-meetings',
+                'tag' => 'salesbot-meet-'.$conversation->id,
+            ]);
+        } catch (Throwable $e) {
+            Log::error('SalesBot meet push notify failed', [
+                'error' => $e->getMessage(),
+                'conversation_id' => $conversation->id,
+            ]);
+        }
+
+        $conversation->meet_notified_at = now();
     }
 
     /**

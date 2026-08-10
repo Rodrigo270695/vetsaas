@@ -530,6 +530,12 @@ function useNavConfig(): { singles: NavItem[]; groups: NavGroup[] } {
                             permission: 'salesbot-knowledge.view',
                         },
                         {
+                            title: t('items.salesbot_meetings'),
+                            href: '/plataforma/salesbot-meetings',
+                            icon: CalendarDays,
+                            permission: 'salesbot-knowledge.view',
+                        },
+                        {
                             title: t('items.salesbot_knowledge'),
                             href: '/plataforma/salesbot-knowledge',
                             icon: Bot,

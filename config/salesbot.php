@@ -98,6 +98,12 @@ return [
     'demo_followup_minutes' => (int) env('SALESBOT_DEMO_FOLLOWUP_MINUTES', 7),
 
     /*
+    | WhatsApp personal (Rodrigo) al confirmar un Meet del SalesBot.
+    | Formato: 519XXXXXXXX o 9XXXXXXXX.
+    */
+    'meet_notify_whatsapp' => env('SALESBOT_MEET_NOTIFY_WHATSAPP', '51976709811'),
+
+    /*
     | Esperar N segundos de silencio del prospecto antes de responder (agrupa
     | varias líneas / mensajes rápidos en un solo reply de IA).
     */

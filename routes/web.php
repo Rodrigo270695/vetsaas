@@ -61,7 +61,9 @@ use App\Http\Controllers\ReporteFinancieroController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SalesBotConversationController;
 use App\Http\Controllers\SalesBotKnowledgeController;
+use App\Http\Controllers\SalesBotMeetingController;
 use App\Http\Controllers\GoogleCalendarOAuthController;
+use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\SedeController;
 use App\Http\Controllers\ServiciosAgendaController;
 use App\Http\Controllers\StockInventarioController;
@@ -176,6 +178,14 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
     Route::middleware('permission:salesbot-knowledge.update')
         ->get('google/oauth/callback', [GoogleCalendarOAuthController::class, 'callback'])
         ->name('google-calendar.callback');
+
+    // Web Push (solo usuarios centrales; el controller valida tenant_id null).
+    Route::post('push/subscribe', [PushSubscriptionController::class, 'store'])
+        ->middleware('throttle:30,1')
+        ->name('push.subscribe');
+    Route::delete('push/subscribe', [PushSubscriptionController::class, 'destroy'])
+        ->middleware('throttle:30,1')
+        ->name('push.unsubscribe');
 
     // Asistente in-app (ayuda + consulta de solo lectura).
     // Clínica (tenant) o portal central (superadmin).
@@ -1320,6 +1330,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:salesbot-knowledge.view')
             ->get('salesbot-conversations', [SalesBotConversationController::class, 'index'])
             ->name('salesbot-conversations.index');
+        Route::middleware('permission:salesbot-knowledge.view')
+            ->get('salesbot-meetings', [SalesBotMeetingController::class, 'index'])
+            ->name('salesbot-meetings.index');
         Route::middleware('permission:salesbot-knowledge.update')
             ->get('google-calendar/connect', [GoogleCalendarOAuthController::class, 'connect'])
             ->name('google-calendar.connect');

@@ -27,6 +27,9 @@ use Illuminate\Database\Eloquent\Model;
  * @property \Illuminate\Support\Carbon|null $meet_at              fecha/hora del tour Meet
  * @property string|null $meet_link
  * @property string|null $google_event_id
+ * @property string|null $meet_status          proposed | confirmed
+ * @property \Illuminate\Support\Carbon|null $meet_proposed_at
+ * @property \Illuminate\Support\Carbon|null $meet_notified_at
  * @property bool        $converted           true = lead convirtió (no reactivar más)
  * @property \Illuminate\Support\Carbon|null $lost_at             fecha en que se cerró como perdido
  * @property \Illuminate\Support\Carbon|null $last_message_at
@@ -57,6 +60,9 @@ final class SalesConversation extends Model
         'meet_at',
         'meet_link',
         'google_event_id',
+        'meet_status',
+        'meet_proposed_at',
+        'meet_notified_at',
         'converted',
         'lost_at',
     ];
@@ -74,6 +80,8 @@ final class SalesConversation extends Model
             'demo_sent_at'         => 'datetime',
             'demo_followup_sent_at'=> 'datetime',
             'meet_at'              => 'datetime',
+            'meet_proposed_at'     => 'datetime',
+            'meet_notified_at'     => 'datetime',
             'converted'            => 'boolean',
             'lost_at'              => 'datetime',
         ];

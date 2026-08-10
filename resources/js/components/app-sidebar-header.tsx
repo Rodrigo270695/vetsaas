@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Breadcrumbs } from '@/components/breadcrumbs';
 import { OPEN_IN_APP_ASSISTANT_EVENT } from '@/components/in-app-assistant/in-app-assistant-announcement-modal';
 import { InAppAssistantPanel } from '@/components/in-app-assistant/in-app-assistant-panel';
+import { PushNotificationPrompt } from '@/components/push/push-notification-prompt';
 import { Button } from '@/components/ui/button';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import {
@@ -20,13 +21,16 @@ export function AppSidebarHeader({
     breadcrumbs?: BreadcrumbItemType[];
 }) {
     const { t } = useTranslation('in-app-assistant');
-    const { in_app_assistant } = usePage().props;
+    const { in_app_assistant, push, tenant } = usePage().props;
     const [assistantOpen, setAssistantOpen] = useState(false);
 
     const showAssistant =
         in_app_assistant !== null &&
         in_app_assistant !== undefined &&
         in_app_assistant.enabled === true;
+
+    // Solo panel central (sin tenant): campana de push para superadmin.
+    const showPushBell = tenant == null && push != null && push.enabled === true;
 
     useEffect(() => {
         if (!showAssistant) {
@@ -46,28 +50,32 @@ export function AppSidebarHeader({
                     <Breadcrumbs breadcrumbs={breadcrumbs} />
                 </div>
 
-                {showAssistant && (
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                className="ml-auto h-9 shrink-0 gap-1.5 px-2.5 text-sky-700 hover:bg-sky-50 hover:text-sky-800 dark:text-sky-300 dark:hover:bg-sky-950/50 dark:hover:text-sky-200"
-                                onClick={() => setAssistantOpen(true)}
-                                aria-label={t('button.label')}
-                            >
-                                <Sparkles className="size-4" strokeWidth={2.25} />
-                                <span className="hidden text-xs font-medium sm:inline">
-                                    {t('button.label')}
-                                </span>
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom">
-                            <p>{t('button.tooltip')}</p>
-                        </TooltipContent>
-                    </Tooltip>
-                )}
+                <div className="ml-auto flex shrink-0 items-center gap-1">
+                    {showPushBell && <PushNotificationPrompt />}
+
+                    {showAssistant && (
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-9 gap-1.5 px-2.5 text-sky-700 hover:bg-sky-50 hover:text-sky-800 dark:text-sky-300 dark:hover:bg-sky-950/50 dark:hover:text-sky-200"
+                                    onClick={() => setAssistantOpen(true)}
+                                    aria-label={t('button.label')}
+                                >
+                                    <Sparkles className="size-4" strokeWidth={2.25} />
+                                    <span className="hidden text-xs font-medium sm:inline">
+                                        {t('button.label')}
+                                    </span>
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="bottom">
+                                <p>{t('button.tooltip')}</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    )}
+                </div>
             </header>
 
             {showAssistant && (

@@ -1,8 +1,8 @@
 /**
  * Service Worker VetSaaS — Fase 8 offline (+ centro de sync /offline/cola).
  */
-const STATIC_CACHE = 'vetsaas-static-v11';
-const INERTIA_OFFLINE_CACHE = 'vetsaas-inertia-offline-v11';
+const STATIC_CACHE = 'vetsaas-static-v12';
+const INERTIA_OFFLINE_CACHE = 'vetsaas-inertia-offline-v12';
 const OFFLINE_PREFIXES = [
     '/offline',
     '/caja',
@@ -177,5 +177,56 @@ self.addEventListener('fetch', (event) => {
                 );
             }
         })(),
+    );
+});
+
+self.addEventListener('push', (event) => {
+    let payload = {};
+
+    try {
+        payload = event.data ? event.data.json() : {};
+    } catch {
+        payload = { body: event.data ? event.data.text() : '' };
+    }
+
+    const title = payload.title || 'VetSaaS';
+    const options = {
+        body: payload.body || '',
+        icon: '/icons/pwa/icon-192.png',
+        badge: '/icons/pwa/icon-192.png',
+        tag: payload.tag || 'vetsaas',
+        data: {
+            url: payload.url || '/plataforma/salesbot-meetings',
+        },
+    };
+
+    event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener('notificationclick', (event) => {
+    event.notification.close();
+
+    const targetUrl =
+        (event.notification.data && event.notification.data.url) ||
+        '/plataforma/salesbot-meetings';
+
+    event.waitUntil(
+        self.clients
+            .matchAll({ type: 'window', includeUncontrolled: true })
+            .then((clientList) => {
+                for (const client of clientList) {
+                    if ('focus' in client) {
+                        if (client.url.includes(targetUrl)) {
+                            return client.focus();
+                        }
+                    }
+                }
+
+                if (self.clients.openWindow) {
+                    return self.clients.openWindow(targetUrl);
+                }
+
+                return undefined;
+            }),
     );
 });

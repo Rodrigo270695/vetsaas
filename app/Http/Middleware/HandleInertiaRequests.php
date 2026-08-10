@@ -79,6 +79,7 @@ class HandleInertiaRequests extends Middleware
                 'flash' => null,
                 'tenant_impersonation' => null,
                 'whatsapp_connection' => null,
+                'push' => null,
                 'sidebarOpen' => true,
             ];
         }
@@ -273,6 +274,22 @@ class HandleInertiaRequests extends Middleware
                         return null;
                     }
                 },
+            /*
+             * Web Push solo en panel central (superadmin / staff sin tenant).
+             * En clínicas el icono no se muestra.
+             */
+            'push' => function () use ($user, $tenantContext): ?array {
+                if (! ($user instanceof User) || $user->tenant_id !== null || $tenantContext !== null) {
+                    return null;
+                }
+
+                $publicKey = trim((string) config('webpush.vapid.public_key', ''));
+
+                return [
+                    'enabled' => $publicKey !== '',
+                    'vapidPublicKey' => $publicKey !== '' ? $publicKey : null,
+                ];
+            },
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }
