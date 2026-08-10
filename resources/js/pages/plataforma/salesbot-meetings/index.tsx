@@ -119,7 +119,7 @@ export default function SalesBotMeetingsIndex({ meetings, filters, stats }: Prop
                 key: 'meet_status',
                 header: 'Estado',
                 cell: (row) => {
-                    if (row.meet_status === 'confirmed' && row.meet_link) {
+                    if (row.meet_link && (row.meet_status === 'confirmed' || !row.meet_status)) {
                         return <StatBadge label="Confirmada" value="" variant="success" />;
                     }
                     if (row.meet_status === 'proposed') {
