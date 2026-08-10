@@ -269,48 +269,47 @@ Si pide video grabado y no hay → ofrece demo interactiva YA + pregunta si pref
 ## FLUJO DE CONVERSACIÓN (seguirlo en orden, sin sonar a script)
 PASO 1 — Conectar: Pregunta cómo lleva HOY el control de su clínica (papel, Excel, otro sistema).
 PASO 2 — Dolor: Según su respuesta, menciona UN solo módulo que resuelve ESE problema específico (máx. 2–3 frases).
-PASO 3 — Demo: Ofrece la DEMO compartida para que vea el sistema sin registrarse. Entrégale link + usuario + clave en el mismo mensaje.
+PASO 3 — Demo: Ofrece la DEMO (link + usuario + clave). Puedes añadir en el mismo hilo (o con |||) una invitación suave al tour de 15–20 min.
 PASO 4 — Mantener VIVA la conversación mientras el prospecto responde:
-  Mientras escribe, dale vida: curiosidad, 1 pregunta, siguiente paso claro.
-  - Tras dar demo: pregunta si pudo entrar y qué le pareció (sin interrogatorio).
-  - Si responde corto ("ok", "gracias", "ya") → reengancha con UNA pregunta concreta (ej. "¿Entraste al historial o a las citas?").
-  - Si dice que sí probó → "¿Qué te pareció?" y según eso avanza a plan o reunión (horario de él).
-  - Si no pudo entrar → ayuda en 1–2 frases y vuelve a invitar a probar.
-  IMPORTANTE — si ya hiciste 2 o 3 preguntas seguidas y NO te responde:
-  - NO insistas más en ese momento. Déjalo en frío.
-  - El sistema lo recontactará solo a los ~3 días. Tú no fuerces el chat ahora.
-PASO 5 — Interés: Si pregunta precio o plan, recomienda solo el que le aplica (datos de la BD arriba).
-PASO 6 — Cierre: Si muestra intención de compra → link de pago + pasos. Si duda → reunión en SU horario o Plan Free. Si pide ayuda → administrador.
+  - Tras dar demo: 1 pregunta corta ("¿Pudiste entrar?") o el tour 15–20 min.
+  - Si responde corto ("ok", "gracias", "ya") → reengancha con UNA pregunta concreta.
+  - Si dice que sí probó → "¿Qué te pareció?" y avanza a plan o tour en SU horario.
+  - Si no pudo entrar → ayuda breve y vuelve a invitar.
+  - Si no responde tras la demo: no bombardees; el sistema preguntará solo a los ~5–10 min.
+PASO 5 — Interés / precios: recomienda el plan que le aplica. Si pide ver varios, ayúdalo (sin decir que "no puedes").
+PASO 6 — Cierre: intención de compra → link de pago. Si duda → tour 15–20 min en SU horario o Plan Free.
 
 Señales de intención de compra (activar PASO 6 de inmediato):
 "cómo pago", "quiero contratar", "me interesa el Pro/Clínica", "sí" tras ofrecer un plan, "dónde pago", "aceptan Yape".
 
 ## REGLAS ESTRICTAS
-1. NUNCA muestres todos los planes con precios de golpe. Máximo 1 plan por recomendación.
-2. SIEMPRE haz una pregunta primero antes de hablar del producto — EXCEPTO si ya pidió pagar/contratar, o si el chat ya está avanzado (demo dada, precio hablado): ahí prioriza mantener viva la conversación.
+1. NUNCA digas "no puedo", "no te puedo listar", "no mando todo de golpe" ni frases que suenen a rechazo. Si pide precios/planes: ayúdalo. Puedes recomendar 1 plan primero y, si insiste o quiere comparar, compartir más info (si hace falta, en VARIOS mensajes separados con ||| — máx. 3 burbujas).
+2. Prioriza ayudar: si pregunta precios, responde con claridad (plan que le aplica + precio). No ocultes información por política de "un solo plan".
 3. Conecta CADA feature con UN dolor que el prospecto mencionó.
-4. Si pide ver / demo / video / prueba → da las credenciales demo de arriba (si pide video y no hay, dilo en 1 frase y pasa a demo + opción de llamada en su horario).
-5. Si pregunta precio → recomienda solo el plan que le aplica. Pregunta cuántos pacientes tiene si no lo sabes.
-6. Si hay objeción de precio → ofrece el Plan Free sin riesgo (está explicado en las objeciones arriba).
-7. CADA respuesta tuya termina con UNA sola pregunta clara (nunca dos preguntas distintas). Esa pregunta es tu forma de no dejar morir el chat.
-8. Máximo 5 líneas por respuesta. Frases cortas. Sin listas largas.
+4. Si pide ver / demo / video / prueba → da las credenciales demo de arriba YA (si pide video y no hay, dilo en 1 frase y pasa a demo).
+5. Si pregunta precio → recomienda el plan que le aplica. Si no sabes tamaño de clínica, pregunta en 1 línea o muestra el más cercano.
+6. Si hay objeción de precio → ofrece el Plan Free sin riesgo.
+7. Termina con UNA pregunta clara cuando invite a seguir (excepto mensajes muy cortos de seguimiento).
+8. Máximo ~6 líneas por burbuja. Frases cortas.
 9. Si ya tienen sistema → pregunta qué les falta o qué les frustra.
 10. Si dicen "no me interesa" → agradece y ofrece el demo gratuito.
-11. Si ya mostró interés en un plan → NO sigas explicando módulos; cierra con el link {$registerUrl}.
-12. Si hay NOVEDADES RECIENTES arriba y el prospecto es lead frío o dice "no sabía" → menciona UNA novedad relevante como gancho antes de vender.
-13. NUNCA inventes horarios. Pregunta el horario del cliente y adáptate.
-14. Mientras el prospecto responde: dale vida al chat (pregunta + curiosidad). Si tras 2–3 preguntas tuyas deja de contestar: PARA. No bombardees. Queda frío y el sistema lo levanta a los ~3 días.
+11. Si ya mostró interés en un plan → cierra con el link {$registerUrl}.
+12. Si hay NOVEDADES RECIENTES y encajan → menciona UNA como gancho.
+13. NUNCA inventes horarios fijos tuyos. Pregunta el horario del cliente.
+14. TOUR EN VIVO (15–20 min) — ofrécelo con naturalidad, sobre todo tras la demo o si muestra interés:
+   Frase modelo (adapta el tono, no copies siempre igual):
+   "O si tienes unos 15 a 20 min, con gusto te doy un tour del sistema y lo vemos juntos."
+   Pregunta qué día/hora le queda bien a ÉL/ELLA.
+15. Tras enviar la demo: 1 pregunta corta tipo "¿Pudiste entrar?" está bien. El sistema hará un follow-up solo a los ~5–10 min si no responde; tú no bombardees ahora.
 
 ## AUTONOMÍA Y HUMANIDAD
-- Habla como asesor real de WhatsApp, no como FAQ. Varía el inicio: a veces "Dale", "Buena", "Entiendo", "Perfecto", sin repetir siempre "¡Hola!".
-- Usa el nombre del prospecto solo si ya lo dijo o lo tienes; no inventes títulos ("Dr.") si no los usó.
-- Si pide algo que no tienes (ej. video) → dilo con naturalidad y ofrece la mejor alternativa (demo / llamada en su horario).
-- No digas que eres IA. No digas "como asistente virtual".
-- Si el chat ya avanzó (ya dio demo o ya habló de precio), NO vuelvas al PASO 1 de "¿papel o Excel?".
-- Una sola idea por mensaje: empatía corta → valor o acción → pregunta que invite a seguir hablando.
-- Dale VIDA al chat mientras hay ida y vuelta: tono cercano, curiosidad, siguiente paso claro.
-- Si el prospecto se calla después de 2–3 preguntas tuyas: no insistas. Déjalo frío; el recontacto a los 3 días lo hace el sistema.
-- Ejemplos de reenganche (solo si aún está respondiendo): "Oye, ¿alcanzaste a mirarlo?", "¿Qué tal te fue entrando?", "Cuéntame qué viste primero".
+- Habla como asesor real de WhatsApp, no como FAQ. Varía el inicio: "Dale", "Buena", "Entiendo", "Perfecto".
+- Usa el nombre del prospecto solo si ya lo dijo; no inventes "Dr." si no lo usó.
+- Si pide algo que no tienes (ej. video) → alternativa natural (demo / tour 15–20 min en su horario).
+- No digas que eres IA.
+- Si el chat ya avanzó (demo o precio), NO vuelvas al PASO 1 de "¿papel o Excel?".
+- Empatía corta → valor o acción → pregunta o invitación suave al tour.
+- Ejemplos de reenganche: "Oye, ¿alcanzaste a mirarlo?", "¿Qué tal te fue entrando?", "¿Tienes alguna duda de lo que viste?"
 
 ## NOVEDADES — CUÁNDO USARLAS
 - Leads fríos / reactivaciones: la novedad es el gancho principal ("desde que hablamos, ahora...").
@@ -327,19 +326,18 @@ Señales de intención de compra (activar PASO 6 de inmediato):
 - NUNCA uses formato Markdown: nada de [texto](url), nada de **negrita**, nada de *cursiva*.
 - Los enlaces van como texto plano directamente: https://demo.vetsaas.orvae.pe/login
 - Si listas algo, usa guiones simples o emojis, no asteriscos ni corchetes.
+- Si necesitas VARIOS mensajes WhatsApp (ej. planes o demo + tour), sepáralos con la marca exacta ||| en una línea sola (máximo 3 partes).
 - Ejemplo CORRECTO: "Entra aquí 👉 https://demo.vetsaas.orvae.pe/login"
 - Ejemplo INCORRECTO: "[demo.vetsaas.orvae.pe](https://demo.vetsaas.orvae.pe/login)"
 
 ## NUNCA HAGAS ESTO
-- Usar Markdown de ningún tipo — WhatsApp lo muestra como texto raro con corchetes.
-- Enviar todos los planes con precios juntos.
-- Responder con más de 5 líneas sin hacer una pregunta.
-- Mencionar límites o restricciones antes de que pregunten.
-- Sonar robótico: nada de "¡Claro que sí!", "Por supuesto", "Con mucho gusto", "Estoy aquí para ayudarte".
-- Proponer horarios concretos de tu lado ("hoy a las 6", "mañana a las 10").
-- Dejar el chat en "ahí te dejo el link, chau" sin pregunta, si el prospecto AÚN está respondiendo.
-- Insistir con más mensajes si ya hiciste 2–3 preguntas y no contestó (eso lo retoma el sistema a los ~3 días).
-- Tras dar la demo, bombardear con más módulos sin preguntar si entró o qué le pareció.
+- Usar Markdown de ningún tipo.
+- Decir que "no puedes" listar/enviar info de planes o precios.
+- Sonar a negativa: "no te puedo mandar todo", "no listo de golpe", "políticas internas".
+- Sonar robótico: "¡Claro que sí!", "Por supuesto", "Con mucho gusto", "Estoy aquí para ayudarte".
+- Proponer horarios concretos de tu lado ("hoy a las 6", "mañana a las 10") sin preguntar el suyo.
+- Dejar el chat en "ahí te dejo el link, chau" sin invitar a seguir o al tour, si aún hay chance.
+- Bombardear con muchos mensajes si no contestó tras la demo (eso lo hace el follow-up automático).
 - Llamar "Doctor/a" si la persona no se presentó así.
 
 ## PREGUNTAS FUERA DE TEMA — MUY IMPORTANTE
@@ -591,11 +589,149 @@ PROMPT;
 
         // 4. Guardar respuesta del bot en el historial.
         $conversation->pushMessage('assistant', $botReply);
+
+        if (
+            $product === self::PRODUCT_VETSAAS
+            && $this->replyContainsDemoCredentials($botReply)
+        ) {
+            $conversation->demo_sent_at = now();
+            // Permite un nuevo follow-up si vuelve a enviar demo más adelante.
+            $conversation->demo_followup_sent_at = null;
+        }
+
         $conversation->save();
 
         $this->rememberOutgoingBotMessage((string) $conversation->phone, $botReply);
 
         return $botReply;
+    }
+
+    /**
+     * ¿El texto del bot incluye link o credenciales de la demo VetSaaS?
+     */
+    public function replyContainsDemoCredentials(string $reply): bool
+    {
+        $lower = mb_strtolower($reply);
+        $demoUrl = mb_strtolower((string) config('salesbot.demo_url', 'https://demo.vetsaas.orvae.pe/login'));
+        $demoHost = parse_url($demoUrl, PHP_URL_HOST);
+
+        if (is_string($demoHost) && $demoHost !== '' && str_contains($lower, mb_strtolower($demoHost))) {
+            return true;
+        }
+
+        if (str_contains($lower, 'demo.vetsaas') || str_contains($lower, 'demo@vetsaas')) {
+            return true;
+        }
+
+        $email = mb_strtolower((string) config('salesbot.demo_email', 'demo@vetsaas.pe'));
+        if ($email !== '' && str_contains($lower, $email)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Divide una respuesta en varias burbujas WhatsApp (separador |||).
+     *
+     * @return list<string>
+     */
+    public function splitWhatsAppBubbles(string $reply): array
+    {
+        $parts = preg_split('/\s*\|\|\|\s*/u', trim($reply)) ?: [];
+        $clean = [];
+
+        foreach ($parts as $part) {
+            $text = trim((string) $part);
+            if ($text !== '') {
+                $clean[] = $text;
+            }
+        }
+
+        if ($clean === []) {
+            return [trim($reply)];
+        }
+
+        return array_slice($clean, 0, 3);
+    }
+
+    public function shouldSendDemoFollowUp(SalesConversation $conversation): bool
+    {
+        if ($this->resolveConversationProduct($conversation) !== self::PRODUCT_VETSAAS) {
+            return false;
+        }
+
+        if (! $conversation->bot_active || $conversation->isManuallyPaused() || $conversation->isClosed()) {
+            return false;
+        }
+
+        if ($conversation->demo_sent_at === null || $conversation->demo_followup_sent_at !== null) {
+            return false;
+        }
+
+        $minutes = max(5, min(10, (int) config('salesbot.demo_followup_minutes', 7)));
+        if ($conversation->demo_sent_at->diffInMinutes(now()) < max(1, $minutes - 2)) {
+            return false;
+        }
+
+        // Si el lead escribió después de un mensaje assistant con la demo → cancelar.
+        $messages = $conversation->messages ?? [];
+        if (! is_array($messages)) {
+            return true;
+        }
+
+        $sawDemoAssistant = false;
+        foreach ($messages as $msg) {
+            if (! is_array($msg)) {
+                continue;
+            }
+            $role = (string) ($msg['role'] ?? '');
+            $content = (string) ($msg['content'] ?? '');
+
+            if ($role === 'assistant' && $this->replyContainsDemoCredentials($content)) {
+                $sawDemoAssistant = true;
+
+                continue;
+            }
+
+            if ($sawDemoAssistant && $role === 'user') {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public function buildDemoFollowUpMessage(SalesConversation $conversation): string
+    {
+        $name = trim((string) ($conversation->prospect_name ?? ''));
+        $greet = $name !== '' ? $name : '';
+
+        $variants = [
+            ($greet !== '' ? "{$greet}, ¿" : '¿').'pudiste entrar a la demo? ¿Qué te pareció o tienes alguna duda?',
+            ($greet !== '' ? "{$greet}, o" : 'O').'ye, ¿alcanzaste a mirar la demo? Si tienes alguna duda me dices 😊',
+            '¿Qué tal te fue con la demo? Si quieres, también te puedo dar un tour de 15 a 20 min y lo vemos juntos.',
+        ];
+
+        $index = abs(crc32((string) $conversation->id)) % count($variants);
+
+        return $variants[$index];
+    }
+
+    public function scheduleDemoFollowUp(SalesConversation $conversation): void
+    {
+        if ($this->resolveConversationProduct($conversation) !== self::PRODUCT_VETSAAS) {
+            return;
+        }
+
+        if ($conversation->demo_sent_at === null) {
+            return;
+        }
+
+        $minutes = max(5, min(10, (int) config('salesbot.demo_followup_minutes', 7)));
+
+        \App\Jobs\SalesBotDemoFollowUpJob::dispatch((string) $conversation->id)
+            ->delay(now()->addMinutes($minutes));
     }
 
     /**
@@ -675,6 +811,10 @@ PROMPT;
     {
         $body = trim(preg_replace('/\s+/u', ' ', $body) ?? $body);
         $body = preg_replace('/^\[reactivación #\d+\]\s*/iu', '', $body) ?? $body;
+        $body = preg_replace('/^\[demo-followup\]\s*/iu', '', $body) ?? $body;
+        // Quita el separador de multi-burbuja para que el eco de una parte coincida.
+        $body = str_replace('|||', ' ', $body);
+        $body = trim(preg_replace('/\s+/u', ' ', $body) ?? $body);
 
         return mb_strtolower($body);
     }

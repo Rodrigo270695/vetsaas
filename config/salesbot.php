@@ -31,9 +31,9 @@ return [
 
     /*
     | Máximo de tokens en la respuesta del bot.
-    | 300 tokens ≈ 4-5 líneas de WhatsApp. No queremos respuestas largas.
+    | 450 tokens permite 1–3 burbujas WhatsApp (planes / demo + tour) sin cortar.
     */
-    'max_tokens' => (int) env('SALESBOT_MAX_TOKENS', 300),
+    'max_tokens' => (int) env('SALESBOT_MAX_TOKENS', 450),
 
     /*
     | Tokens para respuestas del flujo Orvae páginas web (mensaje inicial con 3 planes).
@@ -90,6 +90,12 @@ return [
     'tts_enabled' => (bool) env('SALESBOT_TTS_ENABLED', true),
     'tts_model'   => env('SALESBOT_TTS_MODEL', 'tts-1'),
     'tts_voice'   => env('SALESBOT_TTS_VOICE', 'nova'),
+
+    /*
+    | Minutos de espera tras enviar la demo antes de preguntar "¿qué te pareció?".
+    | Rango útil: 5–10 (default 7).
+    */
+    'demo_followup_minutes' => (int) env('SALESBOT_DEMO_FOLLOWUP_MINUTES', 7),
 
     /*
     | Esperar N segundos de silencio del prospecto antes de responder (agrupa

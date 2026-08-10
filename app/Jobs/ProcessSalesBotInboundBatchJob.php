@@ -109,7 +109,20 @@ final class ProcessSalesBotInboundBatchJob implements ShouldQueue
                 }
 
                 if (! $respondedWithVoice) {
-                    $messenger->sendText($this->waChatId, $reply);
+                    $bubbles = $botService->splitWhatsAppBubbles($reply);
+                    foreach ($bubbles as $index => $bubble) {
+                        if ($index > 0) {
+                            usleep(700_000);
+                        }
+                        $messenger->sendText($this->waChatId, $bubble);
+                        // Cada burbuja puede llegar como eco fromMe; recordarlas todas.
+                        $botService->rememberOutgoingBotMessage($this->phone, $bubble);
+                    }
+                }
+
+                if ($botService->replyContainsDemoCredentials($reply)) {
+                    $conversation->refresh();
+                    $botService->scheduleDemoFollowUp($conversation);
                 }
             } catch (Throwable $e) {
                 Log::error('SalesBot batch send error', [

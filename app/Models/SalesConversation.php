@@ -22,6 +22,8 @@ use Illuminate\Database\Eloquent\Model;
  * @property string      $product             vetsaas | paginas-web
  * @property int         $reactivation_count  veces que se ha enviado un mensaje de reactivación
  * @property \Illuminate\Support\Carbon|null $last_reactivation_at último mensaje de reactivación enviado
+ * @property \Illuminate\Support\Carbon|null $demo_sent_at         última vez que el bot envió la demo
+ * @property \Illuminate\Support\Carbon|null $demo_followup_sent_at follow-up corto post-demo
  * @property bool        $converted           true = lead convirtió (no reactivar más)
  * @property \Illuminate\Support\Carbon|null $lost_at             fecha en que se cerró como perdido
  * @property \Illuminate\Support\Carbon|null $last_message_at
@@ -47,6 +49,8 @@ final class SalesConversation extends Model
         'last_message_at',
         'reactivation_count',
         'last_reactivation_at',
+        'demo_sent_at',
+        'demo_followup_sent_at',
         'converted',
         'lost_at',
     ];
@@ -61,6 +65,8 @@ final class SalesConversation extends Model
             'last_message_at'      => 'datetime',
             'reactivation_count'   => 'integer',
             'last_reactivation_at' => 'datetime',
+            'demo_sent_at'         => 'datetime',
+            'demo_followup_sent_at'=> 'datetime',
             'converted'            => 'boolean',
             'lost_at'              => 'datetime',
         ];
