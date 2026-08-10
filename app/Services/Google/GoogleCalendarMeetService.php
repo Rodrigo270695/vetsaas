@@ -224,6 +224,90 @@ final class GoogleCalendarMeetService
         ];
     }
 
+    /**
+     * Actualiza fecha/hora de un Meet ya creado (reagendar).
+     *
+     * @return array{event_id: string, meet_link: string, html_link: string|null, starts_at: string, ends_at: string}
+     */
+    public function updateMeetEvent(
+        string $eventId,
+        CarbonImmutable $startsAt,
+        string $summary,
+        ?string $description = null,
+        ?int $durationMinutes = null,
+        ?string $existingMeetLink = null,
+    ): array {
+        if (! $this->isConfigured()) {
+            throw new RuntimeException('Google Calendar no está conectado.');
+        }
+
+        $eventId = trim($eventId);
+        if ($eventId === '') {
+            throw new RuntimeException('Falta google_event_id para actualizar el Meet.');
+        }
+
+        $duration = $durationMinutes ?? (int) config('google-calendar.meeting_duration_minutes', 20);
+        $duration = max(10, min(60, $duration));
+        $endsAt = $startsAt->addMinutes($duration);
+        $tz = (string) config('google-calendar.timezone', 'America/Lima');
+        $calendarId = rawurlencode((string) config('google-calendar.calendar_id', 'primary'));
+        $encodedEventId = rawurlencode($eventId);
+
+        $startLocal = $startsAt->setTimezone($tz);
+        $endLocal = $endsAt->setTimezone($tz);
+
+        $body = [
+            'summary' => $summary,
+            'description' => $description ?? 'Tour VetSaaS (SalesBot).',
+            'start' => [
+                'dateTime' => $startLocal->format('Y-m-d\TH:i:s'),
+                'timeZone' => $tz,
+            ],
+            'end' => [
+                'dateTime' => $endLocal->format('Y-m-d\TH:i:s'),
+                'timeZone' => $tz,
+            ],
+        ];
+
+        $url = "https://www.googleapis.com/calendar/v3/calendars/{$calendarId}/events/{$encodedEventId}?conferenceDataVersion=1";
+        $accessToken = $this->accessToken();
+
+        $response = Http::withToken($accessToken)->timeout(25)->patch($url, $body);
+
+        if ($response->status() === 401) {
+            $this->invalidateAccessToken();
+            $accessToken = $this->accessToken();
+            $response = Http::withToken($accessToken)->timeout(25)->patch($url, $body);
+        }
+
+        if (! $response->successful()) {
+            Log::error('Google Calendar update event failed', [
+                'status' => $response->status(),
+                'body' => $response->body(),
+                'event_id' => $eventId,
+            ]);
+            throw new RuntimeException('No se pudo actualizar el Meet en Google Calendar.');
+        }
+
+        $json = $response->json();
+        $meetLink = (string) ($json['hangoutLink']
+            ?? data_get($json, 'conferenceData.entryPoints.0.uri')
+            ?? $existingMeetLink
+            ?? '');
+
+        if ($meetLink === '') {
+            throw new RuntimeException('El Meet se actualizó pero no hay link disponible.');
+        }
+
+        return [
+            'event_id' => (string) ($json['id'] ?? $eventId),
+            'meet_link' => $meetLink,
+            'html_link' => isset($json['htmlLink']) ? (string) $json['htmlLink'] : null,
+            'starts_at' => $startsAt->toIso8601String(),
+            'ends_at' => $endsAt->toIso8601String(),
+        ];
+    }
+
     private function accessToken(): string
     {
         $stored = $this->readTokenFile();

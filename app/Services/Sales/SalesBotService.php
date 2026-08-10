@@ -265,22 +265,31 @@ Si dice "cómo pago", "quiero el plan", "me interesa", "sí quiero" → DEJA de 
 Si prefiere ayuda humana → "Te paso con nuestro administrador y te guía paso a paso en el pago."
 
 ### REUNIÓN / TOUR EN VIVO 15–20 MIN (Google Meet)
-NUNCA propongas horarios tuyos ("hoy 6pm o mañana 10am").
+NUNCA propongas horarios tuyos fijos ("hoy 6pm o mañana 10am") salvo que el cliente diga "ahorita/ahora".
 Siempre pregunta qué día y hora le viene bien a ÉL/ELLA; tú te adaptas.
 Frases naturales:
 - "¿Qué día y hora te queda bien? Yo me adapto a tu agenda."
 - "Dime un horario que te acomode (hoy o esta semana) y lo coordinamos."
 
+HORARIOS VÁLIDOS:
+- NUNCA propongas ni confirmes una hora YA PASADA (respecto a ahora en Perú: {$todayLima}).
+- Si pide "ahorita", "ahora mismo", "ya", "en este momento" → trata como INMEDIATO.
+  Usa los marcadores con NOW (no inventes una hora pasada):
+  <<<MEET_PROPOSE NOW>>>  y luego, al confirmar, <<<MEET NOW>>>
+
 FLUJO OBLIGATORIO (2 pasos — NUNCA saltes la confirmación):
-A) El prospecto propone día/hora claros → CONFIRMA en lenguaje natural y pregunta:
-   "¿Confirmamos el tour para [día] a las [hora]?"
-   Al FINAL agrega EXACTAMENTE (hora 24h, Perú):
-   <<<MEET_PROPOSE YYYY-MM-DD HH:MM>>>
+A) El prospecto propone día/hora claros O "ahorita" → CONFIRMA en lenguaje natural y pregunta:
+   "¿Confirmamos el tour para [día/hora]?" / "¿Entro ahorita contigo?"
+   Al FINAL:
+   <<<MEET_PROPOSE YYYY-MM-DD HH:MM>>>  ó  <<<MEET_PROPOSE NOW>>>
    Todavía NO digas que ya hay link de Meet.
-B) El prospecto confirma (sí, ok, dale, confirmo, perfecto, va) → confirma el agendado y al FINAL:
-   <<<MEET YYYY-MM-DD HH:MM>>>
-   (usa la misma fecha/hora propuesta o la última acordada)
-   NO inventes ni pegues un link de Meet: el sistema lo genera y lo agrega solo.
+B) El prospecto confirma (sí, ok, dale, confirmo, perfecto, va) → al FINAL:
+   <<<MEET YYYY-MM-DD HH:MM>>>  ó  <<<MEET NOW>>>
+   NO inventes ni pegues un link de Meet: el sistema lo genera/actualiza y lo agrega solo.
+
+REAGENDAR (si YA había una reunión confirmada y cambia la hora):
+- Confirma el NUEVO horario ("¿Lo movemos a las X?").
+- Tras el sí → <<<MEET ...>>> con la nueva hora (o NOW). El sistema ACTUALIZA el Meet existente y avisa al equipo.
 
 Si el horario es ambiguo ("en la tarde") → aclara con UNA pregunta; NO pongas marcadores.
 Si pide video grabado y no hay → demo YA + pregunta si prefiere tour en vivo en SU horario.
@@ -320,10 +329,11 @@ Señales de intención de compra (activar PASO 6 de inmediato):
 14. TOUR EN VIVO (15–20 min) — ofrécelo con naturalidad, sobre todo tras la demo o si muestra interés:
    Frase modelo (adapta el tono, no copies siempre igual):
    "O si tienes unos 15 a 20 min, con gusto te doy un tour del sistema y lo vemos juntos."
-   Pregunta qué día/hora le queda bien a ÉL/ELLA.
-   Primero <<<MEET_PROPOSE ...>>> (pedir confirmación). Solo tras el "sí" del cliente → <<<MEET ...>>>.
+   Pregunta qué día/hora le queda bien a ÉL/ELLA (o si prefiere ahorita).
+   Primero <<<MEET_PROPOSE ...>>> / NOW. Solo tras el "sí" → <<<MEET ...>>> / NOW.
+   Si cambia la hora de una ya confirmada → vuelve a confirmar y usa <<<MEET ...>>> (el sistema actualiza).
 15. Tras enviar la demo: 1 pregunta corta tipo "¿Pudiste entrar?" está bien. El sistema hará un follow-up solo a los ~5–10 min si no responde; tú no bombardees ahora.
-16. NUNCA inventes URLs de Meet. NUNCA crees el Meet sin confirmación explícita del cliente.
+16. NUNCA inventes URLs de Meet. NUNCA confirmes una hora pasada. NUNCA crees el Meet sin confirmación explícita del cliente.
 
 ## AUTONOMÍA Y HUMANIDAD
 - Habla como asesor real de WhatsApp, no como FAQ. Varía el inicio: "Dale", "Buena", "Entiendo", "Perfecto".
@@ -636,8 +646,8 @@ PROMPT;
 
     /**
      * Marcadores:
-     * - <<<MEET_PROPOSE YYYY-MM-DD HH:MM>>> → guarda propuesta (pide confirmación al lead)
-     * - <<<MEET YYYY-MM-DD HH:MM>>> → crea Google Meet + notifica Rodrigo (WhatsApp + push)
+     * - <<<MEET_PROPOSE YYYY-MM-DD HH:MM>>> | <<<MEET_PROPOSE NOW>>>
+     * - <<<MEET YYYY-MM-DD HH:MM>>> | <<<MEET NOW>>> → crea/actualiza Meet + notifica
      */
     public function attachMeetLinkIfRequested(SalesConversation $conversation, string $reply): string
     {
@@ -648,20 +658,28 @@ PROMPT;
 
     private function handleMeetProposeMarker(SalesConversation $conversation, string $reply): string
     {
-        if (! preg_match('/<<<\s*MEET_PROPOSE\s+(\d{4}-\d{2}-\d{2})\s+(\d{1,2}:\d{2})\s*>>>/iu', $reply, $m)) {
+        if (! preg_match('/<<<\s*MEET_PROPOSE\s+(NOW|(\d{4}-\d{2}-\d{2})\s+(\d{1,2}:\d{2}))\s*>>>/iu', $reply, $m)) {
             return $reply;
         }
 
         $clean = $this->stripMeetMarkers($reply);
-        $startsAt = $this->parseMeetDateTime($m[1], $m[2]);
+        $isNow = strcasecmp((string) $m[1], 'NOW') === 0;
+        $startsAt = $isNow
+            ? $this->meetStartsAtNow()
+            : $this->parseMeetDateTime((string) $m[2], (string) $m[3]);
 
         if ($startsAt === null) {
             return $clean;
         }
 
+        if ($this->isMeetTimeInPast($startsAt)) {
+            return $clean !== ''
+                ? $clean."\n\nEse horario ya pasó 😅 ¿Qué otro momento te queda? También puede ser ahorita."
+                : 'Ese horario ya pasó 😅 ¿Qué otro momento te queda? También puede ser ahorita.';
+        }
+
         $conversation->meet_proposed_at = $startsAt;
         $conversation->meet_status = 'proposed';
-        // Aún no hay Meet real.
         if ($conversation->meet_link === null) {
             $conversation->meet_at = $startsAt;
         }
@@ -671,13 +689,15 @@ PROMPT;
 
     private function handleMeetConfirmMarker(SalesConversation $conversation, string $reply): string
     {
-        if (! preg_match('/<<<\s*MEET(?!_PROPOSE)\s+(\d{4}-\d{2}-\d{2})\s+(\d{1,2}:\d{2})\s*>>>/iu', $reply, $m)) {
+        if (! preg_match('/<<<\s*MEET(?!_PROPOSE)\s+(NOW|(\d{4}-\d{2}-\d{2})\s+(\d{1,2}:\d{2}))\s*>>>/iu', $reply, $m)) {
             return $reply;
         }
 
         $clean = $this->stripMeetMarkers($reply);
-        $startsAt = $this->parseMeetDateTime($m[1], $m[2]);
-        $tz = (string) config('google-calendar.timezone', config('app.timezone', 'America/Lima'));
+        $isNow = strcasecmp((string) $m[1], 'NOW') === 0;
+        $startsAt = $isNow
+            ? $this->meetStartsAtNow()
+            : $this->parseMeetDateTime((string) $m[2], (string) $m[3]);
 
         if ($startsAt === null) {
             return $clean !== ''
@@ -685,10 +705,10 @@ PROMPT;
                 : 'Dame un momento y te confirmo el link de la reunión 😊';
         }
 
-        if ($startsAt->lessThan(now($tz)->subMinutes(5))) {
+        if ($this->isMeetTimeInPast($startsAt)) {
             return $clean !== ''
-                ? $clean."\n\nEse horario ya pasó 😅 ¿Qué otro día y hora te queda mejor?"
-                : 'Ese horario ya pasó 😅 ¿Qué otro día y hora te queda mejor?';
+                ? $clean."\n\nEse horario ya pasó 😅 ¿Lo hacemos ahorita o me das otra hora?"
+                : 'Ese horario ya pasó 😅 ¿Lo hacemos ahorita o me das otra hora?';
         }
 
         if (! $this->googleCalendar->isConfigured()) {
@@ -705,34 +725,81 @@ PROMPT;
         $summary = $name !== ''
             ? "Tour VetSaaS — {$name}"
             : 'Tour VetSaaS — WhatsApp '.((string) $conversation->phone);
+        $description = 'Tour VetSaaS coordinado por el bot de ventas Orvae.'."\nTel: ".$conversation->phone;
+
+        $existingEventId = trim((string) ($conversation->google_event_id ?? ''));
+        $existingLink = trim((string) ($conversation->meet_link ?? ''));
+        $isReschedule = $existingEventId !== '' && $existingLink !== '';
+        $previousAt = $conversation->meet_at;
 
         try {
-            $event = $this->googleCalendar->createMeetEvent(
-                $startsAt,
-                $summary,
-                'Tour VetSaaS coordinado por el bot de ventas Orvae.'."\nTel: ".$conversation->phone,
-            );
+            if ($isReschedule) {
+                $event = $this->googleCalendar->updateMeetEvent(
+                    $existingEventId,
+                    $startsAt,
+                    $summary,
+                    $description,
+                    null,
+                    $existingLink,
+                );
+            } else {
+                $event = $this->googleCalendar->createMeetEvent(
+                    $startsAt,
+                    $summary,
+                    $description,
+                );
+            }
         } catch (Throwable $e) {
-            Log::error('SalesBot create Meet failed', [
-                'phone' => $conversation->phone,
-                'error' => $e->getMessage(),
-            ]);
+            if ($isReschedule) {
+                Log::warning('SalesBot update Meet failed, creating new', [
+                    'phone' => $conversation->phone,
+                    'error' => $e->getMessage(),
+                ]);
+                try {
+                    $event = $this->googleCalendar->createMeetEvent($startsAt, $summary, $description);
+                    $isReschedule = false;
+                } catch (Throwable $createError) {
+                    Log::error('SalesBot create Meet failed after update error', [
+                        'phone' => $conversation->phone,
+                        'error' => $createError->getMessage(),
+                    ]);
 
-            return $clean !== ''
-                ? $clean."\n\nTuve un detalle creando el Meet. Te confirmo el link en un momento 😊"
-                : 'Tuve un detalle creando el Meet. Te confirmo el link en un momento 😊';
+                    return $clean !== ''
+                        ? $clean."\n\nTuve un detalle con el Meet. Te confirmo el link en un momento 😊"
+                        : 'Tuve un detalle con el Meet. Te confirmo el link en un momento 😊';
+                }
+            } else {
+                Log::error('SalesBot create Meet failed', [
+                    'phone' => $conversation->phone,
+                    'error' => $e->getMessage(),
+                ]);
+
+                return $clean !== ''
+                    ? $clean."\n\nTuve un detalle creando el Meet. Te confirmo el link en un momento 😊"
+                    : 'Tuve un detalle creando el Meet. Te confirmo el link en un momento 😊';
+            }
         }
 
         $conversation->meet_at = $startsAt;
         $conversation->meet_proposed_at = $conversation->meet_proposed_at ?? $startsAt;
         $conversation->meet_link = $event['meet_link'];
-        $conversation->google_event_id = $event['event_id'] !== '' ? $event['event_id'] : null;
+        $conversation->google_event_id = $event['event_id'] !== '' ? $event['event_id'] : $existingEventId;
         $conversation->meet_status = 'confirmed';
 
-        $this->notifyStaffAboutConfirmedMeet($conversation, $startsAt, $event['meet_link']);
+        $mode = $isReschedule ? 'updated' : ($isNow ? 'immediate' : 'created');
+        $this->notifyStaffAboutConfirmedMeet($conversation, $startsAt, $event['meet_link'], $mode, $previousAt);
 
-        $whenHuman = $startsAt->locale('es')->isoFormat('dddd D [de] MMMM, HH:mm');
-        $meetLine = "Listo ✅ Nos vemos el {$whenHuman} (hora Perú).\nEntra aquí: {$event['meet_link']}";
+        $whenHuman = $isNow
+            ? 'ahora mismo'
+            : $startsAt->locale('es')->isoFormat('dddd D [de] MMMM, HH:mm').' (hora Perú)';
+
+        if ($isReschedule) {
+            $meetLine = "Listo ✅ Reunión actualizada para {$whenHuman}.\nEntra aquí: {$event['meet_link']}";
+        } elseif ($isNow) {
+            $meetLine = "Listo ✅ Entra ahora al Meet:\n{$event['meet_link']}";
+        } else {
+            $meetLine = "Listo ✅ Nos vemos el {$whenHuman}.\nEntra aquí: {$event['meet_link']}";
+        }
 
         if ($clean === '') {
             return $meetLine;
@@ -743,8 +810,8 @@ PROMPT;
 
     private function stripMeetMarkers(string $reply): string
     {
-        $clean = preg_replace('/<<<\s*MEET_PROPOSE\s+\d{4}-\d{2}-\d{2}\s+\d{1,2}:\d{2}\s*>>>/iu', '', $reply) ?? $reply;
-        $clean = preg_replace('/<<<\s*MEET(?!_PROPOSE)\s+\d{4}-\d{2}-\d{2}\s+\d{1,2}:\d{2}\s*>>>/iu', '', $clean) ?? $clean;
+        $clean = preg_replace('/<<<\s*MEET_PROPOSE\s+(?:NOW|\d{4}-\d{2}-\d{2}\s+\d{1,2}:\d{2})\s*>>>/iu', '', $reply) ?? $reply;
+        $clean = preg_replace('/<<<\s*MEET(?!_PROPOSE)\s+(?:NOW|\d{4}-\d{2}-\d{2}\s+\d{1,2}:\d{2})\s*>>>/iu', '', $clean) ?? $clean;
         $clean = trim(preg_replace("/\n{3,}/u", "\n\n", $clean) ?? $clean);
 
         return $clean;
@@ -766,53 +833,98 @@ PROMPT;
         return $startsAt instanceof CarbonImmutable ? $startsAt : null;
     }
 
+    private function meetStartsAtNow(): CarbonImmutable
+    {
+        $tz = (string) config('google-calendar.timezone', config('app.timezone', 'America/Lima'));
+
+        return now($tz)->addMinute()->startOfMinute()->toImmutable();
+    }
+
+    private function isMeetTimeInPast(CarbonImmutable $startsAt): bool
+    {
+        $tz = (string) config('google-calendar.timezone', config('app.timezone', 'America/Lima'));
+
+        return $startsAt->lessThan(now($tz)->subMinute());
+    }
+
+    /**
+     * @param  'created'|'updated'|'immediate'  $mode
+     */
     private function notifyStaffAboutConfirmedMeet(
         SalesConversation $conversation,
         CarbonImmutable $startsAt,
         string $meetLink,
+        string $mode = 'created',
+        mixed $previousAt = null,
     ): void {
         $name = trim((string) ($conversation->prospect_name ?? ''));
         $leadLabel = $name !== '' ? $name : 'Lead';
         $phone = (string) $conversation->phone;
-        $whenHuman = $startsAt->locale('es')->isoFormat('dddd D [de] MMMM [a las] HH:mm');
+        $whenHuman = $mode === 'immediate'
+            ? 'ahora mismo'
+            : $startsAt->locale('es')->isoFormat('dddd D [de] MMMM [a las] HH:mm');
 
-        $whatsappBody = implode("\n", [
-            '📅 *Nueva reunión VetSaaS confirmada*',
+        $title = match ($mode) {
+            'updated' => '♻️ Reunión VetSaaS reagendada',
+            'immediate' => '⚡ Reunión VetSaaS ¡ahora!',
+            default => '📅 Nueva reunión VetSaaS confirmada',
+        };
+
+        $lines = [
+            "*{$title}*",
             '',
             "👤 Lead: *{$leadLabel}*",
             "📱 WhatsApp: +{$phone}",
             "🕐 Horario: *{$whenHuman}* (Perú)",
-            "⏱️ Duración: ~15–20 min",
-            "🔗 Meet: {$meetLink}",
-            '',
-            '¡Éxito con el tour! 🐾✨',
-        ]);
+        ];
+
+        if ($mode === 'updated' && $previousAt instanceof \Carbon\CarbonInterface) {
+            $prevHuman = $previousAt->timezone('America/Lima')->locale('es')
+                ->isoFormat('dddd D [de] MMMM [a las] HH:mm');
+            $lines[] = "⬅️ Antes: {$prevHuman}";
+        }
+
+        $lines[] = '⏱️ Duración: ~15–20 min';
+        $lines[] = "🔗 Meet: {$meetLink}";
+        $lines[] = '';
+        $lines[] = $mode === 'immediate'
+            ? '¡Entra ya al Meet! 🐾✨'
+            : '¡Éxito con el tour! 🐾✨';
+
+        $whatsappBody = implode("\n", $lines);
 
         try {
             $notifyPhone = $this->normalizeLeadPhone((string) config('salesbot.meet_notify_whatsapp', '51976709811'));
             if ($notifyPhone !== '' && $this->messenger->isReady()) {
-                $chatId = $notifyPhone.'@c.us';
-                $this->messenger->sendText($chatId, $whatsappBody);
+                $this->messenger->sendText($notifyPhone.'@c.us', $whatsappBody);
                 $this->rememberOutgoingBotMessage($notifyPhone, $whatsappBody);
             }
         } catch (Throwable $e) {
             Log::error('SalesBot meet WhatsApp notify failed', [
                 'error' => $e->getMessage(),
                 'conversation_id' => $conversation->id,
+                'mode' => $mode,
             ]);
         }
 
+        $pushTitle = match ($mode) {
+            'updated' => '♻️ Reunión reagendada',
+            'immediate' => '⚡ Reunión ¡ahora!',
+            default => '📅 Reunión VetSaaS confirmada',
+        };
+
         try {
             $this->platformPush->notifyPlatformStaff([
-                'title' => '📅 Reunión VetSaaS confirmada',
+                'title' => $pushTitle,
                 'body' => "{$leadLabel} · {$whenHuman}",
                 'url' => '/plataforma/salesbot-meetings',
-                'tag' => 'salesbot-meet-'.$conversation->id,
+                'tag' => 'salesbot-meet-'.$conversation->id.'-'.$mode,
             ]);
         } catch (Throwable $e) {
             Log::error('SalesBot meet push notify failed', [
                 'error' => $e->getMessage(),
                 'conversation_id' => $conversation->id,
+                'mode' => $mode,
             ]);
         }
 
