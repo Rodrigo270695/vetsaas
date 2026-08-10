@@ -29,8 +29,8 @@ export function AppSidebarHeader({
         in_app_assistant !== undefined &&
         in_app_assistant.enabled === true;
 
-    // Solo panel central (sin tenant): campana de push para superadmin.
-    const showPushBell = tenant == null && push != null && push.enabled === true;
+    // Solo panel central (sin tenant): campana visible para superadmin.
+    const showPushBell = tenant == null && push != null;
 
     useEffect(() => {
         if (!showAssistant) {
