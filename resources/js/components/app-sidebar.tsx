@@ -438,13 +438,11 @@ function useNavConfig(): { singles: NavItem[]; groups: NavGroup[] } {
                     ],
                 },
                 /*
-                 * Plataforma SaaS — visible solo para superadmin (y, a
-                 * futuro, roles de soporte interno) y SOLO en el host
-                 * central. Sus rutas (`/plataforma/*`) viven en el schema
-                 * `public` y no se exponen desde subdominios de tenant.
+                 * Panel SaaS (host central). Partido en secciones cortas
+                 * para no apilar 15+ ítems en un solo acordeón.
                  */
                 {
-                    title: t('groups.plataforma'),
+                    title: t('groups.plataforma_sistema'),
                     icon: Server,
                     context: 'central',
                     items: [
@@ -467,6 +465,19 @@ function useNavConfig(): { singles: NavItem[]; groups: NavGroup[] } {
                             permission: 'plataforma-operaciones.view',
                         },
                         {
+                            title: t('items.platform_settings'),
+                            href: '/plataforma/configuracion',
+                            icon: Cog,
+                            permission: 'platform-settings.view',
+                        },
+                    ],
+                },
+                {
+                    title: t('groups.plataforma_clinicas'),
+                    icon: Building2,
+                    context: 'central',
+                    items: [
+                        {
                             title: t('items.tenants'),
                             href: '/plataforma/tenants',
                             icon: Store,
@@ -484,6 +495,13 @@ function useNavConfig(): { singles: NavItem[]; groups: NavGroup[] } {
                             icon: ShieldAlert,
                             permission: 'plataforma-tenants.view',
                         },
+                    ],
+                },
+                {
+                    title: t('groups.plataforma_cobros'),
+                    icon: Wallet,
+                    context: 'central',
+                    items: [
                         {
                             title: t('items.planes'),
                             href: '/plataforma/planes',
@@ -515,15 +533,19 @@ function useNavConfig(): { singles: NavItem[]; groups: NavGroup[] } {
                             permission: 'plataforma-cobros.view',
                         },
                         {
-                            // Pagos confirmados (Orvae → subscription_payments estado=procesado).
                             title: t('items.platform_pagos'),
                             href: '/plataforma/pagos',
                             icon: CreditCard,
                             permission: 'plataforma-cobros.view',
                         },
+                    ],
+                },
+                {
+                    title: t('groups.plataforma_ventas'),
+                    icon: Bot,
+                    context: 'central',
+                    items: [
                         {
-                            // Conversaciones del bot: pausa/reactiva por lead
-                            // desde el navegador (funciona en celular).
                             title: t('items.salesbot_conversations'),
                             href: '/plataforma/salesbot-conversations',
                             icon: MessageCircle,
@@ -541,6 +563,13 @@ function useNavConfig(): { singles: NavItem[]; groups: NavGroup[] } {
                             icon: Bot,
                             permission: 'salesbot-knowledge.view',
                         },
+                    ],
+                },
+                {
+                    title: t('groups.plataforma_producto'),
+                    icon: BookOpenCheck,
+                    context: 'central',
+                    items: [
                         {
                             title: t('items.in_app_assistant_knowledge'),
                             href: '/plataforma/in-app-assistant-knowledge',
@@ -552,15 +581,6 @@ function useNavConfig(): { singles: NavItem[]; groups: NavGroup[] } {
                             href: '/plataforma/bot-ia-announcements',
                             icon: Megaphone,
                             permission: 'bot-ia-announcements.view',
-                        },
-                        {
-                            // Configuración global: credenciales de Twilio
-                            // y Brevo compartidas por todas las clínicas.
-                            // Solo superadmin tiene este permiso.
-                            title: t('items.platform_settings'),
-                            href: '/plataforma/configuracion',
-                            icon: Cog,
-                            permission: 'platform-settings.view',
                         },
                     ],
                 },

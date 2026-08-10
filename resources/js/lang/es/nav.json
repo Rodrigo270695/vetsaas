@@ -10,7 +10,12 @@
         "reportes": "Reportes",
         "configuracion": "Configuración",
         "auditoria": "Auditoría",
-        "plataforma": "Plataforma"
+        "plataforma": "Plataforma",
+        "plataforma_sistema": "Sistema",
+        "plataforma_clinicas": "Clínicas",
+        "plataforma_cobros": "Cobros",
+        "plataforma_ventas": "Ventas",
+        "plataforma_producto": "Producto"
     },
     "items": {
         "dashboard": "Dashboard",
