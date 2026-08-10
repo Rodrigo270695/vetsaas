@@ -86,6 +86,12 @@ type Props = {
     conversations: Paginated<Conversation>;
     filters: ConvFilters;
     stats: ConvStats;
+    googleCalendar?: {
+        connected: boolean;
+        configured: boolean;
+        has_client: boolean;
+        email: string | null;
+    };
 };
 
 const DEFAULT_PER_PAGE = 15;
@@ -179,9 +185,11 @@ function csrfPostJson(url: string, body: Record<string, unknown>): Promise<Respo
 function SalesBotQuickActions({
     canUpdate,
     onSuccess,
+    googleCalendar,
 }: {
     canUpdate: boolean;
     onSuccess: () => void;
+    googleCalendar?: Props['googleCalendar'];
 }) {
     const [engageOpen, setEngageOpen] = useState(false);
     const [importOpen, setImportOpen] = useState(false);
@@ -192,6 +200,7 @@ function SalesBotQuickActions({
     const [file, setFile] = useState<File | null>(null);
     const [days, setDays] = useState(5);
     const [uploading, setUploading] = useState(false);
+    const [disconnecting, setDisconnecting] = useState(false);
     const [importResult, setImportResult] = useState<{
         imported: number;
         skipped: number;
@@ -200,6 +209,9 @@ function SalesBotQuickActions({
     } | null>(null);
 
     if (!canUpdate) return null;
+
+    const googleConnected = Boolean(googleCalendar?.connected);
+    const googleHasClient = Boolean(googleCalendar?.has_client);
 
     const handleEngage = (e?: FormEvent) => {
         e?.preventDefault();
@@ -287,6 +299,52 @@ function SalesBotQuickActions({
     return (
         <>
             <div className="flex flex-wrap items-center gap-1.5">
+                {googleHasClient && (
+                    googleConnected ? (
+                        <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="h-8 cursor-pointer gap-1.5 text-xs"
+                            disabled={disconnecting}
+                            title={googleCalendar?.email ? `Conectado: ${googleCalendar.email}` : 'Google Meet conectado'}
+                            onClick={() => {
+                                setDisconnecting(true);
+                                router.post(
+                                    '/plataforma/google-calendar/disconnect',
+                                    {},
+                                    {
+                                        preserveScroll: true,
+                                        onFinish: () => setDisconnecting(false),
+                                        onSuccess: () => {
+                                            router.reload({ only: ['googleCalendar'] });
+                                            onSuccess();
+                                        },
+                                        onError: () =>
+                                            toastManager.error({ title: 'No se pudo desconectar Google' }),
+                                    },
+                                );
+                            }}
+                        >
+                            <CalendarDays className="size-3.5 text-emerald-600" />
+                            <span className="hidden sm:inline">Meet OK</span>
+                        </Button>
+                    ) : (
+                        <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="h-8 cursor-pointer gap-1.5 text-xs"
+                            asChild
+                        >
+                            <a href="/plataforma/google-calendar/connect">
+                                <CalendarDays className="size-3.5" />
+                                <span className="hidden sm:inline">Conectar Meet</span>
+                                <span className="sm:hidden">Meet</span>
+                            </a>
+                        </Button>
+                    )
+                )}
                 <Button
                     type="button"
                     size="sm"
@@ -467,7 +525,12 @@ function SalesBotQuickActions({
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-export default function SalesBotConversationsIndex({ conversations, filters, stats }: Props) {
+export default function SalesBotConversationsIndex({
+    conversations,
+    filters,
+    stats,
+    googleCalendar,
+}: Props) {
     const { t } = useTranslation(['salesbot-conversations', 'common']);
     const { can } = usePermission();
     const canUpdate = can('salesbot-knowledge.update');
@@ -492,7 +555,7 @@ export default function SalesBotConversationsIndex({ conversations, filters, sta
     const doRefresh = useCallback(() => {
         setIsRefreshing(true);
         router.reload({
-            only: ['conversations', 'stats'],
+            only: ['conversations', 'stats', 'googleCalendar'],
             onFinish: () => {
                 setIsRefreshing(false);
                 setSecondsSince(0);
@@ -921,7 +984,11 @@ export default function SalesBotConversationsIndex({ conversations, filters, sta
                                 onChange={(estado) => applyFilter({ estado })}
                                 options={estadoOptions}
                             />
-                            <SalesBotQuickActions canUpdate={canUpdate} onSuccess={doRefresh} />
+                            <SalesBotQuickActions
+                                canUpdate={canUpdate}
+                                onSuccess={doRefresh}
+                                googleCalendar={googleCalendar}
+                            />
                         </DataToolbar>
                     }
                     footer={

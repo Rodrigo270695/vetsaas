@@ -61,6 +61,7 @@ use App\Http\Controllers\ReporteFinancieroController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SalesBotConversationController;
 use App\Http\Controllers\SalesBotKnowledgeController;
+use App\Http\Controllers\GoogleCalendarOAuthController;
 use App\Http\Controllers\SedeController;
 use App\Http\Controllers\ServiciosAgendaController;
 use App\Http\Controllers\StockInventarioController;
@@ -170,6 +171,11 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::get('provincias', [GeoController::class, 'provincias'])->name('provincias');
         Route::get('distritos', [GeoController::class, 'distritos'])->name('distritos');
     });
+
+    // OAuth callback Google Calendar (URI exacta en Cloud Console).
+    Route::middleware('permission:salesbot-knowledge.update')
+        ->get('google/oauth/callback', [GoogleCalendarOAuthController::class, 'callback'])
+        ->name('google-calendar.callback');
 
     // Asistente in-app (ayuda + consulta de solo lectura).
     // Clínica (tenant) o portal central (superadmin).
@@ -1314,6 +1320,12 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:salesbot-knowledge.view')
             ->get('salesbot-conversations', [SalesBotConversationController::class, 'index'])
             ->name('salesbot-conversations.index');
+        Route::middleware('permission:salesbot-knowledge.update')
+            ->get('google-calendar/connect', [GoogleCalendarOAuthController::class, 'connect'])
+            ->name('google-calendar.connect');
+        Route::middleware('permission:salesbot-knowledge.update')
+            ->post('google-calendar/disconnect', [GoogleCalendarOAuthController::class, 'disconnect'])
+            ->name('google-calendar.disconnect');
         Route::middleware('permission:salesbot-knowledge.update')
             ->post('salesbot-conversations/{conversation}/pause', [SalesBotConversationController::class, 'pause'])
             ->name('salesbot-conversations.pause');

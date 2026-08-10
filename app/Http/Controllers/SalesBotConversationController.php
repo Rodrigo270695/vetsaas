@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Models\SalesConversation;
+use App\Services\Google\GoogleCalendarMeetService;
 use App\Services\Sales\SalesBotService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -27,6 +28,7 @@ final class SalesBotConversationController extends Controller
 
     public function __construct(
         private readonly SalesBotService $botService,
+        private readonly GoogleCalendarMeetService $googleCalendar,
     ) {}
 
     public function index(Request $request): Response
@@ -105,6 +107,7 @@ final class SalesBotConversationController extends Controller
                 'per_page'  => $perPage,
             ],
             'stats' => $stats,
+            'googleCalendar' => $this->googleCalendar->status(),
         ]);
     }
 

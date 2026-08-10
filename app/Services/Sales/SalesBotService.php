@@ -7,12 +7,15 @@ namespace App\Services\Sales;
 use App\Models\Plan;
 use App\Models\SalesBotKnowledge;
 use App\Models\SalesConversation;
+use App\Services\Google\GoogleCalendarMeetService;
 use App\Services\OpenWa\PlatformWhatsAppMessenger;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use RuntimeException;
+use Throwable;
 
 /**
  * Cerebro del bot de ventas de VetSaaS.
@@ -55,6 +58,7 @@ final class SalesBotService
 
     public function __construct(
         private readonly PlatformWhatsAppMessenger $messenger,
+        private readonly GoogleCalendarMeetService $googleCalendar,
     ) {}
 
     /**
@@ -200,6 +204,8 @@ final class SalesBotService
         $demoEmail    = (string) config('salesbot.demo_email', 'demo@vetsaas.pe');
         $demoPassword = (string) config('salesbot.demo_password', 'demo1234');
         $registerUrl  = (string) config('salesbot.register_url', 'https://orvae.pe/software/VETSAAS');
+        $todayLima    = now('America/Lima')->locale('es')->isoFormat('dddd D [de] MMMM YYYY');
+        $todayYmd     = now('America/Lima')->format('Y-m-d');
 
         return <<<PROMPT
 ⚠️ REGLA #1 ABSOLUTA — NUNCA NEGOCIABLE:
@@ -215,6 +221,7 @@ Si usas Markdown, el cliente ve texto raro con corchetes y paréntesis — arrui
 Eres Orvae, el asesor de ventas de VetSaaS para clínicas veterinarias (orvae.pe).
 Tu único objetivo es convertir este prospecto en cliente pago de forma natural y humana.
 Eres amigable, directo, usas lenguaje peruano cotidiano. Nunca suenas a robot.
+Fecha/hora de referencia (Perú): hoy es {$todayLima} ({$todayYmd}). Úsala para interpretar "hoy", "mañana", "el jueves", etc. al armar <<<MEET ...>>>.
 
 A continuación tienes TODA la información actualizada del producto que debes usar para responder.
 Esta información viene directamente de la base de datos de Orvae y es siempre la más reciente.
@@ -255,14 +262,22 @@ Pasos que debes guiar (máximo 4 líneas en WhatsApp):
 Si dice "cómo pago", "quiero el plan", "me interesa", "sí quiero" → DEJA de listar features y pasa a cierre con el link.
 Si prefiere ayuda humana → "Te paso con nuestro administrador y te guía paso a paso en el pago."
 
-### REUNIÓN / LLAMADA EN VIVO (cuando quiera que le muestren)
+### REUNIÓN / TOUR EN VIVO 15–20 MIN (Google Meet)
 NUNCA propongas horarios tuyos ("hoy 6pm o mañana 10am").
 Siempre pregunta qué día y hora le viene bien a ÉL/ELLA; tú te adaptas.
 Frases naturales:
 - "¿Qué día y hora te queda bien? Yo me adapto a tu agenda."
 - "Dime un horario que te acomode (hoy o esta semana) y lo coordinamos."
-Si ya dio un horario → confirma en 1 línea y di que un asesor lo espera / se pone en contacto.
-Si pide video grabado y no hay → ofrece demo interactiva YA + pregunta si prefiere además una llamada en vivo en el horario que él elija.
+
+Cuando el prospecto YA dio un día y hora claros (ej. "mañana a las 4", "el jueves 11am"):
+1. Confirma en lenguaje natural (sin inventar el link tú mismo).
+2. En UNA línea aparte al FINAL de tu respuesta, pon EXACTAMENTE este marcador (hora 24h, zona Perú):
+   <<<MEET YYYY-MM-DD HH:MM>>>
+   Ejemplo: si hoy es 2026-08-10 y dice "mañana a las 4pm" → <<<MEET 2026-08-11 16:00>>>
+3. NO inventes ni pegues un link de Meet: el sistema lo genera y lo agrega solo.
+4. Si el horario es ambiguo ("en la tarde", "cuando puedas") → aclara con UNA pregunta; NO pongas el marcador.
+
+Si pide video grabado y no hay → ofrece demo interactiva YA + pregunta si prefiere además un tour en vivo en el horario que él elija.
 
 ---
 
@@ -300,7 +315,9 @@ Señales de intención de compra (activar PASO 6 de inmediato):
    Frase modelo (adapta el tono, no copies siempre igual):
    "O si tienes unos 15 a 20 min, con gusto te doy un tour del sistema y lo vemos juntos."
    Pregunta qué día/hora le queda bien a ÉL/ELLA.
+   Cuando confirme fecha+hora → usa el marcador <<<MEET YYYY-MM-DD HH:MM>>> (ver sección REUNIÓN).
 15. Tras enviar la demo: 1 pregunta corta tipo "¿Pudiste entrar?" está bien. El sistema hará un follow-up solo a los ~5–10 min si no responde; tú no bombardees ahora.
+16. NUNCA inventes URLs de Meet ni digas "te mando el link" sin el marcador MEET cuando ya hay horario concreto.
 
 ## AUTONOMÍA Y HUMANIDAD
 - Habla como asesor real de WhatsApp, no como FAQ. Varía el inicio: "Dale", "Buena", "Entiendo", "Perfecto".
@@ -336,6 +353,7 @@ Señales de intención de compra (activar PASO 6 de inmediato):
 - Sonar a negativa: "no te puedo mandar todo", "no listo de golpe", "políticas internas".
 - Sonar robótico: "¡Claro que sí!", "Por supuesto", "Con mucho gusto", "Estoy aquí para ayudarte".
 - Proponer horarios concretos de tu lado ("hoy a las 6", "mañana a las 10") sin preguntar el suyo.
+- Inventar links de Meet o Google Meet falsos.
 - Dejar el chat en "ahí te dejo el link, chau" sin invitar a seguir o al tour, si aún hay chance.
 - Bombardear con muchos mensajes si no contestó tras la demo (eso lo hace el follow-up automático).
 - Llamar "Doctor/a" si la persona no se presentó así.
@@ -587,6 +605,10 @@ PROMPT;
             throw new RuntimeException('OpenAI devolvió una respuesta vacía.');
         }
 
+        if ($product === self::PRODUCT_VETSAAS) {
+            $botReply = $this->attachMeetLinkIfRequested($conversation, $botReply);
+        }
+
         // 4. Guardar respuesta del bot en el historial.
         $conversation->pushMessage('assistant', $botReply);
 
@@ -604,6 +626,96 @@ PROMPT;
         $this->rememberOutgoingBotMessage((string) $conversation->phone, $botReply);
 
         return $botReply;
+    }
+
+    /**
+     * Detecta <<<MEET YYYY-MM-DD HH:MM>>>, crea Google Meet y deja el link en el mensaje.
+     */
+    public function attachMeetLinkIfRequested(SalesConversation $conversation, string $reply): string
+    {
+        if (! preg_match('/<<<\s*MEET\s+(\d{4}-\d{2}-\d{2})\s+(\d{1,2}:\d{2})\s*>>>/iu', $reply, $m)) {
+            return $reply;
+        }
+
+        $clean = trim(preg_replace('/<<<\s*MEET\s+\d{4}-\d{2}-\d{2}\s+\d{1,2}:\d{2}\s*>>>/iu', '', $reply) ?? $reply);
+        $clean = trim(preg_replace("/\n{3,}/u", "\n\n", $clean) ?? $clean);
+
+        $tz = (string) config('google-calendar.timezone', config('app.timezone', 'America/Lima'));
+        $date = $m[1];
+        $time = $m[2];
+        if (preg_match('/^\d:\d{2}$/', $time)) {
+            $time = '0'.$time;
+        }
+
+        try {
+            $startsAt = CarbonImmutable::createFromFormat('Y-m-d H:i', "{$date} {$time}", $tz);
+        } catch (Throwable) {
+            Log::warning('SalesBot MEET marker fecha inválida', [
+                'phone' => $conversation->phone,
+                'marker' => $m[0],
+            ]);
+
+            return $clean !== ''
+                ? $clean."\n\nDame un momento y te confirmo el link de la reunión 😊"
+                : 'Dame un momento y te confirmo el link de la reunión 😊';
+        }
+
+        if ($startsAt === false) {
+            return $clean !== ''
+                ? $clean."\n\nDame un momento y te confirmo el link de la reunión 😊"
+                : 'Dame un momento y te confirmo el link de la reunión 😊';
+        }
+
+        if ($startsAt->lessThan(now($tz)->subMinutes(5))) {
+            return $clean !== ''
+                ? $clean."\n\nEse horario ya pasó 😅 ¿Qué otro día y hora te queda mejor?"
+                : 'Ese horario ya pasó 😅 ¿Qué otro día y hora te queda mejor?';
+        }
+
+        if (! $this->googleCalendar->isConfigured()) {
+            Log::warning('SalesBot MEET pedido pero Google Calendar no conectado', [
+                'phone' => $conversation->phone,
+            ]);
+
+            return $clean !== ''
+                ? $clean."\n\nQuedó agendado. En un momento te paso el link de Meet 😊"
+                : 'Quedó agendado. En un momento te paso el link de Meet 😊';
+        }
+
+        $name = trim((string) ($conversation->prospect_name ?? ''));
+        $summary = $name !== ''
+            ? "Tour VetSaaS — {$name}"
+            : 'Tour VetSaaS — WhatsApp '.((string) $conversation->phone);
+
+        try {
+            $event = $this->googleCalendar->createMeetEvent(
+                $startsAt,
+                $summary,
+                'Tour VetSaaS coordinado por el bot de ventas Orvae.'."\nTel: ".$conversation->phone,
+            );
+        } catch (Throwable $e) {
+            Log::error('SalesBot create Meet failed', [
+                'phone' => $conversation->phone,
+                'error' => $e->getMessage(),
+            ]);
+
+            return $clean !== ''
+                ? $clean."\n\nTuve un detalle creando el Meet. Te confirmo el link en un momento 😊"
+                : 'Tuve un detalle creando el Meet. Te confirmo el link en un momento 😊';
+        }
+
+        $conversation->meet_at = $startsAt->utc();
+        $conversation->meet_link = $event['meet_link'];
+        $conversation->google_event_id = $event['event_id'] !== '' ? $event['event_id'] : null;
+
+        $whenHuman = $startsAt->locale('es')->isoFormat('dddd D [de] MMMM, HH:mm');
+        $meetLine = "Listo ✅ Nos vemos el {$whenHuman} (hora Perú).\nEntra aquí: {$event['meet_link']}";
+
+        if ($clean === '') {
+            return $meetLine;
+        }
+
+        return $clean."\n\n".$meetLine;
     }
 
     /**
