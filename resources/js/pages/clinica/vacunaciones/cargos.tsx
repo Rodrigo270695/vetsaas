@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react
 import { useTranslation } from 'react-i18next';
 import { TicketPrintDialog } from '@/components/tickets/ticket-print-dialog';
 import { usePermission } from '@/hooks/use-permission';
+import { toastManager } from '@/lib/toast';
 import { normalizeTicketAncho } from '@/lib/ticket-ancho';
 import { dashboard } from '@/routes';
 import { ConsultaCargosMain } from '../historias-clinicas/components/consulta-cargos-main';
@@ -201,7 +202,8 @@ export default function VacunacionCargos({ vacuna, cargo, cobro, clinic_billing 
         [cargo],
     );
 
-    const { data, setData, post, processing, errors, clearErrors } = useForm<FormState>(initial);
+    const { data, setData, post, processing, errors, clearErrors, transform } =
+        useForm<FormState>(initial);
 
     const entrarEnEdicion = useCallback(() => {
         setData({
@@ -245,11 +247,32 @@ export default function VacunacionCargos({ vacuna, cargo, cobro, clinic_billing 
         if (!puedeEditar) {
             return;
         }
+
+        // Igual que grooming: useForm().post, pero sin enviar producto_label (solo UI).
+        transform((form) => ({
+            notas: form.notas,
+            lineas: form.lineas.map(({ producto_label: _label, ...rest }) => ({
+                ...rest,
+                producto_id: rest.producto_id || null,
+                descuento_importe: rest.descuento_importe || '0.00',
+            })),
+        }));
+
         post(`${cargosBaseUrl}/confirmar`, {
             preserveScroll: true,
             onSuccess: () => {
                 clearErrors();
                 setEditandoConfirmada(false);
+            },
+            onError: (errs) => {
+                const first = Object.values(errs)[0];
+                toastManager.add({
+                    type: 'error',
+                    title:
+                        typeof first === 'string'
+                            ? first
+                            : 'No se pudo confirmar la pre-cuenta. Revisa stock y sede.',
+                });
             },
         });
     };

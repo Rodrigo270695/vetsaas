@@ -10,6 +10,7 @@ use App\Models\ClinicSetting;
 use App\Models\ConsultaCargo;
 use App\Models\ConsultaCargoLinea;
 use App\Models\Producto;
+use App\Models\Sede;
 use App\Models\ServicioClinico;
 use App\Models\User;
 use App\Models\VacunaAplicada;
@@ -28,6 +29,7 @@ use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Inertia\Inertia;
 use Inertia\Response;
+use Throwable;
 
 class VacunacionCargoController extends Controller
 {
@@ -309,10 +311,33 @@ class VacunacionCargoController extends Controller
         );
 
         $sedeId = (string) ($vacuna_aplicada->sede_id ?? '');
-        if ($sedeId === '' && collect($lineasIn)->contains(
+        if ($sedeId === '') {
+            $sesion = CajaSesion::query()
+                ->where('estado', CajaSesion::ESTADO_ABIERTA)
+                ->where('opened_by_id', Auth::id())
+                ->first();
+            $sedeId = (string) ($sesion?->sede_id ?? '');
+        }
+
+        $tieneProductos = collect($lineasIn)->contains(
             fn (array $row): bool => ($row['tipo_linea'] ?? '') === ConsultaCargoLinea::TIPO_PRODUCTO
                 && ! empty($row['producto_id']),
-        )) {
+        );
+
+        // Misma lógica que cargos de consulta: si aún no hay sede, usa la primera activa del tenant.
+        if ($sedeId === '' && $tieneProductos) {
+            $tenantId = (string) ($user?->tenant_id ?? '');
+            if ($tenantId !== '') {
+                $sedeId = (string) (Sede::query()
+                    ->where('tenant_id', $tenantId)
+                    ->where('activa', true)
+                    ->whereNull('deleted_at')
+                    ->orderBy('nombre')
+                    ->value('id') ?? '');
+            }
+        }
+
+        if ($sedeId === '' && $tieneProductos) {
             return redirect()
                 ->route('clinica.vacunaciones.cargos.show', $vacuna_aplicada)
                 ->with('error', __('consulta-cargos.flash.sin_sede_stock'));
@@ -360,11 +385,25 @@ class VacunacionCargoController extends Controller
                         continue;
                     }
 
-                    $movimientos = $this->cargoStock->registrarSalida(
-                        $linea,
-                        $sedeId,
-                        (string) $user->getAuthIdentifier(),
-                    );
+                    try {
+                        $movimientos = $this->cargoStock->registrarSalida(
+                            $linea,
+                            $sedeId,
+                            (string) $user->getAuthIdentifier(),
+                        );
+                    } catch (ValidationException $e) {
+                        $base = $e->errors()['cantidad'][0]
+                            ?? collect($e->errors())->flatten()->first()
+                            ?? __('consulta-cargos.flash.stock_insuficiente');
+                        $msg = is_string($base)
+                            ? $base.' ('.$linea->concepto.')'
+                            : __('consulta-cargos.flash.stock_insuficiente').' ('.$linea->concepto.')';
+
+                        throw ValidationException::withMessages([
+                            'cantidad' => $msg,
+                        ]);
+                    }
+
                     $primerMov = $movimientos[0] ?? null;
                     if ($primerMov !== null) {
                         $linea->update(['movimiento_inventario_id' => $primerMov->id]);
@@ -372,12 +411,20 @@ class VacunacionCargoController extends Controller
                 }
             });
         } catch (ValidationException $e) {
-            $msg = $e->errors()['cantidad'][0] ?? __('consulta-cargos.flash.stock_insuficiente');
+            $msg = $e->errors()['cantidad'][0]
+                ?? collect($e->errors())->flatten()->first()
+                ?? __('consulta-cargos.flash.stock_insuficiente');
 
             return redirect()
                 ->route('clinica.vacunaciones.cargos.show', $vacuna_aplicada)
                 ->withErrors($e->errors())
-                ->with('error', $msg);
+                ->with('error', is_string($msg) ? $msg : __('consulta-cargos.flash.stock_insuficiente'));
+        } catch (Throwable $e) {
+            report($e);
+
+            return redirect()
+                ->route('clinica.vacunaciones.cargos.show', $vacuna_aplicada)
+                ->with('error', __('consulta-cargos.flash.stock_insuficiente').' ('.$e->getMessage().')');
         }
 
         return redirect()

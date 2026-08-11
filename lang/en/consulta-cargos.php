@@ -10,6 +10,9 @@ return [
         'sin_sede_stock' => 'No active branch available to deduct inventory.',
         'stock_insuficiente' => 'Insufficient stock to confirm consultation products.',
     ],
+    'validation' => [
+        'producto_requerido' => 'Select an inventory product for this line.',
+    ],
     'stock' => [
         'notas' => 'Consultation charge: :concepto (visit :consulta)',
     ],

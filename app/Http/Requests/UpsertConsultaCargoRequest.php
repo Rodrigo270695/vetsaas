@@ -17,6 +17,9 @@ class UpsertConsultaCargoRequest extends FormRequest
                 $u->can('consulta-cargos.manage')
                 || $u->can('historias-clinicas.update')
                 || $u->can('hospitalizacion.update')
+                || $u->can('grooming.update')
+                || $u->can('hotel.update')
+                || $u->can('vacunaciones.update')
             );
     }
 
@@ -44,9 +47,40 @@ class UpsertConsultaCargoRequest extends FormRequest
             if (isset($row['descuento_importe']) && is_numeric($row['descuento_importe'])) {
                 $filtered[$i]['descuento_importe'] = round((float) $row['descuento_importe'], 2);
             }
+
+            $productoId = $row['producto_id'] ?? null;
+            if ($productoId === '' || $productoId === null) {
+                $filtered[$i]['producto_id'] = null;
+            }
         }
 
         $this->merge(['lineas' => $filtered]);
+    }
+
+    public function withValidator(\Illuminate\Validation\Validator $validator): void
+    {
+        $validator->after(function (\Illuminate\Validation\Validator $v): void {
+            $lineas = $this->input('lineas');
+            if (! is_array($lineas)) {
+                return;
+            }
+
+            foreach ($lineas as $i => $row) {
+                if (! is_array($row)) {
+                    continue;
+                }
+                if (($row['tipo_linea'] ?? '') !== ConsultaCargoLinea::TIPO_PRODUCTO) {
+                    continue;
+                }
+                $pid = $row['producto_id'] ?? null;
+                if ($pid === null || $pid === '') {
+                    $v->errors()->add(
+                        "lineas.{$i}.producto_id",
+                        __('consulta-cargos.validation.producto_requerido'),
+                    );
+                }
+            }
+        });
     }
 
     /**

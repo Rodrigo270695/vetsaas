@@ -7,8 +7,11 @@ return [
         'solo_borrador' => 'Solo se puede editar mientras el estado es borrador.',
         'ya_cobrado_no_editable' => 'Esta pre-cuenta ya fue cobrada en caja y no se puede editar.',
         'sin_lineas' => 'Añade al menos una línea antes de confirmar.',
-        'sin_sede_stock' => 'No hay sede activa para descontar inventario.',
+        'sin_sede_stock' => 'No hay sede activa para descontar inventario. Indica la sede en la vacunación o abre caja.',
         'stock_insuficiente' => 'Stock insuficiente para confirmar los productos de la consulta.',
+    ],
+    'validation' => [
+        'producto_requerido' => 'Elige el producto de inventario para esta línea.',
     ],
     'stock' => [
         'notas' => 'Cargo consulta: :concepto (consulta :consulta)',
