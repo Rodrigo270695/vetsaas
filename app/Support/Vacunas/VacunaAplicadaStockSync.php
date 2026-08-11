@@ -17,6 +17,11 @@ final class VacunaAplicadaStockSync
 
     public static function debeDescontar(VacunaAplicada $vacuna): bool
     {
+        // Paquete con productos: el stock se descuenta al confirmar precuenta (cargos).
+        if ($vacuna->usaPaqueteInventario()) {
+            return false;
+        }
+
         return $vacuna->producto_id !== null && $vacuna->sede_id !== null;
     }
 

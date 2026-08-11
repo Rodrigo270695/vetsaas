@@ -14,7 +14,9 @@
     "actions": {
         "new": "Registrar vacunación",
         "new_short": "Nueva",
-        "create_first": "Registrar primera vacunación"
+        "create_first": "Registrar primera vacunación",
+        "cargos": "Cargos",
+        "cobrar": "Cobrar"
     },
     "columns": {
         "aplicada_at": "Fecha y hora",
@@ -61,6 +63,13 @@
         "consulta_vinculada_abierta": "Esta aplicación quedará vinculada a la consulta abierta desde la que accediste.",
         "consulta_vinculada_visita": "Vinculada a la visita del {{fecha}}.",
         "producto_placeholder": "Vincular producto de inventario (opcional)",
+        "paquete": "Paquete / tarifa vacuna",
+        "paquete_placeholder": "Selecciona un paquete de tarifa (opcional)…",
+        "paquete_search": "Buscar paquete…",
+        "paquete_empty": "Sin paquetes que coincidan.",
+        "paquete_productos_count_one": "{{count}} producto",
+        "paquete_productos_count_other": "{{count}} productos",
+        "paquete_stock_hint": "El stock de los componentes se descuenta al confirmar cargos",
         "categoria_registro": "Tipo de registro",
         "categoria_vacuna": "Vacuna / inmunización",
         "categoria_desparasitacion": "Desparasitación",

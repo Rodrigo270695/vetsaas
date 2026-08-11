@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/react';
-import { BedDouble, ClipboardList, Loader2, Scissors, Stethoscope } from 'lucide-react';
+import { BedDouble, ClipboardList, Loader2, Scissors, Stethoscope, Syringe } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 
-export type PrecuentaOrigen = 'consulta' | 'grooming' | 'hotel' | 'internamiento';
+export type PrecuentaOrigen = 'consulta' | 'grooming' | 'hotel' | 'internamiento' | 'vacuna';
 
 export type PrecuentaPendiente = {
     id: string;
@@ -60,6 +60,11 @@ const ORIGEN_UI: Record<
         icon: ClipboardList,
         badgeClass: 'border-rose-500/30 bg-rose-500/10 text-rose-800 dark:text-rose-300',
         i18nKey: 'caja:ventas.create.precuentas_origen_internamiento',
+    },
+    vacuna: {
+        icon: Syringe,
+        badgeClass: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300',
+        i18nKey: 'caja:ventas.create.precuentas_origen_vacuna',
     },
 };
 

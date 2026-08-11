@@ -23,12 +23,21 @@ import { formatAtendidoInAppTimezone } from '../../historias-clinicas/format-ate
 import type {
     PacienteVacunaOpcion,
     SedeVacunaOpcion,
+    ServicioVacunaOpcion,
     VacunaAplicadaRow,
     VacunaPrefillCreate,
 } from '../types';
 import { VacunaProductoPicker, type VacunaProductoOption } from './vacuna-producto-picker';
 
 const controlClass = 'h-10 w-full min-w-0';
+
+function formatPrecioLista(amount: string): string {
+    const n = Number(amount);
+
+    return Number.isFinite(n)
+        ? new Intl.NumberFormat(undefined, { style: 'currency', currency: 'PEN' }).format(n)
+        : amount;
+}
 
 function toDatetimeLocalValue(d: Date): string {
     const pad = (n: number) => String(n).padStart(2, '0');
@@ -77,6 +86,7 @@ export type VacunaFormModalProps = {
     vacuna: VacunaAplicadaRow | null;
     pacientesOpciones: readonly PacienteVacunaOpcion[];
     sedesOpciones: readonly SedeVacunaOpcion[];
+    serviciosVacunaOpciones?: readonly ServicioVacunaOpcion[];
     /** Desde `vacuna_prefill` del servidor al crear (p. ej. URL con prefill). */
     prefillCreate?: VacunaPrefillCreate | null;
 };
@@ -85,6 +95,7 @@ type FormShape = {
     paciente_id: string;
     consulta_id: string;
     producto_id: string | null;
+    servicio_clinico_id: string | null;
     categoria_registro: string;
     nombre_vacuna: string;
     esquema_antigenos: string;
@@ -105,6 +116,7 @@ function emptyForm(
         paciente_id: '',
         consulta_id: '',
         producto_id: null,
+        servicio_clinico_id: null,
         categoria_registro: 'vacuna',
         nombre_vacuna: '',
         esquema_antigenos: '',
@@ -123,6 +135,7 @@ function fromVacuna(v: VacunaAplicadaRow, defaultVetId: string | null): FormShap
         paciente_id: v.paciente_id,
         consulta_id: v.consulta_id ?? '',
         producto_id: v.producto_id,
+        servicio_clinico_id: v.servicio_clinico_id ?? null,
         categoria_registro: v.categoria_registro ?? 'vacuna',
         nombre_vacuna: v.nombre_vacuna,
         esquema_antigenos: v.esquema_antigenos ?? '',
@@ -142,6 +155,7 @@ export function VacunaFormModal({
     vacuna,
     pacientesOpciones,
     sedesOpciones,
+    serviciosVacunaOpciones = [],
     prefillCreate = null,
 }: VacunaFormModalProps) {
     const { t } = useTranslation(['vacunaciones', 'common', 'offline']);
@@ -156,6 +170,14 @@ export function VacunaFormModal({
     const isEdit = vacuna !== null;
     const lockPaciente = isEdit || Boolean(prefillCreate?.paciente_id);
 
+    const paqueteSeleccionado = useMemo(
+        () =>
+            serviciosVacunaOpciones.find((s) => s.id === data.servicio_clinico_id) ?? null,
+        [serviciosVacunaOpciones, data.servicio_clinico_id],
+    );
+    const paqueteConProductos = (paqueteSeleccionado?.productos_count ?? 0) > 0;
+    const sedeImportante = Boolean(data.producto_id) || paqueteConProductos;
+
     useEffect(() => {
         transform((raw) => {
             const r = raw;
@@ -166,6 +188,10 @@ export function VacunaFormModal({
                 paciente_id: r.paciente_id,
                 consulta_id: r.consulta_id.trim() === '' ? null : r.consulta_id.trim(),
                 producto_id: r.producto_id && r.producto_id !== '' ? r.producto_id : null,
+                servicio_clinico_id:
+                    r.servicio_clinico_id != null && r.servicio_clinico_id !== ''
+                        ? r.servicio_clinico_id
+                        : null,
                 categoria_registro: r.categoria_registro,
                 nombre_vacuna: r.nombre_vacuna.trim(),
                 esquema_antigenos: r.esquema_antigenos.trim() === '' ? null : r.esquema_antigenos.trim(),
@@ -210,16 +236,47 @@ export function VacunaFormModal({
         [pacientesOpciones],
     );
 
+    const servicioComboboxOptions = useMemo<ComboboxOption[]>(
+        () =>
+            serviciosVacunaOpciones.map((s) => ({
+                value: s.id,
+                label: `${s.nombre} · ${formatPrecioLista(s.precio_lista)}${
+                    s.productos_count > 0 ? ` · ${t('form.paquete_productos_count', { count: s.productos_count })}` : ''
+                }`,
+            })),
+        [serviciosVacunaOpciones, t],
+    );
+
+    const onServicioSelect = (value: string | null) => {
+        if (value == null || value === '') {
+            setData((prev) => ({
+                ...prev,
+                servicio_clinico_id: null,
+            }));
+
+            return;
+        }
+
+        const servicio = serviciosVacunaOpciones.find((s) => s.id === value);
+        setData((prev) => ({
+            ...prev,
+            servicio_clinico_id: value,
+            nombre_vacuna: servicio?.nombre ?? prev.nombre_vacuna,
+            producto_id: null,
+        }));
+    };
+
     const onProductSelect = (opt: VacunaProductoOption | null) => {
         if (opt === null) {
             setData('producto_id', null);
 
             return;
         }
-        setData('producto_id', opt.id);
-        if (data.nombre_vacuna.trim() === '') {
-            setData('nombre_vacuna', opt.nombre);
-        }
+        setData((prev) => ({
+            ...prev,
+            producto_id: opt.id,
+            nombre_vacuna: prev.nombre_vacuna.trim() === '' ? opt.nombre : prev.nombre_vacuna,
+        }));
     };
 
     const buildCreatePayload = (raw: FormShape): Record<string, unknown> => {
@@ -230,6 +287,10 @@ export function VacunaFormModal({
             paciente_id: raw.paciente_id,
             consulta_id: raw.consulta_id.trim() === '' ? null : raw.consulta_id.trim(),
             producto_id: raw.producto_id && raw.producto_id !== '' ? raw.producto_id : null,
+            servicio_clinico_id:
+                raw.servicio_clinico_id != null && raw.servicio_clinico_id !== ''
+                    ? raw.servicio_clinico_id
+                    : null,
             categoria_registro: raw.categoria_registro,
             nombre_vacuna: raw.nombre_vacuna.trim(),
             esquema_antigenos: raw.esquema_antigenos.trim() === '' ? null : raw.esquema_antigenos.trim(),
@@ -336,24 +397,50 @@ export function VacunaFormModal({
                     ) : null
                 ) : null}
 
-                <FormField
-                    id="vf-producto"
-                    label={t('form.producto_placeholder')}
-                    error={errors.producto_id as string | undefined}
-                >
-                    <VacunaProductoPicker
+                {serviciosVacunaOpciones.length > 0 ? (
+                    <FormField
+                        id="vf-paquete"
+                        label={t('form.paquete')}
+                        error={errors.servicio_clinico_id as string | undefined}
+                    >
+                        <Combobox
+                            id="vf-paquete"
+                            options={servicioComboboxOptions}
+                            value={data.servicio_clinico_id}
+                            onChange={onServicioSelect}
+                            placeholder={t('form.paquete_placeholder')}
+                            searchPlaceholder={t('form.paquete_search')}
+                            emptyMessage={t('form.paquete_empty')}
+                            disabled={processing}
+                            aria-invalid={Boolean(errors.servicio_clinico_id)}
+                        />
+                    </FormField>
+                ) : null}
+
+                {paqueteConProductos ? (
+                    <p className="text-xs text-muted-foreground">{t('form.paquete_stock_hint')}</p>
+                ) : null}
+
+                {!data.servicio_clinico_id ? (
+                    <FormField
                         id="vf-producto"
-                        value={data.producto_id}
-                        labelResolved={
-                            data.producto_id != null && data.nombre_vacuna.trim() !== ''
-                                ? data.nombre_vacuna
-                                : null
-                        }
-                        onSelect={onProductSelect}
-                        disabled={processing}
-                        aria-invalid={Boolean(errors.producto_id)}
-                    />
-                </FormField>
+                        label={t('form.producto_placeholder')}
+                        error={errors.producto_id as string | undefined}
+                    >
+                        <VacunaProductoPicker
+                            id="vf-producto"
+                            value={data.producto_id}
+                            labelResolved={
+                                data.producto_id != null && data.nombre_vacuna.trim() !== ''
+                                    ? data.nombre_vacuna
+                                    : null
+                            }
+                            onSelect={onProductSelect}
+                            disabled={processing}
+                            aria-invalid={Boolean(errors.producto_id)}
+                        />
+                    </FormField>
+                ) : null}
 
                 <FormField
                     id="vf-categoria"
@@ -476,8 +563,14 @@ export function VacunaFormModal({
                     sedes={sedesOpciones}
                     value={data.sede_id}
                     onChange={(sedeId) => setData('sede_id', sedeId)}
-                    required={Boolean(data.producto_id)}
-                    hint={data.producto_id ? t('form.sede_required_hint') : undefined}
+                    required={sedeImportante}
+                    hint={
+                        paqueteConProductos
+                            ? t('form.paquete_stock_hint')
+                            : data.producto_id
+                              ? t('form.sede_required_hint')
+                              : undefined
+                    }
                     error={errors.sede_id as string | undefined}
                     disabled={processing}
                     noneLabel={t('form.sede_placeholder')}

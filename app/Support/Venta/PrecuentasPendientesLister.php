@@ -50,6 +50,8 @@ final class PrecuentasPendientesLister
                     'hotelEstancia.paciente.propietario' => fn ($q) => $q->withTrashed(),
                     'internamiento.paciente' => fn ($q) => $q->withTrashed(),
                     'internamiento.paciente.propietario' => fn ($q) => $q->withTrashed(),
+                    'vacunaAplicada.paciente' => fn ($q) => $q->withTrashed(),
+                    'vacunaAplicada.paciente.propietario' => fn ($q) => $q->withTrashed(),
                 ])
                 ->orderByDesc('updated_at')
                 ->limit(100)
@@ -65,11 +67,12 @@ final class PrecuentasPendientesLister
         $tenant = app(TenantManager::class)->current()?->tenant;
         $canHotel = $user->can('hotel.view') && TenantModuleAccess::isEnabled($tenant, 'hotel');
         $canInternamiento = $user->can('consulta-cargos.cobrar');
+        $canVacuna = $user->can('vacunaciones.view');
 
         $out = [];
         foreach ($cargos as $cargo) {
             try {
-                $row = $this->mapCargo($cargo, $canConsulta, $canGrooming, $canHotel, $canInternamiento);
+                $row = $this->mapCargo($cargo, $canConsulta, $canGrooming, $canHotel, $canInternamiento, $canVacuna);
                 if ($row !== null) {
                     $out[] = $row;
                 }
@@ -90,7 +93,30 @@ final class PrecuentasPendientesLister
         bool $canGrooming,
         bool $canHotel,
         bool $canInternamiento,
+        bool $canVacuna,
     ): ?array {
+        if ($cargo->vacuna_aplicada_id && $canVacuna) {
+            $vac = $cargo->vacunaAplicada;
+            $pac = $vac?->paciente;
+            $prop = $pac?->propietario;
+
+            return [
+                'id' => $cargo->id,
+                'origen' => 'vacuna',
+                'origen_id' => $cargo->vacuna_aplicada_id,
+                'origen_label' => 'Vacunación',
+                'propietario_id' => $prop?->id,
+                'propietario_nombre' => $prop?->displayName(),
+                'paciente_nombre' => $pac?->nombre,
+                'total' => (string) $cargo->total,
+                'moneda' => (string) $cargo->moneda,
+                'confirmado_at' => $cargo->updated_at?->toIso8601String(),
+                'url_cobrar' => route('caja.ventas.create-desde-vacuna', [
+                    'vacuna_aplicada' => $cargo->vacuna_aplicada_id,
+                ], absolute: false),
+            ];
+        }
+
         if ($cargo->grooming_turno_id && $canGrooming) {
             $turno = $cargo->groomingTurno;
             $pac = $turno?->paciente;

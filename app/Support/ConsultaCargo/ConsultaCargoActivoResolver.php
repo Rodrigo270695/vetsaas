@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Auth;
 final class ConsultaCargoActivoResolver
 {
     /**
-     * @param  'consulta_id'|'internamiento_id'|'grooming_turno_id'|'hotel_estancia_id'  $fk
+     * @param  'consulta_id'|'internamiento_id'|'grooming_turno_id'|'hotel_estancia_id'|'vacuna_aplicada_id'  $fk
      */
     public static function resolveOrCreate(string $fk, string $origenId, ClinicSetting $cfg): ConsultaCargo
     {

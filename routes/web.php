@@ -24,6 +24,7 @@ use App\Http\Controllers\FelDocumentController;
 use App\Http\Controllers\FelSerieController;
 use App\Http\Controllers\GeoController;
 use App\Http\Controllers\GroomingCargoController;
+use App\Http\Controllers\ServicioClinicoProductoController;
 use App\Http\Controllers\GroomingInsumoController;
 use App\Http\Controllers\GroomingServicioController;
 use App\Http\Controllers\GroomingTurnoController;
@@ -79,6 +80,7 @@ use App\Http\Controllers\TenantWhatsAppPlatformController;
 use App\Http\Controllers\UnidadMedidaInventarioController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VacunacionController;
+use App\Http\Controllers\VacunacionCargoController;
 use App\Http\Controllers\VentaController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -382,6 +384,30 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             Route::middleware('permission:vacunaciones.view')
                 ->get('vacunaciones/{vacuna_aplicada}/pdf', [VacunacionController::class, 'aplicacionPdf'])
                 ->name('vacunaciones.aplicacion-pdf');
+            Route::middleware('permission:consulta-cargos.view|vacunaciones.view')
+                ->get('vacunaciones/{vacuna_aplicada}/cargos', [VacunacionCargoController::class, 'show'])
+                ->whereUuid('vacuna_aplicada')
+                ->name('vacunaciones.cargos.show');
+            Route::middleware('permission:consulta-cargos.view|consulta-cargos.manage|productos.view|vacunaciones.view')
+                ->get('vacunaciones/{vacuna_aplicada}/cargos/productos-buscar', [VacunacionCargoController::class, 'productosBuscar'])
+                ->whereUuid('vacuna_aplicada')
+                ->name('vacunaciones.cargos.productos-buscar');
+            Route::middleware('permission:consulta-cargos.view|consulta-cargos.manage|productos.view|vacunaciones.view')
+                ->get('vacunaciones/{vacuna_aplicada}/cargos/servicios-buscar', [VacunacionCargoController::class, 'serviciosBuscar'])
+                ->whereUuid('vacuna_aplicada')
+                ->name('vacunaciones.cargos.servicios-buscar');
+            Route::middleware('permission:consulta-cargos.view|vacunaciones.view')
+                ->get('vacunaciones/{vacuna_aplicada}/cargos/ticket', [VacunacionCargoController::class, 'ticket'])
+                ->whereUuid('vacuna_aplicada')
+                ->name('vacunaciones.cargos.ticket');
+            Route::middleware('permission:consulta-cargos.manage|vacunaciones.update')
+                ->match(['put', 'patch'], 'vacunaciones/{vacuna_aplicada}/cargos', [VacunacionCargoController::class, 'update'])
+                ->whereUuid('vacuna_aplicada')
+                ->name('vacunaciones.cargos.update');
+            Route::middleware('permission:consulta-cargos.manage|vacunaciones.update')
+                ->post('vacunaciones/{vacuna_aplicada}/cargos/confirmar', [VacunacionCargoController::class, 'confirmar'])
+                ->whereUuid('vacuna_aplicada')
+                ->name('vacunaciones.cargos.confirmar');
             Route::middleware('permission:vacunaciones.create')
                 ->post('vacunaciones', [VacunacionController::class, 'store'])
                 ->name('vacunaciones.store');
@@ -806,6 +832,10 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware(['permission:ventas.create', 'permission:grooming.view'])
             ->get('ventas/desde-grooming/{grooming_turno}', [VentaController::class, 'createDesdeGrooming'])
             ->name('ventas.create-desde-grooming');
+        Route::middleware(['permission:ventas.create', 'permission:vacunaciones.view'])
+            ->get('ventas/desde-vacuna/{vacuna_aplicada}', [VentaController::class, 'createDesdeVacuna'])
+            ->whereUuid('vacuna_aplicada')
+            ->name('ventas.create-desde-vacuna');
         Route::middleware(['permission:ventas.create', 'permission:grooming.view'])
             ->post('ventas/adelanto-grooming/{grooming_turno}', [VentaController::class, 'storeAdelantoGrooming'])
             ->whereUuid('grooming_turno')
@@ -1113,6 +1143,14 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             ->put('tarifas/grooming/servicios/{groomingServicio}/insumos', [GroomingInsumoController::class, 'sync'])
             ->whereUuid('groomingServicio')
             ->name('tarifas.grooming.servicios.insumos.sync');
+        Route::middleware('permission:tarifas.view')
+            ->get('tarifas/clinica/servicios/{servicioClinico}/productos', [ServicioClinicoProductoController::class, 'index'])
+            ->whereUuid('servicioClinico')
+            ->name('tarifas.clinica.servicios.productos.index');
+        Route::middleware('permission:tarifas.update')
+            ->put('tarifas/clinica/servicios/{servicioClinico}/productos', [ServicioClinicoProductoController::class, 'sync'])
+            ->whereUuid('servicioClinico')
+            ->name('tarifas.clinica.servicios.productos.sync');
         Route::middleware(['permission:tarifas.create', 'tenant.module:hotel'])
             ->post('tarifas/hotel/tipos', [HotelTipoEstanciaController::class, 'store'])
             ->name('tarifas.hotel.tipos.store');

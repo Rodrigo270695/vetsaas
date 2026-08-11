@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * @property string $id
@@ -48,5 +49,10 @@ class ServicioClinico extends Model
     public function categoria(): BelongsTo
     {
         return $this->belongsTo(CategoriaServicioClinico::class, 'categoria_id');
+    }
+
+    public function productosPaquete(): HasMany
+    {
+        return $this->hasMany(ServicioClinicoProducto::class, 'servicio_clinico_id')->orderBy('orden');
     }
 }

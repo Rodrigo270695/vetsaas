@@ -30,6 +30,7 @@ import type {
     AplicacionFiltroUi,
     PacienteVacunaOpcion,
     SedeVacunaOpcion,
+    ServicioVacunaOpcion,
     UsuarioVacunaOpcion,
     VacunaAplicadaFilters,
     VacunaAplicadaRow,
@@ -42,6 +43,7 @@ type Props = {
     pacientes_opciones: readonly PacienteVacunaOpcion[];
     usuarios_opciones: readonly UsuarioVacunaOpcion[];
     sedes_opciones: readonly SedeVacunaOpcion[];
+    servicios_vacuna_opciones?: readonly ServicioVacunaOpcion[];
     filters: VacunaAplicadaFilters;
     aplicacion_filtro_ui: AplicacionFiltroUi;
     stats: VacunaAplicadaStats;
@@ -76,6 +78,7 @@ export default function Index({
     pacientes_opciones,
     usuarios_opciones,
     sedes_opciones,
+    servicios_vacuna_opciones = [],
     filters,
     aplicacion_filtro_ui,
     stats,
@@ -88,8 +91,10 @@ export default function Index({
     const canCreate = can('vacunaciones.create');
     const canUpdate = can('vacunaciones.update');
     const canDelete = can('vacunaciones.delete');
+    const canCobrar =
+        can('consulta-cargos.cobrar') && can('ventas.create');
     const canSeeAudit = can('audit-trail.view');
-    const showRowActions = canUpdate || canDelete;
+    const showRowActions = canUpdate || canDelete || canCobrar;
 
     const {
         search,
@@ -107,6 +112,7 @@ export default function Index({
             'pacientes_opciones',
             'usuarios_opciones',
             'sedes_opciones',
+            'servicios_vacuna_opciones',
             'filters',
             'aplicacion_filtro_ui',
             'stats',
@@ -373,6 +379,7 @@ export default function Index({
                             onDelete={openDelete}
                             canUpdate={canUpdate}
                             canDelete={canDelete}
+                            canCobrar={canCobrar}
                         />
                     </div>
                 ),
@@ -389,6 +396,7 @@ export default function Index({
         showRowActions,
         canUpdate,
         canDelete,
+        canCobrar,
         openEdit,
         openDelete,
     ]);
@@ -510,6 +518,7 @@ export default function Index({
                 vacuna={modal.type === 'edit' ? modal.vacuna : null}
                 pacientesOpciones={pacientes_opciones}
                 sedesOpciones={sedes_opciones}
+                serviciosVacunaOpciones={servicios_vacuna_opciones}
                 prefillCreate={modal.type === 'create' ? vacuna_prefill : null}
             />
 

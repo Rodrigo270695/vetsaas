@@ -329,6 +329,11 @@ class TenantSchemaMigrator
             // Fingerprint vía tabla migrations del tenant (drop unique no es trivial de detectar).
             '2026_08_04_180000_t125_consulta_cargos_multi_precuenta' => false,
             '2026_08_06_120000_t126_remove_default_second_pet_grooming_promo' => false,
+            '2026_08_10_200000_t127_vacuna_paquetes_y_cargos' => Schema::hasTable('servicio_clinico_productos')
+                && Schema::hasTable('consulta_cargos')
+                && Schema::hasColumn('consulta_cargos', 'vacuna_aplicada_id')
+                && Schema::hasTable('vacunas_aplicadas')
+                && Schema::hasColumn('vacunas_aplicadas', 'servicio_clinico_id'),
             default => false,
         };
     }

@@ -122,6 +122,10 @@ class TarifaServiciosController extends Controller
                 ->orderBy('orden')
                 ->orderBy('nombre');
 
+            if (Schema::hasTable('servicio_clinico_productos')) {
+                $clinicaQuery->withCount('productosPaquete as productos_count');
+            }
+
             if ($clinicaSearch !== '') {
                 $clinicaQuery->where(function ($q) use ($clinicaSearch): void {
                     $q->where('nombre', 'ILIKE', "%{$clinicaSearch}%")
@@ -144,6 +148,7 @@ class TarifaServiciosController extends Controller
                     'duracion_minutos' => $row->duracion_minutos,
                     'activo' => $row->activo,
                     'orden' => $row->orden,
+                    'productos_count' => (int) ($row->productos_count ?? 0),
                 ];
             });
         }

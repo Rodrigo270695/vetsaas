@@ -11,6 +11,7 @@ use App\Models\MovimientoInventario;
 use App\Models\Paciente;
 use App\Models\Producto;
 use App\Models\Sede;
+use App\Models\ServicioClinico;
 use App\Models\User;
 use App\Models\VacunaAplicada;
 use App\Support\Pdf\HistorialClinicoPdfBuilder;
@@ -23,6 +24,7 @@ use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -81,9 +83,11 @@ class VacunacionController extends Controller
                 ->with([
                     'paciente.propietario:id,nombres,apellidos,razon_social',
                     'producto:id,nombre,sku',
+                    'servicioClinico:id,nombre,precio_lista',
                     'veterinario:id,name',
                     'sede:id,nombre,codigo',
                     'consulta:id,atendido_at,cerrada_at',
+                    'cargo:id,vacuna_aplicada_id,estado,venta_id,total',
                 ])
                 ->whereKey($editarVacunaRaw);
 
@@ -110,14 +114,19 @@ class VacunacionController extends Controller
 
         $canAudit = $request->user()?->can('audit-trail.view') ?? false;
 
-        $query = VacunaAplicada::query()
-            ->with([
-                'paciente.propietario:id,nombres,apellidos,razon_social',
-                'producto:id,nombre,sku',
-                'veterinario:id,name',
-                'sede:id,nombre,codigo',
-                'consulta:id,atendido_at,cerrada_at',
-            ]);
+        $withVacuna = [
+            'paciente.propietario:id,nombres,apellidos,razon_social',
+            'producto:id,nombre,sku',
+            'servicioClinico:id,nombre,precio_lista',
+            'veterinario:id,name',
+            'sede:id,nombre,codigo',
+            'consulta:id,atendido_at,cerrada_at',
+        ];
+        if (Schema::hasColumn('consulta_cargos', 'vacuna_aplicada_id')) {
+            $withVacuna[] = 'cargo:id,vacuna_aplicada_id,estado,venta_id,total';
+        }
+
+        $query = VacunaAplicada::query()->with($withVacuna);
 
         if ($canAudit) {
             $query->with([
@@ -163,7 +172,49 @@ class VacunacionController extends Controller
             });
         }
 
-        $vacunas = $query->paginate($perPage)->withQueryString();
+        $vacunas = $query->paginate($perPage)->withQueryString()->through(function (VacunaAplicada $v): array {
+            $cargo = $v->cargo;
+
+            return [
+                'id' => $v->id,
+                'paciente_id' => $v->paciente_id,
+                'consulta_id' => $v->consulta_id,
+                'producto_id' => $v->producto_id,
+                'servicio_clinico_id' => $v->servicio_clinico_id,
+                'nombre_vacuna' => $v->nombre_vacuna,
+                'categoria_registro' => $v->categoria_registro,
+                'esquema_antigenos' => $v->esquema_antigenos,
+                'fecha_proxima_sugerida' => $v->fecha_proxima_sugerida?->toDateString(),
+                'aplicada_at' => $v->aplicada_at?->toIso8601String(),
+                'numero_dosis' => $v->numero_dosis,
+                'lote' => $v->lote,
+                'notas' => $v->notas,
+                'veterinario_id' => $v->veterinario_id,
+                'sede_id' => $v->sede_id,
+                'created_at' => $v->created_at?->toIso8601String(),
+                'updated_at' => $v->updated_at?->toIso8601String(),
+                'paciente' => $v->paciente,
+                'producto' => $v->producto,
+                'servicio_clinico' => $v->servicioClinico,
+                'veterinario' => $v->veterinario,
+                'sede' => $v->sede,
+                'consulta' => $v->consulta,
+                'creado_por' => $v->relationLoaded('creadoPor') ? $v->creadoPor : null,
+                'actualizado_por' => $v->relationLoaded('actualizadoPor') ? $v->actualizadoPor : null,
+                'cargo' => $cargo === null ? null : [
+                    'id' => $cargo->id,
+                    'estado' => $cargo->estado,
+                    'venta_id' => $cargo->venta_id,
+                    'total' => (string) $cargo->total,
+                ],
+                'url_cobrar' => Schema::hasColumn('consulta_cargos', 'vacuna_aplicada_id')
+                    ? $v->urlCobrarEnCaja()
+                    : null,
+                'url_cargos' => Schema::hasColumn('consulta_cargos', 'vacuna_aplicada_id')
+                    ? route('clinica.vacunaciones.cargos.show', ['vacuna_aplicada' => $v], absolute: false)
+                    : null,
+            ];
+        });
 
         $totalEnRango = VacunaAplicada::query()
             ->whereBetween('aplicada_at', [$inicioRango, $finRango])
@@ -190,6 +241,32 @@ class VacunacionController extends Controller
             ->limit(100)
             ->get(['id', 'nombre', 'codigo']);
 
+        $serviciosVacunaOpciones = [];
+        if (Schema::hasTable('servicios_clinicos')) {
+            $serviciosQuery = ServicioClinico::query()
+                ->where('activo', true)
+                ->with('categoria:id,nombre')
+                ->orderBy('orden')
+                ->orderBy('nombre');
+
+            if (Schema::hasTable('servicio_clinico_productos')) {
+                $serviciosQuery->withCount('productosPaquete as productos_count');
+            }
+
+            $serviciosVacunaOpciones = $serviciosQuery
+                ->get(['id', 'nombre', 'precio_lista', 'categoria_id'])
+                ->map(static function (ServicioClinico $s): array {
+                    return [
+                        'id' => $s->id,
+                        'nombre' => $s->nombre,
+                        'precio_lista' => (string) $s->precio_lista,
+                        'categoria' => $s->categoria?->nombre,
+                        'productos_count' => (int) ($s->productos_count ?? 0),
+                    ];
+                })
+                ->all();
+        }
+
         $vacunaPrefill = $this->vacunaPrefillDesdeQuery($request);
 
         return Inertia::render('clinica/vacunaciones/index', [
@@ -197,6 +274,7 @@ class VacunacionController extends Controller
             'pacientes_opciones' => $pacientesOpciones,
             'usuarios_opciones' => $usuariosOpciones,
             'sedes_opciones' => $sedesOpciones,
+            'servicios_vacuna_opciones' => $serviciosVacunaOpciones,
             'vacuna_prefill' => $vacunaPrefill,
             'vacuna_abrir_editar' => $vacunaAbrirEditar,
             'filters' => [

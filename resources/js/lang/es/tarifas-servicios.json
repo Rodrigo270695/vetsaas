@@ -131,6 +131,26 @@
         "precio_label": "Precio de {{nombre}}",
         "remove_label": "Quitar {{nombre}}"
     },
+    "paquete": {
+        "saved": "Productos del paquete guardados.",
+        "missing_table": "La tabla de productos del paquete no está disponible. Ejecuta las migraciones tenant.",
+        "title": "Productos del paquete",
+        "description": "Define qué medicamentos de inventario incluye «{{servicio}}» (p. ej. vacuna).",
+        "description_generic": "Define qué medicamentos de inventario incluye el servicio.",
+        "column": "Productos / paquete",
+        "count_one": "{{count}} producto",
+        "count_other": "{{count}} productos",
+        "assign_cta": "Asignar productos",
+        "cantidad_label": "Cantidad de {{nombre}}",
+        "empty_rows": "Aún no asignaste productos a este paquete.",
+        "add_label": "Agregar producto",
+        "add_placeholder": "Busca un medicamento del catálogo…",
+        "search_placeholder": "Buscar medicamento…",
+        "empty_catalog": "No hay medicamentos en el catálogo.",
+        "remove_label": "Quitar {{nombre}}",
+        "footer_total_one": "{{count}} producto",
+        "footer_total_other": "{{count}} productos"
+    },
     "toast": {
         "load_error": "No se pudieron cargar las tarifas."
     }

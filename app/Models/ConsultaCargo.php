@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property ?string $internamiento_id
  * @property ?string $grooming_turno_id
  * @property ?string $hotel_estancia_id
+ * @property ?string $vacuna_aplicada_id
  * @property string $estado
  * @property string $moneda
  * @property ?string $notas
@@ -40,6 +41,7 @@ class ConsultaCargo extends Model
         'internamiento_id',
         'grooming_turno_id',
         'hotel_estancia_id',
+        'vacuna_aplicada_id',
         'estado',
         'moneda',
         'notas',
@@ -78,6 +80,11 @@ class ConsultaCargo extends Model
     public function hotelEstancia(): BelongsTo
     {
         return $this->belongsTo(HotelEstancia::class, 'hotel_estancia_id');
+    }
+
+    public function vacunaAplicada(): BelongsTo
+    {
+        return $this->belongsTo(VacunaAplicada::class, 'vacuna_aplicada_id');
     }
 
     public function lineas(): HasMany

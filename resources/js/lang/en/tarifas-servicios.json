@@ -131,6 +131,26 @@
         "precio_label": "Price of {{nombre}}",
         "remove_label": "Remove {{nombre}}"
     },
+    "paquete": {
+        "saved": "Package products saved.",
+        "missing_table": "The package products table is not available. Run tenant migrations.",
+        "title": "Package products",
+        "description": "Define which inventory medicines «{{servicio}}» includes (e.g. vaccine package).",
+        "description_generic": "Define which inventory medicines the service includes.",
+        "column": "Products / package",
+        "count_one": "{{count}} product",
+        "count_other": "{{count}} products",
+        "assign_cta": "Assign products",
+        "cantidad_label": "Quantity of {{nombre}}",
+        "empty_rows": "You haven't assigned products to this package yet.",
+        "add_label": "Add product",
+        "add_placeholder": "Search a medicine in the catalog…",
+        "search_placeholder": "Search medicine…",
+        "empty_catalog": "No medicines in the catalog.",
+        "remove_label": "Remove {{nombre}}",
+        "footer_total_one": "{{count}} product",
+        "footer_total_other": "{{count}} products"
+    },
     "toast": {
         "load_error": "Could not load rates."
     }

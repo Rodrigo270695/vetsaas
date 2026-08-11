@@ -14,7 +14,9 @@
     "actions": {
         "new": "Record vaccination",
         "new_short": "New",
-        "create_first": "Record first vaccination"
+        "create_first": "Record first vaccination",
+        "cargos": "Charges",
+        "cobrar": "Collect"
     },
     "columns": {
         "aplicada_at": "Date & time",
@@ -61,6 +63,13 @@
         "consulta_vinculada_abierta": "This application will be linked to the open visit you came from.",
         "consulta_vinculada_visita": "Linked to the visit on {{fecha}}.",
         "producto_placeholder": "Link inventory product (optional)",
+        "paquete": "Package / vaccine rate",
+        "paquete_placeholder": "Select a rate package (optional)…",
+        "paquete_search": "Search package…",
+        "paquete_empty": "No matching packages.",
+        "paquete_productos_count_one": "{{count}} product",
+        "paquete_productos_count_other": "{{count}} products",
+        "paquete_stock_hint": "Component stock is deducted when charges are confirmed",
         "categoria_registro": "Record type",
         "categoria_vacuna": "Vaccine / immunization",
         "categoria_desparasitacion": "Deworming / antiparasitic",

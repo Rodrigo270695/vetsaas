@@ -447,6 +447,7 @@
             "precuentas_origen_grooming": "Grooming",
             "precuentas_origen_hotel": "Hotel",
             "precuentas_origen_internamiento": "Hospitalización",
+            "precuentas_origen_vacuna": "Vacunación",
             "precuentas_cargando": "Cargando precuentas…",
             "precuentas_vacio": "No hay precuentas pendientes de cobro.",
             "precuentas_error": "No se pudieron cargar las precuentas.",

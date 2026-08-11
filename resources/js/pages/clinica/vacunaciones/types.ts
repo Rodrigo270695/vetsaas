@@ -49,6 +49,7 @@ export type VacunaAplicadaRow = {
     paciente_id: string;
     consulta_id?: string | null;
     producto_id: string | null;
+    servicio_clinico_id?: string | null;
     nombre_vacuna: string;
     /** Presente tras migración tenant t063; por defecto se trata como vacuna. */
     categoria_registro?: string;
@@ -82,4 +83,20 @@ export type VacunaAplicadaRow = {
         atendido_at: string;
         cerrada_at: string | null;
     } | null;
+    cargo?: {
+        id: string;
+        estado: string;
+        venta_id: string | null;
+        total?: string | null;
+    } | null;
+    /** URL POS precargada (solo si pre-cuenta confirmada y permisos). */
+    url_cobrar?: string | null;
+    url_cargos?: string | null;
+};
+
+export type ServicioVacunaOpcion = {
+    id: string;
+    nombre: string;
+    precio_lista: string;
+    productos_count: number;
 };

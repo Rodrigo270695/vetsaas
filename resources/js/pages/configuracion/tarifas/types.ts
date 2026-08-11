@@ -22,6 +22,8 @@ export type CatalogoClinicaRow = {
     insumos_count?: number;
     /** Suma del precio de los insumos asignados. */
     insumos_total?: string | number | null;
+    /** Cantidad de productos del paquete (servicios clínicos / vacunas). */
+    productos_count?: number;
 };
 
 export type CategoriaTarifaOption = {
@@ -46,6 +48,25 @@ export type GroomingInsumoAsignado = {
 export type GroomingInsumosResponse = {
     catalogo: GroomingInsumoCatalogo[];
     asignados: GroomingInsumoAsignado[];
+    moneda: string;
+};
+
+export type ClinicaPaqueteProductoCatalogo = {
+    id: string;
+    nombre: string;
+    sku: string | null;
+};
+
+export type ClinicaPaqueteProductoAsignado = {
+    producto_id: string;
+    nombre: string;
+    sku?: string | null;
+    cantidad: string;
+};
+
+export type ClinicaPaqueteProductosResponse = {
+    catalogo: ClinicaPaqueteProductoCatalogo[];
+    asignados: ClinicaPaqueteProductoAsignado[];
     moneda: string;
 };
 

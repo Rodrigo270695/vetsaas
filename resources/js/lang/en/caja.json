@@ -447,6 +447,7 @@
             "precuentas_origen_grooming": "Grooming",
             "precuentas_origen_hotel": "Hotel",
             "precuentas_origen_internamiento": "Hospitalization",
+            "precuentas_origen_vacuna": "Vaccination",
             "precuentas_cargando": "Loading pre-invoices…",
             "precuentas_vacio": "No pending pre-invoices to charge.",
             "precuentas_error": "Could not load pre-invoices.",

@@ -55,12 +55,16 @@ return [
             'adelanto_nota_venta' => 'Venta de adelanto (anticipo) de grooming.',
             'adelanto_registrado' => 'Adelanto :numero registrado (:monto).',
         ],
-        'hotel' => [
+            'hotel' => [
             'no_completado' => 'Marca la estancia como «Completada» antes de cobrar en caja.',
             'ya_cobrado' => 'Esta estancia ya tiene un cobro registrado.',
             'sin_propietario' => 'El paciente no tiene propietario vinculado; no se puede cobrar en caja.',
             'estancia_invalida' => 'La estancia no es válida para esta venta.',
             'origen_mixto' => 'No puedes vincular grooming y hotel en la misma venta.',
+        ],
+        'vacuna' => [
+            'aplicacion_invalida' => 'La vacunación no es válida para cobrar en caja.',
+            'sin_propietario' => 'El paciente no tiene propietario vinculado; no se puede cobrar en caja.',
         ],
         'desde_cargo' => [
             'validation' => [

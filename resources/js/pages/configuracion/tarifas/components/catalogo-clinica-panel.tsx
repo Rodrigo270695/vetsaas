@@ -16,6 +16,7 @@ import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { GroomingInsumosModal } from './grooming-insumos-modal';
+import { ClinicaPaqueteProductosModal } from './clinica-paquete-productos-modal';
 import { ServiciosClinicosList } from './servicios-clinicos-list';
 import { TarifaDeleteDialog } from './tarifa-delete-dialog';
 import { TarifaRowActions } from './tarifa-row-actions';
@@ -127,6 +128,7 @@ export function CatalogoClinicaPanel({
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [submitting, setSubmitting] = useState(false);
     const [insumosServicio, setInsumosServicio] = useState<CatalogoClinicaRow | null>(null);
+    const [paqueteServicio, setPaqueteServicio] = useState<CatalogoClinicaRow | null>(null);
     const [categoriaOptions, setCategoriaOptions] = useState(categoriaOptionsProp);
 
     useEffect(() => {
@@ -404,6 +406,7 @@ export function CatalogoClinicaPanel({
                     onCreate={openCreate}
                     onEdit={openEdit}
                     onDelete={setDeleteRow}
+                    onProductosPaquete={setPaqueteServicio}
                 />
             ) : rows.length === 0 ? (
                 <p className="px-4 py-10 text-center text-sm text-muted-foreground sm:px-6">{t(emptyKey)}</p>
@@ -577,6 +580,22 @@ export function CatalogoClinicaPanel({
                                   id: insumosServicio.id,
                                   nombre: insumosServicio.nombre,
                                   moneda: insumosServicio.moneda,
+                              }
+                            : null
+                    }
+                    canUpdate={canUpdate}
+                />
+            ) : null}
+
+            {isClinica ? (
+                <ClinicaPaqueteProductosModal
+                    open={paqueteServicio !== null}
+                    onOpenChange={(openModal) => !openModal && setPaqueteServicio(null)}
+                    servicio={
+                        paqueteServicio
+                            ? {
+                                  id: paqueteServicio.id,
+                                  nombre: paqueteServicio.nombre,
                               }
                             : null
                     }

@@ -20,7 +20,7 @@ class UpdateVacunaAplicadaRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $out = [];
-        foreach (['producto_id', 'veterinario_id', 'sede_id', 'consulta_id'] as $key) {
+        foreach (['producto_id', 'servicio_clinico_id', 'veterinario_id', 'sede_id', 'consulta_id'] as $key) {
             $v = $this->input($key);
             if ($v === '' || $v === null) {
                 $out[$key] = null;
@@ -89,6 +89,13 @@ class UpdateVacunaAplicadaRequest extends FormRequest
                     fn ($q) => $q->where('medicamento', true)->where('activo', true),
                 ),
             ],
+            'servicio_clinico_id' => [
+                'nullable',
+                'uuid',
+                Rule::exists('servicios_clinicos', 'id')->where(
+                    fn ($q) => $q->where('activo', true),
+                ),
+            ],
             'nombre_vacuna' => ['required', 'string', 'max:500'],
             'aplicada_at' => ['required', 'date'],
             'categoria_registro' => ['required', 'string', Rule::in(VacunaAplicada::CATEGORIAS_REGISTRO)],
@@ -98,7 +105,7 @@ class UpdateVacunaAplicadaRequest extends FormRequest
             'lote' => ['nullable', 'string', 'max:128'],
             'notas' => ['nullable', 'string', 'max:20000'],
             'sede_id' => [
-                $this->filled('producto_id') ? 'required' : 'nullable',
+                ($this->filled('producto_id') || $this->filled('servicio_clinico_id')) ? 'required' : 'nullable',
                 'uuid',
                 Rule::exists('sedes', 'id')->where(
                     fn ($q) => $q->where('tenant_id', $tenantId)->where('activa', true),

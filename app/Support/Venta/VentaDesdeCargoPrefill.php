@@ -13,6 +13,7 @@ use App\Models\HotelEstancia;
 use App\Models\HotelEstanciaTarifa;
 use App\Models\Internamiento;
 use App\Models\ConsultaCargoLinea;
+use App\Models\VacunaAplicada;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -597,6 +598,126 @@ final class VentaDesdeCargoPrefill
                     'consulta_cargo_linea_id' => null,
                 ],
             ],
+        ];
+    }
+
+    /**
+     * Prefill POS desde vacunación (precuenta confirmada).
+     * Las líneas producto a precio 0 (stock del paquete) no van al carrito:
+     * el stock ya se descontó al confirmar cargos.
+     *
+     * @return array<string, mixed>
+     */
+    public function buildFromVacuna(VacunaAplicada $vacuna): array
+    {
+        $vacuna->load([
+            'paciente' => fn ($q) => $q->withTrashed()->select('id', 'nombre', 'propietario_id'),
+            'paciente.propietario' => fn ($q) => $q->withTrashed()->select('id', 'nombres', 'apellidos', 'razon_social'),
+            'cargo.lineas' => fn ($q) => $q->orderBy('orden'),
+        ]);
+
+        $paciente = $vacuna->paciente;
+        if ($paciente === null) {
+            throw ValidationException::withMessages([
+                'vacuna' => __('caja.ventas.vacuna.aplicacion_invalida'),
+            ]);
+        }
+
+        $propietario = $paciente->propietario;
+        if ($propietario === null) {
+            throw ValidationException::withMessages([
+                'vacuna' => __('caja.ventas.vacuna.sin_propietario'),
+            ]);
+        }
+
+        $cargo = $vacuna->cargo;
+        if ($cargo === null) {
+            throw ValidationException::withMessages([
+                'vacuna' => __('caja.ventas.desde_cargo.validation.cargo_invalido'),
+            ]);
+        }
+
+        if ($cargo->estado !== ConsultaCargo::ESTADO_CONFIRMADO) {
+            throw ValidationException::withMessages([
+                'vacuna' => __('caja.ventas.desde_cargo.validation.no_confirmado'),
+            ]);
+        }
+
+        if ($cargo->venta_id !== null) {
+            throw ValidationException::withMessages([
+                'vacuna' => __('caja.ventas.desde_cargo.validation.ya_cobrado'),
+            ]);
+        }
+
+        if ($cargo->lineas->isEmpty()) {
+            throw ValidationException::withMessages([
+                'vacuna' => __('caja.ventas.desde_cargo.validation.sin_lineas'),
+            ]);
+        }
+
+        $sesion = CajaSesion::query()
+            ->where('estado', CajaSesion::ESTADO_ABIERTA)
+            ->where('opened_by_id', Auth::id())
+            ->first();
+
+        $lineasCobro = $cargo->lineas->filter(function (ConsultaCargoLinea $ln): bool {
+            if ($ln->tipo_linea === ConsultaCargoLinea::TIPO_SERVICIO) {
+                return true;
+            }
+
+            return (float) (string) $ln->precio_unitario > 0.0001;
+        })->values();
+
+        if ($lineasCobro->isEmpty()) {
+            $lineasCobro = $cargo->lineas;
+        }
+
+        $productoIds = $lineasCobro
+            ->pluck('producto_id')
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        $stocks = ($sesion === null || $productoIds === [])
+            ? []
+            : DB::table('existencias_sede')
+                ->where('sede_id', $sesion->sede_id)
+                ->whereIn('producto_id', $productoIds)
+                ->pluck('cantidad', 'producto_id')
+                ->all();
+
+        $lineasIniciales = $lineasCobro->map(function (ConsultaCargoLinea $ln) use ($stocks): array {
+            $stock = '0';
+            if ($ln->producto_id !== null) {
+                $stock = (string) ($stocks[$ln->producto_id] ?? '0');
+            }
+
+            return [
+                'producto_id' => $ln->producto_id,
+                'tipo_linea' => $ln->tipo_linea,
+                'concepto' => $ln->concepto,
+                'cantidad' => (string) $ln->cantidad,
+                'precio_lista' => (string) $ln->precio_unitario,
+                'stock_sede' => $stock,
+                'consulta_cargo_linea_id' => $ln->id,
+            ];
+        })->values()->all();
+
+        return [
+            'consulta_id' => null,
+            'consulta_cargo_id' => $cargo->id,
+            'grooming_turno_id' => null,
+            'hotel_estancia_id' => null,
+            'vacuna_aplicada_id' => $vacuna->id,
+            'propietario_id' => (string) $propietario->id,
+            'paciente_id' => $paciente->id,
+            'paciente_nombre' => $paciente->nombre,
+            'consulta_atendido_at' => $vacuna->aplicada_at->toIso8601String(),
+            'cargo_total' => (string) $cargo->total,
+            'adelanto_monto' => null,
+            'adelanto_venta_numero' => null,
+            'lineas_iniciales' => $lineasIniciales,
         ];
     }
 }

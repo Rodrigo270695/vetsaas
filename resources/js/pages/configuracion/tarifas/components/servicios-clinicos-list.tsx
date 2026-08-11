@@ -1,4 +1,4 @@
-import { Clock3, Pencil, Plus, Stethoscope, Trash2 } from 'lucide-react';
+import { Clock3, Package, Pencil, Plus, Stethoscope, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
@@ -24,6 +24,7 @@ type Props = {
     onCreate: () => void;
     onEdit: (row: CatalogoClinicaRow) => void;
     onDelete: (row: CatalogoClinicaRow) => void;
+    onProductosPaquete?: (row: CatalogoClinicaRow) => void;
 };
 
 export function ServiciosClinicosList({
@@ -34,6 +35,7 @@ export function ServiciosClinicosList({
     onCreate,
     onEdit,
     onDelete,
+    onProductosPaquete,
 }: Props) {
     const { t } = useTranslation(['tarifas-servicios', 'common']);
     const [categoriaFilter, setCategoriaFilter] = useState<string | null>(null);
@@ -179,6 +181,27 @@ export function ServiciosClinicosList({
                                         </span>
                                     </div>
                                 </div>
+                                {onProductosPaquete ? (
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => onProductosPaquete(row)}
+                                        className="h-auto w-full cursor-pointer justify-start gap-2 py-1.5"
+                                    >
+                                        <Package className="size-4 text-muted-foreground" />
+                                        <span className="flex flex-col items-start leading-tight">
+                                            <span className="text-xs font-medium">
+                                                {t('paquete.count', { count: row.productos_count ?? 0 })}
+                                            </span>
+                                            <span className="text-[0.7rem] text-muted-foreground">
+                                                {(row.productos_count ?? 0) > 0
+                                                    ? t('paquete.column')
+                                                    : t('paquete.assign_cta')}
+                                            </span>
+                                        </span>
+                                    </Button>
+                                ) : null}
                                 {row.precio_costo != null && row.precio_costo !== '' ? (
                                     <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
                                         <span className="text-muted-foreground">
