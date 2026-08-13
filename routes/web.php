@@ -59,6 +59,7 @@ use App\Http\Controllers\PropietarioController;
 use App\Http\Controllers\ProveedorInventarioController;
 use App\Http\Controllers\RecetaController;
 use App\Http\Controllers\ReporteFinancieroController;
+use App\Http\Controllers\ReporteVentasController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SalesBotConversationController;
 use App\Http\Controllers\SalesBotKnowledgeController;
@@ -1005,6 +1006,10 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
                 ->name('financiero.rentabilidad-grooming');
             Route::get('financiero/rentabilidad-clinica', [ReporteFinancieroController::class, 'rentabilidadClinica'])
                 ->name('financiero.rentabilidad-clinica');
+            Route::get('ventas-productos', [ReporteVentasController::class, 'productos'])
+                ->name('ventas-productos');
+            Route::get('ventas-servicios', [ReporteVentasController::class, 'servicios'])
+                ->name('ventas-servicios');
         });
         Route::inertia('top-pacientes', 'reportes/top-pacientes/index')->name('top-pacientes');
     });

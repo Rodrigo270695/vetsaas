@@ -53,6 +53,8 @@
         "plantillas": "Plantillas",
         "snapshots": "Snapshots",
         "financiero": "Análisis financiero",
+        "ventas_productos": "Ventas por producto",
+        "ventas_servicios": "Ventas por servicio",
         "top_pacientes": "Top pacientes",
         "general": "General",
         "ayuda": "Centro de ayuda",

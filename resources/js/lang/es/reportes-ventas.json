@@ -1,0 +1,64 @@
+{
+    "date_filter": {
+        "placeholder": "Rango de fechas",
+        "aria": "Filtrar reporte por fechas",
+        "reset_month": "Mes actual",
+        "preset_this_week": "Esta semana",
+        "preset_last_week": "Semana pasada",
+        "preset_last_month": "Mes pasado",
+        "apply_single_day": "Un solo día"
+    },
+    "common": {
+        "reportes": "Reportes",
+        "sin_datos": "No hay ventas en el periodo seleccionado.",
+        "sin_costo_aviso": "{{count}} ítem(s) sin costo configurado (no entran en la utilidad).",
+        "hint_catalogo": "Precio y costo según el catálogo actual (no el histórico de cada venta).",
+        "kpis": {
+            "unidades": "Unidades",
+            "ventas": "Ventas",
+            "ingresos": "Ingresos",
+            "costo": "Costo",
+            "utilidad": "Utilidad",
+            "margen": "Margen"
+        },
+        "columns": {
+            "nombre": "Nombre",
+            "categoria": "Categoría",
+            "tipo": "Tipo",
+            "cantidad": "Cantidad",
+            "ventas": "Ventas",
+            "precio": "Precio",
+            "costo": "Costo",
+            "ingreso": "Ingreso",
+            "costo_total": "Costo tot.",
+            "utilidad": "Utilidad",
+            "margen": "Margen"
+        },
+        "tipos": {
+            "producto": "Producto",
+            "tratamiento": "Tratamiento",
+            "vacuna": "Vacuna",
+            "grooming": "Grooming"
+        },
+        "na": "—"
+    },
+    "productos": {
+        "title": "Ventas por producto",
+        "description": "Qué productos se venden más, con cantidad, precio, costo y utilidad.",
+        "search_placeholder": "Buscar producto…"
+    },
+    "servicios": {
+        "title": "Ventas por servicio",
+        "description": "Tratamientos, vacunas y grooming: volumen, precio, costo y utilidad.",
+        "search_placeholder": "Buscar servicio…",
+        "tabs": {
+            "resumen": "Resumen",
+            "todos": "Todos",
+            "tratamiento": "Tratamientos",
+            "vacuna": "Vacunas",
+            "grooming": "Grooming"
+        },
+        "resumen_hint": "Totales del periodo por tipo de servicio.",
+        "ver_detalle": "Ver detalle"
+    }
+}

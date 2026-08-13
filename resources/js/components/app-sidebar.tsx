@@ -354,6 +354,18 @@ function useNavConfig(): { singles: NavItem[]; groups: NavGroup[] } {
                             permission: 'reporte-financiero.view',
                         },
                         {
+                            title: t('items.ventas_productos'),
+                            href: '/reportes/ventas-productos',
+                            icon: Package,
+                            permission: 'reporte-financiero.view',
+                        },
+                        {
+                            title: t('items.ventas_servicios'),
+                            href: '/reportes/ventas-servicios',
+                            icon: FileBarChart,
+                            permission: 'reporte-financiero.view',
+                        },
+                        {
                             title: t('items.top_pacientes'),
                             href: '/reportes/top-pacientes',
                             icon: Trophy,

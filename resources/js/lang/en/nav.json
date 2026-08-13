@@ -53,6 +53,8 @@
         "plantillas": "Templates",
         "snapshots": "Snapshots",
         "financiero": "Financial analysis",
+        "ventas_productos": "Sales by product",
+        "ventas_servicios": "Sales by service",
         "top_pacientes": "Top patients",
         "general": "General",
         "ayuda": "Help center",

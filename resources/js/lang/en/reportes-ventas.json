@@ -1,0 +1,64 @@
+{
+    "date_filter": {
+        "placeholder": "Date range",
+        "aria": "Filter report by dates",
+        "reset_month": "This month",
+        "preset_this_week": "This week",
+        "preset_last_week": "Last week",
+        "preset_last_month": "Last month",
+        "apply_single_day": "Single day"
+    },
+    "common": {
+        "reportes": "Reports",
+        "sin_datos": "No sales in the selected period.",
+        "sin_costo_aviso": "{{count}} item(s) without cost configured (excluded from profit).",
+        "hint_catalogo": "Price and cost use the current catalog (not the historical sale snapshot).",
+        "kpis": {
+            "unidades": "Units",
+            "ventas": "Sales",
+            "ingresos": "Revenue",
+            "costo": "Cost",
+            "utilidad": "Profit",
+            "margen": "Margin"
+        },
+        "columns": {
+            "nombre": "Name",
+            "categoria": "Category",
+            "tipo": "Type",
+            "cantidad": "Qty",
+            "ventas": "Sales",
+            "precio": "Price",
+            "costo": "Cost",
+            "ingreso": "Revenue",
+            "costo_total": "Total cost",
+            "utilidad": "Profit",
+            "margen": "Margin"
+        },
+        "tipos": {
+            "producto": "Product",
+            "tratamiento": "Treatment",
+            "vacuna": "Vaccine",
+            "grooming": "Grooming"
+        },
+        "na": "—"
+    },
+    "productos": {
+        "title": "Sales by product",
+        "description": "Top-selling products with quantity, price, cost and profit.",
+        "search_placeholder": "Search product…"
+    },
+    "servicios": {
+        "title": "Sales by service",
+        "description": "Treatments, vaccines and grooming: volume, price, cost and profit.",
+        "search_placeholder": "Search service…",
+        "tabs": {
+            "resumen": "Summary",
+            "todos": "All",
+            "tratamiento": "Treatments",
+            "vacuna": "Vaccines",
+            "grooming": "Grooming"
+        },
+        "resumen_hint": "Period totals by service type.",
+        "ver_detalle": "View details"
+    }
+}
