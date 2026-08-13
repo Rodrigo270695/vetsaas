@@ -1010,6 +1010,12 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
                 ->name('ventas-productos');
             Route::get('ventas-servicios', [ReporteVentasController::class, 'servicios'])
                 ->name('ventas-servicios');
+            Route::middleware('permission:reporte-financiero.export')->group(function (): void {
+                Route::get('ventas-productos/export', [ReporteVentasController::class, 'exportProductos'])
+                    ->name('ventas-productos.export');
+                Route::get('ventas-servicios/export', [ReporteVentasController::class, 'exportServicios'])
+                    ->name('ventas-servicios.export');
+            });
         });
         Route::inertia('top-pacientes', 'reportes/top-pacientes/index')->name('top-pacientes');
     });

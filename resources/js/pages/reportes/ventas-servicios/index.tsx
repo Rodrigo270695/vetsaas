@@ -1,11 +1,12 @@
 import { Head, router, setLayoutProps, resetLayoutProps } from '@inertiajs/react';
-import { AlertTriangle, Scissors, Stethoscope, Syringe } from 'lucide-react';
+import { AlertTriangle, Download, Scissors, Stethoscope, Syringe } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/data-page';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { usePermission } from '@/hooks/use-permission';
 import { cn } from '@/lib/utils';
 import { formatMoney, formatNumber, formatPct } from '@/pages/reportes/components/reporte-format';
 import { ReporteVentasFilters } from '@/pages/reportes/components/reporte-ventas-filters';
@@ -31,6 +32,7 @@ type Props = {
     resumen: ReporteServicioResumen;
     items: ReporteVentasItem[];
     capabilities: Capabilities;
+    can_export?: boolean;
 };
 
 type TabValue = 'resumen' | 'todos' | 'tratamiento' | 'vacuna' | 'grooming';
@@ -113,10 +115,13 @@ export default function VentasServiciosIndex({
     resumen,
     items,
     capabilities,
+    can_export,
 }: Props) {
-    const { t, i18n } = useTranslation('reportes-ventas');
+    const { t, i18n } = useTranslation(['reportes-ventas', 'common']);
+    const { can } = usePermission();
     const locale = i18n.language?.startsWith('en') ? 'en-US' : 'es-PE';
     const [search, setSearch] = useState('');
+    const canExport = can_export ?? can('reporte-financiero.export');
 
     const tipoActual = (filtros.tipo ?? 'todos') as Exclude<TabValue, 'resumen'>;
     const [tab, setTab] = useState<TabValue>(tipoActual === 'todos' ? 'resumen' : tipoActual);
@@ -196,11 +201,41 @@ export default function VentasServiciosIndex({
         });
     }, [items, search]);
 
+    const exportUrl = useMemo(() => {
+        const params = new URLSearchParams();
+        params.set('fecha_desde', filtros.fecha_desde);
+        params.set('fecha_hasta', filtros.fecha_hasta);
+        // resumen/todos → multi-hoja; pestaña específica → hoja de ese tipo
+        const tipoExport =
+            tab === 'tratamiento' || tab === 'vacuna' || tab === 'grooming' ? tab : 'todos';
+        params.set('tipo', tipoExport);
+        if (search.trim()) {
+            params.set('search', search.trim());
+        }
+
+        return `/reportes/ventas-servicios/export?${params.toString()}`;
+    }, [filtros.fecha_desde, filtros.fecha_hasta, search, tab]);
+
     return (
         <>
             <Head title={t('servicios.title')} />
             <div className="flex flex-col gap-6 p-4 md:p-6">
-                <PageHeader title={t('servicios.title')} description={t('servicios.description')} />
+                <PageHeader
+                    title={t('servicios.title')}
+                    description={t('servicios.description')}
+                    action={
+                        canExport ? (
+                            <Button asChild variant="outline" className="cursor-pointer gap-2">
+                                <a href={exportUrl} download>
+                                    <Download className="size-4" strokeWidth={2.5} />
+                                    <span className="hidden sm:inline">
+                                        {t('common:actions.export_xlsx')}
+                                    </span>
+                                </a>
+                            </Button>
+                        ) : null
+                    }
+                />
 
                 <ReporteVentasFilters
                     url="/reportes/ventas-servicios"
