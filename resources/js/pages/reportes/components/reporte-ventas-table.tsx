@@ -2,14 +2,6 @@ import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 import { formatMoney, formatNumber, formatPct } from './reporte-format';
 import type { ReporteVentasItem, SortDir, SortKey } from './types';
@@ -110,81 +102,87 @@ export function ReporteVentasTable({ items, moneda, locale, showTipo = false, em
 
     return (
         <div className="overflow-x-auto rounded-xl border border-border/70">
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>
+            <table className="w-full min-w-5xl border-collapse text-sm">
+                <thead>
+                    <tr className="border-b border-border/70 bg-muted/40">
+                        <th className="px-3 py-2 text-left font-medium">
                             <SortButton column="nombre" label={t('common.columns.nombre')} />
-                        </TableHead>
-                        <TableHead>
+                        </th>
+                        <th className="px-3 py-2 text-left font-medium">
                             <SortButton column="categoria" label={t('common.columns.categoria')} />
-                        </TableHead>
+                        </th>
                         {showTipo ? (
-                            <TableHead>
+                            <th className="px-3 py-2 text-left font-medium">
                                 <SortButton column="tipo" label={t('common.columns.tipo')} />
-                            </TableHead>
+                            </th>
                         ) : null}
-                        <TableHead className="text-right">
+                        <th className="px-3 py-2 text-right font-medium">
                             <SortButton column="cantidad" label={t('common.columns.cantidad')} />
-                        </TableHead>
-                        <TableHead className="text-right">
+                        </th>
+                        <th className="px-3 py-2 text-right font-medium">
                             <SortButton column="ventas" label={t('common.columns.ventas')} />
-                        </TableHead>
-                        <TableHead className="text-right">
+                        </th>
+                        <th className="px-3 py-2 text-right font-medium">
                             <SortButton column="precio_unit" label={t('common.columns.precio')} />
-                        </TableHead>
-                        <TableHead className="text-right">
+                        </th>
+                        <th className="px-3 py-2 text-right font-medium">
                             <SortButton column="costo_unit" label={t('common.columns.costo')} />
-                        </TableHead>
-                        <TableHead className="text-right">
+                        </th>
+                        <th className="px-3 py-2 text-right font-medium">
                             <SortButton column="ingreso" label={t('common.columns.ingreso')} />
-                        </TableHead>
-                        <TableHead className="text-right">
+                        </th>
+                        <th className="px-3 py-2 text-right font-medium">
                             <SortButton column="costo" label={t('common.columns.costo_total')} />
-                        </TableHead>
-                        <TableHead className="text-right">
+                        </th>
+                        <th className="px-3 py-2 text-right font-medium">
                             <SortButton column="utilidad" label={t('common.columns.utilidad')} />
-                        </TableHead>
-                        <TableHead className="text-right">
+                        </th>
+                        <th className="px-3 py-2 text-right font-medium">
                             <SortButton column="margen_pct" label={t('common.columns.margen')} />
-                        </TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
                     {sorted.map((row) => (
-                        <TableRow key={`${row.tipo}-${row.id}`} className={!row.tiene_costo ? 'bg-amber-500/5' : undefined}>
-                            <TableCell className="max-w-[16rem] font-medium">
+                        <tr
+                            key={`${row.tipo}-${row.id}`}
+                            className={cn(
+                                'border-b border-border/50 last:border-b-0',
+                                !row.tiene_costo ? 'bg-amber-500/5' : 'odd:bg-background even:bg-muted/20',
+                            )}
+                        >
+                            <td className="max-w-[16rem] px-3 py-2.5 font-medium">
                                 <span className="line-clamp-2">{row.nombre}</span>
-                            </TableCell>
-                            <TableCell className="text-muted-foreground">
+                            </td>
+                            <td className="px-3 py-2.5 text-muted-foreground">
                                 {row.categoria ?? t('common.na')}
-                            </TableCell>
+                            </td>
                             {showTipo ? (
-                                <TableCell>
+                                <td className="px-3 py-2.5">
                                     {t(`common.tipos.${row.tipo}`, { defaultValue: row.tipo })}
-                                </TableCell>
+                                </td>
                             ) : null}
-                            <TableCell className="text-right tabular-nums">
+                            <td className="px-3 py-2.5 text-right tabular-nums">
                                 {formatNumber(row.cantidad, locale)}
-                            </TableCell>
-                            <TableCell className="text-right tabular-nums">
+                            </td>
+                            <td className="px-3 py-2.5 text-right tabular-nums">
                                 {formatNumber(row.ventas, locale, 0)}
-                            </TableCell>
-                            <TableCell className="text-right tabular-nums">
+                            </td>
+                            <td className="px-3 py-2.5 text-right tabular-nums">
                                 {formatMoney(row.precio_unit, moneda, locale)}
-                            </TableCell>
-                            <TableCell className="text-right tabular-nums">
+                            </td>
+                            <td className="px-3 py-2.5 text-right tabular-nums">
                                 {formatMoney(row.costo_unit, moneda, locale)}
-                            </TableCell>
-                            <TableCell className="text-right tabular-nums">
+                            </td>
+                            <td className="px-3 py-2.5 text-right tabular-nums">
                                 {formatMoney(row.ingreso, moneda, locale)}
-                            </TableCell>
-                            <TableCell className="text-right tabular-nums">
+                            </td>
+                            <td className="px-3 py-2.5 text-right tabular-nums">
                                 {formatMoney(row.costo, moneda, locale)}
-                            </TableCell>
-                            <TableCell
+                            </td>
+                            <td
                                 className={cn(
-                                    'text-right tabular-nums font-medium',
+                                    'px-3 py-2.5 text-right font-medium tabular-nums',
                                     row.utilidad !== null && row.utilidad < 0
                                         ? 'text-rose-600 dark:text-rose-400'
                                         : row.utilidad !== null
@@ -193,14 +191,14 @@ export function ReporteVentasTable({ items, moneda, locale, showTipo = false, em
                                 )}
                             >
                                 {formatMoney(row.utilidad, moneda, locale)}
-                            </TableCell>
-                            <TableCell className="text-right tabular-nums">
+                            </td>
+                            <td className="px-3 py-2.5 text-right tabular-nums">
                                 {formatPct(row.margen_pct, locale)}
-                            </TableCell>
-                        </TableRow>
+                            </td>
+                        </tr>
                     ))}
-                </TableBody>
-            </Table>
+                </tbody>
+            </table>
         </div>
     );
 }
