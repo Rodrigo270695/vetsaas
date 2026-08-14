@@ -35,7 +35,9 @@
         "free": "Free",
         "cancelled": "Canceladas",
         "geo": "Con ubicación",
-        "pct_paid": "% pago"
+        "pct_paid": "% pago",
+        "churned": "No renovaron",
+        "churned_hint": "{{one}} solo pagaron 1 vez · {{pct}}% de quienes alguna vez pagaron"
     },
     "filters": {
         "label": "Mostrar segmentos",
@@ -50,13 +52,35 @@
         "top_free": "Departamento líder en free",
         "ads": "Oportunidad Ads (concentración free)",
         "cobertura": "Cobertura geográfica",
+        "churned": "No renovaron (churn)",
         "none": "Sin datos aún"
+    },
+    "churn": {
+        "total": "Total churn",
+        "one_payment": "Solo 1 pago",
+        "pct": "% de ever-paid",
+        "col_clinic": "Clínica",
+        "col_payments": "Pagos",
+        "col_reason": "Motivo",
+        "col_plan": "Último plan",
+        "payments_count": "{{count}} pago(s)",
+        "reasons": {
+            "expired": "Venció y no renovó",
+            "suspended": "Suscripción suspendida",
+            "back_to_free": "Volvió a Free",
+            "tenant_cancelled": "Tenant cancelado",
+            "subscription_cancelled": "Suscripción cancelada",
+            "no_subscription": "Sin suscripción viva",
+            "other": "Sin renovación"
+        }
     },
     "sections": {
         "paid": "Clínicas de pago",
         "paid_hint": "Suscripción en plan distinto de Free. Ubicación tomada de sedes activas.",
         "free": "Clínicas free",
         "free_hint": "Plan Free o sin suscripción viva. Ubicación tomada de sedes activas.",
+        "churn": "No renovaron",
+        "churn_hint": "Pagaron al menos una vez y hoy no están al día (vencidos, suspendidos, free o cancelados).",
         "comparativo": "Comparativo por departamento",
         "comparativo_hint": "Pago vs free en los departamentos con más clínicas.",
         "heatmap": "Puntos calientes",

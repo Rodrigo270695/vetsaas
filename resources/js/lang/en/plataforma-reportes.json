@@ -35,7 +35,9 @@
         "free": "Free",
         "cancelled": "Cancelled",
         "geo": "With location",
-        "pct_paid": "% paid"
+        "pct_paid": "% paid",
+        "churned": "Did not renew",
+        "churned_hint": "{{one}} paid only once · {{pct}}% of ever-paid"
     },
     "filters": {
         "label": "Show segments",
@@ -50,13 +52,35 @@
         "top_free": "Top free department",
         "ads": "Ads opportunity (free concentration)",
         "cobertura": "Geo coverage",
+        "churned": "Did not renew (churn)",
         "none": "No data yet"
+    },
+    "churn": {
+        "total": "Total churn",
+        "one_payment": "Only 1 payment",
+        "pct": "% of ever-paid",
+        "col_clinic": "Clinic",
+        "col_payments": "Payments",
+        "col_reason": "Reason",
+        "col_plan": "Last plan",
+        "payments_count": "{{count}} payment(s)",
+        "reasons": {
+            "expired": "Expired and did not renew",
+            "suspended": "Subscription suspended",
+            "back_to_free": "Back to Free",
+            "tenant_cancelled": "Tenant cancelled",
+            "subscription_cancelled": "Subscription cancelled",
+            "no_subscription": "No live subscription",
+            "other": "No renewal"
+        }
     },
     "sections": {
         "paid": "Paid clinics",
         "paid_hint": "Subscription on a non-Free plan (trial, active, grace or suspended).",
         "free": "Free clinics",
         "free_hint": "Free plan or no live subscription. Strong conversion targets for Ads.",
+        "churn": "Did not renew",
+        "churn_hint": "Paid at least once and are no longer in good standing (expired, suspended, free or cancelled).",
         "comparativo": "Department comparison",
         "comparativo_hint": "Paid vs free in departments with the most clinics.",
         "heatmap": "Hot spots",

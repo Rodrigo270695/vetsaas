@@ -10,6 +10,7 @@ use App\Models\SubscriptionPayment;
 use App\Models\Tenant;
 use App\Support\Clinic\ClinicBrandingUrls;
 use App\Support\Geo\PeruDepartamentoCentroids;
+use App\Support\Subscriptions\SubscriptionExpiry;
 use App\Tenancy\TenantManager;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -148,6 +149,7 @@ final class PlataformaReportesSnapshotService
 
         $paid = collect($paidRows);
         $free = collect($freeRows);
+        $churn = $this->churnMetrics($tenants, $subsByTenant);
 
         return [
             'generated_at' => $now->toIso8601String(),
@@ -162,10 +164,19 @@ final class PlataformaReportesSnapshotService
                 'pct_free' => $this->pct($free->count(), $paid->count() + $free->count()),
                 'map_markers' => count($mapMarkers),
                 'gps_consents' => $tenants->whereNotNull('geo_consent_at')->count(),
+                'churned' => (int) ($churn['total'] ?? 0),
+                'churned_one_payment' => (int) ($churn['one_payment'] ?? 0),
+                'ever_paid' => (int) ($churn['ever_paid'] ?? 0),
+                'pct_churned' => (float) ($churn['pct'] ?? 0),
             ],
-            'insights' => $this->insights($paid, $free),
+            'insights' => [
+                ...$this->insights($paid, $free),
+                'churned' => (int) ($churn['total'] ?? 0),
+                'churned_one_payment' => (int) ($churn['one_payment'] ?? 0),
+            ],
             'paid' => $this->segmentBlock($paid),
             'free' => $this->segmentBlock($free),
+            'churn' => $churn,
             'comparativo_departamentos' => $this->comparativoDepartamentos($paid, $free),
             'flujo_suscripciones' => $this->flujoSuscripciones($subsByTenant),
             'crecimiento_mensual' => $this->crecimientoMensual($tenants, $subsByTenant, $now),
@@ -231,6 +242,186 @@ final class PlataformaReportesSnapshotService
             'lng' => $lng,
             'source' => $source,
         ];
+    }
+
+    /**
+     * Clínicas que algún día pagaron y hoy no tienen plan de pago al día
+     * (vencidas, suspendidas, free o canceladas): no renovaron.
+     *
+     * @param  Collection<int, Tenant>  $tenants
+     * @param  Collection<string, Subscription>  $subsByTenant
+     * @return array{
+     *     total: int,
+     *     one_payment: int,
+     *     ever_paid: int,
+     *     pct: float,
+     *     rows: list<array<string, mixed>>
+     * }
+     */
+    private function churnMetrics(Collection $tenants, Collection $subsByTenant): array
+    {
+        $tenantsById = $tenants->keyBy(static fn (Tenant $t): string => (string) $t->id);
+
+        $paymentRows = SubscriptionPayment::query()
+            ->forBillableOrGateway()
+            ->where('estado', 'procesado')
+            ->selectRaw('tenant_id, COUNT(*) as pagos_count, MAX(COALESCE(pagado_at, created_at)) as last_paid_at')
+            ->groupBy('tenant_id')
+            ->get();
+
+        if ($paymentRows->isEmpty()) {
+            return [
+                'total' => 0,
+                'one_payment' => 0,
+                'ever_paid' => 0,
+                'pct' => 0.0,
+                'rows' => [],
+            ];
+        }
+
+        $subsForExpiry = Subscription::query()
+            ->with(['plan:id,codigo,nombre'])
+            ->whereIn('tenant_id', $paymentRows->pluck('tenant_id'))
+            ->whereIn('estado', [...self::VIVAS, 'cancelled'])
+            ->orderByDesc('created_at')
+            ->get([
+                'id',
+                'tenant_id',
+                'plan_id',
+                'estado',
+                'proximo_cobro_at',
+                'current_period_end',
+                'grace_ends_at',
+                'trial_ends_at',
+                'created_at',
+            ]);
+
+        $latestSubByTenant = collect();
+        foreach ($subsForExpiry as $sub) {
+            $tid = (string) $sub->tenant_id;
+            if (! $latestSubByTenant->has($tid)) {
+                $latestSubByTenant->put($tid, $sub);
+            }
+        }
+
+        $churned = [];
+        foreach ($paymentRows as $paymentRow) {
+            $tenantId = (string) $paymentRow->tenant_id;
+            $tenant = $tenantsById->get($tenantId);
+            if (! $tenant instanceof Tenant) {
+                continue;
+            }
+
+            $pagosCount = (int) $paymentRow->pagos_count;
+            $sub = $latestSubByTenant->get($tenantId) ?? $subsByTenant->get($tenantId);
+
+            if ($this->isHealthyPaidSubscription($sub, $tenant)) {
+                continue;
+            }
+
+            $reason = $this->churnReason($sub, $tenant);
+
+            $churned[] = [
+                'tenant_id' => $tenantId,
+                'slug' => (string) $tenant->slug,
+                'label' => $this->tenantLabel($tenant),
+                'pagos_count' => $pagosCount,
+                'last_paid_at' => $paymentRow->last_paid_at
+                    ? Carbon::parse((string) $paymentRow->last_paid_at)->toIso8601String()
+                    : null,
+                'reason' => $reason,
+                'sub_estado' => $sub instanceof Subscription ? (string) $sub->estado : null,
+                'plan_nombre' => $sub instanceof Subscription ? ($sub->plan?->nombre) : null,
+            ];
+        }
+
+        usort($churned, static function (array $a, array $b): int {
+            return ($b['pagos_count'] <=> $a['pagos_count'])
+                ?: strcmp((string) $a['label'], (string) $b['label']);
+        });
+
+        $total = count($churned);
+        $onePayment = count(array_filter(
+            $churned,
+            static fn (array $row): bool => (int) $row['pagos_count'] === 1,
+        ));
+        $everPaid = $paymentRows->count();
+
+        return [
+            'total' => $total,
+            'one_payment' => $onePayment,
+            'ever_paid' => $everPaid,
+            'pct' => $this->pct($total, $everPaid),
+            'rows' => array_slice($churned, 0, 40),
+        ];
+    }
+
+    private function isHealthyPaidSubscription(?Subscription $sub, Tenant $tenant): bool
+    {
+        if ($tenant->estado === 'cancelled') {
+            return false;
+        }
+
+        if (! $sub instanceof Subscription) {
+            return false;
+        }
+
+        if ($sub->plan?->isFree() === true) {
+            return false;
+        }
+
+        if (in_array($sub->estado, ['suspended', 'cancelled'], true)) {
+            return false;
+        }
+
+        if (! in_array($sub->estado, ['trial', 'active', 'grace'], true)) {
+            return false;
+        }
+
+        $daysUntil = SubscriptionExpiry::daysUntil(
+            SubscriptionExpiry::anchor($sub, $tenant),
+        );
+
+        // Sin fecha de vencimiento pero activa → se considera al día.
+        if ($daysUntil === null) {
+            return true;
+        }
+
+        // Vencido (días negativos) = no renovó.
+        return $daysUntil >= 0;
+    }
+
+    private function churnReason(?Subscription $sub, Tenant $tenant): string
+    {
+        if ($tenant->estado === 'cancelled') {
+            return 'tenant_cancelled';
+        }
+
+        if (! $sub instanceof Subscription) {
+            return 'no_subscription';
+        }
+
+        if ($sub->plan?->isFree() === true) {
+            return 'back_to_free';
+        }
+
+        if ($sub->estado === 'suspended') {
+            return 'suspended';
+        }
+
+        if ($sub->estado === 'cancelled') {
+            return 'subscription_cancelled';
+        }
+
+        $daysUntil = SubscriptionExpiry::daysUntil(
+            SubscriptionExpiry::anchor($sub, $tenant),
+        );
+
+        if ($daysUntil !== null && $daysUntil < 0) {
+            return 'expired';
+        }
+
+        return 'other';
     }
 
     private function tenantLabel(Tenant $tenant): string

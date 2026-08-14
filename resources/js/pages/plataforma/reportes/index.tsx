@@ -5,6 +5,7 @@ import {
     Gift,
     MapPin,
     Megaphone,
+    TrendingDown,
     TrendingUp,
     Wallet,
     type LucideIcon,
@@ -64,15 +65,37 @@ type Snapshot = {
         free_sin_ubicacion: number;
         pct_paid: number;
         pct_free: number;
+        churned: number;
+        churned_one_payment: number;
+        ever_paid: number;
+        pct_churned: number;
     };
     insights: {
         top_paid_departamento: string | null;
         top_free_departamento: string | null;
         oportunidad_ads: string | null;
         cobertura_geo_pct: number;
+        churned: number;
+        churned_one_payment: number;
     };
     paid: SegmentBlock;
     free: SegmentBlock;
+    churn: {
+        total: number;
+        one_payment: number;
+        ever_paid: number;
+        pct: number;
+        rows: Array<{
+            tenant_id: string;
+            slug: string;
+            label: string;
+            pagos_count: number;
+            last_paid_at: string | null;
+            reason: string;
+            sub_estado: string | null;
+            plan_nombre: string | null;
+        }>;
+    };
     comparativo_departamentos: Array<{
         name: string;
         paid: number;
@@ -469,6 +492,18 @@ export default function Index({ snapshot }: Props) {
                 icon: TrendingUp,
                 accent: 'amber',
             },
+            {
+                key: 'churned',
+                label: t('kpis.churned'),
+                value: kpis.churned ?? 0,
+                hint: t('kpis.churned_hint', {
+                    one: kpis.churned_one_payment ?? 0,
+                    pct: kpis.pct_churned ?? 0,
+                }),
+                icon: TrendingDown,
+                accent: 'rose',
+                highlight: (kpis.churned ?? 0) > 0,
+            },
         ],
         [kpis, showFree, showPaid, t],
     );
@@ -588,12 +623,103 @@ export default function Index({ snapshot }: Props) {
                         value={`${insights.cobertura_geo_pct}%`}
                         icon={MapPin}
                     />
+                    <Insight
+                        label={t('insights.churned')}
+                        value={String(insights.churned ?? snapshot.churn?.total ?? 0)}
+                        icon={TrendingDown}
+                        emphasize={(insights.churned ?? 0) > 0}
+                    />
                 </div>
 
                 {!hasSegmentFilter ? (
                     <div className="rounded-xl border border-dashed border-border/80 bg-muted/20 px-4 py-8 text-center text-sm text-muted-foreground">
                         {t('filters.empty')}
                     </div>
+                ) : null}
+
+                {(snapshot.churn?.total ?? 0) > 0 ? (
+                    <section className="space-y-4">
+                        <div className="flex flex-wrap items-end justify-between gap-3">
+                            <div>
+                                <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight">
+                                    <TrendingDown className="size-5 text-rose-600" />
+                                    {t('sections.churn')}
+                                </h2>
+                                <p className="mt-1 text-sm text-muted-foreground">
+                                    {t('sections.churn_hint')}
+                                </p>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                                <StatBadge
+                                    label={t('churn.total')}
+                                    value={String(snapshot.churn.total)}
+                                    variant="warning"
+                                />
+                                <StatBadge
+                                    label={t('churn.one_payment')}
+                                    value={String(snapshot.churn.one_payment)}
+                                    variant="warning"
+                                />
+                                <StatBadge
+                                    label={t('churn.pct')}
+                                    value={`${snapshot.churn.pct}%`}
+                                    variant="default"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="overflow-hidden rounded-xl border border-rose-200/50 bg-card shadow-sm dark:border-rose-900/40">
+                            <table className="w-full text-sm">
+                                <thead className="border-b bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                                    <tr>
+                                        <th className="px-4 py-2.5 font-medium">
+                                            {t('churn.col_clinic')}
+                                        </th>
+                                        <th className="px-4 py-2.5 font-medium tabular-nums">
+                                            {t('churn.col_payments')}
+                                        </th>
+                                        <th className="px-4 py-2.5 font-medium">
+                                            {t('churn.col_reason')}
+                                        </th>
+                                        <th className="px-4 py-2.5 font-medium">
+                                            {t('churn.col_plan')}
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {snapshot.churn.rows.map((row) => (
+                                        <tr
+                                            key={row.tenant_id}
+                                            className="border-b border-border/50 last:border-0"
+                                        >
+                                            <td className="px-4 py-2.5">
+                                                <p className="font-medium">{row.label}</p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {row.slug}
+                                                </p>
+                                            </td>
+                                            <td className="px-4 py-2.5 tabular-nums">
+                                                {t('churn.payments_count', {
+                                                    count: row.pagos_count,
+                                                })}
+                                            </td>
+                                            <td className="px-4 py-2.5">
+                                                {t(`churn.reasons.${row.reason}`, {
+                                                    defaultValue: row.reason,
+                                                })}
+                                            </td>
+                                            <td className="px-4 py-2.5 text-muted-foreground">
+                                                {row.plan_nombre ?? '—'}
+                                                {row.sub_estado
+                                                    ? ` · ${row.sub_estado}`
+                                                    : ''}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
                 ) : null}
 
                 {showPaid ? (
