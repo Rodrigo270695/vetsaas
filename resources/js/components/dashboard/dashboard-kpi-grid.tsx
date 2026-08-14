@@ -11,6 +11,8 @@ export type DashboardKpiItem = {
     icon: LucideIcon;
     accent?: KpiAccent;
     highlight?: boolean;
+    /** Texto secundario bajo el valor (contexto / aclaración). */
+    hint?: string;
     /** Si se define, el KPI es un enlace navegable. */
     href?: string;
 };
@@ -83,7 +85,9 @@ export function DashboardKpiGrid({ items }: Props) {
                     >
                         <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0 flex-1">
-                                <p className="text-xs font-medium text-muted-foreground">{item.label}</p>
+                                <p className="text-xs font-medium text-muted-foreground">
+                                    {item.label}
+                                </p>
                                 <p
                                     className={cn(
                                         'mt-1.5 text-2xl font-bold tabular-nums tracking-tight',
@@ -92,6 +96,11 @@ export function DashboardKpiGrid({ items }: Props) {
                                 >
                                     {item.value}
                                 </p>
+                                {item.hint ? (
+                                    <p className="mt-1.5 text-[11px] leading-snug text-muted-foreground">
+                                        {item.hint}
+                                    </p>
+                                ) : null}
                             </div>
                             <div
                                 className={cn(

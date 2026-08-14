@@ -13,6 +13,16 @@ export type IsCurrentOrParentUrlFn = (
     currentUrl?: string,
 ) => boolean;
 
+/**
+ * Activo exacto o como padre, pero cede si un hermano del menú es más específico
+ * (evita que `/plataforma/reportes` quede activo en `/plataforma/reportes/mapa`).
+ */
+export type IsNavItemActiveFn = (
+    urlToCheck: NonNullable<InertiaLinkProps['href']>,
+    siblingHrefs: Array<NonNullable<InertiaLinkProps['href']>>,
+    currentUrl?: string,
+) => boolean;
+
 export type WhenCurrentUrlFn = <TIfTrue, TIfFalse = null>(
     urlToCheck: NonNullable<InertiaLinkProps['href']>,
     ifTrue: TIfTrue,
@@ -23,6 +33,7 @@ export type UseCurrentUrlReturn = {
     currentUrl: string;
     isCurrentUrl: IsCurrentUrlFn;
     isCurrentOrParentUrl: IsCurrentOrParentUrlFn;
+    isNavItemActive: IsNavItemActiveFn;
     whenCurrentUrl: WhenCurrentUrlFn;
 };
 
@@ -63,7 +74,53 @@ export function useCurrentUrl(): UseCurrentUrlReturn {
         urlToCheck: NonNullable<InertiaLinkProps['href']>,
         currentUrl?: string,
     ) => {
-        return isCurrentUrl(urlToCheck, currentUrl, true);
+        const urlToCompare = currentUrl ?? currentUrlPath;
+        const path = toUrl(urlToCheck);
+        const pathname = path.startsWith('http')
+            ? (() => {
+                  try {
+                      return new URL(path).pathname;
+                  } catch {
+                      return path;
+                  }
+              })()
+            : path;
+
+        if (pathname === urlToCompare) {
+            return true;
+        }
+
+        // Solo hijo real: `/reportes` no debe coincidir con `/reportes-mapa`,
+        // pero sí con `/reportes/mapa`.
+        return urlToCompare.startsWith(
+            pathname.endsWith('/') ? pathname : `${pathname}/`,
+        );
+    };
+
+    const isNavItemActive: IsNavItemActiveFn = (
+        urlToCheck,
+        siblingHrefs,
+        currentUrl,
+    ) => {
+        const urlToCompare = currentUrl ?? currentUrlPath;
+
+        if (!isCurrentOrParentUrl(urlToCheck, urlToCompare)) {
+            return false;
+        }
+
+        const selfPath = toUrl(urlToCheck);
+        const hasMoreSpecificSibling = siblingHrefs.some((sibling) => {
+            const siblingPath = toUrl(sibling);
+            if (siblingPath === selfPath) {
+                return false;
+            }
+            if (siblingPath.length <= selfPath.length) {
+                return false;
+            }
+            return isCurrentOrParentUrl(sibling, urlToCompare);
+        });
+
+        return !hasMoreSpecificSibling;
     };
 
     const whenCurrentUrl: WhenCurrentUrlFn = <TIfTrue, TIfFalse = null>(
@@ -78,6 +135,7 @@ export function useCurrentUrl(): UseCurrentUrlReturn {
         currentUrl: currentUrlPath,
         isCurrentUrl,
         isCurrentOrParentUrl,
+        isNavItemActive,
         whenCurrentUrl,
     };
 }

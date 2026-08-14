@@ -97,7 +97,8 @@ export function NavMainCollapsible({
     singles = [],
     groups,
 }: NavMainCollapsibleProps) {
-    const { isCurrentUrl, isCurrentOrParentUrl, currentUrl } = useCurrentUrl();
+    const { isCurrentUrl, isCurrentOrParentUrl, isNavItemActive, currentUrl } =
+        useCurrentUrl();
     const { isMobile, setOpenMobile } = useSidebar();
     const { can, permissions } = usePermission();
     const { t } = useTranslation('nav');
@@ -256,8 +257,9 @@ export function NavMainCollapsible({
                                         <NavSubItem
                                             key={item.title}
                                             item={item}
-                                            active={isCurrentOrParentUrl(
+                                            active={isNavItemActive(
                                                 item.href,
+                                                group.items.map((i) => i.href),
                                             )}
                                             index={index}
                                             isNovedadPromo={isBotIaNovedadPromo(item)}

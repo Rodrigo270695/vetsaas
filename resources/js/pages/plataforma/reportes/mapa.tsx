@@ -67,31 +67,35 @@ function Mapa({ markers, summary }: Props) {
     const kpiItems: DashboardKpiItem[] = [
         {
             key: 'gps',
-            title: t('mapa.kpis.gps'),
-            value: String(summary.gps),
+            label: t('mapa.kpis.gps'),
+            value: summary.gps,
+            hint: t('mapa.kpis.gps_hint'),
             icon: Navigation,
-            tone: 'success',
+            accent: 'emerald',
         },
         {
             key: 'departamento',
-            title: t('mapa.kpis.departamento'),
-            value: String(summary.departamento),
+            label: t('mapa.kpis.departamento'),
+            value: summary.departamento,
+            hint: t('mapa.kpis.departamento_hint'),
             icon: MapPin,
-            tone: 'warning',
+            accent: 'amber',
         },
         {
             key: 'paid',
-            title: t('kpis.paid'),
-            value: String(summary.paid),
+            label: t('mapa.kpis.paid'),
+            value: summary.paid,
+            hint: t('mapa.kpis.paid_hint'),
             icon: Wallet,
-            tone: 'success',
+            accent: 'brand',
         },
         {
             key: 'free',
-            title: t('kpis.free'),
-            value: String(summary.free),
+            label: t('mapa.kpis.free'),
+            value: summary.free,
+            hint: t('mapa.kpis.free_hint'),
             icon: Gift,
-            tone: 'info',
+            accent: 'sky',
         },
     ];
 
@@ -106,7 +110,7 @@ function Mapa({ markers, summary }: Props) {
                     actions={
                         <div className="flex flex-wrap items-center gap-2">
                             <StatBadge
-                                label="Geo"
+                                label={t('mapa.cobertura_label')}
                                 value={`${summary.cobertura_geo_pct}%`}
                                 variant={
                                     summary.cobertura_geo_pct >= 70
@@ -152,7 +156,7 @@ function Mapa({ markers, summary }: Props) {
                             {t('mapa.filter_free')}
                         </Label>
                     </div>
-                    <p className="w-full text-xs text-muted-foreground sm:w-auto sm:ml-auto">
+                    <p className="w-full text-xs text-muted-foreground sm:ml-auto sm:w-auto">
                         {t('mapa.filter_hint', {
                             gps: gpsMarkers.length,
                             approx: approxMarkers.length,

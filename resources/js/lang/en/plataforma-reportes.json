@@ -11,6 +11,7 @@
         "filter_paid": "Paid",
         "filter_free": "Free",
         "filter_hint": "GPS: {{gps}} · Approx.: {{approx}}",
+        "cobertura_label": "Geo coverage",
         "gps_title": "GPS (real location)",
         "gps_hint": "Clinics that consented and saved coordinates. Exact position.",
         "approx_title": "Approximate (department)",
@@ -18,9 +19,14 @@
         "empty_gps": "No GPS clinics match these filters.",
         "empty_approx": "No approximate clinics match these filters.",
         "kpis": {
-            "markers": "On the map",
-            "gps": "With GPS",
-            "departamento": "Department only"
+            "gps": "With real GPS",
+            "gps_hint": "They accepted location and we already have XY.",
+            "departamento": "Department only",
+            "departamento_hint": "No GPS: approximate point from site (Ads).",
+            "paid": "Paid clinics",
+            "paid_hint": "Live subscription on a non-Free plan.",
+            "free": "Free clinics",
+            "free_hint": "Free plan or no paid subscription."
         }
     },
     "kpis": {
