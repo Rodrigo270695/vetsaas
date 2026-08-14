@@ -34,10 +34,8 @@ export type UsePermissionReturn = {
  *   - `historias-clinicas-planes.view` NO se infiere de `historias-clinicas.view`
  *     (recepción puede ver HC para cargos sin ver el plan)
  *
- * El menú y la UI respetan los permisos reales del rol (incluido
- * `superadmin`). Si la lista llega vacía por un fallo al cargar auth,
- * el superadmin conserva bypass para no quedarse sin navegación.
- * En backend, `Gate::before` sigue permitiendo acceso a rutas.
+ * En frontend el `superadmin` tiene bypass total (igual que `Gate::before`
+ * en backend). Así un permiso nuevo en el menú no queda oculto hasta re-seed.
  *
  * @example
  *   const { can, isSuperadmin } = usePermission();
@@ -55,10 +53,9 @@ export function usePermission(): UsePermissionReturn {
     const roles = useMemo(() => auth?.roles ?? [], [auth?.roles]);
     const permissionSet = useMemo(() => new Set(permissions), [permissions]);
     const isSuperadmin = roles.includes('superadmin');
-    const superadminNavFallback = isSuperadmin && permissions.length === 0;
 
     const can = (input: PermissionInput): boolean => {
-        if (superadminNavFallback) return true;
+        if (isSuperadmin) return true;
         const list = Array.isArray(input) ? input : [input];
         return list.some((p) => {
             if (permissionSet.has(p)) {
@@ -104,7 +101,7 @@ export function usePermission(): UsePermissionReturn {
     };
 
     const canAll = (list: string[]): boolean => {
-        if (superadminNavFallback) return true;
+        if (isSuperadmin) return true;
         return list.every((p) => can(p));
     };
 
