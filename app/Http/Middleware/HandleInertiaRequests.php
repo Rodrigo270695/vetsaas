@@ -138,10 +138,11 @@ class HandleInertiaRequests extends Middleware
                         $canEditSedes = $user->can('sedes.create') || $user->can('sedes.update');
 
                         $geoReady = \Illuminate\Support\Facades\Schema::hasColumn('tenants', 'geo_consent_at');
+                        // Cualquier usuario autenticado del tenant puede aceptar/rechazar:
+                        // el GPS es de la clínica (tenant), no de la sede.
                         $needsGps = $geoReady
                             && $tenant->geo_consent_at === null
-                            && $tenant->geo_denied_at === null
-                            && $canEditSedes;
+                            && $tenant->geo_denied_at === null;
                         $gpsCaptured = $geoReady
                             && $tenant->geo_lat !== null
                             && $tenant->geo_lng !== null;
