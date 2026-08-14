@@ -1,6 +1,18 @@
 {
     "title": "Marketing reports",
-    "subtitle": "Where your paid and free clinics are, to guide Facebook Ads and growth.",
+    "subtitle": "Funnel, revenue and geo by department for Ads and growth. The Leaflet map has its own page.",
+    "mapa": {
+        "title": "Clinics map",
+        "subtitle": "Approximate location of live clinics (paid and free) for Ads planning.",
+        "open": "Open map",
+        "back_reportes": "Back to reports",
+        "legend": "Priority: saved tenant GPS (if they consented). Otherwise the department centroid from the main site is used.",
+        "kpis": {
+            "markers": "On the map",
+            "gps": "With GPS",
+            "departamento": "By department"
+        }
+    },
     "kpis": {
         "total": "Live clinics",
         "paid": "Paid",

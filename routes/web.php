@@ -1248,6 +1248,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:plataforma-reportes.view')
             ->get('reportes', [PlataformaReportesController::class, 'index'])
             ->name('reportes.index');
+        Route::middleware('permission:plataforma-reportes.view')
+            ->get('reportes/mapa', [PlataformaReportesController::class, 'mapa'])
+            ->name('reportes.mapa');
 
         Route::middleware('permission:plataforma-operaciones.view')
             ->get('sesiones-login', [PlataformaUserAuthSessionController::class, 'index'])

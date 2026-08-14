@@ -1,6 +1,18 @@
 {
     "title": "Reportes de marketing",
-    "subtitle": "Dónde están tus clínicas de pago y free (según sedes + GPS) para Facebook Ads y crecimiento.",
+    "subtitle": "Embudo, ingresos y geo por departamento para Ads y crecimiento. El mapa Leaflet vive en su propia vista.",
+    "mapa": {
+        "title": "Mapa de clínicas",
+        "subtitle": "Ubicación aproximada de clínicas vivas (pago y free) para planificar Ads.",
+        "open": "Ver mapa",
+        "back_reportes": "Volver a reportes",
+        "legend": "Prioridad: GPS guardado en el tenant (si aceptaron). Si no hay GPS, se usa el centroide del departamento de la sede principal.",
+        "kpis": {
+            "markers": "En el mapa",
+            "gps": "Con GPS",
+            "departamento": "Por departamento"
+        }
+    },
     "kpis": {
         "total": "Clínicas vivas",
         "paid": "De pago",

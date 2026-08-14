@@ -21,6 +21,10 @@ export type TenantMapMarker = {
 type Props = {
     markers: TenantMapMarker[];
     className?: string;
+    /** Altura del mapa (Tailwind). Default embebido. */
+    mapClassName?: string;
+    /** Oculta el header interno (útil en página dedicada). */
+    hideChrome?: boolean;
 };
 
 function FitBounds({ markers }: { markers: TenantMapMarker[] }) {
@@ -64,7 +68,12 @@ function logoIcon(marker: TenantMapMarker): L.DivIcon {
     });
 }
 
-export function TenantsMarketingMap({ markers, className }: Props) {
+export function TenantsMarketingMap({
+    markers,
+    className,
+    mapClassName,
+    hideChrome = false,
+}: Props) {
     const safeMarkers = useMemo(
         () =>
             markers.filter(
@@ -84,24 +93,26 @@ export function TenantsMarketingMap({ markers, className }: Props) {
                 className,
             )}
         >
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 px-4 py-3">
-                <div>
-                    <h3 className="text-sm font-semibold">Mapa de clínicas</h3>
-                    <p className="text-xs text-muted-foreground">
-                        OpenStreetMap (Leaflet). Verde = pago, azul = free. Logo
-                        de la clínica o VetSaaS por defecto.
-                    </p>
+            {!hideChrome ? (
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 px-4 py-3">
+                    <div>
+                        <h3 className="text-sm font-semibold">Mapa de clínicas</h3>
+                        <p className="text-xs text-muted-foreground">
+                            OpenStreetMap (Leaflet). Verde = pago, azul = free. Logo
+                            de la clínica o VetSaaS por defecto.
+                        </p>
+                    </div>
+                    <div className="flex gap-2 text-[10px] font-semibold uppercase tracking-wide">
+                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-emerald-800">
+                            Pago
+                        </span>
+                        <span className="rounded-full bg-sky-100 px-2 py-0.5 text-sky-800">
+                            Free
+                        </span>
+                    </div>
                 </div>
-                <div className="flex gap-2 text-[10px] font-semibold uppercase tracking-wide">
-                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-emerald-800">
-                        Pago
-                    </span>
-                    <span className="rounded-full bg-sky-100 px-2 py-0.5 text-sky-800">
-                        Free
-                    </span>
-                </div>
-            </div>
-            <div className="relative z-0 h-[420px] w-full">
+            ) : null}
+            <div className={cn('relative z-0 h-[420px] w-full', mapClassName)}>
                 {typeof window !== 'undefined' ? (
                     <MapContainer
                         center={[-9.19, -75.0152]}
@@ -136,8 +147,8 @@ export function TenantsMarketingMap({ markers, className }: Props) {
                                         </p>
                                         <p className="text-[10px] text-muted-foreground">
                                             {m.source === 'gps'
-                                                ? 'Ubicación GPS'
-                                                : 'Aprox. por departamento'}
+                                                ? 'Ubicación GPS (consentimiento)'
+                                                : 'Aprox. por departamento (sede)'}
                                         </p>
                                     </div>
                                 </Popup>
