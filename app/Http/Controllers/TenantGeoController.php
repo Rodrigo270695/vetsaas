@@ -30,6 +30,13 @@ class TenantGeoController extends Controller
             'lng' => ['nullable', 'numeric', 'between:-180,180'],
         ]);
 
+        if (! \Illuminate\Support\Facades\Schema::hasColumn('tenants', 'geo_consent_at')) {
+            return back()->with(
+                'error',
+                'Falta migrar columnas GPS. Ejecuta: php artisan migrate --path=database/migrations/2026_08_13_200000_add_geo_coords_to_tenants_table.php --force',
+            );
+        }
+
         /** @var Tenant $tenant */
         if ($validated['action'] === 'deny') {
             $tenant->forceFill([

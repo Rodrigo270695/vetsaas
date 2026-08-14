@@ -136,15 +136,21 @@ class HandleInertiaRequests extends Middleware
                         $needsSede = ! $onboarding->hasAnyActiveSede($tenantId);
                         $needsSedeGeo = ! $needsSede && $onboarding->hasActiveSedeMissingGeo($tenantId);
                         $canEditSedes = $user->can('sedes.create') || $user->can('sedes.update');
-                        $needsGps = $tenant->geo_consent_at === null
+
+                        $geoReady = \Illuminate\Support\Facades\Schema::hasColumn('tenants', 'geo_consent_at');
+                        $needsGps = $geoReady
+                            && $tenant->geo_consent_at === null
                             && $tenant->geo_denied_at === null
                             && $canEditSedes;
+                        $gpsCaptured = $geoReady
+                            && $tenant->geo_lat !== null
+                            && $tenant->geo_lng !== null;
 
                         return [
                             'needs_sede' => $needsSede,
                             'needs_sede_geo' => $needsSedeGeo,
                             'needs_gps' => $needsGps,
-                            'gps_captured' => $tenant->geo_lat !== null && $tenant->geo_lng !== null,
+                            'gps_captured' => $gpsCaptured,
                             'can_edit_sedes' => $canEditSedes,
                             'sedes_url' => '/configuracion/sedes',
                         ];
