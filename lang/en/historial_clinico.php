@@ -37,6 +37,7 @@ return [
     'soap_plan' => 'Therapeutic plan',
     'label_exams' => 'Complementary exams',
     'label_additional_notes' => 'Additional notes',
+    'label_reason' => 'Reason for visit',
     'section_vitals' => 'Vital signs',
     'section_links' => 'Linked to this consultation',
     'link_prescriptions' => ':count prescription(s)',

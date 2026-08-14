@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property ?string $cita_id
  * @property \Illuminate\Support\Carbon $atendido_at
  * @property ?string $motivo
+ * @property ?string $anotaciones
  * @property ?string $subjetivo
  * @property ?string $objetivo
  * @property ?string $analisis
@@ -44,6 +45,7 @@ class Consulta extends Model
         'cita_id',
         'atendido_at',
         'motivo',
+        'anotaciones',
         'subjetivo',
         'objetivo',
         'analisis',

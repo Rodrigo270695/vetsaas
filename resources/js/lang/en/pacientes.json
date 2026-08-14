@@ -238,6 +238,7 @@
         "det_plan_soap": "Therapeutic plan",
         "det_examenes": "Complementary exams",
         "det_anotaciones": "Additional notes",
+        "det_motivo": "Reason for visit",
         "det_medico": "Attending clinician",
         "det_producto": "Product",
         "det_lote": "Batch",

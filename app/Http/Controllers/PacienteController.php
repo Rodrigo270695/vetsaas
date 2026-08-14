@@ -246,6 +246,7 @@ class PacienteController extends Controller
                                 ->values()
                                 ->all(),
                             'motivo' => $this->timelineTextPreview($c->motivo, 800),
+                            'anotaciones' => $this->timelineTextPreview($c->anotaciones ?? null, 800),
                             'medico_tratante' => trim((string) ($c->medico_tratante ?? '')) !== ''
                                 ? trim((string) $c->medico_tratante)
                                 : null,

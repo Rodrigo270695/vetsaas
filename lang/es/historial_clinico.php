@@ -37,6 +37,7 @@ return [
     'soap_plan' => 'Plan terapéutico',
     'label_exams' => 'Exámenes complementarios',
     'label_additional_notes' => 'Anotaciones adicionales',
+    'label_reason' => 'Motivos de la consulta',
     'section_vitals' => 'Signos vitales',
     'section_links' => 'Vinculados a esta consulta',
     'link_prescriptions' => ':count receta(s)',

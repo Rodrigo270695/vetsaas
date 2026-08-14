@@ -20,6 +20,7 @@ class UpdateConsultaHistoriaRequest extends FormRequest
         return [
             'atendido_at' => ['required', 'date'],
             'motivo' => ['nullable', 'string', 'max:5000'],
+            'anotaciones' => ['nullable', 'string', 'max:5000'],
             'subjetivo' => ['nullable', 'string', 'max:20000'],
             'objetivo' => ['nullable', 'string', 'max:20000'],
             'analisis' => ['nullable', 'string', 'max:20000'],

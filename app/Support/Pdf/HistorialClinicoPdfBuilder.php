@@ -122,12 +122,13 @@ class HistorialClinicoPdfBuilder
         }
 
         $soap = array_values(array_filter([
+            $this->soapBlock(__('historial_clinico.label_reason'), $consulta->motivo),
             $this->soapBlock(__('historial_clinico.soap_subjective'), $consulta->subjetivo),
             $this->soapBlock(__('historial_clinico.soap_objective'), $consulta->objetivo),
             $this->soapBlock(__('historial_clinico.label_exams'), $examenesTxt !== '' ? $examenesTxt : null),
             $this->soapBlock(__('historial_clinico.soap_assessment'), $consulta->analisis),
             $this->soapBlock(__('historial_clinico.soap_plan'), $terapiaTxt !== '' ? $terapiaTxt : null),
-            $this->soapBlock(__('historial_clinico.label_additional_notes'), $consulta->motivo),
+            $this->soapBlock(__('historial_clinico.label_additional_notes'), $consulta->anotaciones),
         ]));
 
         $vinculos = array_values(array_filter([
@@ -146,7 +147,6 @@ class HistorialClinicoPdfBuilder
         ]));
 
         $motivo = trim((string) ($consulta->motivo ?? ''));
-        $tituloDx = trim((string) ($consulta->analisis ?? ''));
         $medico = trim((string) ($consulta->medico_tratante ?? ''));
 
         return [
@@ -154,7 +154,7 @@ class HistorialClinicoPdfBuilder
             'sort_at' => $at?->toIso8601String() ?? '',
             'fecha' => $this->formatDatetime($at),
             'tipo_label' => __('historial_clinico.kind_consultation'),
-            'titulo' => $tituloDx !== '' ? $tituloDx : ($motivo !== '' ? $motivo : '—'),
+            'titulo' => $motivo !== '' ? $motivo : '—',
             'estado_label' => $consulta->cerrada_at !== null
                 ? __('historial_clinico.status_closed')
                 : __('historial_clinico.status_open'),

@@ -79,6 +79,7 @@ export type ConsultaHistoriaRow = {
     historia_clinica_id: string;
     atendido_at: string;
     motivo: string | null;
+    anotaciones?: string | null;
     subjetivo: string | null;
     objetivo: string | null;
     analisis: string | null;

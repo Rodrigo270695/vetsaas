@@ -80,10 +80,13 @@ final class PublicClinicalHistoryPayload
                         'temperatura_c' => self::trimOrNull($c->temperatura_c),
                         'fc_lpm' => $c->fc_lpm,
                         'fr_rpm' => $c->fr_rpm,
+                        'motivo' => self::preview($c->motivo, 800),
                         'subjetivo' => self::preview($c->subjetivo, 800),
                         'objetivo' => self::preview($c->objetivo, 800),
                         'analisis' => self::preview($c->analisis, 800),
                         'plan' => self::preview($c->plan, 800),
+                        'anotaciones' => self::preview($c->anotaciones ?? null, 800),
+                        'medico_tratante' => self::trimOrNull($c->medico_tratante),
                         'vinculos' => [
                             'recetas' => self::recetas($c->recetas),
                             'laboratorio' => self::laboratorio($c->pedidosLaboratorio, $tenantSlug, $expiresAt, $tz),

@@ -151,6 +151,7 @@ class ConsultaHistoriaController extends Controller
         if ($search !== '') {
             $query->where(function ($q) use ($search) {
                 $q->where('consultas.motivo', 'ILIKE', "%{$search}%")
+                    ->orWhere('consultas.anotaciones', 'ILIKE', "%{$search}%")
                     ->orWhere('consultas.subjetivo', 'ILIKE', "%{$search}%")
                     ->orWhere('consultas.objetivo', 'ILIKE', "%{$search}%")
                     ->orWhere('consultas.analisis', 'ILIKE', "%{$search}%")
@@ -379,6 +380,7 @@ class ConsultaHistoriaController extends Controller
                 'cita_id' => $citaId,
                 'atendido_at' => $validated['atendido_at'],
                 'motivo' => $validated['motivo'] ?? null,
+                'anotaciones' => $validated['anotaciones'] ?? null,
                 'subjetivo' => $validated['subjetivo'] ?? null,
                 'objetivo' => $validated['objetivo'] ?? null,
                 'analisis' => $validated['analisis'] ?? null,
@@ -442,6 +444,7 @@ class ConsultaHistoriaController extends Controller
             $consulta->update([
                 'atendido_at' => $validated['atendido_at'],
                 'motivo' => $validated['motivo'] ?? null,
+                'anotaciones' => $validated['anotaciones'] ?? null,
                 'subjetivo' => $validated['subjetivo'] ?? null,
                 'objetivo' => $validated['objetivo'] ?? null,
                 'analisis' => $validated['analisis'] ?? null,

@@ -53,7 +53,7 @@ export function outboxPayloadSummary(item: OutboxItem): string {
         case 'clinica.cita.create':
             return [readString(p, 'fecha'), readString(p, 'motivo')].filter(Boolean).join(' · ') || '—';
         case 'clinica.consulta.create':
-            return readString(p, 'motivo_consulta') ?? readString(p, 'anamnesis') ?? '—';
+            return readString(p, 'motivo') ?? readString(p, 'motivo_consulta') ?? readString(p, 'anamnesis') ?? '—';
         case 'clinica.propietario.create':
             return (
                 readString(p, 'razon_social') ??

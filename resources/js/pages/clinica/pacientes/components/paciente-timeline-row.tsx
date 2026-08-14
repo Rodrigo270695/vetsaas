@@ -65,6 +65,7 @@ function consultaDetalleTieneContenido(d: TimelineConsultaDetalle): boolean {
                 d.analisis ||
                 d.plan ||
                 d.motivo ||
+                d.anotaciones ||
                 d.medico_tratante ||
                 (d.examenes && d.examenes.length > 0),
         ) || vinculosConsultaTieneContenido(d.vinculos)
@@ -478,6 +479,10 @@ export function PacienteTimelineRow({
                                 <div className="mt-2 space-y-2.5 rounded-lg border border-border/60 bg-muted/25 p-2.5">
                                     <div className="grid gap-2 sm:grid-cols-2">
                                         <SoapBlock
+                                            label={t('historial.det_motivo')}
+                                            text={item.detalle.motivo ?? null}
+                                        />
+                                        <SoapBlock
                                             label={t('historial.det_subjetivo')}
                                             text={item.detalle.subjetivo}
                                         />
@@ -497,7 +502,7 @@ export function PacienteTimelineRow({
                                         <SoapBlock label={t('historial.det_plan_soap')} text={item.detalle.plan} />
                                         <SoapBlock
                                             label={t('historial.det_anotaciones')}
-                                            text={item.detalle.motivo ?? null}
+                                            text={item.detalle.anotaciones ?? null}
                                         />
                                         <SoapBlock
                                             label={t('historial.det_medico')}

@@ -52,6 +52,7 @@ type FormData = {
     cita_id: string;
     atendido_at: string;
     motivo: string;
+    anotaciones: string;
     subjetivo: string;
     objetivo: string;
     analisis: string;
@@ -102,6 +103,7 @@ const emptyForm: FormData = {
     cita_id: '',
     atendido_at: '',
     motivo: '',
+    anotaciones: '',
     subjetivo: '',
     objetivo: '',
     analisis: '',
@@ -166,6 +168,7 @@ export function ConsultaFormModal({
             const next: Record<string, unknown> = {
                 atendido_at: raw.atendido_at,
                 motivo: raw.motivo.trim() === '' ? null : raw.motivo.trim(),
+                anotaciones: raw.anotaciones.trim() === '' ? null : raw.anotaciones.trim(),
                 subjetivo: raw.subjetivo.trim() === '' ? null : raw.subjetivo.trim(),
                 objetivo: raw.objetivo.trim() === '' ? null : raw.objetivo.trim(),
                 analisis: raw.analisis.trim() === '' ? null : raw.analisis.trim(),
@@ -215,6 +218,7 @@ export function ConsultaFormModal({
                 cita_id: '',
                 atendido_at: toDatetimeLocalValue(consulta.atendido_at),
                 motivo: consulta.motivo ?? '',
+                anotaciones: consulta.anotaciones ?? '',
                 subjetivo: consulta.subjetivo ?? '',
                 objetivo: consulta.objetivo ?? '',
                 analisis: consulta.analisis ?? '',
@@ -295,6 +299,7 @@ export function ConsultaFormModal({
         const next: Record<string, unknown> = {
             atendido_at: raw.atendido_at,
             motivo: raw.motivo.trim() === '' ? null : raw.motivo.trim(),
+            anotaciones: raw.anotaciones.trim() === '' ? null : raw.anotaciones.trim(),
             subjetivo: raw.subjetivo.trim() === '' ? null : raw.subjetivo.trim(),
             objetivo: raw.objetivo.trim() === '' ? null : raw.objetivo.trim(),
             analisis: raw.analisis.trim() === '' ? null : raw.analisis.trim(),
@@ -716,6 +721,23 @@ export function ConsultaFormModal({
                     </FormField>
 
                     <FormField
+                        id="hc-motivo"
+                        label={t('form.motivo')}
+                        error={errors.motivo}
+                        className="min-w-0 sm:col-span-2"
+                    >
+                        <Textarea
+                            id="hc-motivo"
+                            value={data.motivo}
+                            onChange={(e) => setData('motivo', e.target.value)}
+                            rows={2}
+                            placeholder={t('form.motivo_placeholder')}
+                            className={`${controlClass} min-h-16 resize-y`}
+                            disabled={fieldDisabled}
+                        />
+                    </FormField>
+
+                    <FormField
                         id="hc-anamnesis"
                         label={t('form.anamnesis')}
                         error={errors.subjetivo}
@@ -940,13 +962,13 @@ export function ConsultaFormModal({
                     <FormField
                         id="hc-anotaciones"
                         label={t('form.anotaciones')}
-                        error={errors.motivo}
+                        error={errors.anotaciones}
                         className="min-w-0 sm:col-span-2"
                     >
                         <Textarea
                             id="hc-anotaciones"
-                            value={data.motivo}
-                            onChange={(e) => setData('motivo', e.target.value)}
+                            value={data.anotaciones}
+                            onChange={(e) => setData('anotaciones', e.target.value)}
                             placeholder={t('form.anotaciones_placeholder')}
                             rows={2}
                             className={`${controlClass} min-h-18 resize-y`}

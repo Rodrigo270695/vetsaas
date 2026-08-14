@@ -238,6 +238,7 @@
         "det_plan_soap": "Plan terapéutico",
         "det_examenes": "Exámenes complementarios",
         "det_anotaciones": "Anotaciones adicionales",
+        "det_motivo": "Motivos de la consulta",
         "det_medico": "Médico tratante",
         "det_producto": "Producto",
         "det_lote": "Lote",

@@ -25,8 +25,10 @@ class StoreConsultaHistoriaRequest extends FormRequest
                 Rule::exists('citas', 'id')->whereNull('deleted_at'),
             ],
             'atendido_at' => ['required', 'date'],
-            // anotaciones adicionales (antes motivo)
+            // Motivo de la consulta (título en historial / HC)
             'motivo' => ['nullable', 'string', 'max:5000'],
+            // Notas libres
+            'anotaciones' => ['nullable', 'string', 'max:5000'],
             // anamnesis
             'subjetivo' => ['nullable', 'string', 'max:20000'],
             // hallazgos clínicos

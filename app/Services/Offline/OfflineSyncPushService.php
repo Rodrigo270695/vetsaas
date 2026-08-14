@@ -273,6 +273,7 @@ final class OfflineSyncPushService
                 $consultaCreada = $historia->consultas()->create([
                     'atendido_at' => $validated['atendido_at'],
                     'motivo' => $validated['motivo'] ?? null,
+                    'anotaciones' => $validated['anotaciones'] ?? null,
                     'subjetivo' => $validated['subjetivo'] ?? null,
                     'objetivo' => $validated['objetivo'] ?? null,
                     'analisis' => $validated['analisis'] ?? null,

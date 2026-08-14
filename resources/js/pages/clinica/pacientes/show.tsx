@@ -56,6 +56,7 @@ export type TimelineConsultaDetalle = {
     plan: string | null;
     examenes?: readonly string[];
     motivo?: string | null;
+    anotaciones?: string | null;
     medico_tratante?: string | null;
     vinculos: TimelineConsultaVinculos;
 };
