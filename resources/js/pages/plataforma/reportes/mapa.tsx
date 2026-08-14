@@ -120,6 +120,11 @@ function Mapa({ markers, summary }: Props) {
                                 icon={MapPin}
                             />
                             <Button variant="outline" size="sm" asChild>
+                                <Link href="/plataforma/reportes/mapa-demos">
+                                    {t('mapa_demos.open')}
+                                </Link>
+                            </Button>
+                            <Button variant="outline" size="sm" asChild>
                                 <Link href="/plataforma/reportes">
                                     {t('mapa.back_reportes')}
                                 </Link>
@@ -127,6 +132,10 @@ function Mapa({ markers, summary }: Props) {
                         </div>
                     }
                 />
+
+                <p className="max-w-3xl text-sm text-muted-foreground">
+                    {t('mapa.capture_hint')}
+                </p>
 
                 <div className="flex flex-wrap items-center gap-4 rounded-xl border border-border/70 bg-card px-4 py-3 shadow-sm">
                     <p className="text-sm font-medium">{t('mapa.filters')}</p>

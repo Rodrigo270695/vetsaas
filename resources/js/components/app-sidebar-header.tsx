@@ -3,6 +3,7 @@ import { Sparkles } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Breadcrumbs } from '@/components/breadcrumbs';
+import { TenantGeoCaptureButton } from '@/components/clinic-location/tenant-geo-capture-button';
 import { OPEN_IN_APP_ASSISTANT_EVENT } from '@/components/in-app-assistant/in-app-assistant-announcement-modal';
 import { InAppAssistantPanel } from '@/components/in-app-assistant/in-app-assistant-panel';
 import { PushNotificationPrompt } from '@/components/push/push-notification-prompt';
@@ -50,7 +51,9 @@ export function AppSidebarHeader({
                     <Breadcrumbs breadcrumbs={breadcrumbs} />
                 </div>
 
-                <div className="ml-auto flex shrink-0 items-center gap-1">
+                <div className="ml-auto flex shrink-0 items-center gap-2">
+                    <TenantGeoCaptureButton />
+
                     {showPushBell && <PushNotificationPrompt />}
 
                     {showAssistant && (

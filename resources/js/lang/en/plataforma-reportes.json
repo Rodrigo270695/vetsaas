@@ -18,6 +18,7 @@
         "approx_hint": "No GPS yet: department centroid from the site. Ads orientation only.",
         "empty_gps": "No GPS clinics match these filters.",
         "empty_approx": "No approximate clinics match these filters.",
+        "capture_hint": "GPS is captured in each clinic (paid or free) with the header «Capture location» button. The server cannot read GPS by itself.",
         "kpis": {
             "gps": "With real GPS",
             "gps_hint": "They accepted location and we already have XY.",
@@ -27,6 +28,24 @@
             "paid_hint": "Live subscription on a non-Free plan.",
             "free": "Free clinics",
             "free_hint": "Free plan or no paid subscription."
+        }
+    },
+    "mapa_demos": {
+        "title": "Demos map",
+        "subtitle": "Where people open the public demo. Logged when they sign in to the demo tenant.",
+        "open": "Demos map",
+        "back_mapa": "Clinics map",
+        "refresh": "Refresh",
+        "map_title": "Demo access origins",
+        "map_hint": "Each point is an access with browser GPS. If they denied location, only an IP log remains (no map point).",
+        "empty": "No demo accesses with GPS yet.",
+        "kpis": {
+            "total": "Logged accesses",
+            "total_hint": "Includes visits with or without GPS.",
+            "gps": "With coordinates",
+            "gps_hint": "Visible on the map.",
+            "no_gps": "IP only",
+            "no_gps_hint": "Entered without sharing location."
         }
     },
     "kpis": {

@@ -502,6 +502,12 @@ function useNavConfig(): { singles: NavItem[]; groups: NavGroup[] } {
                             icon: MapPin,
                             permission: 'plataforma-reportes.view',
                         },
+                        {
+                            title: t('items.mapa_demos'),
+                            href: '/plataforma/reportes/mapa-demos',
+                            icon: FlaskConical,
+                            permission: 'plataforma-reportes.view',
+                        },
                     ],
                 },
                 {

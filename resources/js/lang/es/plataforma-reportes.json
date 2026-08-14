@@ -18,6 +18,7 @@
         "approx_hint": "Sin GPS aún: centroide del departamento de la sede. Solo para orientación Ads.",
         "empty_gps": "Nadie con GPS visible con estos filtros.",
         "empty_approx": "Nadie aproximado visible con estos filtros.",
+        "capture_hint": "El GPS se captura en cada clínica (pago o free) con el botón «Capturar ubicación» del encabezado. El servidor no puede leer el GPS solo.",
         "kpis": {
             "gps": "Con GPS real",
             "gps_hint": "Aceptaron ubicación y ya tenemos XY guardado.",
@@ -27,6 +28,24 @@
             "paid_hint": "Suscripción viva en plan distinto de Free.",
             "free": "Clínicas free",
             "free_hint": "Plan Free o sin suscripción de pago."
+        }
+    },
+    "mapa_demos": {
+        "title": "Mapa de demos",
+        "subtitle": "De dónde entran a la demo pública. Se registra al iniciar sesión en el tenant demo.",
+        "open": "Mapa demos",
+        "back_mapa": "Mapa clínicas",
+        "refresh": "Actualizar",
+        "map_title": "Orígenes de acceso a la demo",
+        "map_hint": "Cada punto es un acceso con GPS del navegador. Si denegaron ubicación, queda solo el registro por IP (sin punto).",
+        "empty": "Aún no hay accesos a la demo con GPS.",
+        "kpis": {
+            "total": "Accesos registrados",
+            "total_hint": "Incluye visitas con o sin GPS.",
+            "gps": "Con coordenadas",
+            "gps_hint": "Visibles en el mapa.",
+            "no_gps": "Solo IP",
+            "no_gps_hint": "Entraron sin compartir ubicación."
         }
     },
     "kpis": {

@@ -19,6 +19,7 @@ use App\Http\Controllers\ConsultaDictationController;
 use App\Http\Controllers\ConsultaHistoriaController;
 use App\Http\Controllers\ConsultaPlanTratamientoController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DemoAccessGeoController;
 use App\Http\Controllers\FelAnulacionHistorialController;
 use App\Http\Controllers\FelDocumentController;
 use App\Http\Controllers\FelSerieController;
@@ -182,6 +183,10 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
     Route::post('tenant/geo', [TenantGeoController::class, 'store'])
         ->middleware('throttle:20,1')
         ->name('tenant.geo.store');
+
+    Route::post('demo/access-geo', [DemoAccessGeoController::class, 'store'])
+        ->middleware('throttle:30,1')
+        ->name('demo.access-geo.store');
 
     // OAuth callback Google Calendar (URI exacta en Cloud Console).
     Route::middleware('permission:salesbot-knowledge.update')
@@ -1251,6 +1256,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:plataforma-reportes.view')
             ->get('reportes/mapa', [PlataformaReportesController::class, 'mapa'])
             ->name('reportes.mapa');
+        Route::middleware('permission:plataforma-reportes.view')
+            ->get('reportes/mapa-demos', [PlataformaReportesController::class, 'mapaDemos'])
+            ->name('reportes.mapa-demos');
 
         Route::middleware('permission:plataforma-operaciones.view')
             ->get('sesiones-login', [PlataformaUserAuthSessionController::class, 'index'])

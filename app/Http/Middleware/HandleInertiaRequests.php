@@ -103,6 +103,7 @@ class HandleInertiaRequests extends Middleware
             'razon_social' => $tenantContext->razonSocial(),
             'nombre_comercial' => $tenantContext->nombreComercial(),
             'estado' => $tenantContext->estado(),
+            'is_demo' => $tenantContext->slug === 'demo',
         ];
 
         // Un solo guard `web` para todos los usuarios (single-login).

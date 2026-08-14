@@ -1,6 +1,6 @@
 import { router, usePage } from '@inertiajs/react';
 import { Navigation } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -22,7 +22,6 @@ type LocationGate = {
     sedes_url: string;
 };
 
-/** Módulos más visitados: ahí pedimos el consentimiento GPS. */
 const HOT_PATH_PREFIXES = [
     '/dashboard',
     '/clinica/pacientes',
@@ -47,10 +46,29 @@ function isHotPath(pathname: string): boolean {
     );
 }
 
+async function geolocationPermission(): Promise<
+    'granted' | 'prompt' | 'denied' | 'unknown'
+> {
+    try {
+        if (!navigator.permissions?.query) {
+            return 'unknown';
+        }
+        const status = await navigator.permissions.query({
+            name: 'geolocation' as PermissionName,
+        });
+        if (status.state === 'granted' || status.state === 'denied' || status.state === 'prompt') {
+            return status.state;
+        }
+        return 'unknown';
+    } catch {
+        return 'unknown';
+    }
+}
+
 /**
- * Consentimiento de la app (obligatorio). Al aceptar, el navegador muestra
- * su propio diálogo nativo de Ubicación (no aparece en el candado hasta
- * que se pide al menos una vez con getCurrentPosition).
+ * Consentimiento VetSaaS (obligatorio). Activar Ubicación solo en el candado
+ * del browser NO guarda coordenadas: hay que capturar y enviarlas al servidor.
+ * Si el permiso ya está en “Permitir”, se captura automáticamente.
  */
 export function TenantGpsConsentModal() {
     const page = usePage<{ clinic_location_gate?: LocationGate | null }>();
@@ -58,27 +76,56 @@ export function TenantGpsConsentModal() {
     const [open, setOpen] = useState(false);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [browserGranted, setBrowserGranted] = useState(false);
+    const autoTried = useRef(false);
 
     useEffect(() => {
         if (!gate?.needs_gps) {
             setOpen(false);
+            autoTried.current = false;
             return;
         }
         if (typeof window === 'undefined') {
             return;
         }
 
-        sessionStorage.removeItem('vetsaas.gps_prompt_seen');
-        sessionStorage.removeItem('vetsaas.gps_soft_dismiss_until');
-
         const pathname = new URL(page.url, window.location.origin).pathname;
         if (!isHotPath(pathname)) {
             return;
         }
 
+        let cancelled = false;
+        void geolocationPermission().then((state) => {
+            if (cancelled) {
+                return;
+            }
+            setBrowserGranted(state === 'granted');
+        });
+
         const timer = window.setTimeout(() => setOpen(true), 400);
-        return () => window.clearTimeout(timer);
+        return () => {
+            cancelled = true;
+            window.clearTimeout(timer);
+        };
     }, [gate?.needs_gps, page.url]);
+
+    const savePosition = (lat: number, lng: number) => {
+        router.post(
+            '/tenant/geo',
+            { action: 'accept', lat, lng },
+            {
+                preserveScroll: true,
+                onFinish: () => {
+                    setBusy(false);
+                    setOpen(false);
+                },
+                onError: () => {
+                    setBusy(false);
+                    setError('No se pudo guardar. Intenta de nuevo.');
+                },
+            },
+        );
+    };
 
     const accept = () => {
         if (!navigator.geolocation) {
@@ -87,36 +134,15 @@ export function TenantGpsConsentModal() {
         }
         setBusy(true);
         setError(null);
-        // Aquí el browser muestra su prompt nativo de Ubicación.
         navigator.geolocation.getCurrentPosition(
             (pos) => {
-                router.post(
-                    '/tenant/geo',
-                    {
-                        action: 'accept',
-                        lat: pos.coords.latitude,
-                        lng: pos.coords.longitude,
-                    },
-                    {
-                        preserveScroll: true,
-                        onFinish: () => {
-                            setBusy(false);
-                            setOpen(false);
-                        },
-                        onError: () => {
-                            setBusy(false);
-                            setError(
-                                'No se pudo guardar. Intenta de nuevo.',
-                            );
-                        },
-                    },
-                );
+                savePosition(pos.coords.latitude, pos.coords.longitude);
             },
             (err) => {
                 setBusy(false);
                 if (err.code === err.PERMISSION_DENIED) {
                     setError(
-                        'Activa Ubicación para este sitio en el candado del navegador y vuelve a pulsar Permitir.',
+                        'Activa Ubicación en el candado del navegador y pulsa Permitir de nuevo.',
                     );
                 } else {
                     setError(
@@ -127,6 +153,19 @@ export function TenantGpsConsentModal() {
             { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 },
         );
     };
+
+    // Si ya activó Ubicación en el candado, capturamos y guardamos solos.
+    useEffect(() => {
+        if (!open || !gate?.needs_gps || !browserGranted || busy) {
+            return;
+        }
+        if (autoTried.current) {
+            return;
+        }
+        autoTried.current = true;
+        accept();
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al detectar permiso concedido
+    }, [open, gate?.needs_gps, browserGranted]);
 
     if (!gate?.needs_gps) {
         return null;
@@ -158,9 +197,9 @@ export function TenantGpsConsentModal() {
                         Ubicación de tu clínica
                     </DialogTitle>
                     <DialogDescription>
-                        Necesitamos la ubicación aproximada de tu clínica para
-                        mostrar tu cobertura en el mapa. Pulsa Permitir y
-                        confirma en el aviso del navegador.
+                        Necesitamos la ubicación aproximada de tu clínica para el
+                        mapa de cobertura. Pulsa Permitir (o usa el botón
+                        «Capturar ubicación» del encabezado).
                     </DialogDescription>
                 </DialogHeader>
                 {error ? (
@@ -175,7 +214,11 @@ export function TenantGpsConsentModal() {
                         disabled={busy}
                         onClick={accept}
                     >
-                        {busy ? 'Esperando al navegador…' : 'Permitir ubicación'}
+                        {busy
+                            ? 'Guardando ubicación…'
+                            : browserGranted
+                              ? 'Reintentar guardar'
+                              : 'Permitir ubicación'}
                     </Button>
                 </DialogFooter>
             </DialogContent>
