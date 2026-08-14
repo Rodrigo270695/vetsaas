@@ -143,6 +143,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('vetsaas:notifications-dispatch')->everyFiveMinutes();
         $schedule->command('vetsaas:whatsapp-sync-sessions')->everyFiveMinutes();
         $schedule->command('vetsaas:backup-database')->dailyAt('02:00');
+
+        // GPS de clínicas: marca refresco 2×/día; el navegador captura al navegar.
+        $schedule->command('vetsaas:request-tenant-geo-refresh')->twiceDaily(8, 20);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->reportable(function (\Throwable $e): void {

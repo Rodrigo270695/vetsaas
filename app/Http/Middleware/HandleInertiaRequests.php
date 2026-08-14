@@ -141,6 +141,7 @@ class HandleInertiaRequests extends Middleware
                         // IMPORTANTE: Schema::hasColumn() falla con search_path del tenant
                         // (busca en schema de clínica, no en public.tenants).
                         $geoReady = PublicSchema::hasColumn('tenants', 'geo_consent_at');
+                        $hasConsent = $geoReady && $tenant->geo_consent_at !== null;
                         // Cualquier usuario autenticado del tenant puede aceptar/rechazar:
                         // el GPS es de la clínica (tenant), no de la sede.
                         $needsGps = $geoReady
@@ -150,11 +151,26 @@ class HandleInertiaRequests extends Middleware
                             && $tenant->geo_lat !== null
                             && $tenant->geo_lng !== null;
 
+                        $gpsRefreshDue = false;
+                        if ($hasConsent && $tenant->geo_denied_at === null) {
+                            $requested = PublicSchema::hasColumn('tenants', 'geo_refresh_requested_at')
+                                ? $tenant->geo_refresh_requested_at
+                                : null;
+                            $captured = $tenant->geo_captured_at;
+                            if ($tenant->geo_lat === null || $tenant->geo_lng === null) {
+                                $gpsRefreshDue = true;
+                            } elseif ($requested !== null && ($captured === null || $requested->gt($captured))) {
+                                $gpsRefreshDue = true;
+                            }
+                        }
+
                         return [
                             'needs_sede' => $needsSede,
                             'needs_sede_geo' => $needsSedeGeo,
                             'needs_gps' => $needsGps,
                             'gps_captured' => $gpsCaptured,
+                            'has_gps_consent' => $hasConsent,
+                            'gps_refresh_due' => $gpsRefreshDue,
                             'can_edit_sedes' => $canEditSedes,
                             'sedes_url' => '/configuracion/sedes',
                         ];

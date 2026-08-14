@@ -30,6 +30,7 @@ class Tenant extends Model
             'geo_consent_at',
             'geo_denied_at',
             'geo_captured_at',
+            'geo_refresh_requested_at',
             'direccion',
             'logo_url',
         'estado',
@@ -60,6 +61,7 @@ class Tenant extends Model
             'geo_consent_at' => 'datetime',
             'geo_denied_at' => 'datetime',
             'geo_captured_at' => 'datetime',
+            'geo_refresh_requested_at' => 'datetime',
             'modulos_deshabilitados' => 'array',
         ];
     }

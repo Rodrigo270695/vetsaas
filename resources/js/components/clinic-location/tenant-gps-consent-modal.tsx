@@ -1,6 +1,6 @@
 import { router, usePage } from '@inertiajs/react';
 import { MapPin, Navigation } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -16,11 +16,13 @@ type LocationGate = {
     needs_sede_geo: boolean;
     needs_gps: boolean;
     gps_captured: boolean;
+    has_gps_consent?: boolean;
+    gps_refresh_due?: boolean;
     can_edit_sedes: boolean;
     sedes_url: string;
 };
 
-/** Módulos más visitados (presencia): ahí pedimos GPS. */
+/** Módulos más visitados: ahí pedimos el consentimiento GPS. */
 const HOT_PATH_PREFIXES = [
     '/dashboard',
     '/clinica/pacientes',
@@ -38,9 +40,6 @@ const HOT_PATH_PREFIXES = [
     '/clinica/recetas',
 ];
 
-const SOFT_DISMISS_KEY = 'vetsaas.gps_soft_dismiss_until';
-const SOFT_DISMISS_MS = 3 * 60 * 1000; // 3 min tras “Ahora no”
-
 function isHotPath(pathname: string): boolean {
     const path = pathname.split('?')[0] || '/';
     return HOT_PATH_PREFIXES.some(
@@ -48,32 +47,16 @@ function isHotPath(pathname: string): boolean {
     );
 }
 
-function softDismissActive(): boolean {
-    if (typeof window === 'undefined') {
-        return false;
-    }
-    const raw = sessionStorage.getItem(SOFT_DISMISS_KEY);
-    if (!raw) {
-        return false;
-    }
-    const until = Number(raw);
-    if (!Number.isFinite(until) || Date.now() >= until) {
-        sessionStorage.removeItem(SOFT_DISMISS_KEY);
-        return false;
-    }
-    return true;
-}
-
 /**
- * Pide permiso de ubicación en módulos de alto tráfico y lo guarda
- * en el tenant para el mapa de Reportes de plataforma.
+ * Modal obligatorio: no se cierra con clic afuera, Escape ni la X.
+ * Solo “Permitir ubicación” (o rechazo explícito permanente).
  */
 export function TenantGpsConsentModal() {
     const page = usePage<{ clinic_location_gate?: LocationGate | null }>();
     const gate = page.props.clinic_location_gate;
     const [open, setOpen] = useState(false);
     const [busy, setBusy] = useState(false);
-    const lastPromptPath = useRef<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         if (!gate?.needs_gps) {
@@ -84,39 +67,21 @@ export function TenantGpsConsentModal() {
             return;
         }
 
-        // Limpia el flag viejo que bloqueaba el prompt toda la sesión.
         sessionStorage.removeItem('vetsaas.gps_prompt_seen');
+        sessionStorage.removeItem('vetsaas.gps_soft_dismiss_until');
 
-        const pathname = new URL(
-            page.url,
-            window.location.origin,
-        ).pathname;
-
+        const pathname = new URL(page.url, window.location.origin).pathname;
         if (!isHotPath(pathname)) {
             return;
         }
-        if (softDismissActive()) {
-            return;
-        }
 
-        const timer = window.setTimeout(() => {
-            lastPromptPath.current = pathname;
-            setOpen(true);
-        }, 600);
-
+        const timer = window.setTimeout(() => setOpen(true), 400);
         return () => window.clearTimeout(timer);
     }, [gate?.needs_gps, page.url]);
 
-    const softDismiss = () => {
-        sessionStorage.setItem(
-            SOFT_DISMISS_KEY,
-            String(Date.now() + SOFT_DISMISS_MS),
-        );
-        setOpen(false);
-    };
-
     const deny = () => {
         setBusy(true);
+        setError(null);
         router.post(
             '/tenant/geo',
             { action: 'deny' },
@@ -125,7 +90,6 @@ export function TenantGpsConsentModal() {
                 onFinish: () => {
                     setBusy(false);
                     setOpen(false);
-                    sessionStorage.removeItem(SOFT_DISMISS_KEY);
                 },
             },
         );
@@ -133,10 +97,11 @@ export function TenantGpsConsentModal() {
 
     const accept = () => {
         if (!navigator.geolocation) {
-            deny();
+            setError('Este navegador no soporta geolocalización.');
             return;
         }
         setBusy(true);
+        setError(null);
         navigator.geolocation.getCurrentPosition(
             (pos) => {
                 router.post(
@@ -151,18 +116,25 @@ export function TenantGpsConsentModal() {
                         onFinish: () => {
                             setBusy(false);
                             setOpen(false);
-                            sessionStorage.removeItem(SOFT_DISMISS_KEY);
+                        },
+                        onError: () => {
+                            setBusy(false);
+                            setError('No se pudo guardar la ubicación. Intenta de nuevo.');
                         },
                     },
                 );
             },
-            () => {
-                // Permiso del navegador denegado → no marcar deny permanente;
-                // solo soft dismiss para no martillar al usuario.
+            (err) => {
                 setBusy(false);
-                softDismiss();
+                if (err.code === err.PERMISSION_DENIED) {
+                    setError(
+                        'Debes permitir la ubicación en el navegador (icono del candado → Ubicación → Permitir) y luego pulsar de nuevo.',
+                    );
+                } else {
+                    setError('No se pudo obtener la ubicación. Revisa el GPS e inténtalo otra vez.');
+                }
             },
-            { enableHighAccuracy: false, timeout: 12000, maximumAge: 60_000 },
+            { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 },
         );
     };
 
@@ -173,15 +145,21 @@ export function TenantGpsConsentModal() {
     return (
         <Dialog
             open={open}
-            onOpenChange={(v) => {
-                if (!v) {
-                    softDismiss();
+            onOpenChange={(next) => {
+                // Bloquea cierre accidental (overlay / Escape).
+                if (!next) {
                     return;
                 }
                 setOpen(true);
             }}
         >
-            <DialogContent className="sm:max-w-md">
+            <DialogContent
+                hideCloseButton
+                className="sm:max-w-md"
+                onPointerDownOutside={(e) => e.preventDefault()}
+                onInteractOutside={(e) => e.preventDefault()}
+                onEscapeKeyDown={(e) => e.preventDefault()}
+            >
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <Navigation
@@ -191,9 +169,9 @@ export function TenantGpsConsentModal() {
                         Ubicación de tu clínica
                     </DialogTitle>
                     <DialogDescription>
-                        Para el mapa de cobertura de VetSaaS, ¿permites compartir
-                        la ubicación aproximada de este dispositivo? Puedes
-                        rechazar y seguir trabajando con normalidad.
+                        Para el mapa de cobertura de VetSaaS necesitamos tu
+                        ubicación aproximada. Debes aceptar para continuar
+                        usando el sistema con normalidad en este dispositivo.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="rounded-lg border border-border/60 bg-muted/30 p-3 text-xs text-muted-foreground">
@@ -202,31 +180,28 @@ export function TenantGpsConsentModal() {
                             className="mt-0.5 size-3.5 shrink-0"
                             aria-hidden
                         />
-                        Solo se guarda latitud/longitud de la clínica. No
-                        rastreamos movimientos en tiempo real. Si eliges “Ahora
-                        no”, te lo volveremos a pedir en unos minutos al seguir
-                        navegando.
+                        Solo se guarda latitud/longitud de la clínica. Luego se
+                        actualizará automáticamente dos veces al día cuando
+                        alguien navegue en la clínica.
                     </p>
                 </div>
+                {error ? (
+                    <p className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+                        {error}
+                    </p>
+                ) : null}
                 <DialogFooter className="gap-2 sm:gap-2">
-                    <Button
-                        type="button"
-                        variant="outline"
-                        disabled={busy}
-                        onClick={softDismiss}
-                    >
-                        Ahora no
-                    </Button>
                     <Button
                         type="button"
                         variant="ghost"
                         disabled={busy}
                         onClick={deny}
+                        className="text-muted-foreground"
                     >
                         No volver a pedir
                     </Button>
                     <Button type="button" disabled={busy} onClick={accept}>
-                        Permitir ubicación
+                        {busy ? 'Obteniendo…' : 'Permitir ubicación'}
                     </Button>
                 </DialogFooter>
             </DialogContent>
