@@ -88,7 +88,7 @@ final class VentaTicketPdfService
             'clinic_direccion' => $trim($cfg->direccion_fiscal),
             'clinic_telefono' => $trim($cfg->telefono_principal),
             'moneda' => $venta->moneda,
-            'igv_porcentaje' => (string) $cfg->igv_porcentaje,
+            'igv_porcentaje' => number_format($cfg->igvPorcentajeEfectivo(), 2, '.', ''),
             'venta' => $venta,
             'lineas' => $lineas,
             'fecha_cobro' => $fechaCobro,

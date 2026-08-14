@@ -927,7 +927,8 @@ class VentaController extends Controller
                 ])->values()->all(),
             ],
             'clinica' => [
-                'igv_porcentaje' => (string) $clinic->igv_porcentaje,
+                'igv_porcentaje' => number_format($clinic->igvPorcentajeEfectivo(), 2, '.', ''),
+                'igv_afectacion' => $clinic->igvAfectacion(),
                 'ticket_ancho_mm' => TicketAnchoMm::normalize((string) $clinic->ticket_ancho_mm),
                 'emite_comprobantes_sunat' => (bool) $clinic->emite_comprobantes_sunat,
                 'apisunat_configurado' => ApisunatCredentialResolver::estaConfigurado($clinic),
@@ -1331,6 +1332,7 @@ class VentaController extends Controller
             'clinica' => [
                 'moneda' => $clinic->moneda,
                 'igv_porcentaje' => number_format($clinic->igvPorcentajeEfectivo(), 2, '.', ''),
+                'igv_afectacion' => $clinic->igvAfectacion(),
                 'precio_incluye_igv' => (bool) $clinic->precio_incluye_igv,
                 'emite_comprobantes_sunat' => (bool) $clinic->emite_comprobantes_sunat,
                 'plan_permite_boletas' => PlanCapabilities::boletasElectronicas($tenantModel),

@@ -101,7 +101,7 @@ final class SyncConsultaCargoDesdeExamenes
                     'descuento_importe' => $l->descuento_importe,
                 ])->all(),
                 (bool) $cfg->precio_incluye_igv,
-                (float) $cfg->igv_porcentaje,
+                $cfg->igvPorcentajeEfectivo(),
             );
 
             $cargo->update([

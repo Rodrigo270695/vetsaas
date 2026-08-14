@@ -419,6 +419,8 @@
             "monto_no_aplica": "N/A",
             "res_subtotal": "Subtotal (excl. VAT)",
             "res_igv": "VAT ({{pct}}%)",
+            "res_igv_exonerado": "VAT (exempt)",
+            "res_igv_inafecto": "VAT (unaffected)",
             "res_descuento": "Discount",
             "promotion_code": "Promotion code",
             "promotion_code_ph": "Optional — manual coupon",

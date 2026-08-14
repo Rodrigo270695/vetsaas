@@ -1682,15 +1682,11 @@ export default function Index({
                                                 | 'gravado'
                                                 | 'exonerado'
                                                 | 'inafecto';
-                                            setData((prev) => ({
-                                                ...prev,
-                                                igv_afectacion: afectacion,
-                                                ...(afectacion !== 'gravado'
-                                                    ? {
-                                                          igv_porcentaje: '0',
-                                                      }
-                                                    : {}),
-                                            }));
+                                            // setData solo acepta (key, value); no un updater.
+                                            setData('igv_afectacion', afectacion);
+                                            if (afectacion !== 'gravado') {
+                                                setData('igv_porcentaje', '0');
+                                            }
                                         }}
                                         disabled={!canUpdate}
                                     >

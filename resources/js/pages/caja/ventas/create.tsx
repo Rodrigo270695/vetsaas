@@ -282,7 +282,9 @@ export default function Create({
         }));
     }, [desdeCargo, form, t]);
 
-    const igvPct = Number(clinica.igv_porcentaje);
+    const igvAfectacion = clinica.igv_afectacion ?? 'gravado';
+    const igvPct =
+        igvAfectacion === 'gravado' ? Number(clinica.igv_porcentaje) : 0;
     const precioIncluyeIgv = clinica.precio_incluye_igv;
 
     const totalesBase = useMemo(
@@ -1873,7 +1875,13 @@ export default function Create({
                                     </div>
                                     <div className="flex justify-between gap-2 text-[11px]">
                                         <span className="text-muted-foreground">
-                                            {t('caja:ventas.create.res_igv', { pct: clinica.igv_porcentaje })}
+                                            {igvAfectacion === 'exonerado'
+                                                ? t('caja:ventas.create.res_igv_exonerado')
+                                                : igvAfectacion === 'inafecto'
+                                                  ? t('caja:ventas.create.res_igv_inafecto')
+                                                  : t('caja:ventas.create.res_igv', {
+                                                        pct: igvPct.toFixed(2),
+                                                    })}
                                         </span>
                                         <span className="tabular-nums">{formatMoney(totales.igv)}</span>
                                     </div>

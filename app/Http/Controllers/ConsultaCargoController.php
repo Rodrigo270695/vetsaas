@@ -88,7 +88,7 @@ class ConsultaCargoController extends Controller
             ],
             'clinic_billing' => [
                 'moneda' => $cfg->moneda,
-                'igv_porcentaje' => (float) $cfg->igv_porcentaje,
+                'igv_porcentaje' => $cfg->igvPorcentajeEfectivo(),
                 'precio_incluye_igv' => (bool) $cfg->precio_incluye_igv,
                 'ticket_ancho_mm' => TicketAnchoMm::normalize((string) $cfg->ticket_ancho_mm),
             ],
@@ -152,7 +152,7 @@ class ConsultaCargoController extends Controller
             'clinic_direccion' => $trim($cfg->direccion_fiscal),
             'clinic_telefono' => $trim($cfg->telefono_principal),
             'moneda' => $cargo->moneda,
-            'igv_porcentaje' => (string) $cfg->igv_porcentaje,
+            'igv_porcentaje' => number_format($cfg->igvPorcentajeEfectivo(), 2, '.', ''),
             'precio_incluye_igv' => (bool) $cfg->precio_incluye_igv,
             'consulta' => $consulta,
             'cargo' => $cargo,
@@ -220,7 +220,7 @@ class ConsultaCargoController extends Controller
         $totales = ConsultaCargoTotales::fromLineas(
             $lineasIn,
             (bool) $cfg->precio_incluye_igv,
-            (float) $cfg->igv_porcentaje,
+            $cfg->igvPorcentajeEfectivo(),
         );
 
         DB::transaction(function () use ($cargo, $lineasIn, $validated, $totales): void {
@@ -295,7 +295,7 @@ class ConsultaCargoController extends Controller
         $totales = ConsultaCargoTotales::fromLineas(
             $lineasIn,
             (bool) $cfg->precio_incluye_igv,
-            (float) $cfg->igv_porcentaje,
+            $cfg->igvPorcentajeEfectivo(),
         );
 
         $sedeId = $this->resolveSedeIdParaStock($request, (string) $user->tenant_id);

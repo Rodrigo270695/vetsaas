@@ -999,7 +999,7 @@ final class VentaDesdeCargoPrefill
     {
         $cfg = ClinicSetting::current();
         $incluyeDestino = (bool) $cfg->precio_incluye_igv;
-        $igvPct = (float) (string) $cfg->igv_porcentaje;
+        $igvPct = $cfg->igvPorcentajeEfectivo();
         $storedGross = $this->cargoPreciosSonBrutos($cargo);
 
         $out = [];

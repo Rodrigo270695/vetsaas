@@ -88,6 +88,8 @@ export type PropietarioOpcion = {
 export type ClinicaVentaConfig = {
     moneda: string;
     igv_porcentaje: string;
+    /** gravado | exonerado | inafecto — si no viene, se asume gravado */
+    igv_afectacion?: 'gravado' | 'exonerado' | 'inafecto';
     precio_incluye_igv: boolean;
     emite_comprobantes_sunat: boolean;
     plan_permite_boletas: boolean;
@@ -218,6 +220,7 @@ export type VentaShowProps = {
     venta: VentaDetalle & { consulta_id?: string | null };
     clinica: {
         igv_porcentaje: string;
+        igv_afectacion?: 'gravado' | 'exonerado' | 'inafecto';
         ticket_ancho_mm: '56' | '58' | '80';
         emite_comprobantes_sunat: boolean;
         apisunat_configurado: boolean;

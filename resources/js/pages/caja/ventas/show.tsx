@@ -574,7 +574,13 @@ export default function Show({
                                     </div>
                                     <div className="flex justify-between gap-3">
                                         <span className="text-muted-foreground">
-                                            {t('caja:ventas.create.res_igv', { pct: clinica.igv_porcentaje })}
+                                            {clinica.igv_afectacion === 'exonerado'
+                                                ? t('caja:ventas.create.res_igv_exonerado')
+                                                : clinica.igv_afectacion === 'inafecto'
+                                                  ? t('caja:ventas.create.res_igv_inafecto')
+                                                  : t('caja:ventas.create.res_igv', {
+                                                        pct: clinica.igv_porcentaje,
+                                                    })}
                                         </span>
                                         <span className="font-medium tabular-nums">
                                             {formatMonto(venta.igv_monto, venta.moneda, i18n.language)}
