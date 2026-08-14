@@ -485,6 +485,19 @@ function useNavConfig(): { singles: NavItem[]; groups: NavGroup[] } {
                     ],
                 },
                 {
+                    title: t('groups.plataforma_reportes'),
+                    icon: FileBarChart,
+                    context: 'central',
+                    items: [
+                        {
+                            title: t('items.reportes_plataforma'),
+                            href: '/plataforma/reportes',
+                            icon: LineChart,
+                            permission: 'plataforma-reportes.view',
+                        },
+                    ],
+                },
+                {
                     title: t('groups.plataforma_clinicas'),
                     icon: Building2,
                     context: 'central',

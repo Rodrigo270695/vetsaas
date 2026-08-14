@@ -118,6 +118,12 @@ class PermissionsSeeder extends Seeder
         'plataforma-operaciones' => ['view', 'manage'],
 
         /*
+         * Dashboard de marketing / geo del SaaS: departamentos paid vs free,
+         * puntos calientes y flujo de suscripciones.
+         */
+        'plataforma-reportes' => ['view'],
+
+        /*
          * Configuración global del SaaS: credenciales de Twilio (WhatsApp)
          * y Brevo (correo) que comparten todas las clínicas. Se guardan en
          * `public.platform_settings` y solo el `superadmin` puede tocarlas.

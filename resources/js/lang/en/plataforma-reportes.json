@@ -1,0 +1,55 @@
+{
+    "title": "Marketing reports",
+    "subtitle": "Where your paid and free clinics are, to guide Facebook Ads and growth.",
+    "kpis": {
+        "total": "Live clinics",
+        "paid": "Paid",
+        "free": "Free",
+        "cancelled": "Cancelled",
+        "geo": "With location",
+        "pct_paid": "% paid"
+    },
+    "insights": {
+        "title": "Quick read",
+        "top_paid": "Top paid department",
+        "top_free": "Top free department",
+        "ads": "Ads opportunity (free concentration)",
+        "cobertura": "Geo coverage",
+        "none": "No data yet"
+    },
+    "sections": {
+        "paid": "Paid clinics",
+        "paid_hint": "Subscription on a non-Free plan (trial, active, grace or suspended).",
+        "free": "Free clinics",
+        "free_hint": "Free plan or no live subscription. Strong conversion targets for Ads.",
+        "comparativo": "Department comparison",
+        "comparativo_hint": "Paid vs free in departments with the most clinics.",
+        "heatmap": "Hot spots",
+        "heatmap_hint": "Relative intensity by department (darker = more clinics).",
+        "flujo": "Paid subscription flow",
+        "flujo_hint": "Ops funnel: trial → active → grace → suspended.",
+        "crecimiento": "Monthly signups",
+        "crecimiento_hint": "New clinics created per month (paid vs free).",
+        "ingresos": "Processed revenue",
+        "ingresos_hint": "Payments in processed status (paid plans), last 12 months.",
+        "planes": "Paid plan mix",
+        "canales": "Acquisition channel",
+        "estados": "Tenant status"
+    },
+    "chart": {
+        "count": "Clinics",
+        "paid": "Paid",
+        "free": "Free",
+        "empty": "Nothing to chart",
+        "sin_ubicacion": "No location",
+        "intensity": "Intensity"
+    },
+    "table": {
+        "departamento": "Department",
+        "provincia": "Province",
+        "paid": "Paid",
+        "free": "Free",
+        "total": "Total",
+        "pct": "% of segment"
+    }
+}

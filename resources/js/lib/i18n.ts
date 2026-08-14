@@ -21,6 +21,7 @@ import comunicacionesEn from '@/lang/en/comunicaciones.json';
 import plataformaAuditoriaSoporteEn from '@/lang/en/plataforma-auditoria-soporte.json';
 import plataformaAuditoriaSeguridadEn from '@/lang/en/plataforma-auditoria-seguridad.json';
 import plataformaOperacionesEn from '@/lang/en/plataforma-operaciones.json';
+import plataformaReportesEn from '@/lang/en/plataforma-reportes.json';
 import plataformaSesionesLoginEn from '@/lang/en/plataforma-sesiones-login.json';
 import plataformaApiperuEn from '@/lang/en/plataforma-apiperu.json';
 import plataformaUsoPlanesEn from '@/lang/en/plataforma-uso-planes.json';
@@ -79,6 +80,7 @@ import comunicacionesEs from '@/lang/es/comunicaciones.json';
 import plataformaAuditoriaSoporteEs from '@/lang/es/plataforma-auditoria-soporte.json';
 import plataformaAuditoriaSeguridadEs from '@/lang/es/plataforma-auditoria-seguridad.json';
 import plataformaOperacionesEs from '@/lang/es/plataforma-operaciones.json';
+import plataformaReportesEs from '@/lang/es/plataforma-reportes.json';
 import plataformaSesionesLoginEs from '@/lang/es/plataforma-sesiones-login.json';
 import plataformaApiperuEs from '@/lang/es/plataforma-apiperu.json';
 import plataformaUsoPlanesEs from '@/lang/es/plataforma-uso-planes.json';
@@ -164,6 +166,7 @@ const resources = {
         'plataforma-auditoria-soporte': plataformaAuditoriaSoporteEs,
         'plataforma-auditoria-seguridad': plataformaAuditoriaSeguridadEs,
         'plataforma-operaciones': plataformaOperacionesEs,
+        'plataforma-reportes': plataformaReportesEs,
         'plataforma-sesiones-login': plataformaSesionesLoginEs,
         'plataforma-apiperu': plataformaApiperuEs,
         'plataforma-uso-planes': plataformaUsoPlanesEs,
@@ -224,6 +227,7 @@ const resources = {
         'plataforma-auditoria-soporte': plataformaAuditoriaSoporteEn,
         'plataforma-auditoria-seguridad': plataformaAuditoriaSeguridadEn,
         'plataforma-operaciones': plataformaOperacionesEn,
+        'plataforma-reportes': plataformaReportesEn,
         'plataforma-sesiones-login': plataformaSesionesLoginEn,
         'plataforma-apiperu': plataformaApiperuEn,
         'plataforma-uso-planes': plataformaUsoPlanesEn,
@@ -294,6 +298,7 @@ void i18n
             'plataforma-auditoria-soporte',
             'plataforma-auditoria-seguridad',
             'plataforma-operaciones',
+            'plataforma-reportes',
             'plataforma-sesiones-login',
             'plataforma-apiperu',
             'plataforma-uso-planes',

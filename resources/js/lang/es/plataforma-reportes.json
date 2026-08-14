@@ -1,0 +1,55 @@
+{
+    "title": "Reportes de marketing",
+    "subtitle": "Dónde están tus clínicas de pago y free para decidir Facebook Ads y crecimiento.",
+    "kpis": {
+        "total": "Clínicas vivas",
+        "paid": "De pago",
+        "free": "Free",
+        "cancelled": "Canceladas",
+        "geo": "Con ubicación",
+        "pct_paid": "% pago"
+    },
+    "insights": {
+        "title": "Lectura rápida",
+        "top_paid": "Departamento líder en pago",
+        "top_free": "Departamento líder en free",
+        "ads": "Oportunidad Ads (concentración free)",
+        "cobertura": "Cobertura geográfica",
+        "none": "Sin datos aún"
+    },
+    "sections": {
+        "paid": "Clínicas de pago",
+        "paid_hint": "Suscripción en plan distinto de Free (trial, active, grace o suspended).",
+        "free": "Clínicas free",
+        "free_hint": "Plan Free o sin suscripción viva. Ideales para convertir con Ads.",
+        "comparativo": "Comparativo por departamento",
+        "comparativo_hint": "Pago vs free en los departamentos con más clínicas.",
+        "heatmap": "Puntos calientes",
+        "heatmap_hint": "Intensidad relativa por departamento (más oscuro = más clínicas).",
+        "flujo": "Flujo de suscripciones de pago",
+        "flujo_hint": "Embudo operativo: trial → active → grace → suspended.",
+        "crecimiento": "Altas mensuales",
+        "crecimiento_hint": "Nuevas clínicas creadas por mes (pago vs free).",
+        "ingresos": "Ingresos procesados",
+        "ingresos_hint": "Cobros en estado procesado (planes de pago), últimos 12 meses.",
+        "planes": "Mix de planes de pago",
+        "canales": "Canal de adquisición",
+        "estados": "Estado del tenant"
+    },
+    "chart": {
+        "count": "Clínicas",
+        "paid": "Pago",
+        "free": "Free",
+        "empty": "Sin datos para graficar",
+        "sin_ubicacion": "Sin ubicación",
+        "intensity": "Intensidad"
+    },
+    "table": {
+        "departamento": "Departamento",
+        "provincia": "Provincia",
+        "paid": "Pago",
+        "free": "Free",
+        "total": "Total",
+        "pct": "% del segmento"
+    }
+}

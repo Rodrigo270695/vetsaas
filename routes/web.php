@@ -46,6 +46,7 @@ use App\Http\Controllers\PlanController;
 use App\Http\Controllers\PlataformaApiPeruController;
 use App\Http\Controllers\PlataformaImpersonationAuditController;
 use App\Http\Controllers\PlataformaOperacionesController;
+use App\Http\Controllers\PlataformaReportesController;
 use App\Http\Controllers\PlataformaSecurityAuditController;
 use App\Http\Controllers\PlataformaUserAuthSessionController;
 use App\Http\Controllers\PlatformRenewalReminderController;
@@ -1237,6 +1238,11 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:plataforma-operaciones.manage')
             ->post('operaciones/backups/run', [PlataformaOperacionesController::class, 'runBackup'])
             ->name('operaciones.backups.run');
+
+        // ── Reportes marketing / geo ──
+        Route::middleware('permission:plataforma-reportes.view')
+            ->get('reportes', [PlataformaReportesController::class, 'index'])
+            ->name('reportes.index');
 
         Route::middleware('permission:plataforma-operaciones.view')
             ->get('sesiones-login', [PlataformaUserAuthSessionController::class, 'index'])

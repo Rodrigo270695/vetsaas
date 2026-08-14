@@ -13,6 +13,7 @@
         "plataforma": "Platform",
         "plataforma_sistema": "System",
         "plataforma_clinicas": "Clinics",
+        "plataforma_reportes": "Reports",
         "plataforma_cobros": "Billing",
         "plataforma_ventas": "Sales",
         "plataforma_producto": "Product"
@@ -70,6 +71,7 @@
         "api_logs": "API logs",
         "tokens": "Tokens",
         "operaciones": "Operations",
+        "reportes_plataforma": "Marketing & geo",
         "sesiones_login": "Login sessions",
         "apiperu": "ApiPeru",
         "auditoria_soporte": "Support audit",
