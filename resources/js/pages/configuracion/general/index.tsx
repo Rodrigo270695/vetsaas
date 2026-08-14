@@ -122,6 +122,7 @@ type FormState = {
     // Facturación
     moneda: 'PEN' | 'USD';
     igv_porcentaje: string;
+    igv_afectacion: 'gravado' | 'exonerado' | 'inafecto';
     precio_incluye_igv: boolean;
     ticket_ancho_mm: '56' | '58' | '80';
     emite_comprobantes_sunat: boolean;
@@ -194,6 +195,11 @@ const buildInitialState = (setting: ClinicSetting): FormState => ({
     recordatorio_cumple_activo: setting.recordatorio_cumple_activo,
     moneda: setting.moneda,
     igv_porcentaje: setting.igv_porcentaje,
+    igv_afectacion:
+        setting.igv_afectacion === 'exonerado' ||
+        setting.igv_afectacion === 'inafecto'
+            ? setting.igv_afectacion
+            : 'gravado',
     precio_incluye_igv: setting.precio_incluye_igv,
     ticket_ancho_mm:
         setting.ticket_ancho_mm === '56' ||
@@ -233,6 +239,7 @@ const resolveErrorTab = (errors: Record<string, string>): GeneralTab => {
             [
                 'moneda',
                 'igv_porcentaje',
+                'igv_afectacion',
                 'precio_incluye_igv',
                 'ticket_ancho_mm',
                 'emite_comprobantes_sunat',
@@ -1661,6 +1668,56 @@ export default function Index({
                                 </FormField>
 
                                 <FormField
+                                    id="general-igv-afectacion"
+                                    label={t('fields.igv_afectacion')}
+                                    error={errors.igv_afectacion}
+                                    hint={t('fields.igv_afectacion_hint')}
+                                    required
+                                    className="sm:col-span-2"
+                                >
+                                    <Select
+                                        value={data.igv_afectacion}
+                                        onValueChange={(v) => {
+                                            const afectacion = v as
+                                                | 'gravado'
+                                                | 'exonerado'
+                                                | 'inafecto';
+                                            setData((prev) => ({
+                                                ...prev,
+                                                igv_afectacion: afectacion,
+                                                ...(afectacion !== 'gravado'
+                                                    ? {
+                                                          igv_porcentaje: '0',
+                                                      }
+                                                    : {}),
+                                            }));
+                                        }}
+                                        disabled={!canUpdate}
+                                    >
+                                        <SelectTrigger id="general-igv-afectacion">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="gravado">
+                                                {t(
+                                                    'fields.igv_afectacion_gravado',
+                                                )}
+                                            </SelectItem>
+                                            <SelectItem value="exonerado">
+                                                {t(
+                                                    'fields.igv_afectacion_exonerado',
+                                                )}
+                                            </SelectItem>
+                                            <SelectItem value="inafecto">
+                                                {t(
+                                                    'fields.igv_afectacion_inafecto',
+                                                )}
+                                            </SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </FormField>
+
+                                <FormField
                                     id="general-igv-porcentaje"
                                     label={t('fields.igv_porcentaje')}
                                     error={errors.igv_porcentaje}
@@ -1681,7 +1738,10 @@ export default function Index({
                                         max={100}
                                         step={0.01}
                                         className="tabular-nums"
-                                        disabled={!canUpdate}
+                                        disabled={
+                                            !canUpdate ||
+                                            data.igv_afectacion !== 'gravado'
+                                        }
                                     />
                                 </FormField>
 

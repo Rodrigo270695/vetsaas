@@ -94,6 +94,7 @@ export type ClinicSetting = {
     // Facturación
     moneda: 'PEN' | 'USD';
     igv_porcentaje: string;
+    igv_afectacion: 'gravado' | 'exonerado' | 'inafecto';
     precio_incluye_igv: boolean;
     ticket_ancho_mm: '56' | '58' | '80';
     emite_comprobantes_sunat: boolean;

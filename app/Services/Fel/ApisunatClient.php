@@ -146,22 +146,25 @@ final class ApisunatClient
         array $receptor,
     ): array {
         $docName = self::DOC_NOMBRES[$tipoComprobante] ?? 'boleta';
-        $igvPct = number_format((float) $clinic->igv_porcentaje, 0, '.', '');
         $fecha = now(config('app.timezone'));
 
-        $items = $venta->lineas->map(function (VentaLinea $ln) use ($igvPct): array {
+        $items = $venta->lineas->map(function (VentaLinea $ln) use ($clinic): array {
             $cantidad = (float) (string) $ln->cantidad;
             $subtotal = round((float) (string) $ln->subtotal, 2);
             $valorUnit = $cantidad > 0 ? round($subtotal / $cantidad, 6) : 0.0;
+            $tipo = (string) ($ln->igv_tipo_snapshot ?: ClinicSetting::IGV_AFECTACION_GRAVADO);
+            $porcentaje = $tipo === ClinicSetting::IGV_AFECTACION_GRAVADO
+                ? number_format((float) $clinic->igv_porcentaje, 0, '.', '')
+                : '0';
 
             return [
                 'unidad_de_medida' => 'NIU',
                 'descripcion' => mb_substr($ln->descripcion_snapshot, 0, 250),
                 'cantidad' => number_format($cantidad, 6, '.', ''),
                 'valor_unitario' => number_format($valorUnit, 6, '.', ''),
-                'porcentaje_igv' => $igvPct,
-                'codigo_tipo_afectacion_igv' => '10',
-                'nombre_tributo' => 'IGV',
+                'porcentaje_igv' => $porcentaje,
+                'codigo_tipo_afectacion_igv' => ClinicSetting::codigoSunatDesdeIgvTipo($tipo),
+                'nombre_tributo' => ClinicSetting::nombreTributoDesdeIgvTipo($tipo),
             ];
         })->values()->all();
 

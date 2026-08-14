@@ -334,6 +334,8 @@ class TenantSchemaMigrator
                 && Schema::hasColumn('consulta_cargos', 'vacuna_aplicada_id')
                 && Schema::hasTable('vacunas_aplicadas')
                 && Schema::hasColumn('vacunas_aplicadas', 'servicio_clinico_id'),
+            '2026_08_13_100000_t128_add_igv_afectacion_to_cfg_clinic_settings' => Schema::hasTable('cfg_clinic_settings')
+                && Schema::hasColumn('cfg_clinic_settings', 'igv_afectacion'),
             default => false,
         };
     }

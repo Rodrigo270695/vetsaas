@@ -1330,7 +1330,7 @@ class VentaController extends Controller
             ],
             'clinica' => [
                 'moneda' => $clinic->moneda,
-                'igv_porcentaje' => (string) $clinic->igv_porcentaje,
+                'igv_porcentaje' => number_format($clinic->igvPorcentajeEfectivo(), 2, '.', ''),
                 'precio_incluye_igv' => (bool) $clinic->precio_incluye_igv,
                 'emite_comprobantes_sunat' => (bool) $clinic->emite_comprobantes_sunat,
                 'plan_permite_boletas' => PlanCapabilities::boletasElectronicas($tenantModel),

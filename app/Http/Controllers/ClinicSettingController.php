@@ -134,6 +134,7 @@ class ClinicSettingController extends Controller
             'recordatorio_cumple_activo' => $data['recordatorio_cumple_activo'],
             'moneda' => $data['moneda'],
             'igv_porcentaje' => $data['igv_porcentaje'],
+            'igv_afectacion' => $data['igv_afectacion'],
             'precio_incluye_igv' => $data['precio_incluye_igv'],
             'ticket_ancho_mm' => $data['ticket_ancho_mm'],
             'emite_comprobantes_sunat' => $data['emite_comprobantes_sunat'],
@@ -318,6 +319,7 @@ class ClinicSettingController extends Controller
             // Facturación
             'moneda' => $setting->moneda,
             'igv_porcentaje' => (string) $setting->igv_porcentaje,
+            'igv_afectacion' => $setting->igvAfectacion(),
             'precio_incluye_igv' => $setting->precio_incluye_igv,
             'ticket_ancho_mm' => TicketAnchoMm::normalize((string) ($setting->ticket_ancho_mm ?? '')),
             'emite_comprobantes_sunat' => $planPermiteFacturaElectronica && (bool) $setting->emite_comprobantes_sunat,

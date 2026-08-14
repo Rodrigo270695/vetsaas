@@ -46,14 +46,15 @@ final class VentaCheckoutService
         Authenticatable $user,
     ): Venta {
         $clinic = ClinicSetting::current();
-        $igvPct = (float) (string) $clinic->igv_porcentaje;
+        $igvPct = $clinic->igvPorcentajeEfectivo();
+        $igvTipo = $clinic->igvAfectacion();
         $precioIncluyeIgv = (bool) $clinic->precio_incluye_igv;
         $moneda = (string) $clinic->moneda;
         if ($moneda !== 'PEN' && $moneda !== 'USD') {
             $moneda = 'PEN';
         }
 
-        return DB::transaction(function () use ($turno, $validated, $user, $igvPct, $precioIncluyeIgv, $moneda): Venta {
+        return DB::transaction(function () use ($turno, $validated, $user, $igvPct, $igvTipo, $precioIncluyeIgv, $moneda): Venta {
             $turnoLocked = GroomingTurno::query()
                 ->whereKey($turno->id)
                 ->lockForUpdate()
@@ -137,7 +138,7 @@ final class VentaCheckoutService
                 'tipo_linea' => 'servicio',
                 'consulta_cargo_linea_id' => null,
                 'descripcion_snapshot' => $concepto,
-                'igv_tipo_snapshot' => 'gravado',
+                'igv_tipo_snapshot' => $igvTipo,
                 'cantidad' => $cantidad,
                 'precio_lista' => $precioLista,
                 'precio_unitario' => $puSinIgv,
@@ -258,7 +259,8 @@ final class VentaCheckoutService
     public function registrar(array $validated, Authenticatable $user, ?Tenant $tenant): Venta
     {
         $clinic = ClinicSetting::current();
-        $igvPct = (float) (string) $clinic->igv_porcentaje;
+        $igvPct = $clinic->igvPorcentajeEfectivo();
+        $igvTipo = $clinic->igvAfectacion();
         $precioIncluyeIgv = (bool) $clinic->precio_incluye_igv;
         $moneda = (string) $clinic->moneda;
         if ($moneda !== 'PEN' && $moneda !== 'USD') {
@@ -275,7 +277,7 @@ final class VentaCheckoutService
             && FelSerie::esTipoSunat($tipoComprobante)
             && $this->planPermiteTipoComprobante($tenant, $tipoComprobante);
 
-        $venta = DB::transaction(function () use ($validated, $user, $igvPct, $precioIncluyeIgv, $moneda, $felPendiente, $tipoComprobante): Venta {
+        $venta = DB::transaction(function () use ($validated, $user, $igvPct, $igvTipo, $precioIncluyeIgv, $moneda, $felPendiente, $tipoComprobante): Venta {
             $sesion = CajaSesion::query()
                 ->whereKey($validated['caja_sesion_id'])
                 ->lockForUpdate()
@@ -428,7 +430,7 @@ final class VentaCheckoutService
                         ? $row['consulta_cargo_linea_id']
                         : null,
                     'descripcion_snapshot' => $descripcion,
-                    'igv_tipo_snapshot' => 'gravado',
+                    'igv_tipo_snapshot' => $igvTipo,
                     'cantidad' => $cantidad,
                     'precio_lista' => $precioLista,
                     'precio_unitario' => $puSinIgv,

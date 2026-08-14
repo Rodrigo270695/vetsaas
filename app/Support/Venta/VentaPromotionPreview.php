@@ -26,7 +26,7 @@ final class VentaPromotionPreview
     public function preview(array $validated): array
     {
         $clinic = ClinicSetting::current();
-        $igvPct = (float) (string) $clinic->igv_porcentaje;
+        $igvPct = $clinic->igvPorcentajeEfectivo();
         $precioIncluyeIgv = (bool) $clinic->precio_incluye_igv;
         $divisorIgv = 1 + ($igvPct / 100);
 

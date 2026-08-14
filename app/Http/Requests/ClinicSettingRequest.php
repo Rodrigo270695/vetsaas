@@ -100,6 +100,7 @@ class ClinicSettingRequest extends FormRequest
             // Facturación
             'moneda' => ['required', Rule::in(['PEN', 'USD'])],
             'igv_porcentaje' => ['required', 'numeric', 'min:0', 'max:100'],
+            'igv_afectacion' => ['required', Rule::in(ClinicSetting::IGV_AFECTACIONES)],
             'precio_incluye_igv' => ['required', 'boolean'],
             'ticket_ancho_mm' => ['required', Rule::in(TicketAnchoMm::ALLOWED)],
             'emite_comprobantes_sunat' => ['required', 'boolean'],
@@ -163,6 +164,7 @@ class ClinicSettingRequest extends FormRequest
             'recordatorio_cumple_activo' => 'recordatorio de cumpleaños',
             'moneda' => 'moneda',
             'igv_porcentaje' => 'porcentaje de IGV',
+            'igv_afectacion' => 'afectación IGV',
             'precio_incluye_igv' => 'precio incluye IGV',
             'ticket_ancho_mm' => 'ancho del ticket térmico',
             'emite_comprobantes_sunat' => 'emisión de comprobantes SUNAT',

@@ -78,6 +78,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property ?string $email_from_nombre
  * @property string $moneda
  * @property string $igv_porcentaje
+ * @property string $igv_afectacion gravado|exonerado|inafecto (SUNAT por clínica)
  * @property bool $precio_incluye_igv
  * @property bool $emite_comprobantes_sunat La clínica desea emitir comprobantes SUNAT (sujeto al plan y a Nubefact).
  * @property int $horas_min_cancelacion
@@ -100,6 +101,19 @@ class ClinicSetting extends Model
 
     /** @var list<int> */
     public const APPOINTMENT_REMINDER_DAY_OPTIONS = [1, 2, 3, 7, 30];
+
+    public const IGV_AFECTACION_GRAVADO = 'gravado';
+
+    public const IGV_AFECTACION_EXONERADO = 'exonerado';
+
+    public const IGV_AFECTACION_INAFECTO = 'inafecto';
+
+    /** @var list<string> */
+    public const IGV_AFECTACIONES = [
+        self::IGV_AFECTACION_GRAVADO,
+        self::IGV_AFECTACION_EXONERADO,
+        self::IGV_AFECTACION_INAFECTO,
+    ];
 
     protected $table = 'cfg_clinic_settings';
 
@@ -146,6 +160,7 @@ class ClinicSetting extends Model
         'email_from_nombre',
         'moneda',
         'igv_porcentaje',
+        'igv_afectacion',
         'precio_incluye_igv',
         'ticket_ancho_mm',
         'emite_comprobantes_sunat',
@@ -258,6 +273,52 @@ class ClinicSetting extends Model
     public static function current(): self
     {
         return static::query()->firstOrCreate([]);
+    }
+
+    /**
+     * Tipo de afectación IGV de esta clínica (siempre uno de {@see self::IGV_AFECTACIONES}).
+     * Default seguro: gravado (no cambia comportamiento de tenants que no configuran).
+     */
+    public function igvAfectacion(): string
+    {
+        $value = (string) ($this->igv_afectacion ?? self::IGV_AFECTACION_GRAVADO);
+
+        return in_array($value, self::IGV_AFECTACIONES, true)
+            ? $value
+            : self::IGV_AFECTACION_GRAVADO;
+    }
+
+    /**
+     * Tasa efectiva para calcular montos: 0 si la clínica no está gravada.
+     */
+    public function igvPorcentajeEfectivo(): float
+    {
+        if ($this->igvAfectacion() !== self::IGV_AFECTACION_GRAVADO) {
+            return 0.0;
+        }
+
+        return (float) (string) $this->igv_porcentaje;
+    }
+
+    /**
+     * Código SUNAT de afectación IGV desde el snapshot de línea / clínica.
+     */
+    public static function codigoSunatDesdeIgvTipo(string $tipo): string
+    {
+        return match ($tipo) {
+            self::IGV_AFECTACION_EXONERADO => '20',
+            self::IGV_AFECTACION_INAFECTO => '30',
+            default => '10',
+        };
+    }
+
+    public static function nombreTributoDesdeIgvTipo(string $tipo): string
+    {
+        return match ($tipo) {
+            self::IGV_AFECTACION_EXONERADO => 'EXO',
+            self::IGV_AFECTACION_INAFECTO => 'INA',
+            default => 'IGV',
+        };
     }
 
     public function isBotIaResponding(): bool
