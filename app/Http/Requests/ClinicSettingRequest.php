@@ -37,7 +37,7 @@ class ClinicSettingRequest extends FormRequest
             'razon_social' => ['nullable', 'string', 'max:200'],
             'nombre_comercial' => ['nullable', 'string', 'max:150'],
             'direccion_fiscal' => ['nullable', 'string', 'max:255'],
-            'distrito_id' => ['nullable', 'integer', 'exists:distritos,id'],
+            'distrito_id' => ['nullable', 'integer', 'exists:public.distritos,id'],
 
             // Branding
             //   - `logo` (archivo) y `clear_logo` (flag) viajan en el form

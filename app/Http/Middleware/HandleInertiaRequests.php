@@ -224,45 +224,67 @@ class HandleInertiaRequests extends Middleware
                 },
             'bot_ia_addon' => $skipHeavySharedProps || $tenantContext === null
                 ? null
-                : static fn () => BotIaAccess::navPayload($tenantContext->tenant),
+                : static function () use ($tenantContext) {
+                    try {
+                        return BotIaAccess::navPayload($tenantContext->tenant);
+                    } catch (Throwable $e) {
+                        report($e);
+
+                        return ['activo' => false, 'precio_mensual' => null];
+                    }
+                },
             'in_app_assistant' => $skipHeavySharedProps
                 ? null
                 : static function () use ($tenantContext, $user): ?array {
-                    $isClinic = $tenantContext !== null
-                        && $user instanceof User
-                        && $user->can('in-app-assistant.use');
-                    $isPlatform = $tenantContext === null
-                        && $user instanceof User
-                        && $user->isPlatformSuperadmin();
+                    try {
+                        $isClinic = $tenantContext !== null
+                            && $user instanceof User
+                            && $user->can('in-app-assistant.use');
+                        $isPlatform = $tenantContext === null
+                            && $user instanceof User
+                            && $user->isPlatformSuperadmin();
 
-                    if (! $isClinic && ! $isPlatform) {
+                        if (! $isClinic && ! $isPlatform) {
+                            return null;
+                        }
+
+                        $assistant = app(InAppAssistantService::class);
+                        $enabled = (bool) config('in-app-assistant.enabled', true);
+                        $configured = $assistant->isConfigured();
+
+                        $announcement = null;
+                        if ($isClinic && $enabled && $configured) {
+                            try {
+                                $announcement = PlatformSetting::current()->assistantAnnouncementPayload();
+                            } catch (Throwable) {
+                                $announcement = null;
+                            }
+                        }
+
+                        return [
+                            'enabled' => $enabled,
+                            'configured' => $configured,
+                            'scope' => $isPlatform ? 'platform' : 'clinic',
+                            'unlimited' => $user instanceof User && $user->isPlatformSuperadmin(),
+                            'announcement' => $announcement,
+                        ];
+                    } catch (Throwable $e) {
+                        report($e);
+
                         return null;
                     }
-
-                    $assistant = app(InAppAssistantService::class);
-                    $enabled = (bool) config('in-app-assistant.enabled', true);
-                    $configured = $assistant->isConfigured();
-
-                    $announcement = null;
-                    if ($isClinic && $enabled && $configured) {
-                        try {
-                            $announcement = PlatformSetting::current()->assistantAnnouncementPayload();
-                        } catch (Throwable) {
-                            $announcement = null;
-                        }
-                    }
-
-                    return [
-                        'enabled' => $enabled,
-                        'configured' => $configured,
-                        'scope' => $isPlatform ? 'platform' : 'clinic',
-                        'unlimited' => $user instanceof User && $user->isPlatformSuperadmin(),
-                        'announcement' => $announcement,
-                    ];
                 },
             'tenant_modules' => $skipHeavySharedProps || $tenantContext === null
                 ? null
-                : static fn () => TenantModuleAccess::snapshot($tenantContext->tenant),
+                : static function () use ($tenantContext) {
+                    try {
+                        return TenantModuleAccess::snapshot($tenantContext->tenant);
+                    } catch (Throwable $e) {
+                        report($e);
+
+                        return ['enabled' => [], 'deshabilitados' => []];
+                    }
+                },
             'auth' => [
                 'user' => $user,
                 'permissions' => $skipHeavySharedProps

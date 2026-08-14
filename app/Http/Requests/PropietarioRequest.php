@@ -30,7 +30,7 @@ class PropietarioRequest extends FormRequest
             'telefono' => ['nullable', 'string', 'max:20'],
             'telefono_alt' => ['nullable', 'string', 'max:20'],
             'direccion' => ['nullable', 'string', 'max:255'],
-            'distrito_id' => ['nullable', 'integer', 'exists:distritos,id'],
+            'distrito_id' => ['nullable', 'integer', 'exists:public.distritos,id'],
             'notas' => ['nullable', 'string', 'max:5000'],
             'activo' => ['required', 'boolean'],
         ];

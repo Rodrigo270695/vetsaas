@@ -39,13 +39,4 @@ class Distrito extends Model
     {
         return $this->belongsTo(Provincia::class);
     }
-
-    /**
-     * Devuelve el departamento de este distrito a través de la provincia.
-     * Útil para denormalizar nombres en formularios y reportes.
-     */
-    public function departamento(): BelongsTo
-    {
-        return $this->provincia->departamento();
-    }
 }

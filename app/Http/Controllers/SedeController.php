@@ -10,9 +10,11 @@ use App\Models\Sede;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Throwable;
 
 class SedeController extends Controller
 {
@@ -85,80 +87,125 @@ class SedeController extends Controller
         $canAudit = $request->user()?->can('audit-trail.view') ?? false;
 
         $tenantId = $this->tenantIdOrAbort($request);
-        $query = Sede::query()->where('tenant_id', $tenantId);
 
-        if ($sortValid) {
-            $query->orderBy($sort, $directionValid ? $direction : 'asc');
-            // Desempate determinístico para evitar saltos entre páginas si
-            // varias filas comparten el valor de la columna ordenada.
-            $query->orderByDesc('created_at');
-        } else {
-            $query->orderByDesc('created_at');
-        }
+        try {
+            $query = Sede::query()->where('tenant_id', $tenantId);
 
-        // Solo carga audit trail si el usuario puede verlo.
-        // Ahorra una query JOIN cuando el cliente (admin_clinica) lista sus sedes.
-        if ($canAudit) {
+            if ($sortValid) {
+                $query->orderBy($sort, $directionValid ? $direction : 'asc');
+                // Desempate determinístico para evitar saltos entre páginas si
+                // varias filas comparten el valor de la columna ordenada.
+                $query->orderByDesc('created_at');
+            } else {
+                $query->orderByDesc('created_at');
+            }
+
+            // Solo carga audit trail si el usuario puede verlo.
+            // Ahorra una query JOIN cuando el cliente (admin_clinica) lista sus sedes.
+            if ($canAudit) {
+                $query->with([
+                    'creadoPor:id,name,email',
+                    'actualizadoPor:id,name,email',
+                ]);
+            }
+
+            // Eager load del distrito + cadena geográfica para mostrar
+            // el path completo en la tabla y al editar.
+            // Sin select parcial: evita fallos si algún FK geo está huérfano.
             $query->with([
-                'creadoPor:id,name,email',
-                'actualizadoPor:id,name,email',
+                'distritoModel.provincia.departamento',
             ]);
+
+            if ($search !== '') {
+                $query->where(function ($q) use ($search) {
+                    $q->where('nombre', 'ILIKE', "%{$search}%")
+                        ->orWhere('codigo', 'ILIKE', "%{$search}%")
+                        ->orWhere('direccion', 'ILIKE', "%{$search}%")
+                        ->orWhere('distrito', 'ILIKE', "%{$search}%")
+                        ->orWhere('email', 'ILIKE', "%{$search}%");
+                });
+            }
+
+            if ($estado === 'activa') {
+                $query->where('activa', true);
+            } elseif ($estado === 'inactiva') {
+                $query->where('activa', false);
+            }
+
+            $sedes = $query->paginate($perPage)->withQueryString();
+
+            // Catálogo de departamentos (25 filas, ~2KB) cargado inline:
+            // se necesita siempre que se abra el modal de crear/editar.
+            // Provincias y distritos se piden on-demand vía /geo/* para
+            // no inflar el payload (1874 distritos sería excesivo).
+            $departamentos = Departamento::query()
+                ->where('status', true)
+                ->orderBy('name')
+                ->get(['id', 'name']);
+
+            return Inertia::render('configuracion/sedes/index', [
+                'sedes' => $sedes,
+                'filters' => [
+                    'search' => $search,
+                    'per_page' => $perPage,
+                    'sort' => $sortValid ? $sort : null,
+                    'direction' => $sortValid && $directionValid ? $direction : null,
+                    'estado' => $estado,
+                ],
+                'stats' => [
+                    'total' => Sede::where('tenant_id', $tenantId)->count(),
+                    'activas' => Sede::where('tenant_id', $tenantId)->where('activa', true)->count(),
+                    'inactivas' => Sede::where('tenant_id', $tenantId)->where('activa', false)->count(),
+                    // Cantidad de coincidencias con los filtros actuales (incluye
+                    // todas las páginas, no solo la visible). Más claro que "pantalla".
+                    'coincidencias' => $sedes->total(),
+                ],
+                'departamentos' => $departamentos,
+            ]);
+        } catch (Throwable $e) {
+            Log::error('SedeController@index falló', [
+                'tenant_id' => $tenantId,
+                'message' => $e->getMessage(),
+                'exception' => $e::class,
+                'file' => $e->getFile().':'.$e->getLine(),
+            ]);
+
+            // Fallback mínimo: listar sedes sin relaciones geo/audit para
+            // no dejar a la clínica bloqueada (p. ej. FK huérfana).
+            try {
+                $query = Sede::query()->where('tenant_id', $tenantId)->orderByDesc('created_at');
+                if ($estado === 'activa') {
+                    $query->where('activa', true);
+                } elseif ($estado === 'inactiva') {
+                    $query->where('activa', false);
+                }
+                $sedes = $query->paginate($perPage)->withQueryString();
+
+                return Inertia::render('configuracion/sedes/index', [
+                    'sedes' => $sedes,
+                    'filters' => [
+                        'search' => $search,
+                        'per_page' => $perPage,
+                        'sort' => null,
+                        'direction' => null,
+                        'estado' => $estado,
+                    ],
+                    'stats' => [
+                        'total' => Sede::where('tenant_id', $tenantId)->count(),
+                        'activas' => Sede::where('tenant_id', $tenantId)->where('activa', true)->count(),
+                        'inactivas' => Sede::where('tenant_id', $tenantId)->where('activa', false)->count(),
+                        'coincidencias' => $sedes->total(),
+                    ],
+                    'departamentos' => Departamento::query()
+                        ->where('status', true)
+                        ->orderBy('name')
+                        ->get(['id', 'name']),
+                ]);
+            } catch (Throwable $fallbackError) {
+                report($fallbackError);
+                throw $e;
+            }
         }
-
-        // Eager load del distrito + cadena geográfica para mostrar
-        // el path completo en la tabla y al editar.
-        $query->with([
-            'distritoModel:id,name,provincia_id',
-            'distritoModel.provincia:id,name,departamento_id',
-            'distritoModel.provincia.departamento:id,name',
-        ]);
-
-        if ($search !== '') {
-            $query->where(function ($q) use ($search) {
-                $q->where('nombre', 'ILIKE', "%{$search}%")
-                    ->orWhere('codigo', 'ILIKE', "%{$search}%")
-                    ->orWhere('direccion', 'ILIKE', "%{$search}%")
-                    ->orWhere('distrito', 'ILIKE', "%{$search}%")
-                    ->orWhere('email', 'ILIKE', "%{$search}%");
-            });
-        }
-
-        if ($estado === 'activa') {
-            $query->where('activa', true);
-        } elseif ($estado === 'inactiva') {
-            $query->where('activa', false);
-        }
-
-        $sedes = $query->paginate($perPage)->withQueryString();
-
-        // Catálogo de departamentos (25 filas, ~2KB) cargado inline:
-        // se necesita siempre que se abra el modal de crear/editar.
-        // Provincias y distritos se piden on-demand vía /geo/* para
-        // no inflar el payload (1874 distritos sería excesivo).
-        $departamentos = Departamento::query()
-            ->where('status', true)
-            ->orderBy('name')
-            ->get(['id', 'name']);
-
-        return Inertia::render('configuracion/sedes/index', [
-            'sedes' => $sedes,
-            'filters' => [
-                'search' => $search,
-                'per_page' => $perPage,
-                'sort' => $sortValid ? $sort : null,
-                'direction' => $sortValid && $directionValid ? $direction : null,
-                'estado' => $estado,
-            ],
-            'stats' => [
-                'total' => Sede::where('tenant_id', $tenantId)->count(),
-                'activas' => Sede::where('tenant_id', $tenantId)->where('activa', true)->count(),
-                'inactivas' => Sede::where('tenant_id', $tenantId)->where('activa', false)->count(),
-                // Cantidad de coincidencias con los filtros actuales (incluye
-                // todas las páginas, no solo la visible). Más claro que "pantalla".
-                'coincidencias' => $sedes->total(),
-            ],
-            'departamentos' => $departamentos,
-        ]);
     }
 
     public function store(SedeRequest $request): RedirectResponse

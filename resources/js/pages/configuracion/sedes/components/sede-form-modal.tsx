@@ -58,7 +58,7 @@ const buildInitialData = (sede: Sede | null): SedeFormData => ({
  * usamos sus IDs; caso contrario quedan en null y el usuario re-elige.
  */
 const buildInitialGeoValue = (sede: Sede | null): GeoCascadeValue => {
-    if (!sede || !sede.distrito_model) {
+    if (!sede || !sede.distrito_model?.provincia) {
         return {
             departamento_id: null,
             provincia_id: null,

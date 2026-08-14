@@ -2,6 +2,8 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Departamento;
+use App\Models\Sede;
 use App\Models\Tenant;
 use App\Support\Tenancy\TenantSubdomainUrl;
 use App\Tenancy\TenantManager;
@@ -11,13 +13,13 @@ use Illuminate\Support\Facades\Schema;
 use Throwable;
 
 /**
- * Diagnóstico rápido de un tenant (schema, estado, URL de login).
+ * Diagnóstico rápido de un tenant (schema, estado, URL de login, sedes).
  */
 class TenantDiagnoseCommand extends Command
 {
     protected $signature = 'vetsaas:tenant-diagnose {slug : Slug del subdominio}';
 
-    protected $description = 'Comprueba registro, schema PostgreSQL y URL de login de un tenant';
+    protected $description = 'Comprueba registro, schema PostgreSQL, sedes/geo y URL de login de un tenant';
 
     public function handle(TenantManager $manager): int
     {
@@ -58,16 +60,48 @@ class TenantDiagnoseCommand extends Command
         $manager->flushCacheFor($tenant);
 
         try {
-            $manager->runForSlug($slug, function () use ($schema): void {
+            $manager->runForSlug($slug, function () use ($schema, $tenant): void {
                 $hasClinic = Schema::hasTable('cfg_clinic_settings');
                 $this->line('  cfg_clinic_settings: '.($hasClinic ? 'sí' : 'no'));
 
                 if (! $hasClinic) {
                     $this->warn("Migraciones pendientes en {$schema}. Ejecuta: php artisan vetsaas:tenant-migrate {$schema}");
                 }
+
+                $sedes = Sede::query()
+                    ->where('tenant_id', $tenant->id)
+                    ->get(['id', 'codigo', 'nombre', 'activa', 'distrito_id', 'distrito', 'provincia', 'departamento']);
+
+                $this->line('  sedes: '.$sedes->count());
+                foreach ($sedes as $sede) {
+                    $this->line(sprintf(
+                        '    · %s | %s | activa=%s | distrito_id=%s | %s / %s / %s',
+                        $sede->codigo,
+                        $sede->nombre,
+                        $sede->activa ? 'sí' : 'no',
+                        $sede->distrito_id === null ? 'null' : (string) $sede->distrito_id,
+                        $sede->departamento ?: '—',
+                        $sede->provincia ?: '—',
+                        $sede->distrito ?: '—',
+                    ));
+                }
+
+                $this->line('  Probando query de /configuracion/sedes …');
+                $page = Sede::query()
+                    ->where('tenant_id', $tenant->id)
+                    ->with(['distritoModel.provincia.departamento', 'creadoPor:id,name,email'])
+                    ->orderByDesc('created_at')
+                    ->paginate(10);
+                $departamentos = Departamento::query()->where('status', true)->orderBy('name')->get(['id', 'name']);
+                $jsonBytes = strlen(json_encode([
+                    'sedes' => $page->toArray(),
+                    'departamentos' => $departamentos->toArray(),
+                ], JSON_THROW_ON_ERROR));
+                $this->info("  Query sedes OK (json ~{$jsonBytes} bytes)");
             });
         } catch (Throwable $e) {
-            $this->error('Error al montar el tenant: '.$e->getMessage());
+            $this->error('Error al montar el tenant / sedes: '.$e->getMessage());
+            $this->line('  '.$e::class.' @ '.$e->getFile().':'.$e->getLine());
             $this->warn('Si el error menciona __PHP_Incomplete_Class, ejecuta: php artisan cache:clear');
 
             return self::FAILURE;

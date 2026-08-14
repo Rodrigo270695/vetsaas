@@ -33,7 +33,10 @@ class SedeRequest extends FormRequest
             // departamento → provincia → distrito). Los strings se
             // hidratan en el controller desde la BD para mantener el
             // cache denormalizado consistente.
-            'distrito_id' => ['required', 'integer', 'exists:distritos,id'],
+            // `public.` evita que, con search_path del tenant, `exists`
+            // busque una tabla `distritos` inexistente/rota en el schema
+            // de la clínica y dispare un 500 en vez de 422.
+            'distrito_id' => ['required', 'integer', 'exists:public.distritos,id'],
             'activa' => ['required', 'boolean'],
         ];
     }
