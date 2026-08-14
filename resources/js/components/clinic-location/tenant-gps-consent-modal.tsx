@@ -84,6 +84,9 @@ export function TenantGpsConsentModal() {
             return;
         }
 
+        // Limpia el flag viejo que bloqueaba el prompt toda la sesión.
+        sessionStorage.removeItem('vetsaas.gps_prompt_seen');
+
         const pathname = new URL(
             page.url,
             window.location.origin,
@@ -95,19 +98,14 @@ export function TenantGpsConsentModal() {
         if (softDismissActive()) {
             return;
         }
-        // Evita reabrir en el mismo path si el usuario cerró sin decidir aún
-        // dentro del mismo tick de navegación.
-        if (lastPromptPath.current === pathname && open) {
-            return;
-        }
 
         const timer = window.setTimeout(() => {
             lastPromptPath.current = pathname;
             setOpen(true);
-        }, 900);
+        }, 600);
 
         return () => window.clearTimeout(timer);
-    }, [gate?.needs_gps, page.url, open]);
+    }, [gate?.needs_gps, page.url]);
 
     const softDismiss = () => {
         sessionStorage.setItem(

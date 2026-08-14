@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Models\Tenant;
+use App\Support\Database\PublicSchema;
 use App\Tenancy\TenantManager;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -30,7 +31,7 @@ class TenantGeoController extends Controller
             'lng' => ['nullable', 'numeric', 'between:-180,180'],
         ]);
 
-        if (! \Illuminate\Support\Facades\Schema::hasColumn('tenants', 'geo_consent_at')) {
+        if (! PublicSchema::hasColumn('tenants', 'geo_consent_at')) {
             return back()->with(
                 'error',
                 'Falta migrar columnas GPS. Ejecuta: php artisan migrate --path=database/migrations/2026_08_13_200000_add_geo_coords_to_tenants_table.php --force',

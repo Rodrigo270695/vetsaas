@@ -7,6 +7,7 @@ use App\Models\PlatformSetting;
 use App\Models\User;
 use App\Services\InAppAssistant\InAppAssistantService;
 use App\Support\Clinic\ClinicBrandingUrls;
+use App\Support\Database\PublicSchema;
 use App\Support\OpenWa\PlatformWhatsAppPresenter;
 use App\Support\OpenWa\TenantWhatsAppPresenter;
 use App\Support\Plan\PlanLimits;
@@ -137,7 +138,9 @@ class HandleInertiaRequests extends Middleware
                         $needsSedeGeo = ! $needsSede && $onboarding->hasActiveSedeMissingGeo($tenantId);
                         $canEditSedes = $user->can('sedes.create') || $user->can('sedes.update');
 
-                        $geoReady = \Illuminate\Support\Facades\Schema::hasColumn('tenants', 'geo_consent_at');
+                        // IMPORTANTE: Schema::hasColumn() falla con search_path del tenant
+                        // (busca en schema de clínica, no en public.tenants).
+                        $geoReady = PublicSchema::hasColumn('tenants', 'geo_consent_at');
                         // Cualquier usuario autenticado del tenant puede aceptar/rechazar:
                         // el GPS es de la clínica (tenant), no de la sede.
                         $needsGps = $geoReady

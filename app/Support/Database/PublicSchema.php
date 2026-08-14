@@ -44,4 +44,35 @@ final class PublicSchema
 
         return (bool) ($row->exists ?? false);
     }
+
+    public static function hasColumn(string $table, string $column): bool
+    {
+        $table = trim($table);
+        $column = trim($column);
+
+        if ($table === '' || $column === '') {
+            return false;
+        }
+
+        if (str_contains($table, '.')) {
+            return Schema::hasColumn($table, $column);
+        }
+
+        if (DB::getDriverName() !== 'pgsql') {
+            return Schema::hasColumn($table, $column);
+        }
+
+        $row = DB::selectOne(
+            'SELECT EXISTS (
+                SELECT 1
+                FROM information_schema.columns
+                WHERE table_schema = ?
+                  AND table_name = ?
+                  AND column_name = ?
+            ) AS exists',
+            ['public', $table, $column],
+        );
+
+        return (bool) ($row->exists ?? false);
+    }
 }
