@@ -22,6 +22,7 @@ import {
     Pie,
     PieChart,
     Tooltip,
+    Treemap,
     XAxis,
     YAxis,
 } from 'recharts';
@@ -123,11 +124,69 @@ function formatMoney(value: number): string {
 }
 
 function heatBg(intensity: number): string {
-    const alpha = 0.12 + intensity * 0.78;
+    const alpha = 0.18 + intensity * 0.72;
     return `color-mix(in oklab, var(--chart-1) ${Math.round(alpha * 100)}%, transparent)`;
 }
 
-function HeatmapGrid({
+type TreemapNodeProps = {
+    x?: number;
+    y?: number;
+    width?: number;
+    height?: number;
+    name?: string;
+    value?: number;
+    intensity?: number;
+};
+
+function HeatTreemapCell(props: TreemapNodeProps) {
+    const { x = 0, y = 0, width = 0, height = 0, name = '', value = 0, intensity = 0.3 } =
+        props;
+
+    if (width < 2 || height < 2) {
+        return null;
+    }
+
+    const showLabel = width > 48 && height > 28;
+
+    return (
+        <g>
+            <rect
+                x={x}
+                y={y}
+                width={width}
+                height={height}
+                rx={6}
+                style={{
+                    fill: heatBg(intensity),
+                    stroke: 'var(--border)',
+                    strokeWidth: 1.5,
+                }}
+            />
+            {showLabel ? (
+                <>
+                    <text
+                        x={x + 8}
+                        y={y + 18}
+                        className="fill-foreground"
+                        style={{ fontSize: 11, fontWeight: 600 }}
+                    >
+                        {name.length > 14 ? `${name.slice(0, 12)}…` : name}
+                    </text>
+                    <text
+                        x={x + 8}
+                        y={y + 36}
+                        className="fill-muted-foreground"
+                        style={{ fontSize: 13, fontWeight: 700 }}
+                    >
+                        {value}
+                    </text>
+                </>
+            ) : null}
+        </g>
+    );
+}
+
+function HeatmapChart({
     cells,
     emptyLabel,
 }: {
@@ -138,24 +197,47 @@ function HeatmapGrid({
         return <DashboardChartEmpty message={emptyLabel} />;
     }
 
+    const data = cells.map((cell) => ({
+        name: cell.name,
+        size: cell.count,
+        intensity: cell.intensity,
+    }));
+
     return (
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
-            {cells.map((cell) => (
-                <div
-                    key={`${cell.name}-${cell.id ?? 'x'}`}
-                    className="rounded-lg border border-border/60 px-3 py-2.5 shadow-sm"
-                    style={{ background: heatBg(cell.intensity) }}
-                    title={`${cell.name}: ${cell.count}`}
+        <DashboardChartShell height={320}>
+            {({ width, height }) => (
+                <Treemap
+                    width={width}
+                    height={height}
+                    data={data}
+                    dataKey="size"
+                    aspectRatio={4 / 3}
+                    stroke="var(--border)"
+                    content={<HeatTreemapCell />}
+                    isAnimationActive={false}
                 >
-                    <p className="truncate text-xs font-medium text-foreground">
-                        {cell.name}
-                    </p>
-                    <p className="mt-1 text-lg font-semibold tabular-nums text-foreground">
-                        {cell.count}
-                    </p>
-                </div>
-            ))}
-        </div>
+                    <Tooltip
+                        content={({ active, payload }) => {
+                            if (!active || !payload?.length) {
+                                return null;
+                            }
+                            const row = payload[0].payload as {
+                                name?: string;
+                                size?: number;
+                            };
+                            return (
+                                <div className="rounded-lg border bg-popover px-3 py-2 text-xs shadow-lg">
+                                    <p className="font-semibold">{row.name}</p>
+                                    <p className="text-muted-foreground">
+                                        {row.size ?? 0} clínicas
+                                    </p>
+                                </div>
+                            );
+                        }}
+                    />
+                </Treemap>
+            )}
+        </DashboardChartShell>
     );
 }
 
@@ -272,11 +354,11 @@ function SegmentSection({
 
                 <DashboardChartCard
                     title="Puntos calientes"
-                    description="Mapa de calor por departamento"
+                    description="Mapa de calor por departamento (treemap)"
                     icon={Flame}
                     accent={accent === 'emerald' ? 'amber' : 'violet'}
                 >
-                    <HeatmapGrid
+                    <HeatmapChart
                         cells={block.heatmap_departamentos}
                         emptyLabel={emptyLabel}
                     />
