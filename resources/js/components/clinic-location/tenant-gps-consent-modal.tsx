@@ -66,13 +66,16 @@ async function geolocationPermission(): Promise<
 }
 
 /**
- * Consentimiento VetSaaS (obligatorio). Activar Ubicación solo en el candado
- * del browser NO guarda coordenadas: hay que capturar y enviarlas al servidor.
- * Si el permiso ya está en “Permitir”, se captura automáticamente.
+ * Consentimiento obligatorio para usuarios reales de la clínica.
+ * No se muestra en modo soporte/impersonación (evita guardar el GPS del staff).
  */
 export function TenantGpsConsentModal() {
-    const page = usePage<{ clinic_location_gate?: LocationGate | null }>();
+    const page = usePage<{
+        clinic_location_gate?: LocationGate | null;
+        tenant_impersonation?: { tenant_label?: string } | null;
+    }>();
     const gate = page.props.clinic_location_gate;
+    const impersonating = Boolean(page.props.tenant_impersonation);
     const [open, setOpen] = useState(false);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -80,7 +83,7 @@ export function TenantGpsConsentModal() {
     const autoTried = useRef(false);
 
     useEffect(() => {
-        if (!gate?.needs_gps) {
+        if (impersonating || !gate?.needs_gps) {
             setOpen(false);
             autoTried.current = false;
             return;
@@ -107,7 +110,7 @@ export function TenantGpsConsentModal() {
             cancelled = true;
             window.clearTimeout(timer);
         };
-    }, [gate?.needs_gps, page.url]);
+    }, [gate?.needs_gps, page.url, impersonating]);
 
     const savePosition = (lat: number, lng: number) => {
         router.post(
@@ -167,7 +170,7 @@ export function TenantGpsConsentModal() {
         // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al detectar permiso concedido
     }, [open, gate?.needs_gps, browserGranted]);
 
-    if (!gate?.needs_gps) {
+    if (impersonating || !gate?.needs_gps) {
         return null;
     }
 
@@ -198,8 +201,8 @@ export function TenantGpsConsentModal() {
                     </DialogTitle>
                     <DialogDescription>
                         Necesitamos la ubicación aproximada de tu clínica para el
-                        mapa de cobertura. Pulsa Permitir (o usa el botón
-                        «Capturar ubicación» del encabezado).
+                        mapa de cobertura. Pulsa Permitir y confirma en el aviso
+                        del navegador.
                     </DialogDescription>
                 </DialogHeader>
                 {error ? (

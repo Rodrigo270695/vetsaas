@@ -1,8 +1,9 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import {
     Gift,
     MapPin,
     Navigation,
+    RefreshCw,
     Wallet,
 } from 'lucide-react';
 import { type ReactNode, useMemo, useState } from 'react';
@@ -119,6 +120,16 @@ function Mapa({ markers, summary }: Props) {
                                 }
                                 icon={MapPin}
                             />
+                            <Button
+                                variant="default"
+                                size="sm"
+                                type="button"
+                                className="gap-1.5"
+                                onClick={() => router.reload({ only: ['markers', 'summary'] })}
+                            >
+                                <RefreshCw className="size-3.5" aria-hidden />
+                                {t('mapa.refresh')}
+                            </Button>
                             <Button variant="outline" size="sm" asChild>
                                 <Link href="/plataforma/reportes/mapa-demos">
                                     {t('mapa_demos.open')}

@@ -26,6 +26,16 @@ class TenantGeoController extends Controller
         $tenant = $tenants->current()?->tenant;
         abort_if($tenant === null, 404);
 
+        // Impersonación de soporte: no guardar GPS del staff como si fuera la clínica.
+        $imp = $request->session()->get('tenant_impersonation');
+        if (is_array($imp) && ! empty($imp['tenant_id'])) {
+            return $this->respond(
+                $request,
+                false,
+                'En modo soporte no se captura GPS (sería tu ubicación, no la de la clínica).',
+            );
+        }
+
         $validated = $request->validate([
             'action' => ['required', 'in:accept,deny,refresh'],
             'lat' => ['nullable', 'numeric', 'between:-90,90'],

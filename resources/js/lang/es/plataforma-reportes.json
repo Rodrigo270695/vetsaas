@@ -18,7 +18,8 @@
         "approx_hint": "Sin GPS aún: centroide del departamento de la sede. Solo para orientación Ads.",
         "empty_gps": "Nadie con GPS visible con estos filtros.",
         "empty_approx": "Nadie aproximado visible con estos filtros.",
-        "capture_hint": "Para guardar GPS de una clínica (pago o free): entra a su subdominio y usa el botón «Capturar ubicación» arriba a la derecha (junto al Asistente IA). Aquí solo se visualiza. La demo se registra sola al iniciar sesión (Mapa de demos).",
+        "capture_hint": "El GPS real solo se obtiene cuando un usuario de la clínica (no soporte) acepta el aviso del navegador al trabajar. En modo soporte no se captura (sería tu ubicación). Usa «Actualizar mapa» para refrescar los puntos ya guardados.",
+        "refresh": "Actualizar mapa",
         "kpis": {
             "gps": "Con GPS real",
             "gps_hint": "Aceptaron ubicación y ya tenemos XY guardado.",

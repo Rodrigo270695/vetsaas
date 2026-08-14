@@ -126,7 +126,7 @@ class HandleInertiaRequests extends Middleware
                 : $this->resolveClinicBranding(),
             'clinic_location_gate' => $skipHeavySharedProps || $tenantContext === null
                 ? null
-                : static function () use ($tenantContext, $user): ?array {
+                : static function () use ($tenantContext, $user, $request): ?array {
                     if (! ($user instanceof User)) {
                         return null;
                     }
@@ -143,9 +143,13 @@ class HandleInertiaRequests extends Middleware
                         // (busca en schema de clínica, no en public.tenants).
                         $geoReady = PublicSchema::hasColumn('tenants', 'geo_consent_at');
                         $hasConsent = $geoReady && $tenant->geo_consent_at !== null;
-                        // Cualquier usuario autenticado del tenant puede aceptar/rechazar:
-                        // el GPS es de la clínica (tenant), no de la sede.
+
+                        // Soporte/impersonación: no pedir ni guardar GPS (sería la ubicación del staff).
+                        $impersonating = is_array($request->session()->get('tenant_impersonation'))
+                            && ! empty($request->session()->get('tenant_impersonation')['tenant_id']);
+
                         $needsGps = $geoReady
+                            && ! $impersonating
                             && $tenant->geo_consent_at === null
                             && $tenant->geo_denied_at === null;
                         $gpsCaptured = $geoReady
@@ -153,7 +157,7 @@ class HandleInertiaRequests extends Middleware
                             && $tenant->geo_lng !== null;
 
                         $gpsRefreshDue = false;
-                        if ($hasConsent && $tenant->geo_denied_at === null) {
+                        if ($hasConsent && ! $impersonating && $tenant->geo_denied_at === null) {
                             $requested = PublicSchema::hasColumn('tenants', 'geo_refresh_requested_at')
                                 ? $tenant->geo_refresh_requested_at
                                 : null;
