@@ -669,7 +669,7 @@ export default function Create({
                     ? d.consulta_cargo_ids
                     : d.consulta_cargo_id
                       ? [d.consulta_cargo_id]
-                      : [],
+                      : null,
             grooming_turno_id: d.grooming_turno_id || null,
             hotel_estancia_id: d.hotel_estancia_id || null,
             promotion_code: d.promotion_code.trim() || null,

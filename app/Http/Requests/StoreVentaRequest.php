@@ -35,6 +35,8 @@ class StoreVentaRequest extends FormRequest
             ],
             'consulta_id' => ['nullable', 'uuid', 'exists:consultas,id'],
             'consulta_cargo_id' => ['nullable', 'uuid', 'exists:consulta_cargos,id'],
+            // Vacío / ausente = venta libre o un solo cargo vía consulta_cargo_id.
+            // Solo exige min:1 cuando viene un array con elementos (multi-precuenta).
             'consulta_cargo_ids' => ['nullable', 'array', 'min:1', 'max:30'],
             'consulta_cargo_ids.*' => ['uuid', 'exists:consulta_cargos,id'],
             'grooming_turno_id' => ['nullable', 'uuid', 'exists:grooming_turnos,id'],
@@ -96,6 +98,12 @@ class StoreVentaRequest extends FormRequest
 
         $code = trim((string) $this->input('promotion_code', ''));
         $this->merge(['promotion_code' => $code === '' ? null : strtoupper($code)]);
+
+        // El POS manda [] en venta libre; `nullable`+`min:1` no ignora arrays vacíos.
+        $multi = $this->input('consulta_cargo_ids');
+        if (! is_array($multi) || $multi === []) {
+            $this->merge(['consulta_cargo_ids' => null]);
+        }
     }
 
     public function attributes(): array

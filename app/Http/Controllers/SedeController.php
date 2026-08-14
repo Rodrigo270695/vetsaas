@@ -84,7 +84,13 @@ class SedeController extends Controller
             $estado = 'todas';
         }
 
-        $canAudit = $request->user()?->can('audit-trail.view') ?? false;
+        $canAudit = false;
+        try {
+            $canAudit = $request->user()?->can('audit-trail.view') ?? false;
+        } catch (Throwable $e) {
+            report($e);
+            $canAudit = false;
+        }
 
         $tenantId = $this->tenantIdOrAbort($request);
 
@@ -92,6 +98,11 @@ class SedeController extends Controller
             'tenant_id' => $tenantId,
             'user_id' => $request->user()?->id,
             'path' => $request->path(),
+            'sedes_activas' => Sede::query()
+                ->where('tenant_id', $tenantId)
+                ->where('activa', true)
+                ->whereNull('deleted_at')
+                ->count(),
         ]);
 
         try {
