@@ -814,7 +814,22 @@ final class VentaDesdeCargoPrefill
         foreach ($ids as $id) {
             /** @var ConsultaCargo $cargo */
             $cargo = $cargos->get($id);
-            foreach ($this->mapLineasCargoParaVenta($cargo, $cargo->lineas, $stocks) as $linea) {
+            $lineasCargo = $cargo->lineas;
+            // Misma regla que buildFromVacuna: productos a precio 0 del paquete
+            // ya descontaron stock al confirmar; no van al carrito de cobro.
+            if ($cargo->vacuna_aplicada_id) {
+                $lineasCobro = $lineasCargo->filter(function (ConsultaCargoLinea $ln): bool {
+                    if ($ln->tipo_linea === ConsultaCargoLinea::TIPO_SERVICIO) {
+                        return true;
+                    }
+
+                    return (float) (string) $ln->precio_unitario > 0.0001;
+                })->values();
+                if ($lineasCobro->isNotEmpty()) {
+                    $lineasCargo = $lineasCobro;
+                }
+            }
+            foreach ($this->mapLineasCargoParaVenta($cargo, $lineasCargo, $stocks) as $linea) {
                 $lineasIniciales[] = $linea;
             }
         }

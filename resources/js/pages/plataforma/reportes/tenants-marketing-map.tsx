@@ -1,6 +1,7 @@
 import L from 'leaflet';
 import { useEffect, useMemo } from 'react';
 import { MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
 import { VETSAAS_DEFAULT_LOGO } from '@/lib/brand';
 import { cn } from '@/lib/utils';
 

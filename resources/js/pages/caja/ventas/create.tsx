@@ -295,13 +295,19 @@ export default function Create({
             return totalesBase;
         }
 
+        // Si el preview omitió líneas (p. ej. producto inactivo), no pisar el total del carrito.
+        const previewLineCount = Array.isArray(promoPreview.lineas) ? promoPreview.lineas.length : 0;
+        if (previewLineCount !== cart.length) {
+            return totalesBase;
+        }
+
         return {
             subtotal: Number(promoPreview.subtotal),
             igv: Number(promoPreview.igv_monto),
             total: Number(promoPreview.total),
             discount: Number(promoPreview.discount_amount),
         };
-    }, [promoPreview, totalesBase]);
+    }, [promoPreview, totalesBase, cart.length]);
 
     useEffect(() => {
         if (!form.data.propietario_id || cart.length === 0 || !navigator.onLine) {

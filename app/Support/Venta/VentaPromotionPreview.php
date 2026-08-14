@@ -37,11 +37,12 @@ final class VentaPromotionPreview
             ->values()
             ->all();
 
+        // Incluye inactivos: el cobro desde precuenta debe respetar el precio_lista
+        // enviado aunque el producto ya no esté activo (no descartar la línea del total).
         $productos = $productoIds === []
             ? collect()
             : Producto::query()
                 ->whereIn('id', $productoIds)
-                ->where('activo', true)
                 ->whereNull('deleted_at')
                 ->get()
                 ->keyBy('id');
@@ -59,12 +60,9 @@ final class VentaPromotionPreview
 
             if ($pid !== null) {
                 $producto = $productos->get($pid);
-                if ($producto === null) {
-                    continue;
-                }
                 $precioLista = isset($row['precio_lista']) && $row['precio_lista'] !== ''
                     ? (float) (string) $row['precio_lista']
-                    : (float) (string) ($producto->precio_venta ?? 0);
+                    : (float) (string) ($producto?->precio_venta ?? 0);
             } else {
                 $precioLista = (float) (string) ($row['precio_lista'] ?? 0);
             }

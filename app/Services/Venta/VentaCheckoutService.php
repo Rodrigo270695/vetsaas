@@ -359,11 +359,12 @@ final class VentaCheckoutService
                 ->values()
                 ->all();
 
+            // Sin filtro activo: precuentas pueden cobrar productos desactivados
+            // después de confirmarse, usando el precio_lista de la línea.
             $productos = $productoIds === []
                 ? collect()
                 : Producto::query()
                     ->whereIn('id', $productoIds)
-                    ->where('activo', true)
                     ->whereNull('deleted_at')
                     ->lockForUpdate()
                     ->get()
@@ -382,10 +383,19 @@ final class VentaCheckoutService
                 $tipoLinea = isset($row['tipo_linea']) && is_string($row['tipo_linea'])
                     ? $row['tipo_linea']
                     : ($pid !== null ? ConsultaCargoLinea::TIPO_PRODUCTO : ConsultaCargoLinea::TIPO_SERVICIO);
+                $fromCargo = isset($row['consulta_cargo_linea_id'])
+                    && is_string($row['consulta_cargo_linea_id'])
+                    && $row['consulta_cargo_linea_id'] !== '';
 
                 if ($pid !== null) {
                     $producto = $productos->get($pid);
                     if ($producto === null) {
+                        throw ValidationException::withMessages([
+                            "lineas.{$idx}.producto_id" => __('caja.ventas.validation.producto_inactivo'),
+                        ]);
+                    }
+
+                    if (! $producto->activo && ! $fromCargo) {
                         throw ValidationException::withMessages([
                             "lineas.{$idx}.producto_id" => __('caja.ventas.validation.producto_inactivo'),
                         ]);
