@@ -146,11 +146,15 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->reportable(function (\Throwable $e): void {
+            $request = request();
             $line = sprintf(
-                "[%s] %s.ERROR: %s in %s:%d\n",
+                "[%s] %s.ERROR: %s | %s %s | tenant=%s | in %s:%d\n",
                 now()->toDateTimeString(),
                 app()->environment(),
                 $e->getMessage(),
+                $request instanceof Request ? $request->method() : '-',
+                $request instanceof Request ? '/'.ltrim($request->path(), '/') : '-',
+                function_exists('tenant_id') ? (tenant_id() ?? 'central') : 'n/a',
                 $e->getFile(),
                 $e->getLine(),
             );
@@ -173,6 +177,19 @@ return Application::configure(basePath: dirname(__DIR__))
             }
 
             return $message;
+        };
+
+        $supportFacingErrorMessage = static function (\Throwable $e) use ($userFacingHttpMessage): ?string {
+            $user = Auth::guard('web')->user();
+            $isSupport = $user instanceof \App\Models\User && $user->isPlatformSuperadmin();
+
+            if (! $isSupport && ! app()->hasDebugModeEnabled()) {
+                return null;
+            }
+
+            $detail = $e::class.': '.$e->getMessage();
+
+            return $userFacingHttpMessage($detail) ?? $detail;
         };
 
         $renderInertiaHttpError = static function (
@@ -228,7 +245,7 @@ return Application::configure(basePath: dirname(__DIR__))
             );
         });
 
-        $exceptions->renderable(function (HttpException $e, Request $request) use ($renderInertiaHttpError) {
+        $exceptions->renderable(function (HttpException $e, Request $request) use ($renderInertiaHttpError, $supportFacingErrorMessage) {
             $status = $e->getStatusCode();
 
             if ($status === 403) {
@@ -259,18 +276,20 @@ return Application::configure(basePath: dirname(__DIR__))
             }
 
             if ($status === 500) {
+                report($e);
+
                 return $renderInertiaHttpError(
                     $request,
                     500,
                     'errors/server-error',
-                    null,
+                    $supportFacingErrorMessage($e),
                 );
             }
 
             return null;
         });
 
-        $exceptions->renderable(function (\Throwable $e, Request $request) use ($renderInertiaHttpError) {
+        $exceptions->renderable(function (\Throwable $e, Request $request) use ($renderInertiaHttpError, $supportFacingErrorMessage) {
             // Estas excepciones tienen una pantalla específica registrada abajo.
             // No deben convertirse en el error 500 genérico en producción.
             if ($e instanceof TenantNotFoundException || $e instanceof TenantSuspendedException) {
@@ -299,7 +318,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 $request,
                 500,
                 'errors/server-error',
-                null,
+                $supportFacingErrorMessage($e),
             );
         });
 

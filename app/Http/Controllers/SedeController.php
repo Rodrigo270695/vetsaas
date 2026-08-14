@@ -88,6 +88,12 @@ class SedeController extends Controller
 
         $tenantId = $this->tenantIdOrAbort($request);
 
+        Log::info('SedeController@index', [
+            'tenant_id' => $tenantId,
+            'user_id' => $request->user()?->id,
+            'path' => $request->path(),
+        ]);
+
         try {
             $query = Sede::query()->where('tenant_id', $tenantId);
 

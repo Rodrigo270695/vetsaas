@@ -16,7 +16,10 @@ return [
     */
 
     'ssr' => [
-        'enabled' => true,
+        // Sin bundle SSR en el repo (`ssr.tsx` / puerto 13714). Dejarlo en
+        // true provoca fallos opacos en páginas Inertia (p. ej. sedes) sin
+        // stack claro en laravel.log.
+        'enabled' => false,
         'url' => 'http://127.0.0.1:13714',
         // 'bundle' => base_path('bootstrap/ssr/ssr.mjs'),
 
