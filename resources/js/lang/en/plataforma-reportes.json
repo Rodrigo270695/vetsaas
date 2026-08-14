@@ -18,8 +18,10 @@
         "approx_hint": "No GPS yet: department centroid from the site. Ads orientation only.",
         "empty_gps": "No GPS clinics match these filters.",
         "empty_approx": "No approximate clinics match these filters.",
-        "capture_hint": "Real GPS is only obtained when a clinic user (not support) accepts the browser prompt while working. Support mode never captures (it would be your location). Use «Refresh map» to reload saved points.",
+        "capture_hint": "Real GPS is captured by the clinic browser (never in support mode). «Request tenant GPS» asks consented clinics to refresh; it updates when they next work. «Refresh map» only reloads already saved points.",
+        "solicitar_gps": "Request tenant GPS",
         "refresh": "Refresh map",
+        "refresh_pending": "{{count}} clinic(s) with pending refresh",
         "kpis": {
             "gps": "With real GPS",
             "gps_hint": "They accepted location and we already have XY.",

@@ -4,6 +4,7 @@ import { AppSidebar } from '@/components/app-sidebar';
 import { AppSidebarHeader } from '@/components/app-sidebar-header';
 import { ClinicSedeLocationBanner } from '@/components/clinic-location/clinic-sede-location-banner';
 import { DemoAccessGeoCapture } from '@/components/clinic-location/demo-access-geo-capture';
+import { TenantGeoRefreshCapture } from '@/components/clinic-location/tenant-geo-refresh-capture';
 import { TenantGpsConsentModal } from '@/components/clinic-location/tenant-gps-consent-modal';
 import { InAppAssistantAnnouncementModal } from '@/components/in-app-assistant/in-app-assistant-announcement-modal';
 import { OfflineStatusBanner } from '@/components/offline-status-banner';
@@ -41,6 +42,7 @@ export default function AppSidebarLayout({
                 <ClinicSedeLocationBanner />
                 <SubscriptionRenewalReminderModal />
                 <TenantGpsConsentModal />
+                <TenantGeoRefreshCapture />
                 <DemoAccessGeoCapture />
                 <InAppAssistantAnnouncementModal />
                 <AppSidebarHeader breadcrumbs={breadcrumbs} />

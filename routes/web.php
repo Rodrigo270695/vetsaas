@@ -1257,6 +1257,10 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             ->get('reportes/mapa', [PlataformaReportesController::class, 'mapa'])
             ->name('reportes.mapa');
         Route::middleware('permission:plataforma-reportes.view')
+            ->post('reportes/mapa/solicitar-gps', [PlataformaReportesController::class, 'solicitarGpsRefresh'])
+            ->middleware('throttle:10,1')
+            ->name('reportes.mapa.solicitar-gps');
+        Route::middleware('permission:plataforma-reportes.view')
             ->get('reportes/mapa-demos', [PlataformaReportesController::class, 'mapaDemos'])
             ->name('reportes.mapa-demos');
 

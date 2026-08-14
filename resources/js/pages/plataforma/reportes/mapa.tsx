@@ -1,5 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react';
 import {
+    Crosshair,
     Gift,
     MapPin,
     Navigation,
@@ -31,6 +32,7 @@ type Summary = {
     departamento: number;
     cobertura_geo_pct: number;
     gps_consents: number;
+    gps_refresh_pending?: number;
 };
 
 type Props = {
@@ -42,6 +44,7 @@ function Mapa({ markers, summary }: Props) {
     const { t } = useTranslation(['plataforma-reportes', 'common']);
     const [showPaid, setShowPaid] = useState(true);
     const [showFree, setShowFree] = useState(true);
+    const [soliciting, setSoliciting] = useState(false);
 
     const filtered = useMemo(() => {
         return markers.filter((m) => {
@@ -100,6 +103,18 @@ function Mapa({ markers, summary }: Props) {
         },
     ];
 
+    const solicitarGps = () => {
+        setSoliciting(true);
+        router.post(
+            '/plataforma/reportes/mapa/solicitar-gps',
+            {},
+            {
+                preserveScroll: true,
+                onFinish: () => setSoliciting(false),
+            },
+        );
+    };
+
     return (
         <>
             <Head title={t('mapa.title')} />
@@ -108,7 +123,7 @@ function Mapa({ markers, summary }: Props) {
                 <PageHeader
                     title={t('mapa.title')}
                     description={t('mapa.subtitle')}
-                    actions={
+                    action={
                         <div className="flex flex-wrap items-center gap-2">
                             <StatBadge
                                 label={t('mapa.cobertura_label')}
@@ -120,16 +135,6 @@ function Mapa({ markers, summary }: Props) {
                                 }
                                 icon={MapPin}
                             />
-                            <Button
-                                variant="default"
-                                size="sm"
-                                type="button"
-                                className="gap-1.5"
-                                onClick={() => router.reload({ only: ['markers', 'summary'] })}
-                            >
-                                <RefreshCw className="size-3.5" aria-hidden />
-                                {t('mapa.refresh')}
-                            </Button>
                             <Button variant="outline" size="sm" asChild>
                                 <Link href="/plataforma/reportes/mapa-demos">
                                     {t('mapa_demos.open')}
@@ -148,40 +153,73 @@ function Mapa({ markers, summary }: Props) {
                     {t('mapa.capture_hint')}
                 </p>
 
-                <div className="flex flex-wrap items-center gap-4 rounded-xl border border-border/70 bg-card px-4 py-3 shadow-sm">
-                    <p className="text-sm font-medium">{t('mapa.filters')}</p>
-                    <div className="flex items-center gap-2">
-                        <Checkbox
-                            id="filter-paid"
-                            checked={showPaid}
-                            onCheckedChange={(v) => setShowPaid(v === true)}
-                        />
-                        <Label
-                            htmlFor="filter-paid"
-                            className="cursor-pointer text-sm font-normal"
+                <div className="flex flex-col gap-3 rounded-xl border border-border/70 bg-card px-4 py-3 shadow-sm sm:flex-row sm:flex-wrap sm:items-center">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <Button
+                            type="button"
+                            size="sm"
+                            className="gap-1.5"
+                            disabled={soliciting}
+                            onClick={solicitarGps}
                         >
-                            {t('mapa.filter_paid')}
-                        </Label>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <Checkbox
-                            id="filter-free"
-                            checked={showFree}
-                            onCheckedChange={(v) => setShowFree(v === true)}
-                        />
-                        <Label
-                            htmlFor="filter-free"
-                            className="cursor-pointer text-sm font-normal"
+                            <Crosshair className="size-3.5" aria-hidden />
+                            {t('mapa.solicitar_gps')}
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="gap-1.5"
+                            onClick={() =>
+                                router.reload({ only: ['markers', 'summary'] })
+                            }
                         >
-                            {t('mapa.filter_free')}
-                        </Label>
+                            <RefreshCw className="size-3.5" aria-hidden />
+                            {t('mapa.refresh')}
+                        </Button>
+                        {(summary.gps_refresh_pending ?? 0) > 0 ? (
+                            <span className="text-xs text-amber-700 dark:text-amber-400">
+                                {t('mapa.refresh_pending', {
+                                    count: summary.gps_refresh_pending,
+                                })}
+                            </span>
+                        ) : null}
                     </div>
-                    <p className="w-full text-xs text-muted-foreground sm:ml-auto sm:w-auto">
-                        {t('mapa.filter_hint', {
-                            gps: gpsMarkers.length,
-                            approx: approxMarkers.length,
-                        })}
-                    </p>
+                    <div className="flex flex-wrap items-center gap-4 sm:ml-auto">
+                        <p className="text-sm font-medium">{t('mapa.filters')}</p>
+                        <div className="flex items-center gap-2">
+                            <Checkbox
+                                id="filter-paid"
+                                checked={showPaid}
+                                onCheckedChange={(v) => setShowPaid(v === true)}
+                            />
+                            <Label
+                                htmlFor="filter-paid"
+                                className="cursor-pointer text-sm font-normal"
+                            >
+                                {t('mapa.filter_paid')}
+                            </Label>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Checkbox
+                                id="filter-free"
+                                checked={showFree}
+                                onCheckedChange={(v) => setShowFree(v === true)}
+                            />
+                            <Label
+                                htmlFor="filter-free"
+                                className="cursor-pointer text-sm font-normal"
+                            >
+                                {t('mapa.filter_free')}
+                            </Label>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                            {t('mapa.filter_hint', {
+                                gps: gpsMarkers.length,
+                                approx: approxMarkers.length,
+                            })}
+                        </p>
+                    </div>
                 </div>
 
                 <DashboardKpiGrid items={kpiItems} />

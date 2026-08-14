@@ -18,8 +18,10 @@
         "approx_hint": "Sin GPS aún: centroide del departamento de la sede. Solo para orientación Ads.",
         "empty_gps": "Nadie con GPS visible con estos filtros.",
         "empty_approx": "Nadie aproximado visible con estos filtros.",
-        "capture_hint": "El GPS real solo se obtiene cuando un usuario de la clínica (no soporte) acepta el aviso del navegador al trabajar. En modo soporte no se captura (sería tu ubicación). Usa «Actualizar mapa» para refrescar los puntos ya guardados.",
+        "capture_hint": "El GPS real lo captura el navegador de la clínica (nunca en modo soporte). Con «Capturar GPS de tenants» pides un refresco a quienes ya dieron consentimiento: se actualiza cuando entren a trabajar. «Actualizar mapa» solo recarga los puntos ya guardados.",
+        "solicitar_gps": "Capturar GPS de tenants",
         "refresh": "Actualizar mapa",
+        "refresh_pending": "{{count}} clínica(s) con refresco pendiente",
         "kpis": {
             "gps": "Con GPS real",
             "gps_hint": "Aceptaron ubicación y ya tenemos XY guardado.",

@@ -63,7 +63,7 @@ function MapaDemos({ markers, summary }: Props) {
                 <PageHeader
                     title={t('mapa_demos.title')}
                     description={t('mapa_demos.subtitle')}
-                    actions={
+                    action={
                         <div className="flex flex-wrap gap-2">
                             <Button
                                 variant="outline"

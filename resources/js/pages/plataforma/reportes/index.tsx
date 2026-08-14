@@ -531,7 +531,7 @@ export default function Index({ snapshot }: Props) {
                 <PageHeader
                     title={t('title')}
                     description={t('subtitle')}
-                    actions={
+                    action={
                         <div className="flex flex-wrap items-center gap-2">
                             <StatBadge
                                 label="Geo"
