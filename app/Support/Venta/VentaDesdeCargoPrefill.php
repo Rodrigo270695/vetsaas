@@ -102,23 +102,7 @@ final class VentaDesdeCargoPrefill
                 ->pluck('cantidad', 'producto_id')
                 ->all();
 
-        $lineasIniciales = $cargo->lineas->map(function (ConsultaCargoLinea $ln) use ($stocks): array {
-            $precioLista = (string) $ln->precio_unitario;
-            $stock = '0';
-            if ($ln->producto_id !== null) {
-                $stock = (string) ($stocks[$ln->producto_id] ?? '0');
-            }
-
-            return [
-                'producto_id' => $ln->producto_id,
-                'tipo_linea' => $ln->tipo_linea,
-                'concepto' => $ln->concepto,
-                'cantidad' => (string) $ln->cantidad,
-                'precio_lista' => $precioLista,
-                'stock_sede' => $stock,
-                'consulta_cargo_linea_id' => $ln->id,
-            ];
-        })->values()->all();
+        $lineasIniciales = $this->mapLineasCargoParaVenta($cargo, $cargo->lineas, $stocks);
 
         return [
             'consulta_id' => $consulta->id,
@@ -206,23 +190,7 @@ final class VentaDesdeCargoPrefill
                 ->pluck('cantidad', 'producto_id')
                 ->all();
 
-        $lineasIniciales = $cargo->lineas->map(function (ConsultaCargoLinea $ln) use ($stocks): array {
-            $precioLista = (string) $ln->precio_unitario;
-            $stock = '0';
-            if ($ln->producto_id !== null) {
-                $stock = (string) ($stocks[$ln->producto_id] ?? '0');
-            }
-
-            return [
-                'producto_id' => $ln->producto_id,
-                'tipo_linea' => $ln->tipo_linea,
-                'concepto' => $ln->concepto,
-                'cantidad' => (string) $ln->cantidad,
-                'precio_lista' => $precioLista,
-                'stock_sede' => $stock,
-                'consulta_cargo_linea_id' => $ln->id,
-            ];
-        })->values()->all();
+        $lineasIniciales = $this->mapLineasCargoParaVenta($cargo, $cargo->lineas, $stocks);
 
         return [
             'consulta_id' => $internamiento->consulta_id,
@@ -326,22 +294,7 @@ final class VentaDesdeCargoPrefill
                     ->pluck('cantidad', 'producto_id')
                     ->all();
 
-            $lineasIniciales = $cargo->lineas->map(function (ConsultaCargoLinea $ln) use ($stocks): array {
-                $stock = '0';
-                if ($ln->producto_id !== null) {
-                    $stock = (string) ($stocks[$ln->producto_id] ?? '0');
-                }
-
-                return [
-                    'producto_id' => $ln->producto_id,
-                    'tipo_linea' => $ln->tipo_linea,
-                    'concepto' => $ln->concepto,
-                    'cantidad' => (string) $ln->cantidad,
-                    'precio_lista' => (string) $ln->precio_unitario,
-                    'stock_sede' => $stock,
-                    'consulta_cargo_linea_id' => $ln->id,
-                ];
-            })->values()->all();
+            $lineasIniciales = $this->mapLineasCargoParaVenta($cargo, $cargo->lineas, $stocks);
 
             return [
                 'consulta_id' => null,
@@ -506,22 +459,7 @@ final class VentaDesdeCargoPrefill
                     ->pluck('cantidad', 'producto_id')
                     ->all();
 
-            $lineasIniciales = $cargo->lineas->map(function (ConsultaCargoLinea $ln) use ($stocks): array {
-                $stock = '0';
-                if ($ln->producto_id !== null) {
-                    $stock = (string) ($stocks[$ln->producto_id] ?? '0');
-                }
-
-                return [
-                    'producto_id' => $ln->producto_id,
-                    'tipo_linea' => $ln->tipo_linea,
-                    'concepto' => $ln->concepto,
-                    'cantidad' => (string) $ln->cantidad,
-                    'precio_lista' => (string) $ln->precio_unitario,
-                    'stock_sede' => $stock,
-                    'consulta_cargo_linea_id' => $ln->id,
-                ];
-            })->values()->all();
+            $lineasIniciales = $this->mapLineasCargoParaVenta($cargo, $cargo->lineas, $stocks);
 
             return [
                 'consulta_id' => null,
@@ -687,22 +625,7 @@ final class VentaDesdeCargoPrefill
                 ->pluck('cantidad', 'producto_id')
                 ->all();
 
-        $lineasIniciales = $lineasCobro->map(function (ConsultaCargoLinea $ln) use ($stocks): array {
-            $stock = '0';
-            if ($ln->producto_id !== null) {
-                $stock = (string) ($stocks[$ln->producto_id] ?? '0');
-            }
-
-            return [
-                'producto_id' => $ln->producto_id,
-                'tipo_linea' => $ln->tipo_linea,
-                'concepto' => $ln->concepto,
-                'cantidad' => (string) $ln->cantidad,
-                'precio_lista' => (string) $ln->precio_unitario,
-                'stock_sede' => $stock,
-                'consulta_cargo_linea_id' => $ln->id,
-            ];
-        })->values()->all();
+        $lineasIniciales = $this->mapLineasCargoParaVenta($cargo, $lineasCobro, $stocks);
 
         return [
             'consulta_id' => null,
@@ -891,20 +814,8 @@ final class VentaDesdeCargoPrefill
         foreach ($ids as $id) {
             /** @var ConsultaCargo $cargo */
             $cargo = $cargos->get($id);
-            foreach ($cargo->lineas as $ln) {
-                $stock = '0';
-                if ($ln->producto_id !== null) {
-                    $stock = (string) ($stocks[$ln->producto_id] ?? '0');
-                }
-                $lineasIniciales[] = [
-                    'producto_id' => $ln->producto_id,
-                    'tipo_linea' => $ln->tipo_linea,
-                    'concepto' => $ln->concepto,
-                    'cantidad' => (string) $ln->cantidad,
-                    'precio_lista' => (string) $ln->precio_unitario,
-                    'stock_sede' => $stock,
-                    'consulta_cargo_linea_id' => $ln->id,
-                ];
+            foreach ($this->mapLineasCargoParaVenta($cargo, $cargo->lineas, $stocks) as $linea) {
+                $lineasIniciales[] = $linea;
             }
         }
 
@@ -997,5 +908,108 @@ final class VentaDesdeCargoPrefill
         }
 
         return [null, null, null, null];
+    }
+
+    /**
+     * Detecta si los `precio_unitario` del cargo están guardados como precio bruto
+     * (política “precios incluyen IGV”) o como base imponible.
+     *
+     * Compara la suma de líneas con `total` vs `subtotal_sin_igv` del header.
+     */
+    private function cargoPreciosSonBrutos(ConsultaCargo $cargo): bool
+    {
+        $suma = 0.0;
+        foreach ($cargo->lineas as $ln) {
+            $suma += max(
+                0.0,
+                (float) (string) $ln->cantidad * (float) (string) $ln->precio_unitario
+                - (float) (string) ($ln->descuento_importe ?? 0),
+            );
+        }
+
+        $suma = round($suma, 2);
+        $total = round((float) (string) $cargo->total, 2);
+        $sub = round((float) (string) $cargo->subtotal_sin_igv, 2);
+
+        return abs($suma - $total) <= abs($suma - $sub);
+    }
+
+    /**
+     * Convierte el PU del cargo al `precio_lista` que espera la pantalla de venta
+     * según la política IGV actual de la clínica.
+     *
+     * Evita el desfase “precuenta 59 / cobro 50” cuando el cargo se confirmó con
+     * precios sin IGV y la caja hoy asume precios con IGV incluido (o viceversa).
+     */
+    private function precioListaParaVenta(
+        float $precioUnitario,
+        bool $storedGross,
+        bool $destinoIncluyeIgv,
+        float $igvPct,
+    ): string {
+        if ($precioUnitario <= 0.0001) {
+            return number_format(0, 2, '.', '');
+        }
+
+        if ($storedGross === $destinoIncluyeIgv) {
+            return number_format(round($precioUnitario, 2), 2, '.', '');
+        }
+
+        $factor = 1 + max(0.0, $igvPct) / 100;
+        if ($factor <= 0) {
+            return number_format(round($precioUnitario, 2), 2, '.', '');
+        }
+
+        if ($destinoIncluyeIgv && ! $storedGross) {
+            return number_format(round($precioUnitario * $factor, 2), 2, '.', '');
+        }
+
+        return number_format(round($precioUnitario / $factor, 2), 2, '.', '');
+    }
+
+    /**
+     * @param  iterable<int, ConsultaCargoLinea>  $lineas
+     * @param  array<string|int, mixed>  $stocks
+     * @return list<array{
+     *     producto_id: ?string,
+     *     tipo_linea: string,
+     *     concepto: string,
+     *     cantidad: string,
+     *     precio_lista: string,
+     *     stock_sede: string,
+     *     consulta_cargo_linea_id: string,
+     * }>
+     */
+    private function mapLineasCargoParaVenta(ConsultaCargo $cargo, iterable $lineas, array $stocks): array
+    {
+        $cfg = ClinicSetting::current();
+        $incluyeDestino = (bool) $cfg->precio_incluye_igv;
+        $igvPct = (float) (string) $cfg->igv_porcentaje;
+        $storedGross = $this->cargoPreciosSonBrutos($cargo);
+
+        $out = [];
+        foreach ($lineas as $ln) {
+            $stock = '0';
+            if ($ln->producto_id !== null) {
+                $stock = (string) ($stocks[$ln->producto_id] ?? '0');
+            }
+
+            $out[] = [
+                'producto_id' => $ln->producto_id,
+                'tipo_linea' => $ln->tipo_linea,
+                'concepto' => $ln->concepto,
+                'cantidad' => (string) $ln->cantidad,
+                'precio_lista' => $this->precioListaParaVenta(
+                    (float) (string) $ln->precio_unitario,
+                    $storedGross,
+                    $incluyeDestino,
+                    $igvPct,
+                ),
+                'stock_sede' => $stock,
+                'consulta_cargo_linea_id' => $ln->id,
+            ];
+        }
+
+        return $out;
     }
 }
