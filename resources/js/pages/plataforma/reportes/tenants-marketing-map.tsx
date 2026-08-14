@@ -23,7 +23,10 @@ type Props = {
     className?: string;
     /** Altura del mapa (Tailwind). Default embebido. */
     mapClassName?: string;
-    /** Oculta el header interno (útil en página dedicada). */
+    title?: string;
+    description?: string;
+    emptyLabel?: string;
+    /** Oculta el header interno (útil si el padre ya muestra título). */
     hideChrome?: boolean;
 };
 
@@ -36,7 +39,7 @@ function FitBounds({ markers }: { markers: TenantMapMarker[] }) {
             return;
         }
         if (markers.length === 1) {
-            map.setView([markers[0].lat, markers[0].lng], 8);
+            map.setView([markers[0].lat, markers[0].lng], 11);
             return;
         }
         const bounds = L.latLngBounds(
@@ -72,6 +75,9 @@ export function TenantsMarketingMap({
     markers,
     className,
     mapClassName,
+    title = 'Mapa de clínicas',
+    description = 'OpenStreetMap (Leaflet). Verde = pago, azul = free.',
+    emptyLabel = 'Sin clínicas para mostrar con los filtros actuales.',
     hideChrome = false,
 }: Props) {
     const safeMarkers = useMemo(
@@ -96,25 +102,29 @@ export function TenantsMarketingMap({
             {!hideChrome ? (
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 px-4 py-3">
                     <div>
-                        <h3 className="text-sm font-semibold">Mapa de clínicas</h3>
+                        <h3 className="text-sm font-semibold">{title}</h3>
                         <p className="text-xs text-muted-foreground">
-                            OpenStreetMap (Leaflet). Verde = pago, azul = free. Logo
-                            de la clínica o VetSaaS por defecto.
+                            {description}
                         </p>
                     </div>
                     <div className="flex gap-2 text-[10px] font-semibold uppercase tracking-wide">
-                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-emerald-800">
+                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
                             Pago
                         </span>
-                        <span className="rounded-full bg-sky-100 px-2 py-0.5 text-sky-800">
+                        <span className="rounded-full bg-sky-100 px-2 py-0.5 text-sky-800 dark:bg-sky-950 dark:text-sky-200">
                             Free
                         </span>
                     </div>
                 </div>
             ) : null}
             <div className={cn('relative z-0 h-[420px] w-full', mapClassName)}>
-                {typeof window !== 'undefined' ? (
+                {safeMarkers.length === 0 ? (
+                    <div className="flex h-full items-center justify-center bg-muted/30 px-6 text-center text-sm text-muted-foreground">
+                        {emptyLabel}
+                    </div>
+                ) : typeof window !== 'undefined' ? (
                     <MapContainer
+                        key={`map-${safeMarkers.length}-${safeMarkers[0]?.tenant_id ?? 'x'}`}
                         center={[-9.19, -75.0152]}
                         zoom={5}
                         scrollWheelZoom

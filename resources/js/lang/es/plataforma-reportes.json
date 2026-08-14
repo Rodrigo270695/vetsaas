@@ -3,14 +3,24 @@
     "subtitle": "Embudo, ingresos y geo por departamento para Ads y crecimiento. El mapa Leaflet vive en su propia vista.",
     "mapa": {
         "title": "Mapa de clínicas",
-        "subtitle": "Ubicación aproximada de clínicas vivas (pago y free) para planificar Ads.",
+        "subtitle": "Dos mapas: GPS real (consentimiento) y ubicación aproximada por departamento. Un tenant con GPS no aparece en el aproximado.",
         "open": "Ver mapa",
         "back_reportes": "Volver a reportes",
         "legend": "Prioridad: GPS guardado en el tenant (si aceptaron). Si no hay GPS, se usa el centroide del departamento de la sede principal.",
+        "filters": "Mostrar",
+        "filter_paid": "De pago",
+        "filter_free": "Free",
+        "filter_hint": "GPS: {{gps}} · Aprox.: {{approx}}",
+        "gps_title": "GPS (ubicación real)",
+        "gps_hint": "Clínicas que aceptaron y guardaron coordenadas. Posición exacta.",
+        "approx_title": "Aproximado (departamento)",
+        "approx_hint": "Sin GPS aún: centroide del departamento de la sede. Solo para orientación Ads.",
+        "empty_gps": "Nadie con GPS visible con estos filtros.",
+        "empty_approx": "Nadie aproximado visible con estos filtros.",
         "kpis": {
             "markers": "En el mapa",
             "gps": "Con GPS",
-            "departamento": "Por departamento"
+            "departamento": "Solo departamento"
         }
     },
     "kpis": {

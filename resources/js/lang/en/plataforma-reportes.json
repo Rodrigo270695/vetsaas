@@ -3,14 +3,24 @@
     "subtitle": "Funnel, revenue and geo by department for Ads and growth. The Leaflet map has its own page.",
     "mapa": {
         "title": "Clinics map",
-        "subtitle": "Approximate location of live clinics (paid and free) for Ads planning.",
+        "subtitle": "Two maps: real GPS (consent) and approximate department location. A tenant with GPS never appears on the approximate map.",
         "open": "Open map",
         "back_reportes": "Back to reports",
         "legend": "Priority: saved tenant GPS (if they consented). Otherwise the department centroid from the main site is used.",
+        "filters": "Show",
+        "filter_paid": "Paid",
+        "filter_free": "Free",
+        "filter_hint": "GPS: {{gps}} · Approx.: {{approx}}",
+        "gps_title": "GPS (real location)",
+        "gps_hint": "Clinics that consented and saved coordinates. Exact position.",
+        "approx_title": "Approximate (department)",
+        "approx_hint": "No GPS yet: department centroid from the site. Ads orientation only.",
+        "empty_gps": "No GPS clinics match these filters.",
+        "empty_approx": "No approximate clinics match these filters.",
         "kpis": {
             "markers": "On the map",
             "gps": "With GPS",
-            "departamento": "By department"
+            "departamento": "Department only"
         }
     },
     "kpis": {

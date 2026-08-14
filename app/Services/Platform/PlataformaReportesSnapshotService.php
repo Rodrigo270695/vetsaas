@@ -119,16 +119,25 @@ final class PlataformaReportesSnapshotService
             }
 
             if ($geo['lat'] !== null && $geo['lng'] !== null) {
-                // Jitter leve para no apilar marcadores del mismo centroide.
-                $jitter = $geo['source'] === 'gps' ? 0.0 : (((crc32((string) $tenant->id) % 100) - 50) / 2500);
+                $lat = (float) $geo['lat'];
+                $lng = (float) $geo['lng'];
+
+                // Solo aproximados: dispersión radial (no diagonal) para no apilar el mismo centroide.
+                if ($geo['source'] === 'departamento') {
+                    $hash = crc32((string) $tenant->id);
+                    $angle = (($hash % 360) / 360.0) * 2 * M_PI;
+                    $radius = 0.06 + (($hash % 50) / 500.0); // ~0.06°–0.16°
+                    $lat += sin($angle) * $radius;
+                    $lng += cos($angle) * $radius;
+                }
 
                 $mapMarkers[] = [
                     'tenant_id' => (string) $tenant->id,
                     'slug' => (string) $tenant->slug,
                     'label' => $this->tenantLabel($tenant),
                     'segment' => $isFree ? 'free' : 'paid',
-                    'lat' => $geo['lat'] + $jitter,
-                    'lng' => $geo['lng'] + ($jitter * 0.7),
+                    'lat' => $lat,
+                    'lng' => $lng,
                     'source' => $geo['source'],
                     'departamento' => $geo['departamento'],
                     'logo_url' => $branding['logo_url'],
