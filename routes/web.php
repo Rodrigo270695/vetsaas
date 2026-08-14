@@ -23,6 +23,7 @@ use App\Http\Controllers\FelAnulacionHistorialController;
 use App\Http\Controllers\FelDocumentController;
 use App\Http\Controllers\FelSerieController;
 use App\Http\Controllers\GeoController;
+use App\Http\Controllers\TenantGeoController;
 use App\Http\Controllers\GroomingCargoController;
 use App\Http\Controllers\ServicioClinicoProductoController;
 use App\Http\Controllers\GroomingInsumoController;
@@ -177,6 +178,10 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::get('provincias', [GeoController::class, 'provincias'])->name('provincias');
         Route::get('distritos', [GeoController::class, 'distritos'])->name('distritos');
     });
+
+    Route::post('tenant/geo', [TenantGeoController::class, 'store'])
+        ->middleware('throttle:20,1')
+        ->name('tenant.geo.store');
 
     // OAuth callback Google Calendar (URI exacta en Cloud Console).
     Route::middleware('permission:salesbot-knowledge.update')

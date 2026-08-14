@@ -36,6 +36,10 @@ import {
 import { PageHeader, StatBadge } from '@/components/data-page';
 import AppLayout from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
+import {
+    TenantsMarketingMap,
+    type TenantMapMarker,
+} from '@/pages/plataforma/reportes/tenants-marketing-map';
 
 type GeoCount = { id: number | null; name: string; count: number };
 type HeatCell = GeoCount & { intensity: number };
@@ -100,6 +104,7 @@ type Snapshot = {
         total: number;
     }>;
     estados_tenant: Array<{ estado: string; count: number }>;
+    map_markers: TenantMapMarker[];
 };
 
 type Props = { snapshot: Snapshot };
@@ -422,6 +427,8 @@ export default function Index({ snapshot }: Props) {
                 />
 
                 <DashboardKpiGrid items={kpiItems} />
+
+                <TenantsMarketingMap markers={snapshot.map_markers ?? []} />
 
                 <div className="grid gap-3 rounded-xl border border-amber-200/60 bg-gradient-to-br from-amber-50/80 to-card p-4 shadow-sm dark:from-amber-950/20 md:grid-cols-4">
                     <Insight

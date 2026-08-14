@@ -77,7 +77,7 @@ const buildInitialGeoValue = (sede: Sede | null): GeoCascadeValue => {
  * Campos obligatorios mínimos para habilitar el botón submit.
  */
 const isFormValid = (data: SedeFormData): boolean => {
-    return data.nombre.trim().length > 0;
+    return data.nombre.trim().length > 0 && data.distrito_id !== null;
 };
 
 /**
@@ -339,6 +339,7 @@ export function SedeFormModal({
                         value={geo}
                         onChange={handleGeoChange}
                         disabled={processing}
+                        required
                         errors={{ distrito_id: errors.distrito_id }}
                         labels={{
                             departamento: t('form.fields.departamento'),

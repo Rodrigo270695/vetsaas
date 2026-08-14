@@ -4,21 +4,29 @@ declare(strict_types=1);
 
 namespace App\Services\Platform;
 
+use App\Models\Sede;
 use App\Models\Subscription;
 use App\Models\SubscriptionPayment;
 use App\Models\Tenant;
+use App\Support\Clinic\ClinicBrandingUrls;
+use App\Support\Geo\PeruDepartamentoCentroids;
+use App\Tenancy\TenantManager;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 /**
- * Snapshot de marketing / geo para el dashboard de Reportes del superadmin.
+ * Snapshot de marketing / geo para Reportes del superadmin.
  *
- * Segmenta clínicas en pago vs free según la suscripción viva y el
- * `plans.codigo`. La ubicación sale de `tenants.distrito_id` (catálogo público).
+ * Geo de departamentos: sedes activas (`public.sedes`).
+ * Mapa: GPS del tenant si aceptó; si no, centroide del departamento de la sede.
  */
 final class PlataformaReportesSnapshotService
 {
     private const VIVAS = ['trial', 'active', 'grace', 'suspended'];
+
+    public function __construct(
+        private readonly TenantManager $tenants,
+    ) {}
 
     /**
      * @return array<string, mixed>
@@ -28,11 +36,6 @@ final class PlataformaReportesSnapshotService
         $now = Carbon::now();
 
         $tenants = Tenant::query()
-            ->with([
-                'distritoModel:id,name,provincia_id',
-                'distritoModel.provincia:id,name,departamento_id',
-                'distritoModel.provincia.departamento:id,name',
-            ])
             ->get([
                 'id',
                 'slug',
@@ -42,14 +45,40 @@ final class PlataformaReportesSnapshotService
                 'estado',
                 'created_at',
                 'canal_adquisicion',
-                'trial_ends_at',
+                'geo_lat',
+                'geo_lng',
+                'geo_consent_at',
+                'geo_captured_at',
             ]);
 
         $subsByTenant = $this->latestVivaSubscriptionByTenant();
 
+        $sedes = Sede::query()
+            ->where('activa', true)
+            ->whereNull('deleted_at')
+            ->whereIn('tenant_id', $tenants->pluck('id'))
+            ->with([
+                'distritoModel:id,name,provincia_id',
+                'distritoModel.provincia:id,name,departamento_id',
+                'distritoModel.provincia.departamento:id,name',
+            ])
+            ->get([
+                'id',
+                'tenant_id',
+                'nombre',
+                'distrito_id',
+                'distrito',
+                'provincia',
+                'departamento',
+                'activa',
+            ]);
+
+        $sedesByTenant = $sedes->groupBy(fn (Sede $s): string => (string) $s->tenant_id);
+
         $paidRows = [];
         $freeRows = [];
         $cancelled = 0;
+        $mapMarkers = [];
 
         foreach ($tenants as $tenant) {
             if ($tenant->estado === 'cancelled') {
@@ -60,12 +89,51 @@ final class PlataformaReportesSnapshotService
 
             $sub = $subsByTenant->get((string) $tenant->id);
             $isFree = $sub === null || $sub->plan?->isFree() === true;
-            $row = $this->tenantRow($tenant, $sub);
+            $tenantSedes = $sedesByTenant->get((string) $tenant->id, collect());
+            $geo = $this->resolveTenantGeo($tenant, $tenantSedes);
+            $branding = ClinicBrandingUrls::resolveForTenant($this->tenants, $tenant);
+
+            $row = [
+                'tenant_id' => (string) $tenant->id,
+                'slug' => (string) $tenant->slug,
+                'label' => $this->tenantLabel($tenant),
+                'estado' => (string) $tenant->estado,
+                'canal' => $tenant->canal_adquisicion,
+                'created_at' => $tenant->created_at?->toIso8601String(),
+                'departamento_id' => $geo['departamento_id'],
+                'departamento' => $geo['departamento'],
+                'provincia_id' => $geo['provincia_id'],
+                'provincia' => $geo['provincia'],
+                'distrito_id' => $geo['distrito_id'],
+                'distrito' => $geo['distrito'],
+                'plan_codigo' => $sub?->plan?->codigo,
+                'plan_nombre' => $sub?->plan?->nombre,
+                'sub_estado' => $sub?->estado,
+                'segment' => $isFree ? 'free' : 'paid',
+            ];
 
             if ($isFree) {
                 $freeRows[] = $row;
             } else {
                 $paidRows[] = $row;
+            }
+
+            if ($geo['lat'] !== null && $geo['lng'] !== null) {
+                // Jitter leve para no apilar marcadores del mismo centroide.
+                $jitter = $geo['source'] === 'gps' ? 0.0 : (((crc32((string) $tenant->id) % 100) - 50) / 2500);
+
+                $mapMarkers[] = [
+                    'tenant_id' => (string) $tenant->id,
+                    'slug' => (string) $tenant->slug,
+                    'label' => $this->tenantLabel($tenant),
+                    'segment' => $isFree ? 'free' : 'paid',
+                    'lat' => $geo['lat'] + $jitter,
+                    'lng' => $geo['lng'] + ($jitter * 0.7),
+                    'source' => $geo['source'],
+                    'departamento' => $geo['departamento'],
+                    'logo_url' => $branding['logo_url'],
+                    'has_custom_logo' => $branding['has_custom_logo'],
+                ];
             }
         }
 
@@ -83,6 +151,8 @@ final class PlataformaReportesSnapshotService
                 'free_sin_ubicacion' => $free->where('departamento_id', null)->count(),
                 'pct_paid' => $this->pct($paid->count(), $paid->count() + $free->count()),
                 'pct_free' => $this->pct($free->count(), $paid->count() + $free->count()),
+                'map_markers' => count($mapMarkers),
+                'gps_consents' => $tenants->whereNotNull('geo_consent_at')->count(),
             ],
             'insights' => $this->insights($paid, $free),
             'paid' => $this->segmentBlock($paid),
@@ -94,7 +164,71 @@ final class PlataformaReportesSnapshotService
             'mix_planes' => $this->mixPlanes($subsByTenant),
             'canales' => $this->canales($tenants, $subsByTenant),
             'estados_tenant' => $this->estadosTenant($tenants),
+            'map_markers' => $mapMarkers,
         ];
+    }
+
+    /**
+     * @param  Collection<int, Sede>  $sedes
+     * @return array{
+     *     departamento_id: int|null,
+     *     departamento: string|null,
+     *     provincia_id: int|null,
+     *     provincia: string|null,
+     *     distrito_id: int|null,
+     *     distrito: string|null,
+     *     lat: float|null,
+     *     lng: float|null,
+     *     source: 'gps'|'departamento'|null
+     * }
+     */
+    private function resolveTenantGeo(Tenant $tenant, Collection $sedes): array
+    {
+        $withGeo = $sedes->first(fn (Sede $s): bool => $s->distrito_id !== null)
+            ?? $sedes->first();
+
+        $dep = $withGeo?->distritoModel?->provincia?->departamento;
+        $prov = $withGeo?->distritoModel?->provincia;
+        $dist = $withGeo?->distritoModel;
+
+        $departamentoName = $dep?->name
+            ?? (is_string($withGeo?->departamento) && $withGeo->departamento !== '' ? $withGeo->departamento : null);
+
+        $lat = null;
+        $lng = null;
+        $source = null;
+
+        if ($tenant->geo_lat !== null && $tenant->geo_lng !== null && $tenant->geo_consent_at !== null) {
+            $lat = (float) (string) $tenant->geo_lat;
+            $lng = (float) (string) $tenant->geo_lng;
+            $source = 'gps';
+        } else {
+            $centroid = PeruDepartamentoCentroids::forName($departamentoName);
+            if ($centroid !== null) {
+                $lat = $centroid['lat'];
+                $lng = $centroid['lng'];
+                $source = 'departamento';
+            }
+        }
+
+        return [
+            'departamento_id' => $dep?->id,
+            'departamento' => $departamentoName,
+            'provincia_id' => $prov?->id,
+            'provincia' => $prov?->name ?? $withGeo?->provincia,
+            'distrito_id' => $dist?->id ?? $withGeo?->distrito_id,
+            'distrito' => $dist?->name ?? $withGeo?->distrito,
+            'lat' => $lat,
+            'lng' => $lng,
+            'source' => $source,
+        ];
+    }
+
+    private function tenantLabel(Tenant $tenant): string
+    {
+        $label = trim((string) ($tenant->nombre_comercial ?: ''));
+
+        return $label !== '' ? $label : (string) ($tenant->razon_social ?: $tenant->slug);
     }
 
     /**
@@ -114,13 +248,9 @@ final class PlataformaReportesSnapshotService
                 'ciclo',
                 'precio_pactado',
                 'created_at',
-                'proximo_cobro_at',
-                'current_period_end',
             ]);
 
-        /** @var Collection<string, Subscription> $byTenant */
         $byTenant = collect();
-
         foreach ($subs as $sub) {
             $tid = (string) $sub->tenant_id;
             if (! $byTenant->has($tid)) {
@@ -129,53 +259,6 @@ final class PlataformaReportesSnapshotService
         }
 
         return $byTenant;
-    }
-
-    /**
-     * @return array{
-     *     tenant_id: string,
-     *     slug: string,
-     *     label: string,
-     *     estado: string,
-     *     canal: string|null,
-     *     created_at: string|null,
-     *     departamento_id: int|null,
-     *     departamento: string|null,
-     *     provincia_id: int|null,
-     *     provincia: string|null,
-     *     distrito_id: int|null,
-     *     distrito: string|null,
-     *     plan_codigo: string|null,
-     *     plan_nombre: string|null,
-     *     sub_estado: string|null
-     * }
-     */
-    private function tenantRow(Tenant $tenant, ?Subscription $sub): array
-    {
-        $dep = $tenant->distritoModel?->provincia?->departamento;
-        $prov = $tenant->distritoModel?->provincia;
-        $dist = $tenant->distritoModel;
-        $label = trim((string) ($tenant->nombre_comercial ?: '')) !== ''
-            ? (string) $tenant->nombre_comercial
-            : (string) $tenant->razon_social;
-
-        return [
-            'tenant_id' => (string) $tenant->id,
-            'slug' => (string) $tenant->slug,
-            'label' => $label !== '' ? $label : (string) $tenant->slug,
-            'estado' => (string) $tenant->estado,
-            'canal' => $tenant->canal_adquisicion,
-            'created_at' => $tenant->created_at?->toIso8601String(),
-            'departamento_id' => $dep?->id,
-            'departamento' => $dep?->name,
-            'provincia_id' => $prov?->id,
-            'provincia' => $prov?->name,
-            'distrito_id' => $dist?->id,
-            'distrito' => $dist?->name,
-            'plan_codigo' => $sub?->plan?->codigo,
-            'plan_nombre' => $sub?->plan?->nombre,
-            'sub_estado' => $sub?->estado,
-        ];
     }
 
     /**
@@ -256,11 +339,7 @@ final class PlataformaReportesSnapshotService
             }
         }
 
-        return collect($map)
-            ->sortByDesc('total')
-            ->values()
-            ->take(20)
-            ->all();
+        return collect($map)->sortByDesc('total')->values()->take(20)->all();
     }
 
     /**
@@ -368,7 +447,6 @@ final class PlataformaReportesSnapshotService
     private function mixPlanes(Collection $subsByTenant): array
     {
         $map = [];
-
         foreach ($subsByTenant as $sub) {
             if ($sub->plan === null || $sub->plan->isFree()) {
                 continue;
@@ -395,7 +473,6 @@ final class PlataformaReportesSnapshotService
     private function canales(Collection $tenants, Collection $subsByTenant): array
     {
         $map = [];
-
         foreach ($tenants as $tenant) {
             if ($tenant->estado === 'cancelled') {
                 continue;
@@ -445,14 +522,6 @@ final class PlataformaReportesSnapshotService
     {
         $topPaid = $this->topName($paid, 'departamento');
         $topFree = $this->topName($free, 'departamento');
-
-        $oportunidad = null;
-        if ($topFree !== null && $topFree !== $topPaid) {
-            $oportunidad = $topFree;
-        } elseif ($topFree !== null) {
-            $oportunidad = $topFree;
-        }
-
         $vivos = $paid->count() + $free->count();
         $conGeo = $paid->whereNotNull('departamento_id')->count()
             + $free->whereNotNull('departamento_id')->count();
@@ -460,7 +529,7 @@ final class PlataformaReportesSnapshotService
         return [
             'top_paid_departamento' => $topPaid,
             'top_free_departamento' => $topFree,
-            'oportunidad_ads' => $oportunidad,
+            'oportunidad_ads' => $topFree ?? $topPaid,
             'cobertura_geo_pct' => $this->pct($conGeo, $vivos),
         ];
     }

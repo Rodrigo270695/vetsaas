@@ -29,6 +29,8 @@ type GeoCascadeFieldsProps = {
     };
     /** Bloquea los 3 campos (ej. mientras se envía el form). */
     disabled?: boolean;
+    /** Muestra asterisco de obligatorio en los 3 labels. */
+    required?: boolean;
     /** Labels personalizables para i18n. */
     labels?: {
         departamento?: string;
@@ -78,6 +80,7 @@ export function GeoCascadeFields({
     onChange,
     errors,
     disabled = false,
+    required = false,
     labels,
     placeholders,
 }: GeoCascadeFieldsProps) {
@@ -227,6 +230,12 @@ export function GeoCascadeFields({
                     className="truncate text-xs sm:text-sm"
                 >
                     {labels?.departamento ?? 'Departamento'}
+                    {required ? (
+                        <span className="text-destructive" aria-hidden>
+                            {' '}
+                            *
+                        </span>
+                    ) : null}
                 </Label>
                 <Combobox
                     id="departamento_id"
@@ -268,6 +277,12 @@ export function GeoCascadeFields({
                     className="truncate text-xs sm:text-sm"
                 >
                     {labels?.provincia ?? 'Provincia'}
+                    {required ? (
+                        <span className="text-destructive" aria-hidden>
+                            {' '}
+                            *
+                        </span>
+                    ) : null}
                 </Label>
                 <Combobox
                     id="provincia_id"
@@ -312,6 +327,12 @@ export function GeoCascadeFields({
                     className="truncate text-xs sm:text-sm"
                 >
                     {labels?.distrito ?? 'Distrito'}
+                    {required ? (
+                        <span className="text-destructive" aria-hidden>
+                            {' '}
+                            *
+                        </span>
+                    ) : null}
                 </Label>
                 <Combobox
                     id="distrito_id"

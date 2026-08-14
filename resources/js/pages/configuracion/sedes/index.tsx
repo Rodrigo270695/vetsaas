@@ -1,4 +1,4 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import {
     Building2,
     CheckCircle2,
@@ -12,7 +12,7 @@ import {
     UserCircle,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Can } from '@/components/can';
 import {
@@ -165,6 +165,43 @@ export default function Index({
         () => setModal({ type: 'bulk-delete' }),
         [],
     );
+
+    const page = usePage<{
+        clinic_location_gate?: {
+            needs_sede: boolean;
+            needs_sede_geo: boolean;
+            can_edit_sedes: boolean;
+        } | null;
+    }>();
+    const locationGate = page.props.clinic_location_gate;
+    const autoOpenedRef = useRef(false);
+
+    useEffect(() => {
+        if (autoOpenedRef.current || !locationGate?.can_edit_sedes) {
+            return;
+        }
+        if (locationGate.needs_sede && canCreate) {
+            autoOpenedRef.current = true;
+            setModal({ type: 'create' });
+            return;
+        }
+        if (locationGate.needs_sede_geo && canUpdate) {
+            const incomplete = paginated.data.find(
+                (s) => s.activa && (s.distrito_id === null || s.distrito_id === undefined),
+            );
+            if (incomplete) {
+                autoOpenedRef.current = true;
+                setModal({ type: 'edit', sede: incomplete });
+            }
+        }
+    }, [
+        locationGate?.needs_sede,
+        locationGate?.needs_sede_geo,
+        locationGate?.can_edit_sedes,
+        canCreate,
+        canUpdate,
+        paginated.data,
+    ]);
 
     /** Selección de filas (limpia automáticamente al cambiar de página). */
     const selection = useRowSelection({

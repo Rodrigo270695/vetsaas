@@ -122,6 +122,38 @@ class HandleInertiaRequests extends Middleware
             'clinic_branding' => $tenantContext === null
                 ? null
                 : $this->resolveClinicBranding(),
+            'clinic_location_gate' => $skipHeavySharedProps || $tenantContext === null
+                ? null
+                : static function () use ($tenantContext, $user): ?array {
+                    if (! ($user instanceof User)) {
+                        return null;
+                    }
+
+                    try {
+                        $onboarding = app(\App\Services\Onboarding\ClinicOnboardingService::class);
+                        $tenant = $tenantContext->tenant;
+                        $tenantId = (string) $tenant->id;
+                        $needsSede = ! $onboarding->hasAnyActiveSede($tenantId);
+                        $needsSedeGeo = ! $needsSede && $onboarding->hasActiveSedeMissingGeo($tenantId);
+                        $canEditSedes = $user->can('sedes.create') || $user->can('sedes.update');
+                        $needsGps = $tenant->geo_consent_at === null
+                            && $tenant->geo_denied_at === null
+                            && $canEditSedes;
+
+                        return [
+                            'needs_sede' => $needsSede,
+                            'needs_sede_geo' => $needsSedeGeo,
+                            'needs_gps' => $needsGps,
+                            'gps_captured' => $tenant->geo_lat !== null && $tenant->geo_lng !== null,
+                            'can_edit_sedes' => $canEditSedes,
+                            'sedes_url' => '/configuracion/sedes',
+                        ];
+                    } catch (Throwable $e) {
+                        report($e);
+
+                        return null;
+                    }
+                },
             'tenancy' => [
                 'root_domain' => TenantSubdomainUrl::rootDomain(),
                 'scheme' => TenantSubdomainUrl::scheme(),

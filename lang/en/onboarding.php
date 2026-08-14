@@ -3,6 +3,7 @@
 return [
 
     'requires_sede' => 'Create at least one active branch before using the rest of the system.',
+    'requires_sede_geo' => 'Complete department, province and district on your active branch. Required to continue.',
 
     'banner' => [
         'title' => 'Set up your clinic',

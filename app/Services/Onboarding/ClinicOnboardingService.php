@@ -73,6 +73,29 @@ class ClinicOnboardingService
             ->where('tenant_id', $tenantId)
             ->where('activa', true)
             ->whereNull('deleted_at')
+            ->whereNotNull('distrito_id')
+            ->exists();
+    }
+
+    /**
+     * Hay al menos una sede activa, pero alguna (o todas) sin ubicación geo.
+     */
+    public function hasActiveSedeMissingGeo(string $tenantId): bool
+    {
+        return Sede::query()
+            ->where('tenant_id', $tenantId)
+            ->where('activa', true)
+            ->whereNull('deleted_at')
+            ->whereNull('distrito_id')
+            ->exists();
+    }
+
+    public function hasAnyActiveSede(string $tenantId): bool
+    {
+        return Sede::query()
+            ->where('tenant_id', $tenantId)
+            ->where('activa', true)
+            ->whereNull('deleted_at')
             ->exists();
     }
 

@@ -3,6 +3,7 @@
 return [
 
     'requires_sede' => 'Crea al menos una sede activa para usar el resto del sistema.',
+    'requires_sede_geo' => 'Completa departamento, provincia y distrito en tu sede activa. Es obligatorio para continuar.',
 
     'banner' => [
         'title' => 'Configura tu clínica',

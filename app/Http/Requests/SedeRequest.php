@@ -33,7 +33,7 @@ class SedeRequest extends FormRequest
             // departamento → provincia → distrito). Los strings se
             // hidratan en el controller desde la BD para mantener el
             // cache denormalizado consistente.
-            'distrito_id' => ['nullable', 'integer', 'exists:distritos,id'],
+            'distrito_id' => ['required', 'integer', 'exists:distritos,id'],
             'activa' => ['required', 'boolean'],
         ];
     }
@@ -45,7 +45,7 @@ class SedeRequest extends FormRequest
             'direccion' => 'dirección',
             'telefono' => 'teléfono',
             'email' => 'correo',
-            'distrito_id' => 'distrito',
+            'distrito_id' => 'distrito (ubicación)',
             'activa' => 'estado',
         ];
     }

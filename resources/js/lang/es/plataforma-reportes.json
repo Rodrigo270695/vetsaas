@@ -1,6 +1,6 @@
 {
     "title": "Reportes de marketing",
-    "subtitle": "Dónde están tus clínicas de pago y free para decidir Facebook Ads y crecimiento.",
+    "subtitle": "Dónde están tus clínicas de pago y free (según sedes + GPS) para Facebook Ads y crecimiento.",
     "kpis": {
         "total": "Clínicas vivas",
         "paid": "De pago",
@@ -19,13 +19,15 @@
     },
     "sections": {
         "paid": "Clínicas de pago",
-        "paid_hint": "Suscripción en plan distinto de Free (trial, active, grace o suspended).",
+        "paid_hint": "Suscripción en plan distinto de Free. Ubicación tomada de sedes activas.",
         "free": "Clínicas free",
-        "free_hint": "Plan Free o sin suscripción viva. Ideales para convertir con Ads.",
+        "free_hint": "Plan Free o sin suscripción viva. Ubicación tomada de sedes activas.",
         "comparativo": "Comparativo por departamento",
         "comparativo_hint": "Pago vs free en los departamentos con más clínicas.",
         "heatmap": "Puntos calientes",
-        "heatmap_hint": "Intensidad relativa por departamento (más oscuro = más clínicas).",
+        "heatmap_hint": "Intensidad relativa por departamento según sedes (más oscuro = más clínicas).",
+        "mapa": "Mapa Leaflet",
+        "mapa_hint": "Marcadores pago/free con logo. GPS si aceptaron ubicación; si no, centroide del departamento.",
         "flujo": "Flujo de suscripciones de pago",
         "flujo_hint": "Embudo operativo: trial → active → grace → suspended.",
         "crecimiento": "Altas mensuales",
