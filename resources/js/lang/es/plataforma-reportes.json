@@ -37,6 +37,13 @@
         "geo": "Con ubicación",
         "pct_paid": "% pago"
     },
+    "filters": {
+        "label": "Mostrar segmentos",
+        "paid": "De pago",
+        "free": "Free",
+        "hint": "Por defecto solo pago. Marca Free si también quieres verlo.",
+        "empty": "Marca De pago y/o Free para ver los bloques del reporte."
+    },
     "insights": {
         "title": "Lectura rápida",
         "top_paid": "Departamento líder en pago",

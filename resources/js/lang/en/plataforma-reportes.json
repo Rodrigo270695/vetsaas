@@ -37,6 +37,13 @@
         "geo": "With location",
         "pct_paid": "% paid"
     },
+    "filters": {
+        "label": "Show segments",
+        "paid": "Paid",
+        "free": "Free",
+        "hint": "Paid is on by default. Check Free if you also want that segment.",
+        "empty": "Check Paid and/or Free to show report sections."
+    },
     "insights": {
         "title": "Quick read",
         "top_paid": "Top paid department",

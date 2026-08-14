@@ -9,7 +9,7 @@ import {
     Wallet,
     type LucideIcon,
 } from 'lucide-react';
-import { type ReactNode, useMemo } from 'react';
+import { type ReactNode, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     Area,
@@ -35,6 +35,8 @@ import {
 } from '@/components/dashboard/dashboard-kpi-grid';
 import { PageHeader, StatBadge } from '@/components/data-page';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
 
@@ -349,6 +351,9 @@ function SegmentSection({
 export default function Index({ snapshot }: Props) {
     const { t } = useTranslation(['plataforma-reportes', 'common']);
     const { kpis, insights } = snapshot;
+    const [showPaid, setShowPaid] = useState(true);
+    const [showFree, setShowFree] = useState(false);
+    const hasSegmentFilter = showPaid || showFree;
 
     const kpiItems = useMemo<DashboardKpiItem[]>(
         () => [
@@ -365,7 +370,7 @@ export default function Index({ snapshot }: Props) {
                 value: kpis.paid,
                 icon: Wallet,
                 accent: 'emerald',
-                highlight: true,
+                highlight: showPaid,
             },
             {
                 key: 'free',
@@ -373,6 +378,7 @@ export default function Index({ snapshot }: Props) {
                 value: kpis.free,
                 icon: Gift,
                 accent: 'sky',
+                highlight: showFree,
             },
             {
                 key: 'pct',
@@ -382,7 +388,7 @@ export default function Index({ snapshot }: Props) {
                 accent: 'amber',
             },
         ],
-        [kpis, t],
+        [kpis, showFree, showPaid, t],
     );
 
     const flujoData = snapshot.flujo_suscripciones.labels.map((label, i) => ({
@@ -429,29 +435,72 @@ export default function Index({ snapshot }: Props) {
                     }
                 />
 
+                <div className="flex flex-wrap items-center gap-4 rounded-xl border border-border/70 bg-card px-4 py-3 shadow-sm">
+                    <p className="text-sm font-medium">{t('filters.label')}</p>
+                    <div className="flex items-center gap-2">
+                        <Checkbox
+                            id="reportes-filter-paid"
+                            checked={showPaid}
+                            onCheckedChange={(v) => setShowPaid(v === true)}
+                        />
+                        <Label
+                            htmlFor="reportes-filter-paid"
+                            className="cursor-pointer text-sm font-normal"
+                        >
+                            {t('filters.paid')}
+                        </Label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Checkbox
+                            id="reportes-filter-free"
+                            checked={showFree}
+                            onCheckedChange={(v) => setShowFree(v === true)}
+                        />
+                        <Label
+                            htmlFor="reportes-filter-free"
+                            className="cursor-pointer text-sm font-normal"
+                        >
+                            {t('filters.free')}
+                        </Label>
+                    </div>
+                    <p className="w-full text-xs text-muted-foreground sm:ml-auto sm:w-auto">
+                        {t('filters.hint')}
+                    </p>
+                </div>
+
                 <DashboardKpiGrid items={kpiItems} />
 
                 <div className="grid gap-3 rounded-xl border border-amber-200/60 bg-gradient-to-br from-amber-50/80 to-card p-4 shadow-sm dark:from-amber-950/20 md:grid-cols-4">
-                    <Insight
-                        label={t('insights.top_paid')}
-                        value={
-                            insights.top_paid_departamento ?? t('insights.none')
-                        }
-                        icon={Wallet}
-                    />
-                    <Insight
-                        label={t('insights.top_free')}
-                        value={
-                            insights.top_free_departamento ?? t('insights.none')
-                        }
-                        icon={Gift}
-                    />
-                    <Insight
-                        label={t('insights.ads')}
-                        value={insights.oportunidad_ads ?? t('insights.none')}
-                        icon={Megaphone}
-                        emphasize
-                    />
+                    {showPaid ? (
+                        <Insight
+                            label={t('insights.top_paid')}
+                            value={
+                                insights.top_paid_departamento ??
+                                t('insights.none')
+                            }
+                            icon={Wallet}
+                        />
+                    ) : null}
+                    {showFree ? (
+                        <Insight
+                            label={t('insights.top_free')}
+                            value={
+                                insights.top_free_departamento ??
+                                t('insights.none')
+                            }
+                            icon={Gift}
+                        />
+                    ) : null}
+                    {showFree ? (
+                        <Insight
+                            label={t('insights.ads')}
+                            value={
+                                insights.oportunidad_ads ?? t('insights.none')
+                            }
+                            icon={Megaphone}
+                            emphasize
+                        />
+                    ) : null}
                     <Insight
                         label={t('insights.cobertura')}
                         value={`${insights.cobertura_geo_pct}%`}
@@ -459,33 +508,43 @@ export default function Index({ snapshot }: Props) {
                     />
                 </div>
 
-                <SegmentSection
-                    title={t('sections.paid')}
-                    hint={t('sections.paid_hint')}
-                    icon={Wallet}
-                    accent="emerald"
-                    block={snapshot.paid}
-                    emptyLabel={t('chart.empty')}
-                    tableLabels={{
-                        departamento: t('table.departamento'),
-                        total: t('table.total'),
-                        pct: t('table.pct'),
-                    }}
-                />
+                {!hasSegmentFilter ? (
+                    <div className="rounded-xl border border-dashed border-border/80 bg-muted/20 px-4 py-8 text-center text-sm text-muted-foreground">
+                        {t('filters.empty')}
+                    </div>
+                ) : null}
 
-                <SegmentSection
-                    title={t('sections.free')}
-                    hint={t('sections.free_hint')}
-                    icon={Gift}
-                    accent="sky"
-                    block={snapshot.free}
-                    emptyLabel={t('chart.empty')}
-                    tableLabels={{
-                        departamento: t('table.departamento'),
-                        total: t('table.total'),
-                        pct: t('table.pct'),
-                    }}
-                />
+                {showPaid ? (
+                    <SegmentSection
+                        title={t('sections.paid')}
+                        hint={t('sections.paid_hint')}
+                        icon={Wallet}
+                        accent="emerald"
+                        block={snapshot.paid}
+                        emptyLabel={t('chart.empty')}
+                        tableLabels={{
+                            departamento: t('table.departamento'),
+                            total: t('table.total'),
+                            pct: t('table.pct'),
+                        }}
+                    />
+                ) : null}
+
+                {showFree ? (
+                    <SegmentSection
+                        title={t('sections.free')}
+                        hint={t('sections.free_hint')}
+                        icon={Gift}
+                        accent="sky"
+                        block={snapshot.free}
+                        emptyLabel={t('chart.empty')}
+                        tableLabels={{
+                            departamento: t('table.departamento'),
+                            total: t('table.total'),
+                            pct: t('table.pct'),
+                        }}
+                    />
+                ) : null}
 
                 <section className="space-y-4">
                     <div>
@@ -541,25 +600,30 @@ export default function Index({ snapshot }: Props) {
                                             />
                                             <Tooltip />
                                             <Legend />
-                                            <Bar
-                                                dataKey="paid"
-                                                name={t('chart.paid')}
-                                                stackId="a"
-                                                fill={PAID_COLOR}
-                                            />
-                                            <Bar
-                                                dataKey="free"
-                                                name={t('chart.free')}
-                                                stackId="a"
-                                                fill={FREE_COLOR}
-                                                radius={[4, 4, 0, 0]}
-                                            />
+                                            {showPaid ? (
+                                                <Bar
+                                                    dataKey="paid"
+                                                    name={t('chart.paid')}
+                                                    stackId="a"
+                                                    fill={PAID_COLOR}
+                                                />
+                                            ) : null}
+                                            {showFree ? (
+                                                <Bar
+                                                    dataKey="free"
+                                                    name={t('chart.free')}
+                                                    stackId="a"
+                                                    fill={FREE_COLOR}
+                                                    radius={[4, 4, 0, 0]}
+                                                />
+                                            ) : null}
                                         </BarChart>
                                     )}
                                 </DashboardChartShell>
                             )}
                         </DashboardChartCard>
 
+                        {showPaid ? (
                         <DashboardChartCard
                             title={t('sections.flujo')}
                             description={t('sections.flujo_hint')}
@@ -594,6 +658,7 @@ export default function Index({ snapshot }: Props) {
                                 </DashboardChartShell>
                             )}
                         </DashboardChartCard>
+                        ) : null}
                     </div>
                 </section>
 
@@ -620,27 +685,32 @@ export default function Index({ snapshot }: Props) {
                                     <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
                                     <Tooltip />
                                     <Legend />
-                                    <Area
-                                        type="monotone"
-                                        dataKey="paid"
-                                        name={t('chart.paid')}
-                                        stroke={PAID_COLOR}
-                                        fill={PAID_COLOR}
-                                        fillOpacity={0.25}
-                                    />
-                                    <Area
-                                        type="monotone"
-                                        dataKey="free"
-                                        name={t('chart.free')}
-                                        stroke={FREE_COLOR}
-                                        fill={FREE_COLOR}
-                                        fillOpacity={0.2}
-                                    />
+                                    {showPaid ? (
+                                        <Area
+                                            type="monotone"
+                                            dataKey="paid"
+                                            name={t('chart.paid')}
+                                            stroke={PAID_COLOR}
+                                            fill={PAID_COLOR}
+                                            fillOpacity={0.25}
+                                        />
+                                    ) : null}
+                                    {showFree ? (
+                                        <Area
+                                            type="monotone"
+                                            dataKey="free"
+                                            name={t('chart.free')}
+                                            stroke={FREE_COLOR}
+                                            fill={FREE_COLOR}
+                                            fillOpacity={0.2}
+                                        />
+                                    ) : null}
                                 </AreaChart>
                             )}
                         </DashboardChartShell>
                     </DashboardChartCard>
 
+                    {showPaid ? (
                     <DashboardChartCard
                         title={t('sections.ingresos')}
                         description={t('sections.ingresos_hint')}
@@ -678,9 +748,11 @@ export default function Index({ snapshot }: Props) {
                             )}
                         </DashboardChartShell>
                     </DashboardChartCard>
+                    ) : null}
                 </section>
 
                 <section className="grid gap-4 md:grid-cols-3">
+                    {showPaid ? (
                     <DashboardChartCard
                         title={t('sections.planes')}
                         icon={Wallet}
@@ -720,6 +792,7 @@ export default function Index({ snapshot }: Props) {
                             </DashboardChartShell>
                         )}
                     </DashboardChartCard>
+                    ) : null}
 
                     <DashboardChartCard
                         title={t('sections.canales')}
@@ -751,19 +824,23 @@ export default function Index({ snapshot }: Props) {
                                         <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
                                         <Tooltip />
                                         <Legend />
-                                        <Bar
-                                            dataKey="paid"
-                                            name={t('chart.paid')}
-                                            stackId="c"
-                                            fill={PAID_COLOR}
-                                        />
-                                        <Bar
-                                            dataKey="free"
-                                            name={t('chart.free')}
-                                            stackId="c"
-                                            fill={FREE_COLOR}
-                                            radius={[4, 4, 0, 0]}
-                                        />
+                                        {showPaid ? (
+                                            <Bar
+                                                dataKey="paid"
+                                                name={t('chart.paid')}
+                                                stackId="c"
+                                                fill={PAID_COLOR}
+                                            />
+                                        ) : null}
+                                        {showFree ? (
+                                            <Bar
+                                                dataKey="free"
+                                                name={t('chart.free')}
+                                                stackId="c"
+                                                fill={FREE_COLOR}
+                                                radius={[4, 4, 0, 0]}
+                                            />
+                                        ) : null}
                                     </BarChart>
                                 )}
                             </DashboardChartShell>
