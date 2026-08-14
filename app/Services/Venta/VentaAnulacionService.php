@@ -121,12 +121,9 @@ final class VentaAnulacionService
 
     private function liberarVinculos(Venta $venta): void
     {
-        if ($venta->consulta_cargo_id !== null) {
-            ConsultaCargo::query()
-                ->whereKey($venta->consulta_cargo_id)
-                ->where('venta_id', $venta->id)
-                ->update(['venta_id' => null]);
-        }
+        ConsultaCargo::query()
+            ->where('venta_id', $venta->id)
+            ->update(['venta_id' => null]);
 
         GroomingTurno::query()
             ->where('venta_id', $venta->id)

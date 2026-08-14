@@ -1,14 +1,16 @@
 import { router } from '@inertiajs/react';
 import { BedDouble, ClipboardList, Loader2, Scissors, Stethoscope, Syringe } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
     DialogContent,
     DialogDescription,
+    DialogFooter,
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
@@ -98,7 +100,7 @@ function formatWhen(iso: string | null, locale: string): string {
     }
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) {
-        return '—';
+        return iso;
     }
 
     return d.toLocaleString(locale, {
@@ -109,16 +111,35 @@ function formatWhen(iso: string | null, locale: string): string {
     });
 }
 
+function formatMoney(amount: string, currency: string, locale: string): string {
+    const n = Number(amount);
+    if (Number.isNaN(n)) {
+        return `${currency} ${amount}`;
+    }
+    try {
+        return new Intl.NumberFormat(locale, {
+            style: 'currency',
+            currency: currency === 'USD' ? 'USD' : 'PEN',
+        }).format(n);
+    } catch {
+        return `${currency} ${n.toFixed(2)}`;
+    }
+}
+
 export function PrecuentasPendientesModal({ open, onOpenChange, listUrl, disabled = false }: Props) {
     const { t, i18n } = useTranslation(['caja', 'common']);
     const [rows, setRows] = useState<PrecuentaPendiente[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [navigatingId, setNavigatingId] = useState<string | null>(null);
+    const [selectionHint, setSelectionHint] = useState<string | null>(null);
+    const [selectedIds, setSelectedIds] = useState<string[]>([]);
+    const [navigating, setNavigating] = useState(false);
 
     const load = useCallback(async () => {
         setLoading(true);
         setError(null);
+        setSelectionHint(null);
+        setSelectedIds([]);
         try {
             const data = await fetchPrecuentas(listUrl);
             setRows(data);
@@ -137,14 +158,80 @@ export function PrecuentasPendientesModal({ open, onOpenChange, listUrl, disable
         void load();
     }, [open, load]);
 
-    const cobrar = (row: PrecuentaPendiente) => {
-        if (disabled || navigatingId) {
+    const selectedRows = useMemo(
+        () => rows.filter((r) => selectedIds.includes(r.id)),
+        [rows, selectedIds],
+    );
+
+    const selectedTotal = useMemo(
+        () => selectedRows.reduce((sum, r) => sum + (Number(r.total) || 0), 0),
+        [selectedRows],
+    );
+
+    const selectedCurrency = selectedRows[0]?.moneda ?? 'PEN';
+
+    const toggleRow = (row: PrecuentaPendiente) => {
+        if (disabled || navigating) {
             return;
         }
-        setNavigatingId(row.id);
+        setSelectionHint(null);
+
+        setSelectedIds((prev) => {
+            if (prev.includes(row.id)) {
+                return prev.filter((id) => id !== row.id);
+            }
+
+            if (prev.length === 0) {
+                return [row.id];
+            }
+
+            const first = rows.find((r) => r.id === prev[0]);
+            const firstProp = first?.propietario_id ?? null;
+            const nextProp = row.propietario_id ?? null;
+
+            if (!firstProp || !nextProp || firstProp !== nextProp) {
+                setSelectionHint(t('caja:ventas.create.precuentas_mismo_propietario'));
+
+                return prev;
+            }
+
+            return [...prev, row.id];
+        });
+    };
+
+    const cobrarUno = (row: PrecuentaPendiente) => {
+        if (disabled || navigating) {
+            return;
+        }
+        setNavigating(true);
         router.visit(row.url_cobrar, {
-            onFinish: () => setNavigatingId(null),
-            onError: () => setNavigatingId(null),
+            onFinish: () => setNavigating(false),
+            onError: () => setNavigating(false),
+        });
+    };
+
+    const cobrarSeleccion = () => {
+        if (disabled || navigating || selectedIds.length === 0) {
+            return;
+        }
+
+        if (selectedIds.length === 1) {
+            const row = rows.find((r) => r.id === selectedIds[0]);
+            if (row) {
+                cobrarUno(row);
+            }
+
+            return;
+        }
+
+        setNavigating(true);
+        const params = new URLSearchParams();
+        for (const id of selectedIds) {
+            params.append('cargo_ids[]', id);
+        }
+        router.visit(`/caja/ventas/desde-cargos?${params.toString()}`, {
+            onFinish: () => setNavigating(false),
+            onError: () => setNavigating(false),
         });
     };
 
@@ -180,56 +267,83 @@ export function PrecuentasPendientesModal({ open, onOpenChange, listUrl, disable
                         </p>
                     ) : (
                         <div className="max-h-[min(50vh,22rem)] overflow-y-auto px-2">
+                            {selectionHint ? (
+                                <p className="mb-2 rounded-md bg-amber-500/10 px-2 py-1.5 text-xs text-amber-800 dark:text-amber-200">
+                                    {selectionHint}
+                                </p>
+                            ) : null}
                             <ul className="flex flex-col gap-1.5 pb-2">
                                 {rows.map((row) => {
-                                    const busy = navigatingId === row.id;
+                                    const checked = selectedIds.includes(row.id);
                                     const ui = ORIGEN_UI[row.origen] ?? ORIGEN_UI.consulta;
                                     const Icon = ui.icon;
                                     const origenLabel = t(ui.i18nKey, { defaultValue: row.origen_label });
 
                                     return (
                                         <li key={row.id}>
-                                            <button
-                                                type="button"
-                                                disabled={disabled || navigatingId !== null}
-                                                onClick={() => cobrar(row)}
-                                                onDoubleClick={() => cobrar(row)}
-                                                className="flex w-full items-start gap-3 rounded-lg border border-border/60 bg-muted/20 px-3 py-2.5 text-left transition-colors hover:bg-muted/50 disabled:opacity-60"
+                                            <div
+                                                role="button"
+                                                tabIndex={0}
+                                                onClick={() => toggleRow(row)}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter' || e.key === ' ') {
+                                                        e.preventDefault();
+                                                        toggleRow(row);
+                                                    }
+                                                }}
+                                                className={cn(
+                                                    'flex w-full cursor-pointer items-start gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors',
+                                                    checked
+                                                        ? 'border-primary/40 bg-primary/5'
+                                                        : 'border-border/60 bg-muted/20 hover:bg-muted/50',
+                                                    (disabled || navigating) && 'opacity-60',
+                                                )}
                                             >
+                                                <Checkbox
+                                                    checked={checked}
+                                                    disabled={disabled || navigating}
+                                                    onCheckedChange={() => toggleRow(row)}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    className="mt-1"
+                                                    aria-label={t('caja:ventas.create.precuentas_seleccionar')}
+                                                />
                                                 <div className="min-w-0 flex-1">
                                                     <div className="flex flex-wrap items-center gap-1.5">
                                                         <Badge
                                                             variant="outline"
-                                                            className={cn(
-                                                                'gap-1 border text-[10px] font-semibold',
-                                                                ui.badgeClass,
-                                                            )}
+                                                            className={cn('gap-1 text-[0.65rem]', ui.badgeClass)}
                                                         >
                                                             <Icon className="size-3" aria-hidden />
                                                             {origenLabel}
                                                         </Badge>
-                                                        <span className="text-[10px] text-muted-foreground">
+                                                        <span className="text-[0.7rem] text-muted-foreground">
                                                             {formatWhen(row.confirmado_at, i18n.language)}
                                                         </span>
                                                     </div>
-                                                    <p className="mt-1 truncate text-sm font-medium">
+                                                    <p className="mt-1 truncate text-sm font-medium text-foreground">
                                                         {row.paciente_nombre ?? '—'}
                                                     </p>
                                                     <p className="truncate text-xs text-muted-foreground">
                                                         {row.propietario_nombre ?? '—'}
                                                     </p>
-                                                </div>
-                                                <div className="shrink-0 text-right">
-                                                    <p className="text-sm font-semibold tabular-nums">
-                                                        {row.moneda} {Number(row.total).toFixed(2)}
-                                                    </p>
-                                                    <p className="text-[10px] text-muted-foreground">
-                                                        {busy
+                                                    <button
+                                                        type="button"
+                                                        className="mt-1 text-xs font-medium text-primary hover:underline disabled:opacity-50"
+                                                        disabled={disabled || navigating}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            cobrarUno(row);
+                                                        }}
+                                                    >
+                                                        {navigating
                                                             ? t('caja:ventas.create.precuentas_abriendo')
                                                             : t('caja:ventas.create.precuentas_cobrar')}
-                                                    </p>
+                                                    </button>
                                                 </div>
-                                            </button>
+                                                <div className="shrink-0 text-right text-sm font-semibold tabular-nums">
+                                                    {formatMoney(row.total, row.moneda, i18n.language)}
+                                                </div>
+                                            </div>
                                         </li>
                                     );
                                 })}
@@ -237,6 +351,38 @@ export function PrecuentasPendientesModal({ open, onOpenChange, listUrl, disable
                         </div>
                     )}
                 </div>
+
+                {!loading && !error && rows.length > 0 ? (
+                    <DialogFooter className="shrink-0 gap-2 border-t border-border/50 px-4 py-3 sm:justify-between">
+                        <p className="text-xs text-muted-foreground">
+                            {selectedIds.length === 0
+                                ? t('caja:ventas.create.precuentas_seleccion_hint')
+                                : t('caja:ventas.create.precuentas_seleccion_resumen', {
+                                      count: selectedIds.length,
+                                      total: formatMoney(
+                                          String(selectedTotal),
+                                          selectedCurrency,
+                                          i18n.language,
+                                      ),
+                                  })}
+                        </p>
+                        <Button
+                            type="button"
+                            disabled={disabled || navigating || selectedIds.length === 0}
+                            onClick={cobrarSeleccion}
+                            className="gap-2"
+                        >
+                            {navigating ? (
+                                <Loader2 className="size-4 animate-spin" aria-hidden />
+                            ) : null}
+                            {selectedIds.length <= 1
+                                ? t('caja:ventas.create.precuentas_cobrar')
+                                : t('caja:ventas.create.precuentas_cobrar_n', {
+                                      count: selectedIds.length,
+                                  })}
+                        </Button>
+                    </DialogFooter>
+                ) : null}
             </DialogContent>
         </Dialog>
     );

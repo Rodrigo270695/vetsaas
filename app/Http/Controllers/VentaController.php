@@ -460,6 +460,72 @@ class VentaController extends Controller
         return Inertia::render('caja/ventas/create', $this->buildCreatePayload($miSesion, $sedeNombre, $clinic, $tenantModel, $propietarios));
     }
 
+    public function createDesdeCargos(Request $request, VentaDesdeCargoPrefill $prefill, TenantManager $tenants): Response|RedirectResponse
+    {
+        $user = $request->user();
+        abort_if($user === null, 403);
+        abort_unless($user->can('ventas.create'), 403);
+
+        $raw = $request->query('cargo_ids', $request->query('cargo_id'));
+        $cargoIds = [];
+        if (is_array($raw)) {
+            foreach ($raw as $id) {
+                if (is_string($id) && $id !== '') {
+                    $cargoIds[] = $id;
+                }
+            }
+        } elseif (is_string($raw) && $raw !== '') {
+            $cargoIds = array_values(array_filter(array_map('trim', explode(',', $raw))));
+        }
+
+        if ($cargoIds === []) {
+            return redirect()
+                ->route('caja.ventas.create')
+                ->with('error', __('caja.ventas.multi.min_cargos'));
+        }
+
+        // Un solo cargo: reutilizar el flujo unitario si hay URL dedicada no es necesario;
+        // buildFromCargos funciona también con 1 ítem.
+        try {
+            $desdeCargo = $prefill->buildFromCargos($cargoIds);
+        } catch (ValidationException $e) {
+            $first = collect($e->errors())->flatten()->first();
+            $message = is_string($first) ? $first : __('caja.ventas.desde_cargo.validation.cargo_invalido');
+
+            return redirect()
+                ->route('caja.ventas.create')
+                ->with('error', $message);
+        }
+
+        $miSesion = CajaSesion::query()
+            ->where('estado', CajaSesion::ESTADO_ABIERTA)
+            ->where('opened_by_id', Auth::id())
+            ->first();
+
+        $sedeNombre = $miSesion !== null
+            ? $this->resolveSedeNombre($miSesion->sede_id)
+            : null;
+
+        $clinic = ClinicSetting::current();
+        $tenantModel = $tenants->current()?->tenant;
+
+        $propietarios = Propietario::query()
+            ->where('activo', true)
+            ->orderByDesc('updated_at')
+            ->limit(120)
+            ->get(['id', 'nombres', 'apellidos', 'razon_social', 'numero_documento'])
+            ->map(fn (Propietario $pr): array => [
+                'id' => $pr->id,
+                'label' => $pr->razon_social ?: trim(implode(' ', array_filter([$pr->nombres, $pr->apellidos]))),
+                'doc' => $pr->numero_documento,
+            ]);
+
+        return Inertia::render('caja/ventas/create', [
+            ...$this->buildCreatePayload($miSesion, $sedeNombre, $clinic, $tenantModel, $propietarios),
+            'desde_cargo' => $desdeCargo,
+        ]);
+    }
+
     public function createDesdeConsulta(Request $request, Consulta $consulta, VentaDesdeCargoPrefill $prefill, TenantManager $tenants): Response|RedirectResponse
     {
         $user = $request->user();

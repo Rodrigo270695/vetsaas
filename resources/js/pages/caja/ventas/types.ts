@@ -114,8 +114,11 @@ export type LineaInicialDesdeCargo = {
 export type DesdeCargoPrefill = {
     consulta_id: string | null;
     consulta_cargo_id: string | null;
+    /** Varios cargos en un solo comprobante (mismo propietario). */
+    consulta_cargo_ids?: string[] | null;
     grooming_turno_id?: string | null;
     hotel_estancia_id?: string | null;
+    vacuna_aplicada_id?: string | null;
     propietario_id: string;
     paciente_id: string | null;
     paciente_nombre: string | null;

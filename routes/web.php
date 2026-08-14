@@ -824,6 +824,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:ventas.create')
             ->get('ventas/precuentas-pendientes', [VentaController::class, 'precuentasPendientes'])
             ->name('ventas.precuentas-pendientes');
+        Route::middleware('permission:ventas.create')
+            ->get('ventas/desde-cargos', [VentaController::class, 'createDesdeCargos'])
+            ->name('ventas.create-desde-cargos');
         Route::middleware(['permission:ventas.create', 'permission:consulta-cargos.cobrar'])
             ->get('ventas/desde-consulta/{consulta}', [VentaController::class, 'createDesdeConsulta'])
             ->name('ventas.create-desde-consulta');

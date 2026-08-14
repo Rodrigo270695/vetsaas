@@ -73,6 +73,11 @@ return [
                 'consulta_no_coincide' => 'The consultation does not match the clinical charge.',
             ],
         ],
+        'multi' => [
+            'mismo_propietario' => 'You can only combine pre-invoices from the same owner.',
+            'max_cargos' => 'You can combine at most 30 pre-invoices in one receipt.',
+            'min_cargos' => 'Select at least one pre-invoice to collect.',
+        ],
         'flash' => [
             'registrada' => 'Sale :numero recorded successfully.',
             'whatsapp_enviado' => 'Ticket sent via WhatsApp.',

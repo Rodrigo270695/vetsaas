@@ -77,6 +77,11 @@ return [
                 'consulta_no_coincide' => 'La consulta no coincide con el cargo clínico.',
             ],
         ],
+        'multi' => [
+            'mismo_propietario' => 'Solo puedes combinar precuentas del mismo propietario.',
+            'max_cargos' => 'Puedes combinar como máximo 30 precuentas en un comprobante.',
+            'min_cargos' => 'Selecciona al menos una precuenta para cobrar.',
+        ],
         'flash' => [
             'registrada' => 'Venta :numero registrada correctamente.',
             'whatsapp_enviado' => 'Ticket enviado por WhatsApp.',

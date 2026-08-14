@@ -720,4 +720,282 @@ final class VentaDesdeCargoPrefill
             'lineas_iniciales' => $lineasIniciales,
         ];
     }
+
+    /**
+     * Combina varias pre-cuentas confirmadas (mismo propietario) en un solo prefill de venta.
+     *
+     * @param  list<string>  $cargoIds
+     * @return array{
+     *     consulta_id: ?string,
+     *     consulta_cargo_id: string,
+     *     consulta_cargo_ids: list<string>,
+     *     grooming_turno_id: ?string,
+     *     hotel_estancia_id: ?string,
+     *     propietario_id: string,
+     *     paciente_id: ?string,
+     *     paciente_nombre: ?string,
+     *     consulta_atendido_at: ?string,
+     *     cargo_total: string,
+     *     adelanto_monto: ?string,
+     *     adelanto_venta_numero: ?string,
+     *     lineas_iniciales: list<array<string, mixed>>,
+     * }
+     */
+    public function buildFromCargos(array $cargoIds): array
+    {
+        $ids = array_values(array_unique(array_filter(
+            $cargoIds,
+            static fn ($id): bool => is_string($id) && $id !== '',
+        )));
+
+        if ($ids === []) {
+            throw ValidationException::withMessages([
+                'cargo_ids' => __('caja.ventas.desde_cargo.validation.sin_cargo'),
+            ]);
+        }
+
+        if (count($ids) > 30) {
+            throw ValidationException::withMessages([
+                'cargo_ids' => __('caja.ventas.multi.max_cargos'),
+            ]);
+        }
+
+        $sesion = CajaSesion::query()
+            ->where('estado', CajaSesion::ESTADO_ABIERTA)
+            ->where('opened_by_id', Auth::id())
+            ->first();
+
+        if ($sesion === null) {
+            throw ValidationException::withMessages([
+                'caja' => __('caja.ventas.desde_cargo.validation.sin_sesion'),
+            ]);
+        }
+
+        /** @var \Illuminate\Database\Eloquent\Collection<int, ConsultaCargo> $cargos */
+        $cargos = ConsultaCargo::query()
+            ->whereIn('id', $ids)
+            ->with([
+                'lineas' => fn ($q) => $q->orderBy('orden'),
+                'consulta.historiaClinica.paciente' => fn ($q) => $q->withTrashed(),
+                'consulta.historiaClinica.paciente.propietario' => fn ($q) => $q->withTrashed(),
+                'groomingTurno.paciente' => fn ($q) => $q->withTrashed(),
+                'groomingTurno.paciente.propietario' => fn ($q) => $q->withTrashed(),
+                'groomingTurno.adelantoVenta:id,numero',
+                'hotelEstancia.paciente' => fn ($q) => $q->withTrashed(),
+                'hotelEstancia.paciente.propietario' => fn ($q) => $q->withTrashed(),
+                'internamiento.paciente' => fn ($q) => $q->withTrashed(),
+                'internamiento.paciente.propietario' => fn ($q) => $q->withTrashed(),
+                'vacunaAplicada.paciente' => fn ($q) => $q->withTrashed(),
+                'vacunaAplicada.paciente.propietario' => fn ($q) => $q->withTrashed(),
+            ])
+            ->get()
+            ->keyBy('id');
+
+        if ($cargos->count() !== count($ids)) {
+            throw ValidationException::withMessages([
+                'cargo_ids' => __('caja.ventas.desde_cargo.validation.cargo_invalido'),
+            ]);
+        }
+
+        $propietarioId = null;
+        $pacienteIds = [];
+        $pacienteNombres = [];
+        $consultaIds = [];
+        $groomingIds = [];
+        $hotelIds = [];
+        $adelantoTotal = 0.0;
+        $adelantoNumeros = [];
+        $total = 0.0;
+        $atendidoAt = null;
+        $lineasIniciales = [];
+        $productoIds = [];
+
+        foreach ($ids as $id) {
+            /** @var ConsultaCargo $cargo */
+            $cargo = $cargos->get($id);
+            if ($cargo->estado !== ConsultaCargo::ESTADO_CONFIRMADO) {
+                throw ValidationException::withMessages([
+                    'cargo_ids' => __('caja.ventas.desde_cargo.validation.no_confirmado'),
+                ]);
+            }
+            if ($cargo->venta_id !== null) {
+                throw ValidationException::withMessages([
+                    'cargo_ids' => __('caja.ventas.desde_cargo.validation.ya_cobrado'),
+                ]);
+            }
+            if ($cargo->lineas->isEmpty()) {
+                throw ValidationException::withMessages([
+                    'cargo_ids' => __('caja.ventas.desde_cargo.validation.sin_lineas'),
+                ]);
+            }
+
+            [$propId, $pacId, $pacNombre, $fecha] = $this->resolverActoresCargo($cargo);
+            if ($propId === null || $propId === '') {
+                throw ValidationException::withMessages([
+                    'cargo_ids' => __('caja.ventas.grooming.sin_propietario'),
+                ]);
+            }
+
+            if ($propietarioId === null) {
+                $propietarioId = $propId;
+            } elseif ($propietarioId !== $propId) {
+                throw ValidationException::withMessages([
+                    'cargo_ids' => __('caja.ventas.multi.mismo_propietario'),
+                ]);
+            }
+
+            if ($pacId !== null) {
+                $pacienteIds[$pacId] = true;
+                if ($pacNombre !== null && $pacNombre !== '') {
+                    $pacienteNombres[$pacId] = $pacNombre;
+                }
+            }
+
+            if ($cargo->consulta_id) {
+                $consultaIds[] = $cargo->consulta_id;
+            }
+            if ($cargo->grooming_turno_id) {
+                $groomingIds[] = $cargo->grooming_turno_id;
+                $turno = $cargo->groomingTurno;
+                if ($turno !== null && $turno->tieneAdelanto()) {
+                    $adelantoTotal += (float) (string) $turno->adelanto_monto;
+                    if ($turno->adelantoVenta?->numero) {
+                        $adelantoNumeros[] = (string) $turno->adelantoVenta->numero;
+                    }
+                }
+            }
+            if ($cargo->hotel_estancia_id) {
+                $hotelIds[] = $cargo->hotel_estancia_id;
+            }
+
+            $total += (float) (string) $cargo->total;
+            if ($fecha !== null && ($atendidoAt === null || $fecha > $atendidoAt)) {
+                $atendidoAt = $fecha;
+            }
+
+            foreach ($cargo->lineas as $ln) {
+                if ($ln->producto_id !== null) {
+                    $productoIds[$ln->producto_id] = true;
+                }
+            }
+        }
+
+        $stocks = $productoIds === []
+            ? []
+            : DB::table('existencias_sede')
+                ->where('sede_id', $sesion->sede_id)
+                ->whereIn('producto_id', array_keys($productoIds))
+                ->pluck('cantidad', 'producto_id')
+                ->all();
+
+        foreach ($ids as $id) {
+            /** @var ConsultaCargo $cargo */
+            $cargo = $cargos->get($id);
+            foreach ($cargo->lineas as $ln) {
+                $stock = '0';
+                if ($ln->producto_id !== null) {
+                    $stock = (string) ($stocks[$ln->producto_id] ?? '0');
+                }
+                $lineasIniciales[] = [
+                    'producto_id' => $ln->producto_id,
+                    'tipo_linea' => $ln->tipo_linea,
+                    'concepto' => $ln->concepto,
+                    'cantidad' => (string) $ln->cantidad,
+                    'precio_lista' => (string) $ln->precio_unitario,
+                    'stock_sede' => $stock,
+                    'consulta_cargo_linea_id' => $ln->id,
+                ];
+            }
+        }
+
+        $pacienteUnico = count($pacienteIds) === 1 ? array_key_first($pacienteIds) : null;
+        $pacienteNombre = $pacienteUnico !== null
+            ? ($pacienteNombres[$pacienteUnico] ?? null)
+            : (count($pacienteNombres) > 1
+                ? implode(', ', array_values($pacienteNombres))
+                : (array_values($pacienteNombres)[0] ?? null));
+
+        return [
+            'consulta_id' => $consultaIds[0] ?? null,
+            'consulta_cargo_id' => $ids[0],
+            'consulta_cargo_ids' => $ids,
+            'grooming_turno_id' => $groomingIds[0] ?? null,
+            'hotel_estancia_id' => $hotelIds[0] ?? null,
+            'propietario_id' => (string) $propietarioId,
+            'paciente_id' => $pacienteUnico,
+            'paciente_nombre' => $pacienteNombre,
+            'consulta_atendido_at' => $atendidoAt,
+            'cargo_total' => number_format($total, 2, '.', ''),
+            'adelanto_monto' => $adelantoTotal > 0.009
+                ? number_format($adelantoTotal, 2, '.', '')
+                : null,
+            'adelanto_venta_numero' => $adelantoNumeros !== []
+                ? implode(', ', array_unique($adelantoNumeros))
+                : null,
+            'lineas_iniciales' => $lineasIniciales,
+        ];
+    }
+
+    /**
+     * @return array{0: ?string, 1: ?string, 2: ?string, 3: ?string} propietario_id, paciente_id, paciente_nombre, fecha iso
+     */
+    private function resolverActoresCargo(ConsultaCargo $cargo): array
+    {
+        if ($cargo->vacuna_aplicada_id && $cargo->vacunaAplicada) {
+            $pac = $cargo->vacunaAplicada->paciente;
+
+            return [
+                $pac?->propietario_id,
+                $pac?->id,
+                $pac?->nombre,
+                $cargo->vacunaAplicada->aplicada_at?->toIso8601String(),
+            ];
+        }
+
+        if ($cargo->grooming_turno_id && $cargo->groomingTurno) {
+            $pac = $cargo->groomingTurno->paciente;
+
+            return [
+                $pac?->propietario_id,
+                $pac?->id,
+                $pac?->nombre,
+                $cargo->groomingTurno->inicio_at?->toIso8601String(),
+            ];
+        }
+
+        if ($cargo->hotel_estancia_id && $cargo->hotelEstancia) {
+            $pac = $cargo->hotelEstancia->paciente;
+
+            return [
+                $pac?->propietario_id,
+                $pac?->id,
+                $pac?->nombre,
+                $cargo->hotelEstancia->ingreso_at?->toIso8601String(),
+            ];
+        }
+
+        if ($cargo->consulta_id && $cargo->consulta) {
+            $pac = $cargo->consulta->historiaClinica?->paciente;
+
+            return [
+                $pac?->propietario_id,
+                $pac?->id,
+                $pac?->nombre,
+                $cargo->consulta->atendido_at?->toIso8601String(),
+            ];
+        }
+
+        if ($cargo->internamiento_id && $cargo->internamiento) {
+            $pac = $cargo->internamiento->paciente;
+
+            return [
+                $pac?->propietario_id,
+                $pac?->id,
+                $pac?->nombre,
+                $cargo->internamiento->ingreso_at?->toIso8601String(),
+            ];
+        }
+
+        return [null, null, null, null];
+    }
 }

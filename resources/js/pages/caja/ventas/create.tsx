@@ -177,6 +177,7 @@ export default function Create({
         tipo_comprobante_sunat: 0 as 0 | 1 | 2,
         consulta_id: null as string | null,
         consulta_cargo_id: null as string | null,
+        consulta_cargo_ids: [] as string[],
         grooming_turno_id: null as string | null,
         hotel_estancia_id: null as string | null,
         promotion_code: '',
@@ -227,10 +228,10 @@ export default function Create({
             const stock = parseStock(ln.stock_sede);
             const groomId = desdeCargo.grooming_turno_id;
             const hotelId = desdeCargo.hotel_estancia_id;
-            const lineKey = tieneProducto
-                ? `p:${ln.producto_id}`
-                : ln.consulta_cargo_linea_id
-                  ? `ccl:${ln.consulta_cargo_linea_id}`
+            const lineKey = ln.consulta_cargo_linea_id
+                ? `ccl:${ln.consulta_cargo_linea_id}`
+                : tieneProducto
+                  ? `p:${ln.producto_id}`
                   : groomId
                     ? `groom-svc:${groomId}:${idx}`
                     : hotelId
@@ -270,6 +271,12 @@ export default function Create({
             paciente_id: desdeCargo.paciente_id ?? null,
             consulta_id: desdeCargo.consulta_id,
             consulta_cargo_id: desdeCargo.consulta_cargo_id,
+            consulta_cargo_ids:
+                desdeCargo.consulta_cargo_ids && desdeCargo.consulta_cargo_ids.length > 0
+                    ? [...desdeCargo.consulta_cargo_ids]
+                    : desdeCargo.consulta_cargo_id
+                      ? [desdeCargo.consulta_cargo_id]
+                      : [],
             grooming_turno_id: desdeCargo.grooming_turno_id ?? null,
             hotel_estancia_id: desdeCargo.hotel_estancia_id ?? null,
         }));
@@ -649,6 +656,12 @@ export default function Create({
             paciente_id: d.paciente_id || null,
             consulta_id: d.consulta_id || null,
             consulta_cargo_id: d.consulta_cargo_id || null,
+            consulta_cargo_ids:
+                Array.isArray(d.consulta_cargo_ids) && d.consulta_cargo_ids.length > 0
+                    ? d.consulta_cargo_ids
+                    : d.consulta_cargo_id
+                      ? [d.consulta_cargo_id]
+                      : [],
             grooming_turno_id: d.grooming_turno_id || null,
             hotel_estancia_id: d.hotel_estancia_id || null,
             promotion_code: d.promotion_code.trim() || null,

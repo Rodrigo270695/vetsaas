@@ -35,6 +35,8 @@ class StoreVentaRequest extends FormRequest
             ],
             'consulta_id' => ['nullable', 'uuid', 'exists:consultas,id'],
             'consulta_cargo_id' => ['nullable', 'uuid', 'exists:consulta_cargos,id'],
+            'consulta_cargo_ids' => ['nullable', 'array', 'min:1', 'max:30'],
+            'consulta_cargo_ids.*' => ['uuid', 'exists:consulta_cargos,id'],
             'grooming_turno_id' => ['nullable', 'uuid', 'exists:grooming_turnos,id'],
             'hotel_estancia_id' => ['nullable', 'uuid', 'exists:hotel_estancias,id'],
             'lineas' => ['required', 'array', 'min:1', 'max:80'],
@@ -175,7 +177,10 @@ class StoreVentaRequest extends FormRequest
 
             $gId = $this->input('grooming_turno_id');
             $hId = $this->input('hotel_estancia_id');
-            if (is_string($gId) && $gId !== '' && is_string($hId) && $hId !== '') {
+            $multiCargos = $this->input('consulta_cargo_ids');
+            $esMultiCargo = is_array($multiCargos) && count($multiCargos) > 1;
+            // En cobro combinado (N precuentas) sí se permite mezclar grooming + hotel del mismo dueño.
+            if (! $esMultiCargo && is_string($gId) && $gId !== '' && is_string($hId) && $hId !== '') {
                 $v->errors()->add('hotel_estancia_id', __('caja.ventas.hotel.origen_mixto'));
 
                 return;

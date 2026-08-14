@@ -337,12 +337,14 @@ final class VentaCheckoutService
                 }
             }
 
-            $cargoVinculado = $this->resolverCargoVinculado($validated);
+            $cargosVinculados = $this->resolverCargosVinculados($validated);
+            $cargoVinculado = $cargosVinculados[0] ?? null;
 
             $cargoLineasConStock = [];
-            if ($cargoVinculado !== null) {
+            if ($cargosVinculados !== []) {
+                $cargoIds = array_column($cargosVinculados, 'consulta_cargo_id');
                 $cargoLineasConStock = ConsultaCargoLinea::query()
-                    ->where('consulta_cargo_id', $cargoVinculado['consulta_cargo_id'])
+                    ->whereIn('consulta_cargo_id', $cargoIds)
                     ->whereNotNull('movimiento_inventario_id')
                     ->pluck('movimiento_inventario_id', 'id')
                     ->all();
@@ -542,16 +544,27 @@ final class VentaCheckoutService
                 ]);
             }
 
-            if ($cargoVinculado !== null) {
+            if ($cargosVinculados !== []) {
+                $cargoIds = array_column($cargosVinculados, 'consulta_cargo_id');
                 ConsultaCargo::query()
-                    ->whereKey($cargoVinculado['consulta_cargo_id'])
+                    ->whereIn('id', $cargoIds)
+                    ->whereNull('venta_id')
                     ->update(['venta_id' => $venta->id]);
 
-                $consulta = Consulta::query()
-                    ->lockForUpdate()
-                    ->find($cargoVinculado['consulta_id']);
+                $consultaIds = array_values(array_unique(array_filter(
+                    array_column($cargosVinculados, 'consulta_id'),
+                    static fn ($id): bool => is_string($id) && $id !== '',
+                )));
 
-                if ($consulta !== null) {
+                foreach ($consultaIds as $consultaId) {
+                    $consulta = Consulta::query()
+                        ->lockForUpdate()
+                        ->find($consultaId);
+
+                    if ($consulta === null) {
+                        continue;
+                    }
+
                     $consulta->update([
                         'cerrada_at' => $consulta->cerrada_at ?? now(),
                         'cerrada_por_id' => $consulta->cerrada_por_id
@@ -569,13 +582,44 @@ final class VentaCheckoutService
                             ]);
                     }
                 }
+
+                // Marcar turnos/estancias de todos los cargos (no solo el primero del form).
+                $groomingIds = ConsultaCargo::query()
+                    ->whereIn('id', $cargoIds)
+                    ->whereNotNull('grooming_turno_id')
+                    ->pluck('grooming_turno_id')
+                    ->filter()
+                    ->unique()
+                    ->values()
+                    ->all();
+                if ($groomingIds !== []) {
+                    GroomingTurno::query()
+                        ->whereIn('id', $groomingIds)
+                        ->whereNull('venta_id')
+                        ->update(['venta_id' => $venta->id]);
+                }
+
+                $hotelIds = ConsultaCargo::query()
+                    ->whereIn('id', $cargoIds)
+                    ->whereNotNull('hotel_estancia_id')
+                    ->pluck('hotel_estancia_id')
+                    ->filter()
+                    ->unique()
+                    ->values()
+                    ->all();
+                if ($hotelIds !== []) {
+                    HotelEstancia::query()
+                        ->whereIn('id', $hotelIds)
+                        ->whereNull('venta_id')
+                        ->update(['venta_id' => $venta->id]);
+                }
             }
 
-            if ($groomingTurnoLocked !== null) {
+            if ($groomingTurnoLocked !== null && $groomingTurnoLocked->venta_id === null) {
                 $groomingTurnoLocked->update(['venta_id' => $venta->id]);
             }
 
-            if ($hotelEstanciaLocked !== null) {
+            if ($hotelEstanciaLocked !== null && $hotelEstanciaLocked->venta_id === null) {
                 $hotelEstanciaLocked->update(['venta_id' => $venta->id]);
             }
 
@@ -659,45 +703,120 @@ final class VentaCheckoutService
 
     /**
      * @param  array<string, mixed>  $validated
-     * @return array{consulta_id: string, consulta_cargo_id: string}|null
+     * @return list<array{consulta_id: ?string, consulta_cargo_id: string}>
+     */
+    private function resolverCargosVinculados(array $validated): array
+    {
+        $ids = [];
+        $multi = $validated['consulta_cargo_ids'] ?? null;
+        if (is_array($multi)) {
+            foreach ($multi as $id) {
+                if (is_string($id) && $id !== '') {
+                    $ids[] = $id;
+                }
+            }
+        }
+
+        $single = $validated['consulta_cargo_id'] ?? null;
+        if (is_string($single) && $single !== '') {
+            $ids[] = $single;
+        }
+
+        $ids = array_values(array_unique($ids));
+        if ($ids === []) {
+            return [];
+        }
+
+        $out = [];
+        $propietarioVenta = $validated['propietario_id'] ?? null;
+
+        foreach ($ids as $cargoId) {
+            $cargo = ConsultaCargo::query()->lockForUpdate()->find($cargoId);
+            if ($cargo === null) {
+                throw ValidationException::withMessages([
+                    'consulta_cargo_id' => __('caja.ventas.desde_cargo.validation.cargo_invalido'),
+                ]);
+            }
+
+            if ($cargo->estado !== ConsultaCargo::ESTADO_CONFIRMADO) {
+                throw ValidationException::withMessages([
+                    'consulta_cargo_id' => __('caja.ventas.desde_cargo.validation.no_confirmado'),
+                ]);
+            }
+
+            if ($cargo->venta_id !== null) {
+                throw ValidationException::withMessages([
+                    'consulta_cargo_id' => __('caja.ventas.desde_cargo.validation.ya_cobrado'),
+                ]);
+            }
+
+            $consultaId = $validated['consulta_id'] ?? null;
+            if (
+                count($ids) === 1
+                && is_string($consultaId)
+                && $consultaId !== ''
+                && $cargo->consulta_id !== null
+                && $consultaId !== $cargo->consulta_id
+            ) {
+                throw ValidationException::withMessages([
+                    'consulta_id' => __('caja.ventas.desde_cargo.validation.consulta_no_coincide'),
+                ]);
+            }
+
+            $out[] = [
+                'consulta_id' => $cargo->consulta_id,
+                'consulta_cargo_id' => $cargo->id,
+            ];
+        }
+
+        // Misma dueña: si viene propietario_id, todos los cargos deben coincidir (vía relaciones).
+        if (is_string($propietarioVenta) && $propietarioVenta !== '' && count($out) > 1) {
+            $this->assertCargosMismoPropietario($ids, $propietarioVenta);
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param  list<string>  $cargoIds
+     */
+    private function assertCargosMismoPropietario(array $cargoIds, string $propietarioId): void
+    {
+        $cargos = ConsultaCargo::query()
+            ->whereIn('id', $cargoIds)
+            ->with([
+                'consulta.historiaClinica.paciente:id,propietario_id',
+                'groomingTurno.paciente:id,propietario_id',
+                'hotelEstancia.paciente:id,propietario_id',
+                'internamiento.paciente:id,propietario_id',
+                'vacunaAplicada.paciente:id,propietario_id',
+            ])
+            ->get();
+
+        foreach ($cargos as $cargo) {
+            $pid = $cargo->vacunaAplicada?->paciente?->propietario_id
+                ?? $cargo->groomingTurno?->paciente?->propietario_id
+                ?? $cargo->hotelEstancia?->paciente?->propietario_id
+                ?? $cargo->consulta?->historiaClinica?->paciente?->propietario_id
+                ?? $cargo->internamiento?->paciente?->propietario_id;
+
+            if ($pid !== null && (string) $pid !== $propietarioId) {
+                throw ValidationException::withMessages([
+                    'consulta_cargo_ids' => __('caja.ventas.multi.mismo_propietario'),
+                ]);
+            }
+        }
+    }
+
+    /**
+     * @deprecated Usar {@see resolverCargosVinculados}
+     *
+     * @param  array<string, mixed>  $validated
+     * @return array{consulta_id: ?string, consulta_cargo_id: string}|null
      */
     private function resolverCargoVinculado(array $validated): ?array
     {
-        $cargoId = $validated['consulta_cargo_id'] ?? null;
-        if (! is_string($cargoId) || $cargoId === '') {
-            return null;
-        }
-
-        $cargo = ConsultaCargo::query()->lockForUpdate()->find($cargoId);
-        if ($cargo === null) {
-            throw ValidationException::withMessages([
-                'consulta_cargo_id' => __('caja.ventas.desde_cargo.validation.cargo_invalido'),
-            ]);
-        }
-
-        if ($cargo->estado !== ConsultaCargo::ESTADO_CONFIRMADO) {
-            throw ValidationException::withMessages([
-                'consulta_cargo_id' => __('caja.ventas.desde_cargo.validation.no_confirmado'),
-            ]);
-        }
-
-        if ($cargo->venta_id !== null) {
-            throw ValidationException::withMessages([
-                'consulta_cargo_id' => __('caja.ventas.desde_cargo.validation.ya_cobrado'),
-            ]);
-        }
-
-        $consultaId = $validated['consulta_id'] ?? null;
-        if (is_string($consultaId) && $consultaId !== '' && $cargo->consulta_id !== null && $consultaId !== $cargo->consulta_id) {
-            throw ValidationException::withMessages([
-                'consulta_id' => __('caja.ventas.desde_cargo.validation.consulta_no_coincide'),
-            ]);
-        }
-
-        return [
-            'consulta_id' => $cargo->consulta_id ?? (is_string($consultaId) && $consultaId !== '' ? $consultaId : null),
-            'consulta_cargo_id' => $cargo->id,
-        ];
+        return $this->resolverCargosVinculados($validated)[0] ?? null;
     }
 
     /**
