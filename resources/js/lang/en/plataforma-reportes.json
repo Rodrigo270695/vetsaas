@@ -18,7 +18,7 @@
         "approx_hint": "No GPS yet: department centroid from the site. Ads orientation only.",
         "empty_gps": "No GPS clinics match these filters.",
         "empty_approx": "No approximate clinics match these filters.",
-        "capture_hint": "GPS is captured in each clinic (paid or free) with the header «Capture location» button. The server cannot read GPS by itself.",
+        "capture_hint": "GPS is captured inside each clinic subdomain (paid or free) with the header «Capture location» button (top-right). This page only displays it. Demo visits are logged automatically on login (Demos map).",
         "kpis": {
             "gps": "With real GPS",
             "gps_hint": "They accepted location and we already have XY.",

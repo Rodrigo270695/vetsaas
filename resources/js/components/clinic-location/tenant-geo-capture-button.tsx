@@ -2,10 +2,15 @@ import { router, usePage } from '@inertiajs/react';
 import { Navigation } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
 type LocationGate = {
-    needs_gps: boolean;
+    needs_gps?: boolean;
     has_gps_consent?: boolean;
     gps_captured?: boolean;
 };
@@ -16,8 +21,8 @@ type TenantProp = {
 } | null;
 
 /**
- * Botón manual (pago y free): captura GPS en este dispositivo y lo guarda
- * en el tenant. Reemplaza el cron — el servidor no puede leer el GPS solo.
+ * Solo en subdominio de clínica (pago o free). No aparece en el panel central
+ * ni en la demo (la demo se registra sola al entrar).
  */
 export function TenantGeoCaptureButton({
     className,
@@ -33,12 +38,12 @@ export function TenantGeoCaptureButton({
     const [busy, setBusy] = useState(false);
     const [msg, setMsg] = useState<string | null>(null);
 
-    if (!tenant || tenant.is_demo) {
+    // Panel central o demo → sin botón.
+    if (!tenant?.slug || tenant.is_demo) {
         return null;
     }
-    if (!gate) {
-        return null;
-    }
+
+    const hasConsent = gate?.has_gps_consent === true;
 
     const capture = () => {
         if (!navigator.geolocation) {
@@ -49,11 +54,10 @@ export function TenantGeoCaptureButton({
         setMsg(null);
         navigator.geolocation.getCurrentPosition(
             (pos) => {
-                const action = gate.has_gps_consent ? 'refresh' : 'accept';
                 router.post(
                     '/tenant/geo',
                     {
-                        action,
+                        action: hasConsent ? 'refresh' : 'accept',
                         lat: pos.coords.latitude,
                         lng: pos.coords.longitude,
                     },
@@ -84,21 +88,31 @@ export function TenantGeoCaptureButton({
 
     return (
         <div className={cn('flex flex-col items-end gap-1', className)}>
-            <Button
-                type="button"
-                size="sm"
-                variant={gate.needs_gps ? 'default' : 'outline'}
-                disabled={busy}
-                onClick={capture}
-                className="gap-1.5 shadow-sm"
-            >
-                <Navigation className="size-3.5" aria-hidden />
-                {busy
-                    ? 'Capturando…'
-                    : gate.has_gps_consent
-                      ? 'Actualizar ubicación'
-                      : 'Capturar ubicación'}
-            </Button>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant={gate?.needs_gps ? 'default' : 'outline'}
+                        disabled={busy}
+                        onClick={capture}
+                        className="h-9 gap-1.5 px-2.5 shadow-sm"
+                    >
+                        <Navigation className="size-4" aria-hidden />
+                        <span className="hidden text-xs font-medium sm:inline">
+                            {busy
+                                ? 'Capturando…'
+                                : hasConsent
+                                  ? 'Actualizar ubicación'
+                                  : 'Capturar ubicación'}
+                        </span>
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-xs">
+                    Guarda el GPS de esta clínica (pago o free) para el mapa
+                    de cobertura del panel.
+                </TooltipContent>
+            </Tooltip>
             {msg ? (
                 <p className="max-w-[220px] text-right text-[11px] text-muted-foreground">
                     {msg}
