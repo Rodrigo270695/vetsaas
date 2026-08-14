@@ -213,6 +213,8 @@ final class PlataformaReportesSnapshotService
 
         $departamentoName = $dep?->name
             ?? (is_string($withGeo?->departamento) && $withGeo->departamento !== '' ? $withGeo->departamento : null);
+        // Unifica "Lima" (catálogo) vs "LIMA" (texto legacy en sede).
+        $departamentoName = PeruDepartamentoCentroids::canonicalLabel($departamentoName);
 
         $lat = null;
         $lng = null;
@@ -498,17 +500,29 @@ final class PlataformaReportesSnapshotService
     private function groupCounts(Collection $rows, string $nameKey, string $idKey): array
     {
         return $rows
-            ->groupBy(static function (array $row) use ($nameKey): string {
-                $name = $row[$nameKey] ?? null;
+            ->groupBy(static function (array $row) use ($nameKey, $idKey): string {
+                $id = $row[$idKey] ?? null;
+                if (is_int($id) || (is_string($id) && $id !== '')) {
+                    return 'id:'.$id;
+                }
 
-                return is_string($name) && $name !== '' ? $name : 'Sin ubicación';
+                $name = $row[$nameKey] ?? null;
+                if (! is_string($name) || $name === '') {
+                    return 'sin';
+                }
+
+                return 'name:'.PeruDepartamentoCentroids::normalize($name);
             })
-            ->map(static function (Collection $group, string $name) use ($idKey): array {
+            ->map(static function (Collection $group) use ($nameKey, $idKey): array {
                 $first = $group->first();
+                $rawName = is_array($first) ? ($first[$nameKey] ?? null) : null;
+                $canonical = is_string($rawName)
+                    ? PeruDepartamentoCentroids::canonicalLabel($rawName)
+                    : null;
 
                 return [
                     'id' => is_array($first) ? ($first[$idKey] ?? null) : null,
-                    'name' => $name,
+                    'name' => $canonical ?? (is_string($rawName) && $rawName !== '' ? $rawName : 'Sin ubicación'),
                     'count' => $group->count(),
                 ];
             })
@@ -528,14 +542,17 @@ final class PlataformaReportesSnapshotService
 
         foreach ([['paid', $paid], ['free', $free]] as [$key, $rows]) {
             foreach ($rows as $row) {
-                $name = is_string($row['departamento'] ?? null) && $row['departamento'] !== ''
+                $raw = is_string($row['departamento'] ?? null) && $row['departamento'] !== ''
                     ? (string) $row['departamento']
-                    : 'Sin ubicación';
-                if (! isset($map[$name])) {
-                    $map[$name] = ['name' => $name, 'paid' => 0, 'free' => 0, 'total' => 0];
+                    : null;
+                $name = PeruDepartamentoCentroids::canonicalLabel($raw) ?? 'Sin ubicación';
+                $bucket = PeruDepartamentoCentroids::normalize($name);
+
+                if (! isset($map[$bucket])) {
+                    $map[$bucket] = ['name' => $name, 'paid' => 0, 'free' => 0, 'total' => 0];
                 }
-                $map[$name][$key]++;
-                $map[$name]['total']++;
+                $map[$bucket][$key]++;
+                $map[$bucket]['total']++;
             }
         }
 
@@ -741,13 +758,18 @@ final class PlataformaReportesSnapshotService
     {
         $grouped = $rows
             ->filter(static fn (array $r): bool => is_string($r[$key] ?? null) && $r[$key] !== '')
-            ->groupBy($key)
+            ->groupBy(static function (array $r) use ($key): string {
+                return PeruDepartamentoCentroids::normalize((string) $r[$key]);
+            })
             ->map->count()
             ->sortDesc();
 
-        $name = $grouped->keys()->first();
+        $norm = $grouped->keys()->first();
+        if (! is_string($norm) || $norm === '') {
+            return null;
+        }
 
-        return is_string($name) ? $name : null;
+        return PeruDepartamentoCentroids::canonicalLabel($norm) ?? $norm;
     }
 
     private function pct(int $part, int $total): float

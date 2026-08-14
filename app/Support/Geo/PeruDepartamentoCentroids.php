@@ -53,7 +53,25 @@ final class PeruDepartamentoCentroids
         return self::CENTROIDS[$key] ?? null;
     }
 
-    private static function normalize(string $name): string
+    /**
+     * Etiqueta canónica para reportes (evita "Lima" vs "LIMA").
+     */
+    public static function canonicalLabel(?string $departamento): ?string
+    {
+        if ($departamento === null || trim($departamento) === '') {
+            return null;
+        }
+
+        $key = self::normalize($departamento);
+
+        if (isset(self::CENTROIDS[$key])) {
+            return $key;
+        }
+
+        return $key !== '' ? $key : null;
+    }
+
+    public static function normalize(string $name): string
     {
         $upper = mb_strtoupper(trim($name), 'UTF-8');
         $map = [
