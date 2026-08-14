@@ -1,5 +1,5 @@
 import { router, usePage } from '@inertiajs/react';
-import { MapPin, Navigation } from 'lucide-react';
+import { Navigation } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -48,8 +48,9 @@ function isHotPath(pathname: string): boolean {
 }
 
 /**
- * Modal obligatorio: no se cierra con clic afuera, Escape ni la X.
- * Solo “Permitir ubicación” (o rechazo explícito permanente).
+ * Consentimiento de la app (obligatorio). Al aceptar, el navegador muestra
+ * su propio diálogo nativo de Ubicación (no aparece en el candado hasta
+ * que se pide al menos una vez con getCurrentPosition).
  */
 export function TenantGpsConsentModal() {
     const page = usePage<{ clinic_location_gate?: LocationGate | null }>();
@@ -79,22 +80,6 @@ export function TenantGpsConsentModal() {
         return () => window.clearTimeout(timer);
     }, [gate?.needs_gps, page.url]);
 
-    const deny = () => {
-        setBusy(true);
-        setError(null);
-        router.post(
-            '/tenant/geo',
-            { action: 'deny' },
-            {
-                preserveScroll: true,
-                onFinish: () => {
-                    setBusy(false);
-                    setOpen(false);
-                },
-            },
-        );
-    };
-
     const accept = () => {
         if (!navigator.geolocation) {
             setError('Este navegador no soporta geolocalización.');
@@ -102,6 +87,7 @@ export function TenantGpsConsentModal() {
         }
         setBusy(true);
         setError(null);
+        // Aquí el browser muestra su prompt nativo de Ubicación.
         navigator.geolocation.getCurrentPosition(
             (pos) => {
                 router.post(
@@ -119,7 +105,9 @@ export function TenantGpsConsentModal() {
                         },
                         onError: () => {
                             setBusy(false);
-                            setError('No se pudo guardar la ubicación. Intenta de nuevo.');
+                            setError(
+                                'No se pudo guardar. Intenta de nuevo.',
+                            );
                         },
                     },
                 );
@@ -128,10 +116,12 @@ export function TenantGpsConsentModal() {
                 setBusy(false);
                 if (err.code === err.PERMISSION_DENIED) {
                     setError(
-                        'Debes permitir la ubicación en el navegador (icono del candado → Ubicación → Permitir) y luego pulsar de nuevo.',
+                        'Activa Ubicación para este sitio en el candado del navegador y vuelve a pulsar Permitir.',
                     );
                 } else {
-                    setError('No se pudo obtener la ubicación. Revisa el GPS e inténtalo otra vez.');
+                    setError(
+                        'No se pudo obtener la ubicación. Revisa el GPS e inténtalo otra vez.',
+                    );
                 }
             },
             { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 },
@@ -146,7 +136,6 @@ export function TenantGpsConsentModal() {
         <Dialog
             open={open}
             onOpenChange={(next) => {
-                // Bloquea cierre accidental (overlay / Escape).
                 if (!next) {
                     return;
                 }
@@ -169,39 +158,24 @@ export function TenantGpsConsentModal() {
                         Ubicación de tu clínica
                     </DialogTitle>
                     <DialogDescription>
-                        Para el mapa de cobertura de VetSaaS necesitamos tu
-                        ubicación aproximada. Debes aceptar para continuar
-                        usando el sistema con normalidad en este dispositivo.
+                        Necesitamos la ubicación aproximada de tu clínica para
+                        mostrar tu cobertura en el mapa. Pulsa Permitir y
+                        confirma en el aviso del navegador.
                     </DialogDescription>
                 </DialogHeader>
-                <div className="rounded-lg border border-border/60 bg-muted/30 p-3 text-xs text-muted-foreground">
-                    <p className="flex items-start gap-2">
-                        <MapPin
-                            className="mt-0.5 size-3.5 shrink-0"
-                            aria-hidden
-                        />
-                        Solo se guarda latitud/longitud de la clínica. Luego se
-                        actualizará automáticamente dos veces al día cuando
-                        alguien navegue en la clínica.
-                    </p>
-                </div>
                 {error ? (
                     <p className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
                         {error}
                     </p>
                 ) : null}
-                <DialogFooter className="gap-2 sm:gap-2">
+                <DialogFooter>
                     <Button
                         type="button"
-                        variant="ghost"
+                        className="w-full sm:w-auto"
                         disabled={busy}
-                        onClick={deny}
-                        className="text-muted-foreground"
+                        onClick={accept}
                     >
-                        No volver a pedir
-                    </Button>
-                    <Button type="button" disabled={busy} onClick={accept}>
-                        {busy ? 'Obteniendo…' : 'Permitir ubicación'}
+                        {busy ? 'Esperando al navegador…' : 'Permitir ubicación'}
                     </Button>
                 </DialogFooter>
             </DialogContent>
