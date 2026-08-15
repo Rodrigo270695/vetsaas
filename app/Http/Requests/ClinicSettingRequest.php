@@ -5,6 +5,7 @@ namespace App\Http\Requests;
 use App\Models\ClinicSetting;
 use App\Models\PlatformSetting;
 use App\Models\Tenant;
+use App\Rules\ExistsDistritoId;
 use App\Support\Caja\TicketAnchoMm;
 use App\Support\PlanCapabilities;
 use Illuminate\Foundation\Http\FormRequest;
@@ -37,7 +38,7 @@ class ClinicSettingRequest extends FormRequest
             'razon_social' => ['nullable', 'string', 'max:200'],
             'nombre_comercial' => ['nullable', 'string', 'max:150'],
             'direccion_fiscal' => ['nullable', 'string', 'max:255'],
-            'distrito_id' => ['nullable', 'integer', 'exists:public.distritos,id'],
+            'distrito_id' => ['nullable', 'integer', new ExistsDistritoId],
 
             // Branding
             //   - `logo` (archivo) y `clear_logo` (flag) viajan en el form

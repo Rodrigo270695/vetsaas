@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Http\Requests\Concerns\ValidatesPlanIntLimits;
 use App\Models\Propietario;
+use App\Rules\ExistsDistritoId;
 use App\Support\PropietarioTipoDocumento;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
@@ -30,7 +31,7 @@ class PropietarioRequest extends FormRequest
             'telefono' => ['nullable', 'string', 'max:20'],
             'telefono_alt' => ['nullable', 'string', 'max:20'],
             'direccion' => ['nullable', 'string', 'max:255'],
-            'distrito_id' => ['nullable', 'integer', 'exists:public.distritos,id'],
+            'distrito_id' => ['nullable', 'integer', new ExistsDistritoId],
             'notas' => ['nullable', 'string', 'max:5000'],
             'activo' => ['required', 'boolean'],
         ];

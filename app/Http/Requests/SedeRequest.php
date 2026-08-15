@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Http\Requests\Concerns\ValidatesPlanIntLimits;
+use App\Rules\ExistsDistritoId;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -33,10 +34,8 @@ class SedeRequest extends FormRequest
             // departamento → provincia → distrito). Los strings se
             // hidratan en el controller desde la BD para mantener el
             // cache denormalizado consistente.
-            // `public.` evita que, con search_path del tenant, `exists`
-            // busque una tabla `distritos` inexistente/rota en el schema
-            // de la clínica y dispare un 500 en vez de 422.
-            'distrito_id' => ['required', 'integer', 'exists:public.distritos,id'],
+            // No usar exists:public.distritos — Laravel lo toma como conexión.
+            'distrito_id' => ['required', 'integer', new ExistsDistritoId],
             'activa' => ['required', 'boolean'],
         ];
     }
