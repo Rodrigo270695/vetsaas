@@ -8,21 +8,30 @@ use App\Models\Distrito;
 use App\Models\Sede;
 use App\Models\Tenant;
 use Illuminate\Console\Command;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
 /**
- * Crea una sede activa mínima para desbloquear clínicas sin sede
- * (middleware → /configuracion/sedes).
+ * Desbloquea clínicas sin sede activa con distrito (middleware → /configuracion/sedes).
+ *
+ * Cuidado:
+ * - Nunca pisa un distrito_id ya cargado.
+ * - Con --all exige --dry-run o --apply (no escribe por accidente).
+ * - Solo toca tenants vivos (trial/active/grace) salvo --incluir-suspendidos.
  */
 final class TenantEnsureSedeCommand extends Command
 {
     protected $signature = 'vetsaas:tenant-ensure-sede
-        {slug : Slug del tenant}
-        {--nombre= : Nombre de la sede (default: nombre comercial / razón social)}
-        {--distrito-id= : ID de public.distritos (si se omite, intenta Lima/Lince)}';
+        {slug? : Slug del tenant (omitir si usas --all)}
+        {--all : Revisar todos los tenants vivos}
+        {--dry-run : Solo listar qué haría (no escribe)}
+        {--apply : Escribir cambios (requerido con --all; opcional con un slug)}
+        {--incluir-suspendidos : Incluir tenants suspendidos en --all}
+        {--nombre= : Nombre de la sede nueva (solo creación)}
+        {--distrito-id= : ID de public.distritos (default: Lima/Lince)}';
 
-    protected $description = 'Crea una sede activa con distrito si el tenant no tiene ninguna (desbloqueo)';
+    protected $description = 'Asegura sede activa con distrito (desbloqueo). Seguro: no pisa geo existente.';
 
     public function handle(): int
     {
@@ -32,65 +41,175 @@ final class TenantEnsureSedeCommand extends Command
             return self::FAILURE;
         }
 
-        $slug = strtolower(trim((string) $this->argument('slug')));
-        $tenant = Tenant::query()->where('slug', $slug)->first();
+        $all = (bool) $this->option('all');
+        $dryRun = (bool) $this->option('dry-run');
+        $apply = (bool) $this->option('apply');
+        $slug = strtolower(trim((string) ($this->argument('slug') ?? '')));
 
-        if ($tenant === null) {
-            $this->error("No existe tenant: {$slug}");
+        if ($all && $slug !== '') {
+            $this->error('Usa slug O --all, no ambos.');
 
             return self::FAILURE;
         }
 
-        $existing = Sede::query()
+        if (! $all && $slug === '') {
+            $this->error('Indica un slug o usa --all --dry-run / --all --apply.');
+
+            return self::FAILURE;
+        }
+
+        if ($all && ! $dryRun && ! $apply) {
+            $this->error('Con --all debes pasar --dry-run (solo ver) o --apply (escribir).');
+            $this->line('Ejemplo: php artisan vetsaas:tenant-ensure-sede --all --dry-run');
+
+            return self::FAILURE;
+        }
+
+        if ($dryRun && $apply) {
+            $this->error('No combines --dry-run y --apply.');
+
+            return self::FAILURE;
+        }
+
+        // Un slug sin flags: escribe (comportamiento histórico de desbloqueo puntual).
+        $write = $all ? $apply : ($apply || ! $dryRun);
+        if ($dryRun) {
+            $write = false;
+        }
+
+        $distrito = $this->resolveDistrito();
+        if ($distrito === null) {
+            $this->error('No se encontró un distrito. Pasa --distrito-id=ID');
+
+            return self::FAILURE;
+        }
+
+        $this->line(sprintf(
+            'Distrito fallback: id=%d (%s / %s / %s)',
+            $distrito->id,
+            $distrito->provincia?->departamento?->name ?? '—',
+            $distrito->provincia?->name ?? '—',
+            $distrito->name,
+        ));
+        $this->line($write ? 'Modo: APLICAR cambios' : 'Modo: DRY-RUN (no escribe)');
+        $this->newLine();
+
+        $tenants = $all
+            ? $this->tenantsForAll()
+            : collect([Tenant::query()->where('slug', $slug)->first()])->filter();
+
+        if ($tenants->isEmpty()) {
+            $this->error($all ? 'No hay tenants para revisar.' : "No existe tenant: {$slug}");
+
+            return self::FAILURE;
+        }
+
+        $created = 0;
+        $geoFilled = 0;
+        $ok = 0;
+        $failed = 0;
+
+        foreach ($tenants as $tenant) {
+            /** @var Tenant $tenant */
+            $result = $this->processTenant($tenant, $distrito, $write);
+            match ($result) {
+                'ok' => $ok++,
+                'created' => $created++,
+                'geo' => $geoFilled++,
+                'failed' => $failed++,
+                default => null,
+            };
+        }
+
+        $this->newLine();
+        $this->info(sprintf(
+            'Resumen: ok=%d | crear_sede=%d | rellenar_geo=%d | fallos=%d | total=%d',
+            $ok,
+            $created,
+            $geoFilled,
+            $failed,
+            $tenants->count(),
+        ));
+
+        if (! $write) {
+            $this->comment('Nada se escribió. Para aplicar: añade --apply (o quita --dry-run en un slug).');
+        }
+
+        return $failed > 0 ? self::FAILURE : self::SUCCESS;
+    }
+
+    /**
+     * @return Collection<int, Tenant>
+     */
+    private function tenantsForAll(): Collection
+    {
+        $estados = ['trial', 'active', 'grace'];
+        if ($this->option('incluir-suspendidos')) {
+            $estados[] = 'suspended';
+        }
+
+        return Tenant::query()
+            ->whereIn('estado', $estados)
+            ->whereNull('deleted_at')
+            ->orderBy('slug')
+            ->get(['id', 'slug', 'razon_social', 'nombre_comercial', 'telefono', 'email_admin', 'estado']);
+    }
+
+    /**
+     * @return 'ok'|'created'|'geo'|'failed'
+     */
+    private function processTenant(Tenant $tenant, Distrito $distrito, bool $write): string
+    {
+        $label = "{$tenant->slug} [{$tenant->estado}]";
+
+        $activas = Sede::query()
             ->where('tenant_id', $tenant->id)
             ->where('activa', true)
             ->whereNull('deleted_at')
-            ->count();
+            ->orderBy('created_at')
+            ->get();
 
-        if ($existing > 0) {
-            $withGeo = Sede::query()
-                ->where('tenant_id', $tenant->id)
-                ->where('activa', true)
-                ->whereNull('deleted_at')
-                ->whereNotNull('distrito_id')
-                ->count();
+        $conGeo = $activas->filter(fn (Sede $s) => $s->distrito_id !== null);
+        $sinGeo = $activas->filter(fn (Sede $s) => $s->distrito_id === null);
 
-            if ($withGeo > 0) {
-                $this->info("Ya tiene {$existing} sede(s) activa(s) con ubicación. Nada que hacer.");
+        if ($activas->isNotEmpty() && $sinGeo->isEmpty()) {
+            $this->line("✓ {$label}: {$activas->count()} sede(s) activa(s) con geo — nada");
 
-                return self::SUCCESS;
-            }
-
-            $this->warn("Tiene {$existing} sede(s) activa(s) pero sin distrito_id. Actualiza geo en la primera.");
-            $sede = Sede::query()
-                ->where('tenant_id', $tenant->id)
-                ->where('activa', true)
-                ->whereNull('deleted_at')
-                ->orderBy('created_at')
-                ->first();
-
-            if ($sede === null) {
-                $this->error('No se pudo cargar la sede.');
-
-                return self::FAILURE;
-            }
-
-            return $this->applyDistrito($sede) ? self::SUCCESS : self::FAILURE;
+            return 'ok';
         }
 
+        if ($activas->isNotEmpty() && $sinGeo->isNotEmpty()) {
+            $this->warn("○ {$label}: {$sinGeo->count()} sede(s) sin distrito_id (de {$activas->count()} activas)");
+            if (! $write) {
+                foreach ($sinGeo as $s) {
+                    $this->line("    → rellenaría geo en {$s->codigo} — {$s->nombre}");
+                }
+
+                return 'geo';
+            }
+
+            $allOk = true;
+            foreach ($sinGeo as $s) {
+                if (! $this->applyDistrito($s, $distrito)) {
+                    $allOk = false;
+                }
+            }
+
+            return $allOk ? 'geo' : 'failed';
+        }
+
+        // Sin sedes activas
         $nombre = trim((string) ($this->option('nombre') ?: ''));
         if ($nombre === '') {
             $nombre = trim((string) ($tenant->nombre_comercial ?: $tenant->razon_social ?: 'Sede principal'));
         }
 
+        $this->warn("○ {$label}: sin sede activa — crearía «{$nombre}»");
+        if (! $write) {
+            return 'created';
+        }
+
         try {
-            $distrito = $this->resolveDistrito();
-            if ($distrito === null) {
-                $this->error('No se encontró un distrito. Pasa --distrito-id=ID');
-
-                return self::FAILURE;
-            }
-
             $sede = Sede::query()->create([
                 'tenant_id' => $tenant->id,
                 'codigo' => Sede::generateNextCode((string) $tenant->id),
@@ -105,28 +224,26 @@ final class TenantEnsureSedeCommand extends Command
                 'activa' => true,
             ]);
 
-            $this->info("Sede creada: {$sede->codigo} — {$sede->nombre}");
-            $this->line("  distrito_id={$sede->distrito_id} ({$sede->departamento} / {$sede->provincia} / {$sede->distrito})");
-            $this->line('  El cliente puede editar la ubicación real en Configuración › Sedes.');
+            $this->info("  Sede creada: {$sede->codigo} — {$sede->nombre}");
+            $this->line("  distrito_id={$sede->distrito_id} (el cliente puede corregir ubicación real)");
 
-            return self::SUCCESS;
+            return 'created';
         } catch (Throwable $e) {
-            $this->error('Falló al crear sede: '.$e->getMessage());
+            $this->error("  Falló crear sede: {$e->getMessage()}");
 
-            return self::FAILURE;
+            return 'failed';
         }
     }
 
-    private function applyDistrito(Sede $sede): bool
+    private function applyDistrito(Sede $sede, Distrito $distrito): bool
     {
+        if ($sede->distrito_id !== null) {
+            $this->line("  skip {$sede->codigo}: ya tiene distrito_id={$sede->distrito_id}");
+
+            return true;
+        }
+
         try {
-            $distrito = $this->resolveDistrito();
-            if ($distrito === null) {
-                $this->error('No se encontró un distrito. Pasa --distrito-id=ID');
-
-                return false;
-            }
-
             $sede->forceFill([
                 'distrito_id' => $distrito->id,
                 'distrito' => $distrito->name,
@@ -134,11 +251,11 @@ final class TenantEnsureSedeCommand extends Command
                 'departamento' => $distrito->provincia?->departamento?->name,
             ])->save();
 
-            $this->info("Geo actualizada en {$sede->codigo}: {$sede->departamento} / {$sede->provincia} / {$sede->distrito}");
+            $this->info("  Geo en {$sede->codigo}: {$sede->departamento} / {$sede->provincia} / {$sede->distrito}");
 
             return true;
         } catch (Throwable $e) {
-            $this->error('Falló al actualizar geo: '.$e->getMessage());
+            $this->error("  Falló geo {$sede->codigo}: {$e->getMessage()}");
 
             return false;
         }
@@ -153,7 +270,6 @@ final class TenantEnsureSedeCommand extends Command
                 ->find($forced);
         }
 
-        // Preferencia: Lince (Lima) → Miraflores → primer distrito activo de Lima.
         $preferred = Distrito::query()
             ->with('provincia.departamento')
             ->where('status', true)
