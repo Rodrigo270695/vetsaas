@@ -2,15 +2,15 @@
 
 return [
 
-    'requires_sede' => 'Create at least one active branch before using the rest of the system.',
-    'requires_sede_geo' => 'Complete department, province and district on your active branch. Required to continue.',
+    'requires_sede' => 'We recommend creating at least one active branch with a location.',
+    'requires_sede_geo' => 'Complete department, province and district on your active branch.',
 
     'banner' => [
         'title' => 'Set up your clinic',
-        'subtitle' => 'Complete these steps to get VetSaaS ready. Without a branch you cannot use register, appointments, or inventory.',
+        'subtitle' => 'Complete these steps to get VetSaaS ready. You can explore the platform; with a branch you’ll set up register, appointments, and inventory more clearly.',
         'progress' => ':completed of :total steps',
-        'required_badge' => 'Required',
-        'locked_hint' => 'Complete the branch step first',
+        'required_badge' => 'Recommended',
+        'locked_hint' => 'Best to complete the branch step first',
         'cta' => 'Go to setup',
         'completed' => 'Done',
     ],
@@ -18,7 +18,7 @@ return [
     'steps' => [
         'sede' => [
             'title' => 'Create your first branch',
-            'description' => 'Where you provide care. Minimum requirement to operate.',
+            'description' => 'Where you provide care. Recommended to operate clearly.',
         ],
         'clinic' => [
             'title' => 'Clinic details',

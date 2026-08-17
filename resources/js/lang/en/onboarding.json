@@ -1,11 +1,11 @@
 {
     "banner": {
         "title": "Set up your clinic",
-        "subtitle": "Complete these steps to get VetSaaS ready. Without a branch you cannot use register, appointments, or inventory.",
-        "subtitle_short": "Without a branch you cannot use register, appointments, or inventory.",
+        "subtitle": "Complete these steps to get VetSaaS ready. You can explore the platform; with a branch you’ll set up register, appointments, and inventory more clearly.",
+        "subtitle_short": "You can use the platform; we recommend creating your branch when you can.",
         "progress": "{{completed}} of {{total}} steps",
-        "required_badge": "Required",
-        "locked_hint": "Complete the branch step first",
+        "required_badge": "Recommended",
+        "locked_hint": "Best to complete the branch step first",
         "cta": "Go to setup",
         "completed": "Done",
         "preview": "Preview",
@@ -15,7 +15,7 @@
     "steps": {
         "sede": {
             "title": "Create your first branch",
-            "description": "Where you provide care. Minimum requirement to operate."
+            "description": "Where you provide care. Recommended to operate clearly."
         },
         "clinic": {
             "title": "Clinic details",

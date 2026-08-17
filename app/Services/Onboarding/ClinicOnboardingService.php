@@ -15,8 +15,8 @@ use Illuminate\Support\Facades\Schema;
 /**
  * Checklist de configuración inicial para clínicas nuevas.
  *
- * Paso 0 (sede) es obligatorio: sin sede activa el middleware bloquea
- * módulos operativos. Los demás pasos son recomendados.
+ * La sede se recomienda (banner + onboarding), pero ya no bloquea el ingreso
+ * al resto de la plataforma. El tenant crea su sede cuando está listo.
  */
 class ClinicOnboardingService
 {

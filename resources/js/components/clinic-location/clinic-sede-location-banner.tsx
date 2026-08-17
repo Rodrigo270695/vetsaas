@@ -12,7 +12,8 @@ type LocationGate = {
 };
 
 /**
- * Banner bloqueante suave: falta crear sede o completar geo obligatoria.
+ * Banner suave: falta crear sede o completar geo.
+ * No bloquea la plataforma; solo guía a Configuración › Sedes.
  */
 export function ClinicSedeLocationBanner() {
     const page = usePage<{ clinic_location_gate?: LocationGate | null }>();
@@ -26,8 +27,8 @@ export function ClinicSedeLocationBanner() {
         ? 'Configura tu primera sede'
         : 'Completa la ubicación de tu sede';
     const body = gate.needs_sede
-        ? 'Antes de usar caja, citas e inventario debes crear una sede con departamento, provincia y distrito.'
-        : 'Tus sedes activas deben tener departamento, provincia y distrito. Es obligatorio para continuar.';
+        ? 'Puedes explorar VetSaaS ahora. Cuando puedas, crea una sede con departamento, provincia y distrito para usar mejor caja, citas e inventario.'
+        : 'Tus sedes activas deberían tener departamento, provincia y distrito. Puedes completarlo cuando quieras.';
 
     return (
         <div className="border-b border-amber-300/60 bg-amber-50 px-4 py-3 text-amber-950 dark:border-amber-800/50 dark:bg-amber-950/40 dark:text-amber-50">
