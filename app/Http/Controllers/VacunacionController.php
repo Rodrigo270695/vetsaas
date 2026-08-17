@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\VacunasAplicadasImportTemplateXlsx;
 use App\Http\Controllers\Concerns\ResolvesClinicPdfBranding;
 use App\Http\Requests\StoreVacunaAplicadaRequest;
 use App\Http\Requests\UpdateVacunaAplicadaRequest;
@@ -14,6 +15,7 @@ use App\Models\Sede;
 use App\Models\ServicioClinico;
 use App\Models\User;
 use App\Models\VacunaAplicada;
+use App\Services\Clinica\VacunaAplicadaImportService;
 use App\Support\Pdf\HistorialClinicoPdfBuilder;
 use App\Support\Vacunas\VacunaAplicadaStockSync;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -29,6 +31,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class VacunacionController extends Controller
 {
@@ -639,6 +642,56 @@ class VacunacionController extends Controller
         $out['consulta_id'] = $cid;
 
         return $out;
+    }
+
+    public function downloadImportTemplate(): StreamedResponse
+    {
+        abort_unless(auth()->user()?->can('vacunaciones.create') ?? false, 403);
+
+        $filename = 'plantilla_vacunaciones_'.now()->format('Y-m-d').'.xlsx';
+
+        return response()->streamDownload(function (): void {
+            (new VacunasAplicadasImportTemplateXlsx)->streamTo('php://output');
+        }, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
+    }
+
+    public function importExcel(Request $request, VacunaAplicadaImportService $importService): JsonResponse
+    {
+        abort_unless($request->user()?->can('vacunaciones.create') ?? false, 403);
+
+        $request->validate([
+            'file' => ['required', 'file', 'max:10240'],
+        ]);
+
+        $uploaded = $request->file('file');
+        if ($uploaded === null) {
+            return response()->json([
+                'ok' => false,
+                'error' => 'No se recibió el archivo.',
+                'imported' => 0,
+                'failed' => 0,
+                'skipped' => 0,
+                'rows' => [],
+            ], 422);
+        }
+
+        $extension = strtolower($uploaded->getClientOriginalExtension());
+        if (! in_array($extension, ['xlsx', 'xls'], true)) {
+            return response()->json([
+                'ok' => false,
+                'error' => 'El archivo debe ser .xlsx',
+                'imported' => 0,
+                'failed' => 0,
+                'skipped' => 0,
+                'rows' => [],
+            ], 422);
+        }
+
+        $result = $importService->import($uploaded);
+
+        return response()->json($result, ($result['ok'] ?? false) ? 200 : 422);
     }
 
     private function parseDateParam(mixed $value): ?string

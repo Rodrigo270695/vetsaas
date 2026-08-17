@@ -390,6 +390,12 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             Route::middleware('permission:vacunaciones.view')
                 ->get('vacunaciones/productos-vacuna', [VacunacionController::class, 'productosVacuna'])
                 ->name('vacunaciones.productos-vacuna');
+            Route::middleware('permission:vacunaciones.create')
+                ->get('vacunaciones/plantilla-importacion', [VacunacionController::class, 'downloadImportTemplate'])
+                ->name('vacunaciones.plantilla-importacion');
+            Route::middleware('permission:vacunaciones.create')
+                ->post('vacunaciones/importar', [VacunacionController::class, 'importExcel'])
+                ->name('vacunaciones.importar');
             Route::middleware('permission:vacunaciones.view')
                 ->get('vacunaciones', [VacunacionController::class, 'index'])
                 ->name('vacunaciones.index');

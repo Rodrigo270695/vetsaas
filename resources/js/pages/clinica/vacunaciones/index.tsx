@@ -1,9 +1,10 @@
 import { Head, usePage } from '@inertiajs/react';
-import { Activity, Filter, Plus, Syringe, UserCircle } from 'lucide-react';
+import { Activity, Filter, Plus, Syringe, Upload, UserCircle } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Can } from '@/components/can';
 import {
+    BulkImportModal,
     DataPagination,
     DataTable,
     DataToolbar,
@@ -57,7 +58,8 @@ type ModalState =
     | { type: 'idle' }
     | { type: 'create' }
     | { type: 'edit'; vacuna: VacunaAplicadaRow }
-    | { type: 'delete'; vacuna: VacunaAplicadaRow };
+    | { type: 'delete'; vacuna: VacunaAplicadaRow }
+    | { type: 'bulk' };
 
 const DEFAULT_PER_PAGE = 10;
 
@@ -429,13 +431,27 @@ export default function Index({
                         },
                     ]}
                     action={
-                        <Can permission="vacunaciones.create">
-                            <Button type="button" onClick={openCreate} className="cursor-pointer gap-2">
-                                <Plus className="size-4" strokeWidth={2.5} />
-                                <span className="hidden sm:inline">{t('actions.new')}</span>
-                                <span className="sm:hidden">{t('actions.new_short')}</span>
-                            </Button>
-                        </Can>
+                        <div className="flex flex-row items-center gap-2">
+                            <Can permission="vacunaciones.create">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setModal({ type: 'bulk' })}
+                                    className="cursor-pointer gap-2"
+                                >
+                                    <Upload className="size-4" strokeWidth={2.5} />
+                                    <span className="hidden sm:inline">{t('actions.bulk_import')}</span>
+                                    <span className="sm:hidden">{t('actions.bulk_import_short')}</span>
+                                </Button>
+                            </Can>
+                            <Can permission="vacunaciones.create">
+                                <Button type="button" onClick={openCreate} className="cursor-pointer gap-2">
+                                    <Plus className="size-4" strokeWidth={2.5} />
+                                    <span className="hidden sm:inline">{t('actions.new')}</span>
+                                    <span className="sm:hidden">{t('actions.new_short')}</span>
+                                </Button>
+                            </Can>
+                        </div>
                     }
                 />
 
@@ -530,6 +546,19 @@ export default function Index({
                     }
                 }}
                 vacuna={modal.type === 'delete' ? modal.vacuna : null}
+            />
+
+            <BulkImportModal
+                open={modal.type === 'bulk'}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        closeModal();
+                    }
+                }}
+                translationNs="vacunaciones"
+                templateUrl="/clinica/vacunaciones/plantilla-importacion"
+                importUrl="/clinica/vacunaciones/importar"
+                reloadOnly={['vacunas', 'filters', 'stats', 'aplicacion_filtro_ui']}
             />
         </>
     );
