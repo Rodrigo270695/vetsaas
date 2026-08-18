@@ -38,6 +38,7 @@ final class AppointmentReminderScanner
                     $this->ownerName($cita),
                     $this->petName($cita),
                     $cita->inicio_at,
+                    $this->motivo($cita),
                 ),
             );
         }
@@ -51,6 +52,7 @@ final class AppointmentReminderScanner
                     $this->ownerName($cita),
                     $this->petName($cita),
                     $cita->inicio_at,
+                    $this->motivo($cita),
                 ),
             );
         }
@@ -117,5 +119,12 @@ final class AppointmentReminderScanner
     private function petName(Cita $cita): string
     {
         return (string) ($cita->paciente?->nombre ?? 'tu mascota');
+    }
+
+    private function motivo(Cita $cita): ?string
+    {
+        $motivo = trim((string) ($cita->motivo ?? ''));
+
+        return $motivo !== '' ? $motivo : null;
     }
 }

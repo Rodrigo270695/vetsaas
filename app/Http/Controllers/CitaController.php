@@ -338,24 +338,30 @@ class CitaController extends Controller
                 ? $cita->inicio_at
                 : Carbon::parse((string) $cita->inicio_at);
 
+            $motivo = trim((string) ($cita->motivo ?? ''));
+            $motivo = $motivo !== '' ? $motivo : null;
+
             $cuerpo = match ($evento) {
                 'reprogramada' => $messages->citaReprogramada(
                     $clinicName,
                     $ownerName,
                     $petName,
                     $inicioAt,
+                    $motivo,
                 ),
                 'actualizada' => $messages->citaActualizada(
                     $clinicName,
                     $ownerName,
                     $petName,
                     $inicioAt,
+                    $motivo,
                 ),
                 default => $messages->citaCreada(
                     $clinicName,
                     $ownerName,
                     $petName,
                     $inicioAt,
+                    $motivo,
                 ),
             };
 

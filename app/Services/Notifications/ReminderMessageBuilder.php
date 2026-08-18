@@ -14,12 +14,14 @@ final class ReminderMessageBuilder
         string $ownerName,
         string $petName,
         CarbonInterface $inicioAt,
+        ?string $motivo = null,
     ): string {
         return sprintf(
-            "Hola %s 👋\n\n⏰ Te recordamos la cita de *%s* en *%s*\n📅 *%s* a las *%s*\n\nSi necesitas reprogramar, contáctanos.\n\nTe esperamos 🐾\n\n— %s",
+            "Hola %s 👋\n\n⏰ Te recordamos la cita de *%s* en *%s*\n%s📅 *%s* a las *%s*\n\nSi necesitas reprogramar, contáctanos.\n\nTe esperamos 🐾\n\n— %s",
             $ownerName,
             $petName,
             $clinicName,
+            $this->citaMotivoLine($motivo),
             $inicioAt->timezone(config('app.timezone'))->translatedFormat('d/m/Y'),
             $inicioAt->timezone(config('app.timezone'))->format('H:i'),
             $clinicName,
@@ -31,12 +33,14 @@ final class ReminderMessageBuilder
         string $ownerName,
         string $petName,
         CarbonInterface $inicioAt,
+        ?string $motivo = null,
     ): string {
         return sprintf(
-            "Hola %s 👋\n\n⏳ En *2 horas* tienes cita de *%s* en *%s*\n🕒 *%s*\n\n¡Nos vemos pronto! 🐾\n\n— %s",
+            "Hola %s 👋\n\n⏳ En *2 horas* tienes cita de *%s* en *%s*\n%s🕒 *%s*\n\n¡Nos vemos pronto! 🐾\n\n— %s",
             $ownerName,
             $petName,
             $clinicName,
+            $this->citaMotivoLine($motivo),
             $inicioAt->timezone(config('app.timezone'))->format('H:i'),
             $clinicName,
         );
@@ -47,12 +51,14 @@ final class ReminderMessageBuilder
         string $ownerName,
         string $petName,
         CarbonInterface $inicioAt,
+        ?string $motivo = null,
     ): string {
         return sprintf(
-            "Hola %s 👋\n\n✅ Registramos la cita de *%s* en *%s*\n📅 *%s* a las *%s*\n\nTe esperamos 🐾\n\n— %s",
+            "Hola %s 👋\n\n✅ Registramos la cita de *%s* en *%s*\n%s📅 *%s* a las *%s*\n\nTe esperamos 🐾\n\n— %s",
             $ownerName,
             $petName,
             $clinicName,
+            $this->citaMotivoLine($motivo),
             $inicioAt->timezone(config('app.timezone'))->translatedFormat('d/m/Y'),
             $inicioAt->timezone(config('app.timezone'))->format('H:i'),
             $clinicName,
@@ -64,12 +70,14 @@ final class ReminderMessageBuilder
         string $ownerName,
         string $petName,
         CarbonInterface $inicioAt,
+        ?string $motivo = null,
     ): string {
         return sprintf(
-            "Hola %s 👋\n\n🔄 Reprogramamos la cita de *%s* en *%s*\n📅 Nueva fecha: *%s* a las *%s*\n\nTe esperamos 🐾\n\n— %s",
+            "Hola %s 👋\n\n🔄 Reprogramamos la cita de *%s* en *%s*\n%s📅 Nueva fecha: *%s* a las *%s*\n\nTe esperamos 🐾\n\n— %s",
             $ownerName,
             $petName,
             $clinicName,
+            $this->citaMotivoLine($motivo),
             $inicioAt->timezone(config('app.timezone'))->translatedFormat('d/m/Y'),
             $inicioAt->timezone(config('app.timezone'))->format('H:i'),
             $clinicName,
@@ -81,16 +89,31 @@ final class ReminderMessageBuilder
         string $ownerName,
         string $petName,
         CarbonInterface $inicioAt,
+        ?string $motivo = null,
     ): string {
         return sprintf(
-            "Hola %s 👋\n\n✏️ Actualizamos la cita de *%s* en *%s*\n📅 *%s* a las *%s*\n\nTe esperamos 🐾\n\n— %s",
+            "Hola %s 👋\n\n✏️ Actualizamos la cita de *%s* en *%s*\n%s📅 *%s* a las *%s*\n\nTe esperamos 🐾\n\n— %s",
             $ownerName,
             $petName,
             $clinicName,
+            $this->citaMotivoLine($motivo),
             $inicioAt->timezone(config('app.timezone'))->translatedFormat('d/m/Y'),
             $inicioAt->timezone(config('app.timezone'))->format('H:i'),
             $clinicName,
         );
+    }
+
+    /**
+     * Línea de motivo para WhatsApp de citas (vacía si no hay motivo).
+     */
+    private function citaMotivoLine(?string $motivo): string
+    {
+        $motivo = trim((string) $motivo);
+        if ($motivo === '') {
+            return '';
+        }
+
+        return '📋 Motivo: *'.$motivo."*\n";
     }
 
     public function vacuna(
