@@ -3,6 +3,8 @@
 namespace App\Services\Integrations\Concerns;
 
 use App\Services\Integrations\ApiPeruConsultaException;
+use Illuminate\Http\Client\ConnectionException;
+use Throwable;
 
 trait FallsBackToApisunatLookup
 {
@@ -20,7 +22,31 @@ trait FallsBackToApisunatLookup
                 throw $e;
             }
 
-            return $apisunatFetch();
+            try {
+                return $apisunatFetch();
+            } catch (Throwable) {
+                // Si el plan B también falla, conservar el error original de ApiPerú.
+                throw $e;
+            }
+        } catch (ConnectionException $e) {
+            // Timeout / red caída de ApiPerú: el plan B debe entrar.
+            if (! $this->apisunatLookup->isConfigured()) {
+                throw new ApiPeruConsultaException(
+                    __('propietarios.consulta.no_disponible'),
+                    503,
+                    'service_unavailable',
+                );
+            }
+
+            try {
+                return $apisunatFetch();
+            } catch (Throwable) {
+                throw new ApiPeruConsultaException(
+                    __('propietarios.consulta.no_disponible'),
+                    503,
+                    'service_unavailable',
+                );
+            }
         }
     }
 

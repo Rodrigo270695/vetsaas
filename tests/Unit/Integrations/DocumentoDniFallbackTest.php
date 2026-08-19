@@ -41,6 +41,40 @@ class DocumentoDniFallbackTest extends TestCase
         $this->assertSame('PEREZ GARCIA', $result['apellidos']);
     }
 
+    public function test_usa_apisunat_cuando_apiperu_hace_timeout(): void
+    {
+        Cache::flush();
+
+        config()->set('services.apiperu.token', 'apiperu-token');
+        config()->set('services.apiperu.base_url', 'https://apiperu.dev/api');
+        config()->set('services.apisunat_lookup.token', 'lucode-token');
+        config()->set('services.apisunat_lookup.base_url', 'https://dev.apisunat.pe/api/v1');
+
+        Http::fake(function (\Illuminate\Http\Client\Request $request) {
+            if (str_contains($request->url(), 'apiperu.dev')) {
+                throw new \Illuminate\Http\Client\ConnectionException('cURL error 28: Connection timed out');
+            }
+
+            return Http::response([
+                'success' => true,
+                'message' => 'OK',
+                'payload' => [
+                    'dni' => '77344506',
+                    'nombres' => 'ANA',
+                    'apellido_paterno' => 'LOPEZ',
+                    'apellido_materno' => 'DIAZ',
+                    'nombre_completo' => 'LOPEZ DIAZ ANA',
+                ],
+            ], 200);
+        });
+
+        $result = app(ApiPeruDniService::class)->consultar('77344506');
+
+        $this->assertSame('77344506', $result['dni']);
+        $this->assertSame('ANA', $result['nombres']);
+        $this->assertSame('LOPEZ DIAZ', $result['apellidos']);
+    }
+
     public function test_apisunat_lookup_service_parsea_ruc(): void
     {
         config()->set('services.apisunat_lookup.token', 'lucode-token');
