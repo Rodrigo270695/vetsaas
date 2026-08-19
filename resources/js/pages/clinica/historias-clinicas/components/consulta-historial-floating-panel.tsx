@@ -266,14 +266,17 @@ export function ConsultaHistorialFloatingPanel({
     return createPortal(
         <div
             role="dialog"
+            aria-modal="false"
             aria-label={t('form.ver_hc_title')}
-            className="fixed z-[130] flex flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-2xl ring-1 ring-black/5"
+            className="pointer-events-auto fixed z-[200] flex flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-2xl ring-1 ring-black/5"
             style={{
                 left: geom.x,
                 top: geom.y,
                 width: geom.w,
                 height: geom.h,
             }}
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
         >
             <div
                 className="flex cursor-grab items-start gap-2 border-b border-border/60 bg-primary/5 px-3 py-2.5 active:cursor-grabbing"
@@ -307,14 +310,18 @@ export function ConsultaHistorialFloatingPanel({
                     variant="ghost"
                     size="icon"
                     className="size-8 shrink-0 cursor-pointer"
-                    onClick={() => onOpenChange(false)}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenChange(false);
+                    }}
                     aria-label={t('common:actions.close', { defaultValue: 'Cerrar' })}
                 >
                     <X className="size-4" />
                 </Button>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-3">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-3 [pointer-events:auto] touch-pan-y">
                 {loading ? (
                     <div className="flex h-full min-h-40 flex-col items-center justify-center gap-2 text-sm text-muted-foreground">
                         <Loader2 className="size-5 animate-spin" />
