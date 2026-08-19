@@ -25,6 +25,7 @@ class ReporteVentasServiciosXlsxExport
 {
     /** @var list<string> */
     private const DETAIL_HEADERS = [
+        'Fecha',
         'Servicio',
         'Categoría',
         'Tipo',
@@ -281,6 +282,7 @@ class ReporteVentasServiciosXlsxExport
         foreach ($items as $item) {
             $tipo = (string) ($item['tipo'] ?? '');
             $values = [
+                $this->fechaRango($item['fecha_primera'] ?? null, $item['fecha_ultima'] ?? null),
                 (string) ($item['nombre'] ?? ''),
                 (string) ($item['categoria'] ?? '—'),
                 $tipoLabels[$tipo] ?? $tipo,
@@ -375,6 +377,30 @@ class ReporteVentasServiciosXlsxExport
         }
 
         return number_format((float) $value, 1, '.', ',').'%';
+    }
+
+    private function fechaRango(mixed $primera, mixed $ultima): string
+    {
+        $a = is_string($primera) ? trim($primera) : '';
+        $b = is_string($ultima) ? trim($ultima) : '';
+
+        if ($a === '' && $b === '') {
+            return '—';
+        }
+
+        $fmt = static function (string $iso): string {
+            try {
+                return \Carbon\Carbon::parse($iso)->format('d/m/Y');
+            } catch (\Throwable) {
+                return $iso;
+            }
+        };
+
+        if ($a === '' || $b === '' || $a === $b) {
+            return $fmt($a !== '' ? $a : $b);
+        }
+
+        return $fmt($a).' – '.$fmt($b);
     }
 
     private function styleTable(

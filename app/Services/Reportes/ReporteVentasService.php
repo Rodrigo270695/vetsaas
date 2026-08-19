@@ -58,6 +58,8 @@ final class ReporteVentasService
             DB::raw('COUNT(DISTINCT vl.venta_id) as ventas'),
             DB::raw('COALESCE(SUM(vl.cantidad * p.precio_venta), 0) as ingreso'),
             DB::raw('COALESCE(SUM(vl.cantidad * p.precio_compra), 0) as costo'),
+            DB::raw('MIN(COALESCE(v.fecha_pago, v.created_at)) as fecha_primera'),
+            DB::raw('MAX(COALESCE(v.fecha_pago, v.created_at)) as fecha_ultima'),
         ];
 
         if (Schema::hasTable('categorias_productos')) {
@@ -217,9 +219,14 @@ final class ReporteVentasService
 
         $this->applyVentasFilter($lineas, $start, $end);
 
-        /** @var Collection<int, object{descripcion: string, cantidad: string, venta_id: string}> $lineas */
+        /** @var Collection<int, object{descripcion: string, cantidad: string, venta_id: string, fecha: ?string}> $lineas */
         $lineas = $lineas
-            ->select('vl.descripcion_snapshot as descripcion', 'vl.cantidad', 'vl.venta_id')
+            ->select(
+                'vl.descripcion_snapshot as descripcion',
+                'vl.cantidad',
+                'vl.venta_id',
+                DB::raw('COALESCE(v.fecha_pago, v.created_at) as fecha'),
+            )
             ->get();
 
         /** @var array<string, array<string, mixed>> $acumulado */
@@ -270,6 +277,8 @@ final class ReporteVentasService
                     'venta_ids' => [],
                     'ingreso' => 0.0,
                     'costo' => 0.0,
+                    'fecha_primera' => null,
+                    'fecha_ultima' => null,
                 ];
             }
 
@@ -279,6 +288,24 @@ final class ReporteVentasService
                 $acumulado[$bucketKey]['costo'] += $cantidad * $matched['costo_unit'];
             }
             $acumulado[$bucketKey]['venta_ids'][$ventaId] = true;
+
+            $fechaRaw = isset($linea->fecha) ? (string) $linea->fecha : '';
+            if ($fechaRaw !== '') {
+                try {
+                    $fechaCarbon = \Carbon\Carbon::parse($fechaRaw);
+                    $fechaIso = $fechaCarbon->toIso8601String();
+                    $prevPrimera = $acumulado[$bucketKey]['fecha_primera'];
+                    $prevUltima = $acumulado[$bucketKey]['fecha_ultima'];
+                    if ($prevPrimera === null || $fechaIso < (string) $prevPrimera) {
+                        $acumulado[$bucketKey]['fecha_primera'] = $fechaIso;
+                    }
+                    if ($prevUltima === null || $fechaIso > (string) $prevUltima) {
+                        $acumulado[$bucketKey]['fecha_ultima'] = $fechaIso;
+                    }
+                } catch (\Throwable) {
+                    // Ignorar fechas inválidas en líneas legacy.
+                }
+            }
         }
 
         $items = [];
@@ -480,6 +507,8 @@ final class ReporteVentasService
             'utilidad' => $utilidad,
             'margen_pct' => $utilidad !== null ? $this->calcMargenPct($ingreso, $utilidad) : null,
             'tiene_costo' => $tieneCosto,
+            'fecha_primera' => $this->normalizeFechaReporte($row['fecha_primera'] ?? null),
+            'fecha_ultima' => $this->normalizeFechaReporte($row['fecha_ultima'] ?? null),
             '_venta_ids' => $row['venta_ids'] ?? [],
         ];
     }
@@ -529,7 +558,22 @@ final class ReporteVentasService
             'utilidad' => $utilidad,
             'margen_pct' => $utilidad !== null ? $this->calcMargenPct($ingreso, $utilidad) : null,
             'tiene_costo' => $tieneCosto,
+            'fecha_primera' => $this->normalizeFechaReporte($row->fecha_primera ?? null),
+            'fecha_ultima' => $this->normalizeFechaReporte($row->fecha_ultima ?? null),
         ];
+    }
+
+    private function normalizeFechaReporte(mixed $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        try {
+            return \Carbon\Carbon::parse((string) $value)->toDateString();
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     /**

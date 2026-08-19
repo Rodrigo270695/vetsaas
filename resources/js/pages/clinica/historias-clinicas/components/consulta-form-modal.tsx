@@ -17,6 +17,7 @@ import {
     type ConsultaDictationFields,
 } from './consulta-dictation-bar';
 import { ConsultaEstadoBadge } from './consulta-estado-badge';
+import { ConsultaHistorialFloatingPanel } from './consulta-historial-floating-panel';
 
 export type CatalogoOpcion = { id: string; nombre: string };
 
@@ -152,6 +153,7 @@ export function ConsultaFormModal({
     const [farmacos, setFarmacos] = useState<CatalogoOpcion[]>([...farmacosOpciones]);
     const [ownerTouched, setOwnerTouched] = useState(false);
     const [cierreProcessing, setCierreProcessing] = useState(false);
+    const [hcPanelOpen, setHcPanelOpen] = useState(false);
     const isEditRef = useRef(isEdit);
     isEditRef.current = isEdit;
 
@@ -394,6 +396,28 @@ export function ConsultaFormModal({
               })
             : '';
 
+    const selectedPacienteId = isEdit
+        ? (consulta?.historia_clinica.paciente?.id ?? null)
+        : data.paciente_id || null;
+
+    const selectedPacienteNombre = useMemo(() => {
+        if (!selectedPacienteId) {
+            return null;
+        }
+        if (isEdit) {
+            return pacienteNombreEdit || null;
+        }
+        const opt = pacientesOpciones.find((o) => o.id === selectedPacienteId);
+
+        return opt ? labelPaciente(opt) : null;
+    }, [isEdit, pacienteNombreEdit, pacientesOpciones, selectedPacienteId]);
+
+    useEffect(() => {
+        if (!open || !selectedPacienteId) {
+            setHcPanelOpen(false);
+        }
+    }, [open, selectedPacienteId]);
+
     const fieldDisabled = isCerrada || processing;
 
     const applyDictationFields = (fields: ConsultaDictationFields) => {
@@ -536,6 +560,7 @@ export function ConsultaFormModal({
     };
 
     return (
+        <>
         <FormModal
             open={open}
             onOpenChange={onOpenChange}
@@ -611,7 +636,23 @@ export function ConsultaFormModal({
                     />
                 ) : null}
 
-                <FormSection index={0} title={t('form.section_main')} columns={2} className="gap-4">
+                <FormSection
+                    index={0}
+                    title={t('form.section_main')}
+                    columns={2}
+                    className="gap-4"
+                    actions={
+                        selectedPacienteId ? (
+                            <button
+                                type="button"
+                                className="cursor-pointer text-sm font-medium text-primary underline-offset-4 hover:underline"
+                                onClick={() => setHcPanelOpen(true)}
+                            >
+                                {t('form.ver_hc')}
+                            </button>
+                        ) : null
+                    }
+                >
                     {!isEdit ? (
                         <FormField
                             id="hc-paciente"
@@ -993,5 +1034,12 @@ export function ConsultaFormModal({
                 </FormSection>
             </div>
         </FormModal>
+        <ConsultaHistorialFloatingPanel
+            open={hcPanelOpen && Boolean(selectedPacienteId)}
+            onOpenChange={setHcPanelOpen}
+            pacienteId={selectedPacienteId}
+            pacienteNombre={selectedPacienteNombre}
+        />
+        </>
     );
 }

@@ -32,3 +32,39 @@ export function formatPct(value: number | null | undefined, locale: string): str
 
     return `${value.toLocaleString(locale, { maximumFractionDigits: 1 })}%`;
 }
+
+/** Rango o fecha única (Y-m-d) para columnas de reportes de ventas. */
+export function formatFechaRango(
+    primera: string | null | undefined,
+    ultima: string | null | undefined,
+    locale: string,
+): string {
+    const fmt = (iso: string): string => {
+        const d = new Date(`${iso}T12:00:00`);
+        if (Number.isNaN(d.getTime())) {
+            return iso;
+        }
+
+        try {
+            return new Intl.DateTimeFormat(locale, {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+            }).format(d);
+        } catch {
+            return iso;
+        }
+    };
+
+    const a = (primera ?? '').trim();
+    const b = (ultima ?? '').trim();
+
+    if (a === '' && b === '') {
+        return '—';
+    }
+    if (a === '' || b === '' || a === b) {
+        return fmt(a || b);
+    }
+
+    return `${fmt(a)} – ${fmt(b)}`;
+}

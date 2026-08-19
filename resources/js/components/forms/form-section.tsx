@@ -8,6 +8,8 @@ export type FormSectionProps = {
     children: ReactNode;
     /** Icono opcional que aparece junto al título de la sección. */
     icon?: LucideIcon;
+    /** Acciones alineadas a la derecha del encabezado (ej. enlace Ver HC). */
+    actions?: ReactNode;
     /** Si true, los children se acomodan en grid 2-col en desktop. */
     columns?: 1 | 2;
     /**
@@ -31,6 +33,7 @@ export function FormSection({
     description,
     children,
     icon: Icon,
+    actions,
     columns = 1,
     index = 0,
     className,
@@ -43,22 +46,25 @@ export function FormSection({
                 className,
             )}
         >
-            <header className="flex items-start gap-2.5">
-                {Icon && (
-                    <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary ring-1 ring-primary/15">
-                        <Icon className="size-3.5" strokeWidth={2.25} />
-                    </span>
-                )}
-                <div className="flex flex-col gap-0.5">
-                    <h3 className="text-sm font-semibold text-foreground leading-tight">
-                        {title}
-                    </h3>
-                    {description && (
-                        <p className="text-xs text-muted-foreground">
-                            {description}
-                        </p>
+            <header className="flex items-start justify-between gap-3">
+                <div className="flex min-w-0 items-start gap-2.5">
+                    {Icon && (
+                        <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary ring-1 ring-primary/15">
+                            <Icon className="size-3.5" strokeWidth={2.25} />
+                        </span>
                     )}
+                    <div className="flex min-w-0 flex-col gap-0.5">
+                        <h3 className="text-sm font-semibold leading-tight text-foreground">
+                            {title}
+                        </h3>
+                        {description && (
+                            <p className="text-xs text-muted-foreground">
+                                {description}
+                            </p>
+                        )}
+                    </div>
                 </div>
+                {actions ? <div className="shrink-0 self-center">{actions}</div> : null}
             </header>
 
             <div

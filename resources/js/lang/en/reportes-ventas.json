@@ -22,6 +22,7 @@
             "margen": "Margin"
         },
         "columns": {
+            "fecha": "Date",
             "nombre": "Name",
             "categoria": "Category",
             "tipo": "Type",

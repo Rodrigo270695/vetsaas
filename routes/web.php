@@ -294,6 +294,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             Route::middleware('permission:pacientes.view')
                 ->get('pacientes/{paciente}', [PacienteController::class, 'show'])
                 ->name('pacientes.show');
+            Route::middleware('permission:pacientes.view')
+                ->get('pacientes/{paciente}/timeline', [PacienteController::class, 'timeline'])
+                ->name('pacientes.timeline');
             Route::middleware('permission:petpass.register')
                 ->get('pacientes/{paciente}/petpass/registrar', [PacientePetPassController::class, 'start'])
                 ->name('pacientes.petpass.registrar');

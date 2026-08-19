@@ -29,6 +29,8 @@ export type ReporteVentasItem = {
     utilidad: number | null;
     margen_pct: number | null;
     tiene_costo: boolean;
+    fecha_primera: string | null;
+    fecha_ultima: string | null;
 };
 
 export type ReporteServicioResumenSlice = {
@@ -49,6 +51,7 @@ export type ReporteServicioResumen = {
 };
 
 export type SortKey =
+    | 'fecha'
     | 'nombre'
     | 'categoria'
     | 'tipo'

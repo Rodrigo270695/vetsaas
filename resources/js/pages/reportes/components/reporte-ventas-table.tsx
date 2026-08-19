@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { formatMoney, formatNumber, formatPct } from './reporte-format';
+import { formatFechaRango, formatMoney, formatNumber, formatPct } from './reporte-format';
 import type { ReporteVentasItem, SortDir, SortKey } from './types';
 
 type Props = {
@@ -37,6 +37,13 @@ export function ReporteVentasTable({ items, moneda, locale, showTipo = false, em
         const copy = [...items];
         copy.sort((a, b) => {
             switch (sortKey) {
+                case 'fecha': {
+                    const av = a.fecha_ultima ?? a.fecha_primera ?? '';
+                    const bv = b.fecha_ultima ?? b.fecha_primera ?? '';
+                    const cmp = av.localeCompare(bv);
+
+                    return sortDir === 'asc' ? cmp : -cmp;
+                }
                 case 'nombre':
                 case 'categoria':
                 case 'tipo': {
@@ -71,7 +78,11 @@ export function ReporteVentasTable({ items, moneda, locale, showTipo = false, em
             return;
         }
         setSortKey(key);
-        setSortDir(key === 'nombre' || key === 'categoria' || key === 'tipo' ? 'asc' : 'desc');
+        setSortDir(
+            key === 'nombre' || key === 'categoria' || key === 'tipo' || key === 'fecha'
+                ? 'asc'
+                : 'desc',
+        );
     };
 
     const SortButton = ({ column, label }: { column: SortKey; label: string }) => {
@@ -105,6 +116,9 @@ export function ReporteVentasTable({ items, moneda, locale, showTipo = false, em
             <table className="w-full min-w-5xl border-collapse text-sm">
                 <thead>
                     <tr className="border-b border-border/70 bg-muted/40">
+                        <th className="px-3 py-2 text-left font-medium">
+                            <SortButton column="fecha" label={t('common.columns.fecha')} />
+                        </th>
                         <th className="px-3 py-2 text-left font-medium">
                             <SortButton column="nombre" label={t('common.columns.nombre')} />
                         </th>
@@ -151,6 +165,9 @@ export function ReporteVentasTable({ items, moneda, locale, showTipo = false, em
                                 !row.tiene_costo ? 'bg-amber-500/5' : 'odd:bg-background even:bg-muted/20',
                             )}
                         >
+                            <td className="whitespace-nowrap px-3 py-2.5 tabular-nums text-muted-foreground">
+                                {formatFechaRango(row.fecha_primera, row.fecha_ultima, locale)}
+                            </td>
                             <td className="max-w-[16rem] px-3 py-2.5 font-medium">
                                 <span className="line-clamp-2">{row.nombre}</span>
                             </td>

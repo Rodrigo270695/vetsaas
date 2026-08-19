@@ -174,136 +174,16 @@ class PacienteController extends Controller
         $ownerHasDocument = filled($paciente->propietario?->tipo_documento)
             && filled(trim((string) ($paciente->propietario?->numero_documento ?? '')));
 
-        $tz = config('app.timezone');
+        $tz = (string) config('app.timezone');
 
-        $timeline = [];
-
-        if ($canVerConsultas) {
-            $hc = HistoriaClinica::query()->where('paciente_id', $paciente->id)->first();
-            if ($hc !== null) {
-                $consultas = $hc->consultas()
-                    ->with([
-                        'veterinario:id,name',
-                        'examenes',
-                        'terapiaLineas',
-                        'recetas' => fn ($q) => $q->withCount('lineas')->orderByDesc('emitida_at'),
-                        'pedidosLaboratorio' => fn ($q) => $q
-                            ->with(['lineas' => fn ($lq) => $lq->orderBy('orden')])
-                            ->withCount('lineas')
-                            ->orderByDesc('solicitado_at'),
-                        'cirugias' => fn ($q) => $q->orderByDesc('programada_at'),
-                        'internamientos' => fn ($q) => $q->orderByDesc('ingreso_at'),
-                    ])
-                    ->orderByDesc('atendido_at')
-                    ->limit(200)
-                    ->get();
-                foreach ($consultas as $c) {
-                    $at = $c->atendido_at;
-                    $timeline[] = [
-                        'kind' => 'consulta',
-                        'id' => $c->id,
-                        'ocurrido_at' => $at->toIso8601String(),
-                        'titulo' => Str::limit(trim((string) ($c->motivo ?? '')), 120) ?: '—',
-                        'cerrada' => $c->cerrada_at !== null,
-                        'veterinario' => trim((string) ($c->medico_tratante ?? '')) !== ''
-                            ? trim((string) $c->medico_tratante)
-                            : $c->veterinario?->name,
-                        'historia_url' => route('clinica.historias-clinicas', [
-                            'editar_consulta' => $c->id,
-                            'atendido_desde' => $at->copy()->startOfMonth()->toDateString(),
-                            'atendido_hasta' => $at->copy()->endOfMonth()->toDateString(),
-                        ]),
-                        'pdf_url' => route('clinica.historias-clinicas.consultas.pdf', $c),
-                        'whatsapp_url' => route('clinica.historias-clinicas.consultas.whatsapp', $c),
-                        'detalle' => [
-                            'peso_kg' => $c->peso_kg !== null && trim((string) $c->peso_kg) !== '' ? trim((string) $c->peso_kg) : null,
-                            'temperatura_c' => $c->temperatura_c !== null && trim((string) $c->temperatura_c) !== '' ? trim((string) $c->temperatura_c) : null,
-                            'fc_lpm' => $c->fc_lpm,
-                            'fr_rpm' => $c->fr_rpm,
-                            'subjetivo' => $this->timelineTextPreview($c->subjetivo, 800),
-                            'objetivo' => $this->timelineTextPreview($c->objetivo, 800),
-                            'analisis' => $this->timelineTextPreview($c->analisis, 800),
-                            'plan' => $this->timelineTextPreview(
-                                $c->terapiaLineas
-                                    ->sortBy('orden')
-                                    ->map(function ($linea): string {
-                                        $nombre = trim((string) ($linea->farmaco_nombre ?? ''));
-                                        $dosis = trim((string) ($linea->dosis_volumen ?? ''));
-                                        if ($nombre === '') {
-                                            return '';
-                                        }
-
-                                        return $dosis !== '' ? $nombre.' — '.$dosis : $nombre;
-                                    })
-                                    ->filter()
-                                    ->implode("\n") ?: $c->plan,
-                                800,
-                            ),
-                            'examenes' => $c->examenes
-                                ->sortBy('orden')
-                                ->pluck('nombre')
-                                ->filter(fn ($n) => trim((string) $n) !== '')
-                                ->values()
-                                ->all(),
-                            'motivo' => $this->timelineTextPreview($c->motivo, 800),
-                            'anotaciones' => $this->timelineTextPreview($c->anotaciones ?? null, 800),
-                            'medico_tratante' => trim((string) ($c->medico_tratante ?? '')) !== ''
-                                ? trim((string) $c->medico_tratante)
-                                : null,
-                            'vinculos' => [
-                                'recetas' => $this->timelineRecetasVinculo($user, $c->recetas, $tz),
-                                'laboratorio' => $this->timelineLaboratorioVinculo($user, $c->pedidosLaboratorio, $tz),
-                                'cirugias' => $this->timelineCirugiasVinculo($user, $c->cirugias, $tz),
-                                'internamientos' => $this->timelineInternamientosVinculo($user, $c->internamientos, $tz),
-                            ],
-                        ],
-                    ];
-                }
-            }
-        }
-
-        if ($canVerVacunas) {
-            $vacunas = VacunaAplicada::query()
-                ->where('paciente_id', $paciente->id)
-                ->with(['veterinario:id,name', 'consulta:id', 'producto:id,nombre,sku'])
-                ->orderByDesc('aplicada_at')
-                ->limit(200)
-                ->get();
-            foreach ($vacunas as $v) {
-                $ap = $v->aplicada_at;
-                $desde = $ap->copy()->startOfMonth()->toDateString();
-                $hasta = $ap->copy()->endOfMonth()->toDateString();
-                $vacunacionesParams = [
-                    'aplicada_desde' => $desde,
-                    'aplicada_hasta' => $hasta,
-                ];
-                if ($canEditarVacuna) {
-                    $vacunacionesParams['editar_vacuna_aplicada'] = $v->id;
-                }
-                $timeline[] = [
-                    'kind' => 'aplicacion',
-                    'id' => $v->id,
-                    'ocurrido_at' => $v->aplicada_at->toIso8601String(),
-                    'titulo' => $v->nombre_vacuna,
-                    'categoria' => $v->categoria_registro,
-                    'consulta_id' => $v->consulta_id,
-                    'veterinario' => $v->veterinario?->name,
-                    'vacunaciones_url' => route('clinica.vacunaciones.index', $vacunacionesParams),
-                    'pdf_url' => route('clinica.vacunaciones.aplicacion-pdf', $v),
-                    'detalle' => [
-                        'producto_nombre' => $v->producto?->nombre,
-                        'producto_sku' => $v->producto?->sku,
-                        'lote' => $v->lote !== null && trim((string) $v->lote) !== '' ? trim((string) $v->lote) : null,
-                        'numero_dosis' => $v->numero_dosis,
-                        'fecha_proxima_sugerida' => $v->fecha_proxima_sugerida?->toDateString(),
-                        'esquema_antigenos' => $this->timelineTextPreview($v->esquema_antigenos, 600),
-                        'notas' => $this->timelineTextPreview($v->notas, 600),
-                    ],
-                ];
-            }
-        }
-
-        usort($timeline, fn (array $a, array $b): int => strcmp((string) $b['ocurrido_at'], (string) $a['ocurrido_at']));
+        $timeline = $this->buildPacienteTimeline(
+            $paciente,
+            $user,
+            $canVerConsultas,
+            $canVerVacunas,
+            $canEditarVacuna,
+            $tz,
+        );
 
         $consultasParaLab = [];
         if ($canVerConsultas) {
@@ -776,6 +656,193 @@ class PacienteController extends Controller
                 // No bloquear el guardado de ficha si AlmaPet no responde.
             }
         }
+    }
+
+    /**
+     * Timeline JSON para el panel flotante «Ver HC» desde el modal de consulta.
+     */
+    public function timeline(Request $request, Paciente $paciente): JsonResponse
+    {
+        abort_unless($request->user()?->can('pacientes.view') ?? false, 403);
+
+        $user = $request->user();
+        $canVerConsultas = $user?->can('historias-clinicas.view') ?? false;
+        $canVerVacunas = $user?->can('vacunaciones.view') ?? false;
+        $canEditarVacuna = $user?->can('vacunaciones.update') ?? false;
+
+        $paciente->load(['propietario:id,nombres,apellidos,razon_social']);
+
+        $propietario = $paciente->propietario;
+        $propietarioNombre = null;
+        if ($propietario !== null) {
+            $propietarioNombre = trim((string) ($propietario->razon_social ?? '')) !== ''
+                ? trim((string) $propietario->razon_social)
+                : trim(trim((string) ($propietario->nombres ?? '')).' '.trim((string) ($propietario->apellidos ?? '')));
+            $propietarioNombre = $propietarioNombre !== '' ? $propietarioNombre : null;
+        }
+
+        return response()->json([
+            'paciente' => [
+                'id' => $paciente->id,
+                'nombre' => $paciente->nombre,
+                'propietario' => $propietarioNombre,
+            ],
+            'timeline' => $this->buildPacienteTimeline(
+                $paciente,
+                $user,
+                $canVerConsultas,
+                $canVerVacunas,
+                $canEditarVacuna,
+                (string) config('app.timezone'),
+            ),
+            'permisos' => [
+                'consultas_ver' => $canVerConsultas,
+                'vacunas_ver' => $canVerVacunas,
+            ],
+        ]);
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function buildPacienteTimeline(
+        Paciente $paciente,
+        ?Authenticatable $user,
+        bool $canVerConsultas,
+        bool $canVerVacunas,
+        bool $canEditarVacuna,
+        string $tz,
+    ): array {
+        $timeline = [];
+
+        if ($canVerConsultas) {
+            $hc = HistoriaClinica::query()->where('paciente_id', $paciente->id)->first();
+            if ($hc !== null) {
+                $consultas = $hc->consultas()
+                    ->with([
+                        'veterinario:id,name',
+                        'examenes',
+                        'terapiaLineas',
+                        'recetas' => fn ($q) => $q->withCount('lineas')->orderByDesc('emitida_at'),
+                        'pedidosLaboratorio' => fn ($q) => $q
+                            ->with(['lineas' => fn ($lq) => $lq->orderBy('orden')])
+                            ->withCount('lineas')
+                            ->orderByDesc('solicitado_at'),
+                        'cirugias' => fn ($q) => $q->orderByDesc('programada_at'),
+                        'internamientos' => fn ($q) => $q->orderByDesc('ingreso_at'),
+                    ])
+                    ->orderByDesc('atendido_at')
+                    ->limit(200)
+                    ->get();
+                foreach ($consultas as $c) {
+                    $at = $c->atendido_at;
+                    $timeline[] = [
+                        'kind' => 'consulta',
+                        'id' => $c->id,
+                        'ocurrido_at' => $at->toIso8601String(),
+                        'titulo' => Str::limit(trim((string) ($c->motivo ?? '')), 120) ?: '—',
+                        'cerrada' => $c->cerrada_at !== null,
+                        'veterinario' => trim((string) ($c->medico_tratante ?? '')) !== ''
+                            ? trim((string) $c->medico_tratante)
+                            : $c->veterinario?->name,
+                        'historia_url' => route('clinica.historias-clinicas', [
+                            'editar_consulta' => $c->id,
+                            'atendido_desde' => $at->copy()->startOfMonth()->toDateString(),
+                            'atendido_hasta' => $at->copy()->endOfMonth()->toDateString(),
+                        ]),
+                        'pdf_url' => route('clinica.historias-clinicas.consultas.pdf', $c),
+                        'whatsapp_url' => route('clinica.historias-clinicas.consultas.whatsapp', $c),
+                        'detalle' => [
+                            'peso_kg' => $c->peso_kg !== null && trim((string) $c->peso_kg) !== '' ? trim((string) $c->peso_kg) : null,
+                            'temperatura_c' => $c->temperatura_c !== null && trim((string) $c->temperatura_c) !== '' ? trim((string) $c->temperatura_c) : null,
+                            'fc_lpm' => $c->fc_lpm,
+                            'fr_rpm' => $c->fr_rpm,
+                            'subjetivo' => $this->timelineTextPreview($c->subjetivo, 800),
+                            'objetivo' => $this->timelineTextPreview($c->objetivo, 800),
+                            'analisis' => $this->timelineTextPreview($c->analisis, 800),
+                            'plan' => $this->timelineTextPreview(
+                                $c->terapiaLineas
+                                    ->sortBy('orden')
+                                    ->map(function ($linea): string {
+                                        $nombre = trim((string) ($linea->farmaco_nombre ?? ''));
+                                        $dosis = trim((string) ($linea->dosis_volumen ?? ''));
+                                        if ($nombre === '') {
+                                            return '';
+                                        }
+
+                                        return $dosis !== '' ? $nombre.' — '.$dosis : $nombre;
+                                    })
+                                    ->filter()
+                                    ->implode("\n") ?: $c->plan,
+                                800,
+                            ),
+                            'examenes' => $c->examenes
+                                ->sortBy('orden')
+                                ->pluck('nombre')
+                                ->filter(fn ($n) => trim((string) $n) !== '')
+                                ->values()
+                                ->all(),
+                            'motivo' => $this->timelineTextPreview($c->motivo, 800),
+                            'anotaciones' => $this->timelineTextPreview($c->anotaciones ?? null, 800),
+                            'medico_tratante' => trim((string) ($c->medico_tratante ?? '')) !== ''
+                                ? trim((string) $c->medico_tratante)
+                                : null,
+                            'vinculos' => [
+                                'recetas' => $this->timelineRecetasVinculo($user, $c->recetas, $tz),
+                                'laboratorio' => $this->timelineLaboratorioVinculo($user, $c->pedidosLaboratorio, $tz),
+                                'cirugias' => $this->timelineCirugiasVinculo($user, $c->cirugias, $tz),
+                                'internamientos' => $this->timelineInternamientosVinculo($user, $c->internamientos, $tz),
+                            ],
+                        ],
+                    ];
+                }
+            }
+        }
+
+        if ($canVerVacunas) {
+            $vacunas = VacunaAplicada::query()
+                ->where('paciente_id', $paciente->id)
+                ->with(['veterinario:id,name', 'consulta:id', 'producto:id,nombre,sku'])
+                ->orderByDesc('aplicada_at')
+                ->limit(200)
+                ->get();
+            foreach ($vacunas as $v) {
+                $ap = $v->aplicada_at;
+                $desde = $ap->copy()->startOfMonth()->toDateString();
+                $hasta = $ap->copy()->endOfMonth()->toDateString();
+                $vacunacionesParams = [
+                    'aplicada_desde' => $desde,
+                    'aplicada_hasta' => $hasta,
+                ];
+                if ($canEditarVacuna) {
+                    $vacunacionesParams['editar_vacuna_aplicada'] = $v->id;
+                }
+                $timeline[] = [
+                    'kind' => 'aplicacion',
+                    'id' => $v->id,
+                    'ocurrido_at' => $v->aplicada_at->toIso8601String(),
+                    'titulo' => $v->nombre_vacuna,
+                    'categoria' => $v->categoria_registro,
+                    'consulta_id' => $v->consulta_id,
+                    'veterinario' => $v->veterinario?->name,
+                    'vacunaciones_url' => route('clinica.vacunaciones.index', $vacunacionesParams),
+                    'pdf_url' => route('clinica.vacunaciones.aplicacion-pdf', $v),
+                    'detalle' => [
+                        'producto_nombre' => $v->producto?->nombre,
+                        'producto_sku' => $v->producto?->sku,
+                        'lote' => $v->lote !== null && trim((string) $v->lote) !== '' ? trim((string) $v->lote) : null,
+                        'numero_dosis' => $v->numero_dosis,
+                        'fecha_proxima_sugerida' => $v->fecha_proxima_sugerida?->toDateString(),
+                        'esquema_antigenos' => $this->timelineTextPreview($v->esquema_antigenos, 600),
+                        'notas' => $this->timelineTextPreview($v->notas, 600),
+                    ],
+                ];
+            }
+        }
+
+        usort($timeline, fn (array $a, array $b): int => strcmp((string) $b['ocurrido_at'], (string) $a['ocurrido_at']));
+
+        return $timeline;
     }
 
     /**
