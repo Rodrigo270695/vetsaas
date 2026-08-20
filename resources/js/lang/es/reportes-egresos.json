@@ -2,6 +2,7 @@
     "title": "Egresos de caja",
     "description": "Salidas de efectivo registradas en sesiones de caja, para arqueo y control.",
     "search_placeholder": "Buscar por sede, motivo, notas…",
+    "hint": "Montos según egresos registrados en cada sesión de caja.",
     "sin_datos": "No hay egresos en el periodo seleccionado.",
     "common": {
         "reportes": "Reportes",
@@ -25,6 +26,7 @@
     "kpis": {
         "cantidad": "Egresos",
         "monto": "Total egresado",
+        "motivos_distintos": "Motivos",
         "movimientos": "{{count}} movimiento(s)"
     },
     "columns": {

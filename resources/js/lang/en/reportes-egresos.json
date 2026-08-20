@@ -2,6 +2,7 @@
     "title": "Cash expenses",
     "description": "Cash outflows recorded in register sessions, for reconciliation and control.",
     "search_placeholder": "Search by branch, reason, notes…",
+    "hint": "Amounts come from expenses recorded in each cash session.",
     "sin_datos": "No expenses in the selected period.",
     "common": {
         "reportes": "Reports",
@@ -25,6 +26,7 @@
     "kpis": {
         "cantidad": "Expenses",
         "monto": "Total out",
+        "motivos_distintos": "Reasons",
         "movimientos": "{{count}} movement(s)"
     },
     "columns": {
