@@ -1,0 +1,38 @@
+{
+    "title": "Egresos de caja",
+    "description": "Salidas de efectivo registradas en sesiones de caja, para arqueo y control.",
+    "search_placeholder": "Buscar por sede, motivo, notas…",
+    "sin_datos": "No hay egresos en el periodo seleccionado.",
+    "common": {
+        "reportes": "Reportes",
+        "na": "—"
+    },
+    "date_filter": {
+        "placeholder": "Rango de fechas",
+        "aria": "Filtrar egresos por fechas",
+        "reset_month": "Mes actual",
+        "preset_this_week": "Esta semana",
+        "preset_last_week": "Semana pasada",
+        "preset_last_month": "Mes pasado",
+        "apply_single_day": "Un solo día"
+    },
+    "filters": {
+        "sede": "Sede",
+        "sede_todas": "Todas las sedes",
+        "motivo": "Motivo",
+        "motivo_todos": "Todos los motivos"
+    },
+    "kpis": {
+        "cantidad": "Egresos",
+        "monto": "Total egresado",
+        "movimientos": "{{count}} movimiento(s)"
+    },
+    "columns": {
+        "fecha": "Fecha",
+        "sede": "Sede",
+        "motivo": "Motivo",
+        "monto": "Monto",
+        "notas": "Notas",
+        "registrado_por": "Registrado por"
+    }
+}

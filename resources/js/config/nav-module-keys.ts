@@ -36,6 +36,7 @@ export const NAV_HREF_MODULE_KEYS: Record<string, string> = {
     '/reportes/financiero': 'reporte_financiero',
     '/reportes/ventas-productos': 'reporte_financiero',
     '/reportes/ventas-servicios': 'reporte_financiero',
+    '/reportes/egresos': 'reporte_financiero',
     '/reportes/top-pacientes': 'reporte_top_pacientes',
     '/configuracion/general': 'config_general',
     '/configuracion/suscripcion': 'config_suscripcion',

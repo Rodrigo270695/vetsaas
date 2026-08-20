@@ -367,6 +367,12 @@ function useNavConfig(): { singles: NavItem[]; groups: NavGroup[] } {
                             permission: 'reporte-financiero.view',
                         },
                         {
+                            title: t('items.egresos'),
+                            href: '/reportes/egresos',
+                            icon: Wallet,
+                            permission: 'reporte-financiero.view',
+                        },
+                        {
                             title: t('items.top_pacientes'),
                             href: '/reportes/top-pacientes',
                             icon: Trophy,

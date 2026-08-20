@@ -56,6 +56,7 @@
         "financiero": "Financial analysis",
         "ventas_productos": "Sales by product",
         "ventas_servicios": "Sales by service",
+        "egresos": "Cash expenses",
         "top_pacientes": "Top patients",
         "general": "General",
         "ayuda": "Help center",

@@ -1,0 +1,38 @@
+{
+    "title": "Cash expenses",
+    "description": "Cash outflows recorded in register sessions, for reconciliation and control.",
+    "search_placeholder": "Search by branch, reason, notes…",
+    "sin_datos": "No expenses in the selected period.",
+    "common": {
+        "reportes": "Reports",
+        "na": "—"
+    },
+    "date_filter": {
+        "placeholder": "Date range",
+        "aria": "Filter expenses by dates",
+        "reset_month": "This month",
+        "preset_this_week": "This week",
+        "preset_last_week": "Last week",
+        "preset_last_month": "Last month",
+        "apply_single_day": "Single day"
+    },
+    "filters": {
+        "sede": "Branch",
+        "sede_todas": "All branches",
+        "motivo": "Reason",
+        "motivo_todos": "All reasons"
+    },
+    "kpis": {
+        "cantidad": "Expenses",
+        "monto": "Total out",
+        "movimientos": "{{count}} movement(s)"
+    },
+    "columns": {
+        "fecha": "Date",
+        "sede": "Branch",
+        "motivo": "Reason",
+        "monto": "Amount",
+        "notas": "Notes",
+        "registrado_por": "Recorded by"
+    }
+}

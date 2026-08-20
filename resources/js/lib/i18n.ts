@@ -61,6 +61,7 @@ import vacunacionesEn from '@/lang/en/vacunaciones.json';
 import botIaAnnouncementsEn from '@/lang/en/bot-ia-announcements.json';
 import salesbotKnowledgeEn from '@/lang/en/salesbot-knowledge.json';
 import reportesVentasEn from '@/lang/en/reportes-ventas.json';
+import reportesEgresosEn from '@/lang/en/reportes-egresos.json';
 import alertasStockEs from '@/lang/es/alertas-stock.json';
 import auditoriaLogsEs from '@/lang/es/auditoria-logs.json';
 import facturacionDocumentosEs from '@/lang/es/facturacion-documentos.json';
@@ -120,6 +121,7 @@ import vacunacionesEs from '@/lang/es/vacunaciones.json';
 import botIaAnnouncementsEs from '@/lang/es/bot-ia-announcements.json';
 import salesbotKnowledgeEs from '@/lang/es/salesbot-knowledge.json';
 import reportesVentasEs from '@/lang/es/reportes-ventas.json';
+import reportesEgresosEs from '@/lang/es/reportes-egresos.json';
 
 /**
  * Idiomas disponibles en la aplicación. Mantén alineado con los archivos
@@ -200,6 +202,7 @@ const resources = {
         'bot-ia-announcements': botIaAnnouncementsEs,
         'salesbot-knowledge': salesbotKnowledgeEs,
         'reportes-ventas': reportesVentasEs,
+        'reportes-egresos': reportesEgresosEs,
     },
     en: {
         common: commonEn,
@@ -261,6 +264,7 @@ const resources = {
         'bot-ia-announcements': botIaAnnouncementsEn,
         'salesbot-knowledge': salesbotKnowledgeEn,
         'reportes-ventas': reportesVentasEn,
+        'reportes-egresos': reportesEgresosEn,
     },
 } as const;
 
@@ -330,6 +334,7 @@ void i18n
             'salesbot-knowledge',
             'bot-ia-announcements',
             'reportes-ventas',
+            'reportes-egresos',
         ],
         interpolation: {
             // React ya escapa por defecto. Evita doble escaping.
