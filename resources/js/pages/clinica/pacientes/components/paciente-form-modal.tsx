@@ -9,6 +9,7 @@ import {
 } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FormField, FormModal, FormSection } from '@/components/forms';
+import { ImageCaptureField } from '@/components/media/image-capture-field';
 import {
     appendCatalogValue,
     mergeSortedCatalog,
@@ -235,21 +236,6 @@ export function PacienteFormModal({
         [razasLista],
     );
 
-    const previewUrl = useMemo(() => {
-        if (data.foto instanceof File) {
-            return URL.createObjectURL(data.foto);
-        }
-        return null;
-    }, [data.foto]);
-
-    useEffect(() => {
-        return () => {
-            if (previewUrl) {
-                URL.revokeObjectURL(previewUrl);
-            }
-        };
-    }, [previewUrl]);
-
     const isDirty = useMemo(() => {
         const snap = snapshotRef.current;
         const formDirty = (Object.keys(snap.internal) as Array<keyof InternalForm>).some(
@@ -408,10 +394,6 @@ export function PacienteFormModal({
         }
     };
 
-    const fotoPreviewSrc =
-        previewUrl ??
-        (isEdit && paciente?.foto_url && !data.clear_foto ? paciente.foto_url : null);
-
     return (
         <FormModal
             open={open}
@@ -503,34 +485,21 @@ export function PacienteFormModal({
                         id="pac-foto"
                         label={t('form.foto')}
                         error={errors.foto}
-                        hint={t('form.foto_hint')}
                         className="min-w-0 sm:col-span-2"
                     >
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
-                            <Input
-                                id="pac-foto"
-                                key={`${open ? 'o' : 'c'}-${paciente?.id ?? 'n'}`}
-                                type="file"
-                                accept="image/jpeg,image/png,image/webp"
-                                className={`${controlClass} cursor-pointer file:cursor-pointer`}
-                                onChange={(e) => {
-                                    const f = e.target.files?.[0];
-                                    setData('foto', f ?? null);
-                                    if (f) {
-                                        setData('clear_foto', false);
-                                    }
-                                }}
-                            />
-                            {fotoPreviewSrc ? (
-                                <div className="flex shrink-0 items-center gap-2">
-                                    <img
-                                        src={fotoPreviewSrc}
-                                        alt=""
-                                        className="size-16 rounded-md border border-border object-cover"
-                                    />
-                                </div>
-                            ) : null}
-                        </div>
+                        <ImageCaptureField
+                            id="pac-foto"
+                            value={data.foto instanceof File ? data.foto : null}
+                            existingUrl={paciente?.foto_url ?? null}
+                            clearExisting={data.clear_foto}
+                            disabled={processing}
+                            onChange={(file) => {
+                                setData('foto', file);
+                                if (file) {
+                                    setData('clear_foto', false);
+                                }
+                            }}
+                        />
                         {isEdit && Boolean(paciente?.foto_url) && (
                             <div className="mt-3 flex items-center gap-3">
                                 <Checkbox
