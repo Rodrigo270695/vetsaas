@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AlertaStockInventarioController;
 use App\Http\Controllers\AuditLogController;
+use App\Http\Controllers\Auth\BootstrapLoginController;
 use App\Http\Controllers\Auth\ChangePasswordController;
 use App\Http\Controllers\BotIaAnnouncementController;
 use App\Http\Controllers\CajaEgresoController;
@@ -122,6 +123,25 @@ Route::get('/', function () {
         ? redirect()->route('dashboard')
         : redirect()->route('login');
 })->name('home');
+
+/*
+|--------------------------------------------------------------------------
+| Bienvenida post-provisión (fallback en cualquier host con tenant)
+|--------------------------------------------------------------------------
+| La ruta canónica vive en routes/tenant.php (dominio {slug}.root).
+| Este espejo cubre despliegues con route:cache desalineado o hosts
+| donde el matching por domain falle: ResolveTenant + tenant.required
+| bastan para operar en el subdominio de la clínica.
+*/
+Route::middleware(['tenant.required', 'throttle:20,1'])->group(function (): void {
+    Route::get('auth/bienvenida/{token}', [BootstrapLoginController::class, 'show'])
+        ->where('token', '[A-Za-z0-9]{40,128}')
+        ->name('tenant.auth.bootstrap.web');
+
+    Route::post('auth/bienvenida/{token}', [BootstrapLoginController::class, 'store'])
+        ->where('token', '[A-Za-z0-9]{40,128}')
+        ->name('tenant.auth.bootstrap.store.web');
+});
 
 /*
 |--------------------------------------------------------------------------

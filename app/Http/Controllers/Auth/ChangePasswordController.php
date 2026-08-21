@@ -49,6 +49,9 @@ class ChangePasswordController extends Controller
             $updates = [
                 'password' => $data['password'],
                 'must_change_password' => false,
+                // Por si el login de bienvenida no invalidó el token (flujo antiguo).
+                'bootstrap_login_token' => null,
+                'bootstrap_login_expires_at' => null,
             ];
 
             if ($user->tenant_id !== null && $user->email_verified_at === null) {

@@ -99,9 +99,10 @@ final class PlanLimits
             return null;
         }
 
-        $extra = $row !== null ? max(0, (int) $row->extra) : 0;
+        // Extra puede ser negativo (rebaja comercial: plan 200 + (-100) = 100).
+        $extra = $row !== null ? (int) $row->extra : 0;
 
-        return $base + $extra;
+        return max(0, $base + $extra);
     }
 
     /**
@@ -144,7 +145,7 @@ final class PlanLimits
     }
 
     /**
-     * Extra activo para un feature (0 si no hay).
+     * Ajuste activo sobre el plan (puede ser negativo). 0 si no hay o hay tope fijo.
      */
     public static function extra(?Tenant $tenant, string $feature): int
     {
@@ -154,7 +155,7 @@ final class PlanLimits
             return 0;
         }
 
-        return max(0, (int) $row->extra);
+        return (int) $row->extra;
     }
 
     public static function currentCount(string $feature): int

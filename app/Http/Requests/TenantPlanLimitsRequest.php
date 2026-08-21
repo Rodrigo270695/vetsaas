@@ -27,7 +27,8 @@ class TenantPlanLimitsRequest extends FormRequest
                 'string',
                 Rule::in(PlanLimits::OVERRIDABLE_FEATURES),
             ],
-            'overrides.*.extra' => ['nullable', 'integer', 'min:0', 'max:100000'],
+            // Negativo = rebaja al cupo del plan (ej. -100 comprobantes).
+            'overrides.*.extra' => ['nullable', 'integer', 'min:-100000', 'max:100000'],
             'overrides.*.precio_mensual' => ['nullable', 'numeric', 'min:0', 'max:999999'],
             'overrides.*.override' => ['nullable', 'integer', 'min:-1', 'max:1000000'],
             'overrides.*.motivo' => ['nullable', 'string', 'max:255'],
@@ -57,7 +58,7 @@ class TenantPlanLimitsRequest extends FormRequest
             }
             $seen[$feature] = true;
 
-            $extra = max(0, (int) ($row['extra'] ?? 0));
+            $extra = (int) ($row['extra'] ?? 0);
             $override = array_key_exists('override', $row) && $row['override'] !== null && $row['override'] !== ''
                 ? (int) $row['override']
                 : null;

@@ -131,7 +131,7 @@ export default function TenantLimites({ tenant, plan, features }: Props) {
         () =>
             draft.filter((row) => {
                 const extra = Number.parseInt(row.extra || '0', 10) || 0;
-                return extra > 0 || row.override.trim() !== '';
+                return extra !== 0 || row.override.trim() !== '';
             }).length,
         [draft],
     );
@@ -258,10 +258,18 @@ export default function TenantLimites({ tenant, plan, features }: Props) {
                                     : overrideNum
                                 : feature.unlimited_base
                                   ? null
-                                  : (feature.base ?? 0) + extraNum;
+                                  : Math.max(0, (feature.base ?? 0) + extraNum);
                         const hasBoost =
-                            extraNum > 0 ||
+                            extraNum !== 0 ||
                             (overrideNum !== null && !Number.isNaN(overrideNum));
+                        const isReduction =
+                            (overrideNum !== null &&
+                                !Number.isNaN(overrideNum) &&
+                                !feature.unlimited_base &&
+                                feature.base !== null &&
+                                overrideNum >= 0 &&
+                                overrideNum < feature.base) ||
+                            (!feature.unlimited_base && extraNum < 0);
                         const isPaid = precioNum > 0;
 
                         return (
@@ -270,7 +278,9 @@ export default function TenantLimites({ tenant, plan, features }: Props) {
                                 className={cn(
                                     'overflow-hidden rounded-2xl border bg-card shadow-sm transition-colors',
                                     hasBoost
-                                        ? 'border-emerald-500/30 ring-1 ring-emerald-500/15'
+                                        ? isReduction
+                                            ? 'border-amber-500/35 ring-1 ring-amber-500/15'
+                                            : 'border-emerald-500/30 ring-1 ring-emerald-500/15'
                                         : 'border-border/60',
                                 )}
                             >
@@ -320,7 +330,9 @@ export default function TenantLimites({ tenant, plan, features }: Props) {
                                                 'shrink-0',
                                                 isPaid
                                                     ? 'bg-sky-500/15 text-sky-800 dark:text-sky-300'
-                                                    : 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300',
+                                                    : isReduction
+                                                      ? 'bg-amber-500/15 text-amber-900 dark:text-amber-300'
+                                                      : 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300',
                                             )}
                                         >
                                             {isPaid
@@ -330,9 +342,13 @@ export default function TenantLimites({ tenant, plan, features }: Props) {
                                                   })
                                                 : overrideNum !== null
                                                   ? t('tenants:limits.badge_override')
-                                                  : t('tenants:limits.badge_extra', {
-                                                        count: extraNum,
-                                                    })}
+                                                  : extraNum < 0
+                                                    ? t('tenants:limits.badge_reduction', {
+                                                          count: Math.abs(extraNum),
+                                                      })
+                                                    : t('tenants:limits.badge_extra', {
+                                                          count: extraNum,
+                                                      })}
                                         </Badge>
                                     ) : null}
                                 </div>
@@ -347,9 +363,10 @@ export default function TenantLimites({ tenant, plan, features }: Props) {
                                         <Input
                                             id={`${feature.feature}-extra`}
                                             type="number"
-                                            min={0}
+                                            step={1}
                                             inputMode="numeric"
                                             className="h-9"
+                                            placeholder="0"
                                             value={row.extra}
                                             disabled={row.override.trim() !== ''}
                                             onChange={(e) =>
@@ -358,6 +375,9 @@ export default function TenantLimites({ tenant, plan, features }: Props) {
                                                 })
                                             }
                                         />
+                                        <p className="text-[11px] text-muted-foreground">
+                                            {t('tenants:limits.extra_hint')}
+                                        </p>
                                     </div>
                                     <div className="grid gap-1.5">
                                         <Label
@@ -405,6 +425,9 @@ export default function TenantLimites({ tenant, plan, features }: Props) {
                                                 })
                                             }
                                         />
+                                        <p className="text-[11px] text-muted-foreground">
+                                            {t('tenants:limits.override_hint')}
+                                        </p>
                                     </div>
                                     <div className="grid gap-1.5">
                                         <Label

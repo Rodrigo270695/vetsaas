@@ -13,8 +13,8 @@ use Illuminate\Support\Carbon;
 /**
  * Extra / override de límite de plan para un tenant concreto.
  *
- * - `extra`: se suma al límite del plan (ej. +1 usuario, +50 pacientes).
- * - `precio_mensual`: si > 0, se suma al cobro de renovación (como Bot IA).
+ * - `extra`: ajuste al límite del plan (positivo = suma, negativo = rebaja).
+ * - `precio_mensual`: si > 0 y el ajuste aporta capacidad, se suma a la renovación.
  * - `override`: si no es null, reemplaza el límite del plan (-1 = ilimitado).
  * - `expires_at`: si pasó, el override deja de aplicar.
  *

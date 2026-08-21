@@ -47,15 +47,19 @@ final class TenantPlanLimitBilling
                 continue;
             }
 
-            // Solo cobramos si el override aporta capacidad (extra o tope).
+            // Solo cobramos add-ons que aportan capacidad (extra > 0 o tope fijo).
+            // Rebajas (extra negativo) nunca generan cargo.
             if ((int) $row->extra <= 0 && $row->override === null) {
                 continue;
             }
 
             $feature = (string) $row->feature;
             $label = self::FEATURE_LABELS[$feature] ?? $feature;
-            if ((int) $row->extra > 0) {
-                $label .= ' (+'.(int) $row->extra.')';
+            $extraQty = (int) $row->extra;
+            if ($extraQty > 0) {
+                $label .= ' (+'.$extraQty.')';
+            } elseif ($row->override !== null) {
+                $label .= ' (tope '.((int) $row->override < 0 ? '∞' : (int) $row->override).')';
             }
 
             $addons[] = [

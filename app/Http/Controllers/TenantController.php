@@ -12,6 +12,7 @@ use App\Models\Tenant;
 use App\Support\Clinic\ClinicBrandingUrls;
 use App\Services\OpenWa\OpenWaClient;
 use App\Services\Tenancy\TenantAdminAccessRecoverer;
+use App\Services\Tenancy\TenantProvisioner;
 use App\Services\Tenancy\TenantSlugChangeService;
 use App\Tenancy\TenantManager;
 use Illuminate\Database\Eloquent\Builder;
@@ -390,6 +391,7 @@ class TenantController extends Controller
         RecoverTenantAdminAccessRequest $request,
         Tenant $tenant,
         TenantAdminAccessRecoverer $recoverer,
+        TenantProvisioner $provisioner,
     ): RedirectResponse {
         if ($tenant->estado === 'cancelled') {
             throw ValidationException::withMessages([
@@ -405,14 +407,22 @@ class TenantController extends Controller
             (bool) ($data['must_change_password'] ?? true),
         );
 
-        return back()->with(
-            'success',
-            sprintf(
-                'Acceso del admin actualizado: %s → %s. Ya puede iniciar sesión con la nueva contraseña.',
-                $result['previous_email'],
-                $result['user']->email,
-            ),
+        $bootstrapUrl = null;
+        if ((bool) ($data['must_change_password'] ?? true)) {
+            $bootstrapUrl = $provisioner->issueBootstrapLoginUrl($tenant, $result['user']);
+        }
+
+        $message = sprintf(
+            'Acceso del admin actualizado: %s → %s. Ya puede iniciar sesión con la nueva contraseña.',
+            $result['previous_email'],
+            $result['user']->email,
         );
+
+        if (is_string($bootstrapUrl) && $bootstrapUrl !== '') {
+            $message .= ' Enlace de bienvenida (válido ~48h): '.$bootstrapUrl;
+        }
+
+        return back()->with('success', $message);
     }
 
     public function destroy(Tenant $tenant, TenantManager $manager): RedirectResponse

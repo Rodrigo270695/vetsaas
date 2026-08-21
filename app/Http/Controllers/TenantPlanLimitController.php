@@ -72,7 +72,7 @@ class TenantPlanLimitController extends Controller
         DB::transaction(function () use ($tenant, $rows): void {
             foreach ($rows as $row) {
                 $shouldKeep = $row['override'] !== null
-                    || $row['extra'] > 0
+                    || $row['extra'] !== 0
                     || $row['precio_mensual'] !== null
                     || filled($row['motivo'])
                     || filled($row['expires_at']);
