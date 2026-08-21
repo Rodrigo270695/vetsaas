@@ -279,12 +279,7 @@ final class TenantChatService
 
         $conversation->touch();
 
-        $message->load([
-            'user:id,name',
-            'replyTo.user:id,name',
-            'attachments',
-            'reactions',
-        ]);
+        $this->loadMessageRelations($message);
 
         $this->dispatchMessageCreated($conversation, $actor, $message);
         $this->notifyParticipantsWebPush($conversation, $actor, $message);
@@ -462,7 +457,7 @@ final class TenantChatService
         }
         $message->save();
 
-        $message->load(['user:id,name', 'replyTo.user:id,name', 'attachments', 'reactions']);
+        $this->loadMessageRelations($message);
         $this->dispatchMessageUpdated($conversation, $actor, $message, 'edited');
 
         return $message;
@@ -492,7 +487,7 @@ final class TenantChatService
         $message->body = '';
         $message->save();
 
-        $message->load(['user:id,name', 'replyTo.user:id,name', 'attachments', 'reactions']);
+        $this->loadMessageRelations($message);
         $this->dispatchMessageUpdated($conversation, $actor, $message, 'deleted');
 
         return $message;
@@ -547,7 +542,7 @@ final class TenantChatService
             ]);
         }
 
-        $message->load(['user:id,name', 'replyTo.user:id,name', 'attachments', 'reactions']);
+        $this->loadMessageRelations($message);
         $serialized = $this->serializeMessage($message, $actor, $conversation);
         $this->dispatchMessageUpdated($conversation, $actor, $message, 'reaction');
 
@@ -1379,12 +1374,31 @@ final class TenantChatService
         return "chat:presence:{$userId}";
     }
 
+    private function loadMessageRelations(ChatMessage $message): void
+    {
+        $with = ['user:id,name'];
+        if (Schema::hasColumn('chat_messages', 'reply_to_id')) {
+            $with[] = 'replyTo.user:id,name';
+        }
+        if (Schema::hasTable('chat_message_attachments')) {
+            $with[] = 'attachments';
+        }
+        if (Schema::hasTable('chat_message_reactions')) {
+            $with[] = 'reactions';
+        }
+        $message->load($with);
+    }
+
     private function dispatchMessageCreated(
         ChatConversation $conversation,
         User $actor,
         ChatMessage $message,
     ): void {
         try {
+            if (config('broadcasting.default') === 'reverb' && ! class_exists(\Pusher\Pusher::class)) {
+                return;
+            }
+
             $tenantId = app(TenantManager::class)->id();
             if ($tenantId === null || $tenantId === '') {
                 return;
@@ -1416,6 +1430,10 @@ final class TenantChatService
         string $reason = 'updated',
     ): void {
         try {
+            if (config('broadcasting.default') === 'reverb' && ! class_exists(\Pusher\Pusher::class)) {
+                return;
+            }
+
             $tenantId = app(TenantManager::class)->id();
             if ($tenantId === null || $tenantId === '') {
                 return;
