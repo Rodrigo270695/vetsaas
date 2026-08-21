@@ -232,23 +232,34 @@ export default function ChatInternoIndex({
         );
     }, [users, userQuery]);
 
+    const [mobileListOpen, setMobileListOpen] = useState(() => !active);
+
+    useEffect(() => {
+        if (!active) {
+            setMobileListOpen(true);
+        }
+    }, [active]);
+
     const openConversation = (id: string) => {
+        setMobileListOpen(false);
         router.get(
             '/comunicaciones/chat',
             { c: id },
-            { preserveState: true, preserveScroll: true, replace: true },
+            {
+                preserveScroll: true,
+                replace: true,
+                only: ['conversations', 'active', 'unread_total', 'users', 'can_manage'],
+            },
         );
     };
 
-    const closeMobileThread = () => {
-        router.get(
-            '/comunicaciones/chat',
-            {},
-            { preserveState: true, preserveScroll: true, replace: true },
-        );
+    const openMobileList = () => {
+        setMobileListOpen(true);
     };
 
-    const showMobileThread = Boolean(active);
+    const closeMobileList = () => {
+        setMobileListOpen(false);
+    };
 
     const clearAttachment = () => {
         setFile(null);
@@ -327,7 +338,7 @@ export default function ChatInternoIndex({
                 <div
                     className={cn(
                         'flex items-center justify-between gap-3 border-b border-border/60 bg-linear-to-r from-emerald-50/90 via-card to-teal-50/40 px-4 py-3 dark:from-emerald-950/40 dark:via-card dark:to-teal-950/20',
-                        showMobileThread && 'max-lg:hidden',
+                        active && 'max-lg:hidden',
                     )}
                 >
                     <div className="flex min-w-0 items-center gap-2.5">
@@ -378,14 +389,59 @@ export default function ChatInternoIndex({
                 </div>
 
                 <div className="relative min-h-0 flex-1 overflow-hidden lg:grid lg:grid-cols-[minmax(17rem,21rem)_1fr]">
+                    {/* Backdrop solo móvil */}
+                    <button
+                        type="button"
+                        aria-label={t('close_list')}
+                        tabIndex={mobileListOpen && active ? 0 : -1}
+                        onClick={closeMobileList}
+                        className={cn(
+                            'absolute inset-0 z-30 bg-slate-950/40 backdrop-blur-[3px] transition-opacity duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] lg:pointer-events-none lg:hidden',
+                            active && mobileListOpen
+                                ? 'opacity-100'
+                                : 'pointer-events-none opacity-0',
+                        )}
+                    />
+
                     <aside
                         className={cn(
-                            'absolute inset-0 z-10 flex min-h-0 flex-col bg-muted/20 transition-[transform,opacity] duration-300 ease-out lg:static lg:z-auto lg:translate-x-0 lg:border-r lg:border-border/60 lg:opacity-100 lg:scale-100',
-                            showMobileThread
-                                ? 'pointer-events-none -translate-x-[10%] scale-[0.98] opacity-30 max-lg:invisible'
-                                : 'translate-x-0 scale-100 opacity-100',
+                            'z-40 flex min-h-0 flex-col bg-muted/20 lg:relative lg:z-auto lg:translate-x-0 lg:border-r lg:border-border/60 lg:shadow-none',
+                            // Móvil: lista completa o drawer
+                            'max-lg:absolute max-lg:inset-y-0 max-lg:left-0 max-lg:bg-card max-lg:transition-transform max-lg:duration-500 max-lg:ease-[cubic-bezier(0.22,1,0.36,1)] max-lg:will-change-transform',
+                            !active && 'max-lg:inset-0 max-lg:w-full max-lg:translate-x-0',
+                            active && 'max-lg:w-[min(20.5rem,82vw)] max-lg:border-r max-lg:border-border/50 max-lg:shadow-[12px_0_40px_-12px_rgba(15,23,42,0.35)]',
+                            active
+                                && (mobileListOpen
+                                    ? 'max-lg:translate-x-0'
+                                    : 'max-lg:translate-x-[-105%]'),
                         )}
                     >
+                        <div className="flex items-center gap-2 border-b border-border/50 px-3 py-3 lg:hidden">
+                            <span className="flex size-8 items-center justify-center rounded-lg bg-emerald-600/10 text-emerald-700 dark:text-emerald-300">
+                                <MessagesSquare className="size-3.5" aria-hidden />
+                            </span>
+                            <div className="min-w-0 flex-1">
+                                <p className="truncate text-sm font-semibold">
+                                    {t('conversations_title')}
+                                </p>
+                                <p className="truncate text-[10px] text-muted-foreground">
+                                    {t('conversations_hint')}
+                                </p>
+                            </div>
+                            {active ? (
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="size-8 shrink-0 cursor-pointer"
+                                    onClick={closeMobileList}
+                                    aria-label={t('close_list')}
+                                >
+                                    <X className="size-4" />
+                                </Button>
+                            ) : null}
+                        </div>
+
                         <div className="border-b border-border/50 p-3">
                             <div className="relative">
                                 <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -477,11 +533,13 @@ export default function ChatInternoIndex({
 
                     <section
                         className={cn(
-                            'absolute inset-0 z-20 flex min-h-0 flex-col bg-card bg-[radial-gradient(ellipse_at_top,rgba(16,185,129,0.06),transparent_55%)] shadow-[-12px_0_28px_-18px_rgba(0,0,0,0.28)] transition-transform duration-300 ease-out lg:static lg:z-auto lg:translate-x-0 lg:shadow-none',
-                            showMobileThread
-                                ? 'translate-x-0'
-                                : 'translate-x-full max-lg:pointer-events-none',
+                            'flex min-h-0 flex-col bg-card bg-[radial-gradient(ellipse_at_top,rgba(16,185,129,0.06),transparent_55%)] lg:relative',
+                            // Móvil: el hilo ocupa todo; el drawer va encima
+                            'max-lg:absolute max-lg:inset-0 max-lg:z-10 max-lg:transition-[transform,filter] max-lg:duration-500 max-lg:ease-[cubic-bezier(0.22,1,0.36,1)]',
                             !active && 'max-lg:hidden',
+                            active
+                                && mobileListOpen
+                                && 'max-lg:scale-[0.985] max-lg:brightness-[0.92]',
                         )}
                     >
                         {!active ? (
@@ -503,8 +561,8 @@ export default function ChatInternoIndex({
                                         type="button"
                                         variant="ghost"
                                         size="icon"
-                                        className="size-9 shrink-0 lg:hidden"
-                                        onClick={closeMobileThread}
+                                        className="size-9 shrink-0 cursor-pointer lg:hidden"
+                                        onClick={openMobileList}
                                         aria-label={t('back')}
                                     >
                                         <ChevronLeft className="size-5" />

@@ -3,6 +3,7 @@ import { Loader2, ShieldCheck } from 'lucide-react';
 import { useEffect, useMemo, useRef, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FormField, FormModal, FormSection } from '@/components/forms';
+import PasswordInput from '@/components/password-input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -355,9 +356,8 @@ export function UserFormModal({
                             required={!isEdit}
                             error={errors.password}
                         >
-                            <Input
+                            <PasswordInput
                                 id="user-password"
-                                type="password"
                                 value={data.password}
                                 onChange={(e) => setData('password', e.target.value)}
                                 placeholder={
@@ -378,9 +378,8 @@ export function UserFormModal({
                             label={t('usuarios:form.fields.password_confirmation')}
                             required={!isEdit && data.password.length > 0}
                         >
-                            <Input
+                            <PasswordInput
                                 id="user-password-confirmation"
-                                type="password"
                                 value={data.password_confirmation}
                                 onChange={(e) =>
                                     setData(

@@ -40,5 +40,8 @@
     "back": "Back",
     "start_chat": "Chat",
     "group_hint": "Name the group and pick teammates to add.",
-    "group_selected": "{{count}} selected"
+    "group_selected": "{{count}} selected",
+    "conversations_title": "Conversations",
+    "conversations_hint": "Pick a team chat",
+    "close_list": "Close list"
 }

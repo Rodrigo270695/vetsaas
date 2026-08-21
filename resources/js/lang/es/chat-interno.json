@@ -40,5 +40,8 @@
     "back": "Volver",
     "start_chat": "Chatear",
     "group_hint": "Nombra el grupo y elige a los integrantes del equipo.",
-    "group_selected": "{{count}} seleccionado(s)"
+    "group_selected": "{{count}} seleccionado(s)",
+    "conversations_title": "Conversaciones",
+    "conversations_hint": "Elige un chat del equipo",
+    "close_list": "Cerrar lista"
 }
