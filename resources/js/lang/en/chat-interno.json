@@ -36,5 +36,9 @@
     "type_group": "Group",
     "type_direct": "Chat",
     "toast_title": "{{name}} sent you a message",
-    "toast_open": "Open"
+    "toast_open": "Open",
+    "back": "Back",
+    "start_chat": "Chat",
+    "group_hint": "Name the group and pick teammates to add.",
+    "group_selected": "{{count}} selected"
 }

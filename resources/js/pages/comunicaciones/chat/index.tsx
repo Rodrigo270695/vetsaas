@@ -1,6 +1,7 @@
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import {
     Check,
+    ChevronLeft,
     FileText,
     ImageIcon,
     MessagesSquare,
@@ -239,6 +240,16 @@ export default function ChatInternoIndex({
         );
     };
 
+    const closeMobileThread = () => {
+        router.get(
+            '/comunicaciones/chat',
+            {},
+            { preserveState: true, preserveScroll: true, replace: true },
+        );
+    };
+
+    const showMobileThread = Boolean(active);
+
     const clearAttachment = () => {
         setFile(null);
         if (fileRef.current) fileRef.current.value = '';
@@ -312,8 +323,13 @@ export default function ChatInternoIndex({
         <>
             <Head title={t('title')} />
 
-            <div className="flex h-[calc(100dvh-5.5rem)] min-h-112 flex-col overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm lg:h-[calc(100dvh-6.5rem)]">
-                <div className="flex items-center justify-between gap-3 border-b border-border/60 bg-linear-to-r from-emerald-50/90 via-card to-teal-50/40 px-4 py-3 dark:from-emerald-950/40 dark:via-card dark:to-teal-950/20">
+            <div className="flex h-[calc(100dvh-4.25rem)] min-h-0 flex-col overflow-hidden bg-card max-lg:rounded-none max-lg:border-0 max-lg:shadow-none sm:min-h-112 lg:h-[calc(100dvh-6.5rem)] lg:rounded-2xl lg:border lg:border-border/60 lg:shadow-sm">
+                <div
+                    className={cn(
+                        'flex items-center justify-between gap-3 border-b border-border/60 bg-linear-to-r from-emerald-50/90 via-card to-teal-50/40 px-4 py-3 dark:from-emerald-950/40 dark:via-card dark:to-teal-950/20',
+                        showMobileThread && 'max-lg:hidden',
+                    )}
+                >
                     <div className="flex min-w-0 items-center gap-2.5">
                         <span className="flex size-9 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-sm shadow-emerald-600/30">
                             <MessagesSquare className="size-4" aria-hidden />
@@ -322,7 +338,7 @@ export default function ChatInternoIndex({
                             <h1 className="truncate text-base font-semibold tracking-tight">
                                 {t('title')}
                             </h1>
-                            <p className="truncate text-xs text-muted-foreground">
+                            <p className="truncate text-xs text-muted-foreground max-sm:hidden">
                                 {t('subtitle')}
                             </p>
                         </div>
@@ -361,8 +377,15 @@ export default function ChatInternoIndex({
                     </DropdownMenu>
                 </div>
 
-                <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(17rem,21rem)_1fr]">
-                    <aside className="flex min-h-0 flex-col border-b border-border/60 bg-muted/20 lg:border-r lg:border-b-0">
+                <div className="relative min-h-0 flex-1 overflow-hidden lg:grid lg:grid-cols-[minmax(17rem,21rem)_1fr]">
+                    <aside
+                        className={cn(
+                            'absolute inset-0 z-10 flex min-h-0 flex-col bg-muted/20 transition-[transform,opacity] duration-300 ease-out lg:static lg:z-auto lg:translate-x-0 lg:border-r lg:border-border/60 lg:opacity-100 lg:scale-100',
+                            showMobileThread
+                                ? 'pointer-events-none -translate-x-[10%] scale-[0.98] opacity-30 max-lg:invisible'
+                                : 'translate-x-0 scale-100 opacity-100',
+                        )}
+                    >
                         <div className="border-b border-border/50 p-3">
                             <div className="relative">
                                 <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -375,29 +398,35 @@ export default function ChatInternoIndex({
                             </div>
                         </div>
 
-                        <div className="min-h-0 flex-1 overflow-y-auto">
+                        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
                             {filteredConversations.length === 0 ? (
                                 <p className="px-4 py-10 text-center text-sm text-muted-foreground">
                                     {t('empty_list')}
                                 </p>
                             ) : (
-                                <ul>
-                                    {filteredConversations.map((c) => {
+                                <ul className="divide-y divide-border/40">
+                                    {filteredConversations.map((c, index) => {
                                         const selected = active?.id === c.id;
 
                                         return (
-                                            <li key={c.id}>
+                                            <li
+                                                key={c.id}
+                                                className="animate-in fade-in slide-in-from-left-2 fill-mode-both duration-300"
+                                                style={{
+                                                    animationDelay: `${Math.min(index, 8) * 35}ms`,
+                                                }}
+                                            >
                                                 <button
                                                     type="button"
                                                     onClick={() => openConversation(c.id)}
                                                     className={cn(
-                                                        'flex w-full items-start gap-3 border-l-2 px-3 py-3 text-left transition-colors',
+                                                        'flex w-full cursor-pointer items-start gap-3 border-l-2 px-3 py-3.5 text-left transition-colors active:bg-emerald-50/70 lg:py-3',
                                                         selected
                                                             ? 'border-l-emerald-600 bg-emerald-50/80 dark:bg-emerald-950/35'
                                                             : 'border-l-transparent hover:bg-background/80',
                                                     )}
                                                 >
-                                                    <Avatar className="mt-0.5 size-10 border border-border/50 shadow-sm">
+                                                    <Avatar className="mt-0.5 size-11 border border-border/50 shadow-sm lg:size-10">
                                                         <AvatarFallback
                                                             className={cn(
                                                                 'text-xs font-semibold',
@@ -446,7 +475,15 @@ export default function ChatInternoIndex({
                         </div>
                     </aside>
 
-                    <section className="relative flex min-h-0 flex-col bg-[radial-gradient(ellipse_at_top,rgba(16,185,129,0.06),transparent_55%)]">
+                    <section
+                        className={cn(
+                            'absolute inset-0 z-20 flex min-h-0 flex-col bg-card bg-[radial-gradient(ellipse_at_top,rgba(16,185,129,0.06),transparent_55%)] shadow-[-12px_0_28px_-18px_rgba(0,0,0,0.28)] transition-transform duration-300 ease-out lg:static lg:z-auto lg:translate-x-0 lg:shadow-none',
+                            showMobileThread
+                                ? 'translate-x-0'
+                                : 'translate-x-full max-lg:pointer-events-none',
+                            !active && 'max-lg:hidden',
+                        )}
+                    >
                         {!active ? (
                             <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
                                 <div className="flex size-16 items-center justify-center rounded-2xl bg-emerald-600/10 text-emerald-700 ring-1 ring-emerald-600/15 dark:text-emerald-300">
@@ -461,8 +498,18 @@ export default function ChatInternoIndex({
                             </div>
                         ) : (
                             <>
-                                <header className="flex items-center gap-3 border-b border-border/60 bg-card/85 px-4 py-3 backdrop-blur-md">
-                                    <Avatar className="size-10 border border-border/50 shadow-sm">
+                                <header className="flex items-center gap-2 border-b border-border/60 bg-card/90 px-2 py-2.5 backdrop-blur-md sm:gap-3 sm:px-4 sm:py-3">
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="size-9 shrink-0 lg:hidden"
+                                        onClick={closeMobileThread}
+                                        aria-label={t('back')}
+                                    >
+                                        <ChevronLeft className="size-5" />
+                                    </Button>
+                                    <Avatar className="size-9 border border-border/50 shadow-sm sm:size-10">
                                         <AvatarFallback
                                             className={cn(
                                                 'text-xs font-semibold',
@@ -478,7 +525,7 @@ export default function ChatInternoIndex({
                                             )}
                                         </AvatarFallback>
                                     </Avatar>
-                                    <div className="min-w-0">
+                                    <div className="min-w-0 flex-1">
                                         <p className="truncate text-sm font-semibold">
                                             {active.title}
                                         </p>
@@ -490,7 +537,10 @@ export default function ChatInternoIndex({
                                                 : t('dm_badge')}
                                         </p>
                                     </div>
-                                    <Badge variant="outline" className="ml-auto shrink-0 text-[10px]">
+                                    <Badge
+                                        variant="outline"
+                                        className="hidden shrink-0 text-[10px] sm:inline-flex"
+                                    >
                                         {active.type === 'group'
                                             ? t('group_badge')
                                             : t('dm_badge')}
@@ -716,70 +766,104 @@ export default function ChatInternoIndex({
             </div>
 
             <Dialog open={dmOpen} onOpenChange={setDmOpen}>
-                <DialogContent className="sm:max-w-md">
-                    <DialogHeader>
-                        <DialogTitle>{t('direct_title')}</DialogTitle>
-                        <DialogDescription>{t('direct_hint')}</DialogDescription>
+                <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-md">
+                    <DialogHeader className="border-b border-border/60 bg-linear-to-r from-emerald-50/90 to-card px-5 py-4 dark:from-emerald-950/40">
+                        <div className="flex items-center gap-3">
+                            <span className="flex size-10 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-sm">
+                                <UserRound className="size-4" aria-hidden />
+                            </span>
+                            <div className="min-w-0 text-left">
+                                <DialogTitle className="text-base">
+                                    {t('direct_title')}
+                                </DialogTitle>
+                                <DialogDescription className="text-xs">
+                                    {t('direct_hint')}
+                                </DialogDescription>
+                            </div>
+                        </div>
                     </DialogHeader>
-                    <div className="relative">
-                        <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                        <Input
-                            value={userQuery}
-                            onChange={(e) => setUserQuery(e.target.value)}
-                            placeholder={t('direct_search')}
-                            className="h-9 pl-8"
-                        />
-                    </div>
-                    <div className="max-h-64 space-y-1 overflow-y-auto">
-                        {users.length === 0 ? (
-                            <p className="py-6 text-center text-sm text-muted-foreground">
-                                {t('direct_empty')}
-                            </p>
-                        ) : filteredUsers.length === 0 ? (
-                            <p className="py-6 text-center text-sm text-muted-foreground">
-                                {t('no_users_match')}
-                            </p>
-                        ) : (
-                            filteredUsers.map((u) => (
-                                <button
-                                    key={u.id}
-                                    type="button"
-                                    disabled={dmForm.processing}
-                                    onClick={() => startDm(u.id)}
-                                    className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left hover:bg-muted/70"
-                                >
-                                    <Avatar className="size-8">
-                                        <AvatarFallback className="bg-emerald-100 text-xs font-semibold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
-                                            {initials(u.name)}
-                                        </AvatarFallback>
-                                    </Avatar>
-                                    <div className="min-w-0">
-                                        <p className="truncate text-sm font-medium">{u.name}</p>
-                                        <p className="truncate text-xs text-muted-foreground">
-                                            {u.email}
-                                        </p>
-                                    </div>
-                                </button>
-                            ))
-                        )}
+                    <div className="space-y-3 p-4">
+                        <div className="relative">
+                            <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                                value={userQuery}
+                                onChange={(e) => setUserQuery(e.target.value)}
+                                placeholder={t('direct_search')}
+                                className="h-10 border-border/60 bg-muted/30 pl-8"
+                            />
+                        </div>
+                        <div className="max-h-72 space-y-1 overflow-y-auto rounded-xl border border-border/50 bg-muted/15 p-1.5">
+                            {users.length === 0 ? (
+                                <p className="py-8 text-center text-sm text-muted-foreground">
+                                    {t('direct_empty')}
+                                </p>
+                            ) : filteredUsers.length === 0 ? (
+                                <p className="py-8 text-center text-sm text-muted-foreground">
+                                    {t('no_users_match')}
+                                </p>
+                            ) : (
+                                filteredUsers.map((u) => (
+                                    <button
+                                        key={u.id}
+                                        type="button"
+                                        disabled={dmForm.processing}
+                                        onClick={() => startDm(u.id)}
+                                        className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-2.5 py-2.5 text-left transition-colors hover:bg-emerald-50/80 dark:hover:bg-emerald-950/30"
+                                    >
+                                        <Avatar className="size-10 border border-border/50 shadow-sm">
+                                            <AvatarFallback className="bg-emerald-100 text-xs font-semibold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
+                                                {initials(u.name)}
+                                            </AvatarFallback>
+                                        </Avatar>
+                                        <div className="min-w-0 flex-1">
+                                            <p className="truncate text-sm font-medium">
+                                                {u.name}
+                                            </p>
+                                            <p className="truncate text-xs text-muted-foreground">
+                                                {u.email}
+                                            </p>
+                                        </div>
+                                        <span className="text-[10px] font-medium text-emerald-700 dark:text-emerald-300">
+                                            {t('start_chat')}
+                                        </span>
+                                    </button>
+                                ))
+                            )}
+                        </div>
                     </div>
                 </DialogContent>
             </Dialog>
 
             <Dialog open={groupOpen} onOpenChange={setGroupOpen}>
-                <DialogContent className="sm:max-w-md">
+                <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-md">
                     <form onSubmit={submitGroup}>
-                        <DialogHeader>
-                            <DialogTitle>{t('group_title')}</DialogTitle>
+                        <DialogHeader className="border-b border-border/60 bg-linear-to-r from-sky-50/90 to-card px-5 py-4 dark:from-sky-950/40">
+                            <div className="flex items-center gap-3">
+                                <span className="flex size-10 items-center justify-center rounded-xl bg-sky-600 text-white shadow-sm">
+                                    <Users className="size-4" aria-hidden />
+                                </span>
+                                <div className="min-w-0 text-left">
+                                    <DialogTitle className="text-base">
+                                        {t('group_title')}
+                                    </DialogTitle>
+                                    <DialogDescription className="text-xs">
+                                        {t('group_hint')}
+                                    </DialogDescription>
+                                </div>
+                            </div>
                         </DialogHeader>
-                        <div className="mt-3 space-y-3">
+
+                        <div className="space-y-4 p-4">
                             <div className="space-y-1.5">
                                 <Label htmlFor="group-name">{t('group_name')}</Label>
                                 <Input
                                     id="group-name"
                                     value={groupForm.data.name}
-                                    onChange={(e) => groupForm.setData('name', e.target.value)}
+                                    onChange={(e) =>
+                                        groupForm.setData('name', e.target.value)
+                                    }
                                     placeholder={t('group_name_placeholder')}
+                                    className="h-10 border-border/60"
                                 />
                                 {groupForm.errors.name ? (
                                     <p className="text-xs text-destructive">
@@ -787,20 +871,56 @@ export default function ChatInternoIndex({
                                     </p>
                                 ) : null}
                             </div>
+
+                            {groupForm.data.user_ids.length > 0 ? (
+                                <div className="flex flex-wrap gap-1.5">
+                                    {groupForm.data.user_ids.map((id) => {
+                                        const u = users.find((x) => x.id === id);
+                                        if (!u) return null;
+
+                                        return (
+                                            <button
+                                                key={id}
+                                                type="button"
+                                                onClick={() => toggleMember(id)}
+                                                className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-emerald-600/20 bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-800 transition-colors hover:bg-emerald-100 dark:bg-emerald-950/50 dark:text-emerald-200"
+                                            >
+                                                <Avatar className="size-4">
+                                                    <AvatarFallback className="bg-emerald-200 text-[8px] text-emerald-900">
+                                                        {initials(u.name)}
+                                                    </AvatarFallback>
+                                                </Avatar>
+                                                <span className="max-w-28 truncate">
+                                                    {u.name}
+                                                </span>
+                                                <X className="size-3 opacity-70" />
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            ) : null}
+
                             <div className="space-y-1.5">
-                                <Label>{t('group_members')}</Label>
+                                <div className="flex items-center justify-between gap-2">
+                                    <Label>{t('group_members')}</Label>
+                                    <span className="text-[10px] text-muted-foreground">
+                                        {t('group_selected', {
+                                            count: groupForm.data.user_ids.length,
+                                        })}
+                                    </span>
+                                </div>
                                 <div className="relative">
                                     <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
                                     <Input
                                         value={userQuery}
                                         onChange={(e) => setUserQuery(e.target.value)}
                                         placeholder={t('direct_search')}
-                                        className="h-9 pl-8"
+                                        className="h-10 border-border/60 bg-muted/30 pl-8"
                                     />
                                 </div>
-                                <div className="max-h-48 space-y-1 overflow-y-auto rounded-md border border-border/60 p-1">
+                                <div className="max-h-52 space-y-1 overflow-y-auto rounded-xl border border-border/50 bg-muted/15 p-1.5">
                                     {filteredUsers.length === 0 ? (
-                                        <p className="py-4 text-center text-xs text-muted-foreground">
+                                        <p className="py-6 text-center text-xs text-muted-foreground">
                                             {t('no_users_match')}
                                         </p>
                                     ) : (
@@ -814,25 +934,44 @@ export default function ChatInternoIndex({
                                                     type="button"
                                                     onClick={() => toggleMember(u.id)}
                                                     className={cn(
-                                                        'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm',
+                                                        'flex w-full cursor-pointer items-center gap-3 rounded-lg px-2.5 py-2 text-left text-sm transition-colors',
                                                         selected
-                                                            ? 'bg-emerald-50 dark:bg-emerald-950/40'
-                                                            : 'hover:bg-muted/60',
+                                                            ? 'bg-emerald-50 ring-1 ring-emerald-600/20 dark:bg-emerald-950/40'
+                                                            : 'hover:bg-background/90',
                                                     )}
                                                 >
+                                                    <Avatar className="size-9 border border-border/40">
+                                                        <AvatarFallback
+                                                            className={cn(
+                                                                'text-[10px] font-semibold',
+                                                                selected
+                                                                    ? 'bg-emerald-600 text-white'
+                                                                    : 'bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-200',
+                                                            )}
+                                                        >
+                                                            {initials(u.name)}
+                                                        </AvatarFallback>
+                                                    </Avatar>
+                                                    <div className="min-w-0 flex-1">
+                                                        <p className="truncate font-medium">
+                                                            {u.name}
+                                                        </p>
+                                                        <p className="truncate text-xs text-muted-foreground">
+                                                            {u.email}
+                                                        </p>
+                                                    </div>
                                                     <span
                                                         className={cn(
-                                                            'flex size-4 items-center justify-center rounded border',
+                                                            'flex size-5 items-center justify-center rounded-full border',
                                                             selected
                                                                 ? 'border-emerald-600 bg-emerald-600 text-white'
-                                                                : 'border-muted-foreground/40',
+                                                                : 'border-muted-foreground/30',
                                                         )}
                                                     >
                                                         {selected ? (
                                                             <Check className="size-3" />
                                                         ) : null}
                                                     </span>
-                                                    <span className="truncate">{u.name}</span>
                                                 </button>
                                             );
                                         })
@@ -845,11 +984,13 @@ export default function ChatInternoIndex({
                                 ) : null}
                             </div>
                         </div>
-                        <DialogFooter className="mt-4">
+
+                        <DialogFooter className="gap-2 border-t border-border/60 bg-muted/20 px-4 py-3 sm:gap-2">
                             <Button
                                 type="button"
                                 variant="outline"
                                 onClick={() => setGroupOpen(false)}
+                                className="cursor-pointer"
                             >
                                 {t('cancel')}
                             </Button>
@@ -860,7 +1001,7 @@ export default function ChatInternoIndex({
                                     || !groupForm.data.name.trim()
                                     || groupForm.data.user_ids.length === 0
                                 }
-                                className="bg-emerald-600 hover:bg-emerald-700"
+                                className="cursor-pointer bg-emerald-600 hover:bg-emerald-700"
                             >
                                 {t('group_submit')}
                             </Button>
