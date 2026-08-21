@@ -1,11 +1,34 @@
 # Reverb en producción (VPS)
 
+## Checklist VPS de 5 minutos
+
+Tras un `git pull` en el servidor:
+
+```bash
+cd /var/www/vetsaas
+composer install --no-dev -o
+php artisan vetsaas:chat-ensure-schema
+php artisan vetsaas:tenant-migrate-all
+# BROADCAST_CONNECTION=log until reverb works, then reverb
+pnpm install
+pnpm run build
+php artisan config:clear
+php artisan config:cache
+```
+
+1. Deja `BROADCAST_CONNECTION=log` hasta que Reverb + Nginx `/app` + Supervisor respondan.
+2. Cuando el WS funcione, cambia a `BROADCAST_CONNECTION=reverb` y vuelve a `config:cache`.
+3. Atajo: `bash scripts/vps-chat-fix.sh`
+
+---
+
 ## 1. Dependencias PHP (obligatorio tras `git pull`)
 
 ```bash
 cd /var/www/vetsaas
 composer install --no-dev --optimize-autoloader
 php artisan config:clear
+php artisan vetsaas:chat-ensure-schema
 php artisan vetsaas:tenant-migrate-all
 pnpm install
 pnpm run build
@@ -48,11 +71,14 @@ Generar secrets:
 php -r "echo 'REVERB_APP_ID='.bin2hex(random_bytes(8)).PHP_EOL; echo 'REVERB_APP_KEY='.bin2hex(random_bytes(16)).PHP_EOL; echo 'REVERB_APP_SECRET='.bin2hex(random_bytes(20)).PHP_EOL;"
 ```
 
+> Hasta confirmar WS: `BROADCAST_CONNECTION=log` (el chat sigue con polling; no intenta Pusher).
+
 ## 3. Nginx (WebSocket TLS)
 
-Dentro del `server` de `vetsaas.orvae.pe` (y opcionalmente el mismo bloque en `*.vetsaas.orvae.pe` si el WS va por el central):
+Dentro del `server` de `vetsaas.orvae.pe` (y el mismo bloque en `*.vetsaas.orvae.pe` si el WS va por el central):
 
 ```nginx
+# Reverb / Echo (Pusher protocol) — path /app
 location /app {
     proxy_http_version 1.1;
     proxy_set_header Host $host;
@@ -61,6 +87,8 @@ location /app {
     proxy_set_header X-Forwarded-Proto $scheme;
     proxy_set_header Upgrade $http_upgrade;
     proxy_set_header Connection "Upgrade";
+    proxy_read_timeout 60s;
+    proxy_send_timeout 60s;
     proxy_pass http://127.0.0.1:8080;
 }
 ```
@@ -95,5 +123,6 @@ sudo supervisorctl status vetsaas-reverb
 ## 5. Verificación
 
 1. `ss -lntp | grep 8080` → Reverb escuchando.
-2. Chat en dos usuarios del mismo tenant → mensaje casi instantáneo.
-3. Si Reverb cae, el chat sigue con polling (fallback).
+2. Chat en dos usuarios del mismo tenant → mensaje / typing / read casi instantáneos.
+3. Si Reverb cae, el chat sigue con polling (fallback más frecuente).
+4. Canales privados: `tenant.{id}.chat.{conversationId}` y `tenant.{id}.chat.presence`.

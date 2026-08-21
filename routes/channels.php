@@ -22,3 +22,11 @@ Broadcast::channel('tenant.{tenantId}.chat.{conversationId}', function (User $us
         ->where('user_id', $user->id)
         ->exists();
 });
+
+Broadcast::channel('tenant.{tenantId}.chat.presence', function (User $user, string $tenantId) {
+    if ((string) $user->tenant_id !== (string) $tenantId) {
+        return false;
+    }
+
+    return $user->can('comunicaciones-chat.view');
+});

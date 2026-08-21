@@ -182,7 +182,7 @@ class TenantChatController extends Controller
         abort_unless($user !== null, 401);
 
         $this->chat->assertParticipant($chatConversation, $user);
-        $this->chat->touchPresence($user);
+        $this->chat->touchPresence($user, (string) $chatConversation->id);
         $this->chat->markRead($chatConversation, $user);
 
         return response()->json([

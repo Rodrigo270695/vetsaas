@@ -6,6 +6,9 @@ namespace App\Services\Chat;
 
 use App\Events\Chat\ChatMessageCreated;
 use App\Events\Chat\ChatMessageUpdated;
+use App\Events\Chat\ChatPresence;
+use App\Events\Chat\ChatRead;
+use App\Events\Chat\ChatTyping;
 use App\Models\ChatConversation;
 use App\Models\ChatMessage;
 use App\Models\ChatMessageAttachment;
@@ -15,6 +18,7 @@ use App\Models\User;
 use App\Services\Push\WebPushSender;
 use App\Support\Tenancy\ClinicAdminScope;
 use App\Tenancy\TenantManager;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -315,13 +319,17 @@ final class TenantChatService
             ->update(['pinned_at' => $pinned ? now() : null]);
     }
 
-    public function touchPresence(User $user): void
+    public function touchPresence(User $user, ?string $conversationId = null): void
     {
+        $at = now()->toIso8601String();
+
         Cache::put(
             $this->presenceCacheKey((string) $user->id),
-            now()->toIso8601String(),
+            $at,
             self::PRESENCE_TTL_SECONDS,
         );
+
+        $this->dispatchPresence($user, $at, $conversationId);
     }
 
     /**
@@ -364,16 +372,20 @@ final class TenantChatService
     public function touchTyping(ChatConversation $conversation, User $user): void
     {
         $this->assertParticipant($conversation, $user);
-        $this->touchPresence($user);
+        $this->touchPresence($user, (string) $conversation->id);
+
+        $at = now()->toIso8601String();
 
         Cache::put(
             $this->typingCacheKey((string) $conversation->id, (string) $user->id),
             [
                 'name' => (string) $user->name,
-                'at' => now()->toIso8601String(),
+                'at' => $at,
             ],
             5,
         );
+
+        $this->dispatchTyping($conversation, $user, $at);
     }
 
     public static function isAllowedReactionEmoji(string $emoji): bool
@@ -707,9 +719,6 @@ final class TenantChatService
         if (Schema::hasTable('chat_message_attachments')) {
             $with[] = 'attachments';
         }
-        if (Schema::hasTable('chat_message_reactions')) {
-            $with[] = 'reactions';
-        }
 
         $messages = ChatMessage::query()
             ->where('conversation_id', $conversation->id)
@@ -722,11 +731,13 @@ final class TenantChatService
             ->with($with)
             ->orderByDesc('created_at')
             ->limit(40)
-            ->get()
-            ->sortBy('created_at')
-            ->values();
+            ->get();
+
+        $this->loadReactionsSafely($messages);
 
         return $messages
+            ->sortBy('created_at')
+            ->values()
             ->map(fn (ChatMessage $m): array => $this->serializeMessage($m, $actor, $conversation))
             ->all();
     }
@@ -769,7 +780,7 @@ final class TenantChatService
             $message->load('attachments');
         }
         if (! $message->relationLoaded('reactions') && Schema::hasTable('chat_message_reactions')) {
-            $message->load('reactions');
+            $this->loadReactionsSafely($message);
         }
 
         $isDeleted = Schema::hasColumn('chat_messages', 'deleted_at') && $message->deleted_at !== null;
@@ -837,9 +848,13 @@ final class TenantChatService
             return [];
         }
 
-        $reactions = $message->relationLoaded('reactions')
-            ? $message->reactions
-            : $message->reactions()->get();
+        try {
+            $reactions = $message->relationLoaded('reactions')
+                ? $message->reactions
+                : $message->reactions()->get();
+        } catch (QueryException) {
+            return [];
+        }
 
         /** @var Collection<string, Collection<int, ChatMessageReaction>> $grouped */
         $grouped = $reactions->groupBy('emoji');
@@ -1047,10 +1062,14 @@ final class TenantChatService
     {
         $this->assertParticipant($conversation, $actor);
 
+        $lastReadAt = now();
+
         ChatParticipant::query()
             ->where('conversation_id', $conversation->id)
             ->where('user_id', $actor->id)
-            ->update(['last_read_at' => now()]);
+            ->update(['last_read_at' => $lastReadAt]);
+
+        $this->dispatchRead($conversation, $actor, $lastReadAt->toIso8601String());
     }
 
     /**
@@ -1194,6 +1213,8 @@ final class TenantChatService
             'muted' => (bool) $muted,
             'pinned' => (bool) $pinned,
             'presence' => $presence,
+            'peer_online' => $presence['online'] ?? null,
+            'peer_last_seen_at' => $presence['last_seen_at'] ?? null,
             'last_message' => $last === null ? null : [
                 'body' => $this->previewFromRow(
                     $last->body,
@@ -1233,9 +1254,6 @@ final class TenantChatService
         if (Schema::hasTable('chat_message_attachments')) {
             $with[] = 'attachments';
         }
-        if (Schema::hasTable('chat_message_reactions')) {
-            $with[] = 'reactions';
-        }
 
         $q = ChatMessage::query()
             ->where('conversation_id', $conversation->id)
@@ -1250,7 +1268,10 @@ final class TenantChatService
             }
         }
 
-        return $q->get()
+        $messages = $q->get();
+        $this->loadReactionsSafely($messages);
+
+        return $messages
             ->sortBy('created_at')
             ->values()
             ->map(fn (ChatMessage $m): array => $this->serializeMessage($m, $actor, $conversation))
@@ -1386,10 +1407,119 @@ final class TenantChatService
         if (Schema::hasTable('chat_message_attachments')) {
             $with[] = 'attachments';
         }
-        if (Schema::hasTable('chat_message_reactions')) {
-            $with[] = 'reactions';
-        }
         $message->load($with);
+        $this->loadReactionsSafely($message);
+    }
+
+    /**
+     * @param  ChatMessage|\Illuminate\Database\Eloquent\Collection<int, ChatMessage>  $messages
+     */
+    private function loadReactionsSafely(ChatMessage|\Illuminate\Database\Eloquent\Collection $messages): void
+    {
+        if (! Schema::hasTable('chat_message_reactions')) {
+            return;
+        }
+
+        try {
+            $messages->load('reactions');
+        } catch (QueryException) {
+            // Tabla ausente / drift de schema en prod: no romper el chat.
+        }
+    }
+
+    private function canBroadcast(): bool
+    {
+        $driver = config('broadcasting.default');
+        if ($driver === null || $driver === '' || $driver === 'log') {
+            return false;
+        }
+
+        if ($driver === 'reverb' && ! class_exists(\Pusher\Pusher::class)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private function resolveTenantIdForBroadcast(): ?string
+    {
+        $tenantId = app(TenantManager::class)->id();
+        if ($tenantId === null || $tenantId === '') {
+            return null;
+        }
+
+        return (string) $tenantId;
+    }
+
+    private function dispatchTyping(ChatConversation $conversation, User $user, string $at): void
+    {
+        try {
+            if (! $this->canBroadcast()) {
+                return;
+            }
+
+            $tenantId = $this->resolveTenantIdForBroadcast();
+            if ($tenantId === null) {
+                return;
+            }
+
+            event(new ChatTyping(
+                $tenantId,
+                (string) $conversation->id,
+                (string) $user->id,
+                (string) ($user->name ?: 'Usuario'),
+                $at,
+            ));
+        } catch (Throwable) {
+            // Broadcasting opcional.
+        }
+    }
+
+    private function dispatchRead(ChatConversation $conversation, User $actor, string $lastReadAt): void
+    {
+        try {
+            if (! $this->canBroadcast()) {
+                return;
+            }
+
+            $tenantId = $this->resolveTenantIdForBroadcast();
+            if ($tenantId === null) {
+                return;
+            }
+
+            event(new ChatRead(
+                $tenantId,
+                (string) $conversation->id,
+                (string) $actor->id,
+                $lastReadAt,
+            ));
+        } catch (Throwable) {
+            // Broadcasting opcional.
+        }
+    }
+
+    private function dispatchPresence(User $user, string $lastSeenAt, ?string $conversationId = null): void
+    {
+        try {
+            if (! $this->canBroadcast()) {
+                return;
+            }
+
+            $tenantId = $this->resolveTenantIdForBroadcast();
+            if ($tenantId === null) {
+                return;
+            }
+
+            event(new ChatPresence(
+                $tenantId,
+                (string) $user->id,
+                true,
+                $lastSeenAt,
+                $conversationId !== null && $conversationId !== '' ? $conversationId : null,
+            ));
+        } catch (Throwable) {
+            // Broadcasting opcional.
+        }
     }
 
     private function dispatchMessageCreated(
@@ -1398,12 +1528,12 @@ final class TenantChatService
         ChatMessage $message,
     ): void {
         try {
-            if (config('broadcasting.default') === 'reverb' && ! class_exists(\Pusher\Pusher::class)) {
+            if (! $this->canBroadcast()) {
                 return;
             }
 
-            $tenantId = app(TenantManager::class)->id();
-            if ($tenantId === null || $tenantId === '') {
+            $tenantId = $this->resolveTenantIdForBroadcast();
+            if ($tenantId === null) {
                 return;
             }
 
@@ -1415,7 +1545,7 @@ final class TenantChatService
             );
 
             event(new ChatMessageCreated(
-                (string) $tenantId,
+                $tenantId,
                 (string) $conversation->id,
                 $serialized,
                 $preview,
@@ -1433,19 +1563,19 @@ final class TenantChatService
         string $reason = 'updated',
     ): void {
         try {
-            if (config('broadcasting.default') === 'reverb' && ! class_exists(\Pusher\Pusher::class)) {
+            if (! $this->canBroadcast()) {
                 return;
             }
 
-            $tenantId = app(TenantManager::class)->id();
-            if ($tenantId === null || $tenantId === '') {
+            $tenantId = $this->resolveTenantIdForBroadcast();
+            if ($tenantId === null) {
                 return;
             }
 
             $serialized = $this->serializeMessage($message, $actor, $conversation);
 
             event(new ChatMessageUpdated(
-                (string) $tenantId,
+                $tenantId,
                 (string) $conversation->id,
                 $serialized,
                 $reason,

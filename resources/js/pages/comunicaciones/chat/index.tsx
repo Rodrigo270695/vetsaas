@@ -447,6 +447,7 @@ export default function ChatInternoIndex({
     const [typingUsers, setTypingUsers] = useState<TypingUser[]>(
         activeProp?.typing ?? [],
     );
+    const [echoReady, setEchoReady] = useState(false);
 
     const [listQuery, setListQuery] = useState('');
     const [dmOpen, setDmOpen] = useState(false);
@@ -639,12 +640,16 @@ export default function ChatInternoIndex({
         busy: sending || dmOpen || groupOpen,
     });
 
-    // Poll JSON del hilo activo (incluye typing).
+    // Poll JSON del hilo activo (incluye typing). Con Echo listo, polling más lento como fallback.
     useEffect(() => {
         if (!active?.id) return;
 
         let cancelled = false;
         const conversationId = active.id;
+        const basePoll = poll_ms || 4_000;
+        const interval = echoReady
+            ? Math.max(basePoll * 4, 20_000)
+            : basePoll;
 
         const tick = async () => {
             if (cancelled || document.visibilityState !== 'visible' || sending) {
@@ -699,7 +704,7 @@ export default function ChatInternoIndex({
         };
 
         void tick();
-        const timer = window.setInterval(tick, poll_ms || 4_000);
+        const timer = window.setInterval(tick, interval);
 
         const onVisible = () => {
             if (document.visibilityState === 'visible') void tick();
@@ -711,23 +716,31 @@ export default function ChatInternoIndex({
             window.clearInterval(timer);
             document.removeEventListener('visibilitychange', onVisible);
         };
-    }, [active?.id, poll_ms, sending, meId, setUnreadTotal]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [active?.id, poll_ms, sending, meId, setUnreadTotal, echoReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Echo/Reverb opcional — no rompe si falta laravel-echo.
     useEffect(() => {
         if (!broadcast?.enabled || !broadcast.key || !active?.id || !tenantId) {
+            setEchoReady(false);
+
             return;
         }
 
         let disposed = false;
-        let leaveChannel: (() => void) | null = null;
+        let leaveChannels: (() => void) | null = null;
+        const typingClearTimers = new Map<string, number>();
         const conversationId = active.id;
         const channelName = `tenant.${tenantId}.chat.${conversationId}`;
+        const presenceChannelName = `tenant.${tenantId}.chat.presence`;
 
         void (async () => {
             try {
                 const mods = await loadChatEchoModules();
-                if (disposed || !mods) return;
+                if (disposed || !mods) {
+                    setEchoReady(false);
+
+                    return;
+                }
 
                 const { EchoCtor, Pusher } = mods;
                 (window as unknown as { Pusher?: unknown }).Pusher = Pusher;
@@ -749,9 +762,35 @@ export default function ChatInternoIndex({
                     },
                 });
 
-                leaveChannel = () => {
+                const markEchoReady = (ready: boolean) => {
+                    if (!disposed) setEchoReady(ready);
+                };
+
+                try {
+                    const pusherConn = (
+                        echo as unknown as {
+                            connector?: {
+                                pusher?: {
+                                    connection?: {
+                                        bind: (event: string, cb: () => void) => void;
+                                    };
+                                };
+                            };
+                        }
+                    ).connector?.pusher?.connection;
+
+                    pusherConn?.bind('connected', () => markEchoReady(true));
+                    pusherConn?.bind('disconnected', () => markEchoReady(false));
+                    pusherConn?.bind('unavailable', () => markEchoReady(false));
+                    pusherConn?.bind('failed', () => markEchoReady(false));
+                } catch {
+                    // Sin connector pusher: seguimos con poll.
+                }
+
+                leaveChannels = () => {
                     try {
                         echo.leave(channelName);
+                        echo.leave(presenceChannelName);
                     } catch {
                         // ignore
                     }
@@ -776,6 +815,46 @@ export default function ChatInternoIndex({
                         .catch(() => undefined);
                 };
 
+                const applyPresence = (payload: {
+                    user_id?: string;
+                    online?: boolean;
+                    last_seen_at?: string | null;
+                }) => {
+                    const uid = String(payload.user_id ?? '');
+                    if (!uid || uid === meId) return;
+
+                    setActive((prev) => {
+                        if (!prev || prev.type !== 'direct') return prev;
+                        const isPeer = (prev.participants ?? []).some(
+                            (p) => p.id === uid,
+                        );
+                        if (!isPeer) return prev;
+
+                        return {
+                            ...prev,
+                            peer_online: Boolean(payload.online),
+                            peer_last_seen_at: payload.last_seen_at ?? prev.peer_last_seen_at ?? null,
+                        };
+                    });
+
+                    setConversations((prev) =>
+                        prev.map((c) => {
+                            if (c.type !== 'direct') return c;
+                            const isPeer = (c.participants ?? []).some(
+                                (p) => p.id === uid,
+                            );
+                            if (!isPeer) return c;
+
+                            return {
+                                ...c,
+                                peer_online: Boolean(payload.online),
+                                peer_last_seen_at:
+                                    payload.last_seen_at ?? c.peer_last_seen_at ?? null,
+                            };
+                        }),
+                    );
+                };
+
                 const channel = echo.private(channelName);
                 for (const eventName of [
                     '.chat.message',
@@ -786,14 +865,134 @@ export default function ChatInternoIndex({
                 ]) {
                     channel.listen(eventName, refreshFromPoll);
                 }
+
+                channel.listen(
+                    '.chat.typing',
+                    (payload: {
+                        user_id?: string;
+                        user_name?: string;
+                        conversation_id?: string;
+                    }) => {
+                        const uid = String(payload.user_id ?? '');
+                        if (!uid || uid === meId) return;
+                        if (
+                            payload.conversation_id
+                            && String(payload.conversation_id) !== conversationId
+                        ) {
+                            return;
+                        }
+
+                        setTypingUsers((prev) => {
+                            const next = prev.filter((u) => u.user_id !== uid);
+                            next.push({
+                                user_id: uid,
+                                name: String(payload.user_name ?? 'Usuario'),
+                            });
+
+                            return next;
+                        });
+
+                        const prevTimer = typingClearTimers.get(uid);
+                        if (prevTimer !== undefined) {
+                            window.clearTimeout(prevTimer);
+                        }
+                        typingClearTimers.set(
+                            uid,
+                            window.setTimeout(() => {
+                                typingClearTimers.delete(uid);
+                                setTypingUsers((prev) =>
+                                    prev.filter((u) => u.user_id !== uid),
+                                );
+                            }, 4_000),
+                        );
+                    },
+                );
+
+                channel.listen(
+                    '.chat.read',
+                    (payload: {
+                        user_id?: string;
+                        last_read_at?: string;
+                        conversation_id?: string;
+                    }) => {
+                        const uid = String(payload.user_id ?? '');
+                        if (!uid || uid === meId) return;
+                        if (
+                            payload.conversation_id
+                            && String(payload.conversation_id) !== conversationId
+                        ) {
+                            return;
+                        }
+
+                        const lastReadAt = payload.last_read_at ?? null;
+                        setActive((prev) => {
+                            if (!prev) return prev;
+                            const readerName =
+                                prev.participants?.find((p) => p.id === uid)?.name
+                                ?? 'Usuario';
+
+                            return {
+                                ...prev,
+                                messages: prev.messages.map((m) => {
+                                    if (!m.mine && m.user_id !== meId) return m;
+                                    if (!m.created_at || !lastReadAt) return m;
+                                    try {
+                                        if (
+                                            new Date(m.created_at).getTime()
+                                            > new Date(lastReadAt).getTime()
+                                        ) {
+                                            return m;
+                                        }
+                                    } catch {
+                                        return m;
+                                    }
+
+                                    const readBy = [...(m.read_by ?? [])];
+                                    const idx = readBy.findIndex(
+                                        (r) => r.user_id === uid,
+                                    );
+                                    const entry = {
+                                        user_id: uid,
+                                        name: readerName,
+                                        read_at: lastReadAt,
+                                    };
+                                    if (idx >= 0) readBy[idx] = entry;
+                                    else readBy.push(entry);
+
+                                    return { ...m, read_by: readBy };
+                                }),
+                            };
+                        });
+                    },
+                );
+
+                channel.listen('.chat.presence', applyPresence);
+
+                const presenceChannel = echo.private(presenceChannelName);
+                presenceChannel.listen('.chat.presence', applyPresence);
+
+                // Si el canal se autentica, asumimos Echo usable aunque no haya bind de connection.
+                try {
+                    (
+                        channel as unknown as {
+                            subscribed?: (cb: () => void) => void;
+                        }
+                    ).subscribed?.(() => markEchoReady(true));
+                } catch {
+                    // ignore
+                }
             } catch {
+                setEchoReady(false);
                 // Sin laravel-echo / pusher-js: el poll basta.
             }
         })();
 
         return () => {
             disposed = true;
-            leaveChannel?.();
+            setEchoReady(false);
+            typingClearTimers.forEach((id) => window.clearTimeout(id));
+            typingClearTimers.clear();
+            leaveChannels?.();
         };
     }, [
         broadcast?.enabled,
@@ -803,6 +1002,7 @@ export default function ChatInternoIndex({
         broadcast?.scheme,
         active?.id,
         tenantId,
+        meId,
         setUnreadTotal,
     ]);
 
