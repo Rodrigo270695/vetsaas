@@ -127,18 +127,18 @@ export function ImageCaptureField({
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
                 {previewSrc ? (
-                    <div className="relative shrink-0">
+                    <div className="relative size-20 shrink-0 overflow-hidden rounded-lg border border-border shadow-sm">
                         <img
                             src={previewSrc}
                             alt=""
-                            className="size-20 rounded-lg border border-border object-cover shadow-sm"
+                            className="size-full object-cover"
                         />
                         {value instanceof File ? (
                             <Button
                                 type="button"
                                 size="icon"
                                 variant="destructive"
-                                className="absolute -right-2 -top-2 size-7"
+                                className="absolute bottom-1 right-1 size-7 shadow-md"
                                 disabled={busy}
                                 title={t('form.foto_remove')}
                                 onClick={() => onChange(null)}
