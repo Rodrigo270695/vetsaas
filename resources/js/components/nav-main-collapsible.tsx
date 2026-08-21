@@ -121,6 +121,7 @@ export function NavMainCollapsible({
         can('comunicaciones-cola.view')
         || can('comunicaciones-historico.view')
         || can('comunicaciones-cola.manage')
+        || can('comunicaciones-chat.view')
         || can('config-general.view')
         || can('config-general.update');
 

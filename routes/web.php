@@ -24,6 +24,7 @@ use App\Http\Controllers\FelAnulacionHistorialController;
 use App\Http\Controllers\FelDocumentController;
 use App\Http\Controllers\FelSerieController;
 use App\Http\Controllers\GeoController;
+use App\Http\Controllers\TenantChatController;
 use App\Http\Controllers\TenantGeoController;
 use App\Http\Controllers\GroomingCargoController;
 use App\Http\Controllers\ServicioClinicoProductoController;
@@ -981,6 +982,21 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:comunicaciones-historico.view')
             ->get('historico', [NotificationQueueController::class, 'historico'])
             ->name('historico');
+
+        Route::middleware('permission:comunicaciones-chat.view')->group(function (): void {
+            Route::get('chat', [TenantChatController::class, 'index'])->name('chat');
+            Route::post('chat/direct', [TenantChatController::class, 'storeDirect'])->name('chat.direct');
+            Route::post('chat/{chatConversation}/messages', [TenantChatController::class, 'storeMessage'])
+                ->whereUuid('chatConversation')
+                ->name('chat.messages.store');
+            Route::get('chat/{chatConversation}/poll', [TenantChatController::class, 'poll'])
+                ->whereUuid('chatConversation')
+                ->name('chat.poll');
+        });
+        Route::middleware('permission:comunicaciones-chat.manage')
+            ->post('chat/groups', [TenantChatController::class, 'storeGroup'])
+            ->name('chat.groups');
+
         Route::middleware('permission:comunicaciones-bot-ia.view|config-general.view|comunicaciones-cola.manage|comunicaciones-cola.view|comunicaciones-historico.view')
             ->get('bot-ia', [ClinicBotIaController::class, 'show'])
             ->name('bot-ia');

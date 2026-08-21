@@ -18,6 +18,7 @@ import citasEn from '@/lang/en/citas.json';
 import cobrosEn from '@/lang/en/cobros.json';
 import configSuscripcionEn from '@/lang/en/config-suscripcion.json';
 import comunicacionesEn from '@/lang/en/comunicaciones.json';
+import chatInternoEn from '@/lang/en/chat-interno.json';
 import plataformaAuditoriaSoporteEn from '@/lang/en/plataforma-auditoria-soporte.json';
 import plataformaAuditoriaSeguridadEn from '@/lang/en/plataforma-auditoria-seguridad.json';
 import plataformaOperacionesEn from '@/lang/en/plataforma-operaciones.json';
@@ -78,6 +79,7 @@ import citasEs from '@/lang/es/citas.json';
 import cobrosEs from '@/lang/es/cobros.json';
 import configSuscripcionEs from '@/lang/es/config-suscripcion.json';
 import comunicacionesEs from '@/lang/es/comunicaciones.json';
+import chatInternoEs from '@/lang/es/chat-interno.json';
 import plataformaAuditoriaSoporteEs from '@/lang/es/plataforma-auditoria-soporte.json';
 import plataformaAuditoriaSeguridadEs from '@/lang/es/plataforma-auditoria-seguridad.json';
 import plataformaOperacionesEs from '@/lang/es/plataforma-operaciones.json';
@@ -162,6 +164,7 @@ const resources = {
         'subscription-expiry': subscriptionExpiryEs,
         'config-suscripcion': configSuscripcionEs,
         comunicaciones: comunicacionesEs,
+        'chat-interno': chatInternoEs,
         'bot-ia': botIaEs,
         'in-app-assistant': inAppAssistantEs,
         'in-app-assistant-knowledge': inAppAssistantKnowledgeEs,
@@ -224,6 +227,7 @@ const resources = {
         'subscription-expiry': subscriptionExpiryEn,
         'config-suscripcion': configSuscripcionEn,
         comunicaciones: comunicacionesEn,
+        'chat-interno': chatInternoEn,
         'bot-ia': botIaEn,
         'in-app-assistant': inAppAssistantEn,
         'in-app-assistant-knowledge': inAppAssistantKnowledgeEn,
@@ -296,6 +300,7 @@ void i18n
             'subscription-expiry',
             'config-suscripcion',
             'comunicaciones',
+            'chat-interno',
             'bot-ia',
             'in-app-assistant',
             'in-app-assistant-knowledge',

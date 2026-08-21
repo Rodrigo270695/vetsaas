@@ -117,6 +117,7 @@ class TenantRolesSeeder extends Seeder
                 'comunicaciones-cola.view', 'comunicaciones-cola.manage',
                 'comunicaciones-historico.view',
                 'comunicaciones-bot-ia.view', 'comunicaciones-bot-ia.manage',
+                'comunicaciones-chat.view', 'comunicaciones-chat.manage',
                 'plantillas.view', 'plantillas.create', 'plantillas.update', 'plantillas.delete',
 
                 // Reportes
@@ -177,6 +178,9 @@ class TenantRolesSeeder extends Seeder
                 'stock.view',
                 'alertas-stock.view',
 
+                // Chat interno del equipo
+                'comunicaciones-chat.view', 'comunicaciones-chat.manage',
+
                 // Reportes propios
                 'reporte-top-pacientes.view',
             ],
@@ -215,6 +219,8 @@ class TenantRolesSeeder extends Seeder
                 'productos.view',
                 'categorias-inventario.view',
                 'stock.view',
+
+                'comunicaciones-chat.view', 'comunicaciones-chat.manage',
             ],
         ],
 
@@ -262,6 +268,7 @@ class TenantRolesSeeder extends Seeder
                 // Comunicaciones (puede revisar el estado de los WhatsApp)
                 'comunicaciones-cola.view',
                 'comunicaciones-historico.view',
+                'comunicaciones-chat.view', 'comunicaciones-chat.manage',
             ],
         ],
 
@@ -286,6 +293,8 @@ class TenantRolesSeeder extends Seeder
                 // Su módulo principal
                 'servicios-agenda.view',
                 'grooming.view', 'grooming.create', 'grooming.update',
+
+                'comunicaciones-chat.view',
 
                 // A veces el grooming overlaps con hotelería
                 'hotel.view',

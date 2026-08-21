@@ -30,6 +30,7 @@ export const NAV_HREF_MODULE_KEYS: Record<string, string> = {
     '/facturacion/resumenes': 'resumenes',
     '/comunicaciones/cola': 'comunicaciones_cola',
     '/comunicaciones/historico': 'comunicaciones_historico',
+    '/comunicaciones/chat': 'comunicaciones_chat',
     '/comunicaciones/bot-ia': 'bot_ia',
     '/comunicaciones/plantillas': 'plantillas',
     '/reportes/snapshots': 'snapshots',

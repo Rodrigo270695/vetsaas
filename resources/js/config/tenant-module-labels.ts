@@ -28,6 +28,7 @@ export const MODULE_NAV_LABEL_KEYS: Record<string, string> = {
     resumenes: 'resumenes',
     comunicaciones_cola: 'cola_saliente',
     comunicaciones_historico: 'historico',
+    comunicaciones_chat: 'chat_interno',
     bot_ia: 'bot_ia',
     plantillas: 'plantillas',
     snapshots: 'snapshots',

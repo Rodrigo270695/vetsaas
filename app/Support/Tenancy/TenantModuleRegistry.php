@@ -41,6 +41,7 @@ final class TenantModuleRegistry
         'resumenes',
         'comunicaciones_cola',
         'comunicaciones_historico',
+        'comunicaciones_chat',
         'bot_ia',
         'plantillas',
         'snapshots',
@@ -141,6 +142,7 @@ final class TenantModuleRegistry
                 'modules' => [
                     'comunicaciones_cola',
                     'comunicaciones_historico',
+                    'comunicaciones_chat',
                     'bot_ia',
                     'plantillas',
                 ],

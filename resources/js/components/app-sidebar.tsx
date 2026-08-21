@@ -36,6 +36,7 @@ import {
     MapPin,
     Megaphone,
     MessageCircle,
+    MessagesSquare,
     MessageSquareText,
     Package,
     PawPrint,
@@ -320,6 +321,12 @@ function useNavConfig(): { singles: NavItem[]; groups: NavGroup[] } {
                             href: '/comunicaciones/historico',
                             icon: History,
                             permission: 'comunicaciones-historico.view',
+                        },
+                        {
+                            title: t('items.chat_interno'),
+                            href: '/comunicaciones/chat',
+                            icon: MessagesSquare,
+                            permission: 'comunicaciones-chat.view',
                         },
                         {
                             title: t('items.bot_ia'),
