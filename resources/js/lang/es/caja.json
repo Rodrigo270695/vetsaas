@@ -267,6 +267,8 @@
             "title": "Venta {{numero}}",
             "description": "Detalle de productos vendidos, totales y datos del cobro.",
             "volver": "Volver al listado",
+            "avisar_caja": "Avisar a caja",
+            "avisar_caja_draft": "Cobrar venta {{numero}} — paciente {{paciente}}",
             "stat_cliente": "Cliente",
             "stat_sede": "Sede",
             "stat_estado": "Estado",

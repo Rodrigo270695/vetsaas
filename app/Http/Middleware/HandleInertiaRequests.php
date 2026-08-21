@@ -382,11 +382,17 @@ class HandleInertiaRequests extends Middleware
                     }
                 },
             /*
-             * Web Push solo en panel central (superadmin / staff sin tenant).
-             * En clínicas el icono no se muestra.
+             * Web Push: panel central, o clínica si el usuario puede ver chat interno.
              */
             'push' => function () use ($user, $tenantContext): ?array {
-                if (! ($user instanceof User) || $user->tenant_id !== null || $tenantContext !== null) {
+                if (! ($user instanceof User)) {
+                    return null;
+                }
+
+                $isPlatform = $user->tenant_id === null && $tenantContext === null;
+                $isTenantChat = $tenantContext !== null && $user->can('comunicaciones-chat.view');
+
+                if (! $isPlatform && ! $isTenantChat) {
                     return null;
                 }
 

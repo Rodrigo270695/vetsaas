@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $conversation_id
  * @property string $user_id
  * @property ?\Illuminate\Support\Carbon $last_read_at
+ * @property ?\Illuminate\Support\Carbon $muted_at
  * @property \Illuminate\Support\Carbon $joined_at
  */
 class ChatParticipant extends Model
@@ -25,6 +26,7 @@ class ChatParticipant extends Model
         'conversation_id',
         'user_id',
         'last_read_at',
+        'muted_at',
         'joined_at',
     ];
 
@@ -32,6 +34,7 @@ class ChatParticipant extends Model
     {
         return [
             'last_read_at' => 'datetime',
+            'muted_at' => 'datetime',
             'joined_at' => 'datetime',
         ];
     }

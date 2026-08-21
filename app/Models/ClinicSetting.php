@@ -167,6 +167,7 @@ class ClinicSetting extends Model
         'grooming_catalogo_personalizado',
         'hotel_catalogo_personalizado',
         'horas_min_cancelacion',
+        'chat_retention_days',
         'color_primario',
         'color_secundario',
         'updated_by_id',
@@ -222,6 +223,7 @@ class ClinicSetting extends Model
             'grooming_catalogo_personalizado' => 'boolean',
             'hotel_catalogo_personalizado' => 'boolean',
             'horas_min_cancelacion' => 'integer',
+            'chat_retention_days' => 'integer',
             'igv_porcentaje' => 'decimal:2',
         ];
     }

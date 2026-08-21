@@ -51,7 +51,9 @@
     "detail": {
         "edit": "Editar cita",
         "open_consulta": "Aperturar cita",
-        "open_hc": "Abrir historia clínica"
+        "open_hc": "Abrir historia clínica",
+        "avisar_caja": "Avisar a caja",
+        "avisar_caja_draft": "Paciente en recepción: {{paciente}} (cita {{inicio}})"
     },
     "aperturar_hc": {
         "title": "¿Abrir historia clínica?",

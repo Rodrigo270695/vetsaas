@@ -38,6 +38,7 @@ return Application::configure(basePath: dirname(__DIR__))
         web: __DIR__.'/../routes/web.php',
         api: __DIR__.'/../routes/api.php',
         commands: __DIR__.'/../routes/console.php',
+        channels: __DIR__.'/../routes/channels.php',
         health: '/up',
         apiPrefix: 'api',
         // `then` se ejecuta DESPUÉS de registrar las rutas estándar:
@@ -143,6 +144,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('vetsaas:notifications-dispatch')->everyFiveMinutes();
         $schedule->command('vetsaas:whatsapp-sync-sessions')->everyFiveMinutes();
         $schedule->command('vetsaas:backup-database')->dailyAt('02:00');
+        $schedule->command('vetsaas:chat-prune')->dailyAt('04:15');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->reportable(function (\Throwable $e): void {

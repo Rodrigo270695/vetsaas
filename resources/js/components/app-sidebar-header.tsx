@@ -21,7 +21,7 @@ export function AppSidebarHeader({
     breadcrumbs?: BreadcrumbItemType[];
 }) {
     const { t } = useTranslation('in-app-assistant');
-    const { in_app_assistant, push, tenant } = usePage().props;
+    const { in_app_assistant, push } = usePage().props;
     const [assistantOpen, setAssistantOpen] = useState(false);
 
     const showAssistant =
@@ -29,8 +29,8 @@ export function AppSidebarHeader({
         in_app_assistant !== undefined &&
         in_app_assistant.enabled === true;
 
-    // Solo panel central (sin tenant): campana visible para superadmin.
-    const showPushBell = tenant == null && push != null;
+    // Panel central o clínica con chat (VAPID compartido vía props.push).
+    const showPushBell = push != null;
 
     useEffect(() => {
         if (!showAssistant) {

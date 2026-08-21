@@ -10,7 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
 /**
- * Suscripción Web Push (solo panel central / usuarios sin tenant).
+ * Suscripción Web Push (panel central + usuarios de clínica con chat).
  */
 final class PushSubscriptionController extends Controller
 {
@@ -19,7 +19,8 @@ final class PushSubscriptionController extends Controller
         abort_unless(filled(config('webpush.vapid.public_key')), 503);
 
         $user = $request->user();
-        abort_unless($user !== null && $user->tenant_id === null, 403);
+        abort_unless($user !== null, 403);
+        abort_unless($this->canUsePush($user), 403);
 
         $data = $request->validate([
             'endpoint' => ['required', 'string', 'max:500'],
@@ -44,7 +45,8 @@ final class PushSubscriptionController extends Controller
     public function destroy(Request $request): Response
     {
         $user = $request->user();
-        abort_unless($user !== null && $user->tenant_id === null, 403);
+        abort_unless($user !== null, 403);
+        abort_unless($this->canUsePush($user), 403);
 
         $data = $request->validate([
             'endpoint' => ['required', 'string', 'max:500'],
@@ -56,5 +58,14 @@ final class PushSubscriptionController extends Controller
             ->delete();
 
         return response()->noContent();
+    }
+
+    private function canUsePush(\App\Models\User $user): bool
+    {
+        if ($user->tenant_id === null) {
+            return true;
+        }
+
+        return $user->can('comunicaciones-chat.view');
     }
 }

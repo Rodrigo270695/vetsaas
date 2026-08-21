@@ -51,7 +51,9 @@
     "detail": {
         "edit": "Edit appointment",
         "open_consulta": "Start consultation",
-        "open_hc": "Open clinical record"
+        "open_hc": "Open clinical record",
+        "avisar_caja": "Notify cashier",
+        "avisar_caja_draft": "Patient at front desk: {{paciente}} (appointment {{inicio}})"
     },
     "aperturar_hc": {
         "title": "Open clinical record?",

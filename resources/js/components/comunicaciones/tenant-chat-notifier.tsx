@@ -13,13 +13,26 @@ type InboxPing = {
         user_name: string;
         preview: string;
         created_at: string | null;
+        muted?: boolean;
     } | null;
 };
 
 const STORAGE_KEY = 'vetsaas.tenant_chat.last_ping_id';
+const SOUND_KEY = 'tenant-chat-sound';
 const POLL_MS = 10_000;
 
+function isSoundEnabled(): boolean {
+    try {
+        return window.localStorage.getItem(SOUND_KEY) !== '0';
+    } catch {
+        return true;
+    }
+}
+
 function playChatChime(): void {
+    if (!isSoundEnabled()) {
+        return;
+    }
     try {
         const Ctx =
             window.AudioContext ||
@@ -124,6 +137,11 @@ export function TenantChatNotifier() {
 
                 lastNotifiedId.current = latest.message_id;
                 window.sessionStorage.setItem(STORAGE_KEY, latest.message_id);
+
+                // No toastear si el ping indica conversación silenciada.
+                if (latest.muted === true) {
+                    return;
+                }
 
                 playChatChime();
                 toastManager.info({

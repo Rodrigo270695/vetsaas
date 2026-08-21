@@ -1,5 +1,14 @@
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import {
+    format,
+    isToday,
+    isYesterday,
+    parseISO,
+} from 'date-fns';
+import { enUS, es as esLocale } from 'date-fns/locale';
+import {
+    Bell,
+    BellOff,
     Check,
     ChevronLeft,
     FileText,
@@ -7,19 +16,25 @@ import {
     MessagesSquare,
     Paperclip,
     Plus,
+    Reply,
     Search,
     SendHorizontal,
     Smile,
+    Volume2,
+    VolumeX,
     Users,
     UserRound,
     X,
 } from 'lucide-react';
 import {
+    useCallback,
     useEffect,
     useMemo,
     useRef,
     useState,
     type FormEvent,
+    type KeyboardEvent,
+    type ReactNode,
 } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -61,13 +76,38 @@ type ChatAttachment = {
     is_image: boolean;
 };
 
+type ReplyPreview = {
+    id: string;
+    body: string;
+    user_id: string;
+    user_name: string;
+};
+
+type ReadBy = {
+    user_id: string;
+    name: string;
+    read_at: string | null;
+};
+
+type TypingUser = {
+    user_id: string;
+    name: string;
+};
+
 type ChatMessage = {
     id: string;
     body: string;
     user_id: string;
     user_name: string;
     created_at: string | null;
+    mine?: boolean;
+    reply_to_id?: string | null;
+    reply_to?: ReplyPreview | null;
+    mentioned_user_ids?: string[];
+    mentions?: { id: string; name: string }[];
     attachment: ChatAttachment | null;
+    attachments?: ChatAttachment[];
+    read_by?: ReadBy[];
 };
 
 type ConversationSummary = {
@@ -78,6 +118,7 @@ type ConversationSummary = {
     participants: { id: string; name: string }[];
     participant_count: number;
     unread: number;
+    muted?: boolean;
     last_message: {
         body: string;
         user_name: string;
@@ -88,7 +129,18 @@ type ConversationSummary = {
     updated_at: string | null;
 };
 
-type ActiveConversation = ConversationSummary & { messages: ChatMessage[] };
+type ActiveConversation = ConversationSummary & {
+    messages: ChatMessage[];
+    typing?: TypingUser[];
+};
+
+type BroadcastConfig = {
+    enabled: boolean;
+    key?: string;
+    host?: string;
+    port?: number;
+    scheme?: string;
+};
 
 type Props = {
     conversations: ConversationSummary[];
@@ -96,7 +148,11 @@ type Props = {
     active: ActiveConversation | null;
     unread_total: number;
     can_manage: boolean;
+    can_create_groups?: boolean;
+    draft?: string | null;
+    retention_days?: number | null;
     poll_ms: number;
+    broadcast?: BroadcastConfig;
 };
 
 const EMOJIS = [
@@ -105,6 +161,31 @@ const EMOJIS = [
     '👏', '🙏', '💪', '🔥', '✨', '✅', '❌', '⚠️',
     '📌', '📎', '📷', '🐶', '🐱', '💉', '💊', '🩺',
 ];
+
+const SOUND_KEY = 'tenant-chat-sound';
+const MAX_ATTACHMENTS = 5;
+const RETENTION_OPTIONS = [30, 90, 180] as const;
+
+function readXsrfToken(): string {
+    const m = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/);
+
+    return m ? decodeURIComponent(m[1]) : '';
+}
+
+function csrfHeaders(json = false): HeadersInit {
+    const xsrf = readXsrfToken();
+    const meta = document
+        .querySelector('meta[name="csrf-token"]')
+        ?.getAttribute('content');
+
+    return {
+        Accept: 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        ...(json ? { 'Content-Type': 'application/json' } : {}),
+        ...(meta ? { 'X-CSRF-TOKEN': meta } : {}),
+        ...(xsrf ? { 'X-XSRF-TOKEN': xsrf } : {}),
+    };
+}
 
 function initials(name: string): string {
     const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -144,37 +225,197 @@ function formatBytes(n: number): string {
     return `${(n / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function dayKey(iso: string | null | undefined): string {
+    if (!iso) return '';
+    try {
+        return format(parseISO(iso), 'yyyy-MM-dd');
+    } catch {
+        return '';
+    }
+}
+
+function playChatChime(): void {
+    try {
+        const Ctx =
+            window.AudioContext
+            || (window as unknown as { webkitAudioContext?: typeof AudioContext })
+                .webkitAudioContext;
+        if (!Ctx) return;
+        const ctx = new Ctx();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(660, ctx.currentTime + 0.12);
+        gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.08, ctx.currentTime + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.28);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.3);
+        window.setTimeout(() => {
+            void ctx.close();
+        }, 400);
+    } catch {
+        // Navegador sin gesto / audio bloqueado.
+    }
+}
+
+function isSoundEnabled(): boolean {
+    try {
+        return window.localStorage.getItem(SOUND_KEY) !== '0';
+    } catch {
+        return true;
+    }
+}
+
+function messageAttachments(m: ChatMessage): ChatAttachment[] {
+    if (m.attachments && m.attachments.length > 0) return m.attachments;
+    if (m.attachment) return [m.attachment];
+
+    return [];
+}
+
+function extractMentionIds(body: string, directory: ChatUser[]): string[] {
+    const ids: string[] = [];
+    const sorted = [...directory].sort((a, b) => b.name.length - a.name.length);
+    for (const u of sorted) {
+        const needle = `@${u.name}`;
+        if (body.includes(needle) && !ids.includes(u.id)) {
+            ids.push(u.id);
+        }
+    }
+
+    return ids;
+}
+
+type ThreadItem =
+    | { kind: 'sep'; key: string; label: string }
+    | { kind: 'msg'; key: string; message: ChatMessage };
+
+function tryDynamicImport(specifier: string): Promise<unknown> {
+    // Evita resolución estática de peers opcionales (laravel-echo / pusher-js).
+    try {
+        // eslint-disable-next-line @typescript-eslint/no-implied-eval, no-new-func
+        return (new Function(
+            's',
+            'return import(s)',
+        ) as (s: string) => Promise<unknown>)(specifier);
+    } catch {
+        return Promise.resolve(null);
+    }
+}
+
 export default function ChatInternoIndex({
-    conversations,
+    conversations: conversationsProp,
     users,
-    active,
+    active: activeProp,
     unread_total,
     can_manage,
+    can_create_groups,
+    draft,
+    retention_days,
     poll_ms,
+    broadcast,
 }: Props) {
     const { t, i18n } = useTranslation('chat-interno');
-    const page = usePage<{ auth?: { user?: { id?: string } } }>();
+    const page = usePage<{
+        auth?: { user?: { id?: string } };
+        tenant?: { id?: string } | null;
+    }>();
     const meId = String(page.props.auth?.user?.id ?? '');
+    const tenantId = String(page.props.tenant?.id ?? '');
     const { setUnreadTotal, setActiveConversationId } = useTenantChatUnread();
+    const canCreateGroups = can_create_groups ?? can_manage;
+    const dateFnsLocale = i18n.language?.startsWith('en') ? enUS : esLocale;
+    const locale = i18n.language?.startsWith('en') ? 'en-US' : 'es-PE';
+
+    const [conversations, setConversations] = useState(conversationsProp);
+    const [active, setActive] = useState(activeProp);
+    const [typingUsers, setTypingUsers] = useState<TypingUser[]>(
+        activeProp?.typing ?? [],
+    );
 
     const [listQuery, setListQuery] = useState('');
     const [dmOpen, setDmOpen] = useState(false);
     const [groupOpen, setGroupOpen] = useState(false);
     const [userQuery, setUserQuery] = useState('');
     const [body, setBody] = useState('');
-    const [file, setFile] = useState<File | null>(null);
-    const [filePreview, setFilePreview] = useState<string | null>(null);
+    const [files, setFiles] = useState<File[]>([]);
+    const [filePreviews, setFilePreviews] = useState<(string | null)[]>([]);
     const [sending, setSending] = useState(false);
     const [emojiOpen, setEmojiOpen] = useState(false);
+    const [replyTo, setReplyTo] = useState<ReplyPreview | null>(null);
+    const [threadQuery, setThreadQuery] = useState('');
+    const [searchOpen, setSearchOpen] = useState(false);
+    const [searchResults, setSearchResults] = useState<ChatMessage[]>([]);
+    const [searching, setSearching] = useState(false);
+    const [highlightId, setHighlightId] = useState<string | null>(null);
+    const [mentionOpen, setMentionOpen] = useState(false);
+    const [mentionQuery, setMentionQuery] = useState('');
+    const [mentionIndex, setMentionIndex] = useState(0);
+    const [lightbox, setLightbox] = useState<{
+        url: string;
+        name: string;
+    } | null>(null);
+    const [soundOn, setSoundOn] = useState(() => isSoundEnabled());
+    const [retentionValue, setRetentionValue] = useState<number | ''>(
+        retention_days ?? '',
+    );
+    const [muting, setMuting] = useState(false);
+
     const bottomRef = useRef<HTMLDivElement | null>(null);
     const fileRef = useRef<HTMLInputElement | null>(null);
     const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+    const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+    const draftApplied = useRef(false);
+    const lastSoundId = useRef<string | null>(null);
+    const typingTimer = useRef<number | undefined>(undefined);
+    const searchTimer = useRef<number | undefined>(undefined);
 
     const dmForm = useForm<{ user_id: string }>({ user_id: '' });
     const groupForm = useForm<{ name: string; user_ids: string[] }>({
         name: '',
         user_ids: [],
     });
+
+    useEffect(() => {
+        setConversations(conversationsProp);
+    }, [conversationsProp]);
+
+    useEffect(() => {
+        setActive(activeProp);
+        setTypingUsers(activeProp?.typing ?? []);
+        setReplyTo(null);
+        setThreadQuery('');
+        setSearchResults([]);
+        setHighlightId(null);
+        if (activeProp?.messages?.length) {
+            const last = activeProp.messages[activeProp.messages.length - 1];
+            lastSoundId.current = last?.id ?? null;
+        } else {
+            lastSoundId.current = null;
+        }
+    }, [activeProp?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    useEffect(() => {
+        if (activeProp && activeProp.id === active?.id) {
+            setActive(activeProp);
+            setTypingUsers(activeProp.typing ?? []);
+        }
+    }, [activeProp, active?.id]);
+
+    useEffect(() => {
+        setRetentionValue(retention_days ?? '');
+    }, [retention_days]);
+
+    useEffect(() => {
+        if (draft && !draftApplied.current) {
+            setBody(draft);
+            draftApplied.current = true;
+        }
+    }, [draft]);
 
     useEffect(() => {
         setUnreadTotal(unread_total);
@@ -187,32 +428,202 @@ export default function ChatInternoIndex({
     }, [active?.id, setActiveConversationId]);
 
     useAutoRefresh({
-        only: ['conversations', 'active', 'unread_total'],
+        only: ['conversations', 'active', 'unread_total', 'retention_days'],
         intervalMs: poll_ms || 6_000,
-        enabled: true,
+        enabled: !active?.id,
         busy: sending || dmOpen || groupOpen,
     });
+
+    // Poll JSON del hilo activo (incluye typing).
+    useEffect(() => {
+        if (!active?.id) return;
+
+        let cancelled = false;
+        const conversationId = active.id;
+
+        const tick = async () => {
+            if (cancelled || document.visibilityState !== 'visible' || sending) {
+                return;
+            }
+            try {
+                const res = await fetch(
+                    `/comunicaciones/chat/${conversationId}/poll`,
+                    {
+                        headers: csrfHeaders(),
+                        credentials: 'same-origin',
+                    },
+                );
+                if (!res.ok || cancelled) return;
+                const data = (await res.json()) as {
+                    active: ActiveConversation;
+                    conversations: ConversationSummary[];
+                    unread_total: number;
+                    typing?: TypingUser[];
+                };
+                if (cancelled) return;
+
+                const prevLast =
+                    active.messages[active.messages.length - 1]?.id ?? null;
+                const nextMessages = data.active?.messages ?? [];
+                const nextLast = nextMessages[nextMessages.length - 1];
+
+                setActive(data.active);
+                setConversations(data.conversations);
+                setTypingUsers(
+                    data.typing ?? data.active?.typing ?? [],
+                );
+                setUnreadTotal(data.unread_total ?? 0);
+
+                if (
+                    nextLast
+                    && nextLast.id !== prevLast
+                    && nextLast.id !== lastSoundId.current
+                    && !nextLast.mine
+                    && nextLast.user_id !== meId
+                    && !data.active?.muted
+                    && isSoundEnabled()
+                ) {
+                    playChatChime();
+                }
+                if (nextLast) {
+                    lastSoundId.current = nextLast.id;
+                }
+            } catch {
+                // Red intermitente.
+            }
+        };
+
+        void tick();
+        const timer = window.setInterval(tick, poll_ms || 4_000);
+
+        const onVisible = () => {
+            if (document.visibilityState === 'visible') void tick();
+        };
+        document.addEventListener('visibilitychange', onVisible);
+
+        return () => {
+            cancelled = true;
+            window.clearInterval(timer);
+            document.removeEventListener('visibilitychange', onVisible);
+        };
+    }, [active?.id, poll_ms, sending, meId, setUnreadTotal]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Echo/Reverb opcional — no rompe si falta laravel-echo.
+    useEffect(() => {
+        if (!broadcast?.enabled || !broadcast.key || !active?.id || !tenantId) {
+            return;
+        }
+
+        let disposed = false;
+        let leaveChannel: (() => void) | null = null;
+        const conversationId = active.id;
+        const channelName = `tenant.${tenantId}.chat.${conversationId}`;
+
+        void (async () => {
+            try {
+                const echoMod = await tryDynamicImport('laravel-echo');
+                const pusherMod = await tryDynamicImport('pusher-js');
+                if (disposed || !echoMod || !pusherMod) return;
+
+                const EchoCtor =
+                    (echoMod as { default?: new (opts: Record<string, unknown>) => {
+                        private: (ch: string) => {
+                            listen: (
+                                event: string,
+                                cb: (payload: unknown) => void,
+                            ) => void;
+                        };
+                        leave: (ch: string) => void;
+                    } }).default
+                    ?? (echoMod as new (opts: Record<string, unknown>) => {
+                        private: (ch: string) => {
+                            listen: (
+                                event: string,
+                                cb: (payload: unknown) => void,
+                            ) => void;
+                        };
+                        leave: (ch: string) => void;
+                    });
+                const Pusher =
+                    (pusherMod as { default?: unknown }).default ?? pusherMod;
+                (window as unknown as { Pusher?: unknown }).Pusher = Pusher;
+
+                const echo = new EchoCtor({
+                    broadcaster: 'reverb',
+                    key: broadcast.key,
+                    wsHost: broadcast.host,
+                    wsPort: broadcast.port ?? 80,
+                    wssPort: broadcast.port ?? 443,
+                    forceTLS: (broadcast.scheme ?? 'https') === 'https',
+                    enabledTransports: ['ws', 'wss'],
+                    authEndpoint: '/broadcasting/auth',
+                    auth: {
+                        headers: csrfHeaders(),
+                    },
+                });
+
+                leaveChannel = () => {
+                    try {
+                        echo.leave(channelName);
+                    } catch {
+                        // ignore
+                    }
+                };
+
+                echo.private(channelName).listen('.chat.message', () => {
+                    if (disposed) return;
+                    void fetch(`/comunicaciones/chat/${conversationId}/poll`, {
+                        headers: csrfHeaders(),
+                        credentials: 'same-origin',
+                    })
+                        .then((r) => (r.ok ? r.json() : null))
+                        .then((data) => {
+                            if (!data || disposed) return;
+                            setActive(data.active);
+                            setConversations(data.conversations);
+                            setTypingUsers(
+                                data.typing ?? data.active?.typing ?? [],
+                            );
+                            setUnreadTotal(data.unread_total ?? 0);
+                        })
+                        .catch(() => undefined);
+                });
+            } catch {
+                // Sin laravel-echo / pusher-js: el poll basta.
+            }
+        })();
+
+        return () => {
+            disposed = true;
+            leaveChannel?.();
+        };
+    }, [
+        broadcast?.enabled,
+        broadcast?.key,
+        broadcast?.host,
+        broadcast?.port,
+        broadcast?.scheme,
+        active?.id,
+        tenantId,
+        setUnreadTotal,
+    ]);
 
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [active?.id, active?.messages?.length]);
 
     useEffect(() => {
-        if (!file) {
-            setFilePreview(null);
+        const urls = files.map((f) =>
+            f.type.startsWith('image/') ? URL.createObjectURL(f) : null,
+        );
+        setFilePreviews(urls);
 
-            return;
-        }
-        if (!file.type.startsWith('image/')) {
-            setFilePreview(null);
-
-            return;
-        }
-        const url = URL.createObjectURL(file);
-        setFilePreview(url);
-
-        return () => URL.revokeObjectURL(url);
-    }, [file]);
+        return () => {
+            urls.forEach((u) => {
+                if (u) URL.revokeObjectURL(u);
+            });
+        };
+    }, [files]);
 
     const filteredConversations = useMemo(() => {
         const q = listQuery.trim().toLowerCase();
@@ -232,6 +643,55 @@ export default function ChatInternoIndex({
         );
     }, [users, userQuery]);
 
+    const mentionCandidates = useMemo(() => {
+        const base =
+            active?.participants?.length
+                ? active.participants
+                    .filter((p) => p.id !== meId)
+                    .map((p) => ({
+                        id: p.id,
+                        name: p.name,
+                        email:
+                            users.find((u) => u.id === p.id)?.email ?? '',
+                    }))
+                : users.filter((u) => u.id !== meId);
+
+        const q = mentionQuery.trim().toLowerCase();
+        if (!q) return base;
+
+        return base.filter((u) => u.name.toLowerCase().includes(q));
+    }, [active?.participants, users, meId, mentionQuery]);
+
+    const threadItems = useMemo((): ThreadItem[] => {
+        const messages = active?.messages ?? [];
+        const items: ThreadItem[] = [];
+        let prevDay = '';
+
+        for (const m of messages) {
+            const key = dayKey(m.created_at);
+            if (key && key !== prevDay) {
+                prevDay = key;
+                let label = key;
+                try {
+                    const d = parseISO(m.created_at!);
+                    if (isToday(d)) label = t('today');
+                    else if (isYesterday(d)) label = t('yesterday');
+                    else {
+                        label = format(d, 'EEEE d MMM yyyy', {
+                            locale: dateFnsLocale,
+                        });
+                    }
+                } catch {
+                    // keep key
+                }
+                items.push({ kind: 'sep', key: `sep-${key}`, label });
+            }
+            items.push({ kind: 'msg', key: m.id, message: m });
+        }
+
+        return items;
+    }, [active?.messages, t, dateFnsLocale]);
+
     const [mobileListOpen, setMobileListOpen] = useState(() => !active);
 
     useEffect(() => {
@@ -248,46 +708,108 @@ export default function ChatInternoIndex({
             {
                 preserveScroll: true,
                 replace: true,
-                only: ['conversations', 'active', 'unread_total', 'users', 'can_manage'],
+                only: [
+                    'conversations',
+                    'active',
+                    'unread_total',
+                    'users',
+                    'can_manage',
+                    'can_create_groups',
+                    'retention_days',
+                    'broadcast',
+                    'draft',
+                ],
             },
         );
     };
 
-    const openMobileList = () => {
-        setMobileListOpen(true);
-    };
+    const openMobileList = () => setMobileListOpen(true);
+    const closeMobileList = () => setMobileListOpen(false);
 
-    const closeMobileList = () => {
-        setMobileListOpen(false);
-    };
-
-    const clearAttachment = () => {
-        setFile(null);
+    const clearAttachments = () => {
+        setFiles([]);
         if (fileRef.current) fileRef.current.value = '';
+    };
+
+    const postTyping = useCallback(() => {
+        if (!active?.id) return;
+        void fetch(`/comunicaciones/chat/${active.id}/typing`, {
+            method: 'POST',
+            headers: csrfHeaders(true),
+            credentials: 'same-origin',
+            body: JSON.stringify({}),
+        }).catch(() => undefined);
+    }, [active?.id]);
+
+    const onBodyChange = (value: string) => {
+        setBody(value);
+
+        const ta = textareaRef.current;
+        const caret = ta?.selectionStart ?? value.length;
+        const before = value.slice(0, caret);
+        const match = before.match(/@([^\s@]*)$/);
+        if (match) {
+            setMentionOpen(true);
+            setMentionQuery(match[1] ?? '');
+            setMentionIndex(0);
+        } else {
+            setMentionOpen(false);
+            setMentionQuery('');
+        }
+
+        if (typingTimer.current) window.clearTimeout(typingTimer.current);
+        typingTimer.current = window.setTimeout(() => {
+            postTyping();
+        }, 450);
+    };
+
+    const insertMention = (user: { id: string; name: string }) => {
+        const ta = textareaRef.current;
+        const caret = ta?.selectionStart ?? body.length;
+        const before = body.slice(0, caret);
+        const after = body.slice(caret);
+        const replaced = before.replace(/@([^\s@]*)$/, `@${user.name} `);
+        setBody(`${replaced}${after}`);
+        setMentionOpen(false);
+        setMentionQuery('');
+        requestAnimationFrame(() => {
+            textareaRef.current?.focus();
+            const pos = replaced.length;
+            textareaRef.current?.setSelectionRange(pos, pos);
+        });
     };
 
     const submitMessage = (e: FormEvent) => {
         e.preventDefault();
         if (!active || sending) return;
-        if (!body.trim() && !file) return;
+        if (!body.trim() && files.length === 0) return;
 
+        const mentionIds = extractMentionIds(body, users);
         setSending(true);
-        router.post(
-            `/comunicaciones/chat/${active.id}/messages`,
-            {
-                body: body.trim(),
-                attachment: file,
+
+        const formData = new FormData();
+        formData.append('body', body.trim());
+        if (replyTo?.id) {
+            formData.append('reply_to_id', replyTo.id);
+        }
+        mentionIds.forEach((id) => {
+            formData.append('mentioned_user_ids[]', id);
+        });
+        files.forEach((file) => {
+            formData.append('attachments[]', file);
+        });
+
+        router.post(`/comunicaciones/chat/${active.id}/messages`, formData as never, {
+            forceFormData: true,
+            preserveScroll: true,
+            onFinish: () => {
+                setSending(false);
+                setBody('');
+                setReplyTo(null);
+                clearAttachments();
+                setMentionOpen(false);
             },
-            {
-                forceFormData: true,
-                preserveScroll: true,
-                onFinish: () => {
-                    setSending(false);
-                    setBody('');
-                    clearAttachment();
-                },
-            },
-        );
+        });
     };
 
     const insertEmoji = (emoji: string) => {
@@ -328,7 +850,217 @@ export default function ChatInternoIndex({
         });
     };
 
-    const locale = i18n.language?.startsWith('en') ? 'en-US' : 'es-PE';
+    const toggleMute = async () => {
+        if (!active || muting) return;
+        const next = !active.muted;
+        setMuting(true);
+        setActive({ ...active, muted: next });
+        setConversations((prev) =>
+            prev.map((c) =>
+                c.id === active.id ? { ...c, muted: next } : c,
+            ),
+        );
+        try {
+            await fetch(`/comunicaciones/chat/${active.id}/mute`, {
+                method: 'POST',
+                headers: csrfHeaders(true),
+                credentials: 'same-origin',
+                body: JSON.stringify({ muted: next }),
+            });
+        } catch {
+            setActive({ ...active, muted: !next });
+        } finally {
+            setMuting(false);
+        }
+    };
+
+    const toggleSound = () => {
+        const next = !soundOn;
+        setSoundOn(next);
+        try {
+            window.localStorage.setItem(SOUND_KEY, next ? '1' : '0');
+        } catch {
+            // ignore
+        }
+    };
+
+    const saveRetention = () => {
+        if (!can_manage) return;
+        router.post(
+            '/comunicaciones/chat/retention',
+            {
+                chat_retention_days:
+                    retentionValue === '' ? null : retentionValue,
+            },
+            { preserveScroll: true },
+        );
+    };
+
+    const runThreadSearch = useCallback(
+        (q: string) => {
+            if (!active?.id) return;
+            const trimmed = q.trim();
+            if (trimmed.length < 2) {
+                setSearchResults([]);
+                setSearching(false);
+
+                return;
+            }
+            setSearching(true);
+            void fetch(
+                `/comunicaciones/chat/${active.id}/search?q=${encodeURIComponent(trimmed)}`,
+                {
+                    headers: csrfHeaders(),
+                    credentials: 'same-origin',
+                },
+            )
+                .then((r) => (r.ok ? r.json() : null))
+                .then((data: { results?: ChatMessage[] } | null) => {
+                    setSearchResults(data?.results ?? []);
+                })
+                .catch(() => setSearchResults([]))
+                .finally(() => setSearching(false));
+        },
+        [active?.id],
+    );
+
+    useEffect(() => {
+        if (searchTimer.current) window.clearTimeout(searchTimer.current);
+        searchTimer.current = window.setTimeout(() => {
+            runThreadSearch(threadQuery);
+        }, 280);
+
+        return () => {
+            if (searchTimer.current) window.clearTimeout(searchTimer.current);
+        };
+    }, [threadQuery, runThreadSearch]);
+
+    const jumpToMessage = (id: string) => {
+        setHighlightId(id);
+        setSearchOpen(false);
+        requestAnimationFrame(() => {
+            const el = messageRefs.current.get(id);
+            el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        });
+        window.setTimeout(() => setHighlightId(null), 2200);
+    };
+
+    const onComposerKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+        if (mentionOpen && mentionCandidates.length > 0) {
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                setMentionIndex(
+                    (i) => (i + 1) % mentionCandidates.length,
+                );
+
+                return;
+            }
+            if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                setMentionIndex(
+                    (i) =>
+                        (i - 1 + mentionCandidates.length)
+                        % mentionCandidates.length,
+                );
+
+                return;
+            }
+            if (e.key === 'Enter' || e.key === 'Tab') {
+                e.preventDefault();
+                const pick = mentionCandidates[mentionIndex];
+                if (pick) insertMention(pick);
+
+                return;
+            }
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                setMentionOpen(false);
+
+                return;
+            }
+        }
+
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            submitMessage(e);
+        }
+    };
+
+    const typingLabel = useMemo(() => {
+        if (typingUsers.length === 0) return null;
+        if (typingUsers.length === 1) {
+            return t('typing', { name: typingUsers[0].name });
+        }
+        const names = typingUsers.map((u) => u.name).join(', ');
+
+        return t('typing_many', { names });
+    }, [typingUsers, t]);
+
+    const renderReadBy = (m: ChatMessage) => {
+        if (!m.mine && m.user_id !== meId) return null;
+        const readers = (m.read_by ?? []).filter((r) => r.user_id !== meId);
+        if (readers.length === 0) return null;
+        if (readers.length === 1) {
+            return t('seen_by', { names: readers[0].name });
+        }
+        if (readers.length <= 3) {
+            return t('seen_by', {
+                names: readers.map((r) => r.name).join(', '),
+            });
+        }
+
+        return `${t('seen')} · ${readers.length}`;
+    };
+
+    const renderBodyWithMentions = (m: ChatMessage) => {
+        if (!m.body) return null;
+        const mentions = m.mentions ?? [];
+        if (mentions.length === 0) {
+            return (
+                <p className="whitespace-pre-wrap wrap-break-word px-3.5 py-2">
+                    {m.body}
+                </p>
+            );
+        }
+        const sorted = [...mentions].sort(
+            (a, b) => b.name.length - a.name.length,
+        );
+        const parts: ReactNode[] = [];
+        let rest = m.body;
+        let key = 0;
+        while (rest.length > 0) {
+            let foundAt = -1;
+            let found: { id: string; name: string } | null = null;
+            for (const mention of sorted) {
+                const token = `@${mention.name}`;
+                const idx = rest.indexOf(token);
+                if (idx !== -1 && (foundAt === -1 || idx < foundAt)) {
+                    foundAt = idx;
+                    found = mention;
+                }
+            }
+            if (!found || foundAt < 0) {
+                parts.push(rest);
+                break;
+            }
+            if (foundAt > 0) parts.push(rest.slice(0, foundAt));
+            parts.push(
+                <span
+                    key={`m-${key++}`}
+                    className="font-semibold underline decoration-emerald-300/60"
+                >
+                    @{found.name}
+                </span>,
+            );
+            rest = rest.slice(foundAt + found.name.length + 1);
+        }
+
+        return (
+            <p className="whitespace-pre-wrap wrap-break-word px-3.5 py-2">
+                {parts}
+            </p>
+        );
+    };
 
     return (
         <>
@@ -355,41 +1087,115 @@ export default function ChatInternoIndex({
                         </div>
                     </div>
 
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button size="sm" className="shrink-0 gap-1.5 bg-emerald-600 hover:bg-emerald-700">
-                                <Plus className="size-4" aria-hidden />
-                                {t('new')}
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
-                            <DropdownMenuItem
-                                onSelect={() => {
-                                    setUserQuery('');
-                                    setDmOpen(true);
-                                }}
-                            >
-                                <UserRound className="size-4" aria-hidden />
-                                {t('new_dm')}
-                            </DropdownMenuItem>
-                            {can_manage ? (
+                    <div className="flex shrink-0 items-center gap-1.5">
+                        <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="size-8 text-muted-foreground"
+                            onClick={toggleSound}
+                            aria-label={soundOn ? t('sound_on') : t('sound_off')}
+                            title={soundOn ? t('sound_on') : t('sound_off')}
+                        >
+                            {soundOn ? (
+                                <Volume2 className="size-4" />
+                            ) : (
+                                <VolumeX className="size-4" />
+                            )}
+                        </Button>
+
+                        {can_manage ? (
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        className="hidden h-8 gap-1 text-xs sm:inline-flex"
+                                    >
+                                        {t('retention')}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent align="end" className="w-56 space-y-2 p-3">
+                                    <p className="text-xs text-muted-foreground">
+                                        {t('retention_hint')}
+                                    </p>
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {RETENTION_OPTIONS.map((d) => (
+                                            <Button
+                                                key={d}
+                                                type="button"
+                                                size="sm"
+                                                variant={
+                                                    retentionValue === d
+                                                        ? 'default'
+                                                        : 'outline'
+                                                }
+                                                className={cn(
+                                                    'h-7 text-xs',
+                                                    retentionValue === d
+                                                        && 'bg-emerald-600 hover:bg-emerald-700',
+                                                )}
+                                                onClick={() =>
+                                                    setRetentionValue(d)
+                                                }
+                                            >
+                                                {t('retention_days', {
+                                                    count: d,
+                                                })}
+                                            </Button>
+                                        ))}
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        className="w-full bg-emerald-600 hover:bg-emerald-700"
+                                        onClick={saveRetention}
+                                    >
+                                        {t('retention_save')}
+                                    </Button>
+                                </PopoverContent>
+                            </Popover>
+                        ) : null}
+
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button
+                                    size="sm"
+                                    className="shrink-0 gap-1.5 bg-emerald-600 hover:bg-emerald-700"
+                                >
+                                    <Plus className="size-4" aria-hidden />
+                                    {t('new')}
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48">
                                 <DropdownMenuItem
                                     onSelect={() => {
                                         setUserQuery('');
-                                        groupForm.reset();
-                                        setGroupOpen(true);
+                                        setDmOpen(true);
                                     }}
                                 >
-                                    <Users className="size-4" aria-hidden />
-                                    {t('new_group')}
+                                    <UserRound className="size-4" aria-hidden />
+                                    {t('new_dm')}
                                 </DropdownMenuItem>
-                            ) : null}
-                        </DropdownMenuContent>
-                    </DropdownMenu>
+                                {canCreateGroups ? (
+                                    <DropdownMenuItem
+                                        onSelect={() => {
+                                            setUserQuery('');
+                                            groupForm.reset();
+                                            setGroupOpen(true);
+                                        }}
+                                    >
+                                        <Users className="size-4" aria-hidden />
+                                        {t('new_group')}
+                                    </DropdownMenuItem>
+                                ) : null}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
                 </div>
 
                 <div className="relative min-h-0 flex-1 overflow-hidden lg:grid lg:grid-cols-[minmax(17rem,21rem)_1fr]">
-                    {/* Backdrop solo móvil */}
                     <button
                         type="button"
                         aria-label={t('close_list')}
@@ -406,10 +1212,10 @@ export default function ChatInternoIndex({
                     <aside
                         className={cn(
                             'z-40 flex min-h-0 flex-col bg-muted/20 lg:relative lg:z-auto lg:translate-x-0 lg:border-r lg:border-border/60 lg:shadow-none',
-                            // Móvil: lista completa o drawer
                             'max-lg:absolute max-lg:inset-y-0 max-lg:left-0 max-lg:bg-card max-lg:transition-transform max-lg:duration-500 max-lg:ease-[cubic-bezier(0.22,1,0.36,1)] max-lg:will-change-transform',
                             !active && 'max-lg:inset-0 max-lg:w-full max-lg:translate-x-0',
-                            active && 'max-lg:w-[min(20.5rem,82vw)] max-lg:border-r max-lg:border-border/50 max-lg:shadow-[12px_0_40px_-12px_rgba(15,23,42,0.35)]',
+                            active
+                                && 'max-lg:w-[min(20.5rem,82vw)] max-lg:border-r max-lg:border-border/50 max-lg:shadow-[12px_0_40px_-12px_rgba(15,23,42,0.35)]',
                             active
                                 && (mobileListOpen
                                     ? 'max-lg:translate-x-0'
@@ -474,7 +1280,9 @@ export default function ChatInternoIndex({
                                             >
                                                 <button
                                                     type="button"
-                                                    onClick={() => openConversation(c.id)}
+                                                    onClick={() =>
+                                                        openConversation(c.id)
+                                                    }
                                                     className={cn(
                                                         'flex w-full cursor-pointer items-start gap-3 border-l-2 px-3 py-3.5 text-left transition-colors active:bg-emerald-50/70 lg:py-3',
                                                         selected
@@ -503,23 +1311,40 @@ export default function ChatInternoIndex({
                                                             <span className="truncate text-sm font-medium">
                                                                 {c.title}
                                                             </span>
+                                                            {c.muted ? (
+                                                                <BellOff
+                                                                    className="size-3 shrink-0 text-muted-foreground"
+                                                                    aria-label={t(
+                                                                        'muted_badge',
+                                                                    )}
+                                                                />
+                                                            ) : null}
                                                             {c.unread > 0 ? (
                                                                 <Badge className="h-5 shrink-0 rounded-full bg-emerald-600 px-1.5 text-[10px] text-white hover:bg-emerald-600">
                                                                     {c.unread}
                                                                 </Badge>
                                                             ) : null}
                                                             <span className="ml-auto shrink-0 text-[10px] text-muted-foreground">
-                                                                {formatListTime(c.updated_at, locale)}
+                                                                {formatListTime(
+                                                                    c.updated_at,
+                                                                    locale,
+                                                                )}
                                                             </span>
                                                         </div>
                                                         <p className="mt-0.5 truncate text-xs text-muted-foreground">
                                                             {c.last_message
                                                                 ? `${c.last_message.mine ? `${t('you')}: ` : ''}${c.last_message.body}`
-                                                                : c.type === 'group'
-                                                                  ? t('participants', {
-                                                                        count: c.participant_count,
-                                                                    })
-                                                                  : t('type_direct')}
+                                                                : c.type
+                                                                      === 'group'
+                                                                  ? t(
+                                                                        'participants',
+                                                                        {
+                                                                            count: c.participant_count,
+                                                                        },
+                                                                    )
+                                                                  : t(
+                                                                        'type_direct',
+                                                                    )}
                                                         </p>
                                                     </div>
                                                 </button>
@@ -534,7 +1359,6 @@ export default function ChatInternoIndex({
                     <section
                         className={cn(
                             'flex min-h-0 flex-col bg-card bg-[radial-gradient(ellipse_at_top,rgba(16,185,129,0.06),transparent_55%)] lg:relative',
-                            // Móvil: el hilo ocupa todo; el drawer va encima
                             'max-lg:absolute max-lg:inset-0 max-lg:z-10 max-lg:transition-[transform,filter] max-lg:duration-500 max-lg:ease-[cubic-bezier(0.22,1,0.36,1)]',
                             !active && 'max-lg:hidden',
                             active
@@ -545,10 +1369,15 @@ export default function ChatInternoIndex({
                         {!active ? (
                             <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
                                 <div className="flex size-16 items-center justify-center rounded-2xl bg-emerald-600/10 text-emerald-700 ring-1 ring-emerald-600/15 dark:text-emerald-300">
-                                    <MessagesSquare className="size-7" aria-hidden />
+                                    <MessagesSquare
+                                        className="size-7"
+                                        aria-hidden
+                                    />
                                 </div>
                                 <div>
-                                    <p className="text-sm font-semibold">{t('empty_thread')}</p>
+                                    <p className="text-sm font-semibold">
+                                        {t('empty_thread')}
+                                    </p>
                                     <p className="mt-1 max-w-sm text-xs text-muted-foreground">
                                         {t('empty_thread_hint')}
                                     </p>
@@ -556,138 +1385,392 @@ export default function ChatInternoIndex({
                             </div>
                         ) : (
                             <>
-                                <header className="flex items-center gap-2 border-b border-border/60 bg-card/90 px-2 py-2.5 backdrop-blur-md sm:gap-3 sm:px-4 sm:py-3">
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="icon"
-                                        className="size-9 shrink-0 cursor-pointer lg:hidden"
-                                        onClick={openMobileList}
-                                        aria-label={t('back')}
-                                    >
-                                        <ChevronLeft className="size-5" />
-                                    </Button>
-                                    <Avatar className="size-9 border border-border/50 shadow-sm sm:size-10">
-                                        <AvatarFallback
-                                            className={cn(
-                                                'text-xs font-semibold',
-                                                active.type === 'group'
-                                                    ? 'bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-200'
-                                                    : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200',
-                                            )}
+                                <header className="flex flex-col gap-2 border-b border-border/60 bg-card/90 px-2 py-2.5 backdrop-blur-md sm:px-4 sm:py-3">
+                                    <div className="flex items-center gap-2 sm:gap-3">
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            className="size-9 shrink-0 cursor-pointer lg:hidden"
+                                            onClick={openMobileList}
+                                            aria-label={t('back')}
                                         >
-                                            {active.type === 'group' ? (
-                                                <Users className="size-3.5" />
+                                            <ChevronLeft className="size-5" />
+                                        </Button>
+                                        <Avatar className="size-9 border border-border/50 shadow-sm sm:size-10">
+                                            <AvatarFallback
+                                                className={cn(
+                                                    'text-xs font-semibold',
+                                                    active.type === 'group'
+                                                        ? 'bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-200'
+                                                        : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200',
+                                                )}
+                                            >
+                                                {active.type === 'group' ? (
+                                                    <Users className="size-3.5" />
+                                                ) : (
+                                                    initials(active.title)
+                                                )}
+                                            </AvatarFallback>
+                                        </Avatar>
+                                        <div className="min-w-0 flex-1">
+                                            <p className="truncate text-sm font-semibold">
+                                                {active.title}
+                                            </p>
+                                            <p className="truncate text-xs text-muted-foreground">
+                                                {typingLabel
+                                                    ?? (active.type === 'group'
+                                                        ? t('participants', {
+                                                              count: active.participant_count,
+                                                          })
+                                                        : t('dm_badge'))}
+                                            </p>
+                                        </div>
+                                        <Button
+                                            type="button"
+                                            size="icon"
+                                            variant="ghost"
+                                            className="size-8 shrink-0 text-muted-foreground"
+                                            onClick={toggleMute}
+                                            disabled={muting}
+                                            aria-label={
+                                                active.muted
+                                                    ? t('unmute')
+                                                    : t('mute')
+                                            }
+                                            title={
+                                                active.muted
+                                                    ? t('unmute')
+                                                    : t('mute')
+                                            }
+                                        >
+                                            {active.muted ? (
+                                                <BellOff className="size-4" />
                                             ) : (
-                                                initials(active.title)
+                                                <Bell className="size-4" />
                                             )}
-                                        </AvatarFallback>
-                                    </Avatar>
-                                    <div className="min-w-0 flex-1">
-                                        <p className="truncate text-sm font-semibold">
-                                            {active.title}
-                                        </p>
-                                        <p className="truncate text-xs text-muted-foreground">
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            size="icon"
+                                            variant="ghost"
+                                            className={cn(
+                                                'size-8 shrink-0 text-muted-foreground',
+                                                searchOpen && 'bg-muted',
+                                            )}
+                                            onClick={() =>
+                                                setSearchOpen((v) => !v)
+                                            }
+                                            aria-label={t('search_thread')}
+                                        >
+                                            <Search className="size-4" />
+                                        </Button>
+                                        <Badge
+                                            variant="outline"
+                                            className="hidden shrink-0 text-[10px] sm:inline-flex"
+                                        >
                                             {active.type === 'group'
-                                                ? t('participants', {
-                                                      count: active.participant_count,
-                                                  })
+                                                ? t('group_badge')
                                                 : t('dm_badge')}
-                                        </p>
+                                        </Badge>
                                     </div>
-                                    <Badge
-                                        variant="outline"
-                                        className="hidden shrink-0 text-[10px] sm:inline-flex"
-                                    >
-                                        {active.type === 'group'
-                                            ? t('group_badge')
-                                            : t('dm_badge')}
-                                    </Badge>
+
+                                    {searchOpen ? (
+                                        <div className="relative px-1 sm:px-0">
+                                            <Input
+                                                value={threadQuery}
+                                                onChange={(e) =>
+                                                    setThreadQuery(
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                placeholder={t('search_thread')}
+                                                className="h-9 border-border/60 bg-background/90 text-sm"
+                                                autoFocus
+                                            />
+                                            {(threadQuery.trim().length >= 2
+                                                || searching) && (
+                                                <div className="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-xl border border-border/60 bg-card shadow-lg">
+                                                    {searching ? (
+                                                        <p className="px-3 py-2 text-xs text-muted-foreground">
+                                                            {t('polling')}
+                                                        </p>
+                                                    ) : searchResults.length
+                                                      === 0 ? (
+                                                        <p className="px-3 py-2 text-xs text-muted-foreground">
+                                                            {t(
+                                                                'search_thread_empty',
+                                                            )}
+                                                        </p>
+                                                    ) : (
+                                                        searchResults.map(
+                                                            (m) => (
+                                                                <button
+                                                                    key={m.id}
+                                                                    type="button"
+                                                                    className="flex w-full flex-col gap-0.5 border-b border-border/40 px-3 py-2 text-left last:border-0 hover:bg-muted/60"
+                                                                    onClick={() =>
+                                                                        jumpToMessage(
+                                                                            m.id,
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    <span className="text-[10px] font-medium text-emerald-700 dark:text-emerald-300">
+                                                                        {
+                                                                            m.user_name
+                                                                        }{' '}
+                                                                        ·{' '}
+                                                                        {formatClock(
+                                                                            m.created_at,
+                                                                            locale,
+                                                                        )}
+                                                                    </span>
+                                                                    <span className="line-clamp-2 text-xs">
+                                                                        {m.body}
+                                                                    </span>
+                                                                </button>
+                                                            ),
+                                                        )
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ) : null}
                                 </header>
 
                                 <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4">
-                                    {active.messages.map((m) => {
-                                        const mine = m.user_id === meId;
+                                    {threadItems.map((item) => {
+                                        if (item.kind === 'sep') {
+                                            return (
+                                                <div
+                                                    key={item.key}
+                                                    className="flex items-center justify-center py-1"
+                                                >
+                                                    <span className="rounded-full bg-muted/80 px-3 py-0.5 text-[10px] font-medium text-muted-foreground">
+                                                        {item.label}
+                                                    </span>
+                                                </div>
+                                            );
+                                        }
+
+                                        const m = item.message;
+                                        const mine =
+                                            m.mine
+                                            ?? m.user_id === meId;
+                                        const atts = messageAttachments(m);
+                                        const readLabel = renderReadBy(m);
 
                                         return (
                                             <div
                                                 key={m.id}
+                                                ref={(el) => {
+                                                    if (el) {
+                                                        messageRefs.current.set(
+                                                            m.id,
+                                                            el,
+                                                        );
+                                                    } else {
+                                                        messageRefs.current.delete(
+                                                            m.id,
+                                                        );
+                                                    }
+                                                }}
                                                 className={cn(
-                                                    'flex',
-                                                    mine ? 'justify-end' : 'justify-start',
+                                                    'group flex',
+                                                    mine
+                                                        ? 'justify-end'
+                                                        : 'justify-start',
+                                                    highlightId === m.id
+                                                        && 'animate-pulse',
                                                 )}
                                             >
-                                                <div
-                                                    className={cn(
-                                                        'max-w-[min(100%,30rem)] overflow-hidden rounded-2xl text-sm shadow-sm',
-                                                        mine
-                                                            ? 'rounded-br-md bg-emerald-600 text-white'
-                                                            : 'rounded-bl-md border border-border/60 bg-card text-foreground',
-                                                    )}
-                                                >
-                                                    {!mine && active.type === 'group' ? (
-                                                        <p className="px-3.5 pt-2 text-[10px] font-semibold tracking-wide text-emerald-700 uppercase dark:text-emerald-300">
-                                                            {m.user_name}
-                                                        </p>
-                                                    ) : null}
-
-                                                    {m.attachment ? (
-                                                        <div className="px-2 pt-2">
-                                                            {m.attachment.is_image && m.attachment.url ? (
-                                                                <a
-                                                                    href={m.attachment.url}
-                                                                    target="_blank"
-                                                                    rel="noreferrer"
-                                                                    className="block overflow-hidden rounded-xl"
-                                                                >
-                                                                    <img
-                                                                        src={m.attachment.url}
-                                                                        alt={m.attachment.name}
-                                                                        className="max-h-56 w-full object-cover"
-                                                                    />
-                                                                </a>
-                                                            ) : (
-                                                                <a
-                                                                    href={m.attachment.url ?? '#'}
-                                                                    target="_blank"
-                                                                    rel="noreferrer"
-                                                                    className={cn(
-                                                                        'flex items-center gap-2 rounded-xl px-2.5 py-2',
-                                                                        mine
-                                                                            ? 'bg-emerald-700/40'
-                                                                            : 'bg-muted/70',
-                                                                    )}
-                                                                >
-                                                                    <FileText className="size-4 shrink-0" />
-                                                                    <span className="min-w-0 truncate text-xs font-medium">
-                                                                        {m.attachment.name}
-                                                                    </span>
-                                                                    <span className="ml-auto shrink-0 text-[10px] opacity-80">
-                                                                        {formatBytes(m.attachment.size)}
-                                                                    </span>
-                                                                </a>
-                                                            )}
-                                                        </div>
-                                                    ) : null}
-
-                                                    {m.body ? (
-                                                        <p className="whitespace-pre-wrap wrap-break-word px-3.5 py-2">
-                                                            {m.body}
-                                                        </p>
-                                                    ) : (
-                                                        <div className="h-2" />
-                                                    )}
-
-                                                    <p
+                                                <div className="flex max-w-[min(100%,30rem)] flex-col gap-0.5">
+                                                    <div
                                                         className={cn(
-                                                            'px-3.5 pb-1.5 text-right text-[10px]',
+                                                            'relative overflow-hidden rounded-2xl text-sm shadow-sm',
                                                             mine
-                                                                ? 'text-emerald-100/90'
-                                                                : 'text-muted-foreground',
+                                                                ? 'rounded-br-md bg-emerald-600 text-white'
+                                                                : 'rounded-bl-md border border-border/60 bg-card text-foreground',
+                                                            highlightId
+                                                                === m.id
+                                                                && 'ring-2 ring-amber-400/80',
                                                         )}
                                                     >
-                                                        {formatClock(m.created_at, locale)}
-                                                    </p>
+                                                        {!mine
+                                                        && active.type
+                                                            === 'group' ? (
+                                                            <p className="px-3.5 pt-2 text-[10px] font-semibold tracking-wide text-emerald-700 uppercase dark:text-emerald-300">
+                                                                {m.user_name}
+                                                            </p>
+                                                        ) : null}
+
+                                                        {m.reply_to ? (
+                                                            <button
+                                                                type="button"
+                                                                className={cn(
+                                                                    'mx-2 mt-2 block w-[calc(100%-1rem)] rounded-lg border-l-2 px-2.5 py-1.5 text-left text-xs',
+                                                                    mine
+                                                                        ? 'border-emerald-200/70 bg-emerald-700/40'
+                                                                        : 'border-emerald-500/50 bg-muted/60',
+                                                                )}
+                                                                onClick={() =>
+                                                                    jumpToMessage(
+                                                                        m.reply_to!
+                                                                            .id,
+                                                                    )
+                                                                }
+                                                            >
+                                                                <span className="font-semibold">
+                                                                    {
+                                                                        m
+                                                                            .reply_to
+                                                                            .user_name
+                                                                    }
+                                                                </span>
+                                                                <span className="mt-0.5 line-clamp-2 block opacity-90">
+                                                                    {
+                                                                        m
+                                                                            .reply_to
+                                                                            .body
+                                                                    }
+                                                                </span>
+                                                            </button>
+                                                        ) : null}
+
+                                                        {atts.length > 0 ? (
+                                                            <div className="space-y-1.5 px-2 pt-2">
+                                                                {atts.map(
+                                                                    (
+                                                                        att,
+                                                                        i,
+                                                                    ) =>
+                                                                        att.is_image
+                                                                        && att.url ? (
+                                                                            <button
+                                                                                key={`${m.id}-att-${i}`}
+                                                                                type="button"
+                                                                                className="block w-full overflow-hidden rounded-xl"
+                                                                                onClick={() =>
+                                                                                    setLightbox(
+                                                                                        {
+                                                                                            url: att.url!,
+                                                                                            name: att.name,
+                                                                                        },
+                                                                                    )
+                                                                                }
+                                                                                aria-label={t(
+                                                                                    'lightbox',
+                                                                                )}
+                                                                            >
+                                                                                <img
+                                                                                    src={
+                                                                                        att.url
+                                                                                    }
+                                                                                    alt={
+                                                                                        att.name
+                                                                                    }
+                                                                                    className="max-h-56 w-full object-cover"
+                                                                                />
+                                                                            </button>
+                                                                        ) : (
+                                                                            <a
+                                                                                key={`${m.id}-att-${i}`}
+                                                                                href={
+                                                                                    att.url
+                                                                                    ?? '#'
+                                                                                }
+                                                                                target="_blank"
+                                                                                rel="noreferrer"
+                                                                                className={cn(
+                                                                                    'flex items-center gap-2 rounded-xl px-2.5 py-2',
+                                                                                    mine
+                                                                                        ? 'bg-emerald-700/40'
+                                                                                        : 'bg-muted/70',
+                                                                                )}
+                                                                            >
+                                                                                <FileText className="size-4 shrink-0" />
+                                                                                <span className="min-w-0 truncate text-xs font-medium">
+                                                                                    {
+                                                                                        att.name
+                                                                                    }
+                                                                                </span>
+                                                                                <span className="ml-auto shrink-0 text-[10px] opacity-80">
+                                                                                    {formatBytes(
+                                                                                        att.size,
+                                                                                    )}
+                                                                                </span>
+                                                                            </a>
+                                                                        ),
+                                                                )}
+                                                            </div>
+                                                        ) : null}
+
+                                                        {m.body
+                                                            ? renderBodyWithMentions(
+                                                                  m,
+                                                              )
+                                                            : atts.length
+                                                              === 0
+                                                              ? (
+                                                                    <div className="h-2" />
+                                                                )
+                                                              : null}
+
+                                                        <div
+                                                            className={cn(
+                                                                'flex items-center gap-1 px-3.5 pb-1.5',
+                                                                mine
+                                                                    ? 'justify-end text-emerald-100/90'
+                                                                    : 'justify-end text-muted-foreground',
+                                                            )}
+                                                        >
+                                                            <button
+                                                                type="button"
+                                                                className={cn(
+                                                                    'mr-auto rounded p-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100',
+                                                                    mine
+                                                                        ? 'hover:bg-emerald-700/50'
+                                                                        : 'hover:bg-muted',
+                                                                )}
+                                                                onClick={() => {
+                                                                    setReplyTo(
+                                                                        {
+                                                                            id: m.id,
+                                                                            body:
+                                                                                m.body
+                                                                                || (atts[0]
+                                                                                    ?.name
+                                                                                    ?? ''),
+                                                                            user_id:
+                                                                                m.user_id,
+                                                                            user_name:
+                                                                                m.user_name,
+                                                                        },
+                                                                    );
+                                                                    textareaRef.current?.focus();
+                                                                }}
+                                                                aria-label={t(
+                                                                    'reply',
+                                                                )}
+                                                                title={t(
+                                                                    'reply',
+                                                                )}
+                                                            >
+                                                                <Reply className="size-3.5" />
+                                                            </button>
+                                                            <span className="text-[10px]">
+                                                                {formatClock(
+                                                                    m.created_at,
+                                                                    locale,
+                                                                )}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    {readLabel ? (
+                                                        <p className="px-1 text-right text-[10px] text-muted-foreground">
+                                                            {readLabel}
+                                                        </p>
+                                                    ) : null}
                                                 </div>
                                             </div>
                                         );
@@ -697,27 +1780,19 @@ export default function ChatInternoIndex({
 
                                 <form
                                     onSubmit={submitMessage}
-                                    className="border-t border-border/60 bg-card/95 p-3 backdrop-blur-md"
+                                    className="relative border-t border-border/60 bg-card/95 p-3 backdrop-blur-md"
                                 >
-                                    {file ? (
-                                        <div className="mb-2 flex items-center gap-2 rounded-xl border border-border/60 bg-muted/40 px-2.5 py-2">
-                                            {filePreview ? (
-                                                <img
-                                                    src={filePreview}
-                                                    alt=""
-                                                    className="size-10 rounded-lg object-cover"
-                                                />
-                                            ) : (
-                                                <span className="flex size-10 items-center justify-center rounded-lg bg-background">
-                                                    <FileText className="size-4 text-muted-foreground" />
-                                                </span>
-                                            )}
+                                    {replyTo ? (
+                                        <div className="mb-2 flex items-start gap-2 rounded-xl border border-emerald-600/20 bg-emerald-50/70 px-2.5 py-2 dark:bg-emerald-950/30">
+                                            <Reply className="mt-0.5 size-3.5 shrink-0 text-emerald-700 dark:text-emerald-300" />
                                             <div className="min-w-0 flex-1">
-                                                <p className="truncate text-xs font-medium">
-                                                    {file.name}
+                                                <p className="text-[10px] font-semibold text-emerald-800 dark:text-emerald-200">
+                                                    {t('reply_to', {
+                                                        name: replyTo.user_name,
+                                                    })}
                                                 </p>
-                                                <p className="text-[10px] text-muted-foreground">
-                                                    {formatBytes(file.size)}
+                                                <p className="truncate text-xs text-muted-foreground">
+                                                    {replyTo.body}
                                                 </p>
                                             </div>
                                             <Button
@@ -725,11 +1800,104 @@ export default function ChatInternoIndex({
                                                 size="icon"
                                                 variant="ghost"
                                                 className="size-7"
-                                                onClick={clearAttachment}
-                                                aria-label={t('remove_attachment')}
+                                                onClick={() => setReplyTo(null)}
+                                                aria-label={t('reply_cancel')}
                                             >
                                                 <X className="size-3.5" />
                                             </Button>
+                                        </div>
+                                    ) : null}
+
+                                    {files.length > 0 ? (
+                                        <div className="mb-2 flex flex-wrap gap-2">
+                                            {files.map((file, idx) => (
+                                                <div
+                                                    key={`${file.name}-${idx}`}
+                                                    className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-border/60 bg-muted/40 px-2.5 py-2 sm:flex-none sm:max-w-[14rem]"
+                                                >
+                                                    {filePreviews[idx] ? (
+                                                        <img
+                                                            src={
+                                                                filePreviews[
+                                                                    idx
+                                                                ]!
+                                                            }
+                                                            alt=""
+                                                            className="size-10 rounded-lg object-cover"
+                                                        />
+                                                    ) : (
+                                                        <span className="flex size-10 items-center justify-center rounded-lg bg-background">
+                                                            <FileText className="size-4 text-muted-foreground" />
+                                                        </span>
+                                                    )}
+                                                    <div className="min-w-0 flex-1">
+                                                        <p className="truncate text-xs font-medium">
+                                                            {file.name}
+                                                        </p>
+                                                        <p className="text-[10px] text-muted-foreground">
+                                                            {formatBytes(
+                                                                file.size,
+                                                            )}
+                                                        </p>
+                                                    </div>
+                                                    <Button
+                                                        type="button"
+                                                        size="icon"
+                                                        variant="ghost"
+                                                        className="size-7"
+                                                        onClick={() =>
+                                                            setFiles((prev) =>
+                                                                prev.filter(
+                                                                    (
+                                                                        _,
+                                                                        i,
+                                                                    ) =>
+                                                                        i
+                                                                        !== idx,
+                                                                ),
+                                                            )
+                                                        }
+                                                        aria-label={t(
+                                                            'remove_attachment',
+                                                        )}
+                                                    >
+                                                        <X className="size-3.5" />
+                                                    </Button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : null}
+
+                                    {mentionOpen
+                                    && mentionCandidates.length > 0 ? (
+                                        <div className="absolute bottom-full left-3 z-30 mb-1 max-h-40 w-64 overflow-y-auto rounded-xl border border-border/60 bg-card shadow-lg">
+                                            <p className="border-b border-border/40 px-2.5 py-1.5 text-[10px] text-muted-foreground">
+                                                {t('mention_hint')}
+                                            </p>
+                                            {mentionCandidates.map((u, i) => (
+                                                <button
+                                                    key={u.id}
+                                                    type="button"
+                                                    className={cn(
+                                                        'flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-sm hover:bg-muted/70',
+                                                        i === mentionIndex
+                                                            && 'bg-emerald-50 dark:bg-emerald-950/40',
+                                                    )}
+                                                    onMouseDown={(ev) => {
+                                                        ev.preventDefault();
+                                                        insertMention(u);
+                                                    }}
+                                                >
+                                                    <Avatar className="size-6">
+                                                        <AvatarFallback className="bg-emerald-100 text-[9px] text-emerald-800">
+                                                            {initials(u.name)}
+                                                        </AvatarFallback>
+                                                    </Avatar>
+                                                    <span className="truncate">
+                                                        {u.name}
+                                                    </span>
+                                                </button>
+                                            ))}
                                         </div>
                                     ) : null}
 
@@ -737,11 +1905,22 @@ export default function ChatInternoIndex({
                                         <input
                                             ref={fileRef}
                                             type="file"
+                                            multiple
                                             className="hidden"
                                             accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.zip"
                                             onChange={(e) => {
-                                                const next = e.target.files?.[0] ?? null;
-                                                setFile(next);
+                                                const picked = Array.from(
+                                                    e.target.files ?? [],
+                                                );
+                                                setFiles((prev) =>
+                                                    [
+                                                        ...prev,
+                                                        ...picked,
+                                                    ].slice(0, MAX_ATTACHMENTS),
+                                                );
+                                                if (fileRef.current) {
+                                                    fileRef.current.value = '';
+                                                }
                                             }}
                                         />
 
@@ -750,13 +1929,27 @@ export default function ChatInternoIndex({
                                             size="icon"
                                             variant="ghost"
                                             className="size-9 shrink-0 text-muted-foreground"
-                                            onClick={() => fileRef.current?.click()}
+                                            onClick={() =>
+                                                fileRef.current?.click()
+                                            }
+                                            disabled={
+                                                files.length >= MAX_ATTACHMENTS
+                                            }
                                             aria-label={t('attach')}
+                                            title={
+                                                files.length
+                                                >= MAX_ATTACHMENTS
+                                                    ? t('attachments_max')
+                                                    : t('attach')
+                                            }
                                         >
                                             <Paperclip className="size-4" />
                                         </Button>
 
-                                        <Popover open={emojiOpen} onOpenChange={setEmojiOpen}>
+                                        <Popover
+                                            open={emojiOpen}
+                                            onOpenChange={setEmojiOpen}
+                                        >
                                             <PopoverTrigger asChild>
                                                 <Button
                                                     type="button"
@@ -779,7 +1972,11 @@ export default function ChatInternoIndex({
                                                             key={emoji}
                                                             type="button"
                                                             className="rounded-md p-1 text-lg hover:bg-muted"
-                                                            onClick={() => insertEmoji(emoji)}
+                                                            onClick={() =>
+                                                                insertEmoji(
+                                                                    emoji,
+                                                                )
+                                                            }
                                                         >
                                                             {emoji}
                                                         </button>
@@ -791,21 +1988,24 @@ export default function ChatInternoIndex({
                                         <Textarea
                                             ref={textareaRef}
                                             value={body}
-                                            onChange={(e) => setBody(e.target.value)}
-                                            placeholder={t('composer_placeholder')}
+                                            onChange={(e) =>
+                                                onBodyChange(e.target.value)
+                                            }
+                                            placeholder={t(
+                                                'composer_placeholder',
+                                            )}
                                             rows={1}
                                             className="min-h-10 max-h-28 flex-1 resize-none"
-                                            onKeyDown={(e) => {
-                                                if (e.key === 'Enter' && !e.shiftKey) {
-                                                    e.preventDefault();
-                                                    submitMessage(e);
-                                                }
-                                            }}
+                                            onKeyDown={onComposerKeyDown}
                                         />
                                         <Button
                                             type="submit"
                                             size="icon"
-                                            disabled={(!body.trim() && !file) || sending}
+                                            disabled={
+                                                (!body.trim()
+                                                    && files.length === 0)
+                                                || sending
+                                            }
                                             className="size-10 shrink-0 bg-emerald-600 hover:bg-emerald-700"
                                             aria-label={t('send')}
                                         >
@@ -822,6 +2022,29 @@ export default function ChatInternoIndex({
                     </section>
                 </div>
             </div>
+
+            <Dialog
+                open={!!lightbox}
+                onOpenChange={(open) => {
+                    if (!open) setLightbox(null);
+                }}
+            >
+                <DialogContent className="max-h-[95dvh] max-w-[95vw] overflow-hidden border-0 bg-black/95 p-2 sm:max-w-4xl">
+                    <DialogHeader className="sr-only">
+                        <DialogTitle>{t('lightbox')}</DialogTitle>
+                        <DialogDescription>
+                            {lightbox?.name}
+                        </DialogDescription>
+                    </DialogHeader>
+                    {lightbox ? (
+                        <img
+                            src={lightbox.url}
+                            alt={lightbox.name}
+                            className="mx-auto max-h-[85dvh] w-auto max-w-full object-contain"
+                        />
+                    ) : null}
+                </DialogContent>
+            </Dialog>
 
             <Dialog open={dmOpen} onOpenChange={setDmOpen}>
                 <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-md">
@@ -913,12 +2136,17 @@ export default function ChatInternoIndex({
 
                         <div className="space-y-4 p-4">
                             <div className="space-y-1.5">
-                                <Label htmlFor="group-name">{t('group_name')}</Label>
+                                <Label htmlFor="group-name">
+                                    {t('group_name')}
+                                </Label>
                                 <Input
                                     id="group-name"
                                     value={groupForm.data.name}
                                     onChange={(e) =>
-                                        groupForm.setData('name', e.target.value)
+                                        groupForm.setData(
+                                            'name',
+                                            e.target.value,
+                                        )
                                     }
                                     placeholder={t('group_name_placeholder')}
                                     className="h-10 border-border/60"
@@ -963,7 +2191,8 @@ export default function ChatInternoIndex({
                                     <Label>{t('group_members')}</Label>
                                     <span className="text-[10px] text-muted-foreground">
                                         {t('group_selected', {
-                                            count: groupForm.data.user_ids.length,
+                                            count: groupForm.data.user_ids
+                                                .length,
                                         })}
                                     </span>
                                 </div>
@@ -971,7 +2200,9 @@ export default function ChatInternoIndex({
                                     <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
                                     <Input
                                         value={userQuery}
-                                        onChange={(e) => setUserQuery(e.target.value)}
+                                        onChange={(e) =>
+                                            setUserQuery(e.target.value)
+                                        }
                                         placeholder={t('direct_search')}
                                         className="h-10 border-border/60 bg-muted/30 pl-8"
                                     />
@@ -984,13 +2215,17 @@ export default function ChatInternoIndex({
                                     ) : (
                                         filteredUsers.map((u) => {
                                             const selected =
-                                                groupForm.data.user_ids.includes(u.id);
+                                                groupForm.data.user_ids.includes(
+                                                    u.id,
+                                                );
 
                                             return (
                                                 <button
                                                     key={u.id}
                                                     type="button"
-                                                    onClick={() => toggleMember(u.id)}
+                                                    onClick={() =>
+                                                        toggleMember(u.id)
+                                                    }
                                                     className={cn(
                                                         'flex w-full cursor-pointer items-center gap-3 rounded-lg px-2.5 py-2 text-left text-sm transition-colors',
                                                         selected

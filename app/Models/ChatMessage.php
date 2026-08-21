@@ -8,18 +8,23 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * @property string $id
  * @property string $conversation_id
  * @property string $user_id
+ * @property ?string $reply_to_id
  * @property ?string $body
+ * @property ?array $mentioned_user_ids
  * @property ?string $attachment_path
  * @property ?string $attachment_name
  * @property ?string $attachment_mime
  * @property ?int $attachment_size
  * @property \Illuminate\Support\Carbon $created_at
  * @property-read ?string $attachment_url
+ * @property-read ?ChatMessage $replyTo
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, ChatMessageAttachment> $attachments
  */
 class ChatMessage extends Model
 {
@@ -36,7 +41,9 @@ class ChatMessage extends Model
     protected $fillable = [
         'conversation_id',
         'user_id',
+        'reply_to_id',
         'body',
+        'mentioned_user_ids',
         'attachment_path',
         'attachment_name',
         'attachment_mime',
@@ -49,6 +56,7 @@ class ChatMessage extends Model
         return [
             'created_at' => 'datetime',
             'attachment_size' => 'integer',
+            'mentioned_user_ids' => 'array',
         ];
     }
 
@@ -76,5 +84,15 @@ class ChatMessage extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function replyTo(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'reply_to_id');
+    }
+
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(ChatMessageAttachment::class, 'message_id');
     }
 }

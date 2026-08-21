@@ -19,13 +19,24 @@ class StoreChatMessageRequest extends FormRequest
      */
     public function rules(): array
     {
+        $mimes = 'jpg,jpeg,png,gif,webp,pdf,doc,docx,xls,xlsx,txt,csv,zip';
+
         return [
             'body' => ['nullable', 'string', 'max:4000'],
+            'reply_to_id' => ['nullable', 'uuid'],
+            'mentioned_user_ids' => ['nullable', 'array', 'max:20'],
+            'mentioned_user_ids.*' => ['uuid'],
             'attachment' => [
                 'nullable',
                 'file',
-                'max:5120',
-                'mimes:jpg,jpeg,png,gif,webp,pdf,doc,docx,xls,xlsx,txt,csv,zip',
+                'max:15360',
+                "mimes:{$mimes}",
+            ],
+            'attachments' => ['nullable', 'array', 'max:5'],
+            'attachments.*' => [
+                'file',
+                'max:15360',
+                "mimes:{$mimes}",
             ],
         ];
     }
@@ -34,7 +45,7 @@ class StoreChatMessageRequest extends FormRequest
     {
         $validator->after(function (Validator $validator): void {
             $body = trim((string) $this->input('body', ''));
-            $hasFile = $this->hasFile('attachment');
+            $hasFile = $this->hasFile('attachment') || $this->hasFile('attachments');
 
             if ($body === '' && ! $hasFile) {
                 $validator->errors()->add('body', __('Escribe un mensaje o adjunta un archivo.'));

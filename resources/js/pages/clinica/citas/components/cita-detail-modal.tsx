@@ -1,5 +1,5 @@
-import { router, usePage } from '@inertiajs/react';
-import { Clock, Loader2, MapPin, Pencil, Stethoscope, Trash2, User, XCircle } from 'lucide-react';
+import { Link, router, usePage } from '@inertiajs/react';
+import { Clock, Loader2, MapPin, MessagesSquare, Pencil, Stethoscope, Trash2, User, XCircle } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -296,6 +296,29 @@ export function CitaDetailModal({
 
                     <DialogFooter className="flex-col gap-2 border-t border-border/60 bg-muted/20 px-6 py-4 sm:flex-row sm:justify-between">
                         <div className="flex flex-wrap gap-2">
+                            {can('comunicaciones-chat.view') ? (
+                                <Button
+                                    type="button"
+                                    variant="secondary"
+                                    className="cursor-pointer gap-2"
+                                    asChild
+                                >
+                                    <Link
+                                        href={`/comunicaciones/chat?notify=caja&draft=${encodeURIComponent(
+                                            t('citas:detail.avisar_caja_draft', {
+                                                paciente: displayPacienteCita(cita.paciente),
+                                                inicio: cita.inicio_at
+                                                    ? new Date(cita.inicio_at).toLocaleString()
+                                                    : '—',
+                                            }),
+                                        )}`}
+                                        onClick={() => onOpenChange(false)}
+                                    >
+                                        <MessagesSquare className="size-4" />
+                                        {t('citas:detail.avisar_caja')}
+                                    </Link>
+                                </Button>
+                            ) : null}
                             {canAperturar ? (
                                 <Button
                                     type="button"

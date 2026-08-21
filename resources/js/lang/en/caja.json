@@ -267,6 +267,8 @@
             "title": "Sale {{numero}}",
             "description": "Products sold, totals and payment details.",
             "volver": "Back to list",
+            "avisar_caja": "Notify cashier",
+            "avisar_caja_draft": "Collect sale {{numero}} — patient {{paciente}}",
             "stat_cliente": "Customer",
             "stat_sede": "Branch",
             "stat_estado": "Status",

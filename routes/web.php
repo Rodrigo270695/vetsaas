@@ -987,16 +987,29 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             Route::get('chat', [TenantChatController::class, 'index'])->name('chat');
             Route::get('chat/inbox', [TenantChatController::class, 'inbox'])->name('chat.inbox');
             Route::post('chat/direct', [TenantChatController::class, 'storeDirect'])->name('chat.direct');
+            Route::post('chat/notify-team', [TenantChatController::class, 'notifyTeam'])->name('chat.notify-team');
             Route::post('chat/{chatConversation}/messages', [TenantChatController::class, 'storeMessage'])
                 ->whereUuid('chatConversation')
                 ->name('chat.messages.store');
             Route::get('chat/{chatConversation}/poll', [TenantChatController::class, 'poll'])
                 ->whereUuid('chatConversation')
                 ->name('chat.poll');
+            Route::post('chat/{chatConversation}/typing', [TenantChatController::class, 'typing'])
+                ->whereUuid('chatConversation')
+                ->name('chat.typing');
+            Route::post('chat/{chatConversation}/mute', [TenantChatController::class, 'mute'])
+                ->whereUuid('chatConversation')
+                ->name('chat.mute');
+            Route::get('chat/{chatConversation}/search', [TenantChatController::class, 'search'])
+                ->whereUuid('chatConversation')
+                ->name('chat.search');
         });
-        Route::middleware('permission:comunicaciones-chat.manage')
-            ->post('chat/groups', [TenantChatController::class, 'storeGroup'])
-            ->name('chat.groups');
+        Route::middleware('permission:comunicaciones-chat.manage')->group(function (): void {
+            Route::post('chat/groups', [TenantChatController::class, 'storeGroup'])
+                ->name('chat.groups');
+            Route::post('chat/retention', [TenantChatController::class, 'updateRetention'])
+                ->name('chat.retention');
+        });
 
         Route::middleware('permission:comunicaciones-bot-ia.view|config-general.view|comunicaciones-cola.manage|comunicaciones-cola.view|comunicaciones-historico.view')
             ->get('bot-ia', [ClinicBotIaController::class, 'show'])
