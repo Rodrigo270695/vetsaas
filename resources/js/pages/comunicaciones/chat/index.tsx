@@ -294,16 +294,45 @@ type ThreadItem =
     | { kind: 'sep'; key: string; label: string }
     | { kind: 'msg'; key: string; message: ChatMessage };
 
-function tryDynamicImport(specifier: string): Promise<unknown> {
-    // Evita resolución estática de peers opcionales (laravel-echo / pusher-js).
+async function loadChatEchoModules(): Promise<{
+    EchoCtor: new (opts: Record<string, unknown>) => {
+        private: (ch: string) => {
+            listen: (event: string, cb: (payload: unknown) => void) => void;
+        };
+        leave: (ch: string) => void;
+    };
+    Pusher: unknown;
+} | null> {
     try {
-        // eslint-disable-next-line @typescript-eslint/no-implied-eval, no-new-func
-        return (new Function(
-            's',
-            'return import(s)',
-        ) as (s: string) => Promise<unknown>)(specifier);
+        const [echoMod, pusherMod] = await Promise.all([
+            import('laravel-echo'),
+            import('pusher-js'),
+        ]);
+        const EchoCtor =
+            (echoMod as { default?: new (opts: Record<string, unknown>) => {
+                private: (ch: string) => {
+                    listen: (
+                        event: string,
+                        cb: (payload: unknown) => void,
+                    ) => void;
+                };
+                leave: (ch: string) => void;
+            } }).default
+            ?? (echoMod as new (opts: Record<string, unknown>) => {
+                private: (ch: string) => {
+                    listen: (
+                        event: string,
+                        cb: (payload: unknown) => void,
+                    ) => void;
+                };
+                leave: (ch: string) => void;
+            });
+        const Pusher =
+            (pusherMod as { default?: unknown }).default ?? pusherMod;
+
+        return { EchoCtor, Pusher };
     } catch {
-        return Promise.resolve(null);
+        return null;
     }
 }
 
@@ -521,41 +550,23 @@ export default function ChatInternoIndex({
 
         void (async () => {
             try {
-                const echoMod = await tryDynamicImport('laravel-echo');
-                const pusherMod = await tryDynamicImport('pusher-js');
-                if (disposed || !echoMod || !pusherMod) return;
+                const mods = await loadChatEchoModules();
+                if (disposed || !mods) return;
 
-                const EchoCtor =
-                    (echoMod as { default?: new (opts: Record<string, unknown>) => {
-                        private: (ch: string) => {
-                            listen: (
-                                event: string,
-                                cb: (payload: unknown) => void,
-                            ) => void;
-                        };
-                        leave: (ch: string) => void;
-                    } }).default
-                    ?? (echoMod as new (opts: Record<string, unknown>) => {
-                        private: (ch: string) => {
-                            listen: (
-                                event: string,
-                                cb: (payload: unknown) => void,
-                            ) => void;
-                        };
-                        leave: (ch: string) => void;
-                    });
-                const Pusher =
-                    (pusherMod as { default?: unknown }).default ?? pusherMod;
+                const { EchoCtor, Pusher } = mods;
                 (window as unknown as { Pusher?: unknown }).Pusher = Pusher;
 
+                const scheme = broadcast.scheme === 'http' ? 'http' : 'https';
+                const port = Number(broadcast.port ?? (scheme === 'https' ? 443 : 8080));
                 const echo = new EchoCtor({
                     broadcaster: 'reverb',
                     key: broadcast.key,
-                    wsHost: broadcast.host,
-                    wsPort: broadcast.port ?? 80,
-                    wssPort: broadcast.port ?? 443,
-                    forceTLS: (broadcast.scheme ?? 'https') === 'https',
+                    wsHost: broadcast.host || window.location.hostname,
+                    wsPort: port,
+                    wssPort: port,
+                    forceTLS: scheme === 'https',
                     enabledTransports: ['ws', 'wss'],
+                    disableStats: true,
                     authEndpoint: '/broadcasting/auth',
                     auth: {
                         headers: csrfHeaders(),

@@ -80,9 +80,9 @@ class TenantChatController extends Controller
                 'enabled' => filled(config('broadcasting.connections.reverb.key'))
                     && config('broadcasting.default') === 'reverb',
                 'key' => config('broadcasting.connections.reverb.key'),
-                'host' => config('broadcasting.connections.reverb.options.host'),
-                'port' => config('broadcasting.connections.reverb.options.port'),
-                'scheme' => config('broadcasting.connections.reverb.options.scheme', 'https'),
+                'host' => config('broadcasting.connections.reverb.options.host') ?: 'localhost',
+                'port' => (int) (config('broadcasting.connections.reverb.options.port') ?: 8080),
+                'scheme' => (string) (config('broadcasting.connections.reverb.options.scheme') ?: 'http'),
             ],
         ]);
     }
