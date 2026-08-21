@@ -379,12 +379,7 @@ type ThreadItem =
     | { kind: 'msg'; key: string; message: ChatMessage };
 
 async function loadChatEchoModules(): Promise<{
-    EchoCtor: new (opts: Record<string, unknown>) => {
-        private: (ch: string) => {
-            listen: (event: string, cb: (payload: unknown) => void) => void;
-        };
-        leave: (ch: string) => void;
-    };
+    EchoCtor: new (opts: Record<string, unknown>) => ChatEchoInstance;
     Pusher: unknown;
 } | null> {
     try {
@@ -393,24 +388,8 @@ async function loadChatEchoModules(): Promise<{
             import('pusher-js'),
         ]);
         const EchoCtor =
-            (echoMod as { default?: new (opts: Record<string, unknown>) => {
-                private: (ch: string) => {
-                    listen: (
-                        event: string,
-                        cb: (payload: unknown) => void,
-                    ) => void;
-                };
-                leave: (ch: string) => void;
-            } }).default
-            ?? (echoMod as new (opts: Record<string, unknown>) => {
-                private: (ch: string) => {
-                    listen: (
-                        event: string,
-                        cb: (payload: unknown) => void,
-                    ) => void;
-                };
-                leave: (ch: string) => void;
-            });
+            (echoMod as { default?: new (opts: Record<string, unknown>) => ChatEchoInstance }).default
+            ?? (echoMod as new (opts: Record<string, unknown>) => ChatEchoInstance);
         const Pusher =
             (pusherMod as { default?: unknown }).default ?? pusherMod;
 
@@ -418,6 +397,81 @@ async function loadChatEchoModules(): Promise<{
     } catch {
         return null;
     }
+}
+
+type ChatEchoChannel = {
+    listen: (event: string, cb: (payload: unknown) => void) => void;
+    stopListening?: (event: string) => void;
+    subscribed?: (cb: () => void) => void;
+};
+
+type ChatEchoInstance = {
+    private: (ch: string) => ChatEchoChannel;
+    leave: (ch: string) => void;
+    disconnect?: () => void;
+    connector?: {
+        pusher?: {
+            connection?: {
+                bind: (event: string, cb: () => void) => void;
+            };
+        };
+    };
+};
+
+let sharedEcho: ChatEchoInstance | null = null;
+let sharedEchoKey: string | null = null;
+
+async function getSharedEcho(
+    broadcast: BroadcastConfig,
+): Promise<ChatEchoInstance | null> {
+    if (!broadcast.enabled || !broadcast.key) {
+        return null;
+    }
+
+    const scheme = broadcast.scheme === 'http' ? 'http' : 'https';
+    const port = Number(broadcast.port ?? (scheme === 'https' ? 443 : 8080));
+    const host = broadcast.host || window.location.hostname;
+    const cacheKey = `${broadcast.key}|${host}|${port}|${scheme}`;
+
+    if (sharedEcho && sharedEchoKey === cacheKey) {
+        return sharedEcho;
+    }
+
+    if (sharedEcho) {
+        try {
+            sharedEcho.disconnect?.();
+        } catch {
+            // ignore
+        }
+        sharedEcho = null;
+        sharedEchoKey = null;
+    }
+
+    const mods = await loadChatEchoModules();
+    if (!mods) {
+        return null;
+    }
+
+    const { EchoCtor, Pusher } = mods;
+    (window as unknown as { Pusher?: unknown }).Pusher = Pusher;
+
+    sharedEcho = new EchoCtor({
+        broadcaster: 'reverb',
+        key: broadcast.key,
+        wsHost: host,
+        wsPort: port,
+        wssPort: port,
+        forceTLS: scheme === 'https',
+        enabledTransports: ['ws', 'wss'],
+        disableStats: true,
+        authEndpoint: '/broadcasting/auth',
+        auth: {
+            headers: csrfHeaders(),
+        },
+    });
+    sharedEchoKey = cacheKey;
+
+    return sharedEcho;
 }
 
 export default function ChatInternoIndex({
@@ -452,6 +506,7 @@ export default function ChatInternoIndex({
         activeProp?.typing ?? [],
     );
     const [echoReady, setEchoReady] = useState(false);
+    const [openingId, setOpeningId] = useState<string | null>(null);
 
     const [listQuery, setListQuery] = useState('');
     const [dmOpen, setDmOpen] = useState(false);
@@ -724,7 +779,7 @@ export default function ChatInternoIndex({
         };
     }, [active?.id, poll_ms, sending, meId, setUnreadTotal, echoReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Echo/Reverb opcional — no rompe si falta laravel-echo.
+    // Echo/Reverb: reutiliza instancia; solo cambia de canal al cambiar hilo.
     useEffect(() => {
         if (!broadcast?.enabled || !broadcast.key || !active?.id || !tenantId) {
             setEchoReady(false);
@@ -733,7 +788,6 @@ export default function ChatInternoIndex({
         }
 
         let disposed = false;
-        let leaveChannels: (() => void) | null = null;
         const typingClearTimers = new Map<string, number>();
         const conversationId = active.id;
         const channelName = `tenant.${tenantId}.chat.${conversationId}`;
@@ -741,66 +795,33 @@ export default function ChatInternoIndex({
 
         void (async () => {
             try {
-                const mods = await loadChatEchoModules();
-                if (disposed || !mods) {
+                const echo = await getSharedEcho(broadcast);
+                if (disposed || !echo) {
                     setEchoReady(false);
 
                     return;
                 }
-
-                const { EchoCtor, Pusher } = mods;
-                (window as unknown as { Pusher?: unknown }).Pusher = Pusher;
-
-                const scheme = broadcast.scheme === 'http' ? 'http' : 'https';
-                const port = Number(broadcast.port ?? (scheme === 'https' ? 443 : 8080));
-                const echo = new EchoCtor({
-                    broadcaster: 'reverb',
-                    key: broadcast.key,
-                    wsHost: broadcast.host || window.location.hostname,
-                    wsPort: port,
-                    wssPort: port,
-                    forceTLS: scheme === 'https',
-                    enabledTransports: ['ws', 'wss'],
-                    disableStats: true,
-                    authEndpoint: '/broadcasting/auth',
-                    auth: {
-                        headers: csrfHeaders(),
-                    },
-                });
 
                 const markEchoReady = (ready: boolean) => {
                     if (!disposed) setEchoReady(ready);
                 };
 
                 try {
-                    const pusherConn = (
-                        echo as unknown as {
-                            connector?: {
-                                pusher?: {
-                                    connection?: {
-                                        bind: (event: string, cb: () => void) => void;
-                                    };
-                                };
-                            };
-                        }
-                    ).connector?.pusher?.connection;
-
-                    pusherConn?.bind('connected', () => markEchoReady(true));
-                    pusherConn?.bind('disconnected', () => markEchoReady(false));
-                    pusherConn?.bind('unavailable', () => markEchoReady(false));
-                    pusherConn?.bind('failed', () => markEchoReady(false));
+                    echo.connector?.pusher?.connection?.bind('connected', () =>
+                        markEchoReady(true),
+                    );
+                    echo.connector?.pusher?.connection?.bind('disconnected', () =>
+                        markEchoReady(false),
+                    );
+                    echo.connector?.pusher?.connection?.bind('unavailable', () =>
+                        markEchoReady(false),
+                    );
+                    echo.connector?.pusher?.connection?.bind('failed', () =>
+                        markEchoReady(false),
+                    );
                 } catch {
                     // Sin connector pusher: seguimos con poll.
                 }
-
-                leaveChannels = () => {
-                    try {
-                        echo.leave(channelName);
-                        echo.leave(presenceChannelName);
-                    } catch {
-                        // ignore
-                    }
-                };
 
                 const refreshFromPoll = () => {
                     if (disposed) return;
@@ -839,7 +860,8 @@ export default function ChatInternoIndex({
                         return {
                             ...prev,
                             peer_online: Boolean(payload.online),
-                            peer_last_seen_at: payload.last_seen_at ?? prev.peer_last_seen_at ?? null,
+                            peer_last_seen_at:
+                                payload.last_seen_at ?? prev.peer_last_seen_at ?? null,
                         };
                     });
 
@@ -977,19 +999,13 @@ export default function ChatInternoIndex({
                 const presenceChannel = echo.private(presenceChannelName);
                 presenceChannel.listen('.chat.presence', applyPresence);
 
-                // Si el canal se autentica, asumimos Echo usable aunque no haya bind de connection.
                 try {
-                    (
-                        channel as unknown as {
-                            subscribed?: (cb: () => void) => void;
-                        }
-                    ).subscribed?.(() => markEchoReady(true));
+                    channel.subscribed?.(() => markEchoReady(true));
                 } catch {
                     // ignore
                 }
             } catch {
                 setEchoReady(false);
-                // Sin laravel-echo / pusher-js: el poll basta.
             }
         })();
 
@@ -998,7 +1014,14 @@ export default function ChatInternoIndex({
             setEchoReady(false);
             typingClearTimers.forEach((id) => window.clearTimeout(id));
             typingClearTimers.clear();
-            leaveChannels?.();
+            if (sharedEcho) {
+                try {
+                    sharedEcho.leave(channelName);
+                    sharedEcho.leave(presenceChannelName);
+                } catch {
+                    // ignore
+                }
+            }
         };
     }, [
         broadcast?.enabled,
@@ -1114,26 +1137,74 @@ export default function ChatInternoIndex({
     }, [active]);
 
     const openConversation = (id: string) => {
+        if (!id || id === active?.id || openingId) return;
+
         setMobileListOpen(false);
-        router.get(
-            '/comunicaciones/chat',
-            { c: id },
-            {
-                preserveScroll: true,
-                replace: true,
-                only: [
-                    'conversations',
-                    'active',
-                    'unread_total',
-                    'users',
-                    'can_manage',
-                    'can_create_groups',
-                    'retention_days',
-                    'broadcast',
-                    'draft',
-                ],
-            },
+        setOpeningId(id);
+        setTypingUsers([]);
+        setReplyTo(null);
+        setThreadQuery('');
+        setSearchOpen(false);
+        setSearchResults([]);
+
+        // Optimistic: marcar selección en lista mientras llega el poll.
+        setConversations((prev) =>
+            prev.map((c) =>
+                c.id === id ? { ...c, unread: 0 } : c,
+            ),
         );
+
+        void (async () => {
+            try {
+                const res = await fetch(`/comunicaciones/chat/${id}/poll`, {
+                    headers: csrfHeaders(),
+                    credentials: 'same-origin',
+                });
+                if (!res.ok) {
+                    // Fallback Inertia si el poll falla (p.ej. 403).
+                    router.get(
+                        '/comunicaciones/chat',
+                        { c: id },
+                        {
+                            preserveScroll: true,
+                            replace: true,
+                            only: ['conversations', 'active', 'unread_total'],
+                        },
+                    );
+
+                    return;
+                }
+
+                const data = (await res.json()) as {
+                    active: ActiveConversation;
+                    conversations: ConversationSummary[];
+                    unread_total: number;
+                    typing?: TypingUser[];
+                };
+
+                setActive(data.active);
+                setConversations(data.conversations);
+                setTypingUsers(data.typing ?? data.active?.typing ?? []);
+                setUnreadTotal(data.unread_total ?? 0);
+
+                const url = new URL(window.location.href);
+                url.searchParams.set('c', id);
+                url.searchParams.delete('m');
+                window.history.replaceState({}, '', url.toString());
+            } catch {
+                router.get(
+                    '/comunicaciones/chat',
+                    { c: id },
+                    {
+                        preserveScroll: true,
+                        replace: true,
+                        only: ['conversations', 'active', 'unread_total'],
+                    },
+                );
+            } finally {
+                setOpeningId(null);
+            }
+        })();
     };
 
     const openMobileList = () => setMobileListOpen(true);
@@ -2154,14 +2225,17 @@ export default function ChatInternoIndex({
                                             >
                                                 <button
                                                     type="button"
+                                                    disabled={openingId !== null}
                                                     onClick={() =>
                                                         openConversation(c.id)
                                                     }
                                                     className={cn(
                                                         'flex w-full cursor-pointer items-start gap-3 border-l-2 px-3 py-3.5 text-left transition-colors active:bg-emerald-50/70 lg:py-3',
-                                                        selected
+                                                        selected || openingId === c.id
                                                             ? 'border-l-emerald-600 bg-emerald-50/80 dark:bg-emerald-950/35'
                                                             : 'border-l-transparent hover:bg-background/80',
+                                                        openingId === c.id && 'opacity-70',
+                                                        openingId !== null && openingId !== c.id && 'opacity-50',
                                                     )}
                                                 >
                                                     <Avatar className="mt-0.5 size-11 border border-border/50 shadow-sm lg:size-10">

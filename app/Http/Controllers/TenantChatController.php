@@ -59,7 +59,13 @@ class TenantChatController extends Controller
                 $this->chat->setViewing($user, (string) $conversation->id);
                 $this->chat->markRead($conversation, $user);
                 $active = $this->chat->activePayload($conversation, $user);
-                $conversations = $this->chat->listConversationsPayload($user);
+                // Refrescar solo unread/muted del listado tras markRead (sin second full scan costoso).
+                foreach ($conversations as $i => $row) {
+                    if ((string) ($row['id'] ?? '') === (string) $conversation->id) {
+                        $conversations[$i]['unread'] = 0;
+                        break;
+                    }
+                }
             }
         }
 

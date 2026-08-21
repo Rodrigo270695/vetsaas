@@ -46,6 +46,23 @@ final class TenantChatService
 
     public const VIEWING_TTL_SECONDS = 45;
 
+    /** @var array<string, bool> */
+    private static array $schemaFlagCache = [];
+
+    private function schemaHasTable(string $table): bool
+    {
+        $key = 't:'.$table;
+
+        return self::$schemaFlagCache[$key] ??= Schema::hasTable($table);
+    }
+
+    private function schemaHasColumn(string $table, string $column): bool
+    {
+        $key = 'c:'.$table.'.'.$column;
+
+        return self::$schemaFlagCache[$key] ??= Schema::hasColumn($table, $column);
+    }
+
     /**
      * @return Collection<int, User>
      */
@@ -750,15 +767,35 @@ final class TenantChatService
      */
     public function readersForMessage(ChatMessage $message, ChatConversation $conversation): array
     {
-        $readers = ChatParticipant::query()
-            ->where('conversation_id', $conversation->id)
-            ->where('user_id', '!=', $message->user_id)
-            ->whereNotNull('last_read_at')
-            ->where('last_read_at', '>=', $message->created_at)
-            ->with('user:id,name')
-            ->get();
+        if (! $conversation->relationLoaded('participants')) {
+            $conversation->load(['participants.user:id,name']);
+        }
 
-        return $readers
+        return $this->readersFromParticipants($message, $conversation->participants);
+    }
+
+    /**
+     * @param  Collection<int, ChatParticipant>  $participants
+     * @return list<array{user_id: string, name: string, read_at: ?string}>
+     */
+    private function readersFromParticipants(ChatMessage $message, Collection $participants): array
+    {
+        $createdAt = $message->created_at;
+        if ($createdAt === null) {
+            return [];
+        }
+
+        return $participants
+            ->filter(static function (ChatParticipant $p) use ($message, $createdAt): bool {
+                if ((string) $p->user_id === (string) $message->user_id) {
+                    return false;
+                }
+                if ($p->last_read_at === null) {
+                    return false;
+                }
+
+                return $p->last_read_at->greaterThanOrEqualTo($createdAt);
+            })
             ->map(static fn (ChatParticipant $p): array => [
                 'user_id' => (string) $p->user_id,
                 'name' => (string) ($p->user?->name ?? 'Usuario'),
@@ -770,6 +807,8 @@ final class TenantChatService
 
     /**
      * @param  list<string>|null  $deliveredUserIds  User IDs that already have a delivery row for this message (optional batch).
+     * @param  Collection<int, ChatParticipant>|null  $participants
+     * @param  Collection<string, User>|null  $mentionUsersById
      * @return array<string, mixed>
      */
     public function serializeMessage(
@@ -777,6 +816,8 @@ final class TenantChatService
         User $actor,
         ChatConversation $conversation,
         ?array $deliveredUserIds = null,
+        ?Collection $participants = null,
+        ?Collection $mentionUsersById = null,
     ): array {
         if (! $message->relationLoaded('user')) {
             $message->load('user:id,name');
@@ -784,14 +825,14 @@ final class TenantChatService
         if (! $message->relationLoaded('replyTo')) {
             $message->load('replyTo.user:id,name');
         }
-        if (! $message->relationLoaded('attachments') && Schema::hasTable('chat_message_attachments')) {
+        if (! $message->relationLoaded('attachments') && $this->schemaHasTable('chat_message_attachments')) {
             $message->load('attachments');
         }
-        if (! $message->relationLoaded('reactions') && Schema::hasTable('chat_message_reactions')) {
+        if (! $message->relationLoaded('reactions') && $this->schemaHasTable('chat_message_reactions')) {
             $this->loadReactionsSafely($message);
         }
 
-        $isDeleted = Schema::hasColumn('chat_messages', 'deleted_at') && $message->deleted_at !== null;
+        $isDeleted = $this->schemaHasColumn('chat_messages', 'deleted_at') && $message->deleted_at !== null;
         $attachments = $isDeleted ? [] : $this->serializeAttachments($message);
         $legacy = $attachments[0] ?? null;
 
@@ -800,14 +841,18 @@ final class TenantChatService
             ->filter()
             ->values();
 
-        $mentionUsers = $mentionIds->isEmpty()
-            ? collect()
-            : User::query()->whereIn('id', $mentionIds->all())->get(['id', 'name'])->keyBy('id');
+        if ($mentionUsersById === null) {
+            $mentionUsersById = $mentionIds->isEmpty()
+                ? collect()
+                : User::query()->whereIn('id', $mentionIds->all())->get(['id', 'name'])->keyBy(
+                    static fn (User $u): string => (string) $u->id,
+                );
+        }
 
         $mentions = $mentionIds
             ->map(static fn (string $id): array => [
                 'id' => $id,
-                'name' => (string) ($mentionUsers->get($id)?->name ?? 'Usuario'),
+                'name' => (string) ($mentionUsersById->get($id)?->name ?? 'Usuario'),
             ])
             ->all();
 
@@ -823,7 +868,15 @@ final class TenantChatService
             'user_name' => (string) ($reply->user?->name ?? 'Usuario'),
         ];
 
-        $readBy = $this->readersForMessage($message, $conversation);
+        $participantBag = $participants;
+        if ($participantBag === null) {
+            if (! $conversation->relationLoaded('participants')) {
+                $conversation->load(['participants.user:id,name']);
+            }
+            $participantBag = $conversation->participants;
+        }
+
+        $readBy = $this->readersFromParticipants($message, $participantBag);
         $mine = (string) $message->user_id === (string) $actor->id;
 
         $payload = [
@@ -832,7 +885,7 @@ final class TenantChatService
             'user_id' => (string) $message->user_id,
             'user_name' => (string) ($message->user?->name ?? 'Usuario'),
             'created_at' => $message->created_at?->toIso8601String(),
-            'edited_at' => Schema::hasColumn('chat_messages', 'edited_at')
+            'edited_at' => $this->schemaHasColumn('chat_messages', 'edited_at')
                 ? $message->edited_at?->toIso8601String()
                 : null,
             'deleted' => $isDeleted,
@@ -1312,13 +1365,26 @@ final class TenantChatService
 
         $unreadCounts = $this->unreadCountsFor($actor, $conversationIds->all(), $myReads);
 
+        $peerIds = [];
+        foreach ($conversations as $conversation) {
+            if (! $conversation->isDirect()) {
+                continue;
+            }
+            $peer = $conversation->participants
+                ->first(static fn (ChatParticipant $p): bool => (string) $p->user_id !== (string) $actor->id);
+            if ($peer !== null) {
+                $peerIds[] = (string) $peer->user_id;
+            }
+        }
+        $presenceMap = $peerIds === [] ? [] : $this->presenceForUsers(array_values(array_unique($peerIds)));
+
         $payload = [];
         foreach ($conversations as $conversation) {
             /** @var ?ChatParticipant $mine */
             $mine = $myReads->get($conversation->id);
-            $muted = Schema::hasColumn('chat_participants', 'muted_at')
+            $muted = $this->schemaHasColumn('chat_participants', 'muted_at')
                 && $mine?->muted_at !== null;
-            $pinned = Schema::hasColumn('chat_participants', 'pinned_at')
+            $pinned = $this->schemaHasColumn('chat_participants', 'pinned_at')
                 && $mine?->pinned_at !== null;
 
             $payload[] = $this->serializeConversationSummary(
@@ -1327,6 +1393,7 @@ final class TenantChatService
                 (int) ($unreadCounts[$conversation->id] ?? 0),
                 $muted,
                 $pinned,
+                $presenceMap,
             );
         }
 
@@ -1341,31 +1408,41 @@ final class TenantChatService
     private function unreadCountsFor(User $actor, array $conversationIds, Collection $myReads): array
     {
         $counts = array_fill_keys($conversationIds, 0);
+        if ($conversationIds === []) {
+            return $counts;
+        }
 
-        foreach ($conversationIds as $cid) {
-            /** @var ?ChatParticipant $part */
-            $part = $myReads->get($cid);
-            $since = $part?->last_read_at;
+        $q = ChatMessage::query()
+            ->from('chat_messages as m')
+            ->join('chat_participants as p', function ($join) use ($actor): void {
+                $join->on('p.conversation_id', '=', 'm.conversation_id')
+                    ->where('p.user_id', '=', $actor->id);
+            })
+            ->whereIn('m.conversation_id', $conversationIds)
+            ->where('m.user_id', '!=', $actor->id)
+            ->where(function ($inner): void {
+                $inner->whereNull('p.last_read_at')
+                    ->orWhereColumn('m.created_at', '>', 'p.last_read_at');
+            });
 
-            $q = ChatMessage::query()
-                ->where('conversation_id', $cid)
-                ->where('user_id', '!=', $actor->id)
-                ->when(
-                    Schema::hasColumn('chat_messages', 'deleted_at'),
-                    static fn ($query) => $query->whereNull('deleted_at'),
-                );
+        if ($this->schemaHasColumn('chat_messages', 'deleted_at')) {
+            $q->whereNull('m.deleted_at');
+        }
 
-            if ($since !== null) {
-                $q->where('created_at', '>', $since);
-            }
+        $rows = $q
+            ->groupBy('m.conversation_id')
+            ->selectRaw('m.conversation_id as conversation_id, COUNT(*) as c')
+            ->pluck('c', 'conversation_id');
 
-            $counts[$cid] = (int) $q->count();
+        foreach ($rows as $cid => $count) {
+            $counts[(string) $cid] = (int) $count;
         }
 
         return $counts;
     }
 
     /**
+     * @param  array<string, array{online: bool, last_seen_at: ?string}>|null  $presenceMap
      * @return array<string, mixed>
      */
     public function serializeConversationSummary(
@@ -1374,6 +1451,7 @@ final class TenantChatService
         int $unread,
         ?bool $muted = null,
         ?bool $pinned = null,
+        ?array $presenceMap = null,
     ): array {
         $last = $conversation->messages->first();
         $participants = $conversation->participants
@@ -1388,12 +1466,12 @@ final class TenantChatService
             ->first(static fn (ChatParticipant $p): bool => (string) $p->user_id === (string) $actor->id);
 
         if ($muted === null) {
-            $muted = Schema::hasColumn('chat_participants', 'muted_at')
+            $muted = $this->schemaHasColumn('chat_participants', 'muted_at')
                 && $mine?->muted_at !== null;
         }
 
         if ($pinned === null) {
-            $pinned = Schema::hasColumn('chat_participants', 'pinned_at')
+            $pinned = $this->schemaHasColumn('chat_participants', 'pinned_at')
                 && $mine?->pinned_at !== null;
         }
 
@@ -1402,8 +1480,12 @@ final class TenantChatService
             $peer = $conversation->participants
                 ->first(static fn (ChatParticipant $p): bool => (string) $p->user_id !== (string) $actor->id);
             if ($peer !== null) {
-                $presenceMap = $this->presenceForUsers([(string) $peer->user_id]);
-                $presence = $presenceMap[(string) $peer->user_id] ?? null;
+                $pid = (string) $peer->user_id;
+                if ($presenceMap !== null) {
+                    $presence = $presenceMap[$pid] ?? null;
+                } else {
+                    $presence = $this->presenceForUsers([$pid])[$pid] ?? null;
+                }
             }
         }
 
@@ -1455,8 +1537,12 @@ final class TenantChatService
         User $actor,
         ?string $beforeId = null,
     ): array {
+        if (! $conversation->relationLoaded('participants')) {
+            $conversation->load(['participants.user:id,name']);
+        }
+
         $with = ['user:id,name', 'replyTo.user:id,name'];
-        if (Schema::hasTable('chat_message_attachments')) {
+        if ($this->schemaHasTable('chat_message_attachments')) {
             $with[] = 'attachments';
         }
 
@@ -1479,6 +1565,22 @@ final class TenantChatService
             $messages->pluck('id')->map(static fn ($id): string => (string) $id)->all(),
         );
 
+        $mentionIds = $messages
+            ->flatMap(static fn (ChatMessage $m) => collect($m->mentioned_user_ids ?? []))
+            ->map(static fn ($id): string => (string) $id)
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        $mentionUsersById = $mentionIds === []
+            ? collect()
+            : User::query()->whereIn('id', $mentionIds)->get(['id', 'name'])->keyBy(
+                static fn (User $u): string => (string) $u->id,
+            );
+
+        $participants = $conversation->participants;
+
         return $messages
             ->sortBy('created_at')
             ->values()
@@ -1487,6 +1589,8 @@ final class TenantChatService
                 $actor,
                 $conversation,
                 $deliveriesByMessage[(string) $m->id] ?? [],
+                $participants,
+                $mentionUsersById,
             ))
             ->all();
     }
@@ -1731,7 +1835,7 @@ final class TenantChatService
      */
     private function loadReactionsSafely(ChatMessage|\Illuminate\Database\Eloquent\Collection $messages): void
     {
-        if (! Schema::hasTable('chat_message_reactions')) {
+        if (! $this->schemaHasTable('chat_message_reactions')) {
             return;
         }
 
