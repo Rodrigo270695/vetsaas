@@ -348,7 +348,11 @@ function NavSubItem({
 
                 <span className="min-w-0 flex-1 truncate">{item.title}</span>
 
-                {isNovedadPromo ? (
+                {typeof item.badgeCount === 'number' && item.badgeCount > 0 ? (
+                    <Badge className="h-5 min-w-5 shrink-0 justify-center rounded-full bg-emerald-600 px-1.5 text-[0.65rem] font-semibold text-white hover:bg-emerald-600">
+                        {item.badgeCount > 99 ? '99+' : item.badgeCount}
+                    </Badge>
+                ) : isNovedadPromo ? (
                     <Badge
                         variant="outline"
                         className="h-5 shrink-0 border-violet-500/30 bg-violet-500/15 px-1.5 text-[0.65rem] font-semibold text-violet-700 dark:text-violet-300"

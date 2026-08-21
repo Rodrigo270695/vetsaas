@@ -10,6 +10,10 @@
     "empty_thread_hint": "Great for pinging reception or the doctor upstairs without personal WhatsApp.",
     "composer_placeholder": "Write a message…",
     "send": "Send",
+    "attach": "Attach file",
+    "attach_hint": "Photos, PDF or Office · max 5 MB",
+    "remove_attachment": "Remove attachment",
+    "emoji": "Emojis",
     "direct_title": "New message",
     "direct_hint": "Pick a teammate to message.",
     "direct_search": "Search user…",
@@ -30,5 +34,7 @@
     "yesterday": "Yesterday",
     "polling": "Refreshing…",
     "type_group": "Group",
-    "type_direct": "Chat"
+    "type_direct": "Chat",
+    "toast_title": "{{name}} sent you a message",
+    "toast_open": "Open"
 }

@@ -9,6 +9,7 @@ use App\Http\Requests\StoreChatGroupRequest;
 use App\Http\Requests\StoreChatMessageRequest;
 use App\Models\ChatConversation;
 use App\Services\Chat\TenantChatService;
+use App\Tenancy\TenantManager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -44,21 +45,26 @@ class TenantChatController extends Controller
                 $this->chat->assertParticipant($conversation, $user);
                 $this->chat->markRead($conversation, $user);
                 $active = $this->chat->activePayload($conversation, $user);
-                // Refrescar unread tras marcar leído
                 $conversations = $this->chat->listConversationsPayload($user);
             }
         }
-
-        $unreadTotal = collect($conversations)->sum(static fn (array $c): int => (int) ($c['unread'] ?? 0));
 
         return Inertia::render('comunicaciones/chat/index', [
             'conversations' => $conversations,
             'users' => $users,
             'active' => $active,
-            'unread_total' => $unreadTotal,
+            'unread_total' => $this->chat->unreadTotalFor($user),
             'can_manage' => $user->can('comunicaciones-chat.manage'),
-            'poll_ms' => 8_000,
+            'poll_ms' => 6_000,
         ]);
+    }
+
+    public function inbox(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user !== null && $user->can('comunicaciones-chat.view'), 403);
+
+        return response()->json($this->chat->inboxPing($user));
     }
 
     public function storeDirect(StoreChatDirectRequest $request): RedirectResponse
@@ -92,6 +98,7 @@ class TenantChatController extends Controller
     public function storeMessage(
         StoreChatMessageRequest $request,
         ChatConversation $chatConversation,
+        TenantManager $tenants,
     ): RedirectResponse {
         $user = $request->user();
         abort_unless($user !== null, 401);
@@ -99,7 +106,9 @@ class TenantChatController extends Controller
         $this->chat->sendMessage(
             $chatConversation,
             $user,
-            (string) $request->validated('body'),
+            $request->input('body'),
+            $request->file('attachment'),
+            $tenants->current()?->slug,
         );
 
         return redirect()->route('comunicaciones.chat', ['c' => $chatConversation->id]);
@@ -116,6 +125,7 @@ class TenantChatController extends Controller
         return response()->json([
             'active' => $this->chat->activePayload($chatConversation, $user),
             'conversations' => $this->chat->listConversationsPayload($user),
+            'unread_total' => $this->chat->unreadTotalFor($user),
         ]);
     }
 }

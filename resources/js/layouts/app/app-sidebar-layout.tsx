@@ -11,6 +11,9 @@ import { OfflineStatusBanner } from '@/components/offline-status-banner';
 import { SubscriptionRenewalReminderModal } from '@/components/subscription-renewal-reminder-modal';
 import { TenantImpersonationBanner } from '@/components/tenant-impersonation-banner';
 import { useWhatsAppDisconnectedToast } from '@/hooks/use-whatsapp-disconnected-toast';
+import { TenantChatNotifier } from '@/components/comunicaciones/tenant-chat-notifier';
+import { TenantChatUnreadProvider } from '@/contexts/tenant-chat-unread-context';
+import { usePage } from '@inertiajs/react';
 import type { AppLayoutProps } from '@/types';
 
 /**
@@ -29,27 +32,32 @@ export default function AppSidebarLayout({
     breadcrumbs = [],
 }: AppLayoutProps) {
     useWhatsAppDisconnectedToast();
+    const page = usePage();
+    const initialUnread = page.props.tenant_chat?.unread_total ?? 0;
 
     return (
-        <AppShell variant="sidebar">
-            <AppSidebar />
-            <AppContent
-                variant="sidebar"
-                className="h-svh max-h-svh overflow-hidden md:h-[calc(100svh-(--spacing(4)))] md:max-h-[calc(100svh-(--spacing(4)))]"
-            >
-                <TenantImpersonationBanner />
-                <OfflineStatusBanner />
-                <ClinicSedeLocationBanner />
-                <SubscriptionRenewalReminderModal />
-                <TenantGpsConsentModal />
-                <TenantGeoRefreshCapture />
-                <DemoAccessGeoCapture />
-                <InAppAssistantAnnouncementModal />
-                <AppSidebarHeader breadcrumbs={breadcrumbs} />
-                <div className="flex-1 overflow-y-auto overflow-x-hidden">
-                    {children}
-                </div>
-            </AppContent>
-        </AppShell>
+        <TenantChatUnreadProvider initialUnread={initialUnread}>
+            <AppShell variant="sidebar">
+                <AppSidebar />
+                <AppContent
+                    variant="sidebar"
+                    className="h-svh max-h-svh overflow-hidden md:h-[calc(100svh-(--spacing(4)))] md:max-h-[calc(100svh-(--spacing(4)))]"
+                >
+                    <TenantImpersonationBanner />
+                    <OfflineStatusBanner />
+                    <ClinicSedeLocationBanner />
+                    <SubscriptionRenewalReminderModal />
+                    <TenantGpsConsentModal />
+                    <TenantGeoRefreshCapture />
+                    <DemoAccessGeoCapture />
+                    <InAppAssistantAnnouncementModal />
+                    <TenantChatNotifier />
+                    <AppSidebarHeader breadcrumbs={breadcrumbs} />
+                    <div className="flex-1 overflow-y-auto overflow-x-hidden">
+                        {children}
+                    </div>
+                </AppContent>
+            </AppShell>
+        </TenantChatUnreadProvider>
     );
 }

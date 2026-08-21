@@ -59,6 +59,9 @@ export type NavItem = {
 
     /** Clave de módulo tenant; si se omite se infiere desde `href`. */
     moduleKey?: string;
+
+    /** Contador numérico (ej. mensajes sin leer). */
+    badgeCount?: number;
 };
 
 /**

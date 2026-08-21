@@ -64,6 +64,7 @@ import {
     Wallet,
 } from 'lucide-react';
 import { useMemo } from 'react';
+import { useTenantChatUnread } from '@/contexts/tenant-chat-unread-context';
 import { useTranslation } from 'react-i18next';
 import AppLogo from '@/components/app-logo';
 import { NavMainCollapsible } from '@/components/nav-main-collapsible';
@@ -644,6 +645,22 @@ function useNavConfig(): { singles: NavItem[]; groups: NavGroup[] } {
 export function AppSidebar() {
     const { t } = useTranslation('nav');
     const { singles, groups } = useNavConfig();
+    const { unreadTotal } = useTenantChatUnread();
+
+    const groupsWithChatBadge = useMemo(() => {
+        if (unreadTotal <= 0) {
+            return groups;
+        }
+
+        return groups.map((group) => ({
+            ...group,
+            items: group.items.map((item) =>
+                item.href === '/comunicaciones/chat'
+                    ? { ...item, badgeCount: unreadTotal }
+                    : item,
+            ),
+        }));
+    }, [groups, unreadTotal]);
 
     return (
         <Sidebar collapsible="icon" variant="inset">
@@ -663,7 +680,7 @@ export function AppSidebar() {
                 <NavMainCollapsible
                     label={t('section')}
                     singles={singles}
-                    groups={groups}
+                    groups={groupsWithChatBadge}
                 />
             </SidebarContent>
 

@@ -233,6 +233,28 @@ class HandleInertiaRequests extends Middleware
                         return ['activo' => false, 'precio_mensual' => null];
                     }
                 },
+            'tenant_chat' => $skipHeavySharedProps || $tenantContext === null
+                ? null
+                : static function () use ($user) {
+                    try {
+                        if (! ($user instanceof User) || ! $user->can('comunicaciones-chat.view')) {
+                            return null;
+                        }
+
+                        if (! \Illuminate\Support\Facades\Schema::hasTable('chat_messages')) {
+                            return ['unread_total' => 0];
+                        }
+
+                        return [
+                            'unread_total' => app(\App\Services\Chat\TenantChatService::class)
+                                ->unreadTotalFor($user),
+                        ];
+                    } catch (Throwable $e) {
+                        report($e);
+
+                        return ['unread_total' => 0];
+                    }
+                },
             'in_app_assistant' => $skipHeavySharedProps
                 ? null
                 : static function () use ($tenantContext, $user): ?array {

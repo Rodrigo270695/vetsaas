@@ -985,6 +985,7 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
 
         Route::middleware('permission:comunicaciones-chat.view')->group(function (): void {
             Route::get('chat', [TenantChatController::class, 'index'])->name('chat');
+            Route::get('chat/inbox', [TenantChatController::class, 'inbox'])->name('chat.inbox');
             Route::post('chat/direct', [TenantChatController::class, 'storeDirect'])->name('chat.direct');
             Route::post('chat/{chatConversation}/messages', [TenantChatController::class, 'storeMessage'])
                 ->whereUuid('chatConversation')

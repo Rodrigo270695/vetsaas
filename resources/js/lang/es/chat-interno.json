@@ -10,6 +10,10 @@
     "empty_thread_hint": "Ideal para avisar a caja, recepción o al doctor del otro piso sin WhatsApp personal.",
     "composer_placeholder": "Escribe un mensaje…",
     "send": "Enviar",
+    "attach": "Adjuntar archivo",
+    "attach_hint": "Fotos, PDF u Office · máx. 5 MB",
+    "remove_attachment": "Quitar adjunto",
+    "emoji": "Emojis",
     "direct_title": "Nuevo mensaje",
     "direct_hint": "Elige a quién del equipo quieres escribir.",
     "direct_search": "Buscar usuario…",
@@ -30,5 +34,7 @@
     "yesterday": "Ayer",
     "polling": "Actualizando…",
     "type_group": "Grupo",
-    "type_direct": "Chat"
+    "type_direct": "Chat",
+    "toast_title": "{{name}} te envió un mensaje",
+    "toast_open": "Abrir"
 }
