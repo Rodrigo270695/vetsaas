@@ -703,6 +703,14 @@ final class TenantChatService
 
         $like = '%'.addcslashes($q, '%_\\').'%';
 
+        $with = ['user:id,name', 'replyTo.user:id,name'];
+        if (Schema::hasTable('chat_message_attachments')) {
+            $with[] = 'attachments';
+        }
+        if (Schema::hasTable('chat_message_reactions')) {
+            $with[] = 'reactions';
+        }
+
         $messages = ChatMessage::query()
             ->where('conversation_id', $conversation->id)
             ->whereNotNull('body')
@@ -711,12 +719,7 @@ final class TenantChatService
                 Schema::hasColumn('chat_messages', 'deleted_at'),
                 static fn ($q) => $q->whereNull('deleted_at'),
             )
-            ->with([
-                'user:id,name',
-                'replyTo.user:id,name',
-                'attachments',
-                'reactions',
-            ])
+            ->with($with)
             ->orderByDesc('created_at')
             ->limit(40)
             ->get()
