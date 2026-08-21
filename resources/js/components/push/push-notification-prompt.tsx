@@ -14,10 +14,26 @@ import {
 import { usePushNotifications } from '@/hooks/use-push-notifications';
 import { cn } from '@/lib/utils';
 
+type PushNotificationPromptProps = {
+    /**
+     * `icon` — campana compacta (p. ej. header del panel central).
+     * `labeled` — control con etiqueta “Notificaciones push” (p. ej. chat de clínica).
+     */
+    variant?: 'icon' | 'labeled';
+    /** Copia corta bajo el título del menú (contexto Meet vs chat). */
+    description?: string;
+    className?: string;
+};
+
 /**
- * Campana Web Push — solo se monta en panel central (superadmin).
+ * Control Web Push del navegador.
+ * Montarlo donde corresponda (panel central o página de chat); no asume tenant.
  */
-export function PushNotificationPrompt() {
+export function PushNotificationPrompt({
+    variant = 'icon',
+    description,
+    className,
+}: PushNotificationPromptProps) {
     const [mounted, setMounted] = useState(false);
     const {
         browserSupported,
@@ -39,23 +55,34 @@ export function PushNotificationPrompt() {
         return null;
     }
 
+    const labeled = variant === 'labeled';
+    const helpUnsupported = 'Este navegador no soporta Web Push';
+    const helpUnconfigured =
+        'Falta configurar VAPID en el .env del servidor (php artisan config:clear)';
+
     if (!browserSupported) {
         return (
             <Tooltip>
                 <TooltipTrigger asChild>
                     <Button
                         type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="relative size-9 shrink-0 text-muted-foreground"
+                        variant={labeled ? 'outline' : 'ghost'}
+                        size={labeled ? 'sm' : 'icon'}
+                        className={cn(
+                            labeled
+                                ? 'h-8 gap-1.5 px-2.5 text-xs text-muted-foreground'
+                                : 'relative size-9 shrink-0 text-muted-foreground',
+                            className,
+                        )}
                         aria-label="Push no soportado"
                         disabled
                     >
                         <BellOff className="size-4 text-amber-600 dark:text-amber-400" />
+                        {labeled ? <span>Notificaciones push</span> : null}
                     </Button>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="max-w-xs text-xs">
-                    Este navegador no soporta Web Push
+                    {helpUnsupported}
                 </TooltipContent>
             </Tooltip>
         );
@@ -67,18 +94,24 @@ export function PushNotificationPrompt() {
                 <TooltipTrigger asChild>
                     <Button
                         type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="relative size-9 shrink-0 text-muted-foreground"
+                        variant={labeled ? 'outline' : 'ghost'}
+                        size={labeled ? 'sm' : 'icon'}
+                        className={cn(
+                            labeled
+                                ? 'relative h-8 gap-1.5 px-2.5 text-xs text-muted-foreground'
+                                : 'relative size-9 shrink-0 text-muted-foreground',
+                            className,
+                        )}
                         aria-label="Push sin configurar"
                         disabled
                     >
                         <BellOff className="size-4 text-amber-600 dark:text-amber-400" />
+                        {labeled ? <span>Notificaciones push</span> : null}
                         <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-amber-500 ring-2 ring-background" />
                     </Button>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="max-w-xs text-xs">
-                    Falta configurar VAPID en el .env del servidor (php artisan config:clear)
+                    {helpUnconfigured}
                 </TooltipContent>
             </Tooltip>
         );
@@ -86,10 +119,16 @@ export function PushNotificationPrompt() {
 
     const needsAttention = !subscribed && permission !== 'denied';
     const tooltipLabel = subscribed
-        ? 'Notificaciones activas'
+        ? 'Notificaciones push activas en este navegador'
         : permission === 'denied'
           ? 'Permiso de notificaciones bloqueado en el navegador'
-          : 'Activa alertas de reuniones VetSaaS';
+          : 'Activar notificaciones push del navegador';
+
+    const menuDescription =
+        description
+        ?? (subscribed
+            ? 'Alertas push de este navegador (no es silenciar un chat).'
+            : 'Activa alertas push del navegador. Independiente de silenciar conversaciones.');
 
     const Icon = subscribed ? BellRing : permission === 'denied' ? BellOff : Bell;
 
@@ -100,9 +139,14 @@ export function PushNotificationPrompt() {
                     <DropdownMenuTrigger asChild>
                         <Button
                             type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="relative size-9 shrink-0 text-muted-foreground hover:text-foreground"
+                            variant={labeled ? 'outline' : 'ghost'}
+                            size={labeled ? 'sm' : 'icon'}
+                            className={cn(
+                                labeled
+                                    ? 'relative h-8 gap-1.5 px-2.5 text-xs text-muted-foreground hover:text-foreground'
+                                    : 'relative size-9 shrink-0 text-muted-foreground hover:text-foreground',
+                                className,
+                            )}
                             aria-label={tooltipLabel}
                         >
                             <Icon
@@ -112,6 +156,7 @@ export function PushNotificationPrompt() {
                                     permission === 'denied' && 'text-amber-600 dark:text-amber-400',
                                 )}
                             />
+                            {labeled ? <span>Notificaciones push</span> : null}
                             {needsAttention && (
                                 <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-sky-500 ring-2 ring-background" />
                             )}
@@ -128,10 +173,10 @@ export function PushNotificationPrompt() {
                     <div className="space-y-3">
                         <div className="space-y-1">
                             <p className="text-sm font-medium text-foreground">
-                                Notificaciones activas
+                                Notificaciones push activas
                             </p>
                             <p className="text-xs text-muted-foreground">
-                                Te avisaremos cuando el SalesBot confirme una reunión Meet.
+                                {menuDescription}
                             </p>
                         </div>
                         <Button
@@ -153,7 +198,7 @@ export function PushNotificationPrompt() {
                     <div className="space-y-3">
                         <div className="space-y-1">
                             <p className="text-sm font-medium text-foreground">
-                                Activar notificaciones
+                                Activar notificaciones push
                             </p>
                             <p
                                 className={cn(
@@ -166,7 +211,7 @@ export function PushNotificationPrompt() {
                                     : (error ??
                                       (!swReady
                                           ? 'Preparando service worker… espera unos segundos.'
-                                          : 'Recibe alertas al confirmarse un tour Meet.'))}
+                                          : menuDescription))}
                             </p>
                         </div>
                         {permission !== 'denied' && (

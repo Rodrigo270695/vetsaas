@@ -8,6 +8,7 @@ use App\Http\Requests\StoreChatDirectRequest;
 use App\Http\Requests\StoreChatGroupRequest;
 use App\Http\Requests\StoreChatMessageRequest;
 use App\Models\ChatConversation;
+use App\Models\ChatMessage;
 use App\Models\ClinicSetting;
 use App\Services\Chat\TenantChatService;
 use App\Tenancy\TenantManager;
@@ -181,6 +182,7 @@ class TenantChatController extends Controller
         abort_unless($user !== null, 401);
 
         $this->chat->assertParticipant($chatConversation, $user);
+        $this->chat->touchPresence($user);
         $this->chat->markRead($chatConversation, $user);
 
         return response()->json([
@@ -188,6 +190,25 @@ class TenantChatController extends Controller
             'conversations' => $this->chat->listConversationsPayload($user),
             'unread_total' => $this->chat->unreadTotalFor($user),
             'typing' => $this->chat->typingPayload($chatConversation, $user),
+        ]);
+    }
+
+    public function presence(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user !== null, 401);
+
+        $this->chat->touchPresence($user);
+
+        $ids = $request->input('user_ids', []);
+        if (! is_array($ids)) {
+            $ids = [];
+        }
+        $ids = array_values(array_filter(array_map('strval', $ids)));
+
+        return response()->json([
+            'ok' => true,
+            'presence' => $ids === [] ? [] : $this->chat->presenceForUsers($ids),
         ]);
     }
 
@@ -199,6 +220,110 @@ class TenantChatController extends Controller
         $this->chat->touchTyping($chatConversation, $user);
 
         return response()->json(['ok' => true]);
+    }
+
+    public function updateMessage(Request $request, ChatMessage $chatMessage): JsonResponse|RedirectResponse
+    {
+        $user = $request->user();
+        abort_unless($user !== null, 401);
+
+        $data = $request->validate([
+            'body' => ['required', 'string', 'max:4000'],
+        ]);
+
+        $message = $this->chat->editMessage($chatMessage, $user, (string) $data['body']);
+        $conversation = $message->conversation
+            ?? ChatConversation::query()->findOrFail($message->conversation_id);
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'message' => $this->chat->serializeMessage($message, $user, $conversation),
+            ]);
+        }
+
+        return redirect()->route('comunicaciones.chat', ['c' => $conversation->id]);
+    }
+
+    public function destroyMessage(Request $request, ChatMessage $chatMessage): JsonResponse|RedirectResponse
+    {
+        $user = $request->user();
+        abort_unless($user !== null, 401);
+
+        $message = $this->chat->softDeleteMessage($chatMessage, $user);
+        $conversation = $message->conversation
+            ?? ChatConversation::query()->findOrFail($message->conversation_id);
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'message' => $this->chat->serializeMessage($message, $user, $conversation),
+            ]);
+        }
+
+        return redirect()->route('comunicaciones.chat', ['c' => $conversation->id]);
+    }
+
+    public function react(Request $request, ChatMessage $chatMessage): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user !== null, 401);
+
+        $data = $request->validate([
+            'emoji' => ['required', 'string', 'max:16'],
+        ]);
+
+        $result = $this->chat->toggleReaction($chatMessage, $user, (string) $data['emoji']);
+
+        return response()->json($result);
+    }
+
+    public function pin(Request $request, ChatConversation $chatConversation): JsonResponse|RedirectResponse
+    {
+        $user = $request->user();
+        abort_unless($user !== null, 401);
+
+        $data = $request->validate([
+            'pinned' => ['required', 'boolean'],
+        ]);
+
+        $this->chat->setPinned($chatConversation, $user, (bool) $data['pinned']);
+
+        if ($request->wantsJson()) {
+            return response()->json(['ok' => true, 'pinned' => (bool) $data['pinned']]);
+        }
+
+        return redirect()->route('comunicaciones.chat', ['c' => $chatConversation->id]);
+    }
+
+    public function forward(Request $request, ChatMessage $chatMessage): JsonResponse|RedirectResponse
+    {
+        $user = $request->user();
+        abort_unless($user !== null, 401);
+
+        $data = $request->validate([
+            'target_conversation_id' => ['required', 'uuid'],
+        ]);
+
+        $target = ChatConversation::query()->findOrFail((string) $data['target_conversation_id']);
+        $message = $this->chat->forwardMessage($chatMessage, $user, $target);
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'message' => $this->chat->serializeMessage($message, $user, $target),
+                'conversation_id' => (string) $target->id,
+            ]);
+        }
+
+        return redirect()->route('comunicaciones.chat', ['c' => $target->id]);
+    }
+
+    public function media(Request $request, ChatConversation $chatConversation): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user !== null, 401);
+
+        return response()->json([
+            'media' => $this->chat->mediaGallery($chatConversation, $user),
+        ]);
     }
 
     public function mute(Request $request, ChatConversation $chatConversation): JsonResponse|RedirectResponse
@@ -231,6 +356,10 @@ class TenantChatController extends Controller
         ]);
     }
 
+    /**
+     * Retención de historial: valores permitidos 30 / 90 / 180 días.
+     * Plan no expone max retention; se documenta solo en la UI.
+     */
     public function updateRetention(Request $request): RedirectResponse
     {
         $user = $request->user();

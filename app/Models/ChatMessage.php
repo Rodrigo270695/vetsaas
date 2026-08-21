@@ -22,9 +22,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property ?string $attachment_mime
  * @property ?int $attachment_size
  * @property \Illuminate\Support\Carbon $created_at
+ * @property ?\Illuminate\Support\Carbon $edited_at
+ * @property ?\Illuminate\Support\Carbon $deleted_at
  * @property-read ?string $attachment_url
  * @property-read ?ChatMessage $replyTo
  * @property-read \Illuminate\Database\Eloquent\Collection<int, ChatMessageAttachment> $attachments
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, ChatMessageReaction> $reactions
  */
 class ChatMessage extends Model
 {
@@ -49,15 +52,24 @@ class ChatMessage extends Model
         'attachment_mime',
         'attachment_size',
         'created_at',
+        'edited_at',
+        'deleted_at',
     ];
 
     protected function casts(): array
     {
         return [
             'created_at' => 'datetime',
+            'edited_at' => 'datetime',
+            'deleted_at' => 'datetime',
             'attachment_size' => 'integer',
             'mentioned_user_ids' => 'array',
         ];
+    }
+
+    public function isDeleted(): bool
+    {
+        return $this->deleted_at !== null;
     }
 
     protected function attachmentUrl(): Attribute
@@ -94,5 +106,10 @@ class ChatMessage extends Model
     public function attachments(): HasMany
     {
         return $this->hasMany(ChatMessageAttachment::class, 'message_id');
+    }
+
+    public function reactions(): HasMany
+    {
+        return $this->hasMany(ChatMessageReaction::class, 'message_id');
     }
 }

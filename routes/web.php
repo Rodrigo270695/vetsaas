@@ -988,9 +988,25 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             Route::get('chat/inbox', [TenantChatController::class, 'inbox'])->name('chat.inbox');
             Route::post('chat/direct', [TenantChatController::class, 'storeDirect'])->name('chat.direct');
             Route::post('chat/notify-team', [TenantChatController::class, 'notifyTeam'])->name('chat.notify-team');
+            Route::post('chat/presence', [TenantChatController::class, 'presence'])->name('chat.presence');
             Route::post('chat/{chatConversation}/messages', [TenantChatController::class, 'storeMessage'])
                 ->whereUuid('chatConversation')
                 ->name('chat.messages.store');
+            Route::patch('chat/messages/{chatMessage}', [TenantChatController::class, 'updateMessage'])
+                ->whereUuid('chatMessage')
+                ->name('chat.messages.update');
+            Route::post('chat/messages/{chatMessage}', [TenantChatController::class, 'updateMessage'])
+                ->whereUuid('chatMessage')
+                ->name('chat.messages.update.post');
+            Route::delete('chat/messages/{chatMessage}', [TenantChatController::class, 'destroyMessage'])
+                ->whereUuid('chatMessage')
+                ->name('chat.messages.destroy');
+            Route::post('chat/messages/{chatMessage}/reaction', [TenantChatController::class, 'react'])
+                ->whereUuid('chatMessage')
+                ->name('chat.messages.reaction');
+            Route::post('chat/messages/{chatMessage}/forward', [TenantChatController::class, 'forward'])
+                ->whereUuid('chatMessage')
+                ->name('chat.messages.forward');
             Route::get('chat/{chatConversation}/poll', [TenantChatController::class, 'poll'])
                 ->whereUuid('chatConversation')
                 ->name('chat.poll');
@@ -1000,9 +1016,15 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             Route::post('chat/{chatConversation}/mute', [TenantChatController::class, 'mute'])
                 ->whereUuid('chatConversation')
                 ->name('chat.mute');
+            Route::post('chat/{chatConversation}/pin', [TenantChatController::class, 'pin'])
+                ->whereUuid('chatConversation')
+                ->name('chat.pin');
             Route::get('chat/{chatConversation}/search', [TenantChatController::class, 'search'])
                 ->whereUuid('chatConversation')
                 ->name('chat.search');
+            Route::get('chat/{chatConversation}/media', [TenantChatController::class, 'media'])
+                ->whereUuid('chatConversation')
+                ->name('chat.media');
         });
         Route::middleware('permission:comunicaciones-chat.manage')->group(function (): void {
             Route::post('chat/groups', [TenantChatController::class, 'storeGroup'])

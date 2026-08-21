@@ -20,6 +20,7 @@
         "league/flysystem-aws-s3-v3": "^3.35",
         "minishlink/web-push": "10.1",
         "phpoffice/phpspreadsheet": "^5.7",
+        "pusher/pusher-php-server": "7.3",
         "spatie/laravel-permission": "^7.4"
     },
     "require-dev": {

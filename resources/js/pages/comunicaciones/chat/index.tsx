@@ -1,6 +1,7 @@
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import {
     format,
+    formatDistanceToNow,
     isToday,
     isYesterday,
     parseISO,
@@ -12,14 +13,21 @@ import {
     Check,
     ChevronLeft,
     FileText,
+    Forward,
     ImageIcon,
+    Images,
     MessagesSquare,
+    MoreHorizontal,
     Paperclip,
+    Pencil,
+    Pin,
+    PinOff,
     Plus,
     Reply,
     Search,
     SendHorizontal,
     Smile,
+    Trash2,
     Volume2,
     VolumeX,
     Users,
@@ -37,6 +45,7 @@ import {
     type ReactNode,
 } from 'react';
 import { useTranslation } from 'react-i18next';
+import { PushNotificationPrompt } from '@/components/push/push-notification-prompt';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -52,6 +61,7 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
@@ -62,8 +72,14 @@ import {
     PopoverTrigger,
 } from '@/components/ui/popover';
 import { Textarea } from '@/components/ui/textarea';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useTenantChatUnread } from '@/contexts/tenant-chat-unread-context';
 import { useAutoRefresh } from '@/hooks/use-auto-refresh';
+import { toastManager } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 
 type ChatUser = { id: string; name: string; email: string };
@@ -94,6 +110,15 @@ type TypingUser = {
     name: string;
 };
 
+type ChatReactionEmoji = '👍' | '✅' | '❤️' | '😂' | '🎉';
+
+type ChatReaction = {
+    emoji: ChatReactionEmoji | string;
+    count: number;
+    reacted?: boolean;
+    user_ids?: string[];
+};
+
 type ChatMessage = {
     id: string;
     body: string;
@@ -108,6 +133,10 @@ type ChatMessage = {
     attachment: ChatAttachment | null;
     attachments?: ChatAttachment[];
     read_by?: ReadBy[];
+    edited_at?: string | null;
+    deleted_at?: string | null;
+    is_deleted?: boolean;
+    reactions?: ChatReaction[];
 };
 
 type ConversationSummary = {
@@ -119,6 +148,9 @@ type ConversationSummary = {
     participant_count: number;
     unread: number;
     muted?: boolean;
+    pinned?: boolean;
+    peer_online?: boolean | null;
+    peer_last_seen_at?: string | null;
     last_message: {
         body: string;
         user_name: string;
@@ -132,6 +164,13 @@ type ConversationSummary = {
 type ActiveConversation = ConversationSummary & {
     messages: ChatMessage[];
     typing?: TypingUser[];
+};
+
+type MediaGalleryItem = {
+    url: string;
+    name: string;
+    message_id?: string;
+    created_at?: string | null;
 };
 
 type BroadcastConfig = {
@@ -162,9 +201,51 @@ const EMOJIS = [
     '📌', '📎', '📷', '🐶', '🐱', '💉', '💊', '🩺',
 ];
 
+const REACTION_EMOJIS: ChatReactionEmoji[] = ['👍', '✅', '❤️', '😂', '🎉'];
+
 const SOUND_KEY = 'tenant-chat-sound';
+const DRAFT_KEY_PREFIX = 'tenant-chat-draft:';
 const MAX_ATTACHMENTS = 5;
 const RETENTION_OPTIONS = [30, 90, 180] as const;
+const PRESENCE_HEARTBEAT_MS = 45_000;
+const URL_IN_TEXT_RE = /(https?:\/\/[^\s<]+[^.,;:!?\s<])/gi;
+
+function draftStorageKey(conversationId: string): string {
+    return `${DRAFT_KEY_PREFIX}${conversationId}`;
+}
+
+function readDraft(conversationId: string): string | null {
+    try {
+        return window.localStorage.getItem(draftStorageKey(conversationId));
+    } catch {
+        return null;
+    }
+}
+
+function writeDraft(conversationId: string, value: string): void {
+    try {
+        const key = draftStorageKey(conversationId);
+        if (!value.trim()) {
+            window.localStorage.removeItem(key);
+        } else {
+            window.localStorage.setItem(key, value);
+        }
+    } catch {
+        // ignore quota / private mode
+    }
+}
+
+function clearDraft(conversationId: string): void {
+    try {
+        window.localStorage.removeItem(draftStorageKey(conversationId));
+    } catch {
+        // ignore
+    }
+}
+
+function isMessageDeleted(m: ChatMessage): boolean {
+    return Boolean(m.is_deleted || m.deleted_at);
+}
 
 function readXsrfToken(): string {
     const m = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/);
@@ -352,6 +433,7 @@ export default function ChatInternoIndex({
     const page = usePage<{
         auth?: { user?: { id?: string } };
         tenant?: { id?: string } | null;
+        push?: { enabled: boolean; vapidPublicKey: string | null } | null;
     }>();
     const meId = String(page.props.auth?.user?.id ?? '');
     const tenantId = String(page.props.tenant?.id ?? '');
@@ -393,6 +475,22 @@ export default function ChatInternoIndex({
         retention_days ?? '',
     );
     const [muting, setMuting] = useState(false);
+    const [pinning, setPinning] = useState(false);
+    const [editingMessage, setEditingMessage] = useState<ChatMessage | null>(
+        null,
+    );
+    const [forwardMessage, setForwardMessage] = useState<ChatMessage | null>(
+        null,
+    );
+    const [forwardTargetId, setForwardTargetId] = useState('');
+    const [forwarding, setForwarding] = useState(false);
+    const [deleteMessage, setDeleteMessage] = useState<ChatMessage | null>(
+        null,
+    );
+    const [deleting, setDeleting] = useState(false);
+    const [mediaOpen, setMediaOpen] = useState(false);
+    const [mediaItems, setMediaItems] = useState<MediaGalleryItem[]>([]);
+    const [mediaLoading, setMediaLoading] = useState(false);
 
     const bottomRef = useRef<HTMLDivElement | null>(null);
     const fileRef = useRef<HTMLInputElement | null>(null);
@@ -402,6 +500,15 @@ export default function ChatInternoIndex({
     const lastSoundId = useRef<string | null>(null);
     const typingTimer = useRef<number | undefined>(undefined);
     const searchTimer = useRef<number | undefined>(undefined);
+    const draftTimer = useRef<number | undefined>(undefined);
+    const prevConversationId = useRef<string | null>(null);
+    const skipNextDraftWrite = useRef(false);
+    const pendingRetryRef = useRef<{
+        body: string;
+        files: File[];
+        replyTo: ReplyPreview | null;
+        conversationId: string;
+    } | null>(null);
 
     const dmForm = useForm<{ user_id: string }>({ user_id: '' });
     const groupForm = useForm<{ name: string; user_ids: string[] }>({
@@ -417,6 +524,7 @@ export default function ChatInternoIndex({
         setActive(activeProp);
         setTypingUsers(activeProp?.typing ?? []);
         setReplyTo(null);
+        setEditingMessage(null);
         setThreadQuery('');
         setSearchResults([]);
         setHighlightId(null);
@@ -439,12 +547,80 @@ export default function ChatInternoIndex({
         setRetentionValue(retention_days ?? '');
     }, [retention_days]);
 
+    // Borradores por conversación (localStorage) + draft inicial del servidor.
     useEffect(() => {
-        if (draft && !draftApplied.current) {
-            setBody(draft);
-            draftApplied.current = true;
+        const nextId = activeProp?.id ?? null;
+        const prevId = prevConversationId.current;
+
+        if (prevId && prevId !== nextId) {
+            writeDraft(prevId, body);
         }
-    }, [draft]);
+
+        if (nextId && nextId !== prevId) {
+            const local = readDraft(nextId);
+            skipNextDraftWrite.current = true;
+            if (local != null) {
+                setBody(local);
+            } else if (draft && !draftApplied.current) {
+                setBody(draft);
+                draftApplied.current = true;
+            } else {
+                setBody('');
+            }
+        } else if (!nextId) {
+            skipNextDraftWrite.current = true;
+            setBody('');
+        }
+
+        prevConversationId.current = nextId;
+        // Solo al cambiar de conversación.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activeProp?.id]);
+
+    useEffect(() => {
+        if (!active?.id || editingMessage) return;
+        if (skipNextDraftWrite.current) {
+            skipNextDraftWrite.current = false;
+
+            return;
+        }
+        if (draftTimer.current) window.clearTimeout(draftTimer.current);
+        draftTimer.current = window.setTimeout(() => {
+            writeDraft(active.id, body);
+        }, 300);
+
+        return () => {
+            if (draftTimer.current) window.clearTimeout(draftTimer.current);
+        };
+    }, [body, active?.id, editingMessage]);
+
+    // Presence heartbeat mientras la página de chat está abierta.
+    useEffect(() => {
+        let cancelled = false;
+
+        const beat = () => {
+            if (cancelled || document.visibilityState !== 'visible') return;
+            void fetch('/comunicaciones/chat/presence', {
+                method: 'POST',
+                headers: csrfHeaders(true),
+                credentials: 'same-origin',
+                body: JSON.stringify({}),
+            }).catch(() => undefined);
+        };
+
+        beat();
+        const timer = window.setInterval(beat, PRESENCE_HEARTBEAT_MS);
+        const onVisible = () => {
+            if (document.visibilityState === 'visible') beat();
+        };
+        document.addEventListener('visibilitychange', onVisible);
+
+        return () => {
+            cancelled = true;
+            window.clearInterval(timer);
+            document.removeEventListener('visibilitychange', onVisible);
+        };
+    }, []);
 
     useEffect(() => {
         setUnreadTotal(unread_total);
@@ -581,7 +757,7 @@ export default function ChatInternoIndex({
                     }
                 };
 
-                echo.private(channelName).listen('.chat.message', () => {
+                const refreshFromPoll = () => {
                     if (disposed) return;
                     void fetch(`/comunicaciones/chat/${conversationId}/poll`, {
                         headers: csrfHeaders(),
@@ -598,7 +774,18 @@ export default function ChatInternoIndex({
                             setUnreadTotal(data.unread_total ?? 0);
                         })
                         .catch(() => undefined);
-                });
+                };
+
+                const channel = echo.private(channelName);
+                for (const eventName of [
+                    '.chat.message',
+                    '.chat.message.updated',
+                    '.chat.message.deleted',
+                    '.chat.reaction',
+                    '.chat.conversation.updated',
+                ]) {
+                    channel.listen(eventName, refreshFromPoll);
+                }
             } catch {
                 // Sin laravel-echo / pusher-js: el poll basta.
             }
@@ -638,11 +825,20 @@ export default function ChatInternoIndex({
 
     const filteredConversations = useMemo(() => {
         const q = listQuery.trim().toLowerCase();
-        if (!q) return conversations;
+        const base = !q
+            ? conversations
+            : conversations.filter((c) =>
+                  `${c.title} ${c.last_message?.body ?? ''}`
+                      .toLowerCase()
+                      .includes(q),
+              );
 
-        return conversations.filter((c) =>
-            `${c.title} ${c.last_message?.body ?? ''}`.toLowerCase().includes(q),
-        );
+        return [...base].sort((a, b) => {
+            const pinDiff = Number(Boolean(b.pinned)) - Number(Boolean(a.pinned));
+            if (pinDiff !== 0) return pinDiff;
+
+            return 0;
+        });
     }, [conversations, listQuery]);
 
     const filteredUsers = useMemo(() => {
@@ -742,6 +938,31 @@ export default function ChatInternoIndex({
         if (fileRef.current) fileRef.current.value = '';
     };
 
+    const refreshActivePoll = useCallback(async (conversationId: string) => {
+        try {
+            const res = await fetch(
+                `/comunicaciones/chat/${conversationId}/poll`,
+                {
+                    headers: csrfHeaders(),
+                    credentials: 'same-origin',
+                },
+            );
+            if (!res.ok) return;
+            const data = (await res.json()) as {
+                active: ActiveConversation;
+                conversations: ConversationSummary[];
+                unread_total: number;
+                typing?: TypingUser[];
+            };
+            setActive(data.active);
+            setConversations(data.conversations);
+            setTypingUsers(data.typing ?? data.active?.typing ?? []);
+            setUnreadTotal(data.unread_total ?? 0);
+        } catch {
+            // ignore
+        }
+    }, [setUnreadTotal]);
+
     const postTyping = useCallback(() => {
         if (!active?.id) return;
         void fetch(`/comunicaciones/chat/${active.id}/typing`, {
@@ -790,37 +1011,268 @@ export default function ChatInternoIndex({
         });
     };
 
+    const sendPayload = useCallback(
+        (opts: {
+            conversationId: string;
+            text: string;
+            attachFiles: File[];
+            reply: ReplyPreview | null;
+        }) => {
+            const { conversationId, text, attachFiles, reply } = opts;
+            if (!text.trim() && attachFiles.length === 0) return;
+            if (sending) return;
+
+            const mentionIds = extractMentionIds(text, users);
+            setSending(true);
+            pendingRetryRef.current = {
+                body: text,
+                files: attachFiles,
+                replyTo: reply,
+                conversationId,
+            };
+
+            const formData = new FormData();
+            formData.append('body', text.trim());
+            if (reply?.id) {
+                formData.append('reply_to_id', reply.id);
+            }
+            mentionIds.forEach((id) => {
+                formData.append('mentioned_user_ids[]', id);
+            });
+            attachFiles.forEach((file) => {
+                formData.append('attachments[]', file);
+            });
+
+            router.post(
+                `/comunicaciones/chat/${conversationId}/messages`,
+                formData as never,
+                {
+                    forceFormData: true,
+                    preserveScroll: true,
+                    onSuccess: () => {
+                        pendingRetryRef.current = null;
+                        setBody('');
+                        setReplyTo(null);
+                        clearAttachments();
+                        setMentionOpen(false);
+                        clearDraft(conversationId);
+                    },
+                    onError: () => {
+                        toastManager.error({
+                            id: 'chat-send-failed',
+                            title: t('send_failed'),
+                            description: t('send_failed_hint'),
+                            duration: 10_000,
+                            action: {
+                                label: t('retry'),
+                                onClick: () => {
+                                    const pending = pendingRetryRef.current;
+                                    if (!pending) return;
+                                    setBody(pending.body);
+                                    setFiles(pending.files);
+                                    setReplyTo(pending.replyTo);
+                                    sendPayload({
+                                        conversationId: pending.conversationId,
+                                        text: pending.body,
+                                        attachFiles: pending.files,
+                                        reply: pending.replyTo,
+                                    });
+                                },
+                            },
+                        });
+                    },
+                    onFinish: () => {
+                        setSending(false);
+                    },
+                },
+            );
+        },
+        [sending, users, t],
+    );
+
     const submitMessage = (e: FormEvent) => {
         e.preventDefault();
         if (!active || sending) return;
-        if (!body.trim() && files.length === 0) return;
 
-        const mentionIds = extractMentionIds(body, users);
-        setSending(true);
+        if (editingMessage) {
+            const nextBody = body.trim();
+            if (!nextBody) return;
+            setSending(true);
+            void fetch(
+                `/comunicaciones/chat/messages/${editingMessage.id}`,
+                {
+                    method: 'PATCH',
+                    headers: csrfHeaders(true),
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ body: nextBody }),
+                },
+            )
+                .then(async (res) => {
+                    if (!res.ok) throw new Error('edit failed');
+                    setEditingMessage(null);
+                    const local = readDraft(active.id);
+                    skipNextDraftWrite.current = true;
+                    setBody(local ?? '');
+                    await refreshActivePoll(active.id);
+                })
+                .catch(() => {
+                    toastManager.error({ title: t('send_failed') });
+                })
+                .finally(() => setSending(false));
 
-        const formData = new FormData();
-        formData.append('body', body.trim());
-        if (replyTo?.id) {
-            formData.append('reply_to_id', replyTo.id);
+            return;
         }
-        mentionIds.forEach((id) => {
-            formData.append('mentioned_user_ids[]', id);
-        });
-        files.forEach((file) => {
-            formData.append('attachments[]', file);
-        });
 
-        router.post(`/comunicaciones/chat/${active.id}/messages`, formData as never, {
-            forceFormData: true,
-            preserveScroll: true,
-            onFinish: () => {
-                setSending(false);
-                setBody('');
-                setReplyTo(null);
-                clearAttachments();
-                setMentionOpen(false);
-            },
+        if (!body.trim() && files.length === 0) return;
+        sendPayload({
+            conversationId: active.id,
+            text: body,
+            attachFiles: files,
+            reply: replyTo,
         });
+    };
+
+    const cancelEditing = () => {
+        setEditingMessage(null);
+        if (active?.id) {
+            const local = readDraft(active.id);
+            setBody(local ?? '');
+        } else {
+            setBody('');
+        }
+    };
+
+    const startEditMessage = (m: ChatMessage) => {
+        if (active?.id) {
+            writeDraft(active.id, body);
+        }
+        setReplyTo(null);
+        setEditingMessage(m);
+        skipNextDraftWrite.current = true;
+        setBody(m.body ?? '');
+        requestAnimationFrame(() => textareaRef.current?.focus());
+    };
+
+    const confirmDeleteMessage = async () => {
+        if (!active || !deleteMessage || deleting) return;
+        setDeleting(true);
+        try {
+            const res = await fetch(
+                `/comunicaciones/chat/messages/${deleteMessage.id}`,
+                {
+                    method: 'DELETE',
+                    headers: csrfHeaders(true),
+                    credentials: 'same-origin',
+                },
+            );
+            if (!res.ok) throw new Error('delete failed');
+            setDeleteMessage(null);
+            await refreshActivePoll(active.id);
+        } catch {
+            toastManager.error({ title: t('send_failed') });
+        } finally {
+            setDeleting(false);
+        }
+    };
+
+    const toggleReaction = async (
+        message: ChatMessage,
+        emoji: ChatReactionEmoji,
+    ) => {
+        if (!active) return;
+        try {
+            const res = await fetch(
+                `/comunicaciones/chat/messages/${message.id}/reaction`,
+                {
+                    method: 'POST',
+                    headers: csrfHeaders(true),
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ emoji }),
+                },
+            );
+            if (!res.ok) throw new Error('reaction failed');
+            await refreshActivePoll(active.id);
+        } catch {
+            toastManager.error({ title: t('send_failed') });
+        }
+    };
+
+    const submitForward = async () => {
+        if (!active || !forwardMessage || !forwardTargetId || forwarding) return;
+        setForwarding(true);
+        try {
+            const res = await fetch(
+                `/comunicaciones/chat/messages/${forwardMessage.id}/forward`,
+                {
+                    method: 'POST',
+                    headers: csrfHeaders(true),
+                    credentials: 'same-origin',
+                    body: JSON.stringify({
+                        target_conversation_id: forwardTargetId,
+                    }),
+                },
+            );
+            if (!res.ok) throw new Error('forward failed');
+            setForwardMessage(null);
+            setForwardTargetId('');
+            openConversation(forwardTargetId);
+        } catch {
+            toastManager.error({ title: t('send_failed') });
+        } finally {
+            setForwarding(false);
+        }
+    };
+
+    const togglePin = async () => {
+        if (!active || pinning) return;
+        const next = !active.pinned;
+        setPinning(true);
+        setActive({ ...active, pinned: next });
+        setConversations((prev) =>
+            prev.map((c) =>
+                c.id === active.id ? { ...c, pinned: next } : c,
+            ),
+        );
+        try {
+            const res = await fetch(`/comunicaciones/chat/${active.id}/pin`, {
+                method: 'POST',
+                headers: csrfHeaders(true),
+                credentials: 'same-origin',
+                body: JSON.stringify({ pinned: next }),
+            });
+            if (!res.ok) throw new Error('pin failed');
+        } catch {
+            setActive({ ...active, pinned: !next });
+            toastManager.error({ title: t('send_failed') });
+        } finally {
+            setPinning(false);
+        }
+    };
+
+    const openMediaGallery = async () => {
+        if (!active) return;
+        setMediaOpen(true);
+        setMediaLoading(true);
+        try {
+            const res = await fetch(
+                `/comunicaciones/chat/${active.id}/media`,
+                {
+                    headers: csrfHeaders(),
+                    credentials: 'same-origin',
+                },
+            );
+            if (!res.ok) throw new Error('media failed');
+            const data = (await res.json()) as {
+                media?: MediaGalleryItem[];
+                items?: MediaGalleryItem[];
+            };
+            setMediaItems(data.media ?? data.items ?? []);
+        } catch {
+            setMediaItems([]);
+            toastManager.error({ title: t('send_failed') });
+        } finally {
+            setMediaLoading(false);
+        }
     };
 
     const insertEmoji = (emoji: string) => {
@@ -1007,6 +1459,31 @@ export default function ChatInternoIndex({
         return t('typing_many', { names });
     }, [typingUsers, t]);
 
+    const presenceLabel = useMemo(() => {
+        if (!active || active.type !== 'direct') return null;
+        if (active.peer_online) return t('presence_online');
+        if (active.peer_last_seen_at) {
+            try {
+                const relative = formatDistanceToNow(
+                    parseISO(active.peer_last_seen_at),
+                    { addSuffix: true, locale: dateFnsLocale },
+                );
+
+                return t('presence_last_seen', { time: relative });
+            } catch {
+                return t('presence_unknown');
+            }
+        }
+
+        return null;
+    }, [active, t, dateFnsLocale]);
+
+    const threadSubtitle = typingLabel
+        ?? presenceLabel
+        ?? (active?.type === 'group'
+            ? t('participants', { count: active.participant_count })
+            : t('dm_badge'));
+
     const renderReadBy = (m: ChatMessage) => {
         if (!m.mine && m.user_id !== meId) return null;
         const readers = (m.read_by ?? []).filter((r) => r.user_id !== meId);
@@ -1023,13 +1500,50 @@ export default function ChatInternoIndex({
         return `${t('seen')} · ${readers.length}`;
     };
 
+    const linkifyText = (text: string, keyPrefix: string): ReactNode[] => {
+        const nodes: ReactNode[] = [];
+        let last = 0;
+        let match: RegExpExecArray | null;
+        const re = new RegExp(URL_IN_TEXT_RE.source, 'gi');
+        while ((match = re.exec(text)) !== null) {
+            if (match.index > last) {
+                nodes.push(text.slice(last, match.index));
+            }
+            const href = match[0];
+            nodes.push(
+                <a
+                    key={`${keyPrefix}-url-${match.index}`}
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline underline-offset-2 hover:opacity-90"
+                    onClick={(ev) => ev.stopPropagation()}
+                >
+                    {href}
+                </a>,
+            );
+            last = match.index + href.length;
+        }
+        if (last < text.length) nodes.push(text.slice(last));
+        if (nodes.length === 0) nodes.push(text);
+
+        return nodes;
+    };
+
     const renderBodyWithMentions = (m: ChatMessage) => {
+        if (isMessageDeleted(m)) {
+            return (
+                <p className="px-3.5 py-2 text-sm italic text-muted-foreground opacity-80">
+                    {t('message_deleted')}
+                </p>
+            );
+        }
         if (!m.body) return null;
         const mentions = m.mentions ?? [];
         if (mentions.length === 0) {
             return (
                 <p className="whitespace-pre-wrap wrap-break-word px-3.5 py-2">
-                    {m.body}
+                    {linkifyText(m.body, m.id)}
                 </p>
             );
         }
@@ -1051,10 +1565,14 @@ export default function ChatInternoIndex({
                 }
             }
             if (!found || foundAt < 0) {
-                parts.push(rest);
+                parts.push(...linkifyText(rest, `${m.id}-${key}`));
                 break;
             }
-            if (foundAt > 0) parts.push(rest.slice(0, foundAt));
+            if (foundAt > 0) {
+                parts.push(
+                    ...linkifyText(rest.slice(0, foundAt), `${m.id}-${key}`),
+                );
+            }
             parts.push(
                 <span
                     key={`m-${key++}`}
@@ -1099,6 +1617,14 @@ export default function ChatInternoIndex({
                     </div>
 
                     <div className="flex shrink-0 items-center gap-1.5">
+                        {page.props.push != null ? (
+                            <PushNotificationPrompt
+                                variant="labeled"
+                                description={t('push_notifications_hint')}
+                                className="max-sm:px-2"
+                            />
+                        ) : null}
+
                         <Button
                             type="button"
                             size="icon"
@@ -1322,6 +1848,14 @@ export default function ChatInternoIndex({
                                                             <span className="truncate text-sm font-medium">
                                                                 {c.title}
                                                             </span>
+                                                            {c.pinned ? (
+                                                                <Pin
+                                                                    className="size-3 shrink-0 text-amber-600 dark:text-amber-400"
+                                                                    aria-label={t(
+                                                                        'pinned_badge',
+                                                                    )}
+                                                                />
+                                                            ) : null}
                                                             {c.muted ? (
                                                                 <BellOff
                                                                     className="size-3 shrink-0 text-muted-foreground"
@@ -1429,38 +1963,90 @@ export default function ChatInternoIndex({
                                                 {active.title}
                                             </p>
                                             <p className="truncate text-xs text-muted-foreground">
-                                                {typingLabel
-                                                    ?? (active.type === 'group'
-                                                        ? t('participants', {
-                                                              count: active.participant_count,
-                                                          })
-                                                        : t('dm_badge'))}
+                                                {threadSubtitle}
                                             </p>
                                         </div>
-                                        <Button
-                                            type="button"
-                                            size="icon"
-                                            variant="ghost"
-                                            className="size-8 shrink-0 text-muted-foreground"
-                                            onClick={toggleMute}
-                                            disabled={muting}
-                                            aria-label={
-                                                active.muted
-                                                    ? t('unmute')
-                                                    : t('mute')
-                                            }
-                                            title={
-                                                active.muted
-                                                    ? t('unmute')
-                                                    : t('mute')
-                                            }
-                                        >
-                                            {active.muted ? (
-                                                <BellOff className="size-4" />
-                                            ) : (
-                                                <Bell className="size-4" />
-                                            )}
-                                        </Button>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button
+                                                    type="button"
+                                                    size="icon"
+                                                    variant="ghost"
+                                                    className="size-8 shrink-0 text-muted-foreground"
+                                                    onClick={() =>
+                                                        void togglePin()
+                                                    }
+                                                    disabled={pinning}
+                                                    aria-label={
+                                                        active.pinned
+                                                            ? t('unpin')
+                                                            : t('pin')
+                                                    }
+                                                >
+                                                    {active.pinned ? (
+                                                        <PinOff className="size-4 text-amber-600 dark:text-amber-400" />
+                                                    ) : (
+                                                        <Pin className="size-4" />
+                                                    )}
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent side="bottom">
+                                                {active.pinned
+                                                    ? t('unpin')
+                                                    : t('pin')}
+                                            </TooltipContent>
+                                        </Tooltip>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button
+                                                    type="button"
+                                                    size="icon"
+                                                    variant="ghost"
+                                                    className="size-8 shrink-0 text-muted-foreground"
+                                                    onClick={() =>
+                                                        void openMediaGallery()
+                                                    }
+                                                    aria-label={t(
+                                                        'media_gallery',
+                                                    )}
+                                                >
+                                                    <Images className="size-4" />
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent side="bottom">
+                                                {t('media_gallery')}
+                                            </TooltipContent>
+                                        </Tooltip>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button
+                                                    type="button"
+                                                    size="icon"
+                                                    variant="ghost"
+                                                    className="size-8 shrink-0 text-muted-foreground"
+                                                    onClick={() =>
+                                                        void toggleMute()
+                                                    }
+                                                    disabled={muting}
+                                                    aria-label={
+                                                        active.muted
+                                                            ? t('unmute_hint')
+                                                            : t('mute_hint')
+                                                    }
+                                                >
+                                                    {active.muted ? (
+                                                        <BellOff className="size-4" />
+                                                    ) : (
+                                                        <Bell className="size-4" />
+                                                    )}
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent side="bottom">
+                                                {active.muted
+                                                    ? t('unmute_hint')
+                                                    : t('mute_hint')}
+                                            </TooltipContent>
+                                        </Tooltip>
                                         <Button
                                             type="button"
                                             size="icon"
@@ -1480,9 +2066,11 @@ export default function ChatInternoIndex({
                                             variant="outline"
                                             className="hidden shrink-0 text-[10px] sm:inline-flex"
                                         >
-                                            {active.type === 'group'
-                                                ? t('group_badge')
-                                                : t('dm_badge')}
+                                            {active.pinned
+                                                ? t('pinned_badge')
+                                                : active.type === 'group'
+                                                  ? t('group_badge')
+                                                  : t('dm_badge')}
                                         </Badge>
                                     </div>
 
@@ -1568,8 +2156,12 @@ export default function ChatInternoIndex({
                                         const mine =
                                             m.mine
                                             ?? m.user_id === meId;
-                                        const atts = messageAttachments(m);
+                                        const deleted = isMessageDeleted(m);
+                                        const atts = deleted
+                                            ? []
+                                            : messageAttachments(m);
                                         const readLabel = renderReadBy(m);
+                                        const reactions = m.reactions ?? [];
 
                                         return (
                                             <div
@@ -1599,15 +2191,18 @@ export default function ChatInternoIndex({
                                                     <div
                                                         className={cn(
                                                             'relative overflow-hidden rounded-2xl text-sm shadow-sm',
-                                                            mine
-                                                                ? 'rounded-br-md bg-emerald-600 text-white'
-                                                                : 'rounded-bl-md border border-border/60 bg-card text-foreground',
+                                                            deleted
+                                                                ? 'border border-dashed border-border/70 bg-muted/40 text-muted-foreground'
+                                                                : mine
+                                                                  ? 'rounded-br-md bg-emerald-600 text-white'
+                                                                  : 'rounded-bl-md border border-border/60 bg-card text-foreground',
                                                             highlightId
                                                                 === m.id
                                                                 && 'ring-2 ring-amber-400/80',
                                                         )}
                                                     >
                                                         {!mine
+                                                        && !deleted
                                                         && active.type
                                                             === 'group' ? (
                                                             <p className="px-3.5 pt-2 text-[10px] font-semibold tracking-wide text-emerald-700 uppercase dark:text-emerald-300">
@@ -1615,7 +2210,8 @@ export default function ChatInternoIndex({
                                                             </p>
                                                         ) : null}
 
-                                                        {m.reply_to ? (
+                                                        {!deleted
+                                                        && m.reply_to ? (
                                                             <button
                                                                 type="button"
                                                                 className={cn(
@@ -1716,16 +2312,20 @@ export default function ChatInternoIndex({
                                                             </div>
                                                         ) : null}
 
-                                                        {m.body
+                                                        {deleted
                                                             ? renderBodyWithMentions(
                                                                   m,
                                                               )
-                                                            : atts.length
-                                                              === 0
-                                                              ? (
-                                                                    <div className="h-2" />
+                                                            : m.body
+                                                              ? renderBodyWithMentions(
+                                                                    m,
                                                                 )
-                                                              : null}
+                                                              : atts.length
+                                                                === 0
+                                                                ? (
+                                                                      <div className="h-2" />
+                                                                  )
+                                                                : null}
 
                                                         <div
                                                             className={cn(
@@ -1733,42 +2333,175 @@ export default function ChatInternoIndex({
                                                                 mine
                                                                     ? 'justify-end text-emerald-100/90'
                                                                     : 'justify-end text-muted-foreground',
+                                                                deleted
+                                                                    && 'text-muted-foreground',
                                                             )}
                                                         >
-                                                            <button
-                                                                type="button"
-                                                                className={cn(
-                                                                    'mr-auto rounded p-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100',
-                                                                    mine
-                                                                        ? 'hover:bg-emerald-700/50'
-                                                                        : 'hover:bg-muted',
-                                                                )}
-                                                                onClick={() => {
-                                                                    setReplyTo(
-                                                                        {
-                                                                            id: m.id,
-                                                                            body:
-                                                                                m.body
-                                                                                || (atts[0]
-                                                                                    ?.name
-                                                                                    ?? ''),
-                                                                            user_id:
-                                                                                m.user_id,
-                                                                            user_name:
-                                                                                m.user_name,
-                                                                        },
-                                                                    );
-                                                                    textareaRef.current?.focus();
-                                                                }}
-                                                                aria-label={t(
-                                                                    'reply',
-                                                                )}
-                                                                title={t(
-                                                                    'reply',
-                                                                )}
-                                                            >
-                                                                <Reply className="size-3.5" />
-                                                            </button>
+                                                            {!deleted ? (
+                                                                <>
+                                                                    <button
+                                                                        type="button"
+                                                                        className={cn(
+                                                                            'mr-auto rounded p-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100',
+                                                                            mine
+                                                                                ? 'hover:bg-emerald-700/50'
+                                                                                : 'hover:bg-muted',
+                                                                        )}
+                                                                        onClick={() => {
+                                                                            setEditingMessage(
+                                                                                null,
+                                                                            );
+                                                                            setReplyTo(
+                                                                                {
+                                                                                    id: m.id,
+                                                                                    body:
+                                                                                        m.body
+                                                                                        || (atts[0]
+                                                                                            ?.name
+                                                                                            ?? ''),
+                                                                                    user_id:
+                                                                                        m.user_id,
+                                                                                    user_name:
+                                                                                        m.user_name,
+                                                                                },
+                                                                            );
+                                                                            textareaRef.current?.focus();
+                                                                        }}
+                                                                        aria-label={t(
+                                                                            'reply',
+                                                                        )}
+                                                                        title={t(
+                                                                            'reply',
+                                                                        )}
+                                                                    >
+                                                                        <Reply className="size-3.5" />
+                                                                    </button>
+                                                                    <Popover>
+                                                                        <PopoverTrigger asChild>
+                                                                            <button
+                                                                                type="button"
+                                                                                className={cn(
+                                                                                    'rounded p-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100',
+                                                                                    mine
+                                                                                        ? 'hover:bg-emerald-700/50'
+                                                                                        : 'hover:bg-muted',
+                                                                                )}
+                                                                                aria-label={t(
+                                                                                    'react',
+                                                                                )}
+                                                                            >
+                                                                                <Smile className="size-3.5" />
+                                                                            </button>
+                                                                        </PopoverTrigger>
+                                                                        <PopoverContent
+                                                                            className="w-auto p-1.5"
+                                                                            side="top"
+                                                                            align="end"
+                                                                        >
+                                                                            <div className="flex gap-0.5">
+                                                                                {REACTION_EMOJIS.map(
+                                                                                    (
+                                                                                        emoji,
+                                                                                    ) => (
+                                                                                        <button
+                                                                                            key={
+                                                                                                emoji
+                                                                                            }
+                                                                                            type="button"
+                                                                                            className="rounded-md px-1.5 py-1 text-base hover:bg-muted"
+                                                                                            onClick={() =>
+                                                                                                void toggleReaction(
+                                                                                                    m,
+                                                                                                    emoji,
+                                                                                                )
+                                                                                            }
+                                                                                        >
+                                                                                            {
+                                                                                                emoji
+                                                                                            }
+                                                                                        </button>
+                                                                                    ),
+                                                                                )}
+                                                                            </div>
+                                                                        </PopoverContent>
+                                                                    </Popover>
+                                                                    <DropdownMenu>
+                                                                        <DropdownMenuTrigger asChild>
+                                                                            <button
+                                                                                type="button"
+                                                                                className={cn(
+                                                                                    'rounded p-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100',
+                                                                                    mine
+                                                                                        ? 'hover:bg-emerald-700/50'
+                                                                                        : 'hover:bg-muted',
+                                                                                )}
+                                                                                aria-label={t(
+                                                                                    'message_actions',
+                                                                                )}
+                                                                            >
+                                                                                <MoreHorizontal className="size-3.5" />
+                                                                            </button>
+                                                                        </DropdownMenuTrigger>
+                                                                        <DropdownMenuContent align="end" className="w-44">
+                                                                            <DropdownMenuItem
+                                                                                onSelect={() => {
+                                                                                    setForwardMessage(
+                                                                                        m,
+                                                                                    );
+                                                                                    setForwardTargetId(
+                                                                                        '',
+                                                                                    );
+                                                                                }}
+                                                                            >
+                                                                                <Forward className="size-4" />
+                                                                                {t(
+                                                                                    'forward',
+                                                                                )}
+                                                                            </DropdownMenuItem>
+                                                                            {mine ? (
+                                                                                <>
+                                                                                    <DropdownMenuItem
+                                                                                        onSelect={() =>
+                                                                                            startEditMessage(
+                                                                                                m,
+                                                                                            )
+                                                                                        }
+                                                                                    >
+                                                                                        <Pencil className="size-4" />
+                                                                                        {t(
+                                                                                            'edit',
+                                                                                        )}
+                                                                                    </DropdownMenuItem>
+                                                                                    <DropdownMenuSeparator />
+                                                                                    <DropdownMenuItem
+                                                                                        className="text-destructive focus:text-destructive"
+                                                                                        onSelect={() =>
+                                                                                            setDeleteMessage(
+                                                                                                m,
+                                                                                            )
+                                                                                        }
+                                                                                    >
+                                                                                        <Trash2 className="size-4" />
+                                                                                        {t(
+                                                                                            'delete',
+                                                                                        )}
+                                                                                    </DropdownMenuItem>
+                                                                                </>
+                                                                            ) : null}
+                                                                        </DropdownMenuContent>
+                                                                    </DropdownMenu>
+                                                                </>
+                                                            ) : (
+                                                                <span className="mr-auto" />
+                                                            )}
+                                                            {m.edited_at
+                                                            && !deleted ? (
+                                                                <span className="text-[10px] opacity-80">
+                                                                    {t(
+                                                                        'edited',
+                                                                    )}
+                                                                </span>
+                                                            ) : null}
                                                             <span className="text-[10px]">
                                                                 {formatClock(
                                                                     m.created_at,
@@ -1777,6 +2510,55 @@ export default function ChatInternoIndex({
                                                             </span>
                                                         </div>
                                                     </div>
+
+                                                    {!deleted
+                                                    && reactions.length
+                                                        > 0 ? (
+                                                        <div
+                                                            className={cn(
+                                                                'flex flex-wrap gap-1 px-1',
+                                                                mine
+                                                                    ? 'justify-end'
+                                                                    : 'justify-start',
+                                                            )}
+                                                        >
+                                                            {reactions.map(
+                                                                (r) => (
+                                                                    <button
+                                                                        key={`${m.id}-${r.emoji}`}
+                                                                        type="button"
+                                                                        className={cn(
+                                                                            'inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[11px] transition-colors',
+                                                                            r.reacted
+                                                                                ? 'border-emerald-500/50 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200'
+                                                                                : 'border-border/60 bg-card text-foreground hover:bg-muted/70',
+                                                                        )}
+                                                                        onClick={() =>
+                                                                            void toggleReaction(
+                                                                                m,
+                                                                                r.emoji as ChatReactionEmoji,
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        <span>
+                                                                            {
+                                                                                r.emoji
+                                                                            }
+                                                                        </span>
+                                                                        {r.count
+                                                                        > 1 ? (
+                                                                            <span className="tabular-nums text-muted-foreground">
+                                                                                {
+                                                                                    r.count
+                                                                                }
+                                                                            </span>
+                                                                        ) : null}
+                                                                    </button>
+                                                                ),
+                                                            )}
+                                                        </div>
+                                                    ) : null}
+
                                                     {readLabel ? (
                                                         <p className="px-1 text-right text-[10px] text-muted-foreground">
                                                             {readLabel}
@@ -1793,7 +2575,31 @@ export default function ChatInternoIndex({
                                     onSubmit={submitMessage}
                                     className="relative border-t border-border/60 bg-card/95 p-3 backdrop-blur-md"
                                 >
-                                    {replyTo ? (
+                                    {editingMessage ? (
+                                        <div className="mb-2 flex items-start gap-2 rounded-xl border border-amber-600/20 bg-amber-50/70 px-2.5 py-2 dark:bg-amber-950/30">
+                                            <Pencil className="mt-0.5 size-3.5 shrink-0 text-amber-700 dark:text-amber-300" />
+                                            <div className="min-w-0 flex-1">
+                                                <p className="text-[10px] font-semibold text-amber-800 dark:text-amber-200">
+                                                    {t('edit_banner')}
+                                                </p>
+                                                <p className="truncate text-xs text-muted-foreground">
+                                                    {editingMessage.body}
+                                                </p>
+                                            </div>
+                                            <Button
+                                                type="button"
+                                                size="icon"
+                                                variant="ghost"
+                                                className="size-7"
+                                                onClick={cancelEditing}
+                                                aria-label={t('edit_cancel')}
+                                            >
+                                                <X className="size-3.5" />
+                                            </Button>
+                                        </div>
+                                    ) : null}
+
+                                    {replyTo && !editingMessage ? (
                                         <div className="mb-2 flex items-start gap-2 rounded-xl border border-emerald-600/20 bg-emerald-50/70 px-2.5 py-2 dark:bg-emerald-950/30">
                                             <Reply className="mt-0.5 size-3.5 shrink-0 text-emerald-700 dark:text-emerald-300" />
                                             <div className="min-w-0 flex-1">
@@ -1819,7 +2625,7 @@ export default function ChatInternoIndex({
                                         </div>
                                     ) : null}
 
-                                    {files.length > 0 ? (
+                                    {files.length > 0 && !editingMessage ? (
                                         <div className="mb-2 flex flex-wrap gap-2">
                                             {files.map((file, idx) => (
                                                 <div
@@ -1944,7 +2750,8 @@ export default function ChatInternoIndex({
                                                 fileRef.current?.click()
                                             }
                                             disabled={
-                                                files.length >= MAX_ATTACHMENTS
+                                                editingMessage != null
+                                                || files.length >= MAX_ATTACHMENTS
                                             }
                                             aria-label={t('attach')}
                                             title={
@@ -2002,9 +2809,15 @@ export default function ChatInternoIndex({
                                             onChange={(e) =>
                                                 onBodyChange(e.target.value)
                                             }
-                                            placeholder={t(
-                                                'composer_placeholder',
-                                            )}
+                                            placeholder={
+                                                editingMessage
+                                                    ? t(
+                                                          'composer_edit_placeholder',
+                                                      )
+                                                    : t(
+                                                          'composer_placeholder',
+                                                      )
+                                            }
                                             rows={1}
                                             className="min-h-10 max-h-28 flex-1 resize-none"
                                             onKeyDown={onComposerKeyDown}
@@ -2013,14 +2826,25 @@ export default function ChatInternoIndex({
                                             type="submit"
                                             size="icon"
                                             disabled={
-                                                (!body.trim()
-                                                    && files.length === 0)
-                                                || sending
+                                                editingMessage
+                                                    ? !body.trim() || sending
+                                                    : (!body.trim()
+                                                          && files.length
+                                                              === 0)
+                                                      || sending
                                             }
                                             className="size-10 shrink-0 bg-emerald-600 hover:bg-emerald-700"
-                                            aria-label={t('send')}
+                                            aria-label={
+                                                editingMessage
+                                                    ? t('save_edit')
+                                                    : t('send')
+                                            }
                                         >
-                                            <SendHorizontal className="size-4" />
+                                            {editingMessage ? (
+                                                <Check className="size-4" />
+                                            ) : (
+                                                <SendHorizontal className="size-4" />
+                                            )}
                                         </Button>
                                     </div>
                                     <p className="mt-1.5 flex items-center gap-1 text-[10px] text-muted-foreground">
@@ -2054,6 +2878,175 @@ export default function ChatInternoIndex({
                             className="mx-auto max-h-[85dvh] w-auto max-w-full object-contain"
                         />
                     ) : null}
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={mediaOpen}
+                onOpenChange={(open) => {
+                    setMediaOpen(open);
+                    if (!open) setMediaItems([]);
+                }}
+            >
+                <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-lg">
+                    <DialogHeader className="border-b border-border/60 px-5 py-4">
+                        <DialogTitle className="text-base">
+                            {t('media_gallery_title')}
+                        </DialogTitle>
+                        <DialogDescription className="text-xs">
+                            {t('media_gallery')}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="max-h-[70dvh] overflow-y-auto p-4">
+                        {mediaLoading ? (
+                            <p className="py-10 text-center text-sm text-muted-foreground">
+                                {t('media_gallery_loading')}
+                            </p>
+                        ) : mediaItems.length === 0 ? (
+                            <p className="py-10 text-center text-sm text-muted-foreground">
+                                {t('media_gallery_empty')}
+                            </p>
+                        ) : (
+                            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                                {mediaItems.map((item, idx) => (
+                                    <button
+                                        key={`${item.url}-${idx}`}
+                                        type="button"
+                                        className="overflow-hidden rounded-xl border border-border/50 bg-muted/30"
+                                        onClick={() => {
+                                            setLightbox({
+                                                url: item.url,
+                                                name: item.name,
+                                            });
+                                        }}
+                                        aria-label={item.name}
+                                    >
+                                        <img
+                                            src={item.url}
+                                            alt={item.name}
+                                            className="aspect-square w-full object-cover"
+                                        />
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={!!forwardMessage}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setForwardMessage(null);
+                        setForwardTargetId('');
+                    }
+                }}
+            >
+                <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-md">
+                    <DialogHeader className="border-b border-border/60 px-5 py-4">
+                        <DialogTitle className="text-base">
+                            {t('forward_title')}
+                        </DialogTitle>
+                        <DialogDescription className="text-xs">
+                            {t('forward_hint')}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="max-h-72 space-y-1 overflow-y-auto p-3">
+                        {conversations.filter((c) => c.id !== active?.id)
+                            .length === 0 ? (
+                            <p className="py-8 text-center text-sm text-muted-foreground">
+                                {t('forward_empty')}
+                            </p>
+                        ) : (
+                            conversations
+                                .filter((c) => c.id !== active?.id)
+                                .map((c) => (
+                                    <button
+                                        key={c.id}
+                                        type="button"
+                                        onClick={() =>
+                                            setForwardTargetId(c.id)
+                                        }
+                                        className={cn(
+                                            'flex w-full items-center gap-3 rounded-lg px-2.5 py-2.5 text-left transition-colors',
+                                            forwardTargetId === c.id
+                                                ? 'bg-emerald-50 dark:bg-emerald-950/40'
+                                                : 'hover:bg-muted/60',
+                                        )}
+                                    >
+                                        <Avatar className="size-9 border border-border/50">
+                                            <AvatarFallback className="text-xs font-semibold">
+                                                {c.type === 'group' ? (
+                                                    <Users className="size-3.5" />
+                                                ) : (
+                                                    initials(c.title)
+                                                )}
+                                            </AvatarFallback>
+                                        </Avatar>
+                                        <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                                            {c.title}
+                                        </span>
+                                        {forwardTargetId === c.id ? (
+                                            <Check className="size-4 shrink-0 text-emerald-600" />
+                                        ) : null}
+                                    </button>
+                                ))
+                        )}
+                    </div>
+                    <DialogFooter className="gap-2 border-t border-border/60 bg-muted/20 px-4 py-3 sm:gap-2">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                                setForwardMessage(null);
+                                setForwardTargetId('');
+                            }}
+                        >
+                            {t('cancel')}
+                        </Button>
+                        <Button
+                            type="button"
+                            className="bg-emerald-600 hover:bg-emerald-700"
+                            disabled={!forwardTargetId || forwarding}
+                            onClick={() => void submitForward()}
+                        >
+                            {t('forward_submit')}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={!!deleteMessage}
+                onOpenChange={(open) => {
+                    if (!open) setDeleteMessage(null);
+                }}
+            >
+                <DialogContent className="sm:max-w-sm">
+                    <DialogHeader>
+                        <DialogTitle>{t('delete_confirm')}</DialogTitle>
+                        <DialogDescription>
+                            {t('delete_confirm_hint')}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="gap-2 sm:gap-2">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setDeleteMessage(null)}
+                        >
+                            {t('cancel')}
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="destructive"
+                            disabled={deleting}
+                            onClick={() => void confirmDeleteMessage()}
+                        >
+                            {t('delete')}
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
 

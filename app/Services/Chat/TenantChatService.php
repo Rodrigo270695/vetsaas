@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Services\Chat;
 
 use App\Events\Chat\ChatMessageCreated;
+use App\Events\Chat\ChatMessageUpdated;
 use App\Models\ChatConversation;
 use App\Models\ChatMessage;
 use App\Models\ChatMessageAttachment;
+use App\Models\ChatMessageReaction;
 use App\Models\ChatParticipant;
 use App\Models\User;
 use App\Services\Push\WebPushSender;
@@ -29,6 +31,13 @@ final class TenantChatService
     public const MESSAGES_PAGE = 80;
 
     public const MAX_ATTACHMENTS = 5;
+
+    /** @var list<string> */
+    public const ALLOWED_REACTION_EMOJIS = ['👍', '✅', '❤️', '😂', '🎉'];
+
+    public const PRESENCE_TTL_SECONDS = 90;
+
+    public const PRESENCE_ONLINE_SECONDS = 60;
 
     /**
      * @return Collection<int, User>
@@ -274,6 +283,7 @@ final class TenantChatService
             'user:id,name',
             'replyTo.user:id,name',
             'attachments',
+            'reactions',
         ]);
 
         $this->dispatchMessageCreated($conversation, $actor, $message);
@@ -296,9 +306,70 @@ final class TenantChatService
             ->update(['muted_at' => $muted ? now() : null]);
     }
 
+    public function setPinned(ChatConversation $conversation, User $user, bool $pinned): void
+    {
+        $this->assertParticipant($conversation, $user);
+
+        if (! Schema::hasColumn('chat_participants', 'pinned_at')) {
+            return;
+        }
+
+        ChatParticipant::query()
+            ->where('conversation_id', $conversation->id)
+            ->where('user_id', $user->id)
+            ->update(['pinned_at' => $pinned ? now() : null]);
+    }
+
+    public function touchPresence(User $user): void
+    {
+        Cache::put(
+            $this->presenceCacheKey((string) $user->id),
+            now()->toIso8601String(),
+            self::PRESENCE_TTL_SECONDS,
+        );
+    }
+
+    /**
+     * @param  list<string>  $userIds
+     * @return array<string, array{online: bool, last_seen_at: ?string}>
+     */
+    public function presenceForUsers(array $userIds): array
+    {
+        $map = [];
+        $now = now();
+
+        foreach ($userIds as $userId) {
+            $uid = (string) $userId;
+            if ($uid === '') {
+                continue;
+            }
+
+            $raw = Cache::get($this->presenceCacheKey($uid));
+            $lastSeen = is_string($raw) && $raw !== '' ? $raw : null;
+            $online = false;
+
+            if ($lastSeen !== null) {
+                try {
+                    $online = Carbon::parse($lastSeen)->diffInSeconds($now) < self::PRESENCE_ONLINE_SECONDS;
+                } catch (Throwable) {
+                    $online = false;
+                    $lastSeen = null;
+                }
+            }
+
+            $map[$uid] = [
+                'online' => $online,
+                'last_seen_at' => $lastSeen,
+            ];
+        }
+
+        return $map;
+    }
+
     public function touchTyping(ChatConversation $conversation, User $user): void
     {
         $this->assertParticipant($conversation, $user);
+        $this->touchPresence($user);
 
         Cache::put(
             $this->typingCacheKey((string) $conversation->id, (string) $user->id),
@@ -308,6 +379,289 @@ final class TenantChatService
             ],
             5,
         );
+    }
+
+    public static function isAllowedReactionEmoji(string $emoji): bool
+    {
+        return in_array($emoji, self::ALLOWED_REACTION_EMOJIS, true);
+    }
+
+    /**
+     * Usuarios del directorio aptos para el grupo "Caja" (ventas/caja/roles).
+     *
+     * @return list<string>
+     */
+    public function cashTeamUserIds(?string $exceptUserId = null): array
+    {
+        $tenantId = tenant_id();
+        $previousTeam = getPermissionsTeamId();
+
+        if ($tenantId !== null && $tenantId !== '') {
+            setPermissionsTeamId($tenantId);
+        }
+
+        try {
+            return self::filterCashTeamMembers($this->directoryUsers($exceptUserId));
+        } finally {
+            setPermissionsTeamId($previousTeam);
+        }
+    }
+
+    public static function userQualifiesForCashTeam(User $user): bool
+    {
+        return $user->can('ventas.create')
+            || $user->can('caja-sesiones.view')
+            || $user->hasRole('recepcionista')
+            || $user->hasRole('admin_clinica');
+    }
+
+    /**
+     * @param  Collection<int, User>  $users
+     * @return list<string>
+     */
+    public static function filterCashTeamMembers(Collection $users): array
+    {
+        return $users
+            ->filter(static fn (User $user): bool => self::userQualifiesForCashTeam($user))
+            ->map(static fn (User $user): string => (string) $user->getKey())
+            ->values()
+            ->all();
+    }
+
+    public function editMessage(ChatMessage $message, User $actor, string $body): ChatMessage
+    {
+        $conversation = $message->conversation ?? ChatConversation::query()->findOrFail($message->conversation_id);
+        $this->assertParticipant($conversation, $actor);
+
+        if ((string) $message->user_id !== (string) $actor->id) {
+            abort(403, 'Solo puedes editar tus propios mensajes.');
+        }
+
+        if ($message->isDeleted() || (Schema::hasColumn('chat_messages', 'deleted_at') && $message->deleted_at !== null)) {
+            throw ValidationException::withMessages([
+                'body' => __('No puedes editar un mensaje eliminado.'),
+            ]);
+        }
+
+        $body = trim($body);
+        if ($body === '') {
+            throw ValidationException::withMessages([
+                'body' => __('Escribe un mensaje.'),
+            ]);
+        }
+
+        if (mb_strlen($body) > 4000) {
+            throw ValidationException::withMessages([
+                'body' => __('El mensaje es demasiado largo.'),
+            ]);
+        }
+
+        $message->body = $body;
+        if (Schema::hasColumn('chat_messages', 'edited_at')) {
+            $message->edited_at = now();
+        }
+        $message->save();
+
+        $message->load(['user:id,name', 'replyTo.user:id,name', 'attachments', 'reactions']);
+        $this->dispatchMessageUpdated($conversation, $actor, $message, 'edited');
+
+        return $message;
+    }
+
+    public function softDeleteMessage(ChatMessage $message, User $actor): ChatMessage
+    {
+        $conversation = $message->conversation ?? ChatConversation::query()->findOrFail($message->conversation_id);
+        $this->assertParticipant($conversation, $actor);
+
+        if ((string) $message->user_id !== (string) $actor->id) {
+            abort(403, 'Solo puedes eliminar tus propios mensajes.');
+        }
+
+        if (! Schema::hasColumn('chat_messages', 'deleted_at')) {
+            throw ValidationException::withMessages([
+                'message' => __('La eliminación de mensajes no está disponible.'),
+            ]);
+        }
+
+        if ($message->deleted_at !== null) {
+            return $message;
+        }
+
+        $message->deleted_at = now();
+        // Preferir string vacío si body sigue NOT NULL (migración change puede fallar).
+        $message->body = '';
+        $message->save();
+
+        $message->load(['user:id,name', 'replyTo.user:id,name', 'attachments', 'reactions']);
+        $this->dispatchMessageUpdated($conversation, $actor, $message, 'deleted');
+
+        return $message;
+    }
+
+    /**
+     * @return array{message: array<string, mixed>, reactions: list<array<string, mixed>>, removed: bool}
+     */
+    public function toggleReaction(ChatMessage $message, User $actor, string $emoji): array
+    {
+        $conversation = $message->conversation ?? ChatConversation::query()->findOrFail($message->conversation_id);
+        $this->assertParticipant($conversation, $actor);
+
+        if ($message->isDeleted()) {
+            throw ValidationException::withMessages([
+                'emoji' => __('No puedes reaccionar a un mensaje eliminado.'),
+            ]);
+        }
+
+        if (! Schema::hasTable('chat_message_reactions')) {
+            throw ValidationException::withMessages([
+                'emoji' => __('Las reacciones no están disponibles.'),
+            ]);
+        }
+
+        $emoji = trim($emoji);
+        if (! self::isAllowedReactionEmoji($emoji)) {
+            throw ValidationException::withMessages([
+                'emoji' => __('Emoji de reacción no permitido.'),
+            ]);
+        }
+
+        $existing = ChatMessageReaction::query()
+            ->where('message_id', $message->id)
+            ->where('user_id', $actor->id)
+            ->first();
+
+        $removed = false;
+        if ($existing !== null && $existing->emoji === $emoji) {
+            $existing->delete();
+            $removed = true;
+        } elseif ($existing !== null) {
+            $existing->emoji = $emoji;
+            $existing->created_at = now();
+            $existing->save();
+        } else {
+            ChatMessageReaction::query()->create([
+                'message_id' => $message->id,
+                'user_id' => $actor->id,
+                'emoji' => $emoji,
+                'created_at' => now(),
+            ]);
+        }
+
+        $message->load(['user:id,name', 'replyTo.user:id,name', 'attachments', 'reactions']);
+        $serialized = $this->serializeMessage($message, $actor, $conversation);
+        $this->dispatchMessageUpdated($conversation, $actor, $message, 'reaction');
+
+        return [
+            'message' => $serialized,
+            'reactions' => $serialized['reactions'] ?? [],
+            'removed' => $removed,
+        ];
+    }
+
+    public function forwardMessage(ChatMessage $source, User $actor, ChatConversation $target): ChatMessage
+    {
+        $sourceConversation = $source->conversation
+            ?? ChatConversation::query()->findOrFail($source->conversation_id);
+
+        $this->assertParticipant($sourceConversation, $actor);
+        $this->assertParticipant($target, $actor);
+
+        if ($source->isDeleted()) {
+            throw ValidationException::withMessages([
+                'message' => __('No puedes reenviar un mensaje eliminado.'),
+            ]);
+        }
+
+        $source->loadMissing('attachments');
+
+        $originalBody = trim((string) ($source->body ?? ''));
+        $attachmentNames = $source->attachments
+            ->map(static fn (ChatMessageAttachment $a): string => (string) $a->name)
+            ->filter()
+            ->values()
+            ->all();
+
+        if ($attachmentNames === [] && filled($source->attachment_name)) {
+            $attachmentNames[] = (string) $source->attachment_name;
+        }
+
+        $parts = [];
+        if ($originalBody !== '') {
+            $parts[] = $originalBody;
+        }
+        if ($attachmentNames !== []) {
+            $parts[] = '📎 '.implode(', ', $attachmentNames);
+        }
+
+        $forwardBody = '[Reenviado] '.($parts !== [] ? implode("\n", $parts) : '(sin contenido)');
+
+        return $this->sendMessage($target, $actor, $forwardBody);
+    }
+
+    /**
+     * Galería de adjuntos de imagen de la conversación.
+     *
+     * @return list<array{message_id: string, url: ?string, name: string, mime: string, size: int, created_at: ?string}>
+     */
+    public function mediaGallery(ChatConversation $conversation, User $actor): array
+    {
+        $this->assertParticipant($conversation, $actor);
+
+        $items = [];
+
+        if (Schema::hasTable('chat_message_attachments')) {
+            $rows = ChatMessageAttachment::query()
+                ->whereHas('message', function ($q) use ($conversation): void {
+                    $q->where('conversation_id', $conversation->id);
+                    if (Schema::hasColumn('chat_messages', 'deleted_at')) {
+                        $q->whereNull('deleted_at');
+                    }
+                })
+                ->where('mime', 'ilike', 'image/%')
+                ->with('message:id,conversation_id,created_at,deleted_at')
+                ->orderByDesc('created_at')
+                ->limit(200)
+                ->get();
+
+            foreach ($rows as $att) {
+                /** @var ChatMessageAttachment $att */
+                $items[] = [
+                    'message_id' => (string) $att->message_id,
+                    'url' => $att->url,
+                    'name' => (string) ($att->name ?: 'imagen'),
+                    'mime' => (string) ($att->mime ?? ''),
+                    'size' => (int) ($att->size ?? 0),
+                    'created_at' => ($att->created_at ?? $att->message?->created_at)?->toIso8601String(),
+                ];
+            }
+        }
+
+        if ($items === [] && Schema::hasColumn('chat_messages', 'attachment_path')) {
+            $legacy = ChatMessage::query()
+                ->where('conversation_id', $conversation->id)
+                ->whereNotNull('attachment_path')
+                ->where('attachment_mime', 'ilike', 'image/%')
+                ->when(
+                    Schema::hasColumn('chat_messages', 'deleted_at'),
+                    static fn ($q) => $q->whereNull('deleted_at'),
+                )
+                ->orderByDesc('created_at')
+                ->limit(200)
+                ->get();
+
+            foreach ($legacy as $message) {
+                $items[] = [
+                    'message_id' => (string) $message->id,
+                    'url' => $message->attachment_url,
+                    'name' => (string) ($message->attachment_name ?: 'imagen'),
+                    'mime' => (string) ($message->attachment_mime ?? ''),
+                    'size' => (int) ($message->attachment_size ?? 0),
+                    'created_at' => $message->created_at?->toIso8601String(),
+                ];
+            }
+        }
+
+        return $items;
     }
 
     /**
@@ -358,10 +712,15 @@ final class TenantChatService
             ->where('conversation_id', $conversation->id)
             ->whereNotNull('body')
             ->where('body', 'ilike', $like)
+            ->when(
+                Schema::hasColumn('chat_messages', 'deleted_at'),
+                static fn ($q) => $q->whereNull('deleted_at'),
+            )
             ->with([
                 'user:id,name',
                 'replyTo.user:id,name',
                 'attachments',
+                'reactions',
             ])
             ->orderByDesc('created_at')
             ->limit(40)
@@ -411,8 +770,12 @@ final class TenantChatService
         if (! $message->relationLoaded('attachments') && Schema::hasTable('chat_message_attachments')) {
             $message->load('attachments');
         }
+        if (! $message->relationLoaded('reactions') && Schema::hasTable('chat_message_reactions')) {
+            $message->load('reactions');
+        }
 
-        $attachments = $this->serializeAttachments($message);
+        $isDeleted = Schema::hasColumn('chat_messages', 'deleted_at') && $message->deleted_at !== null;
+        $attachments = $isDeleted ? [] : $this->serializeAttachments($message);
         $legacy = $attachments[0] ?? null;
 
         $mentionIds = collect($message->mentioned_user_ids ?? [])
@@ -445,10 +808,16 @@ final class TenantChatService
 
         return [
             'id' => (string) $message->id,
-            'body' => $message->body !== null ? (string) $message->body : '',
+            'body' => $isDeleted ? '' : ($message->body !== null ? (string) $message->body : ''),
             'user_id' => (string) $message->user_id,
             'user_name' => (string) ($message->user?->name ?? 'Usuario'),
             'created_at' => $message->created_at?->toIso8601String(),
+            'edited_at' => Schema::hasColumn('chat_messages', 'edited_at')
+                ? $message->edited_at?->toIso8601String()
+                : null,
+            'deleted' => $isDeleted,
+            'is_deleted' => $isDeleted,
+            'deleted_at' => $isDeleted ? $message->deleted_at?->toIso8601String() : null,
             'mine' => (string) $message->user_id === (string) $actor->id,
             'reply_to_id' => $message->reply_to_id !== null ? (string) $message->reply_to_id : null,
             'reply_to' => $replyPreview,
@@ -456,8 +825,44 @@ final class TenantChatService
             'mentions' => $mentions,
             'attachment' => $legacy,
             'attachments' => $attachments,
+            'reactions' => $this->serializeReactions($message, $actor),
             'read_by' => $this->readersForMessage($message, $conversation),
         ];
+    }
+
+    /**
+     * @return list<array{emoji: string, count: int, mine: bool, user_ids: list<string>}>
+     */
+    private function serializeReactions(ChatMessage $message, User $actor): array
+    {
+        if (! Schema::hasTable('chat_message_reactions')) {
+            return [];
+        }
+
+        $reactions = $message->relationLoaded('reactions')
+            ? $message->reactions
+            : $message->reactions()->get();
+
+        /** @var Collection<string, Collection<int, ChatMessageReaction>> $grouped */
+        $grouped = $reactions->groupBy('emoji');
+
+        return $grouped
+            ->map(function (Collection $group, string $emoji) use ($actor): array {
+                $userIds = $group
+                    ->pluck('user_id')
+                    ->map(static fn ($id): string => (string) $id)
+                    ->values()
+                    ->all();
+
+                return [
+                    'emoji' => $emoji,
+                    'count' => count($userIds),
+                    'mine' => in_array((string) $actor->id, $userIds, true),
+                    'user_ids' => $userIds,
+                ];
+            })
+            ->values()
+            ->all();
     }
 
     /**
@@ -481,11 +886,7 @@ final class TenantChatService
             ->first();
 
         if ($conversation === null) {
-            $memberIds = $this->directoryUsers((string) $actor->id)
-                ->pluck('id')
-                ->map(static fn ($id): string => (string) $id)
-                ->all();
-
+            $memberIds = $this->cashTeamUserIds((string) $actor->id);
             $conversation = $this->createGroup($actor, $groupName, $memberIds);
         }
 
@@ -533,6 +934,10 @@ final class TenantChatService
                     ->where('p.user_id', '=', $actor->id);
             })
             ->where('m.user_id', '!=', $actor->id)
+            ->when(
+                Schema::hasColumn('chat_messages', 'deleted_at'),
+                static fn ($q) => $q->whereNull('m.deleted_at'),
+            )
             ->where(function ($q): void {
                 $q->whereNull('p.last_read_at')
                     ->orWhereColumn('m.created_at', '>', 'p.last_read_at');
@@ -569,6 +974,10 @@ final class TenantChatService
             })
             ->leftJoin('users as u', 'u.id', '=', 'm.user_id')
             ->where('m.user_id', '!=', $actor->id)
+            ->when(
+                Schema::hasColumn('chat_messages', 'deleted_at'),
+                static fn ($q) => $q->whereNull('m.deleted_at'),
+            )
             ->where(function ($q): void {
                 $q->whereNull('p.last_read_at')
                     ->orWhereColumn('m.created_at', '>', 'p.last_read_at');
@@ -687,12 +1096,15 @@ final class TenantChatService
             $mine = $myReads->get($conversation->id);
             $muted = Schema::hasColumn('chat_participants', 'muted_at')
                 && $mine?->muted_at !== null;
+            $pinned = Schema::hasColumn('chat_participants', 'pinned_at')
+                && $mine?->pinned_at !== null;
 
             $payload[] = $this->serializeConversationSummary(
                 $conversation,
                 $actor,
                 (int) ($unreadCounts[$conversation->id] ?? 0),
                 $muted,
+                $pinned,
             );
         }
 
@@ -715,7 +1127,11 @@ final class TenantChatService
 
             $q = ChatMessage::query()
                 ->where('conversation_id', $cid)
-                ->where('user_id', '!=', $actor->id);
+                ->where('user_id', '!=', $actor->id)
+                ->when(
+                    Schema::hasColumn('chat_messages', 'deleted_at'),
+                    static fn ($query) => $query->whereNull('deleted_at'),
+                );
 
             if ($since !== null) {
                 $q->where('created_at', '>', $since);
@@ -735,6 +1151,7 @@ final class TenantChatService
         User $actor,
         int $unread,
         ?bool $muted = null,
+        ?bool $pinned = null,
     ): array {
         $last = $conversation->messages->first();
         $participants = $conversation->participants
@@ -745,11 +1162,27 @@ final class TenantChatService
             ->values()
             ->all();
 
+        $mine = $conversation->participants
+            ->first(static fn (ChatParticipant $p): bool => (string) $p->user_id === (string) $actor->id);
+
         if ($muted === null) {
-            $mine = $conversation->participants
-                ->first(static fn (ChatParticipant $p): bool => (string) $p->user_id === (string) $actor->id);
             $muted = Schema::hasColumn('chat_participants', 'muted_at')
                 && $mine?->muted_at !== null;
+        }
+
+        if ($pinned === null) {
+            $pinned = Schema::hasColumn('chat_participants', 'pinned_at')
+                && $mine?->pinned_at !== null;
+        }
+
+        $presence = null;
+        if ($conversation->isDirect()) {
+            $peer = $conversation->participants
+                ->first(static fn (ChatParticipant $p): bool => (string) $p->user_id !== (string) $actor->id);
+            if ($peer !== null) {
+                $presenceMap = $this->presenceForUsers([(string) $peer->user_id]);
+                $presence = $presenceMap[(string) $peer->user_id] ?? null;
+            }
         }
 
         return [
@@ -761,6 +1194,8 @@ final class TenantChatService
             'participant_count' => count($participants),
             'unread' => $unread,
             'muted' => (bool) $muted,
+            'pinned' => (bool) $pinned,
+            'presence' => $presence,
             'last_message' => $last === null ? null : [
                 'body' => $this->previewFromRow(
                     $last->body,
@@ -800,6 +1235,9 @@ final class TenantChatService
         if (Schema::hasTable('chat_message_attachments')) {
             $with[] = 'attachments';
         }
+        if (Schema::hasTable('chat_message_reactions')) {
+            $with[] = 'reactions';
+        }
 
         $q = ChatMessage::query()
             ->where('conversation_id', $conversation->id)
@@ -831,10 +1269,16 @@ final class TenantChatService
         $unread = 0;
         $summary = $this->serializeConversationSummary($conversation, $actor, $unread);
 
+        $participantIds = $conversation->participants
+            ->pluck('user_id')
+            ->map(static fn ($id): string => (string) $id)
+            ->all();
+
         return [
             ...$summary,
             'messages' => $this->messagesPayload($conversation, $actor),
             'typing' => $this->typingPayload($conversation, $actor),
+            'presence' => $this->presenceForUsers($participantIds),
         ];
     }
 
@@ -930,6 +1374,11 @@ final class TenantChatService
         return "chat:typing:{$conversationId}:{$userId}";
     }
 
+    private function presenceCacheKey(string $userId): string
+    {
+        return "chat:presence:{$userId}";
+    }
+
     private function dispatchMessageCreated(
         ChatConversation $conversation,
         User $actor,
@@ -957,6 +1406,31 @@ final class TenantChatService
             ));
         } catch (Throwable) {
             // Broadcasting opcional: no bloquear el envío del mensaje.
+        }
+    }
+
+    private function dispatchMessageUpdated(
+        ChatConversation $conversation,
+        User $actor,
+        ChatMessage $message,
+        string $reason = 'updated',
+    ): void {
+        try {
+            $tenantId = app(TenantManager::class)->id();
+            if ($tenantId === null || $tenantId === '') {
+                return;
+            }
+
+            $serialized = $this->serializeMessage($message, $actor, $conversation);
+
+            event(new ChatMessageUpdated(
+                (string) $tenantId,
+                (string) $conversation->id,
+                $serialized,
+                $reason,
+            ));
+        } catch (Throwable) {
+            // Broadcasting opcional.
         }
     }
 
