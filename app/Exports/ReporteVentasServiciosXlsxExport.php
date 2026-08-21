@@ -64,11 +64,12 @@ class ReporteVentasServiciosXlsxExport
         $tipo = (string) ($filtros['tipo'] ?? 'todos');
         $periodoLabel = sprintf('%s → %s', $filtros['fecha_desde'], $filtros['fecha_hasta']);
 
-        if (in_array($tipo, ['tratamiento', 'vacuna', 'grooming'], true)) {
+        if (in_array($tipo, ['tratamiento', 'vacuna', 'grooming', 'otro'], true)) {
             $sheet = $spreadsheet->getActiveSheet();
             $title = match ($tipo) {
                 'vacuna' => 'Vacunas',
                 'grooming' => 'Grooming',
+                'otro' => 'Otros',
                 default => 'Tratamientos',
             };
             $this->writeDetailSheet(
@@ -89,6 +90,7 @@ class ReporteVentasServiciosXlsxExport
                 'tratamiento' => [],
                 'vacuna' => [],
                 'grooming' => [],
+                'otro' => [],
             ];
             foreach ($items as $item) {
                 $t = (string) ($item['tipo'] ?? '');
@@ -100,6 +102,7 @@ class ReporteVentasServiciosXlsxExport
             $sheets = [
                 ['title' => 'Tratamientos', 'tipo' => 'tratamiento', 'table' => 'TablaTratamientos'],
                 ['title' => 'Vacunas', 'tipo' => 'vacuna', 'table' => 'TablaVacunas'],
+                ['title' => 'Otros', 'tipo' => 'otro', 'table' => 'TablaOtros'],
             ];
             if ($includeGrooming) {
                 $sheets[] = ['title' => 'Grooming', 'tipo' => 'grooming', 'table' => 'TablaGrooming'];
@@ -176,6 +179,7 @@ class ReporteVentasServiciosXlsxExport
         $rows = [
             ['Tratamientos', $resumen['tratamiento'] ?? []],
             ['Vacunas', $resumen['vacuna'] ?? []],
+            ['Otros', $resumen['otro'] ?? []],
         ];
         if ($includeGrooming) {
             $rows[] = ['Grooming', $resumen['grooming'] ?? []];
@@ -276,6 +280,7 @@ class ReporteVentasServiciosXlsxExport
             'tratamiento' => 'Tratamiento',
             'vacuna' => 'Vacuna',
             'grooming' => 'Grooming',
+            'otro' => 'Otro',
         ];
 
         $row = $headerRow + 1;

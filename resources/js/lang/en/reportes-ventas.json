@@ -39,7 +39,8 @@
             "producto": "Product",
             "tratamiento": "Treatment",
             "vacuna": "Vaccine",
-            "grooming": "Grooming"
+            "grooming": "Grooming",
+            "otro": "Other"
         },
         "na": "—"
     },
@@ -50,13 +51,14 @@
     },
     "servicios": {
         "title": "Sales by service",
-        "description": "Treatments, vaccines and grooming: volume, price, cost and profit.",
+        "description": "Treatments, vaccines, other applications and grooming: volume, price, cost and profit.",
         "search_placeholder": "Search service…",
         "tabs": {
             "resumen": "Summary",
             "todos": "All",
             "tratamiento": "Treatments",
             "vacuna": "Vaccines",
+            "otro": "Other",
             "grooming": "Grooming"
         },
         "resumen_hint": "Period totals by service type (paid sales only).",

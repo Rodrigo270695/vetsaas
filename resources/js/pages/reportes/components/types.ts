@@ -48,6 +48,7 @@ export type ReporteServicioResumen = {
     tratamiento: ReporteServicioResumenSlice;
     vacuna: ReporteServicioResumenSlice;
     grooming: ReporteServicioResumenSlice;
+    otro: ReporteServicioResumenSlice;
 };
 
 export type SortKey =

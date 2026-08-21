@@ -1,5 +1,5 @@
 import { Head, router, setLayoutProps, resetLayoutProps } from '@inertiajs/react';
-import { AlertTriangle, Download, Scissors, Stethoscope, Syringe } from 'lucide-react';
+import { AlertTriangle, Download, MoreHorizontal, Scissors, Stethoscope, Syringe } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/data-page';
@@ -36,7 +36,7 @@ type Props = {
     can_export?: boolean;
 };
 
-type TabValue = 'resumen' | 'todos' | 'tratamiento' | 'vacuna' | 'grooming';
+type TabValue = 'resumen' | 'todos' | 'tratamiento' | 'vacuna' | 'otro' | 'grooming';
 
 function ResumenCard({
     title,
@@ -210,7 +210,9 @@ export default function VentasServiciosIndex({
         params.set('fecha_hasta', filtros.fecha_hasta);
         // resumen/todos → multi-hoja; pestaña específica → hoja de ese tipo
         const tipoExport =
-            tab === 'tratamiento' || tab === 'vacuna' || tab === 'grooming' ? tab : 'todos';
+            tab === 'tratamiento' || tab === 'vacuna' || tab === 'grooming' || tab === 'otro'
+                ? tab
+                : 'todos';
         params.set('tipo', tipoExport);
         if (search.trim()) {
             params.set('search', search.trim());
@@ -255,6 +257,7 @@ export default function VentasServiciosIndex({
                         <TabsTrigger value="todos">{t('servicios.tabs.todos')}</TabsTrigger>
                         <TabsTrigger value="tratamiento">{t('servicios.tabs.tratamiento')}</TabsTrigger>
                         <TabsTrigger value="vacuna">{t('servicios.tabs.vacuna')}</TabsTrigger>
+                        <TabsTrigger value="otro">{t('servicios.tabs.otro')}</TabsTrigger>
                         {capabilities.grooming ? (
                             <TabsTrigger value="grooming">{t('servicios.tabs.grooming')}</TabsTrigger>
                         ) : null}
@@ -273,7 +276,7 @@ export default function VentasServiciosIndex({
                                 </AlertDescription>
                             </Alert>
                         ) : null}
-                        <div className="grid gap-4 lg:grid-cols-3">
+                        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                             <ResumenCard
                                 title={t('servicios.tabs.tratamiento')}
                                 icon={Stethoscope}
@@ -294,6 +297,16 @@ export default function VentasServiciosIndex({
                                 onOpen={() => navigateTipo('vacuna')}
                                 actionLabel={t('servicios.ver_detalle')}
                             />
+                            <ResumenCard
+                                title={t('servicios.tabs.otro')}
+                                icon={MoreHorizontal}
+                                slice={resumen.otro ?? { unidades: 0, ventas: 0, ingresos: 0, costo: 0, utilidad: null, margen_pct: null, items: 0, items_sin_costo: 0 }}
+                                moneda={moneda}
+                                locale={locale}
+                                tone="text-amber-600 dark:text-amber-400"
+                                onOpen={() => navigateTipo('otro')}
+                                actionLabel={t('servicios.ver_detalle')}
+                            />
                             {capabilities.grooming ? (
                                 <ResumenCard
                                     title={t('servicios.tabs.grooming')}
@@ -309,7 +322,7 @@ export default function VentasServiciosIndex({
                         </div>
                     </TabsContent>
 
-                    {(['todos', 'tratamiento', 'vacuna', 'grooming'] as const).map((value) => {
+                    {(['todos', 'tratamiento', 'vacuna', 'otro', 'grooming'] as const).map((value) => {
                         if (value === 'grooming' && !capabilities.grooming) {
                             return null;
                         }

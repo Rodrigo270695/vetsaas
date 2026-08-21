@@ -131,7 +131,7 @@ class ReporteVentasController extends Controller
         abort_unless($this->userCan($user, 'reporte-financiero.export'), 403);
 
         // Para export multi-hoja (resumen/todos) necesitamos todos los ítems.
-        $tipoExport = in_array($tipo, ['tratamiento', 'vacuna', 'grooming'], true) ? $tipo : 'todos';
+        $tipoExport = in_array($tipo, ['tratamiento', 'vacuna', 'grooming', 'otro'], true) ? $tipo : 'todos';
 
         $payload = $this->reportes->ventasPorServicio(
             $tipoExport,
@@ -203,7 +203,7 @@ class ReporteVentasController extends Controller
         abort_unless($capabilities['ventas'] ?? false, 403);
 
         $tipo = (string) $request->query('tipo', 'todos');
-        if (! in_array($tipo, ['todos', 'tratamiento', 'vacuna', 'grooming'], true)) {
+        if (! in_array($tipo, ['todos', 'tratamiento', 'vacuna', 'grooming', 'otro'], true)) {
             $tipo = 'todos';
         }
 
@@ -292,7 +292,8 @@ class ReporteVentasController extends Controller
      * @return array{
      *     tratamiento: array{unidades: float, ventas: int, ingresos: float, costo: float, utilidad: ?float, margen_pct: ?float, items: int, items_sin_costo: int},
      *     vacuna: array{unidades: float, ventas: int, ingresos: float, costo: float, utilidad: ?float, margen_pct: ?float, items: int, items_sin_costo: int},
-     *     grooming: array{unidades: float, ventas: int, ingresos: float, costo: float, utilidad: ?float, margen_pct: ?float, items: int, items_sin_costo: int}
+     *     grooming: array{unidades: float, ventas: int, ingresos: float, costo: float, utilidad: ?float, margen_pct: ?float, items: int, items_sin_costo: int},
+     *     otro: array{unidades: float, ventas: int, ingresos: float, costo: float, utilidad: ?float, margen_pct: ?float, items: int, items_sin_costo: int}
      * }
      */
     private function recomputeResumen(array $items, bool $includeGrooming): array
@@ -301,6 +302,7 @@ class ReporteVentasController extends Controller
             'tratamiento' => [],
             'vacuna' => [],
             'grooming' => [],
+            'otro' => [],
         ];
 
         foreach ($items as $item) {
@@ -326,7 +328,7 @@ class ReporteVentasController extends Controller
         ];
 
         $out = [];
-        foreach (['tratamiento', 'vacuna', 'grooming'] as $tipo) {
+        foreach (['tratamiento', 'vacuna', 'grooming', 'otro'] as $tipo) {
             if ($tipo === 'grooming' && ! $includeGrooming) {
                 $out[$tipo] = $empty;
 

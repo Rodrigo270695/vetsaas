@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Reportes de ventas por producto y por servicio (tratamientos, vacunas, grooming).
+ * Reportes de ventas por producto y por servicio (tratamientos, vacunas, otros, grooming).
  *
  * Usa ventas pagadas con el mismo filtro FEL/comprobante que el análisis financiero.
  * Costos y precios salen del catálogo vigente (no snapshot histórico).
@@ -119,12 +119,12 @@ final class ReporteVentasService
     }
 
     /**
-     * @param  'todos'|'tratamiento'|'vacuna'|'grooming'  $tipo
+     * @param  'todos'|'tratamiento'|'vacuna'|'grooming'|'otro'  $tipo
      * @return array{
      *     moneda: string,
      *     filtros: array{fecha_desde: string, fecha_hasta: string, periodo: string, tipo: string},
      *     totales: array{unidades: float, ventas: int, ingresos: float, costo: float, utilidad: ?float, margen_pct: ?float, items_sin_costo: int},
-     *     resumen: array{tratamiento: array, vacuna: array, grooming: array},
+     *     resumen: array{tratamiento: array, vacuna: array, grooming: array, otro: array},
      *     items: list<array<string, mixed>>
      * }
      */
@@ -135,7 +135,7 @@ final class ReporteVentasService
         ?string $periodo = null,
         bool $includeGrooming = true,
     ): array {
-        $tipo = in_array($tipo, ['todos', 'tratamiento', 'vacuna', 'grooming'], true) ? $tipo : 'todos';
+        $tipo = in_array($tipo, ['todos', 'tratamiento', 'vacuna', 'grooming', 'otro'], true) ? $tipo : 'todos';
         if (! $includeGrooming && $tipo === 'grooming') {
             $tipo = 'todos';
         }
@@ -147,7 +147,7 @@ final class ReporteVentasService
         $vacunaApps = $this->vacunaAplicacionesStats($start, $end);
 
         $items = match ($tipo) {
-            'tratamiento', 'vacuna', 'grooming' => array_values(array_filter(
+            'tratamiento', 'vacuna', 'grooming', 'otro' => array_values(array_filter(
                 $allItems,
                 static fn (array $item): bool => $item['tipo'] === $tipo,
             )),
@@ -214,6 +214,7 @@ final class ReporteVentasService
 
         $clinicos = $this->catalogoClinico();
         $grooming = $includeGrooming ? $this->catalogoGrooming() : [];
+        $nombresAplicacion = $this->nombresPorCategoriaAplicacion();
 
         $lineas = DB::table('venta_lineas as vl')
             ->join('ventas as v', 'v.id', '=', 'vl.venta_id')
@@ -256,9 +257,19 @@ final class ReporteVentasService
                 // Preferir strip de "Vacunación · …" (misma idea que Grooming ·).
                 $vacKey = $this->normalizeVacunaName($descripcion);
                 $clinKey = $this->normalizeCatalogName($descripcion);
+                $aplicacionMeta = $nombresAplicacion[$vacKey] ?? $nombresAplicacion[$clinKey] ?? null;
                 $catalogKey = isset($clinicos[$vacKey]) ? $vacKey : (isset($clinicos[$clinKey]) ? $clinKey : null);
 
-                if ($catalogKey !== null) {
+                if ($aplicacionMeta !== null && ($aplicacionMeta['tipo'] === 'otro' || $this->looksLikeVacunaSale($descripcion))) {
+                    $matched = [
+                        'id' => $aplicacionMeta['tipo'].':'.$vacKey,
+                        'nombre' => $this->displayVacunaName($descripcion),
+                        'categoria' => $aplicacionMeta['categoria'],
+                        'precio' => 0.0,
+                        'costo_unit' => null,
+                    ];
+                    $tipo = $aplicacionMeta['tipo'];
+                } elseif ($catalogKey !== null) {
                     $matched = $clinicos[$catalogKey];
                     $tipo = ($this->looksLikeVacunaSale($descripcion)
                         || $this->isVacuna($matched['nombre'], $matched['categoria'] ?? null))
@@ -297,8 +308,8 @@ final class ReporteVentasService
             );
         }
 
-        // Vacunas cobradas como producto de inventario (línea con producto_id).
-        $this->accumulateVacunaProductoLineas($acumulado, $start, $end);
+        // Productos cobrados desde Vacunaciones (vacuna / desparasitación / otro).
+        $this->accumulateAplicacionProductoLineas($acumulado, $start, $end);
 
         $items = [];
         foreach ($acumulado as $row) {
@@ -376,15 +387,18 @@ final class ReporteVentasService
     }
 
     /**
+     * Líneas con producto_id aplicadas desde Vacunaciones (vacuna / desparasitacion / otro).
+     *
      * @param  array<string, array<string, mixed>>  $acumulado
      */
-    private function accumulateVacunaProductoLineas(array &$acumulado, CarbonInterface $start, CarbonInterface $end): void
+    private function accumulateAplicacionProductoLineas(array &$acumulado, CarbonInterface $start, CarbonInterface $end): void
     {
         if (! Schema::hasTable('venta_lineas') || ! Schema::hasTable('productos')) {
             return;
         }
 
-        $productoIdsVacuna = $this->productoIdsUsadosEnVacunas();
+        $productoTipos = $this->productoIdsPorCategoriaAplicacion();
+        $nombreTipos = $this->nombresPorCategoriaAplicacion();
 
         $q = DB::table('venta_lineas as vl')
             ->join('ventas as v', 'v.id', '=', 'vl.venta_id')
@@ -417,12 +431,24 @@ final class ReporteVentasService
             $productoNombre = (string) ($linea->producto_nombre ?? '');
             $productoId = (string) ($linea->producto_id ?? '');
 
-            $esVacuna = $this->looksLikeVacunaSale($descripcion)
-                || $this->looksLikeVacunaSale($productoNombre)
-                || ($productoId !== '' && isset($productoIdsVacuna[$productoId]));
+            $tipo = null;
+            $categoriaLabel = null;
 
-            if (! $esVacuna) {
-                continue;
+            if ($productoId !== '' && isset($productoTipos[$productoId])) {
+                $tipo = $productoTipos[$productoId]['tipo'];
+                $categoriaLabel = $productoTipos[$productoId]['categoria'];
+            } else {
+                $nombreHint = $productoNombre !== '' ? $productoNombre : $this->displayVacunaName($descripcion);
+                $nombreKey = $this->normalizeCatalogName($nombreHint);
+                if ($nombreKey !== '' && isset($nombreTipos[$nombreKey])) {
+                    $tipo = $nombreTipos[$nombreKey]['tipo'];
+                    $categoriaLabel = $nombreTipos[$nombreKey]['categoria'];
+                } elseif ($this->looksLikeVacunaSale($descripcion) || $this->looksLikeVacunaSale($productoNombre)) {
+                    $tipo = 'vacuna';
+                    $categoriaLabel = 'Vacunas';
+                } else {
+                    continue;
+                }
             }
 
             $cantidad = (float) $linea->cantidad;
@@ -438,9 +464,9 @@ final class ReporteVentasService
 
             $nombre = $productoNombre !== '' ? $productoNombre : $this->displayVacunaName($descripcion);
             $matched = [
-                'id' => $productoId !== '' ? 'prod:'.$productoId : 'vacuna:'.$this->normalizeVacunaName($nombre),
+                'id' => $productoId !== '' ? 'prod:'.$productoId : $tipo.':'.$this->normalizeCatalogName($nombre),
                 'nombre' => $nombre,
-                'categoria' => 'Vacunas',
+                'categoria' => $categoriaLabel,
                 'precio' => $precio,
                 'costo_unit' => $costo,
             ];
@@ -448,7 +474,7 @@ final class ReporteVentasService
             $this->accumulateServicioLine(
                 $acumulado,
                 $matched,
-                'vacuna',
+                $tipo,
                 $cantidad,
                 $ventaId,
                 isset($linea->fecha) ? (string) $linea->fecha : '',
@@ -459,31 +485,86 @@ final class ReporteVentasService
     }
 
     /**
-     * @return array<string, true>
+     * producto_id → tipo de reporte según última categoría de aplicación clínica.
+     *
+     * @return array<string, array{tipo: string, categoria: string}>
      */
-    private function productoIdsUsadosEnVacunas(): array
+    private function productoIdsPorCategoriaAplicacion(): array
     {
         if (! Schema::hasTable('vacunas_aplicadas') || ! Schema::hasColumn('vacunas_aplicadas', 'producto_id')) {
             return [];
         }
 
-        $q = DB::table('vacunas_aplicadas')->whereNotNull('producto_id');
+        $q = DB::table('vacunas_aplicadas')
+            ->whereNotNull('producto_id')
+            ->orderByDesc('aplicada_at');
+
         if (Schema::hasColumn('vacunas_aplicadas', 'deleted_at')) {
             $q->whereNull('deleted_at');
         }
-        if (Schema::hasColumn('vacunas_aplicadas', 'categoria_registro')) {
-            $q->where(function ($inner): void {
-                $inner->where('categoria_registro', 'vacuna')
-                    ->orWhereNull('categoria_registro');
-            });
+
+        $map = [];
+        foreach ($q->get(['producto_id', 'categoria_registro']) as $row) {
+            $pid = (string) $row->producto_id;
+            if ($pid === '' || isset($map[$pid])) {
+                continue;
+            }
+
+            $cat = (string) ($row->categoria_registro ?? 'vacuna');
+            $map[$pid] = match ($cat) {
+                'otro' => ['tipo' => 'otro', 'categoria' => 'Otros'],
+                'desparasitacion' => ['tipo' => 'tratamiento', 'categoria' => 'Desparasitación'],
+                default => ['tipo' => 'vacuna', 'categoria' => 'Vacunas'],
+            };
         }
 
-        $ids = [];
-        foreach ($q->distinct()->pluck('producto_id') as $id) {
-            $ids[(string) $id] = true;
+        return $map;
+    }
+
+    /**
+     * nombre normalizado → tipo de reporte según última aplicación clínica.
+     *
+     * @return array<string, array{tipo: string, categoria: string}>
+     */
+    private function nombresPorCategoriaAplicacion(): array
+    {
+        if (! Schema::hasTable('vacunas_aplicadas')) {
+            return [];
         }
 
-        return $ids;
+        $q = DB::table('vacunas_aplicadas as va')->orderByDesc('va.aplicada_at');
+        if (Schema::hasColumn('vacunas_aplicadas', 'deleted_at')) {
+            $q->whereNull('va.deleted_at');
+        }
+
+        $cols = ['va.nombre_vacuna', 'va.categoria_registro'];
+        if (Schema::hasColumn('vacunas_aplicadas', 'servicio_clinico_id') && Schema::hasTable('servicios_clinicos')) {
+            $q->leftJoin('servicios_clinicos as sc', 'sc.id', '=', 'va.servicio_clinico_id');
+            $cols[] = 'sc.nombre as servicio_nombre';
+        }
+
+        $map = [];
+        foreach ($q->get($cols) as $row) {
+            $cat = (string) ($row->categoria_registro ?? 'vacuna');
+            $meta = match ($cat) {
+                'otro' => ['tipo' => 'otro', 'categoria' => 'Otros'],
+                'desparasitacion' => ['tipo' => 'tratamiento', 'categoria' => 'Desparasitación'],
+                default => ['tipo' => 'vacuna', 'categoria' => 'Vacunas'],
+            };
+
+            foreach ([(string) ($row->nombre_vacuna ?? ''), (string) ($row->servicio_nombre ?? '')] as $nombre) {
+                $nombre = trim($nombre);
+                if ($nombre === '') {
+                    continue;
+                }
+                $key = $this->normalizeCatalogName($nombre);
+                if ($key !== '' && ! isset($map[$key])) {
+                    $map[$key] = $meta;
+                }
+            }
+        }
+
+        return $map;
     }
 
     /**
@@ -621,7 +702,8 @@ final class ReporteVentasService
      * @return array{
      *     tratamiento: array{unidades: float, ventas: int, ingresos: float, costo: float, utilidad: ?float, margen_pct: ?float, items: int, items_sin_costo: int},
      *     vacuna: array{unidades: float, ventas: int, ingresos: float, costo: float, utilidad: ?float, margen_pct: ?float, items: int, items_sin_costo: int},
-     *     grooming: array{unidades: float, ventas: int, ingresos: float, costo: float, utilidad: ?float, margen_pct: ?float, items: int, items_sin_costo: int}
+     *     grooming: array{unidades: float, ventas: int, ingresos: float, costo: float, utilidad: ?float, margen_pct: ?float, items: int, items_sin_costo: int},
+     *     otro: array{unidades: float, ventas: int, ingresos: float, costo: float, utilidad: ?float, margen_pct: ?float, items: int, items_sin_costo: int}
      * }
      */
     private function buildResumenFromItems(array $items): array
@@ -630,6 +712,7 @@ final class ReporteVentasService
             'tratamiento' => $this->emptyResumenSlice(),
             'vacuna' => $this->emptyResumenSlice(),
             'grooming' => $this->emptyResumenSlice(),
+            'otro' => $this->emptyResumenSlice(),
         ];
 
         foreach ($items as $item) {

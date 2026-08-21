@@ -39,7 +39,8 @@
             "producto": "Producto",
             "tratamiento": "Tratamiento",
             "vacuna": "Vacuna",
-            "grooming": "Grooming"
+            "grooming": "Grooming",
+            "otro": "Otro"
         },
         "na": "—"
     },
@@ -50,13 +51,14 @@
     },
     "servicios": {
         "title": "Ventas por servicio",
-        "description": "Tratamientos, vacunas y grooming: volumen, precio, costo y utilidad.",
+        "description": "Tratamientos, vacunas, otros y grooming: volumen, precio, costo y utilidad.",
         "search_placeholder": "Buscar servicio…",
         "tabs": {
             "resumen": "Resumen",
             "todos": "Todos",
             "tratamiento": "Tratamientos",
             "vacuna": "Vacunas",
+            "otro": "Otros",
             "grooming": "Grooming"
         },
         "resumen_hint": "Totales del periodo por tipo de servicio (solo ventas pagadas).",
