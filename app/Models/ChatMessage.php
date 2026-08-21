@@ -112,4 +112,9 @@ class ChatMessage extends Model
     {
         return $this->hasMany(ChatMessageReaction::class, 'message_id');
     }
+
+    public function deliveries(): HasMany
+    {
+        return $this->hasMany(ChatMessageDelivery::class, 'message_id');
+    }
 }

@@ -1022,6 +1022,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             Route::get('chat/{chatConversation}/search', [TenantChatController::class, 'search'])
                 ->whereUuid('chatConversation')
                 ->name('chat.search');
+            Route::get('chat/{chatConversation}/messages/{chatMessage}/context', [TenantChatController::class, 'messageContext'])
+                ->whereUuid(['chatConversation', 'chatMessage'])
+                ->name('chat.messages.context');
             Route::get('chat/{chatConversation}/media', [TenantChatController::class, 'media'])
                 ->whereUuid('chatConversation')
                 ->name('chat.media');

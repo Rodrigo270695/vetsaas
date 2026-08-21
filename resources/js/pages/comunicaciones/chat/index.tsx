@@ -11,6 +11,7 @@ import {
     Bell,
     BellOff,
     Check,
+    CheckCheck,
     ChevronLeft,
     FileText,
     Forward,
@@ -133,6 +134,7 @@ type ChatMessage = {
     attachment: ChatAttachment | null;
     attachments?: ChatAttachment[];
     read_by?: ReadBy[];
+    delivery_status?: 'sent' | 'delivered' | 'read';
     edited_at?: string | null;
     deleted_at?: string | null;
     is_deleted?: boolean;
@@ -185,6 +187,7 @@ type Props = {
     conversations: ConversationSummary[];
     users: ChatUser[];
     active: ActiveConversation | null;
+    focus_message_id?: string | null;
     unread_total: number;
     can_manage: boolean;
     can_create_groups?: boolean;
@@ -421,6 +424,7 @@ export default function ChatInternoIndex({
     conversations: conversationsProp,
     users,
     active: activeProp,
+    focus_message_id: focusMessageIdProp,
     unread_total,
     can_manage,
     can_create_groups,
@@ -464,6 +468,8 @@ export default function ChatInternoIndex({
     const [searchResults, setSearchResults] = useState<ChatMessage[]>([]);
     const [searching, setSearching] = useState(false);
     const [highlightId, setHighlightId] = useState<string | null>(null);
+    const focusAppliedRef = useRef(false);
+    const jumpingRef = useRef(false);
     const [mentionOpen, setMentionOpen] = useState(false);
     const [mentionQuery, setMentionQuery] = useState('');
     const [mentionIndex, setMentionIndex] = useState(0);
@@ -1598,15 +1604,118 @@ export default function ChatInternoIndex({
         };
     }, [threadQuery, runThreadSearch]);
 
-    const jumpToMessage = (id: string) => {
-        setHighlightId(id);
-        setSearchOpen(false);
-        requestAnimationFrame(() => {
-            const el = messageRefs.current.get(id);
-            el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        });
-        window.setTimeout(() => setHighlightId(null), 2200);
-    };
+    const jumpToMessage = useCallback(
+        async (id: string) => {
+            setSearchOpen(false);
+
+            const scrollAndHighlight = () => {
+                setHighlightId(id);
+                requestAnimationFrame(() => {
+                    const el = messageRefs.current.get(id);
+                    el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                });
+                window.setTimeout(() => setHighlightId(null), 2500);
+            };
+
+            if (messageRefs.current.has(id)) {
+                scrollAndHighlight();
+
+                return;
+            }
+
+            if (!active?.id || jumpingRef.current) {
+                return;
+            }
+
+            jumpingRef.current = true;
+            toastManager.info({
+                id: `chat-jump-${id}`,
+                title: t('jump_loading'),
+                duration: 3_000,
+            });
+
+            try {
+                const res = await fetch(
+                    `/comunicaciones/chat/${active.id}/messages/${id}/context`,
+                    {
+                        headers: csrfHeaders(),
+                        credentials: 'same-origin',
+                    },
+                );
+                if (!res.ok) {
+                    toastManager.error({
+                        title: t('jump_not_found'),
+                        duration: 4_000,
+                    });
+
+                    return;
+                }
+
+                const data = (await res.json()) as {
+                    messages?: ChatMessage[];
+                };
+                const incoming = data.messages ?? [];
+                if (incoming.length === 0) {
+                    toastManager.error({
+                        title: t('jump_not_found'),
+                        duration: 4_000,
+                    });
+
+                    return;
+                }
+
+                setActive((prev) => {
+                    if (!prev) return prev;
+                    const byId = new Map(
+                        prev.messages.map((m) => [m.id, m] as const),
+                    );
+                    for (const m of incoming) {
+                        byId.set(m.id, m);
+                    }
+                    const merged = [...byId.values()].sort((a, b) =>
+                        (a.created_at ?? '').localeCompare(b.created_at ?? ''),
+                    );
+
+                    return { ...prev, messages: merged };
+                });
+
+                window.setTimeout(() => {
+                    scrollAndHighlight();
+                }, 60);
+            } catch {
+                toastManager.error({
+                    title: t('jump_not_found'),
+                    duration: 4_000,
+                });
+            } finally {
+                jumpingRef.current = false;
+            }
+        },
+        [active?.id, t],
+    );
+
+    useEffect(() => {
+        if (!focusMessageIdProp || !active?.id) {
+            return;
+        }
+        if (focusAppliedRef.current) {
+            return;
+        }
+        if ((active.messages?.length ?? 0) === 0) {
+            return;
+        }
+        focusAppliedRef.current = true;
+        void jumpToMessage(focusMessageIdProp);
+    }, [
+        focusMessageIdProp,
+        active?.id,
+        active?.messages?.length,
+        jumpToMessage,
+    ]);
+
+    useEffect(() => {
+        focusAppliedRef.current = false;
+    }, [focusMessageIdProp, activeProp?.id]);
 
     const onComposerKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
         if (mentionOpen && mentionCandidates.length > 0) {
@@ -1684,20 +1793,48 @@ export default function ChatInternoIndex({
             ? t('participants', { count: active.participant_count })
             : t('dm_badge'));
 
-    const renderReadBy = (m: ChatMessage) => {
+    const renderDeliveryStatus = (m: ChatMessage) => {
         if (!m.mine && m.user_id !== meId) return null;
-        const readers = (m.read_by ?? []).filter((r) => r.user_id !== meId);
-        if (readers.length === 0) return null;
-        if (readers.length === 1) {
-            return t('seen_by', { names: readers[0].name });
-        }
-        if (readers.length <= 3) {
-            return t('seen_by', {
-                names: readers.map((r) => r.name).join(', '),
-            });
-        }
 
-        return `${t('seen')} · ${readers.length}`;
+        const readers = (m.read_by ?? []).filter((r) => r.user_id !== meId);
+        const status =
+            m.delivery_status
+            ?? (readers.length > 0 ? 'read' : 'sent');
+
+        const label =
+            status === 'read'
+                ? t('delivery_read')
+                : status === 'delivered'
+                  ? t('delivery_delivered')
+                  : t('delivery_sent');
+
+        const Icon = status === 'sent' ? Check : CheckCheck;
+        const seenNames =
+            status === 'read' && readers.length > 0
+                ? readers.length === 1
+                    ? t('seen_by', { names: readers[0].name })
+                    : readers.length <= 3
+                      ? t('seen_by', {
+                            names: readers.map((r) => r.name).join(', '),
+                        })
+                      : `${t('seen')} · ${readers.length}`
+                : null;
+
+        return (
+            <p className="flex items-center justify-end gap-1 px-1 text-[10px] text-muted-foreground">
+                <Icon
+                    className={cn(
+                        'size-3 shrink-0',
+                        status === 'read'
+                            && 'text-sky-600 dark:text-sky-400',
+                        status === 'delivered'
+                            && 'text-muted-foreground',
+                    )}
+                    aria-hidden
+                />
+                <span>{seenNames ?? label}</span>
+            </p>
+        );
     };
 
     const linkifyText = (text: string, keyPrefix: string): ReactNode[] => {
@@ -2309,7 +2446,7 @@ export default function ChatInternoIndex({
                                                                     type="button"
                                                                     className="flex w-full flex-col gap-0.5 border-b border-border/40 px-3 py-2 text-left last:border-0 hover:bg-muted/60"
                                                                     onClick={() =>
-                                                                        jumpToMessage(
+                                                                        void jumpToMessage(
                                                                             m.id,
                                                                         )
                                                                     }
@@ -2360,7 +2497,7 @@ export default function ChatInternoIndex({
                                         const atts = deleted
                                             ? []
                                             : messageAttachments(m);
-                                        const readLabel = renderReadBy(m);
+                                        const readLabel = renderDeliveryStatus(m);
                                         const reactions = m.reactions ?? [];
 
                                         return (
@@ -2398,7 +2535,7 @@ export default function ChatInternoIndex({
                                                                   : 'rounded-bl-md border border-border/60 bg-card text-foreground',
                                                             highlightId
                                                                 === m.id
-                                                                && 'ring-2 ring-amber-400/80',
+                                                                && 'ring-2 ring-amber-400/80 ring-offset-2 ring-offset-background',
                                                         )}
                                                     >
                                                         {!mine
@@ -2421,7 +2558,7 @@ export default function ChatInternoIndex({
                                                                         : 'border-emerald-500/50 bg-muted/60',
                                                                 )}
                                                                 onClick={() =>
-                                                                    jumpToMessage(
+                                                                    void jumpToMessage(
                                                                         m.reply_to!
                                                                             .id,
                                                                     )
@@ -2759,11 +2896,7 @@ export default function ChatInternoIndex({
                                                         </div>
                                                     ) : null}
 
-                                                    {readLabel ? (
-                                                        <p className="px-1 text-right text-[10px] text-muted-foreground">
-                                                            {readLabel}
-                                                        </p>
-                                                    ) : null}
+                                                    {readLabel}
                                                 </div>
                                             </div>
                                         );

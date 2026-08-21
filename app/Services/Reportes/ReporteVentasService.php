@@ -144,6 +144,7 @@ final class ReporteVentasService
 
         $allItems = $this->collectServicioItems($start, $end, $includeGrooming);
         $resumen = $this->buildResumenFromItems($allItems);
+        $vacunaApps = $this->vacunaAplicacionesStats($start, $end);
 
         $items = match ($tipo) {
             'tratamiento', 'vacuna', 'grooming' => array_values(array_filter(
@@ -197,6 +198,7 @@ final class ReporteVentasService
             ],
             'totales' => $this->buildTotales($unidades, count($ventaIds), $ingresos, $costo, $utilidadAcum, $conCosto, $sinCosto),
             'resumen' => $resumen,
+            'vacuna_aplicaciones' => $vacunaApps,
             'items' => $itemsPublicos,
         ];
     }
@@ -219,12 +221,14 @@ final class ReporteVentasService
 
         $this->applyVentasFilter($lineas, $start, $end);
 
-        /** @var Collection<int, object{descripcion: string, cantidad: string, venta_id: string, fecha: ?string}> $lineas */
+        /** @var Collection<int, object{descripcion: string, cantidad: string, venta_id: string, fecha: ?string, precio_unitario: mixed, subtotal: mixed}> $lineas */
         $lineas = $lineas
             ->select(
                 'vl.descripcion_snapshot as descripcion',
                 'vl.cantidad',
                 'vl.venta_id',
+                'vl.precio_unitario',
+                'vl.subtotal',
                 DB::raw('COALESCE(v.fecha_pago, v.created_at) as fecha'),
             )
             ->get();
@@ -249,12 +253,27 @@ final class ReporteVentasService
                     continue;
                 }
 
+                // Preferir strip de "Vacunación · …" (misma idea que Grooming ·).
+                $vacKey = $this->normalizeVacunaName($descripcion);
                 $clinKey = $this->normalizeCatalogName($descripcion);
-                if (isset($clinicos[$clinKey])) {
-                    $matched = $clinicos[$clinKey];
-                    $tipo = $this->isVacuna($matched['nombre'], $matched['categoria'] ?? null)
+                $catalogKey = isset($clinicos[$vacKey]) ? $vacKey : (isset($clinicos[$clinKey]) ? $clinKey : null);
+
+                if ($catalogKey !== null) {
+                    $matched = $clinicos[$catalogKey];
+                    $tipo = ($this->looksLikeVacunaSale($descripcion)
+                        || $this->isVacuna($matched['nombre'], $matched['categoria'] ?? null))
                         ? 'vacuna'
                         : 'tratamiento';
+                } elseif ($this->looksLikeVacunaSale($descripcion)) {
+                    // Línea de vacuna sin match exacto al catálogo: igual agrupar por nombre limpio.
+                    $matched = [
+                        'id' => 'vacuna:'.$vacKey,
+                        'nombre' => $this->displayVacunaName($descripcion),
+                        'categoria' => 'Vacunas',
+                        'precio' => 0.0,
+                        'costo_unit' => null,
+                    ];
+                    $tipo = 'vacuna';
                 }
             }
 
@@ -262,51 +281,24 @@ final class ReporteVentasService
                 continue;
             }
 
-            $id = (string) $matched['id'];
-            $bucketKey = $tipo.':'.$id;
+            $precioLinea = (float) ($linea->precio_unitario ?? 0);
+            $subtotalLinea = (float) ($linea->subtotal ?? ($cantidad * $precioLinea));
+            $useLine = ((float) ($matched['precio'] ?? 0)) <= 0 && $subtotalLinea > 0;
 
-            if (! isset($acumulado[$bucketKey])) {
-                $acumulado[$bucketKey] = [
-                    'id' => $id,
-                    'nombre' => $matched['nombre'],
-                    'categoria' => $matched['categoria'] ?? null,
-                    'tipo' => $tipo,
-                    'precio_unit' => $matched['precio'],
-                    'costo_unit' => $matched['costo_unit'],
-                    'cantidad' => 0.0,
-                    'venta_ids' => [],
-                    'ingreso' => 0.0,
-                    'costo' => 0.0,
-                    'fecha_primera' => null,
-                    'fecha_ultima' => null,
-                ];
-            }
-
-            $acumulado[$bucketKey]['cantidad'] += $cantidad;
-            $acumulado[$bucketKey]['ingreso'] += $cantidad * $matched['precio'];
-            if ($matched['costo_unit'] !== null) {
-                $acumulado[$bucketKey]['costo'] += $cantidad * $matched['costo_unit'];
-            }
-            $acumulado[$bucketKey]['venta_ids'][$ventaId] = true;
-
-            $fechaRaw = isset($linea->fecha) ? (string) $linea->fecha : '';
-            if ($fechaRaw !== '') {
-                try {
-                    $fechaCarbon = \Carbon\Carbon::parse($fechaRaw);
-                    $fechaIso = $fechaCarbon->toIso8601String();
-                    $prevPrimera = $acumulado[$bucketKey]['fecha_primera'];
-                    $prevUltima = $acumulado[$bucketKey]['fecha_ultima'];
-                    if ($prevPrimera === null || $fechaIso < (string) $prevPrimera) {
-                        $acumulado[$bucketKey]['fecha_primera'] = $fechaIso;
-                    }
-                    if ($prevUltima === null || $fechaIso > (string) $prevUltima) {
-                        $acumulado[$bucketKey]['fecha_ultima'] = $fechaIso;
-                    }
-                } catch (\Throwable) {
-                    // Ignorar fechas inválidas en líneas legacy.
-                }
-            }
+            $this->accumulateServicioLine(
+                $acumulado,
+                $matched,
+                $tipo,
+                $cantidad,
+                $ventaId,
+                isset($linea->fecha) ? (string) $linea->fecha : '',
+                $useLine ? $subtotalLinea : null,
+                $useLine ? $precioLinea : null,
+            );
         }
+
+        // Vacunas cobradas como producto de inventario (línea con producto_id).
+        $this->accumulateVacunaProductoLineas($acumulado, $start, $end);
 
         $items = [];
         foreach ($acumulado as $row) {
@@ -314,6 +306,228 @@ final class ReporteVentasService
         }
 
         return $items;
+    }
+
+    /**
+     * @param  array<string, array<string, mixed>>  $acumulado
+     * @param  array{id: string, nombre: string, categoria: ?string, precio: float, costo_unit: ?float}  $matched
+     */
+    private function accumulateServicioLine(
+        array &$acumulado,
+        array $matched,
+        string $tipo,
+        float $cantidad,
+        string $ventaId,
+        string $fechaRaw,
+        ?float $ingresoLinea = null,
+        ?float $precioLinea = null,
+    ): void {
+        $id = (string) $matched['id'];
+        $bucketKey = $tipo.':'.$id;
+
+        $precioUnit = $precioLinea !== null && $precioLinea > 0
+            ? $precioLinea
+            : (float) $matched['precio'];
+        $costoUnit = $matched['costo_unit'];
+
+        if (! isset($acumulado[$bucketKey])) {
+            $acumulado[$bucketKey] = [
+                'id' => $id,
+                'nombre' => $matched['nombre'],
+                'categoria' => $matched['categoria'] ?? null,
+                'tipo' => $tipo,
+                'precio_unit' => $precioUnit > 0 ? $precioUnit : null,
+                'costo_unit' => $costoUnit,
+                'cantidad' => 0.0,
+                'venta_ids' => [],
+                'ingreso' => 0.0,
+                'costo' => 0.0,
+                'fecha_primera' => null,
+                'fecha_ultima' => null,
+            ];
+        }
+
+        $acumulado[$bucketKey]['cantidad'] += $cantidad;
+        $ingreso = $ingresoLinea !== null
+            ? $ingresoLinea
+            : ($cantidad * (float) $matched['precio']);
+        $acumulado[$bucketKey]['ingreso'] += $ingreso;
+        if ($costoUnit !== null) {
+            $acumulado[$bucketKey]['costo'] += $cantidad * $costoUnit;
+        }
+        $acumulado[$bucketKey]['venta_ids'][$ventaId] = true;
+
+        if ($fechaRaw !== '') {
+            try {
+                $fechaCarbon = \Carbon\Carbon::parse($fechaRaw);
+                $fechaIso = $fechaCarbon->toIso8601String();
+                $prevPrimera = $acumulado[$bucketKey]['fecha_primera'];
+                $prevUltima = $acumulado[$bucketKey]['fecha_ultima'];
+                if ($prevPrimera === null || $fechaIso < (string) $prevPrimera) {
+                    $acumulado[$bucketKey]['fecha_primera'] = $fechaIso;
+                }
+                if ($prevUltima === null || $fechaIso > (string) $prevUltima) {
+                    $acumulado[$bucketKey]['fecha_ultima'] = $fechaIso;
+                }
+            } catch (\Throwable) {
+                // Ignorar fechas inválidas en líneas legacy.
+            }
+        }
+    }
+
+    /**
+     * @param  array<string, array<string, mixed>>  $acumulado
+     */
+    private function accumulateVacunaProductoLineas(array &$acumulado, CarbonInterface $start, CarbonInterface $end): void
+    {
+        if (! Schema::hasTable('venta_lineas') || ! Schema::hasTable('productos')) {
+            return;
+        }
+
+        $productoIdsVacuna = $this->productoIdsUsadosEnVacunas();
+
+        $q = DB::table('venta_lineas as vl')
+            ->join('ventas as v', 'v.id', '=', 'vl.venta_id')
+            ->leftJoin('productos as p', 'p.id', '=', 'vl.producto_id')
+            ->whereNotNull('vl.producto_id');
+
+        $this->applyVentasFilter($q, $start, $end);
+
+        $cols = [
+            'vl.descripcion_snapshot as descripcion',
+            'vl.cantidad',
+            'vl.venta_id',
+            'vl.producto_id',
+            'vl.precio_unitario',
+            'vl.subtotal',
+            'p.nombre as producto_nombre',
+            DB::raw('COALESCE(v.fecha_pago, v.created_at) as fecha'),
+        ];
+        if (Schema::hasColumn('productos', 'precio_venta')) {
+            $cols[] = 'p.precio_venta';
+        }
+        if (Schema::hasColumn('productos', 'precio_compra')) {
+            $cols[] = 'p.precio_compra';
+        } elseif (Schema::hasColumn('productos', 'precio_costo')) {
+            $cols[] = 'p.precio_costo';
+        }
+
+        foreach ($q->select($cols)->get() as $linea) {
+            $descripcion = (string) ($linea->descripcion ?? '');
+            $productoNombre = (string) ($linea->producto_nombre ?? '');
+            $productoId = (string) ($linea->producto_id ?? '');
+
+            $esVacuna = $this->looksLikeVacunaSale($descripcion)
+                || $this->looksLikeVacunaSale($productoNombre)
+                || ($productoId !== '' && isset($productoIdsVacuna[$productoId]));
+
+            if (! $esVacuna) {
+                continue;
+            }
+
+            $cantidad = (float) $linea->cantidad;
+            $ventaId = (string) $linea->venta_id;
+            $precio = (float) ($linea->precio_unitario ?? $linea->precio_venta ?? 0);
+            $subtotal = (float) ($linea->subtotal ?? ($cantidad * $precio));
+            $costo = null;
+            if (isset($linea->precio_compra) && $linea->precio_compra !== null && $linea->precio_compra !== '') {
+                $costo = (float) $linea->precio_compra;
+            } elseif (isset($linea->precio_costo) && $linea->precio_costo !== null && $linea->precio_costo !== '') {
+                $costo = (float) $linea->precio_costo;
+            }
+
+            $nombre = $productoNombre !== '' ? $productoNombre : $this->displayVacunaName($descripcion);
+            $matched = [
+                'id' => $productoId !== '' ? 'prod:'.$productoId : 'vacuna:'.$this->normalizeVacunaName($nombre),
+                'nombre' => $nombre,
+                'categoria' => 'Vacunas',
+                'precio' => $precio,
+                'costo_unit' => $costo,
+            ];
+
+            $this->accumulateServicioLine(
+                $acumulado,
+                $matched,
+                'vacuna',
+                $cantidad,
+                $ventaId,
+                isset($linea->fecha) ? (string) $linea->fecha : '',
+                $subtotal,
+                $precio > 0 ? $precio : null,
+            );
+        }
+    }
+
+    /**
+     * @return array<string, true>
+     */
+    private function productoIdsUsadosEnVacunas(): array
+    {
+        if (! Schema::hasTable('vacunas_aplicadas') || ! Schema::hasColumn('vacunas_aplicadas', 'producto_id')) {
+            return [];
+        }
+
+        $q = DB::table('vacunas_aplicadas')->whereNotNull('producto_id');
+        if (Schema::hasColumn('vacunas_aplicadas', 'deleted_at')) {
+            $q->whereNull('deleted_at');
+        }
+        if (Schema::hasColumn('vacunas_aplicadas', 'categoria_registro')) {
+            $q->where(function ($inner): void {
+                $inner->where('categoria_registro', 'vacuna')
+                    ->orWhereNull('categoria_registro');
+            });
+        }
+
+        $ids = [];
+        foreach ($q->distinct()->pluck('producto_id') as $id) {
+            $ids[(string) $id] = true;
+        }
+
+        return $ids;
+    }
+
+    /**
+     * @return array{total: int, sin_cobro: int}
+     */
+    public function vacunaAplicacionesStats(CarbonInterface $start, CarbonInterface $end): array
+    {
+        if (! Schema::hasTable('vacunas_aplicadas')) {
+            return ['total' => 0, 'sin_cobro' => 0];
+        }
+
+        $base = DB::table('vacunas_aplicadas as va')
+            ->whereBetween('va.aplicada_at', [$start->copy()->startOfDay(), $end->copy()->endOfDay()]);
+
+        if (Schema::hasColumn('vacunas_aplicadas', 'deleted_at')) {
+            $base->whereNull('va.deleted_at');
+        }
+        if (Schema::hasColumn('vacunas_aplicadas', 'categoria_registro')) {
+            $base->where('va.categoria_registro', 'vacuna');
+        }
+
+        $total = (int) (clone $base)->count();
+        if ($total === 0) {
+            return ['total' => 0, 'sin_cobro' => 0];
+        }
+
+        $conCobro = 0;
+        if (Schema::hasTable('consulta_cargos')
+            && Schema::hasColumn('consulta_cargos', 'vacuna_aplicada_id')
+            && Schema::hasColumn('consulta_cargos', 'venta_id')
+            && Schema::hasTable('ventas')
+        ) {
+            $conCobro = (int) (clone $base)
+                ->join('consulta_cargos as cc', 'cc.vacuna_aplicada_id', '=', 'va.id')
+                ->join('ventas as v', 'v.id', '=', 'cc.venta_id')
+                ->where('v.estado', 'pagado')
+                ->distinct()
+                ->count('va.id');
+        }
+
+        return [
+            'total' => $total,
+            'sin_cobro' => max(0, $total - $conCobro),
+        ];
     }
 
     /**
@@ -486,7 +700,9 @@ final class ReporteVentasService
     private function mapAccumulatedItem(array $row): array
     {
         $cantidad = round((float) $row['cantidad'], 2);
-        $precioUnit = round((float) $row['precio_unit'], 2);
+        $precioUnit = $row['precio_unit'] !== null && $row['precio_unit'] !== ''
+            ? round((float) $row['precio_unit'], 2)
+            : null;
         $costoUnit = $row['costo_unit'] !== null ? round((float) $row['costo_unit'], 2) : null;
         $ingreso = round((float) $row['ingreso'], 2);
         $tieneCosto = $costoUnit !== null;
@@ -640,6 +856,27 @@ final class ReporteVentasService
         return str_contains($haystack, 'vacuna')
             || str_contains($haystack, 'vacunación')
             || str_contains($haystack, 'vacunacion');
+    }
+
+    private function looksLikeVacunaSale(string $descripcion): bool
+    {
+        return $this->isVacuna($descripcion, null)
+            || preg_match('/^\s*vacunaci[oó]n\s*[·\-:]/iu', $descripcion) === 1;
+    }
+
+    private function normalizeVacunaName(string $name): string
+    {
+        $clean = preg_replace('/^\s*vacunaci[oó]n\s*[·\-:]\s*/iu', '', trim($name)) ?? $name;
+
+        return $this->normalizeCatalogName($clean);
+    }
+
+    private function displayVacunaName(string $name): string
+    {
+        $clean = preg_replace('/^\s*vacunaci[oó]n\s*[·\-:]\s*/iu', '', trim($name)) ?? $name;
+        $clean = trim($clean);
+
+        return $clean !== '' ? $clean : 'Vacunación';
     }
 
     /**

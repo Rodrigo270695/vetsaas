@@ -31,6 +31,7 @@ class TenantChatController extends Controller
         abort_unless($user !== null, 401);
 
         $conversationId = trim((string) $request->query('c', ''));
+        $focusMessageId = trim((string) $request->query('m', ''));
         $draft = trim((string) $request->query('draft', ''));
         $notify = trim((string) $request->query('notify', ''));
 
@@ -55,6 +56,7 @@ class TenantChatController extends Controller
             $conversation = ChatConversation::query()->find($conversationId);
             if ($conversation !== null) {
                 $this->chat->assertParticipant($conversation, $user);
+                $this->chat->setViewing($user, (string) $conversation->id);
                 $this->chat->markRead($conversation, $user);
                 $active = $this->chat->activePayload($conversation, $user);
                 $conversations = $this->chat->listConversationsPayload($user);
@@ -71,6 +73,7 @@ class TenantChatController extends Controller
             'conversations' => $conversations,
             'users' => $users,
             'active' => $active,
+            'focus_message_id' => $focusMessageId !== '' ? $focusMessageId : null,
             'unread_total' => $this->chat->unreadTotalFor($user),
             'can_manage' => $user->can('comunicaciones-chat.manage'),
             'can_create_groups' => $user->can('comunicaciones-chat.manage'),
@@ -183,6 +186,8 @@ class TenantChatController extends Controller
 
         $this->chat->assertParticipant($chatConversation, $user);
         $this->chat->touchPresence($user, (string) $chatConversation->id);
+        $this->chat->setViewing($user, (string) $chatConversation->id);
+        $this->chat->markDelivered($chatConversation, $user);
         $this->chat->markRead($chatConversation, $user);
 
         return response()->json([
@@ -353,6 +358,19 @@ class TenantChatController extends Controller
 
         return response()->json([
             'results' => $this->chat->searchInConversation($chatConversation, $user, $q),
+        ]);
+    }
+
+    public function messageContext(
+        Request $request,
+        ChatConversation $chatConversation,
+        ChatMessage $chatMessage,
+    ): JsonResponse {
+        $user = $request->user();
+        abort_unless($user !== null, 401);
+
+        return response()->json([
+            'messages' => $this->chat->messageContext($chatConversation, $user, $chatMessage),
         ]);
     }
 

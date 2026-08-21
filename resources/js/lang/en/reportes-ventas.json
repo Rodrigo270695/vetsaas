@@ -59,7 +59,8 @@
             "vacuna": "Vaccines",
             "grooming": "Grooming"
         },
-        "resumen_hint": "Period totals by service type.",
-        "ver_detalle": "View details"
+        "resumen_hint": "Period totals by service type (paid sales only).",
+        "ver_detalle": "View details",
+        "vacunas_sin_cobro": "Vaccinations has {{total}} vaccine application(s) in this period; {{sin_cobro}} not yet billed at the register. This report only shows billed vaccines."
     }
 }

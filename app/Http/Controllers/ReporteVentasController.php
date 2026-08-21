@@ -111,6 +111,7 @@ class ReporteVentasController extends Controller
             'filtros' => $payload['filtros'],
             'totales' => $payload['totales'],
             'resumen' => $payload['resumen'],
+            'vacuna_aplicaciones' => $payload['vacuna_aplicaciones'] ?? ['total' => 0, 'sin_cobro' => 0],
             'items' => $payload['items'],
             'capabilities' => [
                 'ventas' => (bool) ($capabilities['ventas'] ?? false),

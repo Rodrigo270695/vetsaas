@@ -14,6 +14,7 @@ type InboxPing = {
         preview: string;
         created_at: string | null;
         muted?: boolean;
+        is_mention?: boolean;
     } | null;
 };
 
@@ -138,23 +139,33 @@ export function TenantChatNotifier() {
                 lastNotifiedId.current = latest.message_id;
                 window.sessionStorage.setItem(STORAGE_KEY, latest.message_id);
 
-                // No toastear si el ping indica conversación silenciada.
-                if (latest.muted === true) {
+                const isMention = latest.is_mention === true;
+
+                // Menciones rompen mute; el resto silenciado no toastea.
+                if (!isMention && latest.muted === true) {
                     return;
                 }
 
                 playChatChime();
                 toastManager.info({
                     id: `chat-ping-${latest.message_id}`,
-                    title: t('toast_title', { name: latest.user_name }),
-                    description: latest.preview,
+                    title: isMention
+                        ? t('toast_mention_title', { name: latest.user_name })
+                        : t('toast_title', { name: latest.user_name }),
+                    description: isMention
+                        ? `${latest.user_name}: ${latest.preview}`
+                        : latest.preview,
                     duration: 6_000,
                     action: {
                         label: t('toast_open'),
                         onClick: () => {
-                            router.visit(
-                                `/comunicaciones/chat?c=${encodeURIComponent(latest.conversation_id)}`,
-                            );
+                            const qs = new URLSearchParams({
+                                c: latest.conversation_id,
+                            });
+                            if (isMention) {
+                                qs.set('m', latest.message_id);
+                            }
+                            router.visit(`/comunicaciones/chat?${qs.toString()}`);
                         },
                     },
                 });

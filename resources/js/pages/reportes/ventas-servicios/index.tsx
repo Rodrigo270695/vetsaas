@@ -30,6 +30,7 @@ type Props = {
     filtros: ReporteVentasFiltros;
     totales: ReporteVentasTotales;
     resumen: ReporteServicioResumen;
+    vacuna_aplicaciones?: { total: number; sin_cobro: number };
     items: ReporteVentasItem[];
     capabilities: Capabilities;
     can_export?: boolean;
@@ -113,6 +114,7 @@ export default function VentasServiciosIndex({
     filtros,
     totales,
     resumen,
+    vacuna_aplicaciones,
     items,
     capabilities,
     can_export,
@@ -122,6 +124,7 @@ export default function VentasServiciosIndex({
     const locale = i18n.language?.startsWith('en') ? 'en-US' : 'es-PE';
     const [search, setSearch] = useState('');
     const canExport = can_export ?? can('reporte-financiero.export');
+    const vacunaApps = vacuna_aplicaciones ?? { total: 0, sin_cobro: 0 };
 
     const tipoActual = (filtros.tipo ?? 'todos') as Exclude<TabValue, 'resumen'>;
     const [tab, setTab] = useState<TabValue>(tipoActual === 'todos' ? 'resumen' : tipoActual);
@@ -259,6 +262,17 @@ export default function VentasServiciosIndex({
 
                     <TabsContent value="resumen" className="mt-4 space-y-4">
                         <p className="text-sm text-muted-foreground">{t('servicios.resumen_hint')}</p>
+                        {vacunaApps.sin_cobro > 0 ? (
+                            <Alert className="border-amber-500/40 bg-amber-500/5">
+                                <AlertTriangle className="size-4 text-amber-600" />
+                                <AlertDescription>
+                                    {t('servicios.vacunas_sin_cobro', {
+                                        total: vacunaApps.total,
+                                        sin_cobro: vacunaApps.sin_cobro,
+                                    })}
+                                </AlertDescription>
+                            </Alert>
+                        ) : null}
                         <div className="grid gap-4 lg:grid-cols-3">
                             <ResumenCard
                                 title={t('servicios.tabs.tratamiento')}
@@ -303,6 +317,18 @@ export default function VentasServiciosIndex({
                         return (
                             <TabsContent key={value} value={value} className="mt-4 space-y-4">
                                 <ReporteVentasKpis totales={totales} moneda={moneda} locale={locale} />
+
+                                {value === 'vacuna' && vacunaApps.sin_cobro > 0 ? (
+                                    <Alert className="border-amber-500/40 bg-amber-500/5">
+                                        <AlertTriangle className="size-4 text-amber-600" />
+                                        <AlertDescription>
+                                            {t('servicios.vacunas_sin_cobro', {
+                                                total: vacunaApps.total,
+                                                sin_cobro: vacunaApps.sin_cobro,
+                                            })}
+                                        </AlertDescription>
+                                    </Alert>
+                                ) : null}
 
                                 {totales.items_sin_costo > 0 ? (
                                     <Alert className="border-amber-500/40 bg-amber-500/5">

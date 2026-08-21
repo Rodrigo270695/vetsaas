@@ -59,7 +59,8 @@
             "vacuna": "Vacunas",
             "grooming": "Grooming"
         },
-        "resumen_hint": "Totales del periodo por tipo de servicio.",
-        "ver_detalle": "Ver detalle"
+        "resumen_hint": "Totales del periodo por tipo de servicio (solo ventas pagadas).",
+        "ver_detalle": "Ver detalle",
+        "vacunas_sin_cobro": "En Vacunaciones hay {{total}} aplicación(es) de vacuna en este periodo; {{sin_cobro}} aún sin cobro en caja. Este reporte solo muestra vacunas cobradas."
     }
 }
