@@ -42,6 +42,7 @@
         "expand_day_title": "Día completo",
         "duration_min": "{{minutes}} min",
         "until": "Hasta",
+        "now": "Ahora",
         "weekdays": {
             "mon": "Lun",
             "tue": "Mar",

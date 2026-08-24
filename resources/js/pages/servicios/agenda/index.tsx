@@ -229,6 +229,7 @@ export default function ServiciosAgendaIndex({
             durationMin: (minutes: number) =>
                 t('calendar.duration_min', { minutes }),
             until: t('calendar.until'),
+            now: t('calendar.now'),
             weekdays: {
                 mon: t('calendar.weekdays.mon'),
                 tue: t('calendar.weekdays.tue'),

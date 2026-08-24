@@ -455,7 +455,7 @@ export function AgendaMonthCalendar({
                 </div>
             </div>
 
-            <div className="grid lg:grid-cols-[1fr_minmax(17rem,22rem)]">
+            <div className="grid lg:grid-cols-[1fr_minmax(19rem,26rem)]">
                 <div className="border-b border-border/50 p-3 sm:p-4 lg:border-r lg:border-b-0">
                     <div className="mb-2 grid grid-cols-7 gap-1">
                         {WEEKDAY_KEYS.map((key) => (
@@ -664,11 +664,13 @@ export function AgendaMonthCalendar({
                                     labels.durationMin ??
                                     ((m: number) => `${m} min`),
                                 until: labels.until ?? '→',
+                                now: labels.now,
                             }}
                             canCreate={canCreate}
                             canUpdate={canUpdate && Boolean(onReschedule)}
-                            pxPerHour={44}
+                            pxPerHour={72}
                             compact
+                            showNowLine={false}
                             dragOverKey={dragOverKey}
                             onSelectEvent={onSelectEvent}
                             onScheduleAt={onScheduleDay}

@@ -63,7 +63,7 @@ export function AgendaDayExpandModal({
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent
                 className={cn(
-                    'flex max-h-[min(92vh,52rem)] w-[min(100%,36rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-xl',
+                    'flex max-h-[min(92vh,56rem)] w-[min(100%,42rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl',
                     'rounded-2xl border-border/60 shadow-2xl shadow-black/20 ring-1 ring-black/5',
                     'dark:shadow-black/50 dark:ring-white/10',
                     // Apertura tipo Apple: blur + scale + slide suave
@@ -100,11 +100,13 @@ export function AgendaDayExpandModal({
                             scheduleAt: labels.scheduleAt,
                             durationMin,
                             until,
+                            now: labels.now,
                         }}
                         canCreate={canCreate}
                         canUpdate={canUpdate}
-                        pxPerHour={72}
+                        pxPerHour={96}
                         compact={false}
+                        showNowLine
                         dragOverKey={dragOverKey}
                         onSelectEvent={(event) => {
                             onSelectEvent(event);

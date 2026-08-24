@@ -7,7 +7,8 @@ import { cn } from '@/lib/utils';
 import type { AgendaEvent } from './agenda-types';
 
 const DEFAULT_DURATION_MIN = 30;
-const MIN_DURATION_MIN = 15;
+/** Mínimo visual: ~20 min para que la barra se lea bien. */
+const MIN_VISUAL_DURATION_MIN = 20;
 
 function toDateKey(d: Date, timeZone: string): string {
     const tz = new TZDate(d, timeZone);
@@ -20,6 +21,7 @@ export type AgendaDayTimelineLabels = {
     scheduleAt: (hour: string) => string;
     durationMin: (minutes: number) => string;
     until: string;
+    now?: string;
 };
 
 type Props = {
@@ -30,9 +32,10 @@ type Props = {
     labels: AgendaDayTimelineLabels;
     canCreate: boolean;
     canUpdate: boolean;
-    /** Altura en px de cada hora. */
+    /** Altura en px de cada hora (Google Calendar ~48–96). */
     pxPerHour?: number;
     compact?: boolean;
+    showNowLine?: boolean;
     dragOverKey: string | null;
     onSelectEvent: (event: AgendaEvent) => void;
     onScheduleAt: (dateKey: string, hourLabel: string) => void;
@@ -61,7 +64,7 @@ function resolveDurationMinutes(event: AgendaEvent, timeZone: string): number {
         Number.isFinite(event.duracion_minutos) &&
         event.duracion_minutos > 0
     ) {
-        return Math.max(MIN_DURATION_MIN, Math.round(event.duracion_minutos));
+        return Math.round(event.duracion_minutos);
     }
 
     if (event.fin_at) {
@@ -70,12 +73,12 @@ function resolveDurationMinutes(event: AgendaEvent, timeZone: string): number {
         const mins = Math.round((end - start) / 60_000);
 
         if (mins > 0) {
-            // Hotel multi-día: en vista diaria mostramos un bloque corto de check-in.
+            // Hotel multi-día: en vista diaria, bloque de check-in.
             if (mins > 12 * 60) {
                 return 60;
             }
 
-            return Math.max(MIN_DURATION_MIN, mins);
+            return mins;
         }
     }
 
@@ -92,8 +95,21 @@ function minutesFromGridStart(
     return tz.getHours() * 60 + tz.getMinutes() - firstHour * 60;
 }
 
+type Enriched = {
+    event: AgendaEvent;
+    startMin: number;
+    endMin: number;
+    durationMin: number;
+    startLabel: string;
+    endLabel: string;
+    topPx: number;
+    heightPx: number;
+    column: number;
+    columnCount: number;
+};
+
 /**
- * Asigna columnas a eventos solapados (estilo calendario Google/Apple).
+ * Layout tipo Google Calendar: columnas para solapes + mismo columnCount por cluster.
  */
 function layoutEvents(
     events: readonly AgendaEvent[],
@@ -104,7 +120,7 @@ function layoutEvents(
 ): LaidOutEvent[] {
     const dayEndMinutes = (lastHourInclusive + 1) * 60 - firstHour * 60;
 
-    const enriched = events
+    const enriched: Omit<Enriched, 'column' | 'columnCount'>[] = events
         .map((event) => {
             const durationMin = resolveDurationMinutes(event, timeZone);
             let startMin = minutesFromGridStart(
@@ -112,16 +128,17 @@ function layoutEvents(
                 firstHour,
                 timeZone,
             );
-            let endMin = startMin + durationMin;
+            const visualDuration = Math.max(durationMin, MIN_VISUAL_DURATION_MIN);
+            let endMin = startMin + visualDuration;
 
-            startMin = Math.max(0, startMin);
-            endMin = Math.min(dayEndMinutes, Math.max(startMin + MIN_DURATION_MIN, endMin));
+            startMin = Math.max(0, Math.min(startMin, dayEndMinutes - 5));
+            endMin = Math.min(
+                dayEndMinutes,
+                Math.max(startMin + MIN_VISUAL_DURATION_MIN, endMin),
+            );
 
             const startTz = new TZDate(event.inicio_at, timeZone);
-            const endTz = new TZDate(
-                startTz.getTime() + durationMin * 60_000,
-                timeZone,
-            );
+            const endTz = new Date(startTz.getTime() + durationMin * 60_000);
 
             return {
                 event,
@@ -133,15 +150,16 @@ function layoutEvents(
                 topPx: (startMin / 60) * pxPerHour,
                 heightPx: Math.max(
                     ((endMin - startMin) / 60) * pxPerHour,
-                    pxPerHour * 0.35,
+                    28,
                 ),
             };
         })
         .sort((a, b) => a.startMin - b.startMin || b.endMin - a.endMin);
 
+    // Asignar columnas greedy
     type Active = { endMin: number; column: number };
     const active: Active[] = [];
-    const withCols: Array<(typeof enriched)[number] & { column: number }> = [];
+    const withCols: Enriched[] = [];
 
     for (const item of enriched) {
         for (let i = active.length - 1; i >= 0; i -= 1) {
@@ -157,33 +175,71 @@ function layoutEvents(
         }
 
         active.push({ endMin: item.endMin, column });
-        withCols.push({ ...item, column });
+        withCols.push({ ...item, column, columnCount: 1 });
     }
 
-    // columnCount por cluster de solapes
-    const result: LaidOutEvent[] = withCols.map((item) => {
-        const overlapping = withCols.filter(
-            (other) =>
-                other.startMin < item.endMin && other.endMin > item.startMin,
-        );
-        const columnCount = Math.max(
-            1,
-            ...overlapping.map((o) => o.column + 1),
-        );
+    // Clusters conectados → mismo columnCount
+    const n = withCols.length;
+    const parent = Array.from({ length: n }, (_, i) => i);
+    const find = (i: number): number => {
+        if (parent[i] !== i) {
+            parent[i] = find(parent[i]);
+        }
 
-        return {
-            event: item.event,
-            topPx: item.topPx,
-            heightPx: item.heightPx,
-            column: item.column,
-            columnCount,
-            startLabel: item.startLabel,
-            endLabel: item.endLabel,
-            durationMin: item.durationMin,
-        };
-    });
+        return parent[i];
+    };
+    const union = (a: number, b: number) => {
+        const ra = find(a);
+        const rb = find(b);
+        if (ra !== rb) {
+            parent[rb] = ra;
+        }
+    };
 
-    return result;
+    for (let i = 0; i < n; i += 1) {
+        for (let j = i + 1; j < n; j += 1) {
+            if (
+                withCols[i].startMin < withCols[j].endMin &&
+                withCols[j].startMin < withCols[i].endMin
+            ) {
+                union(i, j);
+            }
+        }
+    }
+
+    const clusterMaxCol = new Map<number, number>();
+    for (let i = 0; i < n; i += 1) {
+        const root = find(i);
+        clusterMaxCol.set(
+            root,
+            Math.max(clusterMaxCol.get(root) ?? 0, withCols[i].column + 1),
+        );
+    }
+
+    return withCols.map((item, i) => ({
+        event: item.event,
+        topPx: item.topPx,
+        heightPx: item.heightPx,
+        column: item.column,
+        columnCount: clusterMaxCol.get(find(i)) ?? 1,
+        startLabel: item.startLabel,
+        endLabel: item.endLabel,
+        durationMin: item.durationMin,
+    }));
+}
+
+function hourIsCovered(
+    hour: number,
+    firstHour: number,
+    laidOut: readonly LaidOutEvent[],
+    pxPerHour: number,
+): boolean {
+    const hourStartPx = (hour - firstHour) * pxPerHour;
+    const hourEndPx = hourStartPx + pxPerHour;
+
+    return laidOut.some(
+        (e) => e.topPx < hourEndPx - 4 && e.topPx + e.heightPx > hourStartPx + 4,
+    );
 }
 
 export function AgendaDayTimeline({
@@ -194,8 +250,9 @@ export function AgendaDayTimeline({
     labels,
     canCreate,
     canUpdate,
-    pxPerHour = 48,
+    pxPerHour = 72,
     compact = true,
+    showNowLine = true,
     dragOverKey,
     onSelectEvent,
     onScheduleAt,
@@ -217,7 +274,7 @@ export function AgendaDayTimeline({
     const totalHeight = hourSlots.length * pxPerHour;
 
     const nowLineTop = useMemo(() => {
-        if (dateKey !== toDateKey(new Date(), timeZone)) {
+        if (!showNowLine || dateKey !== toDateKey(new Date(), timeZone)) {
             return null;
         }
 
@@ -229,36 +286,36 @@ export function AgendaDayTimeline({
         }
 
         return (mins / 60) * pxPerHour;
-    }, [dateKey, firstHour, hourSlots.length, pxPerHour, timeZone]);
+    }, [
+        dateKey,
+        firstHour,
+        hourSlots.length,
+        pxPerHour,
+        showNowLine,
+        timeZone,
+    ]);
 
     return (
-        <div className="relative" style={{ height: totalHeight }}>
-            {nowLineTop != null ? (
-                <div
-                    className="pointer-events-none absolute right-0 left-[2.75rem] z-30 pl-2"
-                    style={{ top: nowLineTop }}
-                    aria-hidden
-                >
-                    <div className="relative h-0">
-                        <span className="absolute -top-1 -left-1 size-2.5 rounded-full bg-rose-500 shadow-sm ring-2 ring-background" />
-                        <div className="h-px w-full bg-rose-500/80" />
-                    </div>
-                </div>
-            ) : null}
+        <div
+            className="relative select-none"
+            style={{ height: totalHeight, minHeight: totalHeight }}
+        >
+            {/* Rejilla horaria + medias horas (estilo Google) */}
             {hourSlots.map((hour, index) => {
                 const hourLabel = `${String(hour).padStart(2, '0')}:00`;
                 const slotKey = `hour:${dateKey}:${hour}`;
                 const slotPast = isSlotPast(dateKey, hourLabel);
-                const hasEventStartingHere = events.some((event) => {
-                    const h = new TZDate(event.inicio_at, timeZone).getHours();
-
-                    return h === hour;
-                });
+                const covered = hourIsCovered(
+                    hour,
+                    firstHour,
+                    laidOut,
+                    pxPerHour,
+                );
 
                 return (
                     <div
                         key={hour}
-                        className="absolute right-0 left-0 grid grid-cols-[2.75rem_1fr] gap-2"
+                        className="absolute right-0 left-0 grid grid-cols-[3rem_1fr] gap-1.5"
                         style={{
                             top: index * pxPerHour,
                             height: pxPerHour,
@@ -266,9 +323,8 @@ export function AgendaDayTimeline({
                     >
                         <span
                             className={cn(
-                                '-mt-1.5 text-[0.65rem] text-muted-foreground tabular-nums',
-                                compact ? 'pt-0' : 'pt-0.5 text-xs',
-                                slotPast && 'opacity-45',
+                                '-translate-y-1/2 text-right text-[0.7rem] font-medium text-muted-foreground tabular-nums',
+                                slotPast && 'opacity-40',
                             )}
                         >
                             {hourLabel}
@@ -282,23 +338,30 @@ export function AgendaDayTimeline({
                             onDragLeave={() => onClearDragOver(slotKey)}
                             onDrop={(e) => onDropOnHour(e, dateKey, hour)}
                             className={cn(
-                                'relative h-full border-t border-border/40 transition-colors',
+                                'relative h-full border-t border-border/50 bg-transparent transition-colors',
                                 index === hourSlots.length - 1 &&
-                                    'border-b border-border/40',
+                                    'border-b border-border/50',
                                 dragOverKey === slotKey &&
-                                    'bg-primary/10 ring-2 ring-primary/35 ring-inset',
+                                    'bg-primary/8 ring-2 ring-primary/30 ring-inset',
                             )}
                         >
-                            {!hasEventStartingHere &&
-                            canCreate &&
-                            !slotPast ? (
+                            {/* Línea de media hora */}
+                            <div
+                                className="pointer-events-none absolute inset-x-0 border-t border-dashed border-border/35"
+                                style={{ top: pxPerHour / 2 }}
+                                aria-hidden
+                            />
+
+                            {!covered && canCreate && !slotPast ? (
                                 <button
                                     type="button"
-                                    onClick={() => onScheduleAt(dateKey, hourLabel)}
+                                    onClick={() =>
+                                        onScheduleAt(dateKey, hourLabel)
+                                    }
                                     className={cn(
-                                        'group/slot absolute inset-x-0 top-1 flex cursor-pointer items-center gap-1.5 rounded-md border border-dashed border-transparent px-2 text-left text-[0.65rem] text-muted-foreground/70 transition-all',
+                                        'group/slot absolute inset-x-1 top-1 z-0 flex cursor-pointer items-center gap-1.5 rounded-md px-2 text-left text-[0.65rem] text-muted-foreground/55 transition-all',
                                         compact ? 'h-7' : 'h-8',
-                                        'hover:border-primary/40 hover:bg-primary/5 hover:text-primary',
+                                        'hover:bg-muted/60 hover:text-foreground',
                                     )}
                                 >
                                     <Clock className="size-3 opacity-50 group-hover/slot:opacity-100" />
@@ -312,8 +375,9 @@ export function AgendaDayTimeline({
                 );
             })}
 
+            {/* Barras de eventos (capa superior) */}
             <div
-                className="pointer-events-none absolute top-0 right-0 bottom-0 left-[2.75rem] pl-2"
+                className="pointer-events-none absolute top-0 right-0 bottom-0 left-12"
                 style={{ height: totalHeight }}
             >
                 {laidOut.map(
@@ -329,13 +393,17 @@ export function AgendaDayTimeline({
                     }) => {
                         const draggable =
                             Boolean(event.canDrag) && canUpdate;
+                        const gapPx = columnCount > 1 ? 3 : 2;
                         const widthPct = 100 / columnCount;
                         const leftPct = column * widthPct;
+                        const tall = heightPx >= pxPerHour * 0.55;
+                        const veryTall = heightPx >= pxPerHour * 0.85;
 
                         return (
                             <button
                                 key={event.id}
                                 type="button"
+                                title={`${startLabel} – ${endLabel} · ${event.title}${event.subtitle ? ` · ${event.subtitle}` : ''}`}
                                 draggable={draggable}
                                 onDragStart={(e) => onDragStart(e, event)}
                                 onDragEnd={onDragEnd}
@@ -343,45 +411,69 @@ export function AgendaDayTimeline({
                                 style={{
                                     top: topPx,
                                     height: heightPx,
-                                    left: `calc(${leftPct}% + 2px)`,
-                                    width: `calc(${widthPct}% - 4px)`,
+                                    left: `calc(${leftPct}% + ${gapPx}px)`,
+                                    width: `calc(${widthPct}% - ${gapPx * 2}px)`,
                                 }}
                                 className={cn(
-                                    'pointer-events-auto absolute z-10 overflow-hidden rounded-lg border-l-[3px] px-2 py-1 text-left shadow-sm ring-1 ring-black/5 transition-[transform,box-shadow] hover:z-20 hover:shadow-md hover:ring-black/10',
-                                    'dark:ring-white/10 dark:hover:ring-white/20',
+                                    'pointer-events-auto absolute z-10 flex flex-col overflow-hidden rounded-md border border-black/5 text-left shadow-sm',
+                                    'border-l-4 transition-[box-shadow,transform] hover:z-20 hover:shadow-md',
+                                    'dark:border-white/10',
                                     event.accentClass,
                                     draggable
                                         ? 'cursor-grab active:cursor-grabbing'
                                         : 'cursor-pointer',
-                                    compact ? 'text-[0.65rem]' : 'text-xs',
+                                    // Más “barra” y menos tarjeta
+                                    'bg-opacity-95 backdrop-blur-[1px]',
+                                    compact ? 'px-1.5 py-0.5' : 'px-2 py-1',
                                 )}
                             >
+                                {/* Relleno de duración (refuerzo visual) */}
+                                <span
+                                    className="pointer-events-none absolute inset-y-0 left-0 w-1 opacity-80"
+                                    aria-hidden
+                                />
+
                                 <p
                                     className={cn(
-                                        'leading-tight font-semibold',
+                                        'relative leading-tight font-semibold',
                                         compact
-                                            ? 'line-clamp-1'
-                                            : 'line-clamp-2',
+                                            ? 'text-[0.65rem]'
+                                            : 'text-[0.75rem]',
                                     )}
                                 >
-                                    {startLabel}
-                                    <span className="font-normal opacity-70">
-                                        {' '}
-                                        – {endLabel}
+                                    <span className="tabular-nums">
+                                        {startLabel}
                                     </span>
-                                    {' · '}
-                                    {event.title}
+                                    {tall ? (
+                                        <span className="font-normal opacity-70">
+                                            {' '}
+                                            – {endLabel}
+                                        </span>
+                                    ) : null}
+                                    <span className="font-semibold">
+                                        {' '}
+                                        {event.title}
+                                    </span>
                                 </p>
-                                {heightPx >= pxPerHour * 0.55 ? (
-                                    <p className="mt-0.5 truncate text-[0.6rem] opacity-80">
+
+                                {tall ? (
+                                    <p
+                                        className={cn(
+                                            'relative mt-0.5 truncate font-medium opacity-80',
+                                            compact
+                                                ? 'text-[0.6rem]'
+                                                : 'text-[0.65rem]',
+                                        )}
+                                    >
                                         {labels.durationMin(durationMin)}
                                         {event.subtitle
                                             ? ` · ${event.subtitle}`
                                             : ''}
                                     </p>
                                 ) : null}
-                                {!compact && heightPx >= pxPerHour * 0.9 ? (
-                                    <p className="mt-0.5 text-[0.6rem] font-medium opacity-70">
+
+                                {veryTall && !compact ? (
+                                    <p className="relative mt-auto pt-1 text-[0.6rem] font-medium opacity-60">
                                         {labels.until} {endLabel}
                                     </p>
                                 ) : null}
@@ -390,6 +482,25 @@ export function AgendaDayTimeline({
                     },
                 )}
             </div>
+
+            {/* Línea “ahora” — etiqueta clara para no confundir con duración */}
+            {nowLineTop != null ? (
+                <div
+                    className="pointer-events-none absolute right-0 left-12 z-30"
+                    style={{ top: nowLineTop }}
+                    aria-hidden
+                >
+                    <div className="relative flex items-center">
+                        <span className="absolute -left-1 size-2.5 -translate-x-1/2 rounded-full bg-rose-500 ring-2 ring-background" />
+                        <div className="h-0.5 w-full bg-rose-500/70" />
+                        {labels.now ? (
+                            <span className="absolute right-0 -top-4 rounded bg-rose-500 px-1.5 py-0.5 text-[0.55rem] font-semibold tracking-wide text-white uppercase">
+                                {labels.now}
+                            </span>
+                        ) : null}
+                    </div>
+                </div>
+            ) : null}
         </div>
     );
 }

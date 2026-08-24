@@ -143,6 +143,7 @@ export function CitasCalendar({
             durationMin: (minutes: number) =>
                 t('calendar.duration_min', { minutes }),
             until: t('calendar.until'),
+            now: t('calendar.now'),
             dragHint: t('calendar.drag_hint'),
             weekdays: {
                 mon: t('calendar.weekdays.mon'),

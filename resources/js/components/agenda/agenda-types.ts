@@ -35,6 +35,7 @@ export type AgendaCalendarLabels = {
     expandDayTitle?: string;
     durationMin?: (minutes: number) => string;
     until?: string;
+    now?: string;
     weekdays: Record<
         'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun',
         string
