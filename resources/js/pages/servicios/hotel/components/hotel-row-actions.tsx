@@ -12,6 +12,7 @@ import {
     Wallet,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { CobroEstadoBadge } from '@/components/cobro-estado-badge';
 import { Button, buttonVariants } from '@/components/ui/button';
 import {
     DropdownMenu,
@@ -141,6 +142,8 @@ export function HotelRowActions({
                     <Wallet className="size-3.5" aria-hidden />
                     <span className="hidden lg:inline">{t('actions.cobrar')}</span>
                 </a>
+            ) : estancia.estado_cobro === 'cobrado' ? (
+                <CobroEstadoBadge estado="cobrado" className="h-8 px-2.5" />
             ) : null}
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>

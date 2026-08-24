@@ -161,4 +161,30 @@ class Consulta extends Model
         return $this->hasOne(ConsultaCargo::class, 'consulta_id')
             ->whereNull('venta_id');
     }
+
+    public function cargos(): HasMany
+    {
+        return $this->hasMany(ConsultaCargo::class, 'consulta_id');
+    }
+
+    /**
+     * Estado de cobro para listados. Ver ConsultaCargoCobroEstado.
+     */
+    public function estadoCobro(): string
+    {
+        $pending = $this->relationLoaded('cargo')
+            ? $this->cargo
+            : $this->cargo()->first();
+
+        $cobradoCount = (int) ($this->cargos_cobrados_count
+            ?? ($this->relationLoaded('cargos')
+                ? $this->cargos->whereNotNull('venta_id')->count()
+                : $this->cargos()->whereNotNull('venta_id')->count()));
+
+        return \App\Support\ConsultaCargo\ConsultaCargoCobroEstado::resolve(
+            $pending,
+            $cobradoCount,
+            null,
+        );
+    }
 }

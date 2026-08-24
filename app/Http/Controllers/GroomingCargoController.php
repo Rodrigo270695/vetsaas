@@ -378,6 +378,38 @@ class GroomingCargoController extends Controller
             ->with('success', __('consulta-cargos.flash.confirmado'));
     }
 
+    public function destroy(Request $request, GroomingTurno $groomingTurno): RedirectResponse
+    {
+        $user = $request->user();
+        abort_unless(
+            $user instanceof User
+            && ($user->can('consulta-cargos.manage') || $user->can('grooming.update')),
+            403,
+        );
+        abort_unless($groomingTurno->permiteCargosPreCuenta(), 403);
+
+        $cargo = ConsultaCargo::query()
+            ->where('grooming_turno_id', $groomingTurno->id)
+            ->whereNull('venta_id')
+            ->orderByDesc('updated_at')
+            ->first();
+
+        if ($cargo === null) {
+            return redirect()
+                ->route('servicios.grooming')
+                ->with('info', __('consulta-cargos.flash.sin_precuenta_eliminar'));
+        }
+
+        app(ConsultaCargoPendingDestroyer::class)->destroy(
+            $cargo,
+            (string) $user->getAuthIdentifier(),
+        );
+
+        return redirect()
+            ->route('servicios.grooming')
+            ->with('success', __('consulta-cargos.flash.eliminado'));
+    }
+
     private function seedLineaInicialSiVacio(ConsultaCargo $cargo, GroomingTurno $groomingTurno, ClinicSetting $cfg): void
     {
         if ($cargo->lineas()->exists()) {

@@ -102,10 +102,12 @@ class ConsultaHistoriaController extends Controller
                 'veterinario:id,name',
                 'cerradaPor:id,name',
                 'planTratamiento.lineas.producto:id,nombre,unidad,sku',
-                'cargo:id,consulta_id,estado,total',
+                'cargo:id,consulta_id,estado,total,venta_id',
                 'examenes',
                 'terapiaLineas',
             ]);
+
+        \App\Support\ConsultaCargo\ConsultaCargoCobroEstado::withCobradosCount($query);
 
         if ($canAudit) {
             $query->with([
@@ -123,6 +125,12 @@ class ConsultaHistoriaController extends Controller
         } elseif ($filtrarCerradas) {
             $query->whereNotNull('consultas.cerrada_at');
         }
+
+        $cobroFiltro = strtolower(trim((string) $request->string('cobro', 'todos')));
+        if (! in_array($cobroFiltro, \App\Support\ConsultaCargo\ConsultaCargoCobroEstado::FILTERS, true)) {
+            $cobroFiltro = \App\Support\ConsultaCargo\ConsultaCargoCobroEstado::FILTER_TODOS;
+        }
+        \App\Support\ConsultaCargo\ConsultaCargoCobroEstado::applyListFilter($query, $cobroFiltro);
 
         if ($sort === 'paciente') {
             $query
@@ -167,7 +175,12 @@ class ConsultaHistoriaController extends Controller
             });
         }
 
-        $consultas = $query->paginate($perPage)->withQueryString();
+        $consultas = $query->paginate($perPage)->withQueryString()->through(function (Consulta $consulta): array {
+            $row = $consulta->toArray();
+            $row['estado_cobro'] = $consulta->estadoCobro();
+
+            return $row;
+        });
 
         $consultaAbrirEditar = $this->consultaParaAbrirEnModal($request, $canAudit);
         $pacientePrefillNuevaConsulta = $this->pacientePrefillNuevaConsultaDesdeQuery($request);
@@ -235,6 +248,7 @@ class ConsultaHistoriaController extends Controller
                 'atendido_hasta' => $atendidoHasta,
                 'estado' => $estado,
                 'solo_abiertas' => $filtrarAbiertas,
+                'cobro' => $cobroFiltro,
             ],
             'atencion_filtro_ui' => [
                 'default_desde' => $defaultDesde,

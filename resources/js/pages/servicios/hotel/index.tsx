@@ -8,9 +8,11 @@ import {
     DataTable,
     DataToolbar,
     EmptyState,
+    FilterChips,
     PageHeader,
 } from '@/components/data-page';
 import type { DataTableColumn } from '@/components/data-page';
+import { CobroEstadoBadge } from '@/components/cobro-estado-badge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useDataTablePage } from '@/hooks/use-data-table-page';
@@ -50,7 +52,7 @@ type Props = {
     estancia_abrir_editar: HotelEstanciaRow | null;
 };
 
-type HotelTableExtra = Pick<HotelFilters, 'hotel_desde' | 'hotel_hasta'>;
+type HotelTableExtra = Pick<HotelFilters, 'hotel_desde' | 'hotel_hasta' | 'cobro'>;
 
 type ModalState =
     | { type: 'idle' }
@@ -106,7 +108,7 @@ export default function Index({
     stats,
     estancia_abrir_editar,
 }: Props) {
-    const { t, i18n } = useTranslation(['hotel', 'common']);
+    const { t, i18n } = useTranslation(['hotel', 'common', 'consulta-cargos']);
     const { timezone: appTz } = usePage().props;
     const dateLocale = i18n.language;
     const { can } = usePermission();
@@ -195,8 +197,36 @@ export default function Index({
             c += 1;
         }
 
+        if (filters.cobro && filters.cobro !== 'todos') {
+            c += 1;
+        }
+
         return c;
-    }, [filters.search, filters.sort, filters.per_page, hotel_filtro_ui.fuera_del_mes_actual]);
+    }, [
+        filters.search,
+        filters.sort,
+        filters.per_page,
+        filters.cobro,
+        hotel_filtro_ui.fuera_del_mes_actual,
+    ]);
+
+    const cobroFiltro = filters.cobro ?? 'todos';
+    const cobroOptions = useMemo(
+        () =>
+            [
+                { value: 'todos' as const, label: t('consulta-cargos:filtro_cobro.todos') },
+                {
+                    value: 'por_cobrar' as const,
+                    label: t('consulta-cargos:filtro_cobro.por_cobrar'),
+                },
+                { value: 'cobrado' as const, label: t('consulta-cargos:filtro_cobro.cobrado') },
+                {
+                    value: 'sin_precuenta' as const,
+                    label: t('consulta-cargos:filtro_cobro.sin_precuenta'),
+                },
+            ] as const,
+        [t],
+    );
 
     const columns = useMemo<DataTableColumn<HotelEstanciaRow>[]>(() => {
         const base: DataTableColumn<HotelEstanciaRow>[] = [
@@ -239,12 +269,20 @@ export default function Index({
                 header: t('columns.estado'),
                 sortable: true,
                 cell: (row) => (
-                    <Badge
-                        variant={estadoBadgeVariant(row.estado)}
-                        className="whitespace-nowrap text-[0.65rem] font-normal"
-                    >
-                        {t(`estado.${row.estado}`, { defaultValue: row.estado })}
-                    </Badge>
+                    <div className="flex flex-col items-start gap-1">
+                        <Badge
+                            variant={estadoBadgeVariant(row.estado)}
+                            className="whitespace-nowrap text-[0.65rem] font-normal"
+                        >
+                            {t(`estado.${row.estado}`, { defaultValue: row.estado })}
+                        </Badge>
+                        <CobroEstadoBadge
+                            estado={row.estado_cobro}
+                            hideSinPrecuenta={
+                                row.estado !== 'en_estancia' && row.estado !== 'completada'
+                            }
+                        />
+                    </div>
                 ),
             },
             {
@@ -418,6 +456,12 @@ export default function Index({
                             isSearching={isLoading}
                             placeholder={t('search_placeholder')}
                         >
+                            <FilterChips
+                                ariaLabel={t('consulta-cargos:filtro_cobro.aria')}
+                                value={cobroFiltro}
+                                onChange={(cobro) => applyFilter({ cobro })}
+                                options={[...cobroOptions]}
+                            />
                             <AtencionDateRangeFilter
                                 desde={filters.hotel_desde}
                                 hasta={filters.hotel_hasta}
@@ -443,6 +487,10 @@ export default function Index({
                                 direction: filters.direction ?? undefined,
                                 hotel_desde: filters.hotel_desde,
                                 hotel_hasta: filters.hotel_hasta,
+                                cobro:
+                                    filters.cobro && filters.cobro !== 'todos'
+                                        ? filters.cobro
+                                        : undefined,
                             }}
                         />
                     }

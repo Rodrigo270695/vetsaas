@@ -255,4 +255,32 @@ class GroomingTurno extends Model
         return $this->hasOne(ConsultaCargo::class, 'grooming_turno_id')
             ->whereNull('venta_id');
     }
+
+    public function cargos(): HasMany
+    {
+        return $this->hasMany(ConsultaCargo::class, 'grooming_turno_id');
+    }
+
+    /**
+     * Estado de cobro para listados: sin_precuenta | precuenta_borrador | precuenta_lista | cobrado.
+     *
+     * Requiere eager load de `cargo` y `withCount` de cargos cobrados, o consulta al vuelo.
+     */
+    public function estadoCobro(): string
+    {
+        $pending = $this->relationLoaded('cargo')
+            ? $this->cargo
+            : $this->cargo()->first();
+
+        $cobradoCount = (int) ($this->cargos_cobrados_count
+            ?? ($this->relationLoaded('cargos')
+                ? $this->cargos->whereNotNull('venta_id')->count()
+                : $this->cargos()->whereNotNull('venta_id')->count()));
+
+        return \App\Support\ConsultaCargo\ConsultaCargoCobroEstado::resolve(
+            $pending,
+            $cobradoCount,
+            $this->venta_id,
+        );
+    }
 }

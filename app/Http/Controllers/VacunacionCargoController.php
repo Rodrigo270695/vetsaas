@@ -432,6 +432,37 @@ class VacunacionCargoController extends Controller
             ->with('success', __('consulta-cargos.flash.confirmado'));
     }
 
+    public function destroy(Request $request, VacunaAplicada $vacuna_aplicada): RedirectResponse
+    {
+        $user = $request->user();
+        abort_unless(
+            $user instanceof User
+            && ($user->can('consulta-cargos.manage') || $user->can('vacunaciones.update')),
+            403,
+        );
+
+        $cargo = ConsultaCargo::query()
+            ->where('vacuna_aplicada_id', $vacuna_aplicada->id)
+            ->whereNull('venta_id')
+            ->orderByDesc('updated_at')
+            ->first();
+
+        if ($cargo === null) {
+            return redirect()
+                ->route('clinica.vacunaciones.index')
+                ->with('info', __('consulta-cargos.flash.sin_precuenta_eliminar'));
+        }
+
+        app(\App\Support\ConsultaCargo\ConsultaCargoPendingDestroyer::class)->destroy(
+            $cargo,
+            (string) $user->getAuthIdentifier(),
+        );
+
+        return redirect()
+            ->route('clinica.vacunaciones.index')
+            ->with('success', __('consulta-cargos.flash.eliminado'));
+    }
+
     private function seedLineasInicialesSiVacio(
         ConsultaCargo $cargo,
         VacunaAplicada $vacuna,

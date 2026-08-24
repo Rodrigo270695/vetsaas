@@ -144,6 +144,9 @@ export type ConsultaCargosMainProps = {
     esBorrador: boolean;
     puedeEditar: boolean;
     puedeSolicitarEditar?: boolean;
+    puedeEliminarPrecuenta?: boolean;
+    onEliminarPrecuenta?: () => void;
+    eliminandoPrecuenta?: boolean;
     puedeEditarCargos: boolean;
     puedeCerrarConsulta?: boolean;
     onSolicitarCerrarConsulta?: () => void;
@@ -368,6 +371,9 @@ export function ConsultaCargosMain({
     processing,
     onSubmit,
     onEditar,
+    puedeEliminarPrecuenta = false,
+    onEliminarPrecuenta,
+    eliminandoPrecuenta = false,
     addLinea,
     removeLinea,
     updateLinea,
@@ -445,7 +451,7 @@ export function ConsultaCargosMain({
                 </p>
             ) : null}
             {puedeEditar ? (
-                <div className="mt-4">
+                <div className="mt-4 space-y-2">
                     <Button
                         type="submit"
                         disabled={processing}
@@ -455,9 +461,32 @@ export function ConsultaCargosMain({
                         {processing ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
                         {t('confirmar')}
                     </Button>
+                    {puedeEliminarPrecuenta && onEliminarPrecuenta ? (
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="w-full gap-2 border-destructive/40 text-destructive hover:bg-destructive/10"
+                            disabled={eliminandoPrecuenta || processing}
+                            onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                if (window.confirm(t('eliminar_precuenta_confirm'))) {
+                                    onEliminarPrecuenta();
+                                }
+                            }}
+                        >
+                            {eliminandoPrecuenta ? (
+                                <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                            ) : (
+                                <Trash2 className="size-3.5" aria-hidden />
+                            )}
+                            {t('eliminar_precuenta')}
+                        </Button>
+                    ) : null}
                 </div>
             ) : puedeSolicitarEditar && onEditar ? (
-                <div className="mt-4">
+                <div className="mt-4 space-y-2">
                     <Button
                         type="button"
                         variant="outline"
@@ -476,6 +505,60 @@ export function ConsultaCargosMain({
                         <Pencil className="size-3.5" aria-hidden />
                         {t('editar_precuenta')}
                     </Button>
+                    {puedeEliminarPrecuenta && onEliminarPrecuenta ? (
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="w-full gap-2 border-destructive/40 text-destructive hover:bg-destructive/10"
+                            disabled={eliminandoPrecuenta || processing}
+                            onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                if (
+                                    window.confirm(
+                                        t('eliminar_precuenta_confirm'),
+                                    )
+                                ) {
+                                    onEliminarPrecuenta();
+                                }
+                            }}
+                        >
+                            {eliminandoPrecuenta ? (
+                                <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                            ) : (
+                                <Trash2 className="size-3.5" aria-hidden />
+                            )}
+                            {t('eliminar_precuenta')}
+                        </Button>
+                    ) : null}
+                </div>
+            ) : puedeEliminarPrecuenta && onEliminarPrecuenta ? (
+                <div className="mt-4">
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="w-full gap-2 border-destructive/40 text-destructive hover:bg-destructive/10"
+                        disabled={eliminandoPrecuenta || processing}
+                        onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            if (window.confirm(t('eliminar_precuenta_confirm'))) {
+                                onEliminarPrecuenta();
+                            }
+                        }}
+                    >
+                        {eliminandoPrecuenta ? (
+                            <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                        ) : (
+                            <Trash2 className="size-3.5" aria-hidden />
+                        )}
+                        {t('eliminar_precuenta')}
+                    </Button>
+                    <p className="mt-1.5 text-[0.7rem] text-muted-foreground">
+                        {t('eliminar_precuenta_hint')}
+                    </p>
                 </div>
             ) : null}
         </aside>

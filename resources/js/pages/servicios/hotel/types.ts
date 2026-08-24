@@ -4,6 +4,7 @@ import type { AuditUser } from '@/pages/clinica/propietarios/types';
 export type HotelFilters = BaseFilters & {
     hotel_desde: string;
     hotel_hasta: string;
+    cobro?: 'todos' | 'por_cobrar' | 'cobrado' | 'sin_precuenta';
 };
 
 export type HotelFiltroUi = {
@@ -85,6 +86,7 @@ export type HotelEstanciaRow = {
     venta_id: string | null;
     /** URL POS precargada (solo si pre-cuenta confirmada y permisos). */
     url_cobrar?: string | null;
+    estado_cobro?: string;
     cargo?: {
         id: string;
         estado: string;

@@ -192,6 +192,32 @@ class HotelEstancia extends Model
             ->whereNull('venta_id');
     }
 
+    public function cargos(): HasMany
+    {
+        return $this->hasMany(ConsultaCargo::class, 'hotel_estancia_id');
+    }
+
+    /**
+     * Estado de cobro para listados. Ver ConsultaCargoCobroEstado.
+     */
+    public function estadoCobro(): string
+    {
+        $pending = $this->relationLoaded('cargo')
+            ? $this->cargo
+            : $this->cargo()->first();
+
+        $cobradoCount = (int) ($this->cargos_cobrados_count
+            ?? ($this->relationLoaded('cargos')
+                ? $this->cargos->whereNotNull('venta_id')->count()
+                : $this->cargos()->whereNotNull('venta_id')->count()));
+
+        return \App\Support\ConsultaCargo\ConsultaCargoCobroEstado::resolve(
+            $pending,
+            $cobradoCount,
+            $this->venta_id,
+        );
+    }
+
     public function creadoPor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by_id');

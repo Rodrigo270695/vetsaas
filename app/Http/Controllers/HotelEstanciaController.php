@@ -110,6 +110,8 @@ class HotelEstanciaController extends Controller
                 'cargo:id,hotel_estancia_id,estado,venta_id',
             ]);
 
+        \App\Support\ConsultaCargo\ConsultaCargoCobroEstado::withCobradosCount($query);
+
         if ($canAudit) {
             $query->with([
                 'creadoPor:id,name,email',
@@ -118,6 +120,17 @@ class HotelEstanciaController extends Controller
         }
 
         $query->whereBetween('hotel_estancias.ingreso_at', [$inicioRango, $finRango]);
+
+        $cobroFiltro = strtolower(trim((string) $request->string('cobro', 'todos')));
+        if (! in_array($cobroFiltro, \App\Support\ConsultaCargo\ConsultaCargoCobroEstado::FILTERS, true)) {
+            $cobroFiltro = \App\Support\ConsultaCargo\ConsultaCargoCobroEstado::FILTER_TODOS;
+        }
+        \App\Support\ConsultaCargo\ConsultaCargoCobroEstado::applyListFilter(
+            $query,
+            $cobroFiltro,
+            'cargos',
+            'hotel_estancias.venta_id',
+        );
 
         if ($sort === 'paciente') {
             $query
@@ -166,6 +179,7 @@ class HotelEstanciaController extends Controller
                     'venta_id' => $cargo->venta_id,
                 ];
             $row['url_cobrar'] = $puedeEnlaceCobrar ? $estancia->urlCobrarEnCaja() : null;
+            $row['estado_cobro'] = $estancia->estadoCobro();
 
             return $row;
         });
@@ -220,6 +234,7 @@ class HotelEstanciaController extends Controller
                 'direction' => $sortValid && $directionValid ? $direction : null,
                 'hotel_desde' => $hotelDesde,
                 'hotel_hasta' => $hotelHasta,
+                'cobro' => $cobroFiltro,
             ],
             'hotel_filtro_ui' => [
                 'default_desde' => $defaultDesde,

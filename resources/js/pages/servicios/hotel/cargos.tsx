@@ -208,7 +208,8 @@ export default function HotelCargos({
         [cargo],
     );
 
-    const { data, setData, post, processing, errors, clearErrors } = useForm<FormState>(initial);
+    const { data, setData, post, delete: destroyForm, processing, errors, clearErrors } =
+        useForm<FormState>(initial);
 
     const entrarEnEdicion = useCallback(() => {
         setData({
@@ -218,6 +219,11 @@ export default function HotelCargos({
         });
         setEditandoConfirmada(true);
     }, [cargo, setData]);
+
+    const eliminarPrecuenta = useCallback(() => {
+        destroyForm(cargosBaseUrl);
+    }, [cargosBaseUrl, destroyForm]);
+    const puedeEliminarPrecuenta = puedeEditarCargos && !yaCobrada;
 
     const title = useMemo(
         () => `${t('hotel:actions.cargos')} · ${estancia.paciente.nombre}`,
@@ -390,6 +396,9 @@ export default function HotelCargos({
                 processing={processing}
                 onSubmit={onSubmit}
                 onEditar={entrarEnEdicion}
+                puedeEliminarPrecuenta={puedeEliminarPrecuenta}
+                onEliminarPrecuenta={eliminarPrecuenta}
+                eliminandoPrecuenta={processing}
                 addLinea={addLinea}
                 removeLinea={removeLinea}
                 updateLinea={updateLinea}

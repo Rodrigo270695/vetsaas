@@ -68,6 +68,26 @@
     },
     "confirmar": "Confirmar pre-cuenta",
     "editar_precuenta": "Editar pre-cuenta",
+    "eliminar_precuenta": "Eliminar pre-cuenta",
+    "eliminar_precuenta_confirm": "¿Eliminar esta pre-cuenta? Si estaba confirmada, se revertirá el stock descontado. No se puede deshacer.",
+    "eliminar_precuenta_hint": "Solo disponible mientras no esté cobrada en caja.",
+    "estado_cobro": {
+        "sin_precuenta": "Sin precuenta",
+        "sin_precuenta_hint": "Aún no se armó la pre-cuenta de cargos.",
+        "precuenta_borrador": "Pre-cuenta borrador",
+        "precuenta_borrador_hint": "Hay una pre-cuenta en borrador; confírmala para poder cobrar.",
+        "precuenta_lista": "Por cobrar",
+        "precuenta_lista_hint": "Pre-cuenta confirmada: lista para cobrar en caja.",
+        "cobrado": "Cobrado",
+        "cobrado_hint": "Ya se registró el cobro en caja."
+    },
+    "filtro_cobro": {
+        "aria": "Filtrar por estado de cobro",
+        "todos": "Todos",
+        "por_cobrar": "Por cobrar",
+        "cobrado": "Cobrados",
+        "sin_precuenta": "Sin precuenta"
+    },
     "producto_picker": {
         "placeholder": "Buscar producto…",
         "search_placeholder": "Nombre o SKU…",

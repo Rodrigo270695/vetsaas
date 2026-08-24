@@ -202,7 +202,7 @@ export default function VacunacionCargos({ vacuna, cargo, cobro, clinic_billing 
         [cargo],
     );
 
-    const { data, setData, post, processing, errors, clearErrors, transform } =
+    const { data, setData, post, delete: destroyForm, processing, errors, clearErrors, transform } =
         useForm<FormState>(initial);
 
     const entrarEnEdicion = useCallback(() => {
@@ -213,6 +213,11 @@ export default function VacunacionCargos({ vacuna, cargo, cobro, clinic_billing 
         });
         setEditandoConfirmada(true);
     }, [cargo, setData]);
+
+    const eliminarPrecuenta = useCallback(() => {
+        destroyForm(cargosBaseUrl);
+    }, [cargosBaseUrl, destroyForm]);
+    const puedeEliminarPrecuenta = puedeEditarCargos && !yaCobrada;
 
     const title = useMemo(
         () => `${t('vacunaciones:actions.cargos')} · ${vacuna.paciente.nombre}`,
@@ -390,6 +395,9 @@ export default function VacunacionCargos({ vacuna, cargo, cobro, clinic_billing 
                 processing={processing}
                 onSubmit={onSubmit}
                 onEditar={entrarEnEdicion}
+                puedeEliminarPrecuenta={puedeEliminarPrecuenta}
+                onEliminarPrecuenta={eliminarPrecuenta}
+                eliminandoPrecuenta={processing}
                 addLinea={addLinea}
                 removeLinea={removeLinea}
                 updateLinea={updateLinea}

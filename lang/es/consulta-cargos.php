@@ -9,6 +9,9 @@ return [
         'sin_lineas' => 'Añade al menos una línea antes de confirmar.',
         'sin_sede_stock' => 'No hay sede activa para descontar inventario. Indica la sede en la vacunación o abre caja.',
         'stock_insuficiente' => 'Stock insuficiente para confirmar los productos de la consulta.',
+        'eliminado' => 'Pre-cuenta eliminada. Si había stock descontado, fue revertido.',
+        'sin_precuenta_eliminar' => 'No hay pre-cuenta pendiente para eliminar.',
+        'ya_cobrado_no_eliminable' => 'Esta pre-cuenta ya fue cobrada en caja y no se puede eliminar.',
     ],
     'validation' => [
         'producto_requerido' => 'Elige el producto de inventario para esta línea.',

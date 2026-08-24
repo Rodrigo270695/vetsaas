@@ -4,6 +4,7 @@ import type { AuditUser } from '@/pages/clinica/propietarios/types';
 export type GroomingFilters = BaseFilters & {
     grooming_desde: string;
     grooming_hasta: string;
+    cobro?: 'todos' | 'por_cobrar' | 'cobrado' | 'sin_precuenta';
 };
 
 export type GroomingFiltroUi = {
@@ -101,6 +102,8 @@ export type GroomingTurnoRow = {
     /** URL POS precargada (solo si pre-cuenta confirmada y permisos). */
     url_cobrar?: string | null;
     puede_adelanto?: boolean;
+    /** sin_precuenta | precuenta_borrador | precuenta_lista | cobrado */
+    estado_cobro?: string;
     fotos?: GroomingTurnoFoto[];
     cargo?: {
         id: string;

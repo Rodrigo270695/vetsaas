@@ -412,6 +412,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             Route::middleware('permission:consulta-cargos.manage|historias-clinicas.update')
                 ->post('historias-clinicas/consultas/{consulta}/cargos/confirmar', [ConsultaCargoController::class, 'confirmar'])
                 ->name('historias-clinicas.consultas.cargos.confirmar');
+            Route::middleware('permission:consulta-cargos.manage|historias-clinicas.update')
+                ->delete('historias-clinicas/consultas/{consulta}/cargos', [ConsultaCargoController::class, 'destroy'])
+                ->name('historias-clinicas.consultas.cargos.destroy');
 
             Route::middleware('permission:vacunaciones.view')
                 ->get('vacunaciones/productos-vacuna', [VacunacionController::class, 'productosVacuna'])
@@ -452,6 +455,10 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
                 ->post('vacunaciones/{vacuna_aplicada}/cargos/confirmar', [VacunacionCargoController::class, 'confirmar'])
                 ->whereUuid('vacuna_aplicada')
                 ->name('vacunaciones.cargos.confirmar');
+            Route::middleware('permission:consulta-cargos.manage|vacunaciones.update')
+                ->delete('vacunaciones/{vacuna_aplicada}/cargos', [VacunacionCargoController::class, 'destroy'])
+                ->whereUuid('vacuna_aplicada')
+                ->name('vacunaciones.cargos.destroy');
             Route::middleware('permission:vacunaciones.create')
                 ->post('vacunaciones', [VacunacionController::class, 'store'])
                 ->name('vacunaciones.store');
@@ -584,6 +591,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             Route::middleware('permission:consulta-cargos.manage|hospitalizacion.update')
                 ->post('hospitalizacion/{internamiento}/cargos/confirmar', [InternamientoCargoController::class, 'confirmar'])
                 ->name('hospitalizacion.cargos.confirmar');
+            Route::middleware('permission:consulta-cargos.manage|hospitalizacion.update')
+                ->delete('hospitalizacion/{internamiento}/cargos', [InternamientoCargoController::class, 'destroy'])
+                ->name('hospitalizacion.cargos.destroy');
         });
     });
 
@@ -657,6 +667,10 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
                 ->post('grooming/{grooming_turno}/cargos/confirmar', [GroomingCargoController::class, 'confirmar'])
                 ->whereUuid('grooming_turno')
                 ->name('grooming.cargos.confirmar');
+            Route::middleware('permission:consulta-cargos.manage|grooming.update')
+                ->delete('grooming/{grooming_turno}/cargos', [GroomingCargoController::class, 'destroy'])
+                ->whereUuid('grooming_turno')
+                ->name('grooming.cargos.destroy');
 
             Route::middleware(['permission:hotel.view', 'tenant.module:hotel'])
                 ->get('hotel', [HotelEstanciaController::class, 'index'])
@@ -719,6 +733,10 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
                 ->post('hotel/{hotel_estancia}/cargos/confirmar', [HotelCargoController::class, 'confirmar'])
                 ->whereUuid('hotel_estancia')
                 ->name('hotel.cargos.confirmar');
+            Route::middleware(['permission:consulta-cargos.manage|hotel.update', 'tenant.module:hotel'])
+                ->delete('hotel/{hotel_estancia}/cargos', [HotelCargoController::class, 'destroy'])
+                ->whereUuid('hotel_estancia')
+                ->name('hotel.cargos.destroy');
         });
     });
 

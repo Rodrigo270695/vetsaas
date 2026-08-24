@@ -131,6 +131,10 @@ class VacunacionController extends Controller
 
         $query = VacunaAplicada::query()->with($withVacuna);
 
+        if (Schema::hasColumn('consulta_cargos', 'vacuna_aplicada_id')) {
+            \App\Support\ConsultaCargo\ConsultaCargoCobroEstado::withCobradosCount($query);
+        }
+
         if ($canAudit) {
             $query->with([
                 'creadoPor:id,name,email',
@@ -139,6 +143,17 @@ class VacunacionController extends Controller
         }
 
         $query->whereBetween('vacunas_aplicadas.aplicada_at', [$inicioRango, $finRango]);
+
+        $cobroFiltro = strtolower(trim((string) $request->string('cobro', 'todos')));
+        if (! in_array($cobroFiltro, \App\Support\ConsultaCargo\ConsultaCargoCobroEstado::FILTERS, true)) {
+            $cobroFiltro = \App\Support\ConsultaCargo\ConsultaCargoCobroEstado::FILTER_TODOS;
+        }
+        if (Schema::hasColumn('consulta_cargos', 'vacuna_aplicada_id')) {
+            \App\Support\ConsultaCargo\ConsultaCargoCobroEstado::applyListFilter(
+                $query,
+                $cobroFiltro,
+            );
+        }
 
         if ($sort === 'paciente') {
             $query
@@ -210,6 +225,9 @@ class VacunacionController extends Controller
                     'venta_id' => $cargo->venta_id,
                     'total' => (string) $cargo->total,
                 ],
+                'estado_cobro' => Schema::hasColumn('consulta_cargos', 'vacuna_aplicada_id')
+                    ? $v->estadoCobro()
+                    : 'sin_precuenta',
                 'url_cobrar' => Schema::hasColumn('consulta_cargos', 'vacuna_aplicada_id')
                     ? $v->urlCobrarEnCaja()
                     : null,
@@ -287,6 +305,7 @@ class VacunacionController extends Controller
                 'direction' => $sortValid && $directionValid ? $direction : null,
                 'aplicada_desde' => $aplicadaDesde,
                 'aplicada_hasta' => $aplicadaHasta,
+                'cobro' => $cobroFiltro,
             ],
             'aplicacion_filtro_ui' => [
                 'default_desde' => $defaultDesde,

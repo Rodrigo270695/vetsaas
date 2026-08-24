@@ -20,6 +20,7 @@ export type ConsultaHistoriaFilters = BaseFilters & {
     atendido_hasta: string | null;
     estado: ConsultaEstadoFiltro;
     solo_abiertas: boolean;
+    cobro?: 'todos' | 'por_cobrar' | 'cobrado' | 'sin_precuenta';
 };
 
 /** Metadatos solo para UI (no van en la query string del listado). */
@@ -109,6 +110,8 @@ export type ConsultaHistoriaRow = {
     }[];
     /** Pre-cuenta / cargos de la consulta (si existe fila en `consulta_cargos`). */
     cargo?: { id: string; estado: string; total: string } | null;
+    /** sin_precuenta | precuenta_borrador | precuenta_lista | cobrado */
+    estado_cobro?: string;
     historia_clinica: {
         id: string;
         paciente_id: string;

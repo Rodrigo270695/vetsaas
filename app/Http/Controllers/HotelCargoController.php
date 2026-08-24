@@ -379,6 +379,38 @@ class HotelCargoController extends Controller
             ->with('success', __('consulta-cargos.flash.confirmado'));
     }
 
+    public function destroy(Request $request, HotelEstancia $hotelEstancia): RedirectResponse
+    {
+        $user = $request->user();
+        abort_unless(
+            $user instanceof User
+            && ($user->can('consulta-cargos.manage') || $user->can('hotel.update')),
+            403,
+        );
+        abort_unless($hotelEstancia->permiteCargosPreCuenta(), 403);
+
+        $cargo = ConsultaCargo::query()
+            ->where('hotel_estancia_id', $hotelEstancia->id)
+            ->whereNull('venta_id')
+            ->orderByDesc('updated_at')
+            ->first();
+
+        if ($cargo === null) {
+            return redirect()
+                ->route('servicios.hotel')
+                ->with('info', __('consulta-cargos.flash.sin_precuenta_eliminar'));
+        }
+
+        app(\App\Support\ConsultaCargo\ConsultaCargoPendingDestroyer::class)->destroy(
+            $cargo,
+            (string) $user->getAuthIdentifier(),
+        );
+
+        return redirect()
+            ->route('servicios.hotel')
+            ->with('success', __('consulta-cargos.flash.eliminado'));
+    }
+
     private function seedLineaInicialSiVacio(ConsultaCargo $cargo, HotelEstancia $hotelEstancia, ClinicSetting $cfg): void
     {
         if ($cargo->lineas()->exists()) {

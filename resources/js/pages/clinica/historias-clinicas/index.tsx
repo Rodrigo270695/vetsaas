@@ -33,6 +33,7 @@ import { ConsultaDeleteDialog } from './components/consulta-delete-dialog';
 import { ConsultaEstadoBadge } from './components/consulta-estado-badge';
 import { ConsultaFormModal } from './components/consulta-form-modal';
 import { ConsultaRowActions } from './components/consulta-row-actions';
+import { CobroEstadoBadge } from '@/components/cobro-estado-badge';
 import { isConsultaAbiertaAntigua } from './consulta-estado-utils';
 import { formatAtendidoInAppTimezone } from './format-atendido';
 import type {
@@ -72,7 +73,7 @@ type Props = {
 
 type HistoriasTableExtra = Pick<
     ConsultaHistoriaFilters,
-    'atendido_desde' | 'atendido_hasta' | 'estado' | 'solo_abiertas'
+    'atendido_desde' | 'atendido_hasta' | 'estado' | 'solo_abiertas' | 'cobro'
 >;
 
 type ModalState =
@@ -139,7 +140,7 @@ export default function Index({
     atencion_filtro_ui,
     stats,
 }: Props) {
-    const { t } = useTranslation(['historias-clinicas', 'common']);
+    const { t } = useTranslation(['historias-clinicas', 'common', 'consulta-cargos']);
     const { locale: appLocale, timezone: appTz } = usePage().props;
     const { can } = usePermission();
     const canCreate = can('historias-clinicas.create');
@@ -357,14 +358,37 @@ export default function Index({
             c += 1;
         }
 
+        if (filters.cobro && filters.cobro !== 'todos') {
+            c += 1;
+        }
+
         return c;
     }, [
         filters.search,
         filters.sort,
         filters.per_page,
+        filters.cobro,
         atencion_filtro_ui.fuera_del_mes_actual,
         estadoFiltro,
     ]);
+
+    const cobroFiltro = filters.cobro ?? 'todos';
+    const cobroOptions = useMemo(
+        () =>
+            [
+                { value: 'todos' as const, label: t('consulta-cargos:filtro_cobro.todos') },
+                {
+                    value: 'por_cobrar' as const,
+                    label: t('consulta-cargos:filtro_cobro.por_cobrar'),
+                },
+                { value: 'cobrado' as const, label: t('consulta-cargos:filtro_cobro.cobrado') },
+                {
+                    value: 'sin_precuenta' as const,
+                    label: t('consulta-cargos:filtro_cobro.sin_precuenta'),
+                },
+            ] as const,
+        [t],
+    );
 
     const columns = useMemo<DataTableColumn<ConsultaHistoriaRow>[]>(() => {
         const base: DataTableColumn<ConsultaHistoriaRow>[] = [
@@ -386,11 +410,14 @@ export default function Index({
                 key: 'estado',
                 header: t('columns.estado'),
                 cell: (row) => (
-                    <ConsultaEstadoBadge
-                        cerradaAt={row.cerrada_at}
-                        atendidoAt={row.atendido_at}
-                        showAntiguaHint
-                    />
+                    <div className="flex flex-col items-start gap-1">
+                        <ConsultaEstadoBadge
+                            cerradaAt={row.cerrada_at}
+                            atendidoAt={row.atendido_at}
+                            showAntiguaHint
+                        />
+                        <CobroEstadoBadge estado={row.estado_cobro} hideSinPrecuenta />
+                    </div>
                 ),
                 className: 'w-28',
             },
@@ -668,6 +695,12 @@ export default function Index({
                                             onChange={onEstadoChange}
                                             options={estadoOptions}
                                         />
+                                        <FilterChips
+                                            ariaLabel={t('consulta-cargos:filtro_cobro.aria')}
+                                            value={cobroFiltro}
+                                            onChange={(cobro) => applyFilter({ cobro })}
+                                            options={[...cobroOptions]}
+                                        />
                                         <AtencionDateRangeFilter
                                             desde={filters.atendido_desde}
                                             hasta={filters.atendido_hasta}
@@ -725,6 +758,10 @@ export default function Index({
                                         estado:
                                             estadoFiltro !== 'todas'
                                                 ? estadoFiltro
+                                                : undefined,
+                                        cobro:
+                                            filters.cobro && filters.cobro !== 'todos'
+                                                ? filters.cobro
                                                 : undefined,
                                     }}
                                 />

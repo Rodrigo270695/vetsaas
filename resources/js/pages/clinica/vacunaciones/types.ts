@@ -4,6 +4,7 @@ import type { AuditUser } from '../propietarios/types';
 export type VacunaAplicadaFilters = BaseFilters & {
     aplicada_desde: string;
     aplicada_hasta: string;
+    cobro?: 'todos' | 'por_cobrar' | 'cobrado' | 'sin_precuenta';
 };
 
 export type AplicacionFiltroUi = {
@@ -92,6 +93,7 @@ export type VacunaAplicadaRow = {
     /** URL POS precargada (solo si pre-cuenta confirmada y permisos). */
     url_cobrar?: string | null;
     url_cargos?: string | null;
+    estado_cobro?: string;
 };
 
 export type ServicioVacunaOpcion = {

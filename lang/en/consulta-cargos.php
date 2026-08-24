@@ -9,6 +9,9 @@ return [
         'sin_lineas' => 'Add at least one line before confirming.',
         'sin_sede_stock' => 'No active branch available to deduct inventory.',
         'stock_insuficiente' => 'Insufficient stock to confirm consultation products.',
+        'eliminado' => 'Pre-invoice deleted. Any deducted stock was restored.',
+        'sin_precuenta_eliminar' => 'There is no pending pre-invoice to delete.',
+        'ya_cobrado_no_eliminable' => 'This pre-invoice was already paid at checkout and cannot be deleted.',
     ],
     'validation' => [
         'producto_requerido' => 'Select an inventory product for this line.',

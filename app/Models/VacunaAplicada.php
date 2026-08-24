@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -174,6 +175,32 @@ class VacunaAplicada extends Model
     {
         return $this->hasOne(ConsultaCargo::class, 'vacuna_aplicada_id')
             ->whereNull('venta_id');
+    }
+
+    public function cargos(): HasMany
+    {
+        return $this->hasMany(ConsultaCargo::class, 'vacuna_aplicada_id');
+    }
+
+    /**
+     * Estado de cobro para listados. Ver ConsultaCargoCobroEstado.
+     */
+    public function estadoCobro(): string
+    {
+        $pending = $this->relationLoaded('cargo')
+            ? $this->cargo
+            : $this->cargo()->first();
+
+        $cobradoCount = (int) ($this->cargos_cobrados_count
+            ?? ($this->relationLoaded('cargos')
+                ? $this->cargos->whereNotNull('venta_id')->count()
+                : $this->cargos()->whereNotNull('venta_id')->count()));
+
+        return \App\Support\ConsultaCargo\ConsultaCargoCobroEstado::resolve(
+            $pending,
+            $cobradoCount,
+            null,
+        );
     }
 
     public function creadoPor(): BelongsTo

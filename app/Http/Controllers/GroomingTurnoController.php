@@ -127,6 +127,8 @@ class GroomingTurnoController extends Controller
                 'cargo',
             ]);
 
+        \App\Support\ConsultaCargo\ConsultaCargoCobroEstado::withCobradosCount($query);
+
         if ($canAudit) {
             $query->with([
                 'creadoPor:id,name,email',
@@ -135,6 +137,17 @@ class GroomingTurnoController extends Controller
         }
 
         $query->whereBetween('grooming_turnos.inicio_at', [$inicioRango, $finRango]);
+
+        $cobroFiltro = strtolower(trim((string) $request->string('cobro', 'todos')));
+        if (! in_array($cobroFiltro, \App\Support\ConsultaCargo\ConsultaCargoCobroEstado::FILTERS, true)) {
+            $cobroFiltro = \App\Support\ConsultaCargo\ConsultaCargoCobroEstado::FILTER_TODOS;
+        }
+        \App\Support\ConsultaCargo\ConsultaCargoCobroEstado::applyListFilter(
+            $query,
+            $cobroFiltro,
+            'cargos',
+            'grooming_turnos.venta_id',
+        );
 
         if ($sort === 'paciente') {
             $query
@@ -176,6 +189,7 @@ class GroomingTurnoController extends Controller
             $row = $turno->toArray();
             $row['url_cobrar'] = $puedeEnlaceCobrar ? $turno->urlCobrarEnCaja() : null;
             $row['puede_adelanto'] = $puedeEnlaceCobrar && $turno->permiteAdelanto();
+            $row['estado_cobro'] = $turno->estadoCobro();
 
             return $row;
         });
@@ -240,6 +254,7 @@ class GroomingTurnoController extends Controller
                 'direction' => $sortValid && $directionValid ? $direction : null,
                 'grooming_desde' => $groomingDesde,
                 'grooming_hasta' => $groomingHasta,
+                'cobro' => $cobroFiltro,
             ],
             'grooming_filtro_ui' => [
                 'default_desde' => $defaultDesde,

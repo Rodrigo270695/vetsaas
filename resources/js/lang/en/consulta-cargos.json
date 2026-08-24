@@ -68,6 +68,26 @@
     },
     "confirmar": "Confirm pre-invoice",
     "editar_precuenta": "Edit pre-invoice",
+    "eliminar_precuenta": "Delete pre-invoice",
+    "eliminar_precuenta_confirm": "Delete this pre-invoice? If it was confirmed, deducted stock will be restored. This cannot be undone.",
+    "eliminar_precuenta_hint": "Only available while it has not been paid at checkout.",
+    "estado_cobro": {
+        "sin_precuenta": "No pre-bill",
+        "sin_precuenta_hint": "No charge sheet has been created yet.",
+        "precuenta_borrador": "Draft pre-bill",
+        "precuenta_borrador_hint": "There is a draft pre-bill; confirm it to collect payment.",
+        "precuenta_lista": "Ready to collect",
+        "precuenta_lista_hint": "Confirmed pre-bill: ready for checkout.",
+        "cobrado": "Paid",
+        "cobrado_hint": "Payment was already recorded at checkout."
+    },
+    "filtro_cobro": {
+        "aria": "Filter by payment status",
+        "todos": "All",
+        "por_cobrar": "Ready to collect",
+        "cobrado": "Paid",
+        "sin_precuenta": "No pre-bill"
+    },
     "producto_picker": {
         "placeholder": "Search product…",
         "search_placeholder": "Name or SKU…",
