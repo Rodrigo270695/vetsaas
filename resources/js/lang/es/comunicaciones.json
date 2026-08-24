@@ -77,5 +77,60 @@
     },
     "toast": {
         "load_error": "No se pudo cargar la cola de mensajes."
+    },
+    "plantillas": {
+        "title": "Plantillas",
+        "description": "Textos de recordatorios y avisos por WhatsApp. Ya vienen listos; puedes personalizarlos cuando quieras.",
+        "empty": "No hay plantillas disponibles.",
+        "edit": "Editar",
+        "edit_title": "Editar plantilla",
+        "edit_description": "Usa las variables entre llaves. Si desactivas la personalización, se enviará el texto de fábrica.",
+        "restore": "Restaurar predeterminado",
+        "preview": "Vista previa",
+        "badge_stock": "Predeterminada",
+        "badge_modified": "Personalizada",
+        "badge_factory": "Usando fábrica",
+        "fields": {
+            "cuerpo": "Mensaje",
+            "activo": "Usar este texto personalizado",
+            "activo_hint": "Si lo desmarcas, el sistema vuelve al mensaje original sin dejar de enviar recordatorios."
+        },
+        "grupos": {
+            "citas": "Citas",
+            "citas_hint": "Confirmaciones y recordatorios de agenda clínica.",
+            "vacunas": "Vacunas",
+            "vacunas_hint": "Avisos de refuerzo próximo.",
+            "cumple": "Cumpleaños",
+            "cumple_hint": "Saludo el día del cumpleaños de la mascota.",
+            "grooming": "Grooming",
+            "grooming_hint": "Agenda, estados y fotos del turno.",
+            "hotel": "Hotel",
+            "hotel_hint": "Estancia, cambios de estado y bitácora."
+        },
+        "tipos": {
+            "cita_dias_antes": "Recordatorio (días antes)",
+            "cita_2h": "Recordatorio (2 horas)",
+            "cita_creada": "Cita creada",
+            "cita_reprogramada": "Cita reprogramada",
+            "cita_actualizada": "Cita actualizada",
+            "vacuna_proxima": "Vacuna próxima",
+            "cumple_mascota": "Cumpleaños de mascota",
+            "grooming_programado": "Grooming programado",
+            "grooming_reprogramado": "Grooming reprogramado",
+            "grooming_en_proceso": "Grooming en proceso",
+            "grooming_completada": "Grooming completado",
+            "grooming_cancelada": "Grooming cancelado",
+            "grooming_no_asistio": "Grooming no asistió",
+            "grooming_foto_proceso": "Foto del proceso",
+            "grooming_foto_final": "Foto final",
+            "hotel_registrada": "Estancia registrada",
+            "hotel_confirmada": "Estancia confirmada",
+            "hotel_reprogramada": "Estancia reprogramada",
+            "hotel_en_estancia": "Ingreso al hotel",
+            "hotel_completada": "Estancia completada",
+            "hotel_cancelada": "Estancia cancelada",
+            "hotel_no_presento": "No se presentó",
+            "hotel_bitacora": "Bitácora de estancia"
+        }
     }
 }

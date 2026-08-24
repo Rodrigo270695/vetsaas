@@ -43,6 +43,7 @@ use App\Http\Controllers\InternamientoCargoController;
 use App\Http\Controllers\LaboratorioController;
 use App\Http\Controllers\MovimientoInventarioController;
 use App\Http\Controllers\NotificationQueueController;
+use App\Http\Controllers\RecordatorioTemplateController;
 use App\Http\Controllers\OfflineSyncController;
 use App\Http\Controllers\PacienteController;
 use App\Http\Controllers\PacientePetPassController;
@@ -1096,7 +1097,17 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
                 Route::post('asistente/toggle', [ClinicBotIaController::class, 'toggleAssistant'])
                     ->name('assistant.toggle');
             });
-        Route::inertia('plantillas', 'comunicaciones/plantillas/index')->name('plantillas');
+        Route::middleware('permission:plantillas.view')
+            ->get('plantillas', [RecordatorioTemplateController::class, 'index'])
+            ->name('plantillas');
+        Route::middleware('permission:plantillas.update')->group(function (): void {
+            Route::put('plantillas/{plantilla}', [RecordatorioTemplateController::class, 'update'])
+                ->whereUuid('plantilla')
+                ->name('plantillas.update');
+            Route::post('plantillas/{plantilla}/restaurar', [RecordatorioTemplateController::class, 'restore'])
+                ->whereUuid('plantilla')
+                ->name('plantillas.restore');
+        });
 
         Route::middleware('permission:comunicaciones-cola.manage')->group(function (): void {
             Route::post('cola/{notification}/cancel', [NotificationQueueController::class, 'cancel'])

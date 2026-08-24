@@ -77,5 +77,60 @@
     },
     "toast": {
         "load_error": "Could not load the message queue."
+    },
+    "plantillas": {
+        "title": "Templates",
+        "description": "WhatsApp reminder and notice texts. They ship ready to use; customize anytime.",
+        "empty": "No templates available.",
+        "edit": "Edit",
+        "edit_title": "Edit template",
+        "edit_description": "Use curly-brace variables. If you turn off customization, the factory text is sent.",
+        "restore": "Restore default",
+        "preview": "Preview",
+        "badge_stock": "Default",
+        "badge_modified": "Customized",
+        "badge_factory": "Using factory",
+        "fields": {
+            "cuerpo": "Message",
+            "activo": "Use this custom text",
+            "activo_hint": "If unchecked, the system uses the original message and reminders still send."
+        },
+        "grupos": {
+            "citas": "Appointments",
+            "citas_hint": "Confirmations and clinical schedule reminders.",
+            "vacunas": "Vaccines",
+            "vacunas_hint": "Upcoming booster notices.",
+            "cumple": "Birthdays",
+            "cumple_hint": "Greeting on the pet’s birthday.",
+            "grooming": "Grooming",
+            "grooming_hint": "Schedule, status updates, and photos.",
+            "hotel": "Hotel",
+            "hotel_hint": "Stay updates, status changes, and journal notes."
+        },
+        "tipos": {
+            "cita_dias_antes": "Reminder (days before)",
+            "cita_2h": "Reminder (2 hours)",
+            "cita_creada": "Appointment created",
+            "cita_reprogramada": "Appointment rescheduled",
+            "cita_actualizada": "Appointment updated",
+            "vacuna_proxima": "Upcoming vaccine",
+            "cumple_mascota": "Pet birthday",
+            "grooming_programado": "Grooming scheduled",
+            "grooming_reprogramado": "Grooming rescheduled",
+            "grooming_en_proceso": "Grooming in progress",
+            "grooming_completada": "Grooming completed",
+            "grooming_cancelada": "Grooming cancelled",
+            "grooming_no_asistio": "Grooming no-show",
+            "grooming_foto_proceso": "Process photo",
+            "grooming_foto_final": "Final photo",
+            "hotel_registrada": "Stay registered",
+            "hotel_confirmada": "Stay confirmed",
+            "hotel_reprogramada": "Stay rescheduled",
+            "hotel_en_estancia": "Hotel check-in",
+            "hotel_completada": "Stay completed",
+            "hotel_cancelada": "Stay cancelled",
+            "hotel_no_presento": "No-show",
+            "hotel_bitacora": "Stay journal"
+        }
     }
 }

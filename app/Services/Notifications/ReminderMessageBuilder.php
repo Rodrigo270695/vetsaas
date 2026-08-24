@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace App\Services\Notifications;
 
 use App\Models\ClinicSetting;
+use App\Models\RecordatorioTemplate;
+use App\Support\Notifications\RecordatorioTemplateCatalog;
 use Carbon\CarbonInterface;
+use Illuminate\Support\Facades\Schema;
 
 final class ReminderMessageBuilder
 {
@@ -16,16 +19,14 @@ final class ReminderMessageBuilder
         CarbonInterface $inicioAt,
         ?string $motivo = null,
     ): string {
-        return sprintf(
-            "Hola %s 👋\n\n⏰ Te recordamos la cita de *%s* en *%s*\n%s📅 *%s* a las *%s*\n\nSi necesitas reprogramar, contáctanos.\n\nTe esperamos 🐾\n\n— %s",
-            $ownerName,
-            $petName,
-            $clinicName,
-            $this->citaMotivoLine($motivo),
-            $inicioAt->timezone(config('app.timezone'))->translatedFormat('d/m/Y'),
-            $inicioAt->timezone(config('app.timezone'))->format('H:i'),
-            $clinicName,
-        );
+        return $this->render('cita_dias_antes', [
+            'propietario' => $ownerName,
+            'mascota' => $petName,
+            'clinica' => $clinicName,
+            'motivo_linea' => $this->citaMotivoLine($motivo),
+            'fecha' => $inicioAt->timezone(config('app.timezone'))->translatedFormat('d/m/Y'),
+            'hora' => $inicioAt->timezone(config('app.timezone'))->format('H:i'),
+        ]);
     }
 
     public function cita2h(
@@ -35,15 +36,13 @@ final class ReminderMessageBuilder
         CarbonInterface $inicioAt,
         ?string $motivo = null,
     ): string {
-        return sprintf(
-            "Hola %s 👋\n\n⏳ En *2 horas* tienes cita de *%s* en *%s*\n%s🕒 *%s*\n\n¡Nos vemos pronto! 🐾\n\n— %s",
-            $ownerName,
-            $petName,
-            $clinicName,
-            $this->citaMotivoLine($motivo),
-            $inicioAt->timezone(config('app.timezone'))->format('H:i'),
-            $clinicName,
-        );
+        return $this->render('cita_2h', [
+            'propietario' => $ownerName,
+            'mascota' => $petName,
+            'clinica' => $clinicName,
+            'motivo_linea' => $this->citaMotivoLine($motivo),
+            'hora' => $inicioAt->timezone(config('app.timezone'))->format('H:i'),
+        ]);
     }
 
     public function citaCreada(
@@ -53,16 +52,14 @@ final class ReminderMessageBuilder
         CarbonInterface $inicioAt,
         ?string $motivo = null,
     ): string {
-        return sprintf(
-            "Hola %s 👋\n\n✅ Registramos la cita de *%s* en *%s*\n%s📅 *%s* a las *%s*\n\nTe esperamos 🐾\n\n— %s",
-            $ownerName,
-            $petName,
-            $clinicName,
-            $this->citaMotivoLine($motivo),
-            $inicioAt->timezone(config('app.timezone'))->translatedFormat('d/m/Y'),
-            $inicioAt->timezone(config('app.timezone'))->format('H:i'),
-            $clinicName,
-        );
+        return $this->render('cita_creada', [
+            'propietario' => $ownerName,
+            'mascota' => $petName,
+            'clinica' => $clinicName,
+            'motivo_linea' => $this->citaMotivoLine($motivo),
+            'fecha' => $inicioAt->timezone(config('app.timezone'))->translatedFormat('d/m/Y'),
+            'hora' => $inicioAt->timezone(config('app.timezone'))->format('H:i'),
+        ]);
     }
 
     public function citaReprogramada(
@@ -72,16 +69,14 @@ final class ReminderMessageBuilder
         CarbonInterface $inicioAt,
         ?string $motivo = null,
     ): string {
-        return sprintf(
-            "Hola %s 👋\n\n🔄 Reprogramamos la cita de *%s* en *%s*\n%s📅 Nueva fecha: *%s* a las *%s*\n\nTe esperamos 🐾\n\n— %s",
-            $ownerName,
-            $petName,
-            $clinicName,
-            $this->citaMotivoLine($motivo),
-            $inicioAt->timezone(config('app.timezone'))->translatedFormat('d/m/Y'),
-            $inicioAt->timezone(config('app.timezone'))->format('H:i'),
-            $clinicName,
-        );
+        return $this->render('cita_reprogramada', [
+            'propietario' => $ownerName,
+            'mascota' => $petName,
+            'clinica' => $clinicName,
+            'motivo_linea' => $this->citaMotivoLine($motivo),
+            'fecha' => $inicioAt->timezone(config('app.timezone'))->translatedFormat('d/m/Y'),
+            'hora' => $inicioAt->timezone(config('app.timezone'))->format('H:i'),
+        ]);
     }
 
     public function citaActualizada(
@@ -91,16 +86,14 @@ final class ReminderMessageBuilder
         CarbonInterface $inicioAt,
         ?string $motivo = null,
     ): string {
-        return sprintf(
-            "Hola %s 👋\n\n✏️ Actualizamos la cita de *%s* en *%s*\n%s📅 *%s* a las *%s*\n\nTe esperamos 🐾\n\n— %s",
-            $ownerName,
-            $petName,
-            $clinicName,
-            $this->citaMotivoLine($motivo),
-            $inicioAt->timezone(config('app.timezone'))->translatedFormat('d/m/Y'),
-            $inicioAt->timezone(config('app.timezone'))->format('H:i'),
-            $clinicName,
-        );
+        return $this->render('cita_actualizada', [
+            'propietario' => $ownerName,
+            'mascota' => $petName,
+            'clinica' => $clinicName,
+            'motivo_linea' => $this->citaMotivoLine($motivo),
+            'fecha' => $inicioAt->timezone(config('app.timezone'))->translatedFormat('d/m/Y'),
+            'hora' => $inicioAt->timezone(config('app.timezone'))->format('H:i'),
+        ]);
     }
 
     /**
@@ -123,16 +116,13 @@ final class ReminderMessageBuilder
         string $vacunaNombre,
         CarbonInterface $fechaRefuerzo,
     ): string {
-        return sprintf(
-            "Hola %s 👋\n\n💉 El refuerzo de *%s* para *%s* vence el *%s*\n📋 Agenda con *%s* para mantenerlo al día.\n\nCuidamos de *%s* 🐾\n\n— %s",
-            $ownerName,
-            $vacunaNombre,
-            $petName,
-            $fechaRefuerzo->timezone(config('app.timezone'))->translatedFormat('d/m/Y'),
-            $clinicName,
-            $petName,
-            $clinicName,
-        );
+        return $this->render('vacuna_proxima', [
+            'propietario' => $ownerName,
+            'mascota' => $petName,
+            'clinica' => $clinicName,
+            'vacuna' => $vacunaNombre,
+            'fecha' => $fechaRefuerzo->timezone(config('app.timezone'))->translatedFormat('d/m/Y'),
+        ]);
     }
 
     public function cumple(
@@ -140,13 +130,11 @@ final class ReminderMessageBuilder
         string $ownerName,
         string $petName,
     ): string {
-        return sprintf(
-            "Hola %s 👋\n\n🎂 ¡Hoy es el cumpleaños de *%s*! 🎉🥳\n\nDesde *%s* le enviamos un cariñoso saludo 🐾💚\n\n— %s",
-            $ownerName,
-            $petName,
-            $clinicName,
-            $clinicName,
-        );
+        return $this->render('cumple_mascota', [
+            'propietario' => $ownerName,
+            'mascota' => $petName,
+            'clinica' => $clinicName,
+        ]);
     }
 
     public function ventaComprobante(
@@ -241,24 +229,12 @@ final class ReminderMessageBuilder
         string $servicioLabel,
         bool $esFinal,
     ): string {
-        $headline = $esFinal
-            ? '✨ ¡*%s* ya terminó su grooming!'
-            : '✂️ *%s* está en grooming';
-
-        $lines = [
-            "Hola {$ownerName} 👋",
-            '',
-            sprintf($headline, $petName),
-            "🧴 Servicio: *{$servicioLabel}*",
-            '',
-            $esFinal
-                ? 'Te compartimos la foto final 📸'
-                : 'Te compartimos una foto del proceso 📸',
-            '',
-            "— {$clinicName}",
-        ];
-
-        return implode("\n", $lines);
+        return $this->render($esFinal ? 'grooming_foto_final' : 'grooming_foto_proceso', [
+            'propietario' => $ownerName,
+            'mascota' => $petName,
+            'clinica' => $clinicName,
+            'servicio' => $servicioLabel,
+        ]);
     }
 
     public function groomingEstadoInicio(
@@ -267,15 +243,11 @@ final class ReminderMessageBuilder
         string $petName,
         string $servicioLabel,
     ): string {
-        return implode("\n", [
-            "Hola {$ownerName} 👋",
-            '',
-            "✂️ *{$petName}* ya está en grooming",
-            "🧴 Servicio: *{$servicioLabel}*",
-            '',
-            'Te avisaremos cuando termine 🐾',
-            '',
-            "— {$clinicName}",
+        return $this->render('grooming_en_proceso', [
+            'propietario' => $ownerName,
+            'mascota' => $petName,
+            'clinica' => $clinicName,
+            'servicio' => $servicioLabel,
         ]);
     }
 
@@ -285,15 +257,11 @@ final class ReminderMessageBuilder
         string $petName,
         string $servicioLabel,
     ): string {
-        return implode("\n", [
-            "Hola {$ownerName} 👋",
-            '',
-            "✨ ¡*{$petName}* ya terminó su grooming!",
-            "🧴 Servicio: *{$servicioLabel}*",
-            '',
-            'Ya puede pasar a recogerlo 🐾',
-            '',
-            "— {$clinicName}",
+        return $this->render('grooming_completada', [
+            'propietario' => $ownerName,
+            'mascota' => $petName,
+            'clinica' => $clinicName,
+            'servicio' => $servicioLabel,
         ]);
     }
 
@@ -303,15 +271,11 @@ final class ReminderMessageBuilder
         string $petName,
         string $servicioLabel,
     ): string {
-        return implode("\n", [
-            "Hola {$ownerName} 👋",
-            '',
-            "El turno de grooming de *{$petName}* fue *cancelado*.",
-            "🧴 Servicio: *{$servicioLabel}*",
-            '',
-            'Si deseas reagendar, escríbenos o llama a la clínica.',
-            '',
-            "— {$clinicName}",
+        return $this->render('grooming_cancelada', [
+            'propietario' => $ownerName,
+            'mascota' => $petName,
+            'clinica' => $clinicName,
+            'servicio' => $servicioLabel,
         ]);
     }
 
@@ -321,15 +285,11 @@ final class ReminderMessageBuilder
         string $petName,
         string $servicioLabel,
     ): string {
-        return implode("\n", [
-            "Hola {$ownerName} 👋",
-            '',
-            "Registramos que *{$petName}* *no asistió* a su turno de grooming.",
-            "🧴 Servicio: *{$servicioLabel}*",
-            '',
-            'Si fue un imprevisto, podemos ayudarte a reagendar.',
-            '',
-            "— {$clinicName}",
+        return $this->render('grooming_no_asistio', [
+            'propietario' => $ownerName,
+            'mascota' => $petName,
+            'clinica' => $clinicName,
+            'servicio' => $servicioLabel,
         ]);
     }
 
@@ -345,27 +305,15 @@ final class ReminderMessageBuilder
         $fecha = $inicioAt->timezone(config('app.timezone'))->translatedFormat('d/m/Y');
         $hora = $inicioAt->timezone(config('app.timezone'))->format('H:i');
 
-        $lines = [
-            "Hola {$ownerName} 👋",
-            '',
-            "✅ Agendamos el grooming de *{$petName}*",
-            "🧴 Servicio: *{$servicioLabel}*",
-            "📅 *{$fecha}* a las *{$hora}*",
-        ];
-
-        $monto = is_string($adelantoMonto) ? trim($adelantoMonto) : '';
-        if ($monto !== '' && (float) $monto > 0) {
-            $moneda = trim((string) ($adelantoMoneda ?? 'PEN')) ?: 'PEN';
-            $montoFmt = number_format((float) $monto, 2, '.', ',');
-            $lines[] = "💵 Adelanto recibido: *{$moneda} {$montoFmt}*";
-        }
-
-        $lines[] = '';
-        $lines[] = 'Te esperamos 🐾';
-        $lines[] = '';
-        $lines[] = "— {$clinicName}";
-
-        return implode("\n", $lines);
+        return $this->render('grooming_programado', [
+            'propietario' => $ownerName,
+            'mascota' => $petName,
+            'clinica' => $clinicName,
+            'servicio' => $servicioLabel,
+            'fecha' => $fecha,
+            'hora' => $hora,
+            'adelanto_linea' => $this->groomingAdelantoLine($adelantoMonto, $adelantoMoneda),
+        ]);
     }
 
     public function groomingTurnoReprogramado(
@@ -378,16 +326,13 @@ final class ReminderMessageBuilder
         $fecha = $inicioAt->timezone(config('app.timezone'))->translatedFormat('d/m/Y');
         $hora = $inicioAt->timezone(config('app.timezone'))->format('H:i');
 
-        return implode("\n", [
-            "Hola {$ownerName} 👋",
-            '',
-            "🔄 Reprogramamos el grooming de *{$petName}*",
-            "🧴 Servicio: *{$servicioLabel}*",
-            "📅 Nueva fecha: *{$fecha}* a las *{$hora}*",
-            '',
-            'Te esperamos 🐾',
-            '',
-            "— {$clinicName}",
+        return $this->render('grooming_reprogramado', [
+            'propietario' => $ownerName,
+            'mascota' => $petName,
+            'clinica' => $clinicName,
+            'servicio' => $servicioLabel,
+            'fecha' => $fecha,
+            'hora' => $hora,
         ]);
     }
 
@@ -404,38 +349,26 @@ final class ReminderMessageBuilder
         $horaIngreso = $ingreso->format('H:i');
         $fechaEgreso = $egresoAt?->timezone(config('app.timezone'))->translatedFormat('d/m/Y');
 
-        $detalle = match ($evento) {
-            'reprogramada' => "🔄 Reprogramamos la estancia de *{$petName}*",
-            'confirmada' => "✅ Confirmamos la estancia de *{$petName}*",
-            'en_estancia' => "🏨 *{$petName}* ya ingresó al hotel",
-            'completada' => "🏡 La estancia de *{$petName}* fue completada",
-            'cancelada' => "La estancia de *{$petName}* fue *cancelada*.",
-            'no_presento' => "Registramos que *{$petName}* *no se presentó* a su estancia.",
-            default => "✅ Registramos la estancia de *{$petName}*",
+        $tipo = match ($evento) {
+            'reprogramada' => 'hotel_reprogramada',
+            'confirmada' => 'hotel_confirmada',
+            'en_estancia' => 'hotel_en_estancia',
+            'completada' => 'hotel_completada',
+            'cancelada' => 'hotel_cancelada',
+            'no_presento' => 'hotel_no_presento',
+            default => 'hotel_registrada',
         };
 
-        $lines = [
-            "Hola {$ownerName} 👋",
-            '',
-            $detalle,
-            "📅 Ingreso: *{$fechaIngreso}* a las *{$horaIngreso}*",
-        ];
-
-        if ($fechaEgreso !== null) {
-            $lines[] = "📅 Egreso previsto: *{$fechaEgreso}*";
-        }
-
-        $lines[] = '';
-        $lines[] = match ($evento) {
-            'en_estancia' => 'Te mantendremos informado durante su estadía 🐾',
-            'completada' => 'Gracias por confiar en nosotros 🐾',
-            'cancelada', 'no_presento' => 'Si deseas reprogramar, comunícate con la clínica.',
-            default => 'Te esperamos 🐾',
-        };
-        $lines[] = '';
-        $lines[] = "— {$clinicName}";
-
-        return implode("\n", $lines);
+        return $this->render($tipo, [
+            'propietario' => $ownerName,
+            'mascota' => $petName,
+            'clinica' => $clinicName,
+            'fecha_ingreso' => $fechaIngreso,
+            'hora_ingreso' => $horaIngreso,
+            'egreso_linea' => $fechaEgreso !== null
+                ? "\n📅 Egreso previsto: *{$fechaEgreso}*"
+                : '',
+        ]);
     }
 
     public function hotelBitacora(
@@ -447,16 +380,12 @@ final class ReminderMessageBuilder
     ): string {
         $detalle = trim((string) $notas);
 
-        return implode("\n", [
-            "Hola {$ownerName} 👋",
-            '',
-            "📋 Nueva actualización de la estancia de *{$petName}*",
-            '📅 *'.$fecha->translatedFormat('d/m/Y').'*',
-            $detalle !== '' ? "📝 {$detalle}" : '📝 Sin observaciones adicionales.',
-            '',
-            'Seguimos cuidándolo 🐾',
-            '',
-            "— {$clinicName}",
+        return $this->render('hotel_bitacora', [
+            'propietario' => $ownerName,
+            'mascota' => $petName,
+            'clinica' => $clinicName,
+            'fecha' => $fecha->translatedFormat('d/m/Y'),
+            'notas' => $detalle !== '' ? $detalle : 'Sin observaciones adicionales.',
         ]);
     }
 
@@ -469,5 +398,74 @@ final class ReminderMessageBuilder
         return $setting->nombre_comercial
             ?: $setting->razon_social
             ?: (string) config('app.name', 'VetSaaS');
+    }
+
+    /**
+     * @param  array<string, string>  $variables
+     */
+    private function render(string $tipo, array $variables): string
+    {
+        $body = $this->resolveBody($tipo);
+
+        return $this->interpolate($body, $variables);
+    }
+
+    private function resolveBody(string $tipo): string
+    {
+        $default = RecordatorioTemplateCatalog::defaultBody($tipo);
+        if ($default === null) {
+            return '';
+        }
+
+        if (! Schema::hasTable('cfg_recordatorio_templates')) {
+            return $default;
+        }
+
+        try {
+            $row = RecordatorioTemplate::query()
+                ->where('tipo', $tipo)
+                ->first(['cuerpo', 'activo']);
+        } catch (\Throwable) {
+            return $default;
+        }
+
+        if ($row === null) {
+            return $default;
+        }
+
+        // Desactivada → no inventar vacío: se usa el texto de fábrica.
+        if (! $row->activo) {
+            return $default;
+        }
+
+        $cuerpo = trim((string) $row->cuerpo);
+
+        return $cuerpo !== '' ? (string) $row->cuerpo : $default;
+    }
+
+    /**
+     * @param  array<string, string>  $variables
+     */
+    private function interpolate(string $body, array $variables): string
+    {
+        $replacements = [];
+        foreach ($variables as $key => $value) {
+            $replacements['{{'.$key.'}}'] = $value;
+        }
+
+        return strtr($body, $replacements);
+    }
+
+    private function groomingAdelantoLine(?string $adelantoMonto, ?string $adelantoMoneda): string
+    {
+        $monto = is_string($adelantoMonto) ? trim($adelantoMonto) : '';
+        if ($monto === '' || (float) $monto <= 0) {
+            return '';
+        }
+
+        $moneda = trim((string) ($adelantoMoneda ?? 'PEN')) ?: 'PEN';
+        $montoFmt = number_format((float) $monto, 2, '.', ',');
+
+        return "\n💵 Adelanto recibido: *{$moneda} {$montoFmt}*";
     }
 }
