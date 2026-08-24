@@ -118,7 +118,7 @@ export default function Index({
                                             <Can permission="plantillas.update">
                                                 <Button
                                                     type="button"
-                                                    variant="outline"
+                                                    variant="default"
                                                     size="sm"
                                                     className="shrink-0"
                                                     onClick={() =>
