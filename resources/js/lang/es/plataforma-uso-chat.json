@@ -1,0 +1,41 @@
+{
+    "title": "Uso de chat interno",
+    "description": "Clínicas que usan el chat entre su equipo: mensajes recientes, conversaciones y usuarios en línea.",
+    "search_placeholder": "Buscar clínica o slug…",
+    "scope": {
+        "activos": "Con actividad (30 días)",
+        "todos": "Todas las clínicas"
+    },
+    "stats": {
+        "active_7d": "Activas 7 días",
+        "active_30d": "Activas 30 días",
+        "messages_7d": "Mensajes 7 días",
+        "messages_30d": "Mensajes 30 días",
+        "online": "Usuarios en línea",
+        "with_chat": "Con módulo chat"
+    },
+    "columns": {
+        "tenant": "Clínica",
+        "messages_7d": "Msgs 7d",
+        "messages_30d": "Msgs 30d",
+        "conversations": "Conversaciones",
+        "last_message": "Último mensaje",
+        "online": "En línea",
+        "status": "Estado"
+    },
+    "status": {
+        "active": "Activo",
+        "idle": "Sin mensajes 30d",
+        "not_ready": "Sin tablas chat",
+        "error": "Error de lectura"
+    },
+    "empty": {
+        "title": "Nadie usa el chat todavía",
+        "description": "Cuando una clínica envíe mensajes internos, aparecerá aquí.",
+        "filtered_title": "Sin resultados",
+        "filtered_description": "Prueba otro filtro o busca otra clínica."
+    },
+    "refresh": "Actualizar",
+    "open_tenant": "Abrir tenant",
+    "cache_note": "Los totales se refrescan cada ~45 s al escanear los schemas de cada clínica."
+}

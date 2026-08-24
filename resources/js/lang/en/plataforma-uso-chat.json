@@ -1,0 +1,41 @@
+{
+    "title": "Internal chat usage",
+    "description": "Clinics using team chat: recent messages, conversations and online users.",
+    "search_placeholder": "Search clinic or slug…",
+    "scope": {
+        "activos": "With activity (30 days)",
+        "todos": "All clinics"
+    },
+    "stats": {
+        "active_7d": "Active 7 days",
+        "active_30d": "Active 30 days",
+        "messages_7d": "Messages 7 days",
+        "messages_30d": "Messages 30 days",
+        "online": "Online users",
+        "with_chat": "With chat module"
+    },
+    "columns": {
+        "tenant": "Clinic",
+        "messages_7d": "Msgs 7d",
+        "messages_30d": "Msgs 30d",
+        "conversations": "Conversations",
+        "last_message": "Last message",
+        "online": "Online",
+        "status": "Status"
+    },
+    "status": {
+        "active": "Active",
+        "idle": "No messages in 30d",
+        "not_ready": "Chat tables missing",
+        "error": "Read error"
+    },
+    "empty": {
+        "title": "No one is using chat yet",
+        "description": "When a clinic sends internal messages, it will show up here.",
+        "filtered_title": "No results",
+        "filtered_description": "Try another filter or search another clinic."
+    },
+    "refresh": "Refresh",
+    "open_tenant": "Open tenant",
+    "cache_note": "Totals refresh about every 45s while scanning each clinic schema."
+}

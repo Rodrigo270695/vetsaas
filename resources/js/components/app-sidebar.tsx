@@ -486,6 +486,12 @@ function useNavConfig(): { singles: NavItem[]; groups: NavGroup[] } {
                             permission: 'plataforma-operaciones.view',
                         },
                         {
+                            title: t('items.uso_chat'),
+                            href: '/plataforma/uso-chat',
+                            icon: MessagesSquare,
+                            permission: 'plataforma-operaciones.view',
+                        },
+                        {
                             title: t('items.apiperu'),
                             href: '/plataforma/apiperu',
                             icon: Landmark,
