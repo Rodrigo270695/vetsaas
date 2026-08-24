@@ -56,6 +56,8 @@ import { PacienteRowActions } from './components/paciente-row-actions';
 type Props = {
     pacientes: Paginated<Paciente>;
     propietarios_opciones: readonly PropietarioOpcion[];
+    clinicas_asesoradas_opciones?: readonly { id: string; nombre: string }[];
+    modo_asesora?: boolean;
     especie_raza_catalogo: EspecieRazaCatalogo;
     filters: PacienteFilters;
     stats: PacienteStats;
@@ -101,6 +103,8 @@ function sexoLabel(t: (k: string) => string, sexo: string | null): string {
 export default function Index({
     pacientes: paginated,
     propietarios_opciones,
+    clinicas_asesoradas_opciones = [],
+    modo_asesora = false,
     especie_raza_catalogo,
     filters,
     stats,
@@ -131,7 +135,14 @@ export default function Index({
     } = useDataTablePage<{ estado: PacienteEstadoFilter }>({
         routeUrl: pacientes.index().url,
         initialFilters: filters,
-        only: ['pacientes', 'filters', 'stats', 'propietarios_opciones'],
+            only: [
+                'pacientes',
+                'filters',
+                'stats',
+                'propietarios_opciones',
+                'clinicas_asesoradas_opciones',
+                'modo_asesora',
+            ],
         errorMessage: t('toast.load_error'),
         storageKey: 'vetsaas.pacientes.prefs',
         defaults: {
@@ -262,6 +273,19 @@ export default function Index({
                     </span>
                 ),
             },
+            ...(modo_asesora
+                ? ([
+                      {
+                          key: 'clinica_asesorada',
+                          header: t('columns.clinica_asesorada'),
+                          cell: (p) => (
+                              <span className="text-sm">
+                                  {p.clinica_asesorada?.nombre ?? '—'}
+                              </span>
+                          ),
+                      },
+                  ] as DataTableColumn<Paciente>[])
+                : []),
             {
                 key: 'sexo',
                 header: t('columns.sexo'),
@@ -385,6 +409,7 @@ export default function Index({
         canViewHistorial,
         openEdit,
         openDelete,
+        modo_asesora,
     ]);
 
     return (
@@ -586,6 +611,8 @@ export default function Index({
                 propietarioFijoId={null}
                 propietariosOpciones={propietarios_opciones}
                 especieRazaCatalogo={especie_raza_catalogo}
+                modoAsesora={modo_asesora}
+                clinicasAsesoradasOpciones={clinicas_asesoradas_opciones}
             />
 
             <PacienteDeleteDialog

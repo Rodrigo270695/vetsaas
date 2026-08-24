@@ -353,6 +353,11 @@ class TenantSchemaMigrator
                 ),
             '2026_08_21_180000_t134_chat_message_deliveries' => Schema::hasTable('chat_message_deliveries'),
             '2026_08_24_130000_t135_create_cfg_recordatorio_templates_table' => Schema::hasTable('cfg_recordatorio_templates'),
+            '2026_08_24_190000_t136_modo_asesora_clinicas_asesoradas' => Schema::hasTable('cfg_clinic_settings')
+                && Schema::hasColumn('cfg_clinic_settings', 'modo_asesora_activo')
+                && Schema::hasTable('clinicas_asesoradas')
+                && Schema::hasTable('pacientes')
+                && Schema::hasColumn('pacientes', 'clinica_asesorada_id'),
             default => false,
         };
     }

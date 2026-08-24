@@ -21,6 +21,7 @@
     "items": {
         "dashboard": "Dashboard",
         "pacientes": "Pacientes",
+        "clinicas_asesoradas": "Clínicas asesoradas",
         "propietarios": "Propietarios",
         "citas": "Citas",
         "historias_clinicas": "Historias clínicas",

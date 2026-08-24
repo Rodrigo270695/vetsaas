@@ -50,6 +50,7 @@ class Paciente extends Model
 
     protected $fillable = [
         'propietario_id',
+        'clinica_asesorada_id',
         'nombre',
         'foto_path',
         'especie',
@@ -98,6 +99,11 @@ class Paciente extends Model
     public function propietario(): BelongsTo
     {
         return $this->belongsTo(Propietario::class, 'propietario_id');
+    }
+
+    public function clinicaAsesorada(): BelongsTo
+    {
+        return $this->belongsTo(ClinicaAsesorada::class, 'clinica_asesorada_id');
     }
 
     public function historiaClinica(): HasOne

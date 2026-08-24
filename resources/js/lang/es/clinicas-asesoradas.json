@@ -1,0 +1,52 @@
+{
+    "title": "Clínicas asesoradas",
+    "description": "Veterinarias que atiendes. Luego las eliges al registrar cada mascota.",
+    "empty": "Aún no hay clínicas. Crea la primera.",
+    "search_placeholder": "Buscar por nombre, RUC o ubicación…",
+    "actions": {
+        "new": "Nueva clínica",
+        "edit": "Editar",
+        "delete": "Eliminar"
+    },
+    "stats": {
+        "total": "Total",
+        "activas": "Activas",
+        "inactivas": "Inactivas",
+        "coincidencias": "Coincidencias"
+    },
+    "filters": {
+        "todas": "Todas",
+        "activa": "Activas",
+        "inactiva": "Inactivas"
+    },
+    "columns": {
+        "nombre": "Nombre",
+        "ruc": "RUC",
+        "ubicacion": "Ubicación",
+        "estado": "Estado"
+    },
+    "estado": {
+        "activa": "Activa",
+        "inactiva": "Inactiva"
+    },
+    "form": {
+        "create_title": "Nueva clínica",
+        "edit_title": "Editar clínica",
+        "description": "Datos de la veterinaria de origen.",
+        "nombre": "Nombre",
+        "ruc": "RUC",
+        "direccion": "Dirección",
+        "activo": "Clínica activa",
+        "departamento": "Departamento",
+        "provincia": "Provincia",
+        "distrito": "Distrito"
+    },
+    "delete": {
+        "title": "Eliminar clínica",
+        "description": "¿Eliminar «{{name}}»? Las mascotas vinculadas quedarán sin clínica de origen.",
+        "confirm": "Eliminar"
+    },
+    "toast": {
+        "load_error": "No se pudo cargar el listado."
+    }
+}

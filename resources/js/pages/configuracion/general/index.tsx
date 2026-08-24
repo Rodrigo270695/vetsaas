@@ -32,6 +32,7 @@ import type { GeoCascadeValue } from '@/components/geo/geo-cascade-fields';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
     Select,
     SelectContent,
@@ -119,6 +120,7 @@ type FormState = {
     recordatorio_vacuna_activo: boolean;
     recordatorio_vacuna_dias_antes_opciones: number[];
     recordatorio_cumple_activo: boolean;
+    modo_asesora_activo: boolean;
     // Facturación
     moneda: 'PEN' | 'USD';
     igv_porcentaje: string;
@@ -193,6 +195,7 @@ const buildInitialState = (setting: ClinicSetting): FormState => ({
             ),
         ) ?? [7],
     recordatorio_cumple_activo: setting.recordatorio_cumple_activo,
+    modo_asesora_activo: setting.modo_asesora_activo ?? false,
     moneda: setting.moneda,
     igv_porcentaje: setting.igv_porcentaje,
     igv_afectacion:
@@ -429,6 +432,7 @@ export default function Index({
             recordatorio_vacuna_dias_antes_opciones:
                 data.recordatorio_vacuna_dias_antes_opciones,
             recordatorio_cumple_activo: data.recordatorio_cumple_activo ? 1 : 0,
+            modo_asesora_activo: data.modo_asesora_activo ? 1 : 0,
             precio_incluye_igv: data.precio_incluye_igv ? 1 : 0,
             emite_comprobantes_sunat: data.emite_comprobantes_sunat ? 1 : 0,
             clear_logo: clearLogo ? 1 : 0,
@@ -881,6 +885,37 @@ export default function Index({
                                     />
                                 </FormField>
                             </FormSection>
+                        </SectionCard>
+
+                        {/* ───── Modo asesora ───── */}
+                        <SectionCard
+                            icon={Building2}
+                            title={t('sections.modo_asesora.title')}
+                            description={t(
+                                'sections.modo_asesora.description',
+                            )}
+                        >
+                            <div className="flex items-start gap-3 rounded-lg border border-border p-4">
+                                <Checkbox
+                                    id="general-modo-asesora"
+                                    checked={data.modo_asesora_activo}
+                                    onCheckedChange={(checked) =>
+                                        setData(
+                                            'modo_asesora_activo',
+                                            checked === true,
+                                        )
+                                    }
+                                    disabled={!canUpdate}
+                                />
+                                <div className="space-y-1">
+                                    <Label htmlFor="general-modo-asesora">
+                                        {t('fields.modo_asesora_activo')}
+                                    </Label>
+                                    <p className="text-sm text-muted-foreground">
+                                        {t('fields.modo_asesora_activo_hint')}
+                                    </p>
+                                </div>
+                            </div>
                         </SectionCard>
 
                         {/* ───── Branding ───── */}

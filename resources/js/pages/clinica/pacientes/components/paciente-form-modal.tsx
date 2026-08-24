@@ -47,10 +47,13 @@ export type PacienteFormModalProps = {
     propietarioFijoId: string | null;
     propietariosOpciones: readonly PropietarioOpcion[];
     especieRazaCatalogo?: EspecieRazaCatalogo;
+    modoAsesora?: boolean;
+    clinicasAsesoradasOpciones?: readonly { id: string; nombre: string }[];
 };
 
 type InternalForm = {
     propietario_id: string;
+    clinica_asesorada_id: string;
     nombre: string;
     especie: string;
     raza: string;
@@ -71,6 +74,7 @@ type PacienteFormData = InternalForm & {
 
 const emptyInternal: InternalForm = {
     propietario_id: '',
+    clinica_asesorada_id: '',
     nombre: '',
     especie: '',
     raza: '',
@@ -104,6 +108,7 @@ const fromModel = (
     fijoId: string | null,
 ): InternalForm => ({
         propietario_id: fijoId ?? p?.propietario_id ?? '',
+        clinica_asesorada_id: p?.clinica_asesorada_id ?? '',
         nombre: p?.nombre ?? '',
         especie: p?.especie?.trim() ?? '',
         raza: p?.raza?.trim() ?? '',
@@ -131,6 +136,8 @@ export function PacienteFormModal({
     propietarioFijoId,
     propietariosOpciones,
     especieRazaCatalogo = { especies: [], razas: [] },
+    modoAsesora = false,
+    clinicasAsesoradasOpciones = [],
 }: PacienteFormModalProps) {
     const { t } = useTranslation(['pacientes', 'common', 'offline']);
     const { refreshPending } = useOfflineSync();
@@ -181,6 +188,7 @@ export function PacienteFormModal({
             if (!isEditRef.current && !fijoRef.current && raw.propietario_id) {
                 next.propietario_id = raw.propietario_id;
             }
+            next.clinica_asesorada_id = raw.clinica_asesorada_id || null;
             if (raw.foto instanceof File) {
                 next.foto = raw.foto;
             }
@@ -303,6 +311,7 @@ export function PacienteFormModal({
         if (ownerId) {
             next.propietario_id = ownerId;
         }
+        next.clinica_asesorada_id = raw.clinica_asesorada_id || null;
 
         return next;
     };
@@ -466,6 +475,37 @@ export function PacienteFormModal({
                             />
                         </FormField>
                     )}
+                    {modoAsesora ? (
+                        <FormField
+                            id="pac-clinica-asesorada"
+                            label={t('form.clinica_asesorada')}
+                            error={errors.clinica_asesorada_id}
+                            className="min-w-0 sm:col-span-2"
+                        >
+                            <Combobox
+                                id="pac-clinica-asesorada"
+                                options={clinicasAsesoradasOpciones.map((c) => ({
+                                    value: c.id,
+                                    label: c.nombre,
+                                }))}
+                                value={data.clinica_asesorada_id || null}
+                                onChange={(v) =>
+                                    setData('clinica_asesorada_id', v ?? '')
+                                }
+                                placeholder={t(
+                                    'form.clinica_asesorada_placeholder',
+                                )}
+                                searchPlaceholder={t(
+                                    'form.clinica_asesorada_search',
+                                )}
+                                emptyMessage={t(
+                                    'form.clinica_asesorada_empty',
+                                )}
+                                clearable
+                                className={`${controlClass} cursor-pointer`}
+                            />
+                        </FormField>
+                    ) : null}
                     <FormField
                         id="pac-nombre"
                         label={t('form.nombre')}

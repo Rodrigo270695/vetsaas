@@ -43,6 +43,10 @@
             "title": "Contact",
             "description": "How clients can reach you. Used on emails, reminders and templates."
         },
+        "modo_asesora": {
+            "title": "Advisor mode",
+            "description": "For teams advising several clinics: enable the origin-clinic catalog and the pet selector."
+        },
         "branding": {
             "title": "Visual identity",
             "description": "Logo and colors shown on the sidebar, receipts and automated emails."
@@ -112,6 +116,8 @@
         "email_institucional": "Institutional email",
         "telefono_principal": "Main phone",
         "web_url": "Website",
+        "modo_asesora_activo": "Enable advisor mode (multiple clinics)",
+        "modo_asesora_activo_hint": "When enabled, Clínica → Advised clinics appears and you can set which clinic each pet belongs to.",
         "duracion_cita_default_min": "Default appointment duration (min)",
         "duracion_cita_default_min_hint": "Used when the reason does not define a different duration.",
         "intervalo_agenda_min": "Calendar slot size (min)",

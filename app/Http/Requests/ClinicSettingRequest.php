@@ -97,6 +97,7 @@ class ClinicSettingRequest extends FormRequest
                 Rule::in(ClinicSetting::VACCINE_REMINDER_DAY_OPTIONS),
             ],
             'recordatorio_cumple_activo' => ['required', 'boolean'],
+            'modo_asesora_activo' => ['required', 'boolean'],
 
             // Facturación
             'moneda' => ['required', Rule::in(['PEN', 'USD'])],
@@ -197,6 +198,7 @@ class ClinicSettingRequest extends FormRequest
             'notificar_hotel_bitacora_whatsapp_activo' => $this->boolean('notificar_hotel_bitacora_whatsapp_activo'),
             'recordatorio_vacuna_activo' => $this->boolean('recordatorio_vacuna_activo'),
             'recordatorio_cumple_activo' => $this->boolean('recordatorio_cumple_activo'),
+            'modo_asesora_activo' => $this->boolean('modo_asesora_activo'),
             'precio_incluye_igv' => $this->boolean('precio_incluye_igv'),
             'emite_comprobantes_sunat' => $this->boolean('emite_comprobantes_sunat'),
             'clear_apisunat' => $this->boolean('clear_apisunat'),

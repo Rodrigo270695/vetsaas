@@ -105,6 +105,7 @@ export function NavMainCollapsible({
     const page = usePage();
     const tenant = page.props.tenant;
     const botIaActive = page.props.bot_ia_addon?.activo === true;
+    const modoAsesoraActive = page.props.modo_asesora === true;
     const tenantModulesEnabled = (page.props.tenant_modules as { enabled?: Record<string, boolean> } | null)
         ?.enabled;
     const hasTenant = tenant !== null && tenant !== undefined;
@@ -149,6 +150,10 @@ export function NavMainCollapsible({
             return false;
         }
 
+        if (item.requiresModoAsesora && !modoAsesoraActive) {
+            return false;
+        }
+
         return !item.permission || can(item.permission);
     };
 
@@ -161,7 +166,7 @@ export function NavMainCollapsible({
     const visibleSingles = useMemo(
         () => singles.filter(itemVisible),
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [singles, hasTenant, permissions, botIaActive, hasComunicacionesAccess],
+        [singles, hasTenant, permissions, botIaActive, modoAsesoraActive, hasComunicacionesAccess],
     );
 
     const visibleGroups = useMemo(() => {
@@ -183,7 +188,7 @@ export function NavMainCollapsible({
                 return group.items.length > 0;
             });
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [groups, hasTenant, permissions, botIaActive, hasComunicacionesAccess]);
+    }, [groups, hasTenant, permissions, botIaActive, modoAsesoraActive, hasComunicacionesAccess]);
 
     const initialOpenMap = useMemo(() => {
         const map: Record<string, boolean> = {};

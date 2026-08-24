@@ -43,6 +43,10 @@
             "title": "Contacto",
             "description": "Datos por los que tus clientes pueden ubicarte. Se usan en correos, recordatorios y plantillas."
         },
+        "modo_asesora": {
+            "title": "Modo asesora",
+            "description": "Para quienes atienden varias veterinarias: activa el catálogo de clínicas de origen y el selector en mascotas."
+        },
         "branding": {
             "title": "Identidad visual",
             "description": "Logo y colores que se mostrarán en el sidebar, los comprobantes y los correos automáticos."
@@ -112,6 +116,8 @@
         "email_institucional": "Correo institucional",
         "telefono_principal": "Teléfono principal",
         "web_url": "Sitio web",
+        "modo_asesora_activo": "Activar modo asesora (varias veterinarias)",
+        "modo_asesora_activo_hint": "Al activarlo verás Clínica → Clínicas asesoradas y podrás indicar de qué veterinaria es cada mascota.",
         "duracion_cita_default_min": "Duración por defecto de una cita (min)",
         "duracion_cita_default_min_hint": "Se usa al crear citas si el motivo no define algo distinto.",
         "intervalo_agenda_min": "Intervalo del calendario (min)",

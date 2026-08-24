@@ -75,6 +75,7 @@ class TenantRolesSeeder extends Seeder
 
                 // Clínica
                 'pacientes.view', 'pacientes.create', 'pacientes.update', 'pacientes.delete', 'pacientes.export', 'pacientes.bulk-delete',
+                'clinicas-asesoradas.view', 'clinicas-asesoradas.create', 'clinicas-asesoradas.update', 'clinicas-asesoradas.delete',
                 'petpass.view', 'petpass.register',
                 'propietarios.view', 'propietarios.create', 'propietarios.update', 'propietarios.delete', 'propietarios.export', 'propietarios.bulk-delete',
                 'citas.view', 'citas.create', 'citas.update', 'citas.delete', 'citas.cancel', 'citas.aperturar',

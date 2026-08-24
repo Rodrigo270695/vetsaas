@@ -19,6 +19,7 @@ use App\Tenancy\TenantManager;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Inertia\Middleware;
 use Throwable;
 
@@ -231,6 +232,19 @@ class HandleInertiaRequests extends Middleware
                         report($e);
 
                         return ['activo' => false, 'precio_mensual' => null];
+                    }
+                },
+            'modo_asesora' => $skipHeavySharedProps || $tenantContext === null
+                ? false
+                : static function (): bool {
+                    try {
+                        if (! Schema::hasColumn('cfg_clinic_settings', 'modo_asesora_activo')) {
+                            return false;
+                        }
+
+                        return (bool) ClinicSetting::query()->value('modo_asesora_activo');
+                    } catch (Throwable) {
+                        return false;
                     }
                 },
             'tenant_chat' => $skipHeavySharedProps || $tenantContext === null

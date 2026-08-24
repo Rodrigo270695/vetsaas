@@ -132,6 +132,7 @@ class ClinicSettingController extends Controller
             'recordatorio_vacuna_activo' => $data['recordatorio_vacuna_activo'],
             'recordatorio_vacuna_dias_antes_opciones' => $data['recordatorio_vacuna_dias_antes_opciones'],
             'recordatorio_cumple_activo' => $data['recordatorio_cumple_activo'],
+            'modo_asesora_activo' => $data['modo_asesora_activo'],
             'moneda' => $data['moneda'],
             'igv_porcentaje' => $data['igv_porcentaje'],
             'igv_afectacion' => $data['igv_afectacion'],
@@ -316,6 +317,7 @@ class ClinicSettingController extends Controller
             'recordatorio_vacuna_dias_antes' => $setting->recordatorio_vacuna_dias_antes,
             'recordatorio_vacuna_dias_antes_opciones' => $setting->recordatorioVacunaDiasAntesOpciones(),
             'recordatorio_cumple_activo' => $setting->recordatorio_cumple_activo,
+            'modo_asesora_activo' => (bool) ($setting->modo_asesora_activo ?? false),
             // Facturación
             'moneda' => $setting->moneda,
             'igv_porcentaje' => (string) $setting->igv_porcentaje,

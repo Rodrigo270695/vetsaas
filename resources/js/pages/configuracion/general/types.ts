@@ -91,6 +91,7 @@ export type ClinicSetting = {
     recordatorio_vacuna_dias_antes: number;
     recordatorio_vacuna_dias_antes_opciones: number[];
     recordatorio_cumple_activo: boolean;
+    modo_asesora_activo: boolean;
     // Facturación
     moneda: 'PEN' | 'USD';
     igv_porcentaje: string;

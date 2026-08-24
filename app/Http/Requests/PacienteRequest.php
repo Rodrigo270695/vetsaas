@@ -33,6 +33,11 @@ class PacienteRequest extends FormRequest
             'esterilizado' => ['nullable', 'boolean'],
             'notas' => ['nullable', 'string', 'max:5000'],
             'activo' => ['required', 'boolean'],
+            'clinica_asesorada_id' => [
+                'nullable',
+                'uuid',
+                Rule::exists('clinicas_asesoradas', 'id')->whereNull('deleted_at'),
+            ],
         ];
 
         if ($this->isMethod('POST')) {
@@ -85,6 +90,9 @@ class PacienteRequest extends FormRequest
 
         $this->merge([
             'activo' => $this->boolean('activo'),
+            'clinica_asesorada_id' => $this->filled('clinica_asesorada_id')
+                ? (string) $this->input('clinica_asesorada_id')
+                : null,
         ]);
     }
 

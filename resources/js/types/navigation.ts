@@ -52,6 +52,12 @@ export type NavItem = {
     requiresBotIa?: boolean;
 
     /**
+     * Solo visible si el tenant tiene modo asesora activo
+     * (Configuración → General → Mi clínica).
+     */
+    requiresModoAsesora?: boolean;
+
+    /**
      * Si el add-on no está activo, mostrar igual como novedad promocional
      * (para usuarios con acceso a Comunicaciones).
      */

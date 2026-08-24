@@ -11,6 +11,8 @@ use App\Models\Cirugia;
 use App\Models\Consulta;
 use App\Models\HistoriaClinica;
 use App\Models\Internamiento;
+use App\Models\ClinicaAsesorada;
+use App\Models\ClinicSetting;
 use App\Models\Paciente;
 use App\Models\PedidoLaboratorio;
 use App\Models\PedidoLaboratorioLinea;
@@ -74,9 +76,20 @@ class PacienteController extends Controller
             $estado = 'todos';
         }
 
+        $modoAsesora = (bool) ClinicSetting::query()->value('modo_asesora_activo');
+        $clinicaAsesoradaId = trim((string) $request->string('clinica_asesorada_id', ''));
+        if (! $modoAsesora || $clinicaAsesoradaId === '') {
+            $clinicaAsesoradaId = null;
+        }
+
         $canAudit = $request->user()?->can('audit-trail.view') ?? false;
 
-        $query = Paciente::query()->with(['propietario:id,nombres,apellidos,razon_social']);
+        $with = ['propietario:id,nombres,apellidos,razon_social'];
+        if ($modoAsesora) {
+            $with[] = 'clinicaAsesorada:id,nombre';
+        }
+
+        $query = Paciente::query()->with($with);
 
         if ($sort === 'propietario') {
             $query->leftJoin('propietarios as p', 'p.id', '=', 'pacientes.propietario_id')
@@ -119,6 +132,10 @@ class PacienteController extends Controller
             $query->where('pacientes.activo', false);
         }
 
+        if ($clinicaAsesoradaId !== null) {
+            $query->where('pacientes.clinica_asesorada_id', $clinicaAsesoradaId);
+        }
+
         $pacientes = $query->paginate($perPage)->withQueryString();
 
         $propietariosOpciones = Propietario::query()
@@ -127,9 +144,19 @@ class PacienteController extends Controller
             ->limit(500)
             ->get(['id', 'nombres', 'apellidos', 'razon_social']);
 
+        $clinicasAsesoradasOpciones = [];
+        if ($modoAsesora) {
+            $clinicasAsesoradasOpciones = ClinicaAsesorada::query()
+                ->where('activo', true)
+                ->orderBy('nombre')
+                ->get(['id', 'nombre']);
+        }
+
         return Inertia::render('clinica/pacientes/index', [
             'pacientes' => $pacientes,
             'propietarios_opciones' => $propietariosOpciones,
+            'clinicas_asesoradas_opciones' => $clinicasAsesoradasOpciones,
+            'modo_asesora' => $modoAsesora,
             'especie_raza_catalogo' => PacienteEspecieRazaCatalogo::payload(),
             'filters' => [
                 'search' => $search,
@@ -137,6 +164,7 @@ class PacienteController extends Controller
                 'sort' => $sortValid ? $sort : null,
                 'direction' => $sortValid && $directionValid ? $direction : null,
                 'estado' => $estado,
+                'clinica_asesorada_id' => $clinicaAsesoradaId,
             ],
             'stats' => [
                 'total' => Paciente::count(),
@@ -436,6 +464,7 @@ class PacienteController extends Controller
 
         $paciente = Paciente::create([
             'propietario_id' => $data['propietario_id'],
+            'clinica_asesorada_id' => $this->resolveClinicaAsesoradaId($data['clinica_asesorada_id'] ?? null),
             'nombre' => $data['nombre'],
             'especie' => $data['especie'] ?? null,
             'raza' => $data['raza'] ?? null,
@@ -459,6 +488,7 @@ class PacienteController extends Controller
     public function update(PacienteRequest $request, Paciente $paciente, TenantManager $tenants): RedirectResponse
     {
         $data = collect($request->validated())->except(['propietario_id', 'foto', 'clear_foto'])->all();
+        $data['clinica_asesorada_id'] = $this->resolveClinicaAsesoradaId($data['clinica_asesorada_id'] ?? null);
 
         $paciente->update([
             ...$data,
@@ -612,6 +642,17 @@ class PacienteController extends Controller
     /**
      * Guarda o elimina la foto de la mascota en disco `public` (namespace por tenant).
      */
+    private function resolveClinicaAsesoradaId(mixed $value): ?string
+    {
+        if (! (bool) ClinicSetting::query()->value('modo_asesora_activo')) {
+            return null;
+        }
+
+        $id = is_string($value) ? trim($value) : '';
+
+        return $id !== '' ? $id : null;
+    }
+
     private function applyFoto(Paciente $paciente, PacienteRequest $request, TenantManager $tenants): void
     {
         $disk = Storage::disk('public');

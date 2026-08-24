@@ -121,6 +121,13 @@ function useNavConfig(): { singles: NavItem[]; groups: NavGroup[] } {
                             permission: 'pacientes.view',
                         },
                         {
+                            title: t('items.clinicas_asesoradas'),
+                            href: '/clinica/clinicas-asesoradas',
+                            icon: Building2,
+                            permission: 'clinicas-asesoradas.view',
+                            requiresModoAsesora: true,
+                        },
+                        {
                             title: t('items.propietarios'),
                             href: '/clinica/propietarios',
                             icon: Users,

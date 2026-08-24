@@ -81,6 +81,7 @@ export type PacienteFilters = {
     sort: string | null;
     direction: 'asc' | 'desc' | null;
     estado: PacienteEstadoFilter;
+    clinica_asesorada_id?: string | null;
 };
 
 export type PacienteStats = {
@@ -90,9 +91,15 @@ export type PacienteStats = {
     coincidencias: number;
 };
 
+export type ClinicaAsesoradaOpcion = {
+    id: string;
+    nombre: string;
+};
+
 export type Paciente = {
     id: string;
     propietario_id: string;
+    clinica_asesorada_id?: string | null;
     nombre: string;
     /** URL pública (`/storage/...`); viene del accessor del modelo. */
     foto_url: string | null;
@@ -120,6 +127,10 @@ export type Paciente = {
         razon_social: string | null;
         telefono?: string | null;
     };
+    clinica_asesorada?: {
+        id: string;
+        nombre: string;
+    } | null;
     creado_por: AuditUser;
     actualizado_por: AuditUser;
 };

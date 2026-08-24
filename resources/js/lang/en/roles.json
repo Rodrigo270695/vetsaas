@@ -146,6 +146,7 @@
         "resumenes": "Summaries",
         "comunicaciones-cola": "Outbox queue",
         "comunicaciones-historico": "Message history",
+        "clinicas-asesoradas": "Advised clinics",
         "plantillas": "Templates",
         "snapshots": "Snapshots",
         "reporte-financiero": "Financial analysis",

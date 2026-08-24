@@ -40,6 +40,7 @@ import movimientosInventarioEn from '@/lang/en/movimientos-inventario.json';
 import offlineEn from '@/lang/en/offline.json';
 import navEn from '@/lang/en/nav.json';
 import pacientesEn from '@/lang/en/pacientes.json';
+import clinicasAsesoradasEn from '@/lang/en/clinicas-asesoradas.json';
 import planesEn from '@/lang/en/planes.json';
 import platformEn from '@/lang/en/platform.json';
 import productosInventarioEn from '@/lang/en/productos-inventario.json';
@@ -102,6 +103,7 @@ import movimientosInventarioEs from '@/lang/es/movimientos-inventario.json';
 import offlineEs from '@/lang/es/offline.json';
 import navEs from '@/lang/es/nav.json';
 import pacientesEs from '@/lang/es/pacientes.json';
+import clinicasAsesoradasEs from '@/lang/es/clinicas-asesoradas.json';
 import planesEs from '@/lang/es/planes.json';
 import platformEs from '@/lang/es/platform.json';
 import productosInventarioEs from '@/lang/es/productos-inventario.json';
@@ -152,6 +154,7 @@ const resources = {
         'productos-inventario': productosInventarioEs,
         nav: navEs,
         pacientes: pacientesEs,
+        'clinicas-asesoradas': clinicasAsesoradasEs,
         propietarios: propietariosEs,
         sedes: sedesEs,
         'stock-inventario': stockInventarioEs,
@@ -216,6 +219,7 @@ const resources = {
         'productos-inventario': productosInventarioEn,
         nav: navEn,
         pacientes: pacientesEn,
+        'clinicas-asesoradas': clinicasAsesoradasEn,
         propietarios: propietariosEn,
         sedes: sedesEn,
         'stock-inventario': stockInventarioEn,
@@ -291,6 +295,7 @@ void i18n
             'stock-inventario',
             'nav',
             'pacientes',
+            'clinicas-asesoradas',
             'propietarios',
             'sedes',
             'roles',

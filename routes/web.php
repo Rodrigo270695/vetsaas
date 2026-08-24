@@ -46,6 +46,7 @@ use App\Http\Controllers\NotificationQueueController;
 use App\Http\Controllers\RecordatorioTemplateController;
 use App\Http\Controllers\OfflineSyncController;
 use App\Http\Controllers\PacienteController;
+use App\Http\Controllers\ClinicaAsesoradaController;
 use App\Http\Controllers\PacientePetPassController;
 use App\Http\Controllers\PlanController;
 use App\Http\Controllers\PlataformaApiPeruController;
@@ -315,6 +316,22 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             Route::middleware('permission:pacientes.view')
                 ->get('pacientes', [PacienteController::class, 'index'])
                 ->name('pacientes.index');
+
+            Route::middleware('permission:clinicas-asesoradas.view')
+                ->get('clinicas-asesoradas', [ClinicaAsesoradaController::class, 'index'])
+                ->name('clinicas-asesoradas.index');
+            Route::middleware('permission:clinicas-asesoradas.create')
+                ->post('clinicas-asesoradas', [ClinicaAsesoradaController::class, 'store'])
+                ->name('clinicas-asesoradas.store');
+            Route::middleware('permission:clinicas-asesoradas.update')
+                ->match(['put', 'patch'], 'clinicas-asesoradas/{clinicaAsesorada}', [ClinicaAsesoradaController::class, 'update'])
+                ->whereUuid('clinicaAsesorada')
+                ->name('clinicas-asesoradas.update');
+            Route::middleware('permission:clinicas-asesoradas.delete')
+                ->delete('clinicas-asesoradas/{clinicaAsesorada}', [ClinicaAsesoradaController::class, 'destroy'])
+                ->whereUuid('clinicaAsesorada')
+                ->name('clinicas-asesoradas.destroy');
+
             Route::middleware('permission:pacientes.view')
                 ->get('pacientes/{paciente}', [PacienteController::class, 'show'])
                 ->name('pacientes.show');
