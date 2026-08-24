@@ -336,6 +336,22 @@ class TenantSchemaMigrator
                 && Schema::hasColumn('vacunas_aplicadas', 'servicio_clinico_id'),
             '2026_08_13_100000_t128_add_igv_afectacion_to_cfg_clinic_settings' => Schema::hasTable('cfg_clinic_settings')
                 && Schema::hasColumn('cfg_clinic_settings', 'igv_afectacion'),
+            '2026_08_21_100000_t130_create_tenant_chat_tables' => Schema::hasTable('chat_conversations')
+                && Schema::hasTable('chat_participants')
+                && Schema::hasTable('chat_messages'),
+            '2026_08_21_120000_t131_chat_message_attachments' => Schema::hasTable('chat_messages')
+                && Schema::hasColumn('chat_messages', 'attachment_path'),
+            '2026_08_21_140000_t132_chat_v2_features' => Schema::hasTable('chat_messages')
+                && (
+                    Schema::hasColumn('chat_messages', 'reply_to_id')
+                    || Schema::hasTable('chat_message_attachments')
+                ),
+            '2026_08_21_160000_t133_chat_v3_ux' => Schema::hasTable('chat_message_reactions')
+                || (
+                    Schema::hasTable('chat_messages')
+                    && Schema::hasColumn('chat_messages', 'edited_at')
+                ),
+            '2026_08_21_180000_t134_chat_message_deliveries' => Schema::hasTable('chat_message_deliveries'),
             '2026_08_24_130000_t135_create_cfg_recordatorio_templates_table' => Schema::hasTable('cfg_recordatorio_templates'),
             default => false,
         };
