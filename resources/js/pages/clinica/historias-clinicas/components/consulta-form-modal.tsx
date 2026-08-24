@@ -773,7 +773,7 @@ export function ConsultaFormModal({
                             onChange={(e) => setData('motivo', e.target.value)}
                             rows={2}
                             placeholder={t('form.motivo_placeholder')}
-                            className={`${controlClass} min-h-16 resize-y`}
+                            className={`${controlClass} min-h-16`}
                             disabled={fieldDisabled}
                         />
                     </FormField>
@@ -789,7 +789,7 @@ export function ConsultaFormModal({
                             value={data.subjetivo}
                             onChange={(e) => setData('subjetivo', e.target.value)}
                             rows={3}
-                            className={`${controlClass} min-h-22 resize-y`}
+                            className={`${controlClass} min-h-22`}
                             disabled={fieldDisabled}
                         />
                     </FormField>
@@ -804,7 +804,7 @@ export function ConsultaFormModal({
                             value={data.objetivo}
                             onChange={(e) => setData('objetivo', e.target.value)}
                             rows={3}
-                            className={`${controlClass} min-h-22 resize-y`}
+                            className={`${controlClass} min-h-22`}
                             disabled={fieldDisabled}
                         />
                     </FormField>
@@ -896,7 +896,7 @@ export function ConsultaFormModal({
                             value={data.analisis}
                             onChange={(e) => setData('analisis', e.target.value)}
                             rows={3}
-                            className={`${controlClass} min-h-22 resize-y`}
+                            className={`${controlClass} min-h-22`}
                             disabled={fieldDisabled}
                         />
                     </FormField>
@@ -1012,7 +1012,7 @@ export function ConsultaFormModal({
                             onChange={(e) => setData('anotaciones', e.target.value)}
                             placeholder={t('form.anotaciones_placeholder')}
                             rows={2}
-                            className={`${controlClass} min-h-18 resize-y`}
+                            className={`${controlClass} min-h-18`}
                             disabled={fieldDisabled}
                         />
                     </FormField>
