@@ -668,7 +668,7 @@ export function AgendaMonthCalendar({
                             }}
                             canCreate={canCreate}
                             canUpdate={canUpdate && Boolean(onReschedule)}
-                            pxPerHour={72}
+                            pxPerHour={64}
                             compact
                             showNowLine={false}
                             dragOverKey={dragOverKey}

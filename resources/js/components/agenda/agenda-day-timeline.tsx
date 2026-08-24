@@ -7,8 +7,9 @@ import { cn } from '@/lib/utils';
 import type { AgendaEvent } from './agenda-types';
 
 const DEFAULT_DURATION_MIN = 30;
-/** Mínimo visual: ~20 min para que la barra se lea bien. */
-const MIN_VISUAL_DURATION_MIN = 20;
+
+/** Separación entre barras consecutivas (como Google Calendar). */
+const EVENT_GAP_PX = 2;
 
 function toDateKey(d: Date, timeZone: string): string {
     const tz = new TZDate(d, timeZone);
@@ -32,7 +33,7 @@ type Props = {
     labels: AgendaDayTimelineLabels;
     canCreate: boolean;
     canUpdate: boolean;
-    /** Altura en px de cada hora (Google Calendar ~48–96). */
+    /** Altura en px de 60 minutos. 60 min de servicio = exactamente esta altura. */
     pxPerHour?: number;
     compact?: boolean;
     showNowLine?: boolean;
@@ -58,6 +59,27 @@ type LaidOutEvent = {
     durationMin: number;
 };
 
+/** Barras sólidas tipo Google Calendar (no tarjetas pálidas). */
+function barToneClass(event: AgendaEvent): string {
+    if (event.tone === 'grooming' || event.accentClass.includes('emerald')) {
+        return 'border-emerald-700/40 bg-emerald-500 text-white hover:bg-emerald-600 dark:bg-emerald-600 dark:hover:bg-emerald-500';
+    }
+
+    if (event.tone === 'hotel' || event.accentClass.includes('sky')) {
+        return 'border-sky-700/40 bg-sky-500 text-white hover:bg-sky-600 dark:bg-sky-600 dark:hover:bg-sky-500';
+    }
+
+    if (event.tone === 'cita' || event.accentClass.includes('amber')) {
+        return 'border-amber-700/40 bg-amber-500 text-white hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-500';
+    }
+
+    if (event.accentClass.includes('rose')) {
+        return 'border-rose-700/40 bg-rose-500 text-white hover:bg-rose-600 dark:bg-rose-600 dark:hover:bg-rose-500';
+    }
+
+    return 'border-primary/40 bg-primary text-primary-foreground hover:bg-primary/90';
+}
+
 function resolveDurationMinutes(event: AgendaEvent, timeZone: string): number {
     if (
         typeof event.duracion_minutos === 'number' &&
@@ -73,7 +95,7 @@ function resolveDurationMinutes(event: AgendaEvent, timeZone: string): number {
         const mins = Math.round((end - start) / 60_000);
 
         if (mins > 0) {
-            // Hotel multi-día: en vista diaria, bloque de check-in.
+            // Hotel multi-día: en vista diaria, bloque de check-in de 1 h.
             if (mins > 12 * 60) {
                 return 60;
             }
@@ -109,7 +131,8 @@ type Enriched = {
 };
 
 /**
- * Layout tipo Google Calendar: columnas para solapes + mismo columnCount por cluster.
+ * 60 minutos de duración = exactamente `pxPerHour` de alto (como Google Calendar).
+ * Ej.: 12:00 → 13:00 con 60 min ocupa de la línea 12:00 a la línea 13:00.
  */
 function layoutEvents(
     events: readonly AgendaEvent[],
@@ -119,26 +142,31 @@ function layoutEvents(
     timeZone: string,
 ): LaidOutEvent[] {
     const dayEndMinutes = (lastHourInclusive + 1) * 60 - firstHour * 60;
+    const pxPerMinute = pxPerHour / 60;
 
     const enriched: Omit<Enriched, 'column' | 'columnCount'>[] = events
         .map((event) => {
-            const durationMin = resolveDurationMinutes(event, timeZone);
+            const durationMin = Math.max(
+                5,
+                resolveDurationMinutes(event, timeZone),
+            );
             let startMin = minutesFromGridStart(
                 event.inicio_at,
                 firstHour,
                 timeZone,
             );
-            const visualDuration = Math.max(durationMin, MIN_VISUAL_DURATION_MIN);
-            let endMin = startMin + visualDuration;
+            let endMin = startMin + durationMin;
 
             startMin = Math.max(0, Math.min(startMin, dayEndMinutes - 5));
-            endMin = Math.min(
-                dayEndMinutes,
-                Math.max(startMin + MIN_VISUAL_DURATION_MIN, endMin),
-            );
+            endMin = Math.min(dayEndMinutes, Math.max(startMin + 5, endMin));
 
             const startTz = new TZDate(event.inicio_at, timeZone);
             const endTz = new Date(startTz.getTime() + durationMin * 60_000);
+
+            const topPx = startMin * pxPerMinute;
+            // Altura exacta por minutos; restamos gap para que no se pegue al siguiente.
+            const rawHeight = (endMin - startMin) * pxPerMinute;
+            const heightPx = Math.max(18, rawHeight - EVENT_GAP_PX);
 
             return {
                 event,
@@ -147,16 +175,12 @@ function layoutEvents(
                 durationMin,
                 startLabel: format(startTz, 'HH:mm'),
                 endLabel: format(endTz, 'HH:mm'),
-                topPx: (startMin / 60) * pxPerHour,
-                heightPx: Math.max(
-                    ((endMin - startMin) / 60) * pxPerHour,
-                    28,
-                ),
+                topPx,
+                heightPx,
             };
         })
         .sort((a, b) => a.startMin - b.startMin || b.endMin - a.endMin);
 
-    // Asignar columnas greedy
     type Active = { endMin: number; column: number };
     const active: Active[] = [];
     const withCols: Enriched[] = [];
@@ -178,7 +202,6 @@ function layoutEvents(
         withCols.push({ ...item, column, columnCount: 1 });
     }
 
-    // Clusters conectados → mismo columnCount
     const n = withCols.length;
     const parent = Array.from({ length: n }, (_, i) => i);
     const find = (i: number): number => {
@@ -250,7 +273,7 @@ export function AgendaDayTimeline({
     labels,
     canCreate,
     canUpdate,
-    pxPerHour = 72,
+    pxPerHour = 64,
     compact = true,
     showNowLine = true,
     dragOverKey,
@@ -300,7 +323,12 @@ export function AgendaDayTimeline({
             className="relative select-none"
             style={{ height: totalHeight, minHeight: totalHeight }}
         >
-            {/* Rejilla horaria + medias horas (estilo Google) */}
+            {/* Fondo de la columna de tiempo (rejilla) */}
+            <div
+                className="absolute top-0 right-0 bottom-0 left-12 rounded-md bg-muted/20"
+                aria-hidden
+            />
+
             {hourSlots.map((hour, index) => {
                 const hourLabel = `${String(hour).padStart(2, '0')}:00`;
                 const slotKey = `hour:${dateKey}:${hour}`;
@@ -338,16 +366,15 @@ export function AgendaDayTimeline({
                             onDragLeave={() => onClearDragOver(slotKey)}
                             onDrop={(e) => onDropOnHour(e, dateKey, hour)}
                             className={cn(
-                                'relative h-full border-t border-border/50 bg-transparent transition-colors',
+                                'relative h-full border-t border-border/60 transition-colors',
                                 index === hourSlots.length - 1 &&
-                                    'border-b border-border/50',
+                                    'border-b border-border/60',
                                 dragOverKey === slotKey &&
-                                    'bg-primary/8 ring-2 ring-primary/30 ring-inset',
+                                    'bg-primary/10 ring-2 ring-primary/30 ring-inset',
                             )}
                         >
-                            {/* Línea de media hora */}
                             <div
-                                className="pointer-events-none absolute inset-x-0 border-t border-dashed border-border/35"
+                                className="pointer-events-none absolute inset-x-0 border-t border-dashed border-border/40"
                                 style={{ top: pxPerHour / 2 }}
                                 aria-hidden
                             />
@@ -359,9 +386,9 @@ export function AgendaDayTimeline({
                                         onScheduleAt(dateKey, hourLabel)
                                     }
                                     className={cn(
-                                        'group/slot absolute inset-x-1 top-1 z-0 flex cursor-pointer items-center gap-1.5 rounded-md px-2 text-left text-[0.65rem] text-muted-foreground/55 transition-all',
+                                        'group/slot absolute inset-x-1 top-1 z-0 flex cursor-pointer items-center gap-1.5 rounded-md px-2 text-left text-[0.65rem] text-muted-foreground/50 transition-all',
                                         compact ? 'h-7' : 'h-8',
-                                        'hover:bg-muted/60 hover:text-foreground',
+                                        'hover:bg-background/80 hover:text-foreground',
                                     )}
                                 >
                                     <Clock className="size-3 opacity-50 group-hover/slot:opacity-100" />
@@ -375,7 +402,7 @@ export function AgendaDayTimeline({
                 );
             })}
 
-            {/* Barras de eventos (capa superior) */}
+            {/* Barras de duración (capa superior) — altura = minutos exactos */}
             <div
                 className="pointer-events-none absolute top-0 right-0 bottom-0 left-12"
                 style={{ height: totalHeight }}
@@ -393,17 +420,18 @@ export function AgendaDayTimeline({
                     }) => {
                         const draggable =
                             Boolean(event.canDrag) && canUpdate;
-                        const gapPx = columnCount > 1 ? 3 : 2;
+                        const colGap = columnCount > 1 ? 4 : 3;
                         const widthPct = 100 / columnCount;
                         const leftPct = column * widthPct;
-                        const tall = heightPx >= pxPerHour * 0.55;
-                        const veryTall = heightPx >= pxPerHour * 0.85;
+                        // Cabecera legible si hay ~≥25 min
+                        const showMeta = heightPx >= pxPerHour * 0.35;
+                        const showSub = heightPx >= pxPerHour * 0.55;
 
                         return (
                             <button
                                 key={event.id}
                                 type="button"
-                                title={`${startLabel} – ${endLabel} · ${event.title}${event.subtitle ? ` · ${event.subtitle}` : ''}`}
+                                title={`${startLabel} – ${endLabel} (${durationMin} min) · ${event.title}${event.subtitle ? ` · ${event.subtitle}` : ''}`}
                                 draggable={draggable}
                                 onDragStart={(e) => onDragStart(e, event)}
                                 onDragEnd={onDragEnd}
@@ -411,70 +439,53 @@ export function AgendaDayTimeline({
                                 style={{
                                     top: topPx,
                                     height: heightPx,
-                                    left: `calc(${leftPct}% + ${gapPx}px)`,
-                                    width: `calc(${widthPct}% - ${gapPx * 2}px)`,
+                                    left: `calc(${leftPct}% + ${colGap}px)`,
+                                    width: `calc(${widthPct}% - ${colGap * 2}px)`,
                                 }}
                                 className={cn(
-                                    'pointer-events-auto absolute z-10 flex flex-col overflow-hidden rounded-md border border-black/5 text-left shadow-sm',
-                                    'border-l-4 transition-[box-shadow,transform] hover:z-20 hover:shadow-md',
-                                    'dark:border-white/10',
-                                    event.accentClass,
+                                    'pointer-events-auto absolute z-10 box-border flex flex-col overflow-hidden rounded-md border text-left shadow-sm',
+                                    'transition-[filter,box-shadow] hover:z-20 hover:brightness-105 hover:shadow-md',
+                                    barToneClass(event),
                                     draggable
                                         ? 'cursor-grab active:cursor-grabbing'
                                         : 'cursor-pointer',
-                                    // Más “barra” y menos tarjeta
-                                    'bg-opacity-95 backdrop-blur-[1px]',
                                     compact ? 'px-1.5 py-0.5' : 'px-2 py-1',
                                 )}
                             >
-                                {/* Relleno de duración (refuerzo visual) */}
-                                <span
-                                    className="pointer-events-none absolute inset-y-0 left-0 w-1 opacity-80"
-                                    aria-hidden
-                                />
-
                                 <p
                                     className={cn(
-                                        'relative leading-tight font-semibold',
+                                        'leading-tight font-semibold tracking-tight',
                                         compact
-                                            ? 'text-[0.65rem]'
-                                            : 'text-[0.75rem]',
+                                            ? 'text-[0.7rem]'
+                                            : 'text-[0.8rem]',
                                     )}
                                 >
-                                    <span className="tabular-nums">
-                                        {startLabel}
-                                    </span>
-                                    {tall ? (
-                                        <span className="font-normal opacity-70">
-                                            {' '}
-                                            – {endLabel}
-                                        </span>
-                                    ) : null}
-                                    <span className="font-semibold">
-                                        {' '}
-                                        {event.title}
-                                    </span>
+                                    {event.title}
                                 </p>
-
-                                {tall ? (
+                                {showMeta ? (
                                     <p
                                         className={cn(
-                                            'relative mt-0.5 truncate font-medium opacity-80',
+                                            'mt-0.5 tabular-nums opacity-95',
+                                            compact
+                                                ? 'text-[0.65rem]'
+                                                : 'text-[0.7rem]',
+                                        )}
+                                    >
+                                        {startLabel} – {endLabel}
+                                    </p>
+                                ) : null}
+                                {showSub && event.subtitle ? (
+                                    <p
+                                        className={cn(
+                                            'mt-0.5 truncate opacity-90',
                                             compact
                                                 ? 'text-[0.6rem]'
                                                 : 'text-[0.65rem]',
                                         )}
                                     >
                                         {labels.durationMin(durationMin)}
-                                        {event.subtitle
-                                            ? ` · ${event.subtitle}`
-                                            : ''}
-                                    </p>
-                                ) : null}
-
-                                {veryTall && !compact ? (
-                                    <p className="relative mt-auto pt-1 text-[0.6rem] font-medium opacity-60">
-                                        {labels.until} {endLabel}
+                                        {' · '}
+                                        {event.subtitle}
                                     </p>
                                 ) : null}
                             </button>
@@ -483,7 +494,6 @@ export function AgendaDayTimeline({
                 )}
             </div>
 
-            {/* Línea “ahora” — etiqueta clara para no confundir con duración */}
             {nowLineTop != null ? (
                 <div
                     className="pointer-events-none absolute right-0 left-12 z-30"
@@ -492,7 +502,7 @@ export function AgendaDayTimeline({
                 >
                     <div className="relative flex items-center">
                         <span className="absolute -left-1 size-2.5 -translate-x-1/2 rounded-full bg-rose-500 ring-2 ring-background" />
-                        <div className="h-0.5 w-full bg-rose-500/70" />
+                        <div className="h-0.5 w-full bg-rose-500/80" />
                         {labels.now ? (
                             <span className="absolute right-0 -top-4 rounded bg-rose-500 px-1.5 py-0.5 text-[0.55rem] font-semibold tracking-wide text-white uppercase">
                                 {labels.now}

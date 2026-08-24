@@ -104,7 +104,7 @@ export function AgendaDayExpandModal({
                         }}
                         canCreate={canCreate}
                         canUpdate={canUpdate}
-                        pxPerHour={96}
+                        pxPerHour={80}
                         compact={false}
                         showNowLine
                         dragOverKey={dragOverKey}

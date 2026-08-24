@@ -187,6 +187,7 @@ export default function ServiciosAgendaIndex({
                     .join(' · '),
                 accentClass:
                     e.tipo === 'grooming' ? GROOMING_ACCENT : HOTEL_ACCENT,
+                tone: e.tipo === 'grooming' ? 'grooming' : 'hotel',
             })),
         [eventos, t],
     );

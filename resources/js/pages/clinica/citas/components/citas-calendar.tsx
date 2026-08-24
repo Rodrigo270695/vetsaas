@@ -100,6 +100,7 @@ export function CitasCalendar({
                 title: displayPacienteCita(cita.paciente),
                 subtitle: cita.veterinario?.name ?? null,
                 accentClass: getEstadoAccent(cita.estado),
+                tone: 'cita',
                 canDrag: canDragCita(cita, canUpdate),
             })),
         [citas, canUpdate],
