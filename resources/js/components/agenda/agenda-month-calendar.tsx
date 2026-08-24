@@ -9,7 +9,7 @@ import {
     startOfWeek,
 } from 'date-fns';
 import { enUS, es } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, Clock, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import type { DragEvent } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -22,42 +22,22 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import {
+    AgendaDayExpandButton,
+    AgendaDayExpandModal,
+} from './agenda-day-expand-modal';
+import { AgendaDayTimeline } from './agenda-day-timeline';
+import type {
+    AgendaCalendarLabels,
+    AgendaEvent,
+    AgendaLegendItem,
+} from './agenda-types';
+
+export type { AgendaCalendarLabels, AgendaEvent, AgendaLegendItem };
 
 const WEEKDAY_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
 const MAX_PILLS = 2;
 const DND_MIME = 'application/x-vetsaas-agenda-event-id';
-
-export type AgendaEvent = {
-    id: string;
-    inicio_at: string;
-    title: string;
-    subtitle?: string | null;
-    accentClass: string;
-    canDrag?: boolean;
-};
-
-export type AgendaLegendItem = {
-    key: string;
-    swatch: string;
-    label: string;
-};
-
-export type AgendaCalendarLabels = {
-    today: string;
-    prevMonth: string;
-    nextMonth: string;
-    pickMonth: string;
-    pickYear: string;
-    more: string;
-    dayAgenda: string;
-    dayEmpty: string;
-    dayCount: (count: number) => string;
-    scheduleDay: string;
-    scheduleAt: (hour: string) => string;
-    clickDayHint: string;
-    dragHint?: string;
-    weekdays: Record<(typeof WEEKDAY_KEYS)[number], string>;
-};
 
 type Props = {
     events: readonly AgendaEvent[];
@@ -137,6 +117,7 @@ export function AgendaMonthCalendar({
     const monthStart = useMemo(() => parseMes(mes), [mes]);
     const [selectedDay, setSelectedDay] = useState<string | null>(null);
     const [dragOverKey, setDragOverKey] = useState<string | null>(null);
+    const [dayModalOpen, setDayModalOpen] = useState(false);
     const eventsById = useMemo(
         () => new Map(events.map((e) => [e.id, e])),
         [events],
@@ -241,9 +222,29 @@ export function AgendaMonthCalendar({
         const parsedEnd = parseAgendaHour(horaFin, 20);
         const configuredStart = parsedStart < parsedEnd ? parsedStart : 7;
         const configuredEnd = parsedStart < parsedEnd ? parsedEnd : 20;
-        const eventHours = events.map((event) =>
-            new TZDate(event.inicio_at, timeZone).getHours(),
-        );
+        const eventHours: number[] = [];
+
+        for (const event of events) {
+            const start = new TZDate(event.inicio_at, timeZone);
+            eventHours.push(start.getHours());
+
+            if (event.fin_at) {
+                const end = new TZDate(event.fin_at, timeZone);
+                if (toDateKey(end, timeZone) === toDateKey(start, timeZone)) {
+                    eventHours.push(end.getHours());
+                }
+            } else if (
+                typeof event.duracion_minutos === 'number' &&
+                event.duracion_minutos > 0
+            ) {
+                const end = new TZDate(
+                    start.getTime() + event.duracion_minutos * 60_000,
+                    timeZone,
+                );
+                eventHours.push(end.getHours());
+            }
+        }
+
         const firstHour =
             eventHours.length > 0
                 ? Math.min(configuredStart, ...eventHours)
@@ -629,165 +630,90 @@ export function AgendaMonthCalendar({
                     ) : null}
                 </div>
 
-                <aside className="flex flex-col bg-gradient-to-b from-muted/30 to-background p-4">
-                    <div className="mb-4">
-                        <p className="text-[0.65rem] font-semibold tracking-wider text-primary uppercase">
-                            {labels.dayAgenda}
-                        </p>
-                        <h3 className="mt-1 text-sm font-semibold text-foreground capitalize">
-                            {activeDayLabel}
-                        </h3>
-                        <p className="mt-0.5 text-xs text-muted-foreground">
-                            {activeDayEvents.length === 0
-                                ? labels.dayEmpty
-                                : labels.dayCount(activeDayEvents.length)}
-                        </p>
+                <aside className="flex max-h-[min(70vh,42rem)] flex-col bg-gradient-to-b from-muted/30 to-background p-4 lg:max-h-none">
+                    <div className="mb-3 flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                            <p className="text-[0.65rem] font-semibold tracking-wider text-primary uppercase">
+                                {labels.dayAgenda}
+                            </p>
+                            <h3 className="mt-1 text-sm font-semibold text-foreground capitalize">
+                                {activeDayLabel}
+                            </h3>
+                            <p className="mt-0.5 text-xs text-muted-foreground">
+                                {activeDayEvents.length === 0
+                                    ? labels.dayEmpty
+                                    : labels.dayCount(activeDayEvents.length)}
+                            </p>
+                        </div>
+                        <AgendaDayExpandButton
+                            label={labels.expandDay ?? 'Ampliar'}
+                            onClick={() => setDayModalOpen(true)}
+                            className="shrink-0"
+                        />
                     </div>
 
-                    <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto pr-1">
-                        {hourSlots.map((hour) => {
-                            const slotEvents = activeDayEvents.filter((c) => {
-                                const h = new TZDate(
-                                    c.inicio_at,
-                                    timeZone,
-                                ).getHours();
-
-                                return h === hour;
-                            });
-
-                            const isOccupied = slotEvents.length > 0;
-                            const slotKey = `hour:${activeDay}:${hour}`;
-                            const hourLabel = `${String(hour).padStart(2, '0')}:00`;
-                            const slotPast = isDateTimePast(
-                                activeDay,
-                                hourLabel,
-                                timeZone,
-                            );
-
-                            return (
-                                <div
-                                    key={hour}
-                                    className="grid grid-cols-[3rem_1fr] items-start gap-2"
-                                >
-                                    <span
-                                        className={cn(
-                                            'pt-1 text-[0.65rem] text-muted-foreground tabular-nums',
-                                            slotPast && 'opacity-50',
-                                        )}
-                                    >
-                                        {hourLabel}
-                                    </span>
-                                    <div
-                                        onDragOver={(e) => {
-                                            if (!slotPast) {
-                                                allowDrop(e, slotKey);
-                                            }
-                                        }}
-                                        onDragLeave={() => {
-                                            if (dragOverKey === slotKey) {
-                                                setDragOverKey(null);
-                                            }
-                                        }}
-                                        onDrop={(e) =>
-                                            handleDropOnHour(e, activeDay, hour)
-                                        }
-                                        className={cn(
-                                            'rounded-lg transition-colors',
-                                            dragOverKey === slotKey &&
-                                                'bg-primary/10 ring-2 ring-primary/40',
-                                        )}
-                                    >
-                                        {isOccupied ? (
-                                            <div className="space-y-1">
-                                                {slotEvents.map((event) => {
-                                                    const draggable =
-                                                        Boolean(
-                                                            event.canDrag,
-                                                        ) &&
-                                                        canUpdate &&
-                                                        Boolean(onReschedule);
-
-                                                    return (
-                                                        <button
-                                                            key={event.id}
-                                                            type="button"
-                                                            draggable={
-                                                                draggable
-                                                            }
-                                                            onDragStart={(e) =>
-                                                                handleDragStart(
-                                                                    e,
-                                                                    event,
-                                                                )
-                                                            }
-                                                            onDragEnd={() =>
-                                                                setDragOverKey(
-                                                                    null,
-                                                                )
-                                                            }
-                                                            onClick={() =>
-                                                                onSelectEvent(
-                                                                    event,
-                                                                )
-                                                            }
-                                                            className={cn(
-                                                                'w-full rounded-lg border-l-[3px] px-2.5 py-2 text-left transition-colors',
-                                                                event.accentClass,
-                                                                draggable
-                                                                    ? 'cursor-grab active:cursor-grabbing'
-                                                                    : 'cursor-pointer',
-                                                            )}
-                                                        >
-                                                            <p className="text-xs font-semibold">
-                                                                {format(
-                                                                    new TZDate(
-                                                                        event.inicio_at,
-                                                                        timeZone,
-                                                                    ),
-                                                                    'HH:mm',
-                                                                )}
-                                                                {' · '}
-                                                                {event.title}
-                                                            </p>
-                                                            {event.subtitle ? (
-                                                                <p className="mt-0.5 truncate text-[0.65rem] opacity-80">
-                                                                    {
-                                                                        event.subtitle
-                                                                    }
-                                                                </p>
-                                                            ) : null}
-                                                        </button>
-                                                    );
-                                                })}
-                                            </div>
-                                        ) : canCreate && !slotPast ? (
-                                            <button
-                                                type="button"
-                                                onClick={() =>
-                                                    onScheduleDay(
-                                                        activeDay,
-                                                        hourLabel,
-                                                    )
-                                                }
-                                                className="group/slot flex h-9 w-full cursor-pointer items-center gap-2 rounded-lg border border-dashed border-primary/25 px-2 text-left text-[0.65rem] text-muted-foreground transition-colors hover:border-primary/50 hover:bg-primary/5 hover:text-primary"
-                                            >
-                                                <Clock className="size-3 opacity-60 group-hover/slot:opacity-100" />
-                                                {labels.scheduleAt(hourLabel)}
-                                            </button>
-                                        ) : slotPast ? (
-                                            <div className="flex h-9 items-center rounded-lg px-2 text-[0.65rem] text-muted-foreground/50">
-                                                —
-                                            </div>
-                                        ) : (
-                                            <div className="h-9 rounded-lg border border-dashed border-border/40" />
-                                        )}
-                                    </div>
-                                </div>
-                            );
-                        })}
+                    <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+                        <AgendaDayTimeline
+                            dateKey={activeDay}
+                            events={activeDayEvents}
+                            hourSlots={hourSlots}
+                            timeZone={timeZone}
+                            labels={{
+                                scheduleAt: labels.scheduleAt,
+                                durationMin:
+                                    labels.durationMin ??
+                                    ((m: number) => `${m} min`),
+                                until: labels.until ?? '→',
+                            }}
+                            canCreate={canCreate}
+                            canUpdate={canUpdate && Boolean(onReschedule)}
+                            pxPerHour={44}
+                            compact
+                            dragOverKey={dragOverKey}
+                            onSelectEvent={onSelectEvent}
+                            onScheduleAt={onScheduleDay}
+                            onDragStart={handleDragStart}
+                            onDragEnd={() => setDragOverKey(null)}
+                            onAllowDrop={allowDrop}
+                            onClearDragOver={(key) => {
+                                if (dragOverKey === key) {
+                                    setDragOverKey(null);
+                                }
+                            }}
+                            onDropOnHour={handleDropOnHour}
+                            isSlotPast={(dk, hora) =>
+                                isDateTimePast(dk, hora, timeZone)
+                            }
+                        />
                     </div>
                 </aside>
             </div>
+
+            <AgendaDayExpandModal
+                open={dayModalOpen}
+                onOpenChange={setDayModalOpen}
+                dateKey={activeDay}
+                dayLabel={activeDayLabel}
+                events={activeDayEvents}
+                hourSlots={hourSlots}
+                timeZone={timeZone}
+                labels={labels}
+                canCreate={canCreate}
+                canUpdate={canUpdate && Boolean(onReschedule)}
+                dragOverKey={dragOverKey}
+                onSelectEvent={onSelectEvent}
+                onScheduleAt={onScheduleDay}
+                onDragStart={handleDragStart}
+                onDragEnd={() => setDragOverKey(null)}
+                onAllowDrop={allowDrop}
+                onClearDragOver={(key) => {
+                    if (dragOverKey === key) {
+                        setDragOverKey(null);
+                    }
+                }}
+                onDropOnHour={handleDropOnHour}
+                isSlotPast={(dk, hora) => isDateTimePast(dk, hora, timeZone)}
+            />
         </div>
     );
 }

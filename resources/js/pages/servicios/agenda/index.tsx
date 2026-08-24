@@ -176,6 +176,8 @@ export default function ServiciosAgendaIndex({
             eventos.map((e) => ({
                 id: e.id,
                 inicio_at: e.inicio_at,
+                fin_at: e.fin_at ?? null,
+                duracion_minutos: e.duracion_minutos ?? null,
                 title: e.titulo,
                 subtitle: [
                     e.tipo === 'grooming' ? t('tipo.grooming') : t('tipo.hotel'),
@@ -222,6 +224,11 @@ export default function ServiciosAgendaIndex({
             scheduleDay: t('calendar.schedule_day'),
             scheduleAt: (hour: string) => t('calendar.schedule_at', { hour }),
             clickDayHint: t('calendar.click_day_hint'),
+            expandDay: t('calendar.expand_day'),
+            expandDayTitle: t('calendar.expand_day_title'),
+            durationMin: (minutes: number) =>
+                t('calendar.duration_min', { minutes }),
+            until: t('calendar.until'),
             weekdays: {
                 mon: t('calendar.weekdays.mon'),
                 tue: t('calendar.weekdays.tue'),

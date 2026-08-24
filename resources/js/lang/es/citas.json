@@ -38,6 +38,10 @@
         "day_count_other": "{{count}} citas",
         "schedule_day": "Agendar en este día",
         "schedule_at": "Agendar a las {{hour}}",
+        "expand_day": "Ampliar",
+        "expand_day_title": "Día completo",
+        "duration_min": "{{minutes}} min",
+        "until": "Hasta",
         "weekdays": {
             "mon": "Lun",
             "tue": "Mar",

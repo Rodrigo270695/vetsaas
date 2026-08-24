@@ -7,6 +7,7 @@ export type ServicioAgendaEvento = {
     tipo: ServicioAgendaTipo;
     inicio_at: string;
     fin_at?: string | null;
+    duracion_minutos?: number | null;
     estado: string;
     titulo: string;
     subtitulo?: string | null;

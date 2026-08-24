@@ -38,6 +38,10 @@
         "day_count_other": "{{count}} appointments",
         "schedule_day": "Schedule on this day",
         "schedule_at": "Schedule at {{hour}}",
+        "expand_day": "Expand",
+        "expand_day_title": "Full day",
+        "duration_min": "{{minutes}} min",
+        "until": "Until",
         "weekdays": {
             "mon": "Mon",
             "tue": "Tue",

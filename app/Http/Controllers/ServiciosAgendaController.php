@@ -84,6 +84,10 @@ class ServiciosAgendaController extends Controller
                     'id' => $turno->id,
                     'tipo' => 'grooming',
                     'inicio_at' => $turno->inicio_at?->toIso8601String(),
+                    'fin_at' => $turno->inicio_at !== null
+                        ? $turno->inicio_at->copy()->addMinutes(max(5, (int) $turno->duracion_minutos))->toIso8601String()
+                        : null,
+                    'duracion_minutos' => max(5, (int) $turno->duracion_minutos),
                     'estado' => $turno->estado,
                     'titulo' => $turno->paciente?->nombre ?? '—',
                     'subtitulo' => $turno->servicio_label

@@ -96,6 +96,7 @@ export function CitasCalendar({
             citas.map((cita) => ({
                 id: cita.id,
                 inicio_at: cita.inicio_at,
+                duracion_minutos: cita.duracion_minutos,
                 title: displayPacienteCita(cita.paciente),
                 subtitle: cita.veterinario?.name ?? null,
                 accentClass: getEstadoAccent(cita.estado),
@@ -137,6 +138,11 @@ export function CitasCalendar({
             scheduleAt: (hour: string) =>
                 t('calendar.schedule_at', { hour }),
             clickDayHint: t('calendar.click_day_hint'),
+            expandDay: t('calendar.expand_day'),
+            expandDayTitle: t('calendar.expand_day_title'),
+            durationMin: (minutes: number) =>
+                t('calendar.duration_min', { minutes }),
+            until: t('calendar.until'),
             dragHint: t('calendar.drag_hint'),
             weekdays: {
                 mon: t('calendar.weekdays.mon'),
