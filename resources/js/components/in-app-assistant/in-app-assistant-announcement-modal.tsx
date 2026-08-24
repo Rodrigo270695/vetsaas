@@ -111,11 +111,6 @@ export function InAppAssistantAnnouncementModal() {
         setOpen(false);
     };
 
-    const tryNow = () => {
-        dismiss();
-        window.dispatchEvent(new CustomEvent(OPEN_IN_APP_ASSISTANT_EVENT));
-    };
-
     return (
         <Dialog
             open={open}
@@ -159,17 +154,13 @@ export function InAppAssistantAnnouncementModal() {
                     ))}
                 </div>
 
-                <DialogFooter className="gap-2 border-t border-border/60 bg-muted/10 px-6 py-4 sm:justify-between">
-                    <Button type="button" variant="ghost" onClick={dismiss}>
-                        {t('announcement.dismiss')}
-                    </Button>
+                <DialogFooter className="gap-2 border-t border-border/60 bg-muted/10 px-6 py-4 sm:justify-end">
                     <Button
                         type="button"
                         className="gap-2 bg-sky-600 text-white hover:bg-sky-600/90"
-                        onClick={tryNow}
+                        onClick={dismiss}
                     >
-                        <Sparkles className="size-4" />
-                        {t('announcement.try')}
+                        {t('announcement.dismiss')}
                     </Button>
                 </DialogFooter>
             </DialogContent>
