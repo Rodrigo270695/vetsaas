@@ -16,7 +16,11 @@ final class TenantWhatsAppSessionSync
         private readonly TenantWhatsAppWebhookRegistrar $webhookRegistrar,
     ) {}
 
-    public function ensureForTenant(Tenant $tenant): ?TenantWhatsAppSession
+    /**
+     * @param  bool  $wakeForLink  true = el usuario pidió Conectar/QR: arrancar aunque esté `created`.
+     *                             false = cron/envío: solo despertar si ya hubo vínculo (phone) o está caída.
+     */
+    public function ensureForTenant(Tenant $tenant, bool $wakeForLink = false): ?TenantWhatsAppSession
     {
         if (! $this->client->isConfigured() || ! is_string($tenant->slug) || $tenant->slug === '') {
             return null;
@@ -48,8 +52,16 @@ final class TenantWhatsAppSessionSync
         $status = (string) ($remote['status'] ?? 'created');
         $wantsReconnect = $local === null || (bool) ($local->auto_reconnect ?? true);
         $lastError = null;
+        $hadPhone = filled($remote['phone'] ?? null) || filled($local?->phone);
 
-        if ($wantsReconnect) {
+        // Evita start masivo en sesiones solo-QR (created): eso lo dispara Conectar.
+        $shouldStart = $wantsReconnect && (
+            $wakeForLink
+            || in_array($status, ['disconnected', 'failed'], true)
+            || $hadPhone
+        );
+
+        if ($shouldStart) {
             $reconnect = $this->client->tryStartIfDown($sessionId, $status);
             if ($reconnect['remote'] !== null) {
                 $remote = $reconnect['remote'];

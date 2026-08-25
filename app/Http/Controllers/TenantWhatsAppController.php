@@ -26,12 +26,12 @@ class TenantWhatsAppController extends Controller
         $tenant = $tenants->current()?->tenant;
         abort_if($tenant === null, 404);
 
-        $session = $sync->ensureForTenant($tenant);
+        $session = $sync->ensureForTenant($tenant, wakeForLink: true);
 
         // Usuario pidió conectar: reactivar reconnect y despertar (sin QR si hay auth).
         if ($session !== null) {
             $session = $sync->enableAutoReconnect($session);
-            $session = $sync->ensureForTenant($tenant) ?? $session;
+            $session = $sync->ensureForTenant($tenant, wakeForLink: true) ?? $session;
         }
 
         if ($request->expectsJson()) {
@@ -61,7 +61,7 @@ class TenantWhatsAppController extends Controller
         $tenant = $tenants->current()?->tenant;
         abort_if($tenant === null, 404);
 
-        $session = $sync->ensureForTenant($tenant);
+        $session = $sync->ensureForTenant($tenant, wakeForLink: true);
         abort_if($session === null, 422, 'No se pudo crear la sesión de WhatsApp.');
 
         $session = $sync->enableAutoReconnect($session);

@@ -19,13 +19,13 @@ class PlatformWhatsAppController extends Controller
         PlatformWhatsAppSessionSync $sync,
         PlatformWhatsAppPresenter $presenter,
     ): RedirectResponse|JsonResponse {
-        $session = $sync->ensure();
+        $session = $sync->ensure(wakeForLink: true);
 
         // El usuario pidió conectar: reactivar auto-reconnect y despertar Chromium
         // (auth en disco → ready sin QR; si no hay auth → qr_ready).
         if ($session !== null) {
             $session = $sync->enableAutoReconnect($session);
-            $session = $sync->ensure() ?? $session;
+            $session = $sync->ensure(wakeForLink: true) ?? $session;
         }
 
         if ($request->expectsJson()) {
@@ -50,7 +50,7 @@ class PlatformWhatsAppController extends Controller
     ): JsonResponse {
         abort_unless($client->isConfigured(), 503, 'OpenWA no está configurado en el servidor.');
 
-        $session = $sync->ensure();
+        $session = $sync->ensure(wakeForLink: true);
         abort_if($session === null, 422, 'No se pudo crear la sesión de WhatsApp de plataforma.');
 
         $session = $sync->enableAutoReconnect($session);

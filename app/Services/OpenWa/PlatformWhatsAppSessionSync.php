@@ -18,7 +18,7 @@ final class PlatformWhatsAppSessionSync
         return trim((string) config('openwa.platform_session_name', 'vetsaas-platform'));
     }
 
-    public function ensure(): ?PlatformWhatsAppSession
+    public function ensure(bool $wakeForLink = false): ?PlatformWhatsAppSession
     {
         if (! $this->client->isConfigured()) {
             return null;
@@ -55,8 +55,15 @@ final class PlatformWhatsAppSessionSync
         $status = (string) ($remote['status'] ?? 'created');
         $wantsReconnect = $local === null || (bool) ($local->auto_reconnect ?? true);
         $lastError = null;
+        $hadPhone = filled($remote['phone'] ?? null) || filled($local?->phone);
 
-        if ($wantsReconnect) {
+        $shouldStart = $wantsReconnect && (
+            $wakeForLink
+            || in_array($status, ['disconnected', 'failed'], true)
+            || $hadPhone
+        );
+
+        if ($shouldStart) {
             $reconnect = $this->client->tryStartIfDown($sessionId, $status);
             if ($reconnect['remote'] !== null) {
                 $remote = $reconnect['remote'];
