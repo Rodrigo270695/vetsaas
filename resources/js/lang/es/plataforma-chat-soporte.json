@@ -68,5 +68,21 @@
     "seen": "Visto",
     "seen_by": "Visto por {{names}}",
     "message_actions_sheet": "Acciones",
-    "message_actions_hint": "Mantén pulsado un mensaje para más opciones"
+    "message_actions_hint": "Mantén pulsado un mensaje para más opciones",
+    "unread_only": "No leídos",
+    "media_gallery": "Galería",
+    "media_gallery_title": "Medios de este hilo",
+    "media_gallery_empty": "No hay imágenes en este chat.",
+    "media_gallery_loading": "Cargando medios…",
+    "typing": "{{name}} está escribiendo…",
+    "typing_many": "{{names}} están escribiendo…",
+    "templates": "Plantillas",
+    "tpl_whatsapp_label": "Reconectar WhatsApp",
+    "tpl_whatsapp_body": "Hola. Actualizamos WhatsApp. Entra a Cola saliente, desvincula y vuelve a escanear el QR para reactivar el envío.",
+    "tpl_maintenance_label": "Mantenimiento",
+    "tpl_maintenance_body": "Aviso: tendremos una ventana de mantenimiento breve. El servicio puede interrumpirse unos minutos. Gracias por tu paciencia.",
+    "tpl_billing_label": "Facturación / plan",
+    "tpl_billing_body": "Hola. Revisamos tu plan/suscripción. Si tienes dudas de facturación o activación de módulos, responde aquí y te ayudamos.",
+    "tpl_greeting_label": "Saludo de soporte",
+    "tpl_greeting_body": "Hola, soy del equipo de Soporte VetSaaS. ¿En qué podemos ayudarte hoy?"
 }

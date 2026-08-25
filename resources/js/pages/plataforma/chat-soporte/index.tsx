@@ -5,6 +5,7 @@ import {
     ChevronLeft,
     FileText,
     Forward,
+    Images,
     Loader2,
     Megaphone,
     MoreHorizontal,
@@ -19,6 +20,7 @@ import {
     X,
 } from 'lucide-react';
 import {
+    useCallback,
     useEffect,
     useMemo,
     useRef,
@@ -66,12 +68,22 @@ import { Textarea } from '@/components/ui/textarea';
 import { usePlatformSupportChatUnread } from '@/contexts/platform-support-chat-unread-context';
 import { usePermission } from '@/hooks/use-permission';
 import AppLayout from '@/layouts/app-layout';
+import {
+    getSharedChatEcho,
+    type BroadcastConfig,
+} from '@/lib/chat-echo';
 import { toastManager } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 
 const ROUTE_URL = '/plataforma/chat-soporte';
 const MAX_ATTACHMENTS = 5;
 const REACTION_EMOJIS = ['👍', '✅', '❤️', '😂', '🎉'] as const;
+const TEMPLATE_IDS = [
+    'whatsapp',
+    'maintenance',
+    'billing',
+    'greeting',
+] as const;
 const EMOJIS = [
     '😀', '😁', '😂', '🙂', '😉', '😊', '😍', '🤩',
     '😎', '🤔', '😢', '😭', '😤', '🙌', '👍', '👎',
@@ -81,6 +93,18 @@ const EMOJIS = [
 
 type PlanFilter = 'all' | 'free' | 'paid';
 type ReactionEmoji = (typeof REACTION_EMOJIS)[number];
+type TemplateId = (typeof TEMPLATE_IDS)[number];
+
+type TypingUser = { user_id: string; name: string };
+
+type MediaItem = {
+    message_id: string;
+    url: string | null;
+    name: string;
+    mime: string;
+    size: number;
+    created_at: string | null;
+};
 
 type TenantRow = {
     id: string;
@@ -150,9 +174,11 @@ type Props = {
         plan: PlanFilter;
         q: string;
     };
+    broadcast?: BroadcastConfig;
+    poll_ms?: number;
 };
 
-const POLL_MS = 4000;
+const DEFAULT_POLL_MS = 8000;
 
 function readXsrfToken(): string {
     return decodeURIComponent(
@@ -241,6 +267,11 @@ const upsertMessage = (
 export default function PlataformaChatSoportePage({
     tenants: initialTenants,
     filters,
+    broadcast = {
+        enabled: false,
+        key: null,
+    },
+    poll_ms = DEFAULT_POLL_MS,
 }: Props) {
     const { t, i18n } = useTranslation('plataforma-chat-soporte');
     const { can } = usePermission();
@@ -256,7 +287,10 @@ export default function PlataformaChatSoportePage({
     const [tenants, setTenants] = useState(initialTenants);
     const [plan, setPlan] = useState<PlanFilter>(filters.plan ?? 'all');
     const [listQuery, setListQuery] = useState(filters.q ?? '');
+    const [unreadOnly, setUnreadOnly] = useState(false);
     const [selectedId, setSelectedId] = useState<string | null>(null);
+    const [conversationId, setConversationId] = useState<string | null>(null);
+    const [supportUserId, setSupportUserId] = useState<string | null>(null);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [loadingThread, setLoadingThread] = useState(false);
     const [composer, setComposer] = useState('');
@@ -292,15 +326,24 @@ export default function PlataformaChatSoportePage({
     const [actionMessage, setActionMessage] = useState<ChatMessage | null>(
         null,
     );
+    const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
+    const [echoReady, setEchoReady] = useState(false);
+    const [mediaOpen, setMediaOpen] = useState(false);
+    const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
+    const [mediaLoading, setMediaLoading] = useState(false);
 
     const bottomRef = useRef<HTMLDivElement | null>(null);
     const fileRef = useRef<HTMLInputElement | null>(null);
     const composerRef = useRef<HTMLTextAreaElement | null>(null);
     const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
     const selectedIdRef = useRef<string | null>(null);
+    const supportUserIdRef = useRef<string | null>(null);
     const lastMessageIdRef = useRef<string | null>(null);
     const pollTickRef = useRef(0);
+    const typingTimer = useRef<number | undefined>(undefined);
+    const typingClearTimers = useRef<Map<string, number>>(new Map());
     selectedIdRef.current = selectedId;
+    supportUserIdRef.current = supportUserId;
     lastMessageIdRef.current =
         messages.length > 0 ? (messages[messages.length - 1]?.id ?? null) : null;
 
@@ -329,12 +372,14 @@ export default function PlataformaChatSoportePage({
 
     const filteredTenants = useMemo(() => {
         const q = listQuery.trim().toLowerCase();
-        if (!q) return tenants;
         return tenants.filter((row) => {
-            const hay = `${row.nombre} ${row.slug} ${row.plan_nombre ?? ''}`.toLowerCase();
+            if (unreadOnly && !row.thread?.unread) return false;
+            if (!q) return true;
+            const hay =
+                `${row.nombre} ${row.slug} ${row.plan_nombre ?? ''}`.toLowerCase();
             return hay.includes(q);
         });
-    }, [tenants, listQuery]);
+    }, [tenants, listQuery, unreadOnly]);
 
     const threadHits = useMemo(() => {
         const q = threadQuery.trim().toLowerCase();
@@ -350,6 +395,30 @@ export default function PlataformaChatSoportePage({
                 dateFnsLocale,
             ),
         [messages, t, dateFnsLocale],
+    );
+
+    const typingLabel = useMemo(() => {
+        if (typingUsers.length === 0) return null;
+        if (typingUsers.length === 1) {
+            return t('typing', { name: typingUsers[0].name });
+        }
+        return t('typing_many', {
+            names: typingUsers.map((u) => u.name).join(', '),
+        });
+    }, [typingUsers, t]);
+
+    const applyTemplate = useCallback(
+        (id: TemplateId, target: 'composer' | 'broadcast') => {
+            const body = t(`tpl_${id}_body`);
+            if (target === 'composer') {
+                setComposer(body);
+                setEditingMessage(null);
+                requestAnimationFrame(() => composerRef.current?.focus());
+            } else {
+                setBroadcastBody(body);
+            }
+        },
+        [t],
     );
 
     const planOptions: { value: PlanFilter; label: string }[] = [
@@ -375,7 +444,9 @@ export default function PlataformaChatSoportePage({
     const openTenant = async (tenantId: string) => {
         setSelectedId(tenantId);
         setMobileListOpen(false);
-        setMessages([]);
+            setMessages([]);
+        setConversationId(null);
+        setSupportUserId(null);
         setComposer('');
         setFiles([]);
         setReplyTo(null);
@@ -384,6 +455,8 @@ export default function PlataformaChatSoportePage({
         setForwardMessage(null);
         setLightbox(null);
         setActionMessage(null);
+        setTypingUsers([]);
+        setEchoReady(false);
         setSearchOpen(false);
         setThreadQuery('');
         setLoadingThread(true);
@@ -396,9 +469,20 @@ export default function PlataformaChatSoportePage({
             }
             const data = await apiJson<{
                 conversation_id: string | null;
+                support_user_id?: string | null;
                 messages: ChatMessage[];
+                typing?: TypingUser[];
             }>(`/plataforma/chat-soporte/tenants/${tenantId}/messages`);
             setMessages(data.messages ?? []);
+            setConversationId(data.conversation_id);
+            setSupportUserId(data.support_user_id ?? null);
+            setTypingUsers(
+                (data.typing ?? []).filter(
+                    (u) =>
+                        !data.support_user_id
+                        || u.user_id !== data.support_user_id,
+                ),
+            );
             setTenants((prev) =>
                 prev.map((row) =>
                     row.id === tenantId && row.thread
@@ -432,6 +516,10 @@ export default function PlataformaChatSoportePage({
     useEffect(() => {
         if (!selectedId) return;
 
+        const interval = echoReady
+            ? Math.max(poll_ms, 12_000)
+            : Math.max(poll_ms, 4000);
+
         const tick = async () => {
             const id = selectedIdRef.current;
             if (!id) return;
@@ -442,7 +530,22 @@ export default function PlataformaChatSoportePage({
                 const url = last
                     ? `/plataforma/chat-soporte/tenants/${id}/messages?after=${encodeURIComponent(last)}`
                     : `/plataforma/chat-soporte/tenants/${id}/messages`;
-                const data = await apiJson<{ messages: ChatMessage[] }>(url);
+                const data = await apiJson<{
+                    messages: ChatMessage[];
+                    conversation_id?: string | null;
+                    typing?: TypingUser[];
+                }>(url);
+                if (data.conversation_id) {
+                    setConversationId(data.conversation_id);
+                }
+                if (data.typing) {
+                    const sid = supportUserIdRef.current;
+                    setTypingUsers(
+                        data.typing.filter(
+                            (u) => !sid || u.user_id !== sid,
+                        ),
+                    );
+                }
                 if (!data.messages?.length && !fullRefresh) return;
                 if (fullRefresh || !last) {
                     setMessages(data.messages ?? []);
@@ -467,10 +570,129 @@ export default function PlataformaChatSoportePage({
 
         const timer = window.setInterval(() => {
             void tick();
-        }, POLL_MS);
+        }, interval);
 
         return () => window.clearInterval(timer);
-    }, [selectedId]);
+    }, [selectedId, echoReady, poll_ms]);
+
+    // Echo: mensajes y typing en tiempo real del hilo de soporte del tenant.
+    useEffect(() => {
+        if (!selectedId || !conversationId || !broadcast.enabled) {
+            setEchoReady(false);
+            return;
+        }
+
+        let cancelled = false;
+        let channelName: string | null = null;
+
+        void (async () => {
+            const echo = await getSharedChatEcho(broadcast);
+            if (!echo || cancelled) return;
+
+            channelName = `tenant.${selectedId}.chat.${conversationId}`;
+            const channel = echo.private(channelName);
+            setEchoReady(true);
+
+            const upsertFromPayload = (payload: unknown) => {
+                const raw = payload as {
+                    message?: ChatMessage;
+                };
+                const msg = raw.message;
+                if (!msg?.id) return;
+                const sid = supportUserIdRef.current;
+                const normalized: ChatMessage = {
+                    ...msg,
+                    mine: sid
+                        ? String(msg.user_id ?? '') === sid
+                        : Boolean(msg.mine),
+                };
+                setMessages((prev) => upsertMessage(prev, normalized));
+                requestAnimationFrame(() => {
+                    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+                });
+            };
+
+            channel.listen('.chat.message', upsertFromPayload);
+            channel.listen('.chat.message.updated', upsertFromPayload);
+            channel.listen('.chat.typing', (payload: unknown) => {
+                const data = payload as {
+                    user_id?: string;
+                    user_name?: string;
+                    name?: string;
+                };
+                const uid = String(data.user_id ?? '');
+                const name = String(data.user_name ?? data.name ?? 'Usuario');
+                const sid = supportUserIdRef.current;
+                if (!uid || (sid && uid === sid)) return;
+                setTypingUsers((prev) => {
+                    if (prev.some((u) => u.user_id === uid)) return prev;
+                    return [...prev, { user_id: uid, name }];
+                });
+                const prevTimer = typingClearTimers.current.get(uid);
+                if (prevTimer) window.clearTimeout(prevTimer);
+                typingClearTimers.current.set(
+                    uid,
+                    window.setTimeout(() => {
+                        typingClearTimers.current.delete(uid);
+                        setTypingUsers((prev) =>
+                            prev.filter((u) => u.user_id !== uid),
+                        );
+                    }, 4000),
+                );
+            });
+        })();
+
+        return () => {
+            cancelled = true;
+            setEchoReady(false);
+            if (channelName) {
+                void getSharedChatEcho(broadcast).then((echo) => {
+                    echo?.leave?.(channelName!);
+                });
+            }
+            typingClearTimers.current.forEach((timer) =>
+                window.clearTimeout(timer),
+            );
+            typingClearTimers.current.clear();
+        };
+    }, [selectedId, conversationId, broadcast]);
+
+    const postTyping = useCallback(() => {
+        if (!selectedId || !canManage) return;
+        void apiJson(`/plataforma/chat-soporte/tenants/${selectedId}/typing`, {
+            method: 'POST',
+            json: {},
+        }).catch(() => {
+            // ignore
+        });
+    }, [selectedId, canManage]);
+
+    const onComposerChange = (value: string) => {
+        setComposer(value);
+        if (!canManage || editingMessage) return;
+        if (typingTimer.current) window.clearTimeout(typingTimer.current);
+        typingTimer.current = window.setTimeout(() => {
+            postTyping();
+        }, 450);
+    };
+
+    const openMediaGallery = async () => {
+        if (!selectedId) return;
+        setMediaOpen(true);
+        setMediaLoading(true);
+        setMediaItems([]);
+        try {
+            const data = await apiJson<{ media: MediaItem[] }>(
+                `/plataforma/chat-soporte/tenants/${selectedId}/media`,
+            );
+            setMediaItems(data.media ?? []);
+        } catch {
+            toastManager.error({ title: t('action_error') });
+            setMediaOpen(false);
+        } finally {
+            setMediaLoading(false);
+        }
+    };
 
     const jumpToMessage = (id: string) => {
         setHighlightId(id);
@@ -778,6 +1000,23 @@ export default function PlataformaChatSoportePage({
                                             {opt.label}
                                         </Button>
                                     ))}
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant={
+                                            unreadOnly ? 'default' : 'outline'
+                                        }
+                                        className={cn(
+                                            'h-7 rounded-full px-3 text-xs',
+                                            unreadOnly &&
+                                                'bg-amber-600 hover:bg-amber-700',
+                                        )}
+                                        onClick={() =>
+                                            setUnreadOnly((v) => !v)
+                                        }
+                                    >
+                                        {t('unread_only')}
+                                    </Button>
                                 </div>
                             </>
                         }
@@ -902,8 +1141,9 @@ export default function PlataformaChatSoportePage({
                                                 {selected.nombre}
                                             </p>
                                             <p className="truncate text-xs text-muted-foreground">
-                                                {selected.plan_nombre ??
-                                                    selected.slug}
+                                                {typingLabel
+                                                    ?? selected.plan_nombre
+                                                    ?? selected.slug}
                                             </p>
                                         </div>
                                         {selected.is_free === true ? (
@@ -918,6 +1158,19 @@ export default function PlataformaChatSoportePage({
                                                 {t('badge_paid')}
                                             </Badge>
                                         ) : null}
+                                        <Button
+                                            type="button"
+                                            size="icon"
+                                            variant="ghost"
+                                            className="size-8 shrink-0 text-muted-foreground"
+                                            onClick={() =>
+                                                void openMediaGallery()
+                                            }
+                                            aria-label={t('media_gallery')}
+                                            title={t('media_gallery')}
+                                        >
+                                            <Images className="size-4" />
+                                        </Button>
                                         <Button
                                             type="button"
                                             size="icon"
@@ -1573,6 +1826,31 @@ export default function PlataformaChatSoportePage({
                                             </div>
                                         ) : null}
 
+                                        {!editingMessage ? (
+                                            <div className="mb-2 flex flex-wrap gap-1.5">
+                                                <span className="self-center text-[10px] font-medium text-muted-foreground">
+                                                    {t('templates')}
+                                                </span>
+                                                {TEMPLATE_IDS.map((id) => (
+                                                    <Button
+                                                        key={id}
+                                                        type="button"
+                                                        size="sm"
+                                                        variant="outline"
+                                                        className="h-7 rounded-full px-2.5 text-[11px]"
+                                                        onClick={() =>
+                                                            applyTemplate(
+                                                                id,
+                                                                'composer',
+                                                            )
+                                                        }
+                                                    >
+                                                        {t(`tpl_${id}_label`)}
+                                                    </Button>
+                                                ))}
+                                            </div>
+                                        ) : null}
+
                                         <div className="flex items-end gap-1.5">
                                             <input
                                                 ref={fileRef}
@@ -1656,7 +1934,9 @@ export default function PlataformaChatSoportePage({
                                                 ref={composerRef}
                                                 value={composer}
                                                 onChange={(e) =>
-                                                    setComposer(e.target.value)
+                                                    onComposerChange(
+                                                        e.target.value,
+                                                    )
                                                 }
                                                 placeholder={
                                                     editingMessage
@@ -1728,6 +2008,25 @@ export default function PlataformaChatSoportePage({
                             })}
                         </DialogDescription>
                     </DialogHeader>
+                    <div className="mb-2 flex flex-wrap gap-1.5">
+                        <span className="self-center text-[10px] font-medium text-muted-foreground">
+                            {t('templates')}
+                        </span>
+                        {TEMPLATE_IDS.map((id) => (
+                            <Button
+                                key={id}
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className="h-7 rounded-full px-2.5 text-[11px]"
+                                onClick={() =>
+                                    applyTemplate(id, 'broadcast')
+                                }
+                            >
+                                {t(`tpl_${id}_label`)}
+                            </Button>
+                        ))}
+                    </div>
                     <Textarea
                         value={broadcastBody}
                         onChange={(e) => setBroadcastBody(e.target.value)}
@@ -1757,6 +2056,61 @@ export default function PlataformaChatSoportePage({
                             })}
                         </Button>
                     </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={mediaOpen}
+                onOpenChange={(open) => {
+                    setMediaOpen(open);
+                    if (!open) setMediaItems([]);
+                }}
+            >
+                <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-lg">
+                    <DialogHeader className="border-b border-border/60 px-5 py-4">
+                        <DialogTitle className="text-base">
+                            {t('media_gallery_title')}
+                        </DialogTitle>
+                        <DialogDescription className="text-xs">
+                            {t('media_gallery')}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="max-h-[70dvh] overflow-y-auto p-4">
+                        {mediaLoading ? (
+                            <p className="py-10 text-center text-sm text-muted-foreground">
+                                {t('media_gallery_loading')}
+                            </p>
+                        ) : mediaItems.length === 0 ? (
+                            <p className="py-10 text-center text-sm text-muted-foreground">
+                                {t('media_gallery_empty')}
+                            </p>
+                        ) : (
+                            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                                {mediaItems.map((item, idx) =>
+                                    item.url ? (
+                                        <button
+                                            key={`${item.url}-${idx}`}
+                                            type="button"
+                                            className="overflow-hidden rounded-xl border border-border/50 bg-muted/30"
+                                            onClick={() => {
+                                                setLightbox({
+                                                    url: item.url!,
+                                                    name: item.name,
+                                                });
+                                            }}
+                                            aria-label={item.name}
+                                        >
+                                            <img
+                                                src={item.url}
+                                                alt={item.name}
+                                                className="aspect-square w-full object-cover"
+                                            />
+                                        </button>
+                                    ) : null,
+                                )}
+                            </div>
+                        )}
+                    </div>
                 </DialogContent>
             </Dialog>
 

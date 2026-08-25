@@ -1497,6 +1497,12 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:plataforma-chat-soporte.view')
             ->get('chat-soporte/tenants/{tenant}/forward-targets', [PlatformSupportChatController::class, 'forwardTargets'])
             ->name('chat-soporte.forward-targets');
+        Route::middleware('permission:plataforma-chat-soporte.view')
+            ->get('chat-soporte/tenants/{tenant}/media', [PlatformSupportChatController::class, 'media'])
+            ->name('chat-soporte.media');
+        Route::middleware('permission:plataforma-chat-soporte.manage')
+            ->post('chat-soporte/tenants/{tenant}/typing', [PlatformSupportChatController::class, 'typing'])
+            ->name('chat-soporte.typing');
         Route::middleware('permission:plataforma-chat-soporte.manage')
             ->post('chat-soporte/broadcast', [PlatformSupportChatController::class, 'broadcast'])
             ->name('chat-soporte.broadcast');

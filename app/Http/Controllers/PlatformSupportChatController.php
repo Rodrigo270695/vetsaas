@@ -25,6 +25,15 @@ final class PlatformSupportChatController extends Controller
                 'plan' => in_array($plan, ['all', 'free', 'paid'], true) ? $plan : 'all',
                 'q' => $search,
             ],
+            'broadcast' => [
+                'enabled' => filled(config('broadcasting.connections.reverb.key'))
+                    && config('broadcasting.default') === 'reverb',
+                'key' => config('broadcasting.connections.reverb.key'),
+                'host' => config('broadcasting.connections.reverb.options.host') ?: 'localhost',
+                'port' => (int) (config('broadcasting.connections.reverb.options.port') ?: 8080),
+                'scheme' => (string) (config('broadcasting.connections.reverb.options.scheme') ?: 'http'),
+            ],
+            'poll_ms' => 8000,
         ]);
     }
 
@@ -171,6 +180,27 @@ final class PlatformSupportChatController extends Controller
     ): JsonResponse {
         return response()->json([
             'conversations' => $service->forwardTargets($tenant),
+        ]);
+    }
+
+    public function media(
+        Tenant $tenant,
+        PlatformSupportChatService $service,
+    ): JsonResponse {
+        return response()->json([
+            'media' => $service->mediaForTenant($tenant),
+        ]);
+    }
+
+    public function typing(
+        Tenant $tenant,
+        PlatformSupportChatService $service,
+    ): JsonResponse {
+        $service->touchTyping($tenant);
+
+        return response()->json([
+            'ok' => true,
+            'typing' => $service->typingForTenant($tenant),
         ]);
     }
 

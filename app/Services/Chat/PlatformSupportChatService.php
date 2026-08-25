@@ -363,15 +363,27 @@ final class PlatformSupportChatService
             ->first();
 
         if ($thread === null) {
-            return ['conversation_id' => null, 'messages' => []];
+            return [
+                'conversation_id' => null,
+                'support_user_id' => null,
+                'tenant_id' => (string) $tenant->id,
+                'typing' => [],
+                'messages' => [],
+            ];
         }
 
-        return $this->tenants->runForTenant($tenant, function () use ($thread, $afterId, $limit): array {
+        return $this->tenants->runForTenant($tenant, function () use ($tenant, $thread, $afterId, $limit): array {
             $supportUser = User::query()->find($thread->support_user_id);
             $conversation = ChatConversation::query()->find($thread->conversation_id);
 
             if ($conversation === null || $supportUser === null) {
-                return ['conversation_id' => null, 'messages' => []];
+                return [
+                    'conversation_id' => null,
+                    'support_user_id' => null,
+                    'tenant_id' => (string) $tenant->id,
+                    'typing' => [],
+                    'messages' => [],
+                ];
             }
 
             $limit = max(1, min(200, $limit));
@@ -409,11 +421,66 @@ final class PlatformSupportChatService
 
             return [
                 'conversation_id' => (string) $conversation->id,
+                'support_user_id' => (string) $supportUser->id,
+                'tenant_id' => (string) $tenant->id,
+                'typing' => $this->chat->typingPayload($conversation, $supportUser),
                 'messages' => $messages
                     ->map(fn (ChatMessage $m): array => $this->chat->serializeMessage($m, $supportUser, $conversation))
                     ->values()
                     ->all(),
             ];
+        }, enforceAccess: false);
+    }
+
+    /**
+     * @return list<array{message_id: string, url: ?string, name: string, mime: string, size: int, created_at: ?string}>
+     */
+    public function mediaForTenant(Tenant $tenant): array
+    {
+        $this->ensureThread($tenant);
+
+        return $this->tenants->runForTenant($tenant, function () use ($tenant): array {
+            $supportUser = $this->ensureSupportUser($tenant);
+            $adminIds = $this->adminUserIds($tenant);
+            $conversation = $this->chat->ensureSupportGroup($supportUser, $adminIds);
+
+            return $this->chat->mediaGallery($conversation, $supportUser);
+        }, enforceAccess: false);
+    }
+
+    /**
+     * @return list<array{user_id: string, name: string}>
+     */
+    public function typingForTenant(Tenant $tenant): array
+    {
+        $thread = PlatformSupportThread::query()
+            ->where('tenant_id', $tenant->id)
+            ->first();
+
+        if ($thread === null) {
+            return [];
+        }
+
+        return $this->tenants->runForTenant($tenant, function () use ($thread): array {
+            $supportUser = User::query()->find($thread->support_user_id);
+            $conversation = ChatConversation::query()->find($thread->conversation_id);
+            if ($conversation === null || $supportUser === null) {
+                return [];
+            }
+
+            return $this->chat->typingPayload($conversation, $supportUser);
+        }, enforceAccess: false);
+    }
+
+    public function touchTyping(Tenant $tenant): void
+    {
+        $this->ensureThread($tenant);
+
+        $this->tenants->runForTenant($tenant, function () use ($tenant): void {
+            $supportUser = $this->ensureSupportUser($tenant);
+            $adminIds = $this->adminUserIds($tenant);
+            $conversation = $this->chat->ensureSupportGroup($supportUser, $adminIds);
+            $this->chat->touchTyping($conversation, $supportUser);
         }, enforceAccess: false);
     }
 

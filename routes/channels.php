@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\ChatParticipant;
+use App\Models\PlatformSupportThread;
 use App\Models\User;
 use Illuminate\Support\Facades\Broadcast;
 
@@ -10,6 +11,7 @@ use Illuminate\Support\Facades\Broadcast;
 |--------------------------------------------------------------------------
 | Nunca lanzar excepciones aquí: se convierten en 500 en /broadcasting/auth.
 | Superadmin en modo soporte puede no ser participante del hilo.
+| Operadores de Chat soporte (plataforma) pueden escuchar hilos de clínicas.
 */
 
 $matchesTenant = static function (User $user, string $tenantId): bool {
@@ -30,8 +32,42 @@ $matchesTenant = static function (User $user, string $tenantId): bool {
     return false;
 };
 
-Broadcast::channel('tenant.{tenantId}.chat.{conversationId}', function (User $user, string $tenantId, string $conversationId) use ($matchesTenant) {
+$canPlatformSupportListen = static function (User $user, string $tenantId, ?string $conversationId = null): bool {
+    if ($tenantId === '') {
+        return false;
+    }
+
     try {
+        $allowed = $user->isPlatformSuperadmin()
+            || $user->can('plataforma-chat-soporte.view');
+    } catch (Throwable) {
+        $allowed = false;
+    }
+
+    if (! $allowed) {
+        return false;
+    }
+
+    if ($conversationId === null || $conversationId === '') {
+        return true;
+    }
+
+    try {
+        return PlatformSupportThread::query()
+            ->where('tenant_id', $tenantId)
+            ->where('conversation_id', $conversationId)
+            ->exists();
+    } catch (Throwable) {
+        return $user->isPlatformSuperadmin();
+    }
+};
+
+Broadcast::channel('tenant.{tenantId}.chat.{conversationId}', function (User $user, string $tenantId, string $conversationId) use ($matchesTenant, $canPlatformSupportListen) {
+    try {
+        if ($canPlatformSupportListen($user, $tenantId, $conversationId)) {
+            return ['id' => (string) $user->id, 'name' => (string) $user->name];
+        }
+
         if (! $matchesTenant($user, $tenantId)) {
             return false;
         }
@@ -53,8 +89,12 @@ Broadcast::channel('tenant.{tenantId}.chat.{conversationId}', function (User $us
     }
 });
 
-Broadcast::channel('tenant.{tenantId}.chat.presence', function (User $user, string $tenantId) use ($matchesTenant) {
+Broadcast::channel('tenant.{tenantId}.chat.presence', function (User $user, string $tenantId) use ($matchesTenant, $canPlatformSupportListen) {
     try {
+        if ($canPlatformSupportListen($user, $tenantId)) {
+            return ['id' => (string) $user->id, 'name' => (string) $user->name];
+        }
+
         if (! $matchesTenant($user, $tenantId)) {
             return false;
         }

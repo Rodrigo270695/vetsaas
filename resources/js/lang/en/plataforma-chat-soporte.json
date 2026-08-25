@@ -68,5 +68,21 @@
     "seen": "Seen",
     "seen_by": "Seen by {{names}}",
     "message_actions_sheet": "Actions",
-    "message_actions_hint": "Long-press a message for more options"
+    "message_actions_hint": "Long-press a message for more options",
+    "unread_only": "Unread",
+    "media_gallery": "Gallery",
+    "media_gallery_title": "Media in this thread",
+    "media_gallery_empty": "No images in this chat.",
+    "media_gallery_loading": "Loading media…",
+    "typing": "{{name}} is typing…",
+    "typing_many": "{{names}} are typing…",
+    "templates": "Templates",
+    "tpl_whatsapp_label": "Reconnect WhatsApp",
+    "tpl_whatsapp_body": "Hi. We updated WhatsApp. Open Outgoing queue, unlink, and scan the QR again to restore sending.",
+    "tpl_maintenance_label": "Maintenance",
+    "tpl_maintenance_body": "Notice: we will have a short maintenance window. Service may be interrupted for a few minutes. Thanks for your patience.",
+    "tpl_billing_label": "Billing / plan",
+    "tpl_billing_body": "Hi. We reviewed your plan/subscription. If you have billing or module activation questions, reply here and we will help.",
+    "tpl_greeting_label": "Support greeting",
+    "tpl_greeting_body": "Hi, this is the VetSaaS Support team. How can we help you today?"
 }
