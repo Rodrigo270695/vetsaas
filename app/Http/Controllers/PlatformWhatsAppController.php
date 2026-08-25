@@ -21,6 +21,13 @@ class PlatformWhatsAppController extends Controller
     ): RedirectResponse|JsonResponse {
         $session = $sync->ensure();
 
+        // El usuario pidió conectar: reactivar auto-reconnect y despertar Chromium
+        // (auth en disco → ready sin QR; si no hay auth → qr_ready).
+        if ($session !== null) {
+            $session = $sync->enableAutoReconnect($session);
+            $session = $sync->ensure() ?? $session;
+        }
+
         if ($request->expectsJson()) {
             return response()->json([
                 'whatsapp' => $presenter->present(),
@@ -54,10 +61,12 @@ class PlatformWhatsAppController extends Controller
                 $status = (string) ($remote['status'] ?? $session->status);
 
                 if (in_array($status, ['created', 'disconnected', 'failed'], true)) {
-                    $client->startSession($session->openwa_session_id);
+                    $client->tryStartIfDown($session->openwa_session_id, $status);
+                } elseif (in_array($status, ['initializing', 'authenticating'], true)) {
+                    $client->tryStartIfDown($session->openwa_session_id, 'disconnected');
                 }
             } catch (\Throwable) {
-                // Continúa e intenta obtener QR.
+                // Continúa e intenta obtener QR o refrescar estado.
             }
         }
 
@@ -71,7 +80,28 @@ class PlatformWhatsAppController extends Controller
             ]);
         }
 
-        $qr = $client->getQrCode($session->openwa_session_id);
+        // Mientras arranca (auth en disco) aún no hay QR: no fallar el panel.
+        if (in_array((string) $session->status, ['initializing', 'authenticating'], true)) {
+            return response()->json([
+                'ready' => false,
+                'status' => $session->status,
+                'qr_code' => null,
+                'session_id' => $session->openwa_session_id,
+                'message' => 'Reconectando sesión…',
+            ]);
+        }
+
+        try {
+            $qr = $client->getQrCode($session->openwa_session_id);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'ready' => false,
+                'status' => $session->status,
+                'qr_code' => null,
+                'session_id' => $session->openwa_session_id,
+                'error' => $e->getMessage(),
+            ], 422);
+        }
 
         return response()->json([
             'ready' => false,

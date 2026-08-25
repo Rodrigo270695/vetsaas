@@ -28,6 +28,12 @@ class TenantWhatsAppController extends Controller
 
         $session = $sync->ensureForTenant($tenant);
 
+        // Usuario pidió conectar: reactivar reconnect y despertar (sin QR si hay auth).
+        if ($session !== null) {
+            $session = $sync->enableAutoReconnect($session);
+            $session = $sync->ensureForTenant($tenant) ?? $session;
+        }
+
         if ($request->expectsJson()) {
             return response()->json([
                 'whatsapp' => $presenter->forTenant($tenant),
@@ -65,11 +71,14 @@ class TenantWhatsAppController extends Controller
                 $remote = $client->getSession($session->openwa_session_id);
                 $status = (string) ($remote['status'] ?? $session->status);
 
-                if (in_array($status, ['created', 'disconnected', 'failed'], true)) {
-                    $client->startSession($session->openwa_session_id);
+                if (in_array($status, ['created', 'disconnected', 'failed', 'initializing', 'authenticating'], true)) {
+                    $client->tryStartIfDown(
+                        $session->openwa_session_id,
+                        in_array($status, ['initializing', 'authenticating'], true) ? 'disconnected' : $status,
+                    );
                 }
             } catch (\Throwable) {
-                // Continúa e intenta obtener QR.
+                // Continúa e intenta obtener QR o refrescar estado.
             }
         }
 
@@ -80,6 +89,16 @@ class TenantWhatsAppController extends Controller
                 'ready' => true,
                 'phone' => $session->phone,
                 'status' => $session->status,
+            ]);
+        }
+
+        if (in_array((string) $session->status, ['initializing', 'authenticating'], true)) {
+            return response()->json([
+                'ready' => false,
+                'status' => $session->status,
+                'qr_code' => null,
+                'session_id' => $session->openwa_session_id,
+                'message' => 'Reconectando sesión…',
             ]);
         }
 

@@ -78,7 +78,13 @@ export function WhatsAppConnectCard({
                 headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
                 credentials: 'same-origin',
             });
-            const data = (await res.json()) as { ready?: boolean; qr_code?: string };
+            const data = (await res.json()) as {
+                ready?: boolean;
+                qr_code?: string | null;
+                status?: string;
+                error?: string;
+                message?: string;
+            };
             if (data.ready) {
                 setQrCode(null);
                 router.reload({ only: ['whatsapp'] });
@@ -86,6 +92,8 @@ export function WhatsAppConnectCard({
             } else if (data.qr_code) {
                 setQrCode(data.qr_code);
             }
+            // initializing / sin QR: el poll sigue hasta ready o hasta que haya QR
+
         } finally {
             setLoadingQr(false);
         }
