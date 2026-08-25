@@ -64,18 +64,32 @@ class VacunacionController extends Controller
         $defaultDesde = $now->copy()->startOfMonth()->toDateString();
         $defaultHasta = $now->copy()->endOfMonth()->toDateString();
 
+        $sinRangoExplicit = $request->boolean('sin_rango');
+        // Al buscar, no acotar por mes: si no, registros de otros años “desaparecen”.
+        $omitirRango = $sinRangoExplicit || $search !== '';
+
         $aplicadaDesde = $this->parseDateParam($request->query('aplicada_desde'));
         $aplicadaHasta = $this->parseDateParam($request->query('aplicada_hasta'));
 
-        if ($aplicadaDesde === null || $aplicadaHasta === null) {
+        if ($omitirRango) {
+            $aplicadaDesde = null;
+            $aplicadaHasta = null;
+            $fueraDelMesActual = true;
+            $inicioRango = null;
+            $finRango = null;
+        } elseif ($aplicadaDesde === null || $aplicadaHasta === null) {
             $aplicadaDesde = $defaultDesde;
             $aplicadaHasta = $defaultHasta;
             $fueraDelMesActual = false;
+            $inicioRango = Carbon::parse($aplicadaDesde, $tz)->startOfDay();
+            $finRango = Carbon::parse($aplicadaHasta, $tz)->endOfDay();
         } else {
             if ($aplicadaDesde > $aplicadaHasta) {
                 [$aplicadaDesde, $aplicadaHasta] = [$aplicadaHasta, $aplicadaDesde];
             }
             $fueraDelMesActual = ($aplicadaDesde !== $defaultDesde) || ($aplicadaHasta !== $defaultHasta);
+            $inicioRango = Carbon::parse($aplicadaDesde, $tz)->startOfDay();
+            $finRango = Carbon::parse($aplicadaHasta, $tz)->endOfDay();
         }
 
         $vacunaAbrirEditar = null;
@@ -109,11 +123,11 @@ class VacunacionController extends Controller
                 $aplicadaDesde = $atVac->copy()->startOfMonth()->toDateString();
                 $aplicadaHasta = $atVac->copy()->endOfMonth()->toDateString();
                 $fueraDelMesActual = ($aplicadaDesde !== $defaultDesde) || ($aplicadaHasta !== $defaultHasta);
+                $inicioRango = Carbon::parse($aplicadaDesde, $tz)->startOfDay();
+                $finRango = Carbon::parse($aplicadaHasta, $tz)->endOfDay();
+                $omitirRango = false;
             }
         }
-
-        $inicioRango = Carbon::parse($aplicadaDesde, $tz)->startOfDay();
-        $finRango = Carbon::parse($aplicadaHasta, $tz)->endOfDay();
 
         $canAudit = $request->user()?->can('audit-trail.view') ?? false;
 
@@ -142,8 +156,9 @@ class VacunacionController extends Controller
             ]);
         }
 
-        $query->whereBetween('vacunas_aplicadas.aplicada_at', [$inicioRango, $finRango]);
-
+        if ($inicioRango !== null && $finRango !== null) {
+            $query->whereBetween('vacunas_aplicadas.aplicada_at', [$inicioRango, $finRango]);
+        }
         $cobroFiltro = strtolower(trim((string) $request->string('cobro', 'todos')));
         if (! in_array($cobroFiltro, \App\Support\ConsultaCargo\ConsultaCargoCobroEstado::FILTERS, true)) {
             $cobroFiltro = \App\Support\ConsultaCargo\ConsultaCargoCobroEstado::FILTER_TODOS;
@@ -238,7 +253,10 @@ class VacunacionController extends Controller
         });
 
         $totalEnRango = VacunaAplicada::query()
-            ->whereBetween('aplicada_at', [$inicioRango, $finRango])
+            ->when(
+                $inicioRango !== null && $finRango !== null,
+                static fn ($q) => $q->whereBetween('aplicada_at', [$inicioRango, $finRango]),
+            )
             ->count();
 
         $pacientesOpciones = Paciente::query()
@@ -305,6 +323,7 @@ class VacunacionController extends Controller
                 'direction' => $sortValid && $directionValid ? $direction : null,
                 'aplicada_desde' => $aplicadaDesde,
                 'aplicada_hasta' => $aplicadaHasta,
+                'sin_rango' => $omitirRango && $search === '',
                 'cobro' => $cobroFiltro,
             ],
             'aplicacion_filtro_ui' => [

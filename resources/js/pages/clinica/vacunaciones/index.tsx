@@ -56,7 +56,7 @@ type Props = {
 
 type VacunasTableExtra = Pick<
     VacunaAplicadaFilters,
-    'aplicada_desde' | 'aplicada_hasta' | 'cobro'
+    'aplicada_desde' | 'aplicada_hasta' | 'sin_rango' | 'cobro'
 >;
 
 type ModalState =
@@ -92,8 +92,9 @@ export default function Index({
     vacuna_prefill,
     vacuna_abrir_editar,
 }: Props) {
-    const { t } = useTranslation(['vacunaciones', 'common', 'consulta-cargos']);
-    const { locale: appLocale, timezone: appTz } = usePage().props;
+    const { t, i18n } = useTranslation(['vacunaciones', 'common', 'consulta-cargos']);
+    const { timezone: appTz } = usePage().props;
+    const uiLocale = i18n.language || 'es';
     const { can } = usePermission();
     const canCreate = can('vacunaciones.create');
     const canUpdate = can('vacunaciones.update');
@@ -236,7 +237,7 @@ export default function Index({
                 sortable: true,
                 cell: (row) => (
                     <span className="whitespace-nowrap text-sm">
-                        {formatAtendidoInAppTimezone(row.aplicada_at, appLocale, appTz)}
+                        {formatAtendidoInAppTimezone(row.aplicada_at, uiLocale, appTz)}
                     </span>
                 ),
             },
@@ -287,7 +288,7 @@ export default function Index({
 
                     return (
                         <span className="whitespace-nowrap text-sm text-muted-foreground">
-                            {formatAtendidoInAppTimezone(c.atendido_at, appLocale, appTz)}
+                            {formatAtendidoInAppTimezone(c.atendido_at, uiLocale, appTz)}
                         </span>
                     );
                 },
@@ -326,7 +327,7 @@ export default function Index({
                         {row.fecha_proxima_sugerida
                             ? formatDateOnlyLabel(
                                   row.fecha_proxima_sugerida,
-                                  String(appLocale ?? 'es'),
+                                  uiLocale,
                               )
                             : '—'}
                     </span>
@@ -389,11 +390,7 @@ export default function Index({
                                     {row.creado_por.name}
                                 </span>
                                 <span className="text-[0.65rem] text-muted-foreground">
-                                    {new Date(row.created_at).toLocaleDateString(undefined, {
-                                        day: '2-digit',
-                                        month: 'short',
-                                        year: 'numeric',
-                                    })}
+                                    {formatDateOnlyLabel(row.created_at, uiLocale)}
                                 </span>
                             </div>
                         </div>
@@ -426,7 +423,7 @@ export default function Index({
         return base;
     }, [
         t,
-        appLocale,
+        uiLocale,
         appTz,
         canSeeAudit,
         showRowActions,
@@ -519,7 +516,18 @@ export default function Index({
                                 translationNs="vacunaciones"
                                 triggerClassName="h-10"
                                 onApply={(desde, hasta) =>
-                                    applyFilter({ aplicada_desde: desde, aplicada_hasta: hasta })
+                                    applyFilter({
+                                        aplicada_desde: desde,
+                                        aplicada_hasta: hasta,
+                                        sin_rango: false,
+                                    })
+                                }
+                                onClear={() =>
+                                    applyFilter({
+                                        aplicada_desde: null,
+                                        aplicada_hasta: null,
+                                        sin_rango: true,
+                                    })
                                 }
                             />
                         </DataToolbar>
@@ -533,8 +541,9 @@ export default function Index({
                                 per_page: filters.per_page,
                                 sort: filters.sort ?? undefined,
                                 direction: filters.direction ?? undefined,
-                                aplicada_desde: filters.aplicada_desde,
-                                aplicada_hasta: filters.aplicada_hasta,
+                                aplicada_desde: filters.aplicada_desde || undefined,
+                                aplicada_hasta: filters.aplicada_hasta || undefined,
+                                sin_rango: filters.sin_rango ? true : undefined,
                                 cobro:
                                     filters.cobro && filters.cobro !== 'todos'
                                         ? filters.cobro

@@ -2,8 +2,10 @@ import type { BaseFilters } from '@/hooks/use-data-table-page';
 import type { AuditUser } from '../propietarios/types';
 
 export type VacunaAplicadaFilters = BaseFilters & {
-    aplicada_desde: string;
-    aplicada_hasta: string;
+    aplicada_desde: string | null;
+    aplicada_hasta: string | null;
+    /** Sin acotar por fechas (todas las aplicaciones). */
+    sin_rango?: boolean;
     cobro?: 'todos' | 'por_cobrar' | 'cobrado' | 'sin_precuenta';
 };
 
