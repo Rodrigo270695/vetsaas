@@ -19,6 +19,7 @@ use App\Models\User;
 use App\Services\Grooming\GroomingProcesoWhatsAppSender;
 use App\Services\Venta\VentaCheckoutService;
 use App\Support\Grooming\GroomingTurnoServicioRules;
+use App\Support\WhatsApp\DeferredWhatsAppDispatch;
 use App\Support\WhatsApp\WhatsAppChatId;
 use App\Tenancy\TenantManager;
 use Illuminate\Http\RedirectResponse;
@@ -497,27 +498,58 @@ class GroomingTurnoController extends Controller
             ? (trim($propietario->displayName()) !== '' ? $propietario->displayName() : 'cliente')
             : 'cliente';
 
-        try {
-            $sender->notifyEstado(
-                $groomingTurno,
-                $tenantModel,
-                $chatId,
-                $ownerName,
-                $setting,
-                $nuevoEstado,
-                $fotosCreadas->isNotEmpty() ? $fotosCreadas : null,
-            );
+        $turnoId = (string) $groomingTurno->id;
+        $tenantSlug = (string) ($tenantModel->slug ?? '');
+        $fotoIds = $fotosCreadas->pluck('id')->all();
 
-            return back()->with('success', __('grooming.flash.estado_updated_whatsapp'));
-        } catch (Throwable $e) {
-            Log::warning('Grooming: estado actualizado pero WhatsApp falló', [
-                'turno_id' => $groomingTurno->id,
-                'estado' => $nuevoEstado,
-                'error' => $e->getMessage(),
-            ]);
-
-            return back()->with('warning', __('grooming.flash.estado_updated_sin_whatsapp').' '.$e->getMessage());
+        if ($tenantSlug === '') {
+            return back()->with('warning', __('grooming.flash.estado_updated_sin_whatsapp'));
         }
+
+        DeferredWhatsAppDispatch::runForTenantSlug($tenantSlug, static function () use (
+            $sender,
+            $turnoId,
+            $tenantSlug,
+            $chatId,
+            $ownerName,
+            $nuevoEstado,
+            $fotoIds,
+        ): void {
+            $turno = GroomingTurno::query()
+                ->with([
+                    'paciente.propietario:id,nombres,apellidos,razon_social,telefono',
+                    'groomingServicio:id,nombre',
+                ])
+                ->find($turnoId);
+            $tenant = Tenant::query()->where('slug', $tenantSlug)->first();
+            if ($turno === null || $tenant === null) {
+                return;
+            }
+
+            $fotos = $fotoIds !== []
+                ? GroomingTurnoFoto::query()->whereIn('id', $fotoIds)->get()
+                : collect();
+
+            try {
+                $sender->notifyEstado(
+                    $turno,
+                    $tenant,
+                    $chatId,
+                    $ownerName,
+                    ClinicSetting::current(),
+                    $nuevoEstado,
+                    $fotos->isNotEmpty() ? $fotos : null,
+                );
+            } catch (Throwable $e) {
+                Log::warning('Grooming: estado actualizado pero WhatsApp falló', [
+                    'turno_id' => $turnoId,
+                    'estado' => $nuevoEstado,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        });
+
+        return back()->with('success', __('grooming.flash.estado_updated_whatsapp'));
     }
 
     public function storeFoto(
@@ -661,6 +693,7 @@ class GroomingTurnoController extends Controller
 
     /**
      * Best-effort: no bloquea el CRUD si WhatsApp falla o no hay teléfono.
+     * El envío real ocurre afterResponse (OpenWA puede tardar varios segundos).
      *
      * @param  'programado'|'reprogramado'  $tipo
      * @return 'ok'|'skip'|'fail'
@@ -688,7 +721,7 @@ class GroomingTurnoController extends Controller
 
         $tenantId = tenant_id();
         $tenant = $tenantId !== null ? Tenant::query()->find($tenantId) : null;
-        if ($tenant === null) {
+        if ($tenant === null || trim((string) ($tenant->slug ?? '')) === '') {
             return 'skip';
         }
 
@@ -696,25 +729,47 @@ class GroomingTurnoController extends Controller
             ? (trim($propietario->displayName()) !== '' ? $propietario->displayName() : 'cliente')
             : 'cliente';
 
-        try {
-            $sender->notifyAgenda(
-                $turno,
-                $tenant,
-                $chatId,
-                $ownerName,
-                $setting,
-                $tipo,
-            );
+        $turnoId = (string) $turno->id;
+        $tenantSlug = (string) $tenant->slug;
 
-            return 'ok';
-        } catch (Throwable $e) {
-            Log::warning('Grooming: no se pudo notificar agenda por WhatsApp', [
-                'turno_id' => $turno->id,
-                'tipo' => $tipo,
-                'error' => $e->getMessage(),
-            ]);
+        DeferredWhatsAppDispatch::runForTenantSlug($tenantSlug, static function () use (
+            $sender,
+            $turnoId,
+            $tenantSlug,
+            $chatId,
+            $ownerName,
+            $tipo,
+        ): void {
+            $turno = GroomingTurno::query()
+                ->with([
+                    'paciente.propietario:id,nombres,apellidos,razon_social,telefono',
+                    'groomingServicio:id,nombre',
+                ])
+                ->find($turnoId);
+            $tenant = Tenant::query()->where('slug', $tenantSlug)->first();
 
-            return 'fail';
-        }
+            if ($turno === null || $tenant === null) {
+                return;
+            }
+
+            try {
+                $sender->notifyAgenda(
+                    $turno,
+                    $tenant,
+                    $chatId,
+                    $ownerName,
+                    ClinicSetting::current(),
+                    $tipo,
+                );
+            } catch (Throwable $e) {
+                Log::warning('Grooming: no se pudo notificar agenda por WhatsApp', [
+                    'turno_id' => $turnoId,
+                    'tipo' => $tipo,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        });
+
+        return 'ok';
     }
 }

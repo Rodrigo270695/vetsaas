@@ -10,7 +10,7 @@ use App\Models\HotelEstanciaDiario;
 use App\Models\Tenant;
 use App\Services\Notifications\NotificationQueueService;
 use App\Services\Notifications\ReminderMessageBuilder;
-use App\Services\Notifications\WhatsAppNotificationDispatcher;
+use App\Support\WhatsApp\DeferredWhatsAppDispatch;
 use App\Support\WhatsApp\WhatsAppChatId;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -19,7 +19,6 @@ final class HotelWhatsAppNotifier
 {
     public function __construct(
         private readonly NotificationQueueService $queue,
-        private readonly WhatsAppNotificationDispatcher $dispatcher,
         private readonly ReminderMessageBuilder $messages,
     ) {}
 
@@ -97,15 +96,7 @@ final class HotelWhatsAppNotifier
             $tenantId = tenant_id();
             $tenant = $tenantId !== null ? Tenant::query()->find($tenantId) : null;
             if ($tenant !== null) {
-                try {
-                    $this->dispatcher->dispatchOne($item, $tenant);
-                } catch (Throwable $e) {
-                    Log::warning('Dispatch inmediato de hotel falló; queda en cola', [
-                        'hotel_estancia_id' => $estancia->id,
-                        'evento' => $evento,
-                        'error' => $e->getMessage(),
-                    ]);
-                }
+                \App\Support\WhatsApp\DeferredWhatsAppDispatch::queueItem($item, $tenant);
             }
 
             return 'queued';

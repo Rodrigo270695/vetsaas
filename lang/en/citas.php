@@ -12,7 +12,7 @@ return [
         'aperturada_reactivada' => 'Visit reopened. Continue follow-up in the clinical record.',
         'aperturar_estado_invalido' => 'Only waiting appointments (scheduled or confirmed) can be started.',
         'aperturar_consulta_invalida' => 'The selected visit is not valid for this patient.',
-        'whatsapp_queued' => 'WhatsApp confirmation sent to the owner.',
+        'whatsapp_queued' => 'Appointment saved. WhatsApp confirmation is being sent.',
         'whatsapp_no_phone' => 'The appointment was saved, but the owner has no WhatsApp number registered.',
         'whatsapp_queue_failed' => 'The appointment was saved, but the WhatsApp message could not be sent.',
     ],

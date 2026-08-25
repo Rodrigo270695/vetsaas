@@ -57,7 +57,7 @@ return [
     /*
     | Umbral de load average (1 min) para alerta en Plataforma › Operaciones.
     */
-    'ops_load_alert_threshold' => (float) env('BOT_IA_OPS_LOAD_ALERT_THRESHOLD', 8),
+    'ops_load_alert_threshold' => (float) env('BOT_IA_OPS_LOAD_ALERT_THRESHOLD', 4),
 
     /*
     | Cache de resolución @lid → contacto OpenWA (segundos).

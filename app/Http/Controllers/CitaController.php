@@ -16,7 +16,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Services\Notifications\NotificationQueueService;
 use App\Services\Notifications\ReminderMessageBuilder;
-use App\Services\Notifications\WhatsAppNotificationDispatcher;
+use App\Support\WhatsApp\DeferredWhatsAppDispatch;
 use App\Support\WhatsApp\WhatsAppChatId;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -381,20 +381,13 @@ class CitaController extends Controller
                 prioridad: 4,
             );
 
-            // Envío inmediato: no esperar el cron de 5 min.
-            // Si falla OpenWA, queda pendiente y lo reintenta notifications-dispatch.
+            // Envío diferido: no bloquear el CRUD si OpenWA tarda (timeout ~30s).
+            // Si falla, queda pendiente y lo reintenta notifications-dispatch.
             if ($item !== null) {
                 $tenantId = tenant_id();
                 $tenant = $tenantId !== null ? Tenant::query()->find($tenantId) : null;
                 if ($tenant !== null) {
-                    try {
-                        app(WhatsAppNotificationDispatcher::class)->dispatchOne($item, $tenant);
-                    } catch (Throwable $e) {
-                        Log::warning('Dispatch inmediato de cita falló; queda en cola', [
-                            'cita_id' => $cita->id,
-                            'error' => $e->getMessage(),
-                        ]);
-                    }
+                    \App\Support\WhatsApp\DeferredWhatsAppDispatch::queueItem($item, $tenant);
                 }
             }
 

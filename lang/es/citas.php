@@ -12,7 +12,7 @@ return [
         'aperturada_reactivada' => 'Consulta reactivada. Continúa el seguimiento en la historia clínica.',
         'aperturar_estado_invalido' => 'Solo se pueden aperturar citas en espera (programadas o confirmadas).',
         'aperturar_consulta_invalida' => 'La consulta seleccionada no es válida para este paciente.',
-        'whatsapp_queued' => 'WhatsApp de confirmación enviado al propietario.',
+        'whatsapp_queued' => 'La cita se guardó. El WhatsApp de confirmación se está enviando.',
         'whatsapp_no_phone' => 'La cita se guardó, pero el propietario no tiene un número de WhatsApp registrado.',
         'whatsapp_queue_failed' => 'La cita se guardó, pero no se pudo enviar el WhatsApp.',
     ],

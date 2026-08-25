@@ -22,7 +22,7 @@ return [
 
     'admin_url' => rtrim((string) env('OPENWA_ADMIN_URL', 'https://wa-admin.vetsaas.orvae.pe'), '/'),
 
-    'timeout_seconds' => (int) env('OPENWA_TIMEOUT_SECONDS', 30),
+    'timeout_seconds' => (int) env('OPENWA_TIMEOUT_SECONDS', 12),
 
     'document_timeout_seconds' => (int) env('OPENWA_DOCUMENT_TIMEOUT_SECONDS', 90),
 
