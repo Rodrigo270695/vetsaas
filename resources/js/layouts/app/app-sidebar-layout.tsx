@@ -55,7 +55,12 @@ export default function AppSidebarLayout({
                     <InAppAssistantAnnouncementModal />
                     <TenantChatNotifier />
                     <AppSidebarHeader breadcrumbs={breadcrumbs} />
-                    <div className="flex-1 overflow-y-auto overflow-x-hidden">
+                    {/*
+                      Por defecto el contenido scrollea. Páginas “pantalla fija”
+                      (chat) marcan data-fixed-viewport y ocupan el alto restante
+                      sin mover el shell ni el header.
+                    */}
+                    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden has-data-fixed-viewport:overflow-hidden">
                         {children}
                     </div>
                 </AppContent>

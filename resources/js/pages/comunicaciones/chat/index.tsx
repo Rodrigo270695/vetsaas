@@ -2005,7 +2005,10 @@ export default function ChatInternoIndex({
         <>
             <Head title={t('title')} />
 
-            <div className="flex h-[calc(100dvh-4.25rem)] min-h-0 flex-col overflow-hidden bg-card max-lg:rounded-none max-lg:border-0 max-lg:shadow-none sm:min-h-112 lg:h-[calc(100dvh-6.5rem)] lg:rounded-2xl lg:border lg:border-border/60 lg:shadow-sm">
+            <div
+                data-fixed-viewport
+                className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-card max-lg:rounded-none max-lg:border-0 max-lg:shadow-none lg:m-3 lg:rounded-2xl lg:border lg:border-border/60 lg:shadow-sm"
+            >
                 <div
                     className={cn(
                         'flex items-center justify-between gap-3 border-b border-border/60 bg-linear-to-r from-emerald-50/90 via-card to-teal-50/40 px-4 py-3 dark:from-emerald-950/40 dark:via-card dark:to-teal-950/20',
