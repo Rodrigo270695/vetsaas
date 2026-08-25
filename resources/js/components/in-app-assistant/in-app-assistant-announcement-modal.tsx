@@ -120,7 +120,12 @@ export function InAppAssistantAnnouncementModal() {
                 }
             }}
         >
-            <DialogContent className="gap-0 overflow-hidden border-sky-200/80 p-0 sm:max-w-md dark:border-sky-800/70">
+            <DialogContent
+                className="gap-0 overflow-hidden border-sky-200/80 p-0 sm:max-w-md dark:border-sky-800/70"
+                onPointerDownOutside={(event) => event.preventDefault()}
+                onInteractOutside={(event) => event.preventDefault()}
+                onEscapeKeyDown={(event) => event.preventDefault()}
+            >
                 <div className="bg-linear-to-br from-sky-50 via-white to-slate-50 px-6 pb-5 pt-6 dark:from-sky-950/40 dark:via-background dark:to-background">
                     <DialogHeader className="gap-3 text-left">
                         <div className="flex size-11 items-center justify-center rounded-xl bg-sky-600 text-white shadow-md shadow-sky-600/25">
