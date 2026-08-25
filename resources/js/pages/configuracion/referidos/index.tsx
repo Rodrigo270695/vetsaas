@@ -49,7 +49,7 @@ function formatDate(value: string | null, locale: string): string {
     });
 }
 
-export default function ReferidosIndex({ referral }: Props) {
+export default function Index({ referral }: Props) {
     const { t, i18n } = useTranslation('config-referidos');
     const locale = i18n.language?.startsWith('en') ? 'en' : 'es';
     const [copied, setCopied] = useState<'code' | 'url' | null>(null);
@@ -73,7 +73,7 @@ export default function ReferidosIndex({ referral }: Props) {
     );
 
     return (
-        <AppLayout>
+        <>
             <Head title={t('title')} />
             <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
                 <PageHeader
@@ -254,6 +254,20 @@ export default function ReferidosIndex({ referral }: Props) {
                     </div>
                 )}
             </div>
-        </AppLayout>
+        </>
     );
 }
+
+Index.layout = (page: React.ReactNode) => (
+    <AppLayout
+        breadcrumbs={[
+            { title: 'Configuración' },
+            {
+                title: 'Referidos',
+                href: '/configuracion/referidos',
+            },
+        ]}
+    >
+        {page}
+    </AppLayout>
+);
