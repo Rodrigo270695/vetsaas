@@ -1,15 +1,5 @@
 import { Head } from '@inertiajs/react';
-import {
-    Check,
-    Copy,
-    Gift,
-    Link2,
-    PartyPopper,
-    Share2,
-    Sparkles,
-    Users,
-    Wallet,
-} from 'lucide-react';
+import { ArrowRight, Check, Copy, MessageCircle } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/data-page';
@@ -56,14 +46,6 @@ type Props = {
     referral: ReferralPayload;
 };
 
-const PLAN_ACCENTS: Record<string, string> = {
-    starter:
-        'from-sky-500/15 via-sky-500/5 to-transparent border-sky-500/25 dark:from-sky-400/20',
-    pro: 'from-amber-500/15 via-amber-500/5 to-transparent border-amber-500/25 dark:from-amber-400/20',
-    clinica:
-        'from-emerald-500/15 via-emerald-500/5 to-transparent border-emerald-500/25 dark:from-emerald-400/20',
-};
-
 function formatDate(value: string | null, locale: string): string {
     if (!value) return '—';
     const date = new Date(value);
@@ -85,6 +67,11 @@ export default function Index({ referral }: Props) {
         [referral.referred],
     );
 
+    const maxRewardDays = useMemo(() => {
+        const days = referral.rewards_by_plan.map((p) => p.days);
+        return days.length > 0 ? Math.max(...days, 1) : 1;
+    }, [referral.rewards_by_plan]);
+
     const copy = async (kind: 'code' | 'url', value: string) => {
         try {
             await navigator.clipboard.writeText(value);
@@ -102,265 +89,201 @@ export default function Index({ referral }: Props) {
         }),
     );
 
-    const steps = [
-        {
-            icon: Share2,
-            title: t('how_step_1_title'),
-            body: t('how_step_1_body'),
-        },
-        {
-            icon: Users,
-            title: t('how_step_2_title'),
-            body: t('how_step_2_body'),
-        },
-        {
-            icon: Gift,
-            title: t('how_step_3_title'),
-            body: t('how_step_3_body'),
-        },
-    ] as const;
-
     return (
         <>
             <Head title={t('title')} />
-            <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
+            <div className="flex flex-1 flex-col gap-8 p-4 md:p-6">
                 <PageHeader title={t('title')} description={t('description')} />
 
-                <section className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/12 via-background to-emerald-500/5 p-5 shadow-sm md:p-6">
-                    <div className="pointer-events-none absolute -right-10 -top-10 size-40 rounded-full bg-primary/10 blur-2xl" />
-                    <div className="pointer-events-none absolute -bottom-12 left-1/3 size-36 rounded-full bg-emerald-400/10 blur-2xl" />
-                    <div className="relative mb-4 flex items-center gap-2">
-                        <span className="inline-flex size-9 items-center justify-center rounded-xl bg-primary/15 text-primary">
-                            <Sparkles className="size-4" />
-                        </span>
-                        <h2 className="text-sm font-semibold tracking-tight">
-                            {t('how_title')}
-                        </h2>
-                    </div>
-                    <ol className="relative grid gap-3 md:grid-cols-3">
-                        {steps.map((step, index) => {
-                            const Icon = step.icon;
-                            return (
-                                <li
-                                    key={step.title}
-                                    className="rounded-xl border bg-background/80 p-4 backdrop-blur-sm"
-                                >
-                                    <div className="mb-3 flex items-center gap-2">
-                                        <span className="inline-flex size-8 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-                                            {index + 1}
-                                        </span>
-                                        <span className="inline-flex size-8 items-center justify-center rounded-lg bg-muted text-primary">
-                                            <Icon className="size-4" />
-                                        </span>
-                                    </div>
-                                    <p className="text-sm font-semibold">{step.title}</p>
-                                    <p className="mt-1 text-sm text-muted-foreground">
-                                        {step.body}
-                                    </p>
-                                </li>
-                            );
-                        })}
-                    </ol>
-                </section>
+                <div className="grid gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(280px,0.9fr)]">
+                    {/* Invite stage — primary composition */}
+                    <section className="relative overflow-hidden rounded-3xl bg-primary text-primary-foreground shadow-lg">
+                        <div className="pointer-events-none absolute inset-0 opacity-25 [background-image:radial-gradient(circle_at_20%_20%,white,transparent_35%),radial-gradient(circle_at_90%_10%,white,transparent_28%),radial-gradient(circle_at_80%_80%,white,transparent_40%)]" />
+                        <div className="relative flex h-full flex-col justify-between gap-8 p-6 sm:p-8">
+                            <div className="space-y-3">
+                                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary-foreground/75">
+                                    {t('invite_kicker')}
+                                </p>
+                                <h2 className="max-w-md text-3xl font-semibold tracking-tight sm:text-4xl">
+                                    {t('invite_title')}
+                                </h2>
+                                <p className="max-w-lg text-sm leading-relaxed text-primary-foreground/85 sm:text-base">
+                                    {t('invite_body')}
+                                </p>
+                            </div>
 
-                {referral.rewards_by_plan.length > 0 && (
-                    <section className="space-y-3">
-                        <div>
-                            <h2 className="text-sm font-semibold">{t('rewards_title')}</h2>
-                            <p className="mt-1 text-sm text-muted-foreground">
-                                {t('rewards_hint')}
-                            </p>
-                        </div>
-                        <div className="grid gap-3 sm:grid-cols-3">
-                            {referral.rewards_by_plan.map((plan) => (
-                                <div
-                                    key={plan.codigo}
-                                    className={cn(
-                                        'relative overflow-hidden rounded-xl border bg-gradient-to-br p-4',
-                                        PLAN_ACCENTS[plan.codigo] ??
-                                            'from-primary/10 via-primary/5 to-transparent border-primary/20',
-                                    )}
-                                >
-                                    <div className="flex items-start justify-between gap-2">
-                                        <div>
-                                            <p className="text-sm font-medium text-muted-foreground">
-                                                {plan.nombre}
-                                            </p>
-                                            <p className="mt-1 text-2xl font-semibold tabular-nums tracking-tight">
-                                                {plan.label}
-                                            </p>
-                                        </div>
-                                        <span className="inline-flex size-9 items-center justify-center rounded-full bg-background/70 text-primary shadow-sm">
-                                            <Gift className="size-4" />
-                                        </span>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </section>
-                )}
-
-                <div className="grid gap-4 lg:grid-cols-5">
-                    <section className="rounded-2xl border bg-card p-5 shadow-sm lg:col-span-3">
-                        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-                            <div className="flex items-center gap-2">
-                                <span className="inline-flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                                    <Link2 className="size-4" />
-                                </span>
+                            <div className="space-y-4">
                                 <div>
-                                    <h2 className="text-sm font-semibold">{t('your_code')}</h2>
-                                    <p className="text-xs text-muted-foreground">
-                                        {t('code_ready')}
+                                    <p className="mb-2 text-xs font-medium uppercase tracking-wide text-primary-foreground/70">
+                                        {t('your_code')}
+                                    </p>
+                                    <div className="flex flex-col gap-3 rounded-2xl bg-black/15 p-4 backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between">
+                                        <code className="break-all text-xl font-bold tracking-[0.14em] sm:text-2xl">
+                                            {referral.referral_code}
+                                        </code>
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="secondary"
+                                            className="shrink-0 bg-white text-foreground hover:bg-white/90"
+                                            onClick={() =>
+                                                copy('code', referral.referral_code)
+                                            }
+                                        >
+                                            {copied === 'code' ? (
+                                                <Check className="size-4" />
+                                            ) : (
+                                                <Copy className="size-4" />
+                                            )}
+                                            {copied === 'code'
+                                                ? t('copied')
+                                                : t('copy_code')}
+                                        </Button>
+                                    </div>
+                                </div>
+
+                                <div className="rounded-2xl border border-white/20 bg-black/10 px-4 py-3">
+                                    <p className="break-all font-mono text-xs text-primary-foreground/80 sm:text-sm">
+                                        {referral.share_url}
+                                    </p>
+                                </div>
+
+                                <div className="flex flex-wrap gap-2">
+                                    <Button
+                                        type="button"
+                                        variant="secondary"
+                                        className="bg-white/15 text-primary-foreground hover:bg-white/25"
+                                        onClick={() => copy('url', referral.share_url)}
+                                    >
+                                        {copied === 'url' ? (
+                                            <Check className="size-4" />
+                                        ) : (
+                                            <Copy className="size-4" />
+                                        )}
+                                        {copied === 'url' ? t('copied') : t('copy_link')}
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        className="bg-[#25D366] text-white hover:bg-[#1ebe57]"
+                                        asChild
+                                    >
+                                        <a
+                                            href={`https://wa.me/?text=${waText}`}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                        >
+                                            <MessageCircle className="size-4" />
+                                            {t('share_whatsapp')}
+                                        </a>
+                                    </Button>
+                                </div>
+                            </div>
+
+                            <p className="flex flex-wrap items-center gap-2 text-xs text-primary-foreground/70">
+                                <span className="font-semibold uppercase tracking-wide">
+                                    {t('flow_label')}
+                                </span>
+                                <ArrowRight className="size-3 opacity-60" />
+                                <span>{t('flow')}</span>
+                            </p>
+                        </div>
+                    </section>
+
+                    {/* Side rail: balance + reward ladder */}
+                    <aside className="flex flex-col gap-4">
+                        <div className="rounded-3xl border bg-card p-5 shadow-sm">
+                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                                {t('balance_title')}
+                            </p>
+                            <p className="mt-3 text-5xl font-semibold tabular-nums tracking-tight">
+                                {referral.days_balance}
+                            </p>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                                {t('days')} ·{' '}
+                                {referral.days_balance > 0
+                                    ? t('balance_ready')
+                                    : t('balance_empty')}
+                            </p>
+                            <div className="mt-5 grid grid-cols-2 gap-2">
+                                <div className="rounded-2xl bg-muted/60 px-3 py-3">
+                                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                                        {t('stats_invited')}
+                                    </p>
+                                    <p className="mt-1 text-2xl font-semibold tabular-nums">
+                                        {referral.referred.length}
+                                    </p>
+                                </div>
+                                <div className="rounded-2xl bg-muted/60 px-3 py-3">
+                                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                                        {t('stats_credited')}
+                                    </p>
+                                    <p className="mt-1 text-2xl font-semibold tabular-nums">
+                                        {creditedCount}
                                     </p>
                                 </div>
                             </div>
-                            <Badge variant="outline" className="border-primary/30 text-primary">
-                                {referral.referral_code}
-                            </Badge>
                         </div>
 
-                        <div className="rounded-xl border border-dashed bg-muted/40 px-4 py-5 text-center">
-                            <code className="text-2xl font-bold tracking-[0.12em] md:text-3xl">
-                                {referral.referral_code}
-                            </code>
-                            <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => copy('code', referral.referral_code)}
-                                >
-                                    {copied === 'code' ? (
-                                        <Check className="size-4" />
-                                    ) : (
-                                        <Copy className="size-4" />
-                                    )}
-                                    {copied === 'code' ? t('copied') : t('copy_code')}
-                                </Button>
+                        {referral.rewards_by_plan.length > 0 && (
+                            <div className="rounded-3xl border bg-card p-5 shadow-sm">
+                                <div className="mb-4">
+                                    <p className="text-sm font-semibold">
+                                        {t('rewards_title')}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                        {t('rewards_hint')}
+                                    </p>
+                                </div>
+                                <ul className="space-y-4">
+                                    {referral.rewards_by_plan.map((plan) => (
+                                        <li key={plan.codigo} className="space-y-1.5">
+                                            <div className="flex items-baseline justify-between gap-3">
+                                                <span className="text-sm font-medium">
+                                                    {plan.nombre}
+                                                </span>
+                                                <span className="text-sm font-semibold tabular-nums text-primary">
+                                                    {plan.label}
+                                                </span>
+                                            </div>
+                                            <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                                                <div
+                                                    className="h-full rounded-full bg-primary/80"
+                                                    style={{
+                                                        width: `${Math.max(
+                                                            12,
+                                                            Math.round(
+                                                                (plan.days / maxRewardDays) *
+                                                                    100,
+                                                            ),
+                                                        )}%`,
+                                                    }}
+                                                />
+                                            </div>
+                                        </li>
+                                    ))}
+                                </ul>
                             </div>
-                        </div>
-
-                        <div className="mt-4 rounded-xl bg-muted/30 px-4 py-3">
-                            <p className="break-all text-sm text-muted-foreground">
-                                {referral.share_url}
-                            </p>
-                            <div className="mt-3 flex flex-wrap gap-2">
-                                <Button
-                                    type="button"
-                                    variant="secondary"
-                                    size="sm"
-                                    onClick={() => copy('url', referral.share_url)}
-                                >
-                                    {copied === 'url' ? (
-                                        <Check className="size-4" />
-                                    ) : (
-                                        <Copy className="size-4" />
-                                    )}
-                                    {copied === 'url' ? t('copied') : t('copy_link')}
-                                </Button>
-                                <Button
-                                    type="button"
-                                    size="sm"
-                                    className="bg-[#25D366] text-white hover:bg-[#1ebe57]"
-                                    asChild
-                                >
-                                    <a
-                                        href={`https://wa.me/?text=${waText}`}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                    >
-                                        <Share2 className="size-4" />
-                                        {t('share_whatsapp')}
-                                    </a>
-                                </Button>
-                            </div>
-                        </div>
-                    </section>
-
-                    <section
-                        className={cn(
-                            'relative overflow-hidden rounded-2xl border p-5 shadow-sm lg:col-span-2',
-                            referral.days_balance > 0
-                                ? 'border-emerald-500/30 bg-gradient-to-br from-emerald-500/15 via-background to-primary/5'
-                                : 'bg-card',
                         )}
-                    >
-                        <div className="mb-3 flex items-center gap-2">
-                            <span
-                                className={cn(
-                                    'inline-flex size-9 items-center justify-center rounded-xl',
-                                    referral.days_balance > 0
-                                        ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
-                                        : 'bg-muted text-muted-foreground',
-                                )}
-                            >
-                                {referral.days_balance > 0 ? (
-                                    <PartyPopper className="size-4" />
-                                ) : (
-                                    <Wallet className="size-4" />
-                                )}
-                            </span>
-                            <h2 className="text-sm font-semibold">{t('balance_title')}</h2>
-                        </div>
-                        <p className="text-4xl font-bold tabular-nums tracking-tight">
-                            {referral.days_balance}
-                            <span className="ml-1.5 text-base font-medium text-muted-foreground">
-                                {t('days')}
-                            </span>
-                        </p>
-                        <p className="mt-2 text-sm font-medium">
-                            {referral.days_balance > 0
-                                ? t('balance_ready')
-                                : t('balance_empty')}
-                        </p>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                            {t('balance_hint')}
-                        </p>
-                        <div className="mt-4 flex flex-wrap gap-2 text-xs text-muted-foreground">
-                            <Badge variant="secondary">
-                                {t('referred_count', {
-                                    count: referral.referred.length,
-                                })}
-                            </Badge>
-                            {creditedCount > 0 && (
-                                <Badge
-                                    variant="outline"
-                                    className="border-emerald-500/40 text-emerald-700 dark:text-emerald-300"
-                                >
-                                    {creditedCount} ✓
-                                </Badge>
-                            )}
-                        </div>
-                    </section>
+                    </aside>
                 </div>
 
-                <section className="rounded-2xl border bg-card shadow-sm">
-                    <div className="flex items-center justify-between gap-3 border-b px-5 py-3.5">
-                        <div className="flex items-center gap-2">
-                            <Users className="size-4 text-primary" />
-                            <h2 className="text-sm font-semibold">{t('referred_title')}</h2>
-                        </div>
-                        {referral.referred.length > 0 && (
-                            <Badge variant="secondary">
-                                {t('referred_count', {
-                                    count: referral.referred.length,
-                                })}
-                            </Badge>
-                        )}
+                <section className="overflow-hidden rounded-3xl border bg-card shadow-sm">
+                    <div className="flex items-center justify-between gap-3 border-b px-5 py-4">
+                        <h2 className="text-sm font-semibold">{t('referred_title')}</h2>
+                        <Badge variant="secondary" className="tabular-nums">
+                            {t('referred_count', { count: referral.referred.length })}
+                        </Badge>
                     </div>
+
                     {referral.referred.length === 0 ? (
-                        <div className="flex flex-col items-center px-5 py-10 text-center">
-                            <span className="mb-3 inline-flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                                <Users className="size-7" />
-                            </span>
-                            <p className="max-w-sm text-sm text-muted-foreground">
+                        <div className="flex flex-col items-start gap-3 px-5 py-8 sm:flex-row sm:items-center sm:justify-between">
+                            <p className="text-sm text-muted-foreground">
                                 {t('referred_empty')}
                             </p>
                             <Button
                                 type="button"
                                 variant="outline"
                                 size="sm"
-                                className="mt-4"
                                 onClick={() => copy('url', referral.share_url)}
                             >
                                 {copied === 'url' ? (
@@ -391,7 +314,7 @@ export default function Index({ referral }: Props) {
                                     {referral.referred.map((row) => (
                                         <tr
                                             key={row.id}
-                                            className="border-t transition-colors hover:bg-muted/30"
+                                            className="border-t transition-colors hover:bg-muted/25"
                                         >
                                             <td className="px-5 py-3">
                                                 <div className="font-medium">{row.name}</div>
@@ -425,8 +348,8 @@ export default function Index({ referral }: Props) {
                 </section>
 
                 {referral.ledger.length > 0 && (
-                    <section className="rounded-2xl border bg-card shadow-sm">
-                        <div className="border-b px-5 py-3.5 text-sm font-semibold">
+                    <section className="overflow-hidden rounded-3xl border bg-card shadow-sm">
+                        <div className="border-b px-5 py-4 text-sm font-semibold">
                             {t('ledger_title')}
                         </div>
                         <ul className="divide-y">
@@ -452,7 +375,7 @@ export default function Index({ referral }: Props) {
                                     </div>
                                     <div
                                         className={cn(
-                                            'rounded-lg px-2.5 py-1 tabular-nums font-semibold',
+                                            'rounded-full px-2.5 py-1 text-xs font-semibold tabular-nums',
                                             entry.days >= 0
                                                 ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
                                                 : 'bg-muted text-muted-foreground',
