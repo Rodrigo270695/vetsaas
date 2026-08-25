@@ -320,6 +320,10 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             Route::middleware('permission:clinicas-asesoradas.view')
                 ->get('clinicas-asesoradas', [ClinicaAsesoradaController::class, 'index'])
                 ->name('clinicas-asesoradas.index');
+            Route::middleware('permission:clinicas-asesoradas.create|clinicas-asesoradas.update')
+                ->middleware('throttle:20,1')
+                ->get('clinicas-asesoradas/consulta-ruc', [ClinicaAsesoradaController::class, 'consultaRuc'])
+                ->name('clinicas-asesoradas.consulta-ruc');
             Route::middleware('permission:clinicas-asesoradas.create')
                 ->post('clinicas-asesoradas', [ClinicaAsesoradaController::class, 'store'])
                 ->name('clinicas-asesoradas.store');

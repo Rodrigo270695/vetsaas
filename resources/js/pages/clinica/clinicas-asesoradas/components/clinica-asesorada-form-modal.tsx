@@ -1,6 +1,6 @@
 import { useForm } from '@inertiajs/react';
-import { Loader2 } from 'lucide-react';
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { Loader2, Search } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FormField, FormModal, FormSection } from '@/components/forms';
 import {
@@ -11,6 +11,8 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { toastManager } from '@/lib/toast';
+import { cn } from '@/lib/utils';
 import type { ClinicaAsesorada, GeoOption } from '../types';
 
 type Props = {
@@ -36,6 +38,13 @@ const emptyForm: FormData = {
     activo: true,
 };
 
+const RUC_MAX_LEN = 11;
+const CONSULTA_RUC_URL = '/clinica/clinicas-asesoradas/consulta-ruc';
+
+function soloDigitosRuc(value: string): string {
+    return value.replace(/\D/g, '').slice(0, RUC_MAX_LEN);
+}
+
 function initialGeo(clinica: ClinicaAsesorada | null): GeoCascadeValue {
     if (!clinica?.distrito_id) {
         return { departamento_id: null, provincia_id: null, distrito_id: null };
@@ -56,30 +65,126 @@ export function ClinicaAsesoradaFormModal({
 }: Props) {
     const { t } = useTranslation(['clinicas-asesoradas', 'common']);
     const isEdit = clinica !== null;
-    const { data, setData, post, put, processing, errors, reset, clearErrors } =
+    const { data, setData, post, put, processing, errors, reset, clearErrors, transform } =
         useForm<FormData>(emptyForm);
     const [geo, setGeo] = useState<GeoCascadeValue>(initialGeo(null));
+    const [consultandoRuc, setConsultandoRuc] = useState(false);
+    const lastConsultaRucRef = useRef<string | null>(null);
+
+    const rucLen = soloDigitosRuc(data.ruc).length;
+    const rucCompleto = rucLen === RUC_MAX_LEN;
+
+    useEffect(() => {
+        transform((form) => ({
+            ...form,
+            ruc: soloDigitosRuc(form.ruc),
+        }));
+    }, [transform]);
 
     useEffect(() => {
         if (!open) {
             return;
         }
         clearErrors();
+        setConsultandoRuc(false);
+
         if (clinica) {
+            const ruc = soloDigitosRuc(clinica.ruc ?? '');
             setData({
                 nombre: clinica.nombre,
-                ruc: clinica.ruc ?? '',
+                ruc,
                 direccion: clinica.direccion ?? '',
                 distrito_id: clinica.distrito_id,
                 activo: clinica.activo,
             });
             setGeo(initialGeo(clinica));
+            lastConsultaRucRef.current =
+                ruc.length === RUC_MAX_LEN ? ruc : null;
         } else {
             reset();
             setData(emptyForm);
             setGeo(initialGeo(null));
+            lastConsultaRucRef.current = null;
         }
     }, [open, clinica, clearErrors, reset, setData]);
+
+    const onConsultarRuc = async (forcedRuc?: string) => {
+        const ruc = soloDigitosRuc(forcedRuc ?? data.ruc);
+
+        if (ruc.length !== RUC_MAX_LEN) {
+            toastManager.error({ title: t('form.consultar_invalid') });
+
+            return;
+        }
+
+        lastConsultaRucRef.current = ruc;
+        setConsultandoRuc(true);
+
+        try {
+            const url = `${CONSULTA_RUC_URL}?ruc=${encodeURIComponent(ruc)}`;
+            const res = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    Accept: 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'same-origin',
+            });
+            const body = (await res.json()) as {
+                success?: boolean;
+                message?: string;
+                code?: string;
+                data?: {
+                    ruc: string;
+                    razon_social: string;
+                    direccion?: string | null;
+                };
+            };
+
+            if (!res.ok || !body.success || !body.data) {
+                const title =
+                    res.status === 429 || body.code === 'rate_limit'
+                        ? t('form.consultar_rate_limit')
+                        : (body.message ?? t('form.consultar_error'));
+                toastManager.error({ title });
+
+                return;
+            }
+
+            const d = body.data;
+            setData((prev) => ({
+                ...prev,
+                ruc: d.ruc ?? ruc,
+                nombre:
+                    typeof d.razon_social === 'string' && d.razon_social !== ''
+                        ? d.razon_social
+                        : prev.nombre,
+                direccion:
+                    typeof d.direccion === 'string' && d.direccion !== ''
+                        ? d.direccion
+                        : prev.direccion,
+            }));
+        } catch {
+            toastManager.error({ title: t('form.consultar_error') });
+        } finally {
+            setConsultandoRuc(false);
+        }
+    };
+
+    useEffect(() => {
+        if (!open || !rucCompleto || consultandoRuc || processing) {
+            return;
+        }
+
+        const ruc = soloDigitosRuc(data.ruc);
+
+        if (lastConsultaRucRef.current === ruc) {
+            return;
+        }
+
+        void onConsultarRuc(ruc);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [open, data.ruc, rucCompleto, consultandoRuc, processing]);
 
     const canSave = useMemo(() => data.nombre.trim() !== '', [data.nombre]);
 
@@ -141,6 +246,72 @@ export function ClinicaAsesoradaFormModal({
         >
             <FormSection index={0} title="" columns={2} className="gap-0">
                 <FormField
+                    label={t('form.ruc')}
+                    error={errors.ruc}
+                    className="sm:col-span-2"
+                >
+                    <div className="flex items-stretch gap-2">
+                        <div className="relative min-w-0 flex-1">
+                            <Input
+                                className="pr-14 font-mono tabular-nums tracking-wide"
+                                inputMode="numeric"
+                                autoComplete="off"
+                                maxLength={RUC_MAX_LEN}
+                                value={data.ruc}
+                                onChange={(e) =>
+                                    setData(
+                                        'ruc',
+                                        soloDigitosRuc(e.target.value),
+                                    )
+                                }
+                                aria-invalid={Boolean(errors.ruc)}
+                                placeholder={t('form.ruc_placeholder')}
+                            />
+                            <span
+                                className={cn(
+                                    'pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs font-medium tabular-nums',
+                                    rucCompleto
+                                        ? 'text-emerald-600 dark:text-emerald-400'
+                                        : 'text-muted-foreground',
+                                )}
+                                aria-hidden
+                            >
+                                {rucLen}/{RUC_MAX_LEN}
+                            </span>
+                        </div>
+                        <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className={cn(
+                                'size-9 shrink-0 cursor-pointer rounded-lg border-0 shadow-sm transition-all',
+                                'bg-gradient-to-br from-teal-500 to-emerald-600 text-white',
+                                'hover:from-teal-600 hover:to-emerald-700 hover:shadow-md',
+                                'focus-visible:ring-2 focus-visible:ring-emerald-500/40',
+                                'disabled:cursor-not-allowed disabled:from-muted disabled:to-muted disabled:text-muted-foreground disabled:opacity-60 disabled:shadow-none',
+                            )}
+                            disabled={
+                                consultandoRuc || processing || !rucCompleto
+                            }
+                            onClick={() => void onConsultarRuc()}
+                            aria-label={t('form.consultar_ruc')}
+                            title={t('form.consultar_ruc')}
+                        >
+                            {consultandoRuc ? (
+                                <Loader2
+                                    className="size-4 animate-spin"
+                                    aria-hidden
+                                />
+                            ) : (
+                                <Search className="size-4" aria-hidden />
+                            )}
+                        </Button>
+                    </div>
+                    <p className="mt-1.5 text-xs text-muted-foreground">
+                        {t('form.ruc_hint')}
+                    </p>
+                </FormField>
+                <FormField
                     label={t('form.nombre')}
                     error={errors.nombre}
                     required
@@ -150,20 +321,6 @@ export function ClinicaAsesoradaFormModal({
                         value={data.nombre}
                         onChange={(e) => setData('nombre', e.target.value)}
                         maxLength={200}
-                    />
-                </FormField>
-                <FormField label={t('form.ruc')} error={errors.ruc}>
-                    <Input
-                        value={data.ruc}
-                        onChange={(e) =>
-                            setData(
-                                'ruc',
-                                e.target.value.replace(/\D/g, '').slice(0, 11),
-                            )
-                        }
-                        inputMode="numeric"
-                        maxLength={11}
-                        className="font-mono"
                     />
                 </FormField>
                 <FormField

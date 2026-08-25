@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\RespondsToApiPeruConsulta;
 use App\Http\Requests\ClinicaAsesoradaRequest;
 use App\Models\ClinicaAsesorada;
 use App\Models\ClinicSetting;
 use App\Models\Departamento;
 use App\Models\Distrito;
+use App\Services\Integrations\ApiPeruRucService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -17,7 +20,28 @@ use Inertia\Response;
 
 class ClinicaAsesoradaController extends Controller
 {
+    use RespondsToApiPeruConsulta;
+
     private const PER_PAGE_OPTIONS = [10, 15, 20, 25, 50];
+
+    /**
+     * Consulta RUC en SUNAT (apiperu.dev) desde el servidor.
+     */
+    public function consultaRuc(Request $request, ApiPeruRucService $apiPeru): JsonResponse
+    {
+        $this->abortUnlessModoAsesora();
+
+        $ruc = preg_replace('/\D+/', '', (string) $request->query('ruc', ''));
+        $request->merge(['ruc' => $ruc]);
+
+        $validated = $request->validate([
+            'ruc' => ['required', 'string', 'regex:/^[0-9]{11}$/'],
+        ]);
+
+        return $this->consultaApiPeruResponse(
+            fn () => $apiPeru->consultar($validated['ruc']),
+        );
+    }
 
     public function index(Request $request): Response
     {
