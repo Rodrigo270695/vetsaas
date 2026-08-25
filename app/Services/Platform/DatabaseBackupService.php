@@ -268,10 +268,16 @@ final class DatabaseBackupService
             $uploaded = 0;
 
             foreach (File::files($dayDir) as $file) {
-                $remoteKey = $remoteBase.'/'.$file->getFilename();
+                $filename = $file->getFilename();
+
+                if (! $this->shouldUploadRemoteFile($filename)) {
+                    continue;
+                }
+
+                $remoteKey = $remoteBase.'/'.$filename;
                 $stream = fopen($file->getPathname(), 'r');
                 if ($stream === false) {
-                    throw new RuntimeException('No se pudo leer '.$file->getFilename());
+                    throw new RuntimeException('No se pudo leer '.$filename);
                 }
 
                 try {
@@ -650,6 +656,7 @@ final class DatabaseBackupService
      *     retention_days: int,
      *     local_deleted: int,
      *     remote_deleted: int,
+     *     remote_full_deleted: int,
      *     remote_skipped: bool,
      *     remote_error: string|null
      * }
@@ -662,13 +669,23 @@ final class DatabaseBackupService
 
         $localDeleted = $this->pruneLocalBackups($basePath, $cutoff);
         $remote = $this->pruneRemoteBackups($cutoff);
+        $remoteFullDeleted = 0;
 
-        if ($localDeleted > 0 || ($remote['deleted'] ?? 0) > 0) {
+        if (! (bool) config('backup.remote.include_full', false) && ! ($remote['skipped'] ?? true)) {
+            $fullPrune = $this->pruneRemoteFullDumps();
+            $remoteFullDeleted = $fullPrune['deleted'];
+            if ($fullPrune['error'] !== null && ($remote['error'] ?? null) === null) {
+                $remote['error'] = $fullPrune['error'];
+            }
+        }
+
+        if ($localDeleted > 0 || ($remote['deleted'] ?? 0) > 0 || $remoteFullDeleted > 0) {
             Log::info('Backups podados por retención', [
                 'retention_days' => $retention,
                 'cutoff' => $cutoff->toIso8601String(),
                 'local_deleted' => $localDeleted,
                 'remote_deleted' => $remote['deleted'],
+                'remote_full_deleted' => $remoteFullDeleted,
                 'remote_error' => $remote['error'],
             ]);
         }
@@ -677,6 +694,7 @@ final class DatabaseBackupService
             'retention_days' => $retention,
             'local_deleted' => $localDeleted,
             'remote_deleted' => $remote['deleted'],
+            'remote_full_deleted' => $remoteFullDeleted,
             'remote_skipped' => $remote['skipped'],
             'remote_error' => $remote['error'],
         ];
@@ -761,6 +779,58 @@ final class DatabaseBackupService
 
             return ['deleted' => 0, 'skipped' => false, 'error' => $e->getMessage()];
         }
+    }
+
+    /**
+     * Quita full.dump ya subidos a R2 cuando BACKUP_REMOTE_INCLUDE_FULL=false.
+     *
+     * @return array{deleted: int, error: string|null}
+     */
+    private function pruneRemoteFullDumps(): array
+    {
+        if (! (bool) config('backup.remote.enabled', false) || ! $this->isRemoteConfigured()) {
+            return ['deleted' => 0, 'error' => null];
+        }
+
+        try {
+            $diskName = (string) config('backup.remote.disk', 'backups');
+            $prefix = trim((string) config('backup.remote.prefix', 'vetsaas/db'), '/');
+            $disk = Storage::disk($diskName);
+
+            $directories = $prefix !== ''
+                ? $disk->directories($prefix)
+                : $disk->directories();
+
+            $deleted = 0;
+
+            foreach ($directories as $directory) {
+                $name = basename(str_replace('\\', '/', $directory));
+                if (! $this->isBackupFolderName($name)) {
+                    continue;
+                }
+
+                $fullKey = rtrim($directory, '/').'/full.dump';
+                if ($disk->exists($fullKey)) {
+                    $disk->delete($fullKey);
+                    $deleted++;
+                }
+            }
+
+            return ['deleted' => $deleted, 'error' => null];
+        } catch (Throwable $e) {
+            report($e);
+
+            return ['deleted' => 0, 'error' => $e->getMessage()];
+        }
+    }
+
+    private function shouldUploadRemoteFile(string $filename): bool
+    {
+        if ($filename === 'full.dump' && ! (bool) config('backup.remote.include_full', false)) {
+            return false;
+        }
+
+        return true;
     }
 
     private function isBackupFolderName(string $name): bool

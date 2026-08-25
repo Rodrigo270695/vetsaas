@@ -87,10 +87,11 @@ class DatabaseBackupCommand extends Command
     private function reportPrune(array $prune): void
     {
         $this->info(sprintf(
-            'Retención %d días — eliminados local=%d, remoto=%d%s',
+            'Retención %d días — eliminados local=%d, remoto=%d, full.dump remoto=%d%s',
             (int) ($prune['retention_days'] ?? 14),
             (int) ($prune['local_deleted'] ?? 0),
             (int) ($prune['remote_deleted'] ?? 0),
+            (int) ($prune['remote_full_deleted'] ?? 0),
             ($prune['remote_skipped'] ?? false) ? ' (remoto omitido)' : '',
         ));
     }

@@ -20,6 +20,8 @@ return [
     | Remoto (S3 / Cloudflare R2): si BACKUP_REMOTE_ENABLED=true, tras el
     | dump local se sube la carpeta al disco configurado (default: s3).
     | La retención (BACKUP_RETENTION_DAYS, default 14) aplica a local y remoto.
+    | Por defecto NO se sube full.dump al remoto (sí se guarda en el VPS) para
+    | ahorrar espacio; public + vet_* bastan para recuperar clínicas/catálogo.
     */
 
     'enabled' => (bool) env('BACKUP_ENABLED', true),
@@ -59,5 +61,11 @@ return [
          * (aunque el dump local exista).
          */
         'required' => (bool) env('BACKUP_REMOTE_REQUIRED', true),
+
+        /**
+         * Subir full.dump al remoto. Default false: el full solo vive en el VPS;
+         * R2 guarda public.dump + vet_*.dump (recuperación por clínica / catálogo).
+         */
+        'include_full' => (bool) env('BACKUP_REMOTE_INCLUDE_FULL', false),
     ],
 ];

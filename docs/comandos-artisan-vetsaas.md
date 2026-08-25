@@ -197,9 +197,12 @@ Genera en `{BACKUP_PATH}/{Y-m-d_His}/`:
 | `latest.json` | Estado leído por **Operaciones** |
 
 Si `BACKUP_REMOTE_ENABLED=true`, sube la carpeta a S3/R2.
+Por defecto **no** sube `full.dump` (`BACKUP_REMOTE_INCLUDE_FULL=false`): el full queda
+solo en el VPS; R2 guarda `public.dump` + `vet_*.dump` (recuperar clínicas/catálogo).
 
 Tras un backup OK (o con `--prune-only`) elimina carpetas **locales y remotas**
 más antiguas que `BACKUP_RETENTION_DAYS` (default **14**). Así R2 no acumula meses.
+Con `INCLUDE_FULL=false` también borra `full.dump` ya existentes en el remoto.
 
 ```bash
 php artisan vetsaas:backup-database
@@ -208,7 +211,7 @@ php artisan vetsaas:backup-database --prune-only   # limpia sin generar dump
 
 **Scheduler:** diario **02:00**. También se puede disparar desde **Plataforma → Operaciones → Correr ahora**.
 
-**Env útiles:** `BACKUP_ENABLED`, `BACKUP_PATH`, `BACKUP_RETENTION_DAYS`, `BACKUP_PG_DUMP`, `BACKUP_PG_RESTORE`, `BACKUP_REMOTE_*`.
+**Env útiles:** `BACKUP_ENABLED`, `BACKUP_PATH`, `BACKUP_RETENTION_DAYS`, `BACKUP_PG_DUMP`, `BACKUP_PG_RESTORE`, `BACKUP_REMOTE_*`, `BACKUP_REMOTE_INCLUDE_FULL`.
 
 ---
 

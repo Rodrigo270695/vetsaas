@@ -76,7 +76,7 @@
     },
     "backups": {
         "title": "Backups",
-        "description": "Daily PostgreSQL dump (full + public + each vet_* schema). Scheduled at 02:00. With remote enabled, also uploads to S3/R2.",
+        "description": "Daily PostgreSQL dump (full + public + each vet_* schema). Scheduled at 02:00. With remote enabled, uploads public + vet_* to S3/R2 (full stays on the VPS).",
         "ok": "Last OK",
         "failed": "Failed",
         "missing": "No backups",

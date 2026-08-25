@@ -76,7 +76,7 @@
     },
     "backups": {
         "title": "Backups",
-        "description": "Dump diario de PostgreSQL (completo + public + cada schema vet_*). Programado a las 02:00. Con remoto activo también sube a S3/R2.",
+        "description": "Dump diario de PostgreSQL (completo + public + cada schema vet_*). Programado a las 02:00. Con remoto activo sube public + vet_* a S3/R2 (full solo en el VPS).",
         "ok": "Último OK",
         "failed": "Falló",
         "missing": "Sin backups",
