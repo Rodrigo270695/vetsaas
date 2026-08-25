@@ -25,6 +25,6 @@ return [
      */
     'share_url_template' => (string) env(
         'REFERRAL_SHARE_URL',
-        'https://orvae.pe/?ref={code}',
+        'https://orvae.pe/software/VETSAAS?ref={code}',
     ),
 ];

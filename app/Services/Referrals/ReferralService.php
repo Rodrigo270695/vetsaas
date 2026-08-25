@@ -278,7 +278,7 @@ final class ReferralService
     public function shareUrl(Tenant $tenant): string
     {
         $code = $this->ensureReferralCode($tenant);
-        $template = (string) config('referral.share_url_template', 'https://orvae.pe/?ref={code}');
+        $template = (string) config('referral.share_url_template', 'https://orvae.pe/software/VETSAAS?ref={code}');
 
         return str_replace('{code}', urlencode($code), $template);
     }
