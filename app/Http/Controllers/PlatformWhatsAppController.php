@@ -60,17 +60,27 @@ class PlatformWhatsAppController extends Controller
                 $remote = $client->getSession($session->openwa_session_id);
                 $status = (string) ($remote['status'] ?? $session->status);
 
+                // Solo despertar si está caída. NO reiniciar en initializing/authenticating.
                 if (in_array($status, ['created', 'disconnected', 'failed'], true)) {
                     $client->tryStartIfDown($session->openwa_session_id, $status);
-                } elseif (in_array($status, ['initializing', 'authenticating'], true)) {
-                    $client->tryStartIfDown($session->openwa_session_id, 'disconnected');
                 }
             } catch (\Throwable) {
                 // Continúa e intenta obtener QR o refrescar estado.
             }
         }
 
-        $session = $sync->refresh($session);
+        try {
+            $session = $sync->refresh($session);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json([
+                'ready' => false,
+                'status' => $session->status,
+                'qr_code' => null,
+                'error' => 'No se pudo sincronizar la sesión con OpenWA. Revisa OPENWA_API_KEY.',
+            ], 503);
+        }
 
         if ($session->isReady()) {
             return response()->json([
@@ -80,35 +90,32 @@ class PlatformWhatsAppController extends Controller
             ]);
         }
 
-        // Mientras arranca (auth en disco) aún no hay QR: no fallar el panel.
-        if (in_array((string) $session->status, ['initializing', 'authenticating'], true)) {
-            return response()->json([
-                'ready' => false,
-                'status' => $session->status,
-                'qr_code' => null,
-                'session_id' => $session->openwa_session_id,
-                'message' => 'Reconectando sesión…',
-            ]);
-        }
-
         try {
             $qr = $client->getQrCode($session->openwa_session_id);
-        } catch (\Throwable $e) {
+            $qrCode = $qr['qrCode'] ?? null;
+
             return response()->json([
                 'ready' => false,
-                'status' => $session->status,
+                'status' => (string) ($qr['status'] ?? $session->status),
+                'qr_code' => is_string($qrCode) && $qrCode !== '' ? $qrCode : null,
+                'session_id' => $session->openwa_session_id,
+                'message' => filled($qrCode)
+                    ? null
+                    : 'Esperando código QR de WhatsApp…',
+            ]);
+        } catch (\Throwable $e) {
+            $status = (string) $session->status;
+            $waiting = in_array($status, ['initializing', 'authenticating', 'created'], true);
+
+            return response()->json([
+                'ready' => false,
+                'status' => $status,
                 'qr_code' => null,
                 'session_id' => $session->openwa_session_id,
-                'error' => $e->getMessage(),
-            ], 422);
+                'message' => $waiting ? 'Iniciando sesión… el QR aparece en unos segundos.' : null,
+                'error' => $waiting ? null : $e->getMessage(),
+            ], $waiting ? 200 : 422);
         }
-
-        return response()->json([
-            'ready' => false,
-            'status' => (string) ($qr['status'] ?? $session->status),
-            'qr_code' => $qr['qrCode'] ?? null,
-            'session_id' => $session->openwa_session_id,
-        ]);
     }
 
     public function logout(PlatformWhatsAppSessionSync $sync): RedirectResponse

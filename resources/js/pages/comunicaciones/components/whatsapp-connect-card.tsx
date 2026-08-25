@@ -56,6 +56,9 @@ export function WhatsAppConnectCard({
 }: Props) {
     const { t, i18n } = useTranslation(translationNs);
     const [qrCode, setQrCode] = useState<string | null>(null);
+    const [qrStatus, setQrStatus] = useState<string | null>(null);
+    const [qrMessage, setQrMessage] = useState<string | null>(null);
+    const [qrError, setQrError] = useState<string | null>(null);
     const [loadingQr, setLoadingQr] = useState(false);
     const [syncing, setSyncing] = useState(false);
     const [disconnectOpen, setDisconnectOpen] = useState(false);
@@ -85,15 +88,22 @@ export function WhatsAppConnectCard({
                 error?: string;
                 message?: string;
             };
+            setQrStatus(data.status ?? null);
+            setQrMessage(data.message ?? null);
+            setQrError(data.error ?? (res.ok ? null : 'No se pudo obtener el código QR.'));
             if (data.ready) {
                 setQrCode(null);
+                setQrMessage(null);
+                setQrError(null);
                 router.reload({ only: ['whatsapp'] });
                 stopPoll();
             } else if (data.qr_code) {
                 setQrCode(data.qr_code);
+                setQrError(null);
             }
             // initializing / sin QR: el poll sigue hasta ready o hasta que haya QR
-
+        } catch {
+            setQrError('Error de red al pedir el QR.');
         } finally {
             setLoadingQr(false);
         }
@@ -104,6 +114,10 @@ export function WhatsAppConnectCard({
             return;
         }
 
+        setQrCode(null);
+        setQrError(null);
+        setQrMessage('Conectando…');
+        setQrStatus(null);
         setSyncing(true);
         router.post(
             apiRoutes.sync,
@@ -117,6 +131,10 @@ export function WhatsAppConnectCard({
                     pollRef.current = setInterval(() => {
                         void fetchQr();
                     }, 4000);
+                },
+                onError: () => {
+                    setQrMessage(null);
+                    setQrError('No se pudo sincronizar la sesión de WhatsApp.');
                 },
             },
         );
@@ -186,6 +204,20 @@ export function WhatsAppConnectCard({
                     <div className="flex flex-col items-center gap-2 rounded-lg border bg-muted/30 p-4">
                         <p className="text-sm font-medium">{t('whatsapp.scan_qr')}</p>
                         <img src={qrCode} alt="QR WhatsApp" className="max-w-[220px] rounded-md" />
+                    </div>
+                ) : null}
+
+                {!isReady && !qrCode && (qrMessage || qrError || loadingQr || syncing) ? (
+                    <div className="rounded-lg border bg-muted/30 p-3 text-sm">
+                        {qrError ? (
+                            <p className="text-destructive">{qrError}</p>
+                        ) : (
+                            <p className="flex items-center gap-2 text-muted-foreground">
+                                {(loadingQr || syncing) && <Loader2 className="size-4 animate-spin" />}
+                                {qrMessage ?? 'Esperando código QR…'}
+                                {qrStatus ? ` (${qrStatus})` : null}
+                            </p>
+                        )}
                     </div>
                 ) : null}
 

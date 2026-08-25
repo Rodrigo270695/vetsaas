@@ -71,18 +71,28 @@ class TenantWhatsAppController extends Controller
                 $remote = $client->getSession($session->openwa_session_id);
                 $status = (string) ($remote['status'] ?? $session->status);
 
-                if (in_array($status, ['created', 'disconnected', 'failed', 'initializing', 'authenticating'], true)) {
-                    $client->tryStartIfDown(
-                        $session->openwa_session_id,
-                        in_array($status, ['initializing', 'authenticating'], true) ? 'disconnected' : $status,
-                    );
+                // Solo despertar si está caída. NO reiniciar en initializing/authenticating:
+                // eso corta Baileys antes de emitir el QR.
+                if (in_array($status, ['created', 'disconnected', 'failed'], true)) {
+                    $client->tryStartIfDown($session->openwa_session_id, $status);
                 }
             } catch (\Throwable) {
                 // Continúa e intenta obtener QR o refrescar estado.
             }
         }
 
-        $session = $sync->refresh($session);
+        try {
+            $session = $sync->refresh($session);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json([
+                'ready' => false,
+                'status' => $session->status,
+                'qr_code' => null,
+                'error' => 'No se pudo sincronizar la sesión con OpenWA. Revisa OPENWA_API_KEY.',
+            ], 503);
+        }
 
         if ($session->isReady()) {
             return response()->json([
@@ -92,33 +102,33 @@ class TenantWhatsAppController extends Controller
             ]);
         }
 
-        if (in_array((string) $session->status, ['initializing', 'authenticating'], true)) {
-            return response()->json([
-                'ready' => false,
-                'status' => $session->status,
-                'qr_code' => null,
-                'session_id' => $session->openwa_session_id,
-                'message' => 'Reconectando sesión…',
-            ]);
-        }
-
         try {
             $qr = $client->getQrCode($session->openwa_session_id);
+            $qrCode = $qr['qrCode'] ?? null;
 
             return response()->json([
                 'ready' => false,
                 'status' => (string) ($qr['status'] ?? $session->status),
-                'qr_code' => $qr['qrCode'] ?? null,
+                'qr_code' => is_string($qrCode) && $qrCode !== '' ? $qrCode : null,
                 'session_id' => $session->openwa_session_id,
+                'message' => filled($qrCode)
+                    ? null
+                    : 'Esperando código QR de WhatsApp…',
             ]);
         } catch (\Throwable $e) {
             report($e);
 
+            $status = (string) $session->status;
+            $waiting = in_array($status, ['initializing', 'authenticating', 'created'], true);
+
             return response()->json([
                 'ready' => false,
-                'status' => $session->status,
-                'error' => 'No se pudo obtener el código QR.',
-            ], 503);
+                'status' => $status,
+                'qr_code' => null,
+                'session_id' => $session->openwa_session_id,
+                'message' => $waiting ? 'Iniciando sesión… el QR aparece en unos segundos.' : null,
+                'error' => $waiting ? null : 'No se pudo obtener el código QR.',
+            ], $waiting ? 200 : 503);
         }
     }
 
