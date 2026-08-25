@@ -24,6 +24,7 @@
     "badge_paid": "Paid",
     "loading": "Loading…",
     "ensure_error": "Could not open the support thread.",
+    "ensure_error_hint": "Usually fails if the clinic has no active admin_clinica user.",
     "send_error": "Could not send the message.",
     "you": "Support",
     "attach": "Attach file",

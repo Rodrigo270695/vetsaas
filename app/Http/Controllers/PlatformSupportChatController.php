@@ -51,10 +51,16 @@ final class PlatformSupportChatController extends Controller
 
     public function ensure(Tenant $tenant, PlatformSupportChatService $service): JsonResponse
     {
-        $result = $service->ensureThread($tenant);
-        $service->markThreadRead($tenant);
+        try {
+            $result = $service->ensureThread($tenant);
+            $service->markThreadRead($tenant);
 
-        return response()->json($result);
+            return response()->json($result);
+        } catch (\RuntimeException $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+            ], 422);
+        }
     }
 
     public function messages(

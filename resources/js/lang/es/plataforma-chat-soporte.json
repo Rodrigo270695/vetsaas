@@ -24,6 +24,7 @@
     "badge_paid": "Pago",
     "loading": "Cargando…",
     "ensure_error": "No se pudo abrir el hilo de soporte.",
+    "ensure_error_hint": "Suele fallar si la clínica no tiene un admin_clinica activo.",
     "send_error": "No se pudo enviar el mensaje.",
     "you": "Soporte",
     "attach": "Adjuntar archivo",

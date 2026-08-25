@@ -562,8 +562,14 @@ export default function PlataformaChatSoportePage({
             requestAnimationFrame(() => {
                 bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
             });
-        } catch {
-            toastManager.error({ title: t('ensure_error') });
+        } catch (err) {
+            toastManager.error({
+                title: t('ensure_error'),
+                description:
+                    err instanceof Error && err.message
+                        ? err.message
+                        : t('ensure_error_hint'),
+            });
             setSelectedId(null);
             setMobileListOpen(true);
         } finally {

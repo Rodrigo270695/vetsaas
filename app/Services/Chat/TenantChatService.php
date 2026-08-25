@@ -1199,7 +1199,8 @@ final class TenantChatService
             'conversation_id' => $conversation->id,
             'user_id' => $viewer->id,
             'joined_at' => now(),
-            'last_read_at' => now(),
+            // null = mismo criterio que admin_clinica: verá no leídos del bot de soporte
+            'last_read_at' => null,
         ];
         if ($this->schemaHasColumn('chat_participants', 'pinned_at')) {
             $row['pinned_at'] = now();
