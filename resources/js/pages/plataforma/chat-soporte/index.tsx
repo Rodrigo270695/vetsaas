@@ -1,6 +1,6 @@
 import { Head, router } from '@inertiajs/react';
 import { Loader2, Megaphone, MessageSquare, Search, SendHorizonal } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { EmptyState, PageHeader } from '@/components/data-page';
 import { Badge } from '@/components/ui/badge';
@@ -19,6 +19,8 @@ import { usePermission } from '@/hooks/use-permission';
 import AppLayout from '@/layouts/app-layout';
 import { toastManager } from '@/lib/toast';
 import { cn } from '@/lib/utils';
+
+const ROUTE_URL = '/plataforma/chat-soporte';
 
 type PlanFilter = 'all' | 'free' | 'paid';
 
@@ -324,9 +326,9 @@ export default function PlataformaChatSoportePage({
     };
 
     return (
-        <AppLayout>
+        <>
             <Head title={t('title')} />
-            <div className="flex h-[calc(100dvh-4rem)] flex-col gap-4 p-4 md:p-6">
+            <div className="flex flex-1 flex-col gap-4 p-4 sm:p-6 lg:min-h-0 lg:overflow-hidden">
                 <PageHeader
                     title={t('title')}
                     description={t('subtitle')}
@@ -345,7 +347,7 @@ export default function PlataformaChatSoportePage({
                     }
                 />
 
-                <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(280px,360px)_1fr]">
+                <div className="grid min-h-[28rem] flex-1 gap-4 lg:min-h-0 lg:grid-cols-[minmax(280px,360px)_1fr]">
                     <aside className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-border/70 bg-card">
                         <div className="space-y-3 border-b border-border/60 p-3">
                             <div className="relative">
@@ -597,6 +599,17 @@ export default function PlataformaChatSoportePage({
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-        </AppLayout>
+        </>
     );
 }
+
+PlataformaChatSoportePage.layout = (page: ReactNode) => (
+    <AppLayout
+        breadcrumbs={[
+            { title: 'Plataforma' },
+            { title: 'Chat soporte', href: ROUTE_URL },
+        ]}
+    >
+        {page}
+    </AppLayout>
+);
