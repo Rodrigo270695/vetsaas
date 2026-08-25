@@ -3,6 +3,7 @@ import { Loader2, LogOut, MessageCircle, RefreshCw, Send } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StatBadge } from '@/components/data-page';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { WhatsAppDisconnectDialog } from './whatsapp-disconnect-dialog';
@@ -182,6 +183,16 @@ export function WhatsAppConnectCard({
                 </div>
             </CardHeader>
             <CardContent className="space-y-4">
+                {!isReady ? (
+                    <Alert className="border-amber-500/40 bg-amber-500/10 text-foreground">
+                        <AlertTitle>{t('whatsapp.relink_title')}</AlertTitle>
+                        <AlertDescription className="space-y-1">
+                            <p>{t('whatsapp.relink_body')}</p>
+                            <p className="text-muted-foreground">{t('whatsapp.relink_steps')}</p>
+                        </AlertDescription>
+                    </Alert>
+                ) : null}
+
                 {isReady && session?.phone ? (
                     <p className="text-sm text-muted-foreground">
                         {t('whatsapp.phone')}:{' '}

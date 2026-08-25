@@ -45,6 +45,9 @@
         "test_phone": "Teléfono destino",
         "test_phone_hint": "Celular distinto al WhatsApp conectado. Código de país o 9 dígitos peruanos.",
         "test_default_message": "Hola, este es un mensaje de prueba desde VetSaaS (plataforma Orvae). Los avisos de renovación funcionan correctamente.",
-        "scan_qr": "Escanea con WhatsApp en tu teléfono"
+        "scan_qr": "Escanea con WhatsApp en tu teléfono",
+        "relink_title": "Acción requerida: volver a vincular WhatsApp",
+        "relink_body": "Actualizamos el gateway de notificaciones. Para seguir enviando avisos de renovación a las clínicas, escanea de nuevo el código QR.",
+        "relink_steps": "Pulsa «Conectar WhatsApp», espera el código QR y escanéalo con el teléfono de Orvae."
     }
 }

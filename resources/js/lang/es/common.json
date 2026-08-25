@@ -140,9 +140,9 @@
         "all_dates": "Todas las fechas"
     },
     "whatsapp": {
-        "disconnected_title": "WhatsApp desconectado",
-        "disconnected_body_tenant": "El WhatsApp de la clínica se desconectó. Reconéctalo para seguir enviando mensajes y usar el bot.",
-        "disconnected_body_platform": "El WhatsApp de plataforma (Orvae) se desconectó. Reconéctalo para el SalesBot y los avisos.",
-        "reconnect": "Reconectar"
+        "disconnected_title": "WhatsApp sin vincular",
+        "disconnected_body_tenant": "Actualizamos el envío de notificaciones. Debes volver a conectar el WhatsApp de la clínica: entra a Cola saliente, pulsa Conectar y escanea el código QR. Hasta entonces no se enviarán recordatorios ni mensajes.",
+        "disconnected_body_platform": "Actualizamos el gateway WhatsApp. Vuelve a vincular el número de plataforma (avisos de renovación): Conectar + escanear QR.",
+        "reconnect": "Ir a conectar"
     }
 }

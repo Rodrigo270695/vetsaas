@@ -140,9 +140,9 @@
         "all_dates": "All dates"
     },
     "whatsapp": {
-        "disconnected_title": "WhatsApp disconnected",
-        "disconnected_body_tenant": "Clinic WhatsApp is disconnected. Reconnect it to keep sending messages and use the bot.",
-        "disconnected_body_platform": "Platform WhatsApp (Orvae) is disconnected. Reconnect it for SalesBot and reminders.",
-        "reconnect": "Reconnect"
+        "disconnected_title": "WhatsApp not linked",
+        "disconnected_body_tenant": "We updated notification delivery. Re-link the clinic WhatsApp: open Outgoing queue, tap Connect, and scan the QR code. Reminders and queue messages will not send until then.",
+        "disconnected_body_platform": "We updated the WhatsApp gateway. Re-link the platform number (renewal notices): Connect + scan QR.",
+        "reconnect": "Go connect"
     }
 }

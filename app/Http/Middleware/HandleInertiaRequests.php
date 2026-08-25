@@ -442,15 +442,17 @@ class HandleInertiaRequests extends Middleware
 
             $payload = app(TenantWhatsAppPresenter::class)->forTenant($tenant);
             $session = is_array($payload['session'] ?? null) ? $payload['session'] : null;
+            $configured = (bool) ($payload['configured'] ?? false);
             $status = is_string($session['status'] ?? null) ? $session['status'] : null;
-            $disconnected = $session !== null
-                && ! (bool) ($session['is_ready'] ?? false)
-                && in_array($status, ['disconnected', 'failed'], true);
+            // Gateway activo y sesión ausente o no lista → avisar (p. ej. tras actualizar OpenWA).
+            $needsLink = $configured && ($session === null || ! (bool) ($session['is_ready'] ?? false));
 
             return [
                 'scope' => 'tenant',
-                'disconnected' => $disconnected,
-                'session_id' => isset($session['id']) ? (string) $session['id'] : null,
+                'disconnected' => $needsLink,
+                'session_id' => isset($session['id'])
+                    ? (string) $session['id']
+                    : ($needsLink ? 'pending' : null),
                 'status' => $status,
                 'last_synced_at' => isset($session['last_synced_at']) && is_string($session['last_synced_at'])
                     ? $session['last_synced_at']
@@ -465,15 +467,16 @@ class HandleInertiaRequests extends Middleware
 
         $payload = app(PlatformWhatsAppPresenter::class)->present();
         $session = is_array($payload['session'] ?? null) ? $payload['session'] : null;
+        $configured = (bool) ($payload['configured'] ?? false);
         $status = is_string($session['status'] ?? null) ? $session['status'] : null;
-        $disconnected = $session !== null
-            && ! (bool) ($session['is_ready'] ?? false)
-            && in_array($status, ['disconnected', 'failed'], true);
+        $needsLink = $configured && ($session === null || ! (bool) ($session['is_ready'] ?? false));
 
         return [
             'scope' => 'platform',
-            'disconnected' => $disconnected,
-            'session_id' => isset($session['id']) ? (string) $session['id'] : null,
+            'disconnected' => $needsLink,
+            'session_id' => isset($session['id'])
+                ? (string) $session['id']
+                : ($needsLink ? 'pending' : null),
             'status' => $status,
             'last_synced_at' => isset($session['last_synced_at']) && is_string($session['last_synced_at'])
                 ? $session['last_synced_at']

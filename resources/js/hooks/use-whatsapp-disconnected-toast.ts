@@ -4,10 +4,10 @@ import { useTranslation } from 'react-i18next';
 import { toastManager } from '@/lib/toast';
 import type { WhatsAppConnectionShared } from '@/types/whatsapp-connection';
 
-const TOAST_ID = 'wa-disconnected';
+const TOAST_ID = 'wa-needs-link-v2';
 
 function dismissStorageKey(connection: WhatsAppConnectionShared): string {
-    return `vetsaas:wa-disconnected-dismissed:${connection.scope}:${connection.session_id ?? 'none'}`;
+    return `vetsaas:wa-needs-link-dismissed:v2:${connection.scope}:${connection.session_id ?? 'none'}`;
 }
 
 function fingerprint(connection: WhatsAppConnectionShared): string {

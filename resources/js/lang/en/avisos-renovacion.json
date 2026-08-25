@@ -45,6 +45,9 @@
         "test_phone": "Destination phone",
         "test_phone_hint": "A different mobile than the connected WhatsApp. Country code or 9-digit Peruvian number.",
         "test_default_message": "Hello, this is a test from VetSaaS (Orvae platform). Renewal notices are working.",
-        "scan_qr": "Scan with WhatsApp on your phone"
+        "scan_qr": "Scan with WhatsApp on your phone",
+        "relink_title": "Action required: re-link WhatsApp",
+        "relink_body": "We updated the notification gateway. To keep sending renewal notices to clinics, scan the QR code again.",
+        "relink_steps": "Tap «Connect WhatsApp», wait for the QR, and scan it with the Orvae phone."
     }
 }

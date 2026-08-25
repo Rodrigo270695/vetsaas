@@ -3,6 +3,7 @@
         "title": "Outbox queue",
         "description": "WhatsApp messages pending delivery or failed.",
         "empty": "No messages in this queue.",
+        "empty_whatsapp_pending": "The queue is empty or messages cannot send until you link WhatsApp. Tap Connect WhatsApp above and scan the QR code.",
         "search_placeholder": "Search by phone, name or body…"
     },
     "historico": {
@@ -73,7 +74,10 @@
         "test_default_message": "Hi, this is a test message from VetSaaS. Your clinic can send WhatsApp reminders.",
         "scan_qr": "Scan with WhatsApp on your phone",
         "qr_loading": "Generating QR code…",
-        "qr_ready": "Ready! You can send reminders now."
+        "qr_ready": "Ready! You can send reminders now.",
+        "relink_title": "Action required: re-link WhatsApp",
+        "relink_body": "We updated the notification system. To keep sending reminders, queue messages, and the AI assistant, scan the QR code again with the clinic WhatsApp.",
+        "relink_steps": "Tap «Connect WhatsApp», wait for the QR code, and scan it from the clinic phone (Linked devices)."
     },
     "toast": {
         "load_error": "Could not load the message queue."

@@ -3,6 +3,7 @@
         "title": "Cola saliente",
         "description": "Mensajes de WhatsApp pendientes de envío o con error.",
         "empty": "No hay mensajes en esta bandeja.",
+        "empty_whatsapp_pending": "La cola está vacía o no se pueden enviar mensajes hasta que vincules WhatsApp. Pulsa Conectar WhatsApp arriba y escanea el código QR.",
         "search_placeholder": "Buscar por teléfono, nombre o texto…"
     },
     "historico": {
@@ -73,7 +74,10 @@
         "test_default_message": "Hola, este es un mensaje de prueba desde VetSaaS. Tu clínica ya puede enviar recordatorios por WhatsApp.",
         "scan_qr": "Escanea con WhatsApp en tu teléfono",
         "qr_loading": "Generando código QR…",
-        "qr_ready": "¡Listo! Ya puedes enviar recordatorios."
+        "qr_ready": "¡Listo! Ya puedes enviar recordatorios.",
+        "relink_title": "Acción requerida: volver a vincular WhatsApp",
+        "relink_body": "Actualizamos el sistema de notificaciones. Para seguir enviando recordatorios, mensajes de la cola y el asistente IA, debes escanear de nuevo el código QR con el WhatsApp de la clínica.",
+        "relink_steps": "Pulsa «Conectar WhatsApp», espera el código QR y escanéalo desde el teléfono de la clínica (Dispositivos vinculados)."
     },
     "toast": {
         "load_error": "No se pudo cargar la cola de mensajes."

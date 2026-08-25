@@ -257,7 +257,11 @@ export default function Index({
                     emptyState={
                         <EmptyState
                             title={t('cola.empty')}
-                            description={t('cola.description')}
+                            description={
+                                whatsapp.configured && whatsapp.session?.is_ready !== true
+                                    ? t('cola.empty_whatsapp_pending')
+                                    : t('cola.description')
+                            }
                         />
                     }
                 />
