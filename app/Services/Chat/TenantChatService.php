@@ -1153,6 +1153,62 @@ final class TenantChatService
     }
 
     /**
+     * En modo soporte (impersonación), el superadmin no es admin_clinica:
+     * lo agregamos como participante del grupo Soporte para que pueda ver el hilo.
+     */
+    public function ensurePlatformViewerInSupportConversation(User $viewer): void
+    {
+        try {
+            if (! $viewer->isPlatformSuperadmin()) {
+                try {
+                    if (! $viewer->can('plataforma-chat-soporte.view')) {
+                        return;
+                    }
+                } catch (\Throwable) {
+                    return;
+                }
+            }
+        } catch (\Throwable) {
+            return;
+        }
+
+        $conversation = ChatConversation::query()
+            ->where('type', ChatConversation::TYPE_GROUP)
+            ->where(function ($q): void {
+                if ($this->schemaHasColumn('chat_conversations', 'kind')) {
+                    $q->where('kind', ChatConversation::KIND_SUPPORT);
+                }
+                $q->orWhereRaw('lower(name) = lower(?)', [self::SUPPORT_GROUP_NAME]);
+            })
+            ->first();
+
+        if ($conversation === null) {
+            return;
+        }
+
+        $exists = ChatParticipant::query()
+            ->where('conversation_id', $conversation->id)
+            ->where('user_id', $viewer->id)
+            ->exists();
+
+        if ($exists) {
+            return;
+        }
+
+        $row = [
+            'conversation_id' => $conversation->id,
+            'user_id' => $viewer->id,
+            'joined_at' => now(),
+            'last_read_at' => now(),
+        ];
+        if ($this->schemaHasColumn('chat_participants', 'pinned_at')) {
+            $row['pinned_at'] = now();
+        }
+
+        ChatParticipant::query()->create($row);
+    }
+
+    /**
      * Notifica al grupo (p. ej. "Caja"): encuentra o crea el grupo y envía el mensaje.
      */
     public function notifyTeam(User $actor, string $body, string $groupName = 'Caja'): ChatConversation

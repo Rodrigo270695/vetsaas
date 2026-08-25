@@ -41,6 +41,8 @@ class TenantChatController extends Controller
             return redirect()->route('comunicaciones.chat', ['c' => $conversation->id]);
         }
 
+        $this->maybeAttachImpersonatorToSupport($request, $user);
+
         $conversations = $this->chat->listConversationsPayload($user);
         $users = $this->chat->directoryUsers((string) $user->id)
             ->map(static fn ($u): array => [
@@ -101,6 +103,8 @@ class TenantChatController extends Controller
     {
         $user = $request->user();
         abort_unless($user !== null && $user->can('comunicaciones-chat.view'), 403);
+
+        $this->maybeAttachImpersonatorToSupport($request, $user);
 
         return response()->json($this->chat->inboxPing($user));
     }
@@ -402,5 +406,15 @@ class TenantChatController extends Controller
         $settings->save();
 
         return redirect()->route('comunicaciones.chat');
+    }
+
+    private function maybeAttachImpersonatorToSupport(Request $request, \App\Models\User $user): void
+    {
+        $imp = $request->session()->get('tenant_impersonation');
+        if (! is_array($imp) || empty($imp['tenant_id'])) {
+            return;
+        }
+
+        $this->chat->ensurePlatformViewerInSupportConversation($user);
     }
 }
