@@ -1144,10 +1144,10 @@ export default function PlataformaChatSoportePage({
                                                                         <button
                                                                             type="button"
                                                                             className={cn(
-                                                                                'mr-auto rounded p-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100',
+                                                                                'mr-auto rounded p-0.5 touch-manipulation',
                                                                                 m.mine
-                                                                                    ? 'hover:bg-emerald-700/50'
-                                                                                    : 'hover:bg-muted',
+                                                                                    ? 'hover:bg-emerald-700/50 active:bg-emerald-700/60'
+                                                                                    : 'hover:bg-muted active:bg-muted',
                                                                             )}
                                                                             onClick={() => {
                                                                                 setEditingMessage(
@@ -1188,10 +1188,10 @@ export default function PlataformaChatSoportePage({
                                                                                 <button
                                                                                     type="button"
                                                                                     className={cn(
-                                                                                        'rounded p-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100',
+                                                                                        'rounded p-0.5 touch-manipulation',
                                                                                         m.mine
-                                                                                            ? 'hover:bg-emerald-700/50'
-                                                                                            : 'hover:bg-muted',
+                                                                                            ? 'hover:bg-emerald-700/50 active:bg-emerald-700/60'
+                                                                                            : 'hover:bg-muted active:bg-muted',
                                                                                     )}
                                                                                     aria-label={t(
                                                                                         'react',
@@ -1239,10 +1239,10 @@ export default function PlataformaChatSoportePage({
                                                                                 <button
                                                                                     type="button"
                                                                                     className={cn(
-                                                                                        'rounded p-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100',
+                                                                                        'rounded p-0.5 touch-manipulation',
                                                                                         m.mine
-                                                                                            ? 'hover:bg-emerald-700/50'
-                                                                                            : 'hover:bg-muted',
+                                                                                            ? 'hover:bg-emerald-700/50 active:bg-emerald-700/60'
+                                                                                            : 'hover:bg-muted active:bg-muted',
                                                                                     )}
                                                                                     aria-label={t(
                                                                                         'message_actions',
