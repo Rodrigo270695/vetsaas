@@ -63,14 +63,30 @@ final class PlatformSupportChatController extends Controller
         Tenant $tenant,
         PlatformSupportChatService $service,
     ): JsonResponse {
+        $mimes = 'jpg,jpeg,png,gif,webp,pdf,doc,docx,xls,xlsx,txt,csv,zip';
+
         $data = $request->validate([
-            'body' => ['required', 'string', 'max:4000'],
+            'body' => ['nullable', 'string', 'max:4000'],
+            'attachment' => ['nullable', 'file', 'max:15360', "mimes:{$mimes}"],
+            'attachments' => ['nullable', 'array', 'max:5'],
+            'attachments.*' => ['file', 'max:15360', "mimes:{$mimes}"],
         ]);
+
+        $files = $request->file('attachments') ?? $request->file('attachment');
+        $body = trim((string) ($data['body'] ?? ''));
+        $hasFile = $request->hasFile('attachment') || $request->hasFile('attachments');
+
+        if ($body === '' && ! $hasFile) {
+            return response()->json([
+                'message' => __('Escribe un mensaje o adjunta un archivo.'),
+            ], 422);
+        }
 
         $result = $service->sendToTenant(
             $tenant,
-            $data['body'],
+            $body,
             $request->user(),
+            $files,
         );
 
         return response()->json($result);

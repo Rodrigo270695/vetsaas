@@ -2,11 +2,13 @@ import { Head, router } from '@inertiajs/react';
 import {
     Building2,
     ChevronLeft,
+    FileText,
     Loader2,
     Megaphone,
-    MessagesSquare,
+    Paperclip,
     Search,
     SendHorizonal,
+    Smile,
     X,
 } from 'lucide-react';
 import {
@@ -18,6 +20,13 @@ import {
     type ReactNode,
 } from 'react';
 import { useTranslation } from 'react-i18next';
+import {
+    ChatListAside,
+    ChatMessageScroller,
+    ChatPageHeader,
+    ChatSearchInput,
+    ChatShell,
+} from '@/components/chat';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -29,7 +38,11 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
 import { Textarea } from '@/components/ui/textarea';
 import { usePermission } from '@/hooks/use-permission';
 import AppLayout from '@/layouts/app-layout';
@@ -37,6 +50,13 @@ import { toastManager } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 
 const ROUTE_URL = '/plataforma/chat-soporte';
+const MAX_ATTACHMENTS = 5;
+const EMOJIS = [
+    '😀', '😁', '😂', '🙂', '😉', '😊', '😍', '🤩',
+    '😎', '🤔', '😢', '😭', '😤', '🙌', '👍', '👎',
+    '👏', '🙏', '💪', '🔥', '✨', '✅', '❌', '⚠️',
+    '📌', '📎', '📷', '🐶', '🐱', '💉', '💊', '🩺',
+];
 
 type PlanFilter = 'all' | 'free' | 'paid';
 
@@ -55,12 +75,21 @@ type TenantRow = {
     } | null;
 };
 
+type ChatAttachment = {
+    url: string;
+    name: string;
+    mime: string;
+    size?: number;
+};
+
 type ChatMessage = {
     id: string;
     body: string;
     mine: boolean;
     user_name?: string;
     created_at: string | null;
+    attachments?: ChatAttachment[];
+    attachment?: ChatAttachment | null;
 };
 
 type Props = {
@@ -81,7 +110,7 @@ function readXsrfToken(): string {
 
 async function apiJson<T>(
     url: string,
-    init?: RequestInit & { json?: Record<string, unknown> },
+    init?: RequestInit & { json?: Record<string, unknown>; formData?: FormData },
 ): Promise<T> {
     const headers: Record<string, string> = {
         Accept: 'application/json',
@@ -91,7 +120,10 @@ async function apiJson<T>(
     };
 
     let body = init?.body;
-    if (init?.json !== undefined) {
+    if (init?.formData !== undefined) {
+        body = init.formData;
+        delete headers['Content-Type'];
+    } else if (init?.json !== undefined) {
         headers['Content-Type'] = 'application/json';
         body = JSON.stringify(init.json);
     }
@@ -138,6 +170,12 @@ const initials = (name: string): string => {
     return `${parts[0][0] ?? ''}${parts[1][0] ?? ''}`.toUpperCase();
 };
 
+const messageAttachments = (m: ChatMessage): ChatAttachment[] => {
+    if (m.attachments && m.attachments.length > 0) return m.attachments;
+    if (m.attachment) return [m.attachment];
+    return [];
+};
+
 export default function PlataformaChatSoportePage({
     tenants: initialTenants,
     filters,
@@ -148,18 +186,26 @@ export default function PlataformaChatSoportePage({
 
     const [tenants, setTenants] = useState(initialTenants);
     const [plan, setPlan] = useState<PlanFilter>(filters.plan ?? 'all');
-    const [search, setSearch] = useState(filters.q ?? '');
+    const [listQuery, setListQuery] = useState(filters.q ?? '');
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [loadingThread, setLoadingThread] = useState(false);
     const [composer, setComposer] = useState('');
+    const [files, setFiles] = useState<File[]>([]);
+    const [emojiOpen, setEmojiOpen] = useState(false);
     const [sending, setSending] = useState(false);
     const [broadcastOpen, setBroadcastOpen] = useState(false);
     const [broadcastBody, setBroadcastBody] = useState('');
     const [broadcasting, setBroadcasting] = useState(false);
     const [mobileListOpen, setMobileListOpen] = useState(true);
+    const [searchOpen, setSearchOpen] = useState(false);
+    const [threadQuery, setThreadQuery] = useState('');
+    const [highlightId, setHighlightId] = useState<string | null>(null);
 
     const bottomRef = useRef<HTMLDivElement | null>(null);
+    const fileRef = useRef<HTMLInputElement | null>(null);
+    const composerRef = useRef<HTMLTextAreaElement | null>(null);
+    const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
     const selectedIdRef = useRef<string | null>(null);
     const lastMessageIdRef = useRef<string | null>(null);
     selectedIdRef.current = selectedId;
@@ -175,16 +221,32 @@ export default function PlataformaChatSoportePage({
         [tenants, selectedId],
     );
 
+    const filteredTenants = useMemo(() => {
+        const q = listQuery.trim().toLowerCase();
+        if (!q) return tenants;
+        return tenants.filter((row) => {
+            const hay = `${row.nombre} ${row.slug} ${row.plan_nombre ?? ''}`.toLowerCase();
+            return hay.includes(q);
+        });
+    }, [tenants, listQuery]);
+
+    const threadHits = useMemo(() => {
+        const q = threadQuery.trim().toLowerCase();
+        if (q.length < 2) return [];
+        return messages.filter((m) => m.body.toLowerCase().includes(q));
+    }, [messages, threadQuery]);
+
     const planOptions: { value: PlanFilter; label: string }[] = [
         { value: 'all', label: t('plan_all') },
         { value: 'free', label: t('plan_free') },
         { value: 'paid', label: t('plan_paid') },
     ];
 
-    const applyFilters = (nextPlan: PlanFilter, nextQ: string) => {
+    const applyPlan = (nextPlan: PlanFilter) => {
+        setPlan(nextPlan);
         router.get(
             ROUTE_URL,
-            { plan: nextPlan, q: nextQ || undefined },
+            { plan: nextPlan, q: listQuery.trim() || undefined },
             {
                 preserveState: true,
                 preserveScroll: true,
@@ -198,6 +260,10 @@ export default function PlataformaChatSoportePage({
         setSelectedId(tenantId);
         setMobileListOpen(false);
         setMessages([]);
+        setComposer('');
+        setFiles([]);
+        setSearchOpen(false);
+        setThreadQuery('');
         setLoadingThread(true);
         try {
             if (canManage) {
@@ -259,25 +325,63 @@ export default function PlataformaChatSoportePage({
         return () => window.clearInterval(timer);
     }, [selectedId]);
 
+    const jumpToMessage = (id: string) => {
+        setHighlightId(id);
+        setSearchOpen(false);
+        requestAnimationFrame(() => {
+            messageRefs.current
+                .get(id)
+                ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        });
+        window.setTimeout(() => setHighlightId(null), 1600);
+    };
+
+    const insertEmoji = (emoji: string) => {
+        const el = composerRef.current;
+        if (!el) {
+            setComposer((prev) => prev + emoji);
+            return;
+        }
+        const start = el.selectionStart ?? composer.length;
+        const end = el.selectionEnd ?? composer.length;
+        const next = composer.slice(0, start) + emoji + composer.slice(end);
+        setComposer(next);
+        requestAnimationFrame(() => {
+            el.focus();
+            const pos = start + emoji.length;
+            el.setSelectionRange(pos, pos);
+        });
+        setEmojiOpen(false);
+    };
+
     const sendMessage = async (e?: FormEvent) => {
         e?.preventDefault();
         if (!selectedId || !canManage) return;
         const body = composer.trim();
-        if (!body || sending) return;
+        if ((!body && files.length === 0) || sending) return;
 
         setSending(true);
         try {
+            const fd = new FormData();
+            if (body) fd.append('body', body);
+            files.forEach((file) => fd.append('attachments[]', file));
+
             const data = await apiJson<{ message: ChatMessage }>(
                 `/plataforma/chat-soporte/tenants/${selectedId}/messages`,
-                { method: 'POST', json: { body } },
+                { method: 'POST', formData: fd },
             );
             setComposer('');
+            setFiles([]);
             if (data.message) {
                 setMessages((prev) =>
                     prev.some((m) => m.id === data.message.id)
                         ? prev
                         : [...prev, data.message],
                 );
+                const preview =
+                    body.slice(0, 280) ||
+                    data.message.body?.slice(0, 280) ||
+                    '📎';
                 setTenants((prev) =>
                     prev.map((row) =>
                         row.id === selectedId
@@ -289,7 +393,7 @@ export default function PlataformaChatSoportePage({
                                       last_message_at:
                                           data.message.created_at ??
                                           new Date().toISOString(),
-                                      last_preview: body.slice(0, 280),
+                                      last_preview: preview,
                                   },
                               }
                             : row,
@@ -352,6 +456,10 @@ export default function PlataformaChatSoportePage({
     const closeThreadMobile = () => {
         setSelectedId(null);
         setMessages([]);
+        setComposer('');
+        setFiles([]);
+        setSearchOpen(false);
+        setThreadQuery('');
         setMobileListOpen(true);
     };
 
@@ -359,207 +467,139 @@ export default function PlataformaChatSoportePage({
         <>
             <Head title={t('title')} />
 
-            <div
-                data-fixed-viewport
-                className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-card max-lg:rounded-none max-lg:border-0 max-lg:shadow-none lg:m-3 lg:rounded-2xl lg:border lg:border-border/60 lg:shadow-sm"
-            >
-                <div
-                    className={cn(
-                        'flex items-center justify-between gap-3 border-b border-border/60 bg-linear-to-r from-emerald-50/90 via-card to-teal-50/40 px-4 py-3 dark:from-emerald-950/40 dark:via-card dark:to-teal-950/20',
-                        selected && 'max-lg:hidden',
-                    )}
-                >
-                    <div className="flex min-w-0 items-center gap-2.5">
-                        <span className="flex size-9 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-sm shadow-emerald-600/30">
-                            <MessagesSquare className="size-4" aria-hidden />
-                        </span>
-                        <div className="min-w-0">
-                            <h1 className="truncate text-base font-semibold tracking-tight">
-                                {t('title')}
-                            </h1>
-                            <p className="truncate text-xs text-muted-foreground max-sm:hidden">
-                                {t('subtitle')}
-                            </p>
-                        </div>
-                    </div>
-
-                    {canManage ? (
-                        <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            className="h-8 shrink-0 gap-1.5 text-xs"
-                            onClick={() => setBroadcastOpen(true)}
-                            disabled={tenants.length === 0}
-                        >
-                            <Megaphone className="size-3.5" />
-                            <span className="hidden sm:inline">{t('broadcast')}</span>
-                        </Button>
-                    ) : null}
-                </div>
+            <ChatShell>
+                <ChatPageHeader
+                    title={t('title')}
+                    subtitle={t('subtitle')}
+                    hideOnMobileWhenThread={selected !== null}
+                    actions={
+                        canManage ? (
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className="h-8 shrink-0 gap-1.5 text-xs"
+                                onClick={() => setBroadcastOpen(true)}
+                                disabled={tenants.length === 0}
+                            >
+                                <Megaphone className="size-3.5" />
+                                <span className="hidden sm:inline">
+                                    {t('broadcast')}
+                                </span>
+                            </Button>
+                        ) : null
+                    }
+                />
 
                 <div className="relative min-h-0 flex-1 overflow-hidden lg:grid lg:grid-cols-[minmax(17rem,21rem)_1fr]">
-                    <button
-                        type="button"
-                        aria-label="Cerrar lista"
-                        tabIndex={mobileListOpen && selected ? 0 : -1}
-                        onClick={() => setMobileListOpen(false)}
-                        className={cn(
-                            'absolute inset-0 z-30 bg-slate-950/40 backdrop-blur-[3px] transition-opacity duration-500 lg:pointer-events-none lg:hidden',
-                            selected && mobileListOpen
-                                ? 'opacity-100'
-                                : 'pointer-events-none opacity-0',
-                        )}
-                    />
-
-                    <aside
-                        className={cn(
-                            'z-40 flex min-h-0 flex-col bg-muted/20 lg:relative lg:z-auto lg:translate-x-0 lg:border-r lg:border-border/60 lg:shadow-none',
-                            'max-lg:absolute max-lg:inset-y-0 max-lg:left-0 max-lg:bg-card max-lg:transition-transform max-lg:duration-500 max-lg:will-change-transform',
-                            !selected && 'max-lg:inset-0 max-lg:w-full max-lg:translate-x-0',
-                            selected &&
-                                'max-lg:w-[min(20.5rem,82vw)] max-lg:border-r max-lg:border-border/50 max-lg:shadow-[12px_0_40px_-12px_rgba(15,23,42,0.35)]',
-                            selected &&
-                                (mobileListOpen
-                                    ? 'max-lg:translate-x-0'
-                                    : 'max-lg:translate-x-[-105%]'),
-                        )}
-                    >
-                        <div className="flex items-center gap-2 border-b border-border/50 px-3 py-3 lg:hidden">
-                            <span className="flex size-8 items-center justify-center rounded-lg bg-emerald-600/10 text-emerald-700 dark:text-emerald-300">
-                                <MessagesSquare className="size-3.5" aria-hidden />
-                            </span>
-                            <div className="min-w-0 flex-1">
-                                <p className="truncate text-sm font-semibold">
-                                    {t('title')}
-                                </p>
-                                <p className="truncate text-[10px] text-muted-foreground">
-                                    {tenants.length} clínicas
-                                </p>
-                            </div>
-                            {selected ? (
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    className="size-8 shrink-0"
-                                    onClick={() => setMobileListOpen(false)}
-                                >
-                                    <X className="size-4" />
-                                </Button>
-                            ) : null}
-                        </div>
-
-                        <div className="space-y-2 border-b border-border/50 p-3">
-                            <div className="relative">
-                                <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                                <Input
-                                    value={search}
-                                    onChange={(e) => setSearch(e.target.value)}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter') {
-                                            applyFilters(plan, search.trim());
-                                        }
-                                    }}
-                                    onBlur={() => {
-                                        if (search.trim() !== (filters.q ?? '')) {
-                                            applyFilters(plan, search.trim());
-                                        }
-                                    }}
+                    <ChatListAside
+                        mobileTitle={t('list_title')}
+                        mobileSubtitle={t('list_hint')}
+                        hasActiveThread={selected !== null}
+                        mobileListOpen={mobileListOpen}
+                        onCloseMobileList={() => setMobileListOpen(false)}
+                        onBackdropClick={() => setMobileListOpen(false)}
+                        toolbar={
+                            <>
+                                <ChatSearchInput
+                                    value={listQuery}
+                                    onChange={(e) => setListQuery(e.target.value)}
                                     placeholder={t('search_placeholder')}
-                                    className="h-9 border-border/60 bg-background/80 pl-8 text-sm"
                                 />
-                            </div>
-                            <div className="flex flex-wrap gap-1.5">
-                                {planOptions.map((opt) => (
-                                    <Button
-                                        key={opt.value}
-                                        type="button"
-                                        size="sm"
-                                        variant={
-                                            plan === opt.value ? 'default' : 'outline'
-                                        }
-                                        className={cn(
-                                            'h-7 rounded-full px-3 text-xs',
-                                            plan === opt.value &&
-                                                'bg-emerald-600 hover:bg-emerald-700',
-                                        )}
-                                        onClick={() => {
-                                            setPlan(opt.value);
-                                            applyFilters(opt.value, search.trim());
-                                        }}
-                                    >
-                                        {opt.label}
-                                    </Button>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-                            {tenants.length === 0 ? (
-                                <p className="px-4 py-10 text-center text-sm text-muted-foreground">
-                                    {t('empty_tenants')}
-                                </p>
-                            ) : (
-                                <ul className="divide-y divide-border/40">
-                                    {tenants.map((row) => {
-                                        const active = row.id === selectedId;
-                                        return (
-                                            <li key={row.id}>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => void openTenant(row.id)}
-                                                    className={cn(
-                                                        'flex w-full cursor-pointer items-start gap-3 border-l-2 px-3 py-3.5 text-left transition-colors active:bg-emerald-50/70 lg:py-3',
-                                                        active
-                                                            ? 'border-l-emerald-600 bg-emerald-50/80 dark:bg-emerald-950/35'
-                                                            : 'border-l-transparent hover:bg-background/80',
-                                                    )}
-                                                >
-                                                    <Avatar className="mt-0.5 size-11 border border-border/50 shadow-sm lg:size-10">
-                                                        <AvatarFallback className="bg-sky-100 text-xs font-semibold text-sky-800 dark:bg-sky-950 dark:text-sky-200">
-                                                            <Building2 className="size-3.5" />
-                                                        </AvatarFallback>
-                                                    </Avatar>
-                                                    <div className="min-w-0 flex-1">
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="truncate text-sm font-medium">
-                                                                {row.nombre}
-                                                            </span>
-                                                            {row.is_free === true ? (
-                                                                <Badge
-                                                                    variant="secondary"
-                                                                    className="h-5 shrink-0 rounded-full px-1.5 text-[10px]"
-                                                                >
-                                                                    {t('badge_free')}
-                                                                </Badge>
-                                                            ) : row.is_free ===
-                                                              false ? (
-                                                                <Badge className="h-5 shrink-0 rounded-full bg-sky-600 px-1.5 text-[10px] text-white hover:bg-sky-600">
-                                                                    {t('badge_paid')}
-                                                                </Badge>
-                                                            ) : null}
-                                                            <span className="ml-auto shrink-0 text-[10px] text-muted-foreground">
-                                                                {formatListTime(
-                                                                    row.thread
-                                                                        ?.last_message_at ??
-                                                                        null,
-                                                                )}
-                                                            </span>
-                                                        </div>
-                                                        <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                                                            {row.thread?.last_preview ||
-                                                                row.slug}
-                                                        </p>
+                                <div className="flex flex-wrap gap-1.5">
+                                    {planOptions.map((opt) => (
+                                        <Button
+                                            key={opt.value}
+                                            type="button"
+                                            size="sm"
+                                            variant={
+                                                plan === opt.value
+                                                    ? 'default'
+                                                    : 'outline'
+                                            }
+                                            className={cn(
+                                                'h-7 rounded-full px-3 text-xs',
+                                                plan === opt.value &&
+                                                    'bg-emerald-600 hover:bg-emerald-700',
+                                            )}
+                                            onClick={() => applyPlan(opt.value)}
+                                        >
+                                            {opt.label}
+                                        </Button>
+                                    ))}
+                                </div>
+                            </>
+                        }
+                    >
+                        {filteredTenants.length === 0 ? (
+                            <p className="px-4 py-10 text-center text-sm text-muted-foreground">
+                                {t('empty_tenants')}
+                            </p>
+                        ) : (
+                            <ul className="divide-y divide-border/40">
+                                {filteredTenants.map((row, index) => {
+                                    const active = row.id === selectedId;
+                                    return (
+                                        <li
+                                            key={row.id}
+                                            className="animate-in fade-in slide-in-from-left-2 fill-mode-both duration-300"
+                                            style={{
+                                                animationDelay: `${Math.min(index, 8) * 35}ms`,
+                                            }}
+                                        >
+                                            <button
+                                                type="button"
+                                                onClick={() => void openTenant(row.id)}
+                                                className={cn(
+                                                    'flex w-full cursor-pointer items-start gap-3 border-l-2 px-3 py-3.5 text-left transition-colors active:bg-emerald-50/70 lg:py-3',
+                                                    active
+                                                        ? 'border-l-emerald-600 bg-emerald-50/80 dark:bg-emerald-950/35'
+                                                        : 'border-l-transparent hover:bg-background/80',
+                                                )}
+                                            >
+                                                <Avatar className="mt-0.5 size-11 border border-border/50 shadow-sm lg:size-10">
+                                                    <AvatarFallback className="bg-sky-100 text-xs font-semibold text-sky-800 dark:bg-sky-950 dark:text-sky-200">
+                                                        <Building2 className="size-3.5" />
+                                                    </AvatarFallback>
+                                                </Avatar>
+                                                <div className="min-w-0 flex-1">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="truncate text-sm font-medium">
+                                                            {row.nombre}
+                                                        </span>
+                                                        {row.is_free === true ? (
+                                                            <Badge
+                                                                variant="secondary"
+                                                                className="h-5 shrink-0 rounded-full px-1.5 text-[10px]"
+                                                            >
+                                                                {t('badge_free')}
+                                                            </Badge>
+                                                        ) : row.is_free ===
+                                                          false ? (
+                                                            <Badge className="h-5 shrink-0 rounded-full bg-sky-600 px-1.5 text-[10px] text-white hover:bg-sky-600">
+                                                                {t('badge_paid')}
+                                                            </Badge>
+                                                        ) : null}
+                                                        <span className="ml-auto shrink-0 text-[10px] text-muted-foreground">
+                                                            {formatListTime(
+                                                                row.thread
+                                                                    ?.last_message_at ??
+                                                                    null,
+                                                            )}
+                                                        </span>
                                                     </div>
-                                                </button>
-                                            </li>
-                                        );
-                                    })}
-                                </ul>
-                            )}
-                        </div>
-                    </aside>
+                                                    <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                                                        {row.thread?.last_preview ||
+                                                            row.slug}
+                                                    </p>
+                                                </div>
+                                            </button>
+                                        </li>
+                                    );
+                                })}
+                            </ul>
+                        )}
+                    </ChatListAside>
 
                     <section
                         className={cn(
@@ -574,62 +614,124 @@ export default function PlataformaChatSoportePage({
                         {!selected ? (
                             <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
                                 <div className="flex size-16 items-center justify-center rounded-2xl bg-emerald-600/10 text-emerald-700 ring-1 ring-emerald-600/15 dark:text-emerald-300">
-                                    <MessagesSquare className="size-7" aria-hidden />
+                                    <Building2 className="size-7" aria-hidden />
                                 </div>
-                                <div>
-                                    <p className="text-sm font-semibold">
-                                        {t('empty_thread')}
-                                    </p>
-                                </div>
+                                <p className="text-sm font-semibold">
+                                    {t('empty_thread')}
+                                </p>
                             </div>
                         ) : (
                             <>
-                                <header className="flex items-center gap-2 border-b border-border/60 bg-card/90 px-2 py-2.5 backdrop-blur-md sm:gap-3 sm:px-4 sm:py-3">
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="icon"
-                                        className="size-9 shrink-0 lg:hidden"
-                                        onClick={closeThreadMobile}
-                                        aria-label="Volver"
-                                    >
-                                        <ChevronLeft className="size-5" />
-                                    </Button>
-                                    <Avatar className="size-9 border border-border/50 shadow-sm sm:size-10">
-                                        <AvatarFallback className="bg-sky-100 text-xs font-semibold text-sky-800 dark:bg-sky-950 dark:text-sky-200">
-                                            {initials(selected.nombre)}
-                                        </AvatarFallback>
-                                    </Avatar>
-                                    <div className="min-w-0 flex-1">
-                                        <p className="truncate text-sm font-semibold">
-                                            {selected.nombre}
-                                        </p>
-                                        <p className="truncate text-xs text-muted-foreground">
-                                            {selected.plan_nombre ?? selected.slug}
-                                        </p>
+                                <header className="flex flex-col gap-2 border-b border-border/60 bg-card/90 px-2 py-2.5 backdrop-blur-md sm:px-4 sm:py-3">
+                                    <div className="flex items-center gap-2 sm:gap-3">
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            className="size-9 shrink-0 lg:hidden"
+                                            onClick={closeThreadMobile}
+                                            aria-label="Volver"
+                                        >
+                                            <ChevronLeft className="size-5" />
+                                        </Button>
+                                        <Avatar className="size-9 border border-border/50 shadow-sm sm:size-10">
+                                            <AvatarFallback className="bg-sky-100 text-xs font-semibold text-sky-800 dark:bg-sky-950 dark:text-sky-200">
+                                                {initials(selected.nombre)}
+                                            </AvatarFallback>
+                                        </Avatar>
+                                        <div className="min-w-0 flex-1">
+                                            <p className="truncate text-sm font-semibold">
+                                                {selected.nombre}
+                                            </p>
+                                            <p className="truncate text-xs text-muted-foreground">
+                                                {selected.plan_nombre ??
+                                                    selected.slug}
+                                            </p>
+                                        </div>
+                                        {selected.is_free === true ? (
+                                            <Badge
+                                                variant="secondary"
+                                                className="rounded-full"
+                                            >
+                                                {t('badge_free')}
+                                            </Badge>
+                                        ) : selected.is_free === false ? (
+                                            <Badge className="rounded-full bg-sky-600 hover:bg-sky-600">
+                                                {t('badge_paid')}
+                                            </Badge>
+                                        ) : null}
+                                        <Button
+                                            type="button"
+                                            size="icon"
+                                            variant="ghost"
+                                            className={cn(
+                                                'size-8 shrink-0 text-muted-foreground',
+                                                searchOpen && 'bg-muted',
+                                            )}
+                                            onClick={() =>
+                                                setSearchOpen((v) => !v)
+                                            }
+                                            aria-label={t('search_thread')}
+                                        >
+                                            <Search className="size-4" />
+                                        </Button>
                                     </div>
-                                    {selected.is_free === true ? (
-                                        <Badge variant="secondary" className="rounded-full">
-                                            {t('badge_free')}
-                                        </Badge>
-                                    ) : selected.is_free === false ? (
-                                        <Badge className="rounded-full bg-sky-600 hover:bg-sky-600">
-                                            {t('badge_paid')}
-                                        </Badge>
+
+                                    {searchOpen ? (
+                                        <div className="relative px-1 sm:px-0">
+                                            <ChatSearchInput
+                                                value={threadQuery}
+                                                onChange={(e) =>
+                                                    setThreadQuery(e.target.value)
+                                                }
+                                                placeholder={t('search_thread')}
+                                                autoFocus
+                                            />
+                                            {threadQuery.trim().length >= 2 ? (
+                                                <div className="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-xl border border-border/60 bg-card shadow-lg">
+                                                    {threadHits.length === 0 ? (
+                                                        <p className="px-3 py-2 text-xs text-muted-foreground">
+                                                            {t(
+                                                                'search_thread_empty',
+                                                            )}
+                                                        </p>
+                                                    ) : (
+                                                        threadHits.map((m) => (
+                                                            <button
+                                                                key={m.id}
+                                                                type="button"
+                                                                className="flex w-full flex-col gap-0.5 border-b border-border/40 px-3 py-2 text-left last:border-0 hover:bg-muted/60"
+                                                                onClick={() =>
+                                                                    jumpToMessage(
+                                                                        m.id,
+                                                                    )
+                                                                }
+                                                            >
+                                                                <span className="text-[10px] font-medium text-emerald-700 dark:text-emerald-300">
+                                                                    {m.user_name ||
+                                                                        t('you')}{' '}
+                                                                    ·{' '}
+                                                                    {formatListTime(
+                                                                        m.created_at,
+                                                                    )}
+                                                                </span>
+                                                                <span className="line-clamp-2 text-xs">
+                                                                    {m.body}
+                                                                </span>
+                                                            </button>
+                                                        ))
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <p className="mt-1 px-1 text-[10px] text-muted-foreground">
+                                                    {t('search_thread_hint')}
+                                                </p>
+                                            )}
+                                        </div>
                                     ) : null}
-                                    <Button
-                                        type="button"
-                                        size="icon"
-                                        variant="ghost"
-                                        className="size-8 shrink-0 lg:hidden"
-                                        onClick={() => setMobileListOpen(true)}
-                                        aria-label="Lista"
-                                    >
-                                        <Building2 className="size-4" />
-                                    </Button>
                                 </header>
 
-                                <div className="min-h-0 flex-1 space-y-2.5 overflow-y-auto overscroll-contain px-3 py-4 sm:px-4">
+                                <ChatMessageScroller>
                                     {loadingThread ? (
                                         <div className="flex items-center justify-center gap-2 py-12 text-sm text-muted-foreground">
                                             <Loader2 className="size-4 animate-spin" />
@@ -640,94 +742,286 @@ export default function PlataformaChatSoportePage({
                                             {t('no_messages')}
                                         </p>
                                     ) : (
-                                        messages.map((m) => (
-                                            <div
-                                                key={m.id}
-                                                className={cn(
-                                                    'flex',
-                                                    m.mine
-                                                        ? 'justify-end'
-                                                        : 'justify-start',
-                                                )}
-                                            >
+                                        messages.map((m) => {
+                                            const atts = messageAttachments(m);
+                                            return (
                                                 <div
+                                                    key={m.id}
+                                                    ref={(el) => {
+                                                        if (el) {
+                                                            messageRefs.current.set(
+                                                                m.id,
+                                                                el,
+                                                            );
+                                                        } else {
+                                                            messageRefs.current.delete(
+                                                                m.id,
+                                                            );
+                                                        }
+                                                    }}
                                                     className={cn(
-                                                        'max-w-[min(85%,28rem)] rounded-2xl px-3.5 py-2 text-sm shadow-sm',
+                                                        'flex',
                                                         m.mine
-                                                            ? 'rounded-br-md bg-emerald-600 text-white'
-                                                            : 'rounded-bl-md border border-border/50 bg-card text-foreground',
+                                                            ? 'justify-end'
+                                                            : 'justify-start',
+                                                        highlightId === m.id &&
+                                                            'animate-pulse',
                                                     )}
                                                 >
-                                                    {!m.mine && m.user_name ? (
-                                                        <p className="mb-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
-                                                            {m.user_name}
-                                                        </p>
-                                                    ) : null}
-                                                    <p className="wrap-break-word whitespace-pre-wrap">
-                                                        {m.body}
-                                                    </p>
-                                                    <p
+                                                    <div
                                                         className={cn(
-                                                            'mt-1 text-right text-[10px]',
+                                                            'max-w-[min(85%,28rem)] overflow-hidden rounded-2xl text-sm shadow-sm',
                                                             m.mine
-                                                                ? 'text-white/70'
-                                                                : 'text-muted-foreground',
+                                                                ? 'rounded-br-md bg-emerald-600 text-white'
+                                                                : 'rounded-bl-md border border-border/50 bg-card text-foreground',
                                                         )}
                                                     >
-                                                        {formatListTime(m.created_at)}
-                                                    </p>
+                                                        <div className="space-y-1.5 px-3.5 py-2">
+                                                            {!m.mine &&
+                                                            m.user_name ? (
+                                                                <p className="text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
+                                                                    {m.user_name}
+                                                                </p>
+                                                            ) : null}
+                                                            {m.body ? (
+                                                                <p className="wrap-break-word whitespace-pre-wrap">
+                                                                    {m.body}
+                                                                </p>
+                                                            ) : null}
+                                                            {atts.map((att) =>
+                                                                att.mime.startsWith(
+                                                                    'image/',
+                                                                ) ? (
+                                                                    <a
+                                                                        key={att.url}
+                                                                        href={
+                                                                            att.url
+                                                                        }
+                                                                        target="_blank"
+                                                                        rel="noreferrer"
+                                                                        className="block overflow-hidden rounded-lg"
+                                                                    >
+                                                                        <img
+                                                                            src={
+                                                                                att.url
+                                                                            }
+                                                                            alt={
+                                                                                att.name
+                                                                            }
+                                                                            className="max-h-56 w-full object-cover"
+                                                                        />
+                                                                    </a>
+                                                                ) : (
+                                                                    <a
+                                                                        key={att.url}
+                                                                        href={
+                                                                            att.url
+                                                                        }
+                                                                        target="_blank"
+                                                                        rel="noreferrer"
+                                                                        className={cn(
+                                                                            'flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs',
+                                                                            m.mine
+                                                                                ? 'bg-white/15'
+                                                                                : 'bg-muted',
+                                                                        )}
+                                                                    >
+                                                                        <FileText className="size-3.5 shrink-0" />
+                                                                        <span className="truncate">
+                                                                            {
+                                                                                att.name
+                                                                            }
+                                                                        </span>
+                                                                    </a>
+                                                                ),
+                                                            )}
+                                                            <p
+                                                                className={cn(
+                                                                    'text-right text-[10px]',
+                                                                    m.mine
+                                                                        ? 'text-white/70'
+                                                                        : 'text-muted-foreground',
+                                                                )}
+                                                            >
+                                                                {formatListTime(
+                                                                    m.created_at,
+                                                                )}
+                                                            </p>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        ))
+                                            );
+                                        })
                                     )}
                                     <div ref={bottomRef} />
-                                </div>
+                                </ChatMessageScroller>
 
                                 {canManage ? (
                                     <form
                                         onSubmit={(e) => void sendMessage(e)}
-                                        className="flex items-end gap-2 border-t border-border/60 bg-card/95 p-3 backdrop-blur-sm"
+                                        className="border-t border-border/60 bg-card/95 p-3 backdrop-blur-sm"
                                     >
-                                        <Textarea
-                                            value={composer}
-                                            onChange={(e) =>
-                                                setComposer(e.target.value)
-                                            }
-                                            placeholder={t('composer_placeholder')}
-                                            rows={1}
-                                            className="max-h-32 min-h-11 resize-none"
-                                            onKeyDown={(e) => {
-                                                if (
-                                                    e.key === 'Enter' &&
-                                                    !e.shiftKey
-                                                ) {
-                                                    e.preventDefault();
-                                                    void sendMessage();
+                                        {files.length > 0 ? (
+                                            <div className="mb-2 flex flex-wrap gap-2">
+                                                {files.map((file, idx) => (
+                                                    <div
+                                                        key={`${file.name}-${idx}`}
+                                                        className="flex max-w-48 items-center gap-2 rounded-xl border border-border/60 bg-muted/40 px-2 py-1.5"
+                                                    >
+                                                        <FileText className="size-3.5 shrink-0 text-muted-foreground" />
+                                                        <span className="truncate text-[11px]">
+                                                            {file.name}
+                                                        </span>
+                                                        <Button
+                                                            type="button"
+                                                            size="icon"
+                                                            variant="ghost"
+                                                            className="size-6 shrink-0"
+                                                            onClick={() =>
+                                                                setFiles((prev) =>
+                                                                    prev.filter(
+                                                                        (_, i) =>
+                                                                            i !==
+                                                                            idx,
+                                                                    ),
+                                                                )
+                                                            }
+                                                        >
+                                                            <X className="size-3" />
+                                                        </Button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : null}
+
+                                        <div className="flex items-end gap-1.5">
+                                            <input
+                                                ref={fileRef}
+                                                type="file"
+                                                multiple
+                                                className="hidden"
+                                                accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.zip,image/*"
+                                                onChange={(e) => {
+                                                    const picked = Array.from(
+                                                        e.target.files ?? [],
+                                                    );
+                                                    setFiles((prev) =>
+                                                        [
+                                                            ...prev,
+                                                            ...picked,
+                                                        ].slice(
+                                                            0,
+                                                            MAX_ATTACHMENTS,
+                                                        ),
+                                                    );
+                                                    e.target.value = '';
+                                                }}
+                                            />
+                                            <Button
+                                                type="button"
+                                                size="icon"
+                                                variant="ghost"
+                                                className="size-9 shrink-0 text-muted-foreground"
+                                                onClick={() =>
+                                                    fileRef.current?.click()
                                                 }
-                                            }}
-                                        />
-                                        <Button
-                                            type="submit"
-                                            size="icon"
-                                            disabled={sending || !composer.trim()}
-                                            className="size-10 shrink-0 bg-emerald-600 hover:bg-emerald-700"
-                                        >
-                                            {sending ? (
-                                                <Loader2 className="size-4 animate-spin" />
-                                            ) : (
-                                                <SendHorizonal className="size-4" />
-                                            )}
-                                            <span className="sr-only">
-                                                {t('send')}
-                                            </span>
-                                        </Button>
+                                                disabled={
+                                                    files.length >=
+                                                    MAX_ATTACHMENTS
+                                                }
+                                                aria-label={t('attach')}
+                                            >
+                                                <Paperclip className="size-4" />
+                                            </Button>
+                                            <Popover
+                                                open={emojiOpen}
+                                                onOpenChange={setEmojiOpen}
+                                            >
+                                                <PopoverTrigger asChild>
+                                                    <Button
+                                                        type="button"
+                                                        size="icon"
+                                                        variant="ghost"
+                                                        className="size-9 shrink-0 text-muted-foreground"
+                                                        aria-label={t('emoji')}
+                                                    >
+                                                        <Smile className="size-4" />
+                                                    </Button>
+                                                </PopoverTrigger>
+                                                <PopoverContent
+                                                    className="w-64 p-2"
+                                                    align="start"
+                                                    side="top"
+                                                >
+                                                    <div className="grid grid-cols-8 gap-0.5">
+                                                        {EMOJIS.map((emoji) => (
+                                                            <button
+                                                                key={emoji}
+                                                                type="button"
+                                                                className="rounded-md p-1 text-lg hover:bg-muted"
+                                                                onClick={() =>
+                                                                    insertEmoji(
+                                                                        emoji,
+                                                                    )
+                                                                }
+                                                            >
+                                                                {emoji}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </PopoverContent>
+                                            </Popover>
+                                            <Textarea
+                                                ref={composerRef}
+                                                value={composer}
+                                                onChange={(e) =>
+                                                    setComposer(e.target.value)
+                                                }
+                                                placeholder={t(
+                                                    'composer_placeholder',
+                                                )}
+                                                rows={1}
+                                                className="max-h-32 min-h-11 flex-1 resize-none"
+                                                onKeyDown={(e) => {
+                                                    if (
+                                                        e.key === 'Enter' &&
+                                                        !e.shiftKey
+                                                    ) {
+                                                        e.preventDefault();
+                                                        void sendMessage();
+                                                    }
+                                                }}
+                                            />
+                                            <Button
+                                                type="submit"
+                                                size="icon"
+                                                disabled={
+                                                    sending ||
+                                                    (!composer.trim() &&
+                                                        files.length === 0)
+                                                }
+                                                className="size-10 shrink-0 bg-emerald-600 hover:bg-emerald-700"
+                                            >
+                                                {sending ? (
+                                                    <Loader2 className="size-4 animate-spin" />
+                                                ) : (
+                                                    <SendHorizonal className="size-4" />
+                                                )}
+                                                <span className="sr-only">
+                                                    {t('send')}
+                                                </span>
+                                            </Button>
+                                        </div>
+                                        <p className="mt-1.5 text-[10px] text-muted-foreground">
+                                            {t('attach_hint')}
+                                        </p>
                                     </form>
                                 ) : null}
                             </>
                         )}
                     </section>
                 </div>
-            </div>
+            </ChatShell>
 
             <Dialog open={broadcastOpen} onOpenChange={setBroadcastOpen}>
                 <DialogContent>
@@ -763,7 +1057,9 @@ export default function PlataformaChatSoportePage({
                             {broadcasting ? (
                                 <Loader2 className="size-4 animate-spin" />
                             ) : null}
-                            {t('broadcast_confirm', { count: tenants.length })}
+                            {t('broadcast_confirm', {
+                                count: tenants.length,
+                            })}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

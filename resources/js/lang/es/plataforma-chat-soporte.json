@@ -25,5 +25,13 @@
     "loading": "Cargando…",
     "ensure_error": "No se pudo abrir el hilo de soporte.",
     "send_error": "No se pudo enviar el mensaje.",
-    "you": "Soporte"
+    "you": "Soporte",
+    "attach": "Adjuntar archivo",
+    "emoji": "Emojis",
+    "attach_hint": "Hasta 5 archivos · fotos, PDF u Office · máx. 15 MB c/u",
+    "list_title": "Clínicas",
+    "list_hint": "Elige una clínica",
+    "search_thread": "Buscar en el hilo…",
+    "search_thread_empty": "Sin coincidencias en este chat.",
+    "search_thread_hint": "Escribe para buscar mensajes"
 }

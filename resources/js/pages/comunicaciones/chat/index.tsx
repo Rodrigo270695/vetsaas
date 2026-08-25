@@ -47,6 +47,7 @@ import {
 } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PushNotificationPrompt } from '@/components/push/push-notification-prompt';
+import { ChatMessageScroller, ChatSearchInput, ChatShell } from '@/components/chat';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -2005,10 +2006,7 @@ export default function ChatInternoIndex({
         <>
             <Head title={t('title')} />
 
-            <div
-                data-fixed-viewport
-                className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-card max-lg:rounded-none max-lg:border-0 max-lg:shadow-none lg:m-3 lg:rounded-2xl lg:border lg:border-border/60 lg:shadow-sm"
-            >
+            <ChatShell>
                 <div
                     className={cn(
                         'flex items-center justify-between gap-3 border-b border-border/60 bg-linear-to-r from-emerald-50/90 via-card to-teal-50/40 px-4 py-3 dark:from-emerald-950/40 dark:via-card dark:to-teal-950/20',
@@ -2199,15 +2197,11 @@ export default function ChatInternoIndex({
                         </div>
 
                         <div className="border-b border-border/50 p-3">
-                            <div className="relative">
-                                <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                                <Input
-                                    value={listQuery}
-                                    onChange={(e) => setListQuery(e.target.value)}
-                                    placeholder={t('search_placeholder')}
-                                    className="h-9 border-border/60 bg-background/80 pl-8 text-sm"
-                                />
-                            </div>
+                            <ChatSearchInput
+                                value={listQuery}
+                                onChange={(e) => setListQuery(e.target.value)}
+                                placeholder={t('search_placeholder')}
+                            />
                         </div>
 
                         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
@@ -2512,7 +2506,7 @@ export default function ChatInternoIndex({
 
                                     {searchOpen ? (
                                         <div className="relative px-1 sm:px-0">
-                                            <Input
+                                            <ChatSearchInput
                                                 value={threadQuery}
                                                 onChange={(e) =>
                                                     setThreadQuery(
@@ -2520,7 +2514,6 @@ export default function ChatInternoIndex({
                                                     )
                                                 }
                                                 placeholder={t('search_thread')}
-                                                className="h-9 border-border/60 bg-background/90 text-sm"
                                                 autoFocus
                                             />
                                             {(threadQuery.trim().length >= 2
@@ -2573,7 +2566,7 @@ export default function ChatInternoIndex({
                                     ) : null}
                                 </header>
 
-                                <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4">
+                                <ChatMessageScroller className="px-4" contentClassName="gap-3">
                                     {threadItems.map((item) => {
                                         if (item.kind === 'sep') {
                                             return (
@@ -3001,7 +2994,7 @@ export default function ChatInternoIndex({
                                         );
                                     })}
                                     <div ref={bottomRef} />
-                                </div>
+                                </ChatMessageScroller>
 
                                 <form
                                     onSubmit={submitMessage}
@@ -3288,7 +3281,7 @@ export default function ChatInternoIndex({
                         )}
                     </section>
                 </div>
-            </div>
+            </ChatShell>
 
             <Dialog
                 open={!!lightbox}
@@ -3501,12 +3494,11 @@ export default function ChatInternoIndex({
                     </DialogHeader>
                     <div className="space-y-3 p-4">
                         <div className="relative">
-                            <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                            <Input
+                            <ChatSearchInput
                                 value={userQuery}
                                 onChange={(e) => setUserQuery(e.target.value)}
                                 placeholder={t('direct_search')}
-                                className="h-10 border-border/60 bg-muted/30 pl-8"
+                                className="h-10 bg-muted/30"
                             />
                         </div>
                         <div className="max-h-72 space-y-1 overflow-y-auto rounded-xl border border-border/50 bg-muted/15 p-1.5">
@@ -3633,14 +3625,13 @@ export default function ChatInternoIndex({
                                     </span>
                                 </div>
                                 <div className="relative">
-                                    <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                                    <Input
+                                    <ChatSearchInput
                                         value={userQuery}
                                         onChange={(e) =>
                                             setUserQuery(e.target.value)
                                         }
                                         placeholder={t('direct_search')}
-                                        className="h-10 border-border/60 bg-muted/30 pl-8"
+                                        className="h-10 bg-muted/30"
                                     />
                                 </div>
                                 <div className="max-h-52 space-y-1 overflow-y-auto rounded-xl border border-border/50 bg-muted/15 p-1.5">

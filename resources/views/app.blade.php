@@ -2,7 +2,7 @@
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" @class(['dark' => ($appearance ?? 'system') == 'dark'])>
     <head>
         <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-content">
         <meta name="theme-color" content="#008064" media="(prefers-color-scheme: light)">
         <meta name="theme-color" content="#0A1F18" media="(prefers-color-scheme: dark)">
         <meta name="application-name" content="{{ config('app.name', 'VetSaaS') }}">

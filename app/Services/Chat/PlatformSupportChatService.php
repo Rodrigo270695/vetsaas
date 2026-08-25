@@ -11,6 +11,7 @@ use App\Models\PlatformSupportThread;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Tenancy\TenantManager;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -149,14 +150,23 @@ final class PlatformSupportChatService
     }
 
     /**
+     * @param  UploadedFile|list<UploadedFile>|null  $attachment
      * @return array{message: array<string, mixed>, conversation_id: string}
      */
-    public function sendToTenant(Tenant $tenant, string $body, ?User $platformActor = null): array
-    {
-        $body = trim($body);
-        if ($body === '') {
+    public function sendToTenant(
+        Tenant $tenant,
+        ?string $body,
+        ?User $platformActor = null,
+        UploadedFile|array|null $attachment = null,
+    ): array {
+        $body = trim((string) $body);
+        $files = is_array($attachment)
+            ? array_values(array_filter($attachment, static fn ($f): bool => $f instanceof UploadedFile))
+            : ($attachment instanceof UploadedFile ? [$attachment] : []);
+
+        if ($body === '' && $files === []) {
             throw ValidationException::withMessages([
-                'body' => __('Escribe un mensaje.'),
+                'body' => __('Escribe un mensaje o adjunta un archivo.'),
             ]);
         }
 
@@ -168,7 +178,7 @@ final class PlatformSupportChatService
 
         $this->ensureThread($tenant);
 
-        $payload = $this->tenants->runForTenant($tenant, function () use ($tenant, $body, $platformActor): array {
+        $payload = $this->tenants->runForTenant($tenant, function () use ($tenant, $body, $platformActor, $files): array {
             $supportUser = $this->ensureSupportUser($tenant);
             $adminIds = $this->adminUserIds($tenant);
             $conversation = $this->chat->ensureSupportGroup($supportUser, $adminIds);
@@ -184,14 +194,20 @@ final class PlatformSupportChatService
             $message = $this->chat->sendMessage(
                 $conversation,
                 $supportUser,
-                $prefix.$body,
+                $body === '' ? '' : $prefix.$body,
+                $files === [] ? null : $files,
                 tenantSlug: (string) $tenant->slug,
             );
 
+            $serialized = $this->chat->serializeMessage($message, $supportUser, $conversation);
+            $previewBody = $body === ''
+                ? (string) ($serialized['body'] ?? '📎')
+                : mb_substr($prefix.$body, 0, 280);
+
             return [
                 'conversation_id' => (string) $conversation->id,
-                'message' => $this->chat->serializeMessage($message, $supportUser, $conversation),
-                'preview' => mb_substr($prefix.$body, 0, 280),
+                'message' => $serialized,
+                'preview' => mb_substr($previewBody, 0, 280),
                 'at' => $message->created_at,
             ];
         }, enforceAccess: false);

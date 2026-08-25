@@ -234,14 +234,32 @@ export function NavMainCollapsible({
                     </SidebarMenuItem>
                 ))}
 
-                {visibleGroups.map((group) => (
+                {visibleGroups.map((group) => {
+                    const groupBadge = group.items.reduce(
+                        (sum, item) =>
+                            sum
+                            + (typeof item.badgeCount === 'number' && item.badgeCount > 0
+                                ? item.badgeCount
+                                : 0),
+                        0,
+                    );
+
+                    return (
                     <Collapsible
                         key={group.title}
                         asChild
                         defaultOpen={initialOpenMap[group.title]}
                         className="group/collapsible"
                     >
-                        <SidebarMenuItem>
+                        <SidebarMenuItem className="relative">
+                            {groupBadge > 0 ? (
+                                <span
+                                    aria-label={`${groupBadge} sin leer`}
+                                    className="pointer-events-none absolute top-0.5 right-0.5 z-20 hidden h-4 min-w-4 items-center justify-center rounded-full bg-emerald-600 px-0.5 text-[0.6rem] font-bold text-white shadow-sm group-data-[collapsible=icon]:flex"
+                                >
+                                    {groupBadge > 99 ? '99+' : groupBadge}
+                                </span>
+                            ) : null}
                             <CollapsibleTrigger asChild>
                                 <SidebarMenuButton
                                     tooltip={{ children: group.title }}
@@ -250,10 +268,15 @@ export function NavMainCollapsible({
                                     {group.icon && (
                                         <group.icon className="transition-colors group-data-[state=open]/collapsible:text-primary" />
                                     )}
-                                    <span className="transition-colors group-data-[state=open]/collapsible:text-foreground">
+                                    <span className="min-w-0 flex-1 truncate transition-colors group-data-[state=open]/collapsible:text-foreground">
                                         {group.title}
                                     </span>
-                                    <ChevronRight className="ml-auto size-4 text-muted-foreground transition-all duration-300 group-data-[state=open]/collapsible:rotate-90 group-data-[state=open]/collapsible:text-primary" />
+                                    {groupBadge > 0 ? (
+                                        <Badge className="h-5 min-w-5 shrink-0 justify-center rounded-full bg-emerald-600 px-1.5 text-[0.65rem] font-semibold text-white hover:bg-emerald-600 group-data-[collapsible=icon]:hidden">
+                                            {groupBadge > 99 ? '99+' : groupBadge}
+                                        </Badge>
+                                    ) : null}
+                                    <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-all duration-300 group-data-[state=open]/collapsible:rotate-90 group-data-[state=open]/collapsible:text-primary group-data-[collapsible=icon]:hidden" />
                                 </SidebarMenuButton>
                             </CollapsibleTrigger>
 
@@ -277,7 +300,8 @@ export function NavMainCollapsible({
                             </CollapsibleContent>
                         </SidebarMenuItem>
                     </Collapsible>
-                ))}
+                    );
+                })}
             </SidebarMenu>
         </SidebarGroup>
     );
