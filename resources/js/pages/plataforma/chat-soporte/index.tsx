@@ -1,4 +1,5 @@
 import { Head, router, usePage } from '@inertiajs/react';
+import { enUS, es as esLocale } from 'date-fns/locale';
 import {
     Check,
     ChevronLeft,
@@ -27,7 +28,12 @@ import {
 } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+    buildChatThreadItems,
+    ChatDeliveryReceipt,
+    ChatImageLightbox,
     ChatListAside,
+    ChatMessageActionSheet,
+    ChatMessagePressable,
     ChatMessageScroller,
     ChatPageHeader,
     ChatSearchInput,
@@ -104,6 +110,7 @@ type ChatReaction = {
     emoji: string;
     count: number;
     reacted?: boolean;
+    mine?: boolean;
 };
 
 type ReplyPreview = {
@@ -127,6 +134,8 @@ type ChatMessage = {
     attachment?: ChatAttachment | null;
     reply_to?: ReplyPreview | null;
     reactions?: ChatReaction[];
+    delivery_status?: 'sent' | 'delivered' | 'read';
+    read_by?: { user_id: string; name: string }[];
 };
 
 type ForwardTarget = {
@@ -233,11 +242,12 @@ export default function PlataformaChatSoportePage({
     tenants: initialTenants,
     filters,
 }: Props) {
-    const { t } = useTranslation('plataforma-chat-soporte');
+    const { t, i18n } = useTranslation('plataforma-chat-soporte');
     const { can } = usePermission();
     const canManage = can('plataforma-chat-soporte.manage');
     const page = usePage();
     const { setActiveTenantId } = usePlatformSupportChatUnread();
+    const dateFnsLocale = i18n.language?.startsWith('en') ? enUS : esLocale;
     const deepLinkTenant = useMemo(() => {
         const raw = (page.url.match(/[?&]tenant=([^&]+)/) ?? [])[1];
         return raw ? decodeURIComponent(raw) : null;
@@ -275,6 +285,13 @@ export default function PlataformaChatSoportePage({
     const [forwardTargetId, setForwardTargetId] = useState('');
     const [forwardLoading, setForwardLoading] = useState(false);
     const [forwarding, setForwarding] = useState(false);
+    const [lightbox, setLightbox] = useState<{
+        url: string;
+        name: string;
+    } | null>(null);
+    const [actionMessage, setActionMessage] = useState<ChatMessage | null>(
+        null,
+    );
 
     const bottomRef = useRef<HTMLDivElement | null>(null);
     const fileRef = useRef<HTMLInputElement | null>(null);
@@ -325,6 +342,16 @@ export default function PlataformaChatSoportePage({
         return messages.filter((m) => m.body.toLowerCase().includes(q));
     }, [messages, threadQuery]);
 
+    const threadItems = useMemo(
+        () =>
+            buildChatThreadItems(
+                messages,
+                { today: t('today'), yesterday: t('yesterday') },
+                dateFnsLocale,
+            ),
+        [messages, t, dateFnsLocale],
+    );
+
     const planOptions: { value: PlanFilter; label: string }[] = [
         { value: 'all', label: t('plan_all') },
         { value: 'free', label: t('plan_free') },
@@ -355,6 +382,8 @@ export default function PlataformaChatSoportePage({
         setEditingMessage(null);
         setDeleteMessage(null);
         setForwardMessage(null);
+        setLightbox(null);
+        setActionMessage(null);
         setSearchOpen(false);
         setThreadQuery('');
         setLoadingThread(true);
@@ -971,27 +1000,35 @@ export default function PlataformaChatSoportePage({
                                             {t('no_messages')}
                                         </p>
                                     ) : (
-                                        messages.map((m) => {
+                                        threadItems.map((item) => {
+                                            if (item.kind === 'sep') {
+                                                return (
+                                                    <div
+                                                        key={item.key}
+                                                        className="flex items-center justify-center py-1"
+                                                    >
+                                                        <span className="rounded-full bg-muted/80 px-3 py-0.5 text-[10px] font-medium text-muted-foreground">
+                                                            {item.label}
+                                                        </span>
+                                                    </div>
+                                                );
+                                            }
+
+                                            const m = item.message;
                                             const deleted = isMessageDeleted(m);
                                             const atts = deleted
                                                 ? []
                                                 : messageAttachments(m);
                                             const reactions = m.reactions ?? [];
                                             return (
-                                                <div
+                                                <ChatMessagePressable
                                                     key={m.id}
-                                                    ref={(el) => {
-                                                        if (el) {
-                                                            messageRefs.current.set(
-                                                                m.id,
-                                                                el,
-                                                            );
-                                                        } else {
-                                                            messageRefs.current.delete(
-                                                                m.id,
-                                                            );
-                                                        }
-                                                    }}
+                                                    disabled={
+                                                        deleted || !canManage
+                                                    }
+                                                    onLongPress={() =>
+                                                        setActionMessage(m)
+                                                    }
                                                     className={cn(
                                                         'group flex',
                                                         m.mine
@@ -1001,7 +1038,21 @@ export default function PlataformaChatSoportePage({
                                                             'animate-pulse',
                                                     )}
                                                 >
-                                                    <div className="flex max-w-[min(85%,28rem)] flex-col gap-0.5">
+                                                    <div
+                                                        ref={(el) => {
+                                                            if (el) {
+                                                                messageRefs.current.set(
+                                                                    m.id,
+                                                                    el,
+                                                                );
+                                                            } else {
+                                                                messageRefs.current.delete(
+                                                                    m.id,
+                                                                );
+                                                            }
+                                                        }}
+                                                        className="flex max-w-[min(85%,28rem)] flex-col gap-0.5"
+                                                    >
                                                         <div
                                                             className={cn(
                                                                 'relative overflow-hidden rounded-2xl text-sm shadow-sm',
@@ -1079,16 +1130,23 @@ export default function PlataformaChatSoportePage({
                                                                         att.mime.startsWith(
                                                                             'image/',
                                                                         ) ? (
-                                                                            <a
+                                                                            <button
                                                                                 key={
                                                                                     att.url
                                                                                 }
-                                                                                href={
-                                                                                    att.url
+                                                                                type="button"
+                                                                                className="block w-full overflow-hidden rounded-lg text-left"
+                                                                                onClick={() =>
+                                                                                    setLightbox(
+                                                                                        {
+                                                                                            url: att.url,
+                                                                                            name: att.name,
+                                                                                        },
+                                                                                    )
                                                                                 }
-                                                                                target="_blank"
-                                                                                rel="noreferrer"
-                                                                                className="block overflow-hidden rounded-lg"
+                                                                                aria-label={t(
+                                                                                    'lightbox',
+                                                                                )}
                                                                             >
                                                                                 <img
                                                                                     src={
@@ -1099,7 +1157,7 @@ export default function PlataformaChatSoportePage({
                                                                                     }
                                                                                     className="max-h-56 w-full object-cover"
                                                                                 />
-                                                                            </a>
+                                                                            </button>
                                                                         ) : (
                                                                             <a
                                                                                 key={
@@ -1347,6 +1405,7 @@ export default function PlataformaChatSoportePage({
                                                                             className={cn(
                                                                                 'inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[11px] transition-colors',
                                                                                 r.reacted
+                                                                                    || r.mine
                                                                                     ? 'border-emerald-500/50 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200'
                                                                                     : 'border-border/60 bg-card text-foreground hover:bg-muted/70',
                                                                             )}
@@ -1378,8 +1437,44 @@ export default function PlataformaChatSoportePage({
                                                                 )}
                                                             </div>
                                                         ) : null}
+                                                        {m.mine && !deleted ? (
+                                                            <ChatDeliveryReceipt
+                                                                status={
+                                                                    m.delivery_status
+                                                                }
+                                                                readers={
+                                                                    m.read_by
+                                                                }
+                                                                excludeUserId={
+                                                                    m.user_id
+                                                                }
+                                                                labels={{
+                                                                    sent: t(
+                                                                        'delivery_sent',
+                                                                    ),
+                                                                    delivered: t(
+                                                                        'delivery_delivered',
+                                                                    ),
+                                                                    read: t(
+                                                                        'delivery_read',
+                                                                    ),
+                                                                    seen: t(
+                                                                        'seen',
+                                                                    ),
+                                                                    seenBy: (
+                                                                        names,
+                                                                    ) =>
+                                                                        t(
+                                                                            'seen_by',
+                                                                            {
+                                                                                names,
+                                                                            },
+                                                                        ),
+                                                                }}
+                                                            />
+                                                        ) : null}
                                                     </div>
-                                                </div>
+                                                </ChatMessagePressable>
                                             );
                                         })
                                     )}
@@ -1789,6 +1884,71 @@ export default function PlataformaChatSoportePage({
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            <ChatImageLightbox
+                open={!!lightbox}
+                url={lightbox?.url ?? null}
+                name={lightbox?.name}
+                title={t('lightbox')}
+                onOpenChange={(open) => {
+                    if (!open) setLightbox(null);
+                }}
+            />
+
+            <ChatMessageActionSheet
+                open={!!actionMessage}
+                onOpenChange={(open) => {
+                    if (!open) setActionMessage(null);
+                }}
+                mine={Boolean(actionMessage?.mine)}
+                preview={actionMessage?.body}
+                reactionEmojis={REACTION_EMOJIS}
+                labels={{
+                    title: t('message_actions_sheet'),
+                    hint: t('message_actions_hint'),
+                    reply: t('reply'),
+                    react: t('react'),
+                    forward: t('forward'),
+                    edit: t('edit'),
+                    delete: t('delete'),
+                }}
+                onReply={() => {
+                    if (!actionMessage) return;
+                    const atts = messageAttachments(actionMessage);
+                    setEditingMessage(null);
+                    setReplyTo({
+                        id: actionMessage.id,
+                        body:
+                            actionMessage.body
+                            || (atts[0]?.name ?? ''),
+                        user_id: actionMessage.user_id,
+                        user_name:
+                            actionMessage.user_name || t('you'),
+                    });
+                    composerRef.current?.focus();
+                }}
+                onReact={(emoji) => {
+                    if (!actionMessage) return;
+                    void toggleReaction(
+                        actionMessage,
+                        emoji as ReactionEmoji,
+                    );
+                }}
+                onForward={() => {
+                    if (!actionMessage) return;
+                    void openForward(actionMessage);
+                }}
+                onEdit={
+                    actionMessage?.mine
+                        ? () => startEditMessage(actionMessage)
+                        : undefined
+                }
+                onDelete={
+                    actionMessage?.mine
+                        ? () => setDeleteMessage(actionMessage)
+                        : undefined
+                }
+            />
         </>
     );
 }

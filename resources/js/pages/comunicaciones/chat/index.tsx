@@ -2,8 +2,6 @@ import { Head, router, useForm, usePage } from '@inertiajs/react';
 import {
     format,
     formatDistanceToNow,
-    isToday,
-    isYesterday,
     parseISO,
 } from 'date-fns';
 import { enUS, es as esLocale } from 'date-fns/locale';
@@ -11,7 +9,6 @@ import {
     Bell,
     BellOff,
     Check,
-    CheckCheck,
     ChevronLeft,
     FileText,
     Forward,
@@ -47,7 +44,17 @@ import {
 } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PushNotificationPrompt } from '@/components/push/push-notification-prompt';
-import { ChatListAside, ChatMessageScroller, ChatSearchInput, ChatShell } from '@/components/chat';
+import {
+    buildChatThreadItems,
+    ChatDeliveryReceipt,
+    ChatImageLightbox,
+    ChatListAside,
+    ChatMessageActionSheet,
+    ChatMessagePressable,
+    ChatMessageScroller,
+    ChatSearchInput,
+    ChatShell,
+} from '@/components/chat';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -118,6 +125,7 @@ type ChatReaction = {
     emoji: ChatReactionEmoji | string;
     count: number;
     reacted?: boolean;
+    mine?: boolean;
     user_ids?: string[];
 };
 
@@ -312,15 +320,6 @@ function formatBytes(n: number): string {
     return `${(n / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function dayKey(iso: string | null | undefined): string {
-    if (!iso) return '';
-    try {
-        return format(parseISO(iso), 'yyyy-MM-dd');
-    } catch {
-        return '';
-    }
-}
-
 function playChatChime(): void {
     try {
         const Ctx =
@@ -376,10 +375,6 @@ function extractMentionIds(body: string, directory: ChatUser[]): string[] {
 
     return ids;
 }
-
-type ThreadItem =
-    | { kind: 'sep'; key: string; label: string }
-    | { kind: 'msg'; key: string; message: ChatMessage };
 
 async function loadChatEchoModules(): Promise<{
     EchoCtor: new (opts: Record<string, unknown>) => ChatEchoInstance;
@@ -535,6 +530,9 @@ export default function ChatInternoIndex({
         url: string;
         name: string;
     } | null>(null);
+    const [actionMessage, setActionMessage] = useState<ChatMessage | null>(
+        null,
+    );
     const [soundOn, setSoundOn] = useState(() => isSoundEnabled());
     const [retentionValue, setRetentionValue] = useState<number | ''>(
         retention_days ?? '',
@@ -1101,35 +1099,15 @@ export default function ChatInternoIndex({
         return base.filter((u) => u.name.toLowerCase().includes(q));
     }, [active?.participants, users, meId, mentionQuery]);
 
-    const threadItems = useMemo((): ThreadItem[] => {
-        const messages = active?.messages ?? [];
-        const items: ThreadItem[] = [];
-        let prevDay = '';
-
-        for (const m of messages) {
-            const key = dayKey(m.created_at);
-            if (key && key !== prevDay) {
-                prevDay = key;
-                let label = key;
-                try {
-                    const d = parseISO(m.created_at!);
-                    if (isToday(d)) label = t('today');
-                    else if (isYesterday(d)) label = t('yesterday');
-                    else {
-                        label = format(d, 'EEEE d MMM yyyy', {
-                            locale: dateFnsLocale,
-                        });
-                    }
-                } catch {
-                    // keep key
-                }
-                items.push({ kind: 'sep', key: `sep-${key}`, label });
-            }
-            items.push({ kind: 'msg', key: m.id, message: m });
-        }
-
-        return items;
-    }, [active?.messages, t, dateFnsLocale]);
+    const threadItems = useMemo(
+        () =>
+            buildChatThreadItems(
+                active?.messages ?? [],
+                { today: t('today'), yesterday: t('yesterday') },
+                dateFnsLocale,
+            ),
+        [active?.messages, t, dateFnsLocale],
+    );
 
     const [mobileListOpen, setMobileListOpen] = useState(() => !active);
 
@@ -1870,44 +1848,19 @@ export default function ChatInternoIndex({
     const renderDeliveryStatus = (m: ChatMessage) => {
         if (!m.mine && m.user_id !== meId) return null;
 
-        const readers = (m.read_by ?? []).filter((r) => r.user_id !== meId);
-        const status =
-            m.delivery_status
-            ?? (readers.length > 0 ? 'read' : 'sent');
-
-        const label =
-            status === 'read'
-                ? t('delivery_read')
-                : status === 'delivered'
-                  ? t('delivery_delivered')
-                  : t('delivery_sent');
-
-        const Icon = status === 'sent' ? Check : CheckCheck;
-        const seenNames =
-            status === 'read' && readers.length > 0
-                ? readers.length === 1
-                    ? t('seen_by', { names: readers[0].name })
-                    : readers.length <= 3
-                      ? t('seen_by', {
-                            names: readers.map((r) => r.name).join(', '),
-                        })
-                      : `${t('seen')} · ${readers.length}`
-                : null;
-
         return (
-            <p className="flex items-center justify-end gap-1 px-1 text-[10px] text-muted-foreground">
-                <Icon
-                    className={cn(
-                        'size-3 shrink-0',
-                        status === 'read'
-                            && 'text-sky-600 dark:text-sky-400',
-                        status === 'delivered'
-                            && 'text-muted-foreground',
-                    )}
-                    aria-hidden
-                />
-                <span>{seenNames ?? label}</span>
-            </p>
+            <ChatDeliveryReceipt
+                status={m.delivery_status}
+                readers={m.read_by}
+                excludeUserId={meId}
+                labels={{
+                    sent: t('delivery_sent'),
+                    delivered: t('delivery_delivered'),
+                    read: t('delivery_read'),
+                    seen: t('seen'),
+                    seenBy: (names) => t('seen_by', { names }),
+                }}
+            />
         );
     };
 
@@ -2546,20 +2499,12 @@ export default function ChatInternoIndex({
                                         const reactions = m.reactions ?? [];
 
                                         return (
-                                            <div
+                                            <ChatMessagePressable
                                                 key={m.id}
-                                                ref={(el) => {
-                                                    if (el) {
-                                                        messageRefs.current.set(
-                                                            m.id,
-                                                            el,
-                                                        );
-                                                    } else {
-                                                        messageRefs.current.delete(
-                                                            m.id,
-                                                        );
-                                                    }
-                                                }}
+                                                disabled={deleted}
+                                                onLongPress={() =>
+                                                    setActionMessage(m)
+                                                }
                                                 className={cn(
                                                     'group flex',
                                                     mine
@@ -2569,7 +2514,21 @@ export default function ChatInternoIndex({
                                                         && 'animate-pulse',
                                                 )}
                                             >
-                                                <div className="flex max-w-[min(100%,30rem)] flex-col gap-0.5">
+                                                <div
+                                                    ref={(el) => {
+                                                        if (el) {
+                                                            messageRefs.current.set(
+                                                                m.id,
+                                                                el,
+                                                            );
+                                                        } else {
+                                                            messageRefs.current.delete(
+                                                                m.id,
+                                                            );
+                                                        }
+                                                    }}
+                                                    className="flex max-w-[min(100%,30rem)] flex-col gap-0.5"
+                                                >
                                                     <div
                                                         className={cn(
                                                             'relative overflow-hidden rounded-2xl text-sm shadow-sm',
@@ -2911,7 +2870,7 @@ export default function ChatInternoIndex({
                                                                         type="button"
                                                                         className={cn(
                                                                             'inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[11px] transition-colors',
-                                                                            r.reacted
+                                                                            r.reacted || r.mine
                                                                                 ? 'border-emerald-500/50 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200'
                                                                                 : 'border-border/60 bg-card text-foreground hover:bg-muted/70',
                                                                         )}
@@ -2943,7 +2902,7 @@ export default function ChatInternoIndex({
 
                                                     {readLabel}
                                                 </div>
-                                            </div>
+                                            </ChatMessagePressable>
                                         );
                                     })}
                                     <div ref={bottomRef} />
@@ -3236,28 +3195,75 @@ export default function ChatInternoIndex({
                 </div>
             </ChatShell>
 
-            <Dialog
+            <ChatImageLightbox
                 open={!!lightbox}
+                url={lightbox?.url ?? null}
+                name={lightbox?.name}
+                title={t('lightbox')}
                 onOpenChange={(open) => {
                     if (!open) setLightbox(null);
                 }}
-            >
-                <DialogContent className="max-h-[95dvh] max-w-[95vw] overflow-hidden border-0 bg-black/95 p-2 sm:max-w-4xl">
-                    <DialogHeader className="sr-only">
-                        <DialogTitle>{t('lightbox')}</DialogTitle>
-                        <DialogDescription>
-                            {lightbox?.name}
-                        </DialogDescription>
-                    </DialogHeader>
-                    {lightbox ? (
-                        <img
-                            src={lightbox.url}
-                            alt={lightbox.name}
-                            className="mx-auto max-h-[85dvh] w-auto max-w-full object-contain"
-                        />
-                    ) : null}
-                </DialogContent>
-            </Dialog>
+            />
+
+            <ChatMessageActionSheet
+                open={!!actionMessage}
+                onOpenChange={(open) => {
+                    if (!open) setActionMessage(null);
+                }}
+                mine={Boolean(
+                    actionMessage
+                    && (actionMessage.mine || actionMessage.user_id === meId),
+                )}
+                preview={actionMessage?.body}
+                reactionEmojis={REACTION_EMOJIS}
+                labels={{
+                    title: t('message_actions'),
+                    hint: t('message_actions_hint'),
+                    reply: t('reply'),
+                    react: t('react'),
+                    forward: t('forward'),
+                    edit: t('edit'),
+                    delete: t('delete'),
+                }}
+                onReply={() => {
+                    if (!actionMessage) return;
+                    const atts = messageAttachments(actionMessage);
+                    setEditingMessage(null);
+                    setReplyTo({
+                        id: actionMessage.id,
+                        body:
+                            actionMessage.body
+                            || (atts[0]?.name ?? ''),
+                        user_id: actionMessage.user_id,
+                        user_name: actionMessage.user_name,
+                    });
+                    textareaRef.current?.focus();
+                }}
+                onReact={(emoji) => {
+                    if (!actionMessage) return;
+                    void toggleReaction(
+                        actionMessage,
+                        emoji as ChatReactionEmoji,
+                    );
+                }}
+                onForward={() => {
+                    if (!actionMessage) return;
+                    setForwardMessage(actionMessage);
+                    setForwardTargetId('');
+                }}
+                onEdit={
+                    actionMessage
+                    && (actionMessage.mine || actionMessage.user_id === meId)
+                        ? () => startEditMessage(actionMessage)
+                        : undefined
+                }
+                onDelete={
+                    actionMessage
+                    && (actionMessage.mine || actionMessage.user_id === meId)
+                        ? () => setDeleteMessage(actionMessage)
+                        : undefined
+                }
+            />
 
             <Dialog
                 open={mediaOpen}

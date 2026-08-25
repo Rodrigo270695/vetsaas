@@ -112,5 +112,6 @@
     "edit_cancel": "Cancel edit",
     "edit_banner": "Editing message",
     "message_actions": "Message actions",
+    "message_actions_hint": "Long-press a message for more options",
     "link_open": "Open link"
 }

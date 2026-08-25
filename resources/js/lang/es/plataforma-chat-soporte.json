@@ -58,5 +58,15 @@
     "delete_confirm_hint": "El mensaje se marcará como eliminado para todos.",
     "message_deleted": "Mensaje eliminado",
     "cancel": "Cancelar",
-    "action_error": "No se pudo completar la acción."
+    "action_error": "No se pudo completar la acción.",
+    "today": "Hoy",
+    "yesterday": "Ayer",
+    "lightbox": "Ver imagen",
+    "delivery_sent": "Enviado",
+    "delivery_delivered": "Entregado",
+    "delivery_read": "Leído",
+    "seen": "Visto",
+    "seen_by": "Visto por {{names}}",
+    "message_actions_sheet": "Acciones",
+    "message_actions_hint": "Mantén pulsado un mensaje para más opciones"
 }

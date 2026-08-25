@@ -58,5 +58,15 @@
     "delete_confirm_hint": "The message will be marked as deleted for everyone.",
     "message_deleted": "Message deleted",
     "cancel": "Cancel",
-    "action_error": "Could not complete the action."
+    "action_error": "Could not complete the action.",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "lightbox": "View image",
+    "delivery_sent": "Sent",
+    "delivery_delivered": "Delivered",
+    "delivery_read": "Read",
+    "seen": "Seen",
+    "seen_by": "Seen by {{names}}",
+    "message_actions_sheet": "Actions",
+    "message_actions_hint": "Long-press a message for more options"
 }

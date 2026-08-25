@@ -1056,6 +1056,7 @@ final class TenantChatService
                     'emoji' => $emoji,
                     'count' => count($userIds),
                     'mine' => in_array((string) $actor->id, $userIds, true),
+                    'reacted' => in_array((string) $actor->id, $userIds, true),
                     'user_ids' => $userIds,
                 ];
             })
