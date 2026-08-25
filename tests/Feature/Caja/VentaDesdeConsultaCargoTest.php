@@ -175,6 +175,18 @@ it('rechaza cobro si la pre-cuenta no está confirmada', function (): void {
 it('muestra POS precargado desde consulta con sesión abierta', function (): void {
     $consultaId = $this->scenario['consulta']->id;
 
+    TenantContext::runForSlug($this->slug, function (): void {
+        $linea = $this->scenario['linea_servicio'];
+        $linea->descuento_importe = '10.00';
+        $linea->save();
+
+        $cargo = ConsultaCargo::query()->findOrFail($this->scenario['cargo']->id);
+        $cargo->subtotal_sin_igv = '50.85';
+        $cargo->igv_importe = '9.15';
+        $cargo->total = '60.00';
+        $cargo->save();
+    });
+
     $this->actingAs($this->cajero)
         ->get($this->baseUrl.'/caja/ventas/desde-consulta/'.$consultaId)
         ->assertOk()
@@ -183,7 +195,9 @@ it('muestra POS precargado desde consulta con sesión abierta', function (): voi
             ->has('desde_cargo', fn (Assert $dc) => $dc
                 ->where('consulta_id', $consultaId)
                 ->where('consulta_cargo_id', $this->scenario['cargo']->id)
+                ->where('cargo_total', '60.00')
                 ->has('lineas_iniciales', 2)
+                ->where('lineas_iniciales.0.descuento_importe', '10.00')
                 ->etc()
             )
             ->where('puede_vender', true));

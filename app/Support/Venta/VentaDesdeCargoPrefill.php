@@ -35,6 +35,7 @@ final class VentaDesdeCargoPrefill
      *         concepto: string,
      *         cantidad: string,
      *         precio_lista: string,
+     *         descuento_importe: string,
      *         stock_sede: string,
      *         consulta_cargo_linea_id: string,
      *     }>,
@@ -364,6 +365,7 @@ final class VentaDesdeCargoPrefill
                     'concepto' => $concepto,
                     'cantidad' => '1.00',
                     'precio_lista' => $precioLista,
+                    'descuento_importe' => '0.00',
                     'stock_sede' => '0',
                     'consulta_cargo_linea_id' => null,
                 ],
@@ -532,6 +534,7 @@ final class VentaDesdeCargoPrefill
                     'concepto' => $concepto,
                     'cantidad' => $cantidad,
                     'precio_lista' => $precioPorNoche,
+                    'descuento_importe' => '0.00',
                     'stock_sede' => '0',
                     'consulta_cargo_linea_id' => null,
                 ],
@@ -983,6 +986,29 @@ final class VentaDesdeCargoPrefill
     }
 
     /**
+     * El `descuento_monto` del POS siempre reduce lo que paga el cliente (bruto).
+     * En precuenta, `descuento_importe` está en la misma base que `precio_unitario`
+     * (bruto o neto según cómo se guardó el cargo).
+     */
+    private function descuentoMontoParaVenta(
+        float $descuentoImporte,
+        bool $storedGross,
+        float $igvPct,
+    ): string {
+        if ($descuentoImporte <= 0.0001) {
+            return number_format(0, 2, '.', '');
+        }
+
+        if ($storedGross) {
+            return number_format(round($descuentoImporte, 2), 2, '.', '');
+        }
+
+        $factor = 1 + max(0.0, $igvPct) / 100;
+
+        return number_format(round($descuentoImporte * $factor, 2), 2, '.', '');
+    }
+
+    /**
      * @param  iterable<int, ConsultaCargoLinea>  $lineas
      * @param  array<string|int, mixed>  $stocks
      * @return list<array{
@@ -991,6 +1017,7 @@ final class VentaDesdeCargoPrefill
      *     concepto: string,
      *     cantidad: string,
      *     precio_lista: string,
+     *     descuento_importe: string,
      *     stock_sede: string,
      *     consulta_cargo_linea_id: string,
      * }>
@@ -1018,6 +1045,11 @@ final class VentaDesdeCargoPrefill
                     (float) (string) $ln->precio_unitario,
                     $storedGross,
                     $incluyeDestino,
+                    $igvPct,
+                ),
+                'descuento_importe' => $this->descuentoMontoParaVenta(
+                    (float) (string) ($ln->descuento_importe ?? 0),
+                    $storedGross,
                     $igvPct,
                 ),
                 'stock_sede' => $stock,

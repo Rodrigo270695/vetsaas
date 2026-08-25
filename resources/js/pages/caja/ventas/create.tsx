@@ -241,10 +241,16 @@ export default function Create({
             const qty = Number(ln.cantidad) || 1;
             const precio = Number(ln.precio_lista) || 0;
             const lineGross = Math.round(qty * precio * 100) / 100;
-            let descuentoMonto = 0;
-            if (adelantoRestante > 0.009 && lineGross > 0) {
-                descuentoMonto = Math.min(adelantoRestante, lineGross);
-                adelantoRestante = Math.round((adelantoRestante - descuentoMonto) * 100) / 100;
+            let descuentoMonto = Math.min(
+                lineGross,
+                Math.max(0, Number(ln.descuento_importe ?? 0) || 0),
+            );
+            descuentoMonto = Math.round(descuentoMonto * 100) / 100;
+            const netoTrasDescuento = Math.round((lineGross - descuentoMonto) * 100) / 100;
+            if (adelantoRestante > 0.009 && netoTrasDescuento > 0.009) {
+                const adelantoLinea = Math.min(adelantoRestante, netoTrasDescuento);
+                descuentoMonto = Math.round((descuentoMonto + adelantoLinea) * 100) / 100;
+                adelantoRestante = Math.round((adelantoRestante - adelantoLinea) * 100) / 100;
             }
 
             return {

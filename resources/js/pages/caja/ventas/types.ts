@@ -109,6 +109,8 @@ export type LineaInicialDesdeCargo = {
     concepto: string;
     cantidad: string;
     precio_lista: string;
+    /** Descuento de línea de la precuenta, ya en monto que paga el cliente. */
+    descuento_importe?: string;
     stock_sede: string;
     consulta_cargo_linea_id: string | null;
 };
