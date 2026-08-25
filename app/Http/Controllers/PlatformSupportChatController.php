@@ -25,6 +25,8 @@ final class PlatformSupportChatController extends Controller
                 'plan' => in_array($plan, ['all', 'free', 'paid'], true) ? $plan : 'all',
                 'q' => $search,
             ],
+            'agents' => $service->assignableAgents(),
+            'templates' => $service->listTemplates(true),
             'broadcast' => [
                 'enabled' => filled(config('broadcasting.connections.reverb.key'))
                     && config('broadcasting.default') === 'reverb',
@@ -202,6 +204,151 @@ final class PlatformSupportChatController extends Controller
             'ok' => true,
             'typing' => $service->typingForTenant($tenant),
         ]);
+    }
+
+    public function messageContext(
+        Tenant $tenant,
+        string $message,
+        PlatformSupportChatService $service,
+    ): JsonResponse {
+        return response()->json([
+            'messages' => $service->messageContext($tenant, $message),
+        ]);
+    }
+
+    public function assign(
+        Request $request,
+        Tenant $tenant,
+        PlatformSupportChatService $service,
+    ): JsonResponse {
+        $data = $request->validate([
+            'assigned_agent_id' => ['nullable', 'uuid'],
+        ]);
+
+        return response()->json(
+            $service->assignAgent(
+                $tenant,
+                isset($data['assigned_agent_id']) ? (string) $data['assigned_agent_id'] : null,
+            ),
+        );
+    }
+
+    public function mute(
+        Request $request,
+        Tenant $tenant,
+        PlatformSupportChatService $service,
+    ): JsonResponse {
+        $data = $request->validate([
+            'muted' => ['required', 'boolean'],
+        ]);
+
+        return response()->json(
+            $service->setMuted($tenant, (bool) $data['muted']),
+        );
+    }
+
+    public function notes(
+        Tenant $tenant,
+        PlatformSupportChatService $service,
+    ): JsonResponse {
+        return response()->json([
+            'notes' => $service->listNotes($tenant),
+        ]);
+    }
+
+    public function storeNote(
+        Request $request,
+        Tenant $tenant,
+        PlatformSupportChatService $service,
+    ): JsonResponse {
+        $data = $request->validate([
+            'body' => ['required', 'string', 'max:4000'],
+        ]);
+
+        $user = $request->user();
+        abort_unless($user !== null, 401);
+
+        return response()->json([
+            'note' => $service->addNote($tenant, $user, (string) $data['body']),
+        ], 201);
+    }
+
+    public function destroyNote(
+        Request $request,
+        string $note,
+        PlatformSupportChatService $service,
+    ): JsonResponse {
+        $user = $request->user();
+        abort_unless($user !== null, 401);
+        $service->deleteNote($note, $user);
+
+        return response()->json(['ok' => true]);
+    }
+
+    public function templates(PlatformSupportChatService $service): JsonResponse
+    {
+        return response()->json([
+            'templates' => $service->listTemplates(false),
+        ]);
+    }
+
+    public function storeTemplate(
+        Request $request,
+        PlatformSupportChatService $service,
+    ): JsonResponse {
+        $data = $request->validate([
+            'label' => ['required', 'string', 'max:120'],
+            'body' => ['required', 'string', 'max:4000'],
+            'sort_order' => ['nullable', 'integer', 'min:0', 'max:9999'],
+            'is_active' => ['nullable', 'boolean'],
+        ]);
+
+        return response()->json([
+            'template' => $service->upsertTemplate(
+                null,
+                (string) $data['label'],
+                (string) $data['body'],
+                $request->user(),
+                isset($data['sort_order']) ? (int) $data['sort_order'] : null,
+                (bool) ($data['is_active'] ?? true),
+            ),
+        ], 201);
+    }
+
+    public function updateTemplate(
+        Request $request,
+        string $template,
+        PlatformSupportChatService $service,
+    ): JsonResponse {
+        $data = $request->validate([
+            'label' => ['required', 'string', 'max:120'],
+            'body' => ['required', 'string', 'max:4000'],
+            'sort_order' => ['nullable', 'integer', 'min:0', 'max:9999'],
+            'is_active' => ['nullable', 'boolean'],
+        ]);
+
+        return response()->json([
+            'template' => $service->upsertTemplate(
+                $template,
+                (string) $data['label'],
+                (string) $data['body'],
+                $request->user(),
+                isset($data['sort_order']) ? (int) $data['sort_order'] : null,
+                (bool) ($data['is_active'] ?? true),
+            ),
+        ]);
+    }
+
+    public function destroyTemplate(
+        string $template,
+        PlatformSupportChatService $service,
+    ): JsonResponse {
+        if (str_starts_with($template, 'builtin-')) {
+            return response()->json(['message' => __('No se puede eliminar una plantilla integrada.')], 422);
+        }
+        $service->deleteTemplate($template);
+
+        return response()->json(['ok' => true]);
     }
 
     public function broadcast(Request $request, PlatformSupportChatService $service): JsonResponse

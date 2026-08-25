@@ -2505,6 +2505,21 @@ export default function ChatInternoIndex({
                                                 onLongPress={() =>
                                                     setActionMessage(m)
                                                 }
+                                                onSwipeReply={() => {
+                                                    setEditingMessage(null);
+                                                    setReplyTo({
+                                                        id: m.id,
+                                                        body:
+                                                            m.body
+                                                            || (atts[0]
+                                                                ?.name
+                                                                ?? ''),
+                                                        user_id: m.user_id,
+                                                        user_name:
+                                                            m.user_name,
+                                                    });
+                                                    textareaRef.current?.focus();
+                                                }}
                                                 className={cn(
                                                     'group flex',
                                                     mine

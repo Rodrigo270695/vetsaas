@@ -357,6 +357,18 @@ final class TenantChatService
                 $payload['from_clinic'] = $fromClinic;
             }
 
+            if ($fromClinic && \Illuminate\Support\Facades\Schema::hasColumn('platform_support_threads', 'clinic_waiting_since')) {
+                // No reiniciar el reloj SLA si ya estaba esperando.
+                $existing = PlatformSupportThread::query()->where('tenant_id', $tenantId)->first();
+                if ($existing === null || $existing->clinic_waiting_since === null) {
+                    $payload['clinic_waiting_since'] = now();
+                }
+            }
+
+            if (! $fromClinic && \Illuminate\Support\Facades\Schema::hasColumn('platform_support_threads', 'clinic_waiting_since')) {
+                $payload['clinic_waiting_since'] = null;
+            }
+
             PlatformSupportThread::query()
                 ->where('tenant_id', $tenantId)
                 ->update($payload);

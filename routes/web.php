@@ -1503,6 +1503,36 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:plataforma-chat-soporte.manage')
             ->post('chat-soporte/tenants/{tenant}/typing', [PlatformSupportChatController::class, 'typing'])
             ->name('chat-soporte.typing');
+        Route::middleware('permission:plataforma-chat-soporte.view')
+            ->get('chat-soporte/tenants/{tenant}/messages/{message}/context', [PlatformSupportChatController::class, 'messageContext'])
+            ->name('chat-soporte.messages.context');
+        Route::middleware('permission:plataforma-chat-soporte.manage')
+            ->post('chat-soporte/tenants/{tenant}/assign', [PlatformSupportChatController::class, 'assign'])
+            ->name('chat-soporte.assign');
+        Route::middleware('permission:plataforma-chat-soporte.manage')
+            ->post('chat-soporte/tenants/{tenant}/mute', [PlatformSupportChatController::class, 'mute'])
+            ->name('chat-soporte.mute');
+        Route::middleware('permission:plataforma-chat-soporte.view')
+            ->get('chat-soporte/tenants/{tenant}/notes', [PlatformSupportChatController::class, 'notes'])
+            ->name('chat-soporte.notes');
+        Route::middleware('permission:plataforma-chat-soporte.manage')
+            ->post('chat-soporte/tenants/{tenant}/notes', [PlatformSupportChatController::class, 'storeNote'])
+            ->name('chat-soporte.notes.store');
+        Route::middleware('permission:plataforma-chat-soporte.manage')
+            ->delete('chat-soporte/notes/{note}', [PlatformSupportChatController::class, 'destroyNote'])
+            ->name('chat-soporte.notes.destroy');
+        Route::middleware('permission:plataforma-chat-soporte.view')
+            ->get('chat-soporte/templates', [PlatformSupportChatController::class, 'templates'])
+            ->name('chat-soporte.templates.index');
+        Route::middleware('permission:plataforma-chat-soporte.manage')
+            ->post('chat-soporte/templates', [PlatformSupportChatController::class, 'storeTemplate'])
+            ->name('chat-soporte.templates.store');
+        Route::middleware('permission:plataforma-chat-soporte.manage')
+            ->put('chat-soporte/templates/{template}', [PlatformSupportChatController::class, 'updateTemplate'])
+            ->name('chat-soporte.templates.update');
+        Route::middleware('permission:plataforma-chat-soporte.manage')
+            ->delete('chat-soporte/templates/{template}', [PlatformSupportChatController::class, 'destroyTemplate'])
+            ->name('chat-soporte.templates.destroy');
         Route::middleware('permission:plataforma-chat-soporte.manage')
             ->post('chat-soporte/broadcast', [PlatformSupportChatController::class, 'broadcast'])
             ->name('chat-soporte.broadcast');

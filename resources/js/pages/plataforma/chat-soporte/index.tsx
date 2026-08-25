@@ -1,6 +1,8 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import { enUS, es as esLocale } from 'date-fns/locale';
 import {
+    Bell,
+    BellOff,
     Check,
     ChevronLeft,
     FileText,
@@ -14,8 +16,11 @@ import {
     Reply,
     Search,
     SendHorizonal,
+    Settings2,
     Smile,
+    StickyNote,
     Trash2,
+    UserRound,
     Users,
     X,
 } from 'lucide-react';
@@ -41,6 +46,15 @@ import {
     ChatSearchInput,
     ChatShell,
 } from '@/components/chat';
+import {
+    SupportAssignDialog,
+    SupportNotesDialog,
+    SupportTemplatesDialog,
+    type SupportAgent,
+    type SupportNote,
+    type SupportTemplate,
+} from '@/components/plataforma/support-ops-dialogs';
+import { PushNotificationPrompt } from '@/components/push/push-notification-prompt';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -78,12 +92,6 @@ import { cn } from '@/lib/utils';
 const ROUTE_URL = '/plataforma/chat-soporte';
 const MAX_ATTACHMENTS = 5;
 const REACTION_EMOJIS = ['👍', '✅', '❤️', '😂', '🎉'] as const;
-const TEMPLATE_IDS = [
-    'whatsapp',
-    'maintenance',
-    'billing',
-    'greeting',
-] as const;
 const EMOJIS = [
     '😀', '😁', '😂', '🙂', '😉', '😊', '😍', '🤩',
     '😎', '🤔', '😢', '😭', '😤', '🙌', '👍', '👎',
@@ -93,7 +101,6 @@ const EMOJIS = [
 
 type PlanFilter = 'all' | 'free' | 'paid';
 type ReactionEmoji = (typeof REACTION_EMOJIS)[number];
-type TemplateId = (typeof TEMPLATE_IDS)[number];
 
 type TypingUser = { user_id: string; name: string };
 
@@ -114,12 +121,19 @@ type TenantRow = {
     plan_codigo: string | null;
     plan_nombre: string | null;
     is_free: boolean | null;
+    is_vip?: boolean | null;
     thread: {
         conversation_id: string;
         last_message_at: string | null;
         last_preview: string | null;
         unread?: boolean;
         from_clinic?: boolean;
+        needs_response?: boolean;
+        muted?: boolean;
+        waiting_minutes?: number | null;
+        sla_label?: string | null;
+        assigned_agent_id?: string | null;
+        assigned_agent_name?: string | null;
     } | null;
 };
 
@@ -174,6 +188,8 @@ type Props = {
         plan: PlanFilter;
         q: string;
     };
+    agents?: SupportAgent[];
+    templates?: SupportTemplate[];
     broadcast?: BroadcastConfig;
     poll_ms?: number;
 };
@@ -267,6 +283,8 @@ const upsertMessage = (
 export default function PlataformaChatSoportePage({
     tenants: initialTenants,
     filters,
+    agents = [],
+    templates: initialTemplates = [],
     broadcast = {
         enabled: false,
         key: null,
@@ -276,7 +294,8 @@ export default function PlataformaChatSoportePage({
     const { t, i18n } = useTranslation('plataforma-chat-soporte');
     const { can } = usePermission();
     const canManage = can('plataforma-chat-soporte.manage');
-    const page = usePage();
+    const page = usePage<{ auth?: { user?: { id?: string } } }>();
+    const currentUserId = String(page.props.auth?.user?.id ?? '');
     const { setActiveTenantId } = usePlatformSupportChatUnread();
     const dateFnsLocale = i18n.language?.startsWith('en') ? enUS : esLocale;
     const deepLinkTenant = useMemo(() => {
@@ -288,6 +307,10 @@ export default function PlataformaChatSoportePage({
     const [plan, setPlan] = useState<PlanFilter>(filters.plan ?? 'all');
     const [listQuery, setListQuery] = useState(filters.q ?? '');
     const [unreadOnly, setUnreadOnly] = useState(false);
+    const [needsResponseOnly, setNeedsResponseOnly] = useState(false);
+    const [vipOnly, setVipOnly] = useState(false);
+    const [mutedOnly, setMutedOnly] = useState(false);
+    const [assignedToMeOnly, setAssignedToMeOnly] = useState(false);
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [conversationId, setConversationId] = useState<string | null>(null);
     const [supportUserId, setSupportUserId] = useState<string | null>(null);
@@ -331,6 +354,17 @@ export default function PlataformaChatSoportePage({
     const [mediaOpen, setMediaOpen] = useState(false);
     const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
     const [mediaLoading, setMediaLoading] = useState(false);
+    const [templates, setTemplates] = useState<SupportTemplate[]>(initialTemplates);
+    const [notesOpen, setNotesOpen] = useState(false);
+    const [notesLoading, setNotesLoading] = useState(false);
+    const [notes, setNotes] = useState<SupportNote[]>([]);
+    const [noteDraft, setNoteDraft] = useState('');
+    const [noteSubmitting, setNoteSubmitting] = useState(false);
+    const [assignOpen, setAssignOpen] = useState(false);
+    const [assignValue, setAssignValue] = useState('');
+    const [assigning, setAssigning] = useState(false);
+    const [muting, setMuting] = useState(false);
+    const [templatesOpen, setTemplatesOpen] = useState(false);
 
     const bottomRef = useRef<HTMLDivElement | null>(null);
     const fileRef = useRef<HTMLInputElement | null>(null);
@@ -340,6 +374,13 @@ export default function PlataformaChatSoportePage({
     const supportUserIdRef = useRef<string | null>(null);
     const lastMessageIdRef = useRef<string | null>(null);
     const pollTickRef = useRef(0);
+    const jumpingRef = useRef(false);
+    const pendingRetryRef = useRef<{
+        body: string;
+        files: File[];
+        replyTo: ReplyPreview | null;
+        tenantId: string;
+    } | null>(null);
     const typingTimer = useRef<number | undefined>(undefined);
     const typingClearTimers = useRef<Map<string, number>>(new Map());
     selectedIdRef.current = selectedId;
@@ -350,6 +391,10 @@ export default function PlataformaChatSoportePage({
     useEffect(() => {
         setTenants(initialTenants);
     }, [initialTenants]);
+
+    useEffect(() => {
+        setTemplates(initialTemplates);
+    }, [initialTemplates]);
 
     useEffect(() => {
         setActiveTenantId(selectedId);
@@ -374,12 +419,31 @@ export default function PlataformaChatSoportePage({
         const q = listQuery.trim().toLowerCase();
         return tenants.filter((row) => {
             if (unreadOnly && !row.thread?.unread) return false;
+            if (needsResponseOnly && !row.thread?.needs_response) return false;
+            if (vipOnly && !row.is_vip) return false;
+            if (mutedOnly && !row.thread?.muted) return false;
+            if (
+                assignedToMeOnly &&
+                (!currentUserId ||
+                    row.thread?.assigned_agent_id !== currentUserId)
+            ) {
+                return false;
+            }
             if (!q) return true;
             const hay =
                 `${row.nombre} ${row.slug} ${row.plan_nombre ?? ''}`.toLowerCase();
             return hay.includes(q);
         });
-    }, [tenants, listQuery, unreadOnly]);
+    }, [
+        tenants,
+        listQuery,
+        unreadOnly,
+        needsResponseOnly,
+        vipOnly,
+        mutedOnly,
+        assignedToMeOnly,
+        currentUserId,
+    ]);
 
     const threadHits = useMemo(() => {
         const q = threadQuery.trim().toLowerCase();
@@ -408,8 +472,7 @@ export default function PlataformaChatSoportePage({
     }, [typingUsers, t]);
 
     const applyTemplate = useCallback(
-        (id: TemplateId, target: 'composer' | 'broadcast') => {
-            const body = t(`tpl_${id}_body`);
+        (body: string, target: 'composer' | 'broadcast') => {
             if (target === 'composer') {
                 setComposer(body);
                 setEditingMessage(null);
@@ -418,7 +481,7 @@ export default function PlataformaChatSoportePage({
                 setBroadcastBody(body);
             }
         },
-        [t],
+        [],
     );
 
     const planOptions: { value: PlanFilter; label: string }[] = [
@@ -459,6 +522,8 @@ export default function PlataformaChatSoportePage({
         setEchoReady(false);
         setSearchOpen(false);
         setThreadQuery('');
+        setNotesOpen(false);
+        setAssignOpen(false);
         setLoadingThread(true);
         pollTickRef.current = 0;
         try {
@@ -694,16 +759,54 @@ export default function PlataformaChatSoportePage({
         }
     };
 
-    const jumpToMessage = (id: string) => {
-        setHighlightId(id);
-        setSearchOpen(false);
-        requestAnimationFrame(() => {
-            messageRefs.current
-                .get(id)
-                ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        });
-        window.setTimeout(() => setHighlightId(null), 1600);
-    };
+    const jumpToMessage = useCallback(
+        async (id: string) => {
+            setSearchOpen(false);
+
+            const scrollAndHighlight = () => {
+                setHighlightId(id);
+                requestAnimationFrame(() => {
+                    messageRefs.current
+                        .get(id)
+                        ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                });
+                window.setTimeout(() => setHighlightId(null), 1600);
+            };
+
+            if (messageRefs.current.has(id)) {
+                scrollAndHighlight();
+                return;
+            }
+
+            const tenantId = selectedIdRef.current;
+            if (!tenantId || jumpingRef.current) return;
+
+            jumpingRef.current = true;
+            try {
+                const data = await apiJson<{ messages?: ChatMessage[] }>(
+                    `/plataforma/chat-soporte/tenants/${tenantId}/messages/${id}/context`,
+                );
+                const incoming = data.messages ?? [];
+                if (incoming.length === 0) {
+                    toastManager.error({ title: t('jump_not_found') });
+                    return;
+                }
+                setMessages((prev) => {
+                    const byId = new Map(prev.map((m) => [m.id, m] as const));
+                    for (const m of incoming) byId.set(m.id, m);
+                    return [...byId.values()].sort((a, b) =>
+                        (a.created_at ?? '').localeCompare(b.created_at ?? ''),
+                    );
+                });
+                window.setTimeout(() => scrollAndHighlight(), 60);
+            } catch {
+                toastManager.error({ title: t('jump_not_found') });
+            } finally {
+                jumpingRef.current = false;
+            }
+        },
+        [t],
+    );
 
     const insertEmoji = (emoji: string) => {
         const el = composerRef.current;
@@ -812,6 +915,116 @@ export default function PlataformaChatSoportePage({
         }
     };
 
+    const sendPayload = useCallback(
+        async (opts: {
+            tenantId: string;
+            text: string;
+            attachFiles: File[];
+            reply: ReplyPreview | null;
+        }) => {
+            const { tenantId, text, attachFiles, reply } = opts;
+            if (!text && attachFiles.length === 0) return;
+            if (sending) return;
+
+            setSending(true);
+            pendingRetryRef.current = {
+                body: text,
+                files: attachFiles,
+                replyTo: reply,
+                tenantId,
+            };
+
+            try {
+                const fd = new FormData();
+                if (text) fd.append('body', text);
+                if (reply?.id) fd.append('reply_to_id', reply.id);
+                attachFiles.forEach((file) => fd.append('attachments[]', file));
+
+                const data = await apiJson<{ message: ChatMessage }>(
+                    `/plataforma/chat-soporte/tenants/${tenantId}/messages`,
+                    { method: 'POST', formData: fd },
+                );
+                pendingRetryRef.current = null;
+                setComposer('');
+                setFiles([]);
+                setReplyTo(null);
+                if (data.message) {
+                    setMessages((prev) =>
+                        prev.some((m) => m.id === data.message.id)
+                            ? prev
+                            : [...prev, data.message],
+                    );
+                    const preview =
+                        text.slice(0, 280) ||
+                        data.message.body?.slice(0, 280) ||
+                        '📎';
+                    setTenants((prev) =>
+                        prev.map((row) =>
+                            row.id === tenantId
+                                ? {
+                                      ...row,
+                                      thread: {
+                                          conversation_id:
+                                              row.thread?.conversation_id ?? '',
+                                          last_message_at:
+                                              data.message.created_at ??
+                                              new Date().toISOString(),
+                                          last_preview: preview,
+                                          unread: row.thread?.unread ?? false,
+                                          from_clinic: false,
+                                          needs_response: false,
+                                          muted: row.thread?.muted ?? false,
+                                          waiting_minutes:
+                                              row.thread?.waiting_minutes ??
+                                              null,
+                                          sla_label:
+                                              row.thread?.sla_label ?? null,
+                                          assigned_agent_id:
+                                              row.thread?.assigned_agent_id ??
+                                              null,
+                                          assigned_agent_name:
+                                              row.thread
+                                                  ?.assigned_agent_name ??
+                                              null,
+                                      },
+                                  }
+                                : row,
+                        ),
+                    );
+                }
+                requestAnimationFrame(() => {
+                    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+                });
+            } catch {
+                toastManager.error({
+                    id: 'platform-chat-send-failed',
+                    title: t('send_failed'),
+                    description: t('send_failed_hint'),
+                    duration: 10_000,
+                    action: {
+                        label: t('retry'),
+                        onClick: () => {
+                            const pending = pendingRetryRef.current;
+                            if (!pending) return;
+                            setComposer(pending.body);
+                            setFiles(pending.files);
+                            setReplyTo(pending.replyTo);
+                            void sendPayload({
+                                tenantId: pending.tenantId,
+                                text: pending.body,
+                                attachFiles: pending.files,
+                                reply: pending.replyTo,
+                            });
+                        },
+                    },
+                });
+            } finally {
+                setSending(false);
+            }
+        },
+        [sending, t],
+    );
+
     const sendMessage = async (e?: FormEvent) => {
         e?.preventDefault();
         if (!selectedId || !canManage) return;
@@ -841,56 +1054,12 @@ export default function PlataformaChatSoportePage({
 
         if ((!body && files.length === 0) || sending) return;
 
-        setSending(true);
-        try {
-            const fd = new FormData();
-            if (body) fd.append('body', body);
-            if (replyTo?.id) fd.append('reply_to_id', replyTo.id);
-            files.forEach((file) => fd.append('attachments[]', file));
-
-            const data = await apiJson<{ message: ChatMessage }>(
-                `/plataforma/chat-soporte/tenants/${selectedId}/messages`,
-                { method: 'POST', formData: fd },
-            );
-            setComposer('');
-            setFiles([]);
-            setReplyTo(null);
-            if (data.message) {
-                setMessages((prev) =>
-                    prev.some((m) => m.id === data.message.id)
-                        ? prev
-                        : [...prev, data.message],
-                );
-                const preview =
-                    body.slice(0, 280) ||
-                    data.message.body?.slice(0, 280) ||
-                    '📎';
-                setTenants((prev) =>
-                    prev.map((row) =>
-                        row.id === selectedId
-                            ? {
-                                  ...row,
-                                  thread: {
-                                      conversation_id:
-                                          row.thread?.conversation_id ?? '',
-                                      last_message_at:
-                                          data.message.created_at ??
-                                          new Date().toISOString(),
-                                      last_preview: preview,
-                                  },
-                              }
-                            : row,
-                    ),
-                );
-            }
-            requestAnimationFrame(() => {
-                bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-            });
-        } catch {
-            toastManager.error({ title: t('send_error') });
-        } finally {
-            setSending(false);
-        }
+        await sendPayload({
+            tenantId: selectedId,
+            text: body,
+            attachFiles: files,
+            reply: replyTo,
+        });
     };
 
     const runBroadcast = async () => {
@@ -933,6 +1102,173 @@ export default function PlataformaChatSoportePage({
             toastManager.error({ title: t('send_error') });
         } finally {
             setBroadcasting(false);
+        }
+    };
+
+    const openNotes = async () => {
+        if (!selectedId) return;
+        setNotesOpen(true);
+        setNotesLoading(true);
+        setNotes([]);
+        try {
+            const data = await apiJson<{ notes: SupportNote[] }>(
+                `/plataforma/chat-soporte/tenants/${selectedId}/notes`,
+            );
+            setNotes(data.notes ?? []);
+        } catch {
+            toastManager.error({ title: t('action_error') });
+        } finally {
+            setNotesLoading(false);
+        }
+    };
+
+    const submitNote = async () => {
+        if (!selectedId || !noteDraft.trim() || noteSubmitting) return;
+        setNoteSubmitting(true);
+        try {
+            const data = await apiJson<{ note: SupportNote }>(
+                `/plataforma/chat-soporte/tenants/${selectedId}/notes`,
+                { method: 'POST', json: { body: noteDraft.trim() } },
+            );
+            if (data.note) {
+                setNotes((prev) => [data.note, ...prev]);
+            }
+            setNoteDraft('');
+        } catch {
+            toastManager.error({ title: t('action_error') });
+        } finally {
+            setNoteSubmitting(false);
+        }
+    };
+
+    const deleteNote = async (id: string) => {
+        try {
+            await apiJson(`/plataforma/chat-soporte/notes/${id}`, {
+                method: 'DELETE',
+            });
+            setNotes((prev) => prev.filter((n) => n.id !== id));
+        } catch {
+            toastManager.error({ title: t('action_error') });
+        }
+    };
+
+    const openAssign = () => {
+        if (!selected) return;
+        setAssignValue(selected.thread?.assigned_agent_id ?? '');
+        setAssignOpen(true);
+    };
+
+    const saveAssign = async () => {
+        if (!selectedId || assigning) return;
+        setAssigning(true);
+        try {
+            const data = await apiJson<{
+                assigned_agent_id: string | null;
+                assigned_agent_name?: string | null;
+            }>(`/plataforma/chat-soporte/tenants/${selectedId}/assign`, {
+                method: 'POST',
+                json: { assigned_agent_id: assignValue || null },
+            });
+            setTenants((prev) =>
+                prev.map((row) =>
+                    row.id === selectedId && row.thread
+                        ? {
+                              ...row,
+                              thread: {
+                                  ...row.thread,
+                                  assigned_agent_id: data.assigned_agent_id,
+                                  assigned_agent_name:
+                                      data.assigned_agent_name ?? null,
+                              },
+                          }
+                        : row,
+                ),
+            );
+            setAssignOpen(false);
+            toastManager.success({ title: t('assign_ok') });
+        } catch {
+            toastManager.error({ title: t('action_error') });
+        } finally {
+            setAssigning(false);
+        }
+    };
+
+    const toggleMute = async () => {
+        if (!selectedId || muting) return;
+        const next = !selected?.thread?.muted;
+        setMuting(true);
+        try {
+            await apiJson(`/plataforma/chat-soporte/tenants/${selectedId}/mute`, {
+                method: 'POST',
+                json: { muted: next },
+            });
+            setTenants((prev) =>
+                prev.map((row) =>
+                    row.id === selectedId && row.thread
+                        ? { ...row, thread: { ...row.thread, muted: next } }
+                        : row,
+                ),
+            );
+        } catch {
+            toastManager.error({ title: t('action_error') });
+        } finally {
+            setMuting(false);
+        }
+    };
+
+    const reloadTemplates = async () => {
+        try {
+            const data = await apiJson<{ templates: SupportTemplate[] }>(
+                '/plataforma/chat-soporte/templates',
+            );
+            setTemplates(data.templates ?? []);
+        } catch {
+            toastManager.error({ title: t('action_error') });
+        }
+    };
+
+    const saveTemplate = async (payload: {
+        id?: string;
+        label: string;
+        body: string;
+    }) => {
+        try {
+            const data = payload.id
+                ? await apiJson<{ template: SupportTemplate }>(
+                      `/plataforma/chat-soporte/templates/${payload.id}`,
+                      {
+                          method: 'PUT',
+                          json: { label: payload.label, body: payload.body },
+                      },
+                  )
+                : await apiJson<{ template: SupportTemplate }>(
+                      '/plataforma/chat-soporte/templates',
+                      {
+                          method: 'POST',
+                          json: { label: payload.label, body: payload.body },
+                      },
+                  );
+            setTemplates((prev) => {
+                const idx = prev.findIndex((tpl) => tpl.id === data.template.id);
+                if (idx === -1) return [...prev, data.template];
+                const next = [...prev];
+                next[idx] = data.template;
+                return next;
+            });
+        } catch {
+            toastManager.error({ title: t('action_error') });
+            throw new Error('save template failed');
+        }
+    };
+
+    const deleteTemplateRow = async (id: string) => {
+        try {
+            await apiJson(`/plataforma/chat-soporte/templates/${id}`, {
+                method: 'DELETE',
+            });
+            setTemplates((prev) => prev.filter((tpl) => tpl.id !== id));
+        } catch {
+            toastManager.error({ title: t('action_error') });
         }
     };
 
@@ -1017,6 +1353,76 @@ export default function PlataformaChatSoportePage({
                                     >
                                         {t('unread_only')}
                                     </Button>
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant={
+                                            needsResponseOnly
+                                                ? 'default'
+                                                : 'outline'
+                                        }
+                                        className={cn(
+                                            'h-7 rounded-full px-3 text-xs',
+                                            needsResponseOnly &&
+                                                'bg-rose-600 hover:bg-rose-700',
+                                        )}
+                                        onClick={() =>
+                                            setNeedsResponseOnly((v) => !v)
+                                        }
+                                    >
+                                        {t('filter_needs_response')}
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant={
+                                            vipOnly ? 'default' : 'outline'
+                                        }
+                                        className={cn(
+                                            'h-7 rounded-full px-3 text-xs',
+                                            vipOnly &&
+                                                'bg-sky-600 hover:bg-sky-700',
+                                        )}
+                                        onClick={() => setVipOnly((v) => !v)}
+                                    >
+                                        {t('filter_vip')}
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant={
+                                            mutedOnly ? 'default' : 'outline'
+                                        }
+                                        className={cn(
+                                            'h-7 rounded-full px-3 text-xs',
+                                            mutedOnly &&
+                                                'bg-slate-600 hover:bg-slate-700',
+                                        )}
+                                        onClick={() =>
+                                            setMutedOnly((v) => !v)
+                                        }
+                                    >
+                                        {t('filter_muted')}
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant={
+                                            assignedToMeOnly
+                                                ? 'default'
+                                                : 'outline'
+                                        }
+                                        className={cn(
+                                            'h-7 rounded-full px-3 text-xs',
+                                            assignedToMeOnly &&
+                                                'bg-emerald-600 hover:bg-emerald-700',
+                                        )}
+                                        onClick={() =>
+                                            setAssignedToMeOnly((v) => !v)
+                                        }
+                                    >
+                                        {t('filter_assigned_me')}
+                                    </Button>
                                 </div>
                             </>
                         }
@@ -1089,6 +1495,47 @@ export default function PlataformaChatSoportePage({
                                                         {row.thread?.last_preview ||
                                                             row.slug}
                                                     </p>
+                                                    {row.thread?.sla_label ||
+                                                    row.thread
+                                                        ?.assigned_agent_name ? (
+                                                        <div className="mt-1 flex flex-wrap items-center gap-1">
+                                                            {row.thread
+                                                                ?.sla_label ? (
+                                                                <Badge
+                                                                    variant="outline"
+                                                                    className="h-4.5 shrink-0 gap-1 rounded-full border-amber-500/50 px-1.5 text-[9px] text-amber-700 dark:text-amber-300"
+                                                                    title={t(
+                                                                        'sla_waiting',
+                                                                        {
+                                                                            time:
+                                                                                row
+                                                                                    .thread
+                                                                                    .sla_label,
+                                                                        },
+                                                                    )}
+                                                                >
+                                                                    {
+                                                                        row
+                                                                            .thread
+                                                                            .sla_label
+                                                                    }
+                                                                </Badge>
+                                                            ) : null}
+                                                            {row.thread
+                                                                ?.assigned_agent_name ? (
+                                                                <Badge
+                                                                    variant="outline"
+                                                                    className="h-4.5 shrink-0 gap-1 rounded-full border-border/60 px-1.5 text-[9px] text-muted-foreground"
+                                                                >
+                                                                    {
+                                                                        row
+                                                                            .thread
+                                                                            .assigned_agent_name
+                                                                    }
+                                                                </Badge>
+                                                            ) : null}
+                                                        </div>
+                                                    ) : null}
                                                 </div>
                                             </button>
                                         </li>
@@ -1158,6 +1605,13 @@ export default function PlataformaChatSoportePage({
                                                 {t('badge_paid')}
                                             </Badge>
                                         ) : null}
+                                        <PushNotificationPrompt
+                                            variant="labeled"
+                                            description={t(
+                                                'push_notifications_hint',
+                                            )}
+                                            className="hidden shrink-0 sm:inline-flex"
+                                        />
                                         <Button
                                             type="button"
                                             size="icon"
@@ -1170,6 +1624,79 @@ export default function PlataformaChatSoportePage({
                                             title={t('media_gallery')}
                                         >
                                             <Images className="size-4" />
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            size="icon"
+                                            variant="ghost"
+                                            className="size-8 shrink-0 text-muted-foreground"
+                                            onClick={() => void openNotes()}
+                                            aria-label={t('notes_title')}
+                                            title={t('notes_title')}
+                                        >
+                                            <StickyNote className="size-4" />
+                                        </Button>
+                                        {canManage ? (
+                                            <>
+                                                <Button
+                                                    type="button"
+                                                    size="icon"
+                                                    variant="ghost"
+                                                    className="size-8 shrink-0 text-muted-foreground"
+                                                    onClick={openAssign}
+                                                    aria-label={t(
+                                                        'assign_title',
+                                                    )}
+                                                    title={t('assign_title')}
+                                                >
+                                                    <UserRound className="size-4" />
+                                                </Button>
+                                                <Button
+                                                    type="button"
+                                                    size="icon"
+                                                    variant="ghost"
+                                                    className={cn(
+                                                        'size-8 shrink-0 text-muted-foreground',
+                                                        selected.thread
+                                                            ?.muted &&
+                                                            'text-amber-600 dark:text-amber-400',
+                                                    )}
+                                                    disabled={muting}
+                                                    onClick={() =>
+                                                        void toggleMute()
+                                                    }
+                                                    aria-label={
+                                                        selected.thread?.muted
+                                                            ? t('unmute')
+                                                            : t('mute')
+                                                    }
+                                                    title={
+                                                        selected.thread?.muted
+                                                            ? t('unmute')
+                                                            : t('mute')
+                                                    }
+                                                >
+                                                    {selected.thread?.muted ? (
+                                                        <BellOff className="size-4" />
+                                                    ) : (
+                                                        <Bell className="size-4" />
+                                                    )}
+                                                </Button>
+                                            </>
+                                        ) : null}
+                                        <Button
+                                            type="button"
+                                            size="icon"
+                                            variant="ghost"
+                                            className="size-8 shrink-0 text-muted-foreground"
+                                            onClick={() => {
+                                                setTemplatesOpen(true);
+                                                void reloadTemplates();
+                                            }}
+                                            aria-label={t('templates_manage')}
+                                            title={t('templates_manage')}
+                                        >
+                                            <Settings2 className="size-4" />
                                         </Button>
                                         <Button
                                             type="button"
@@ -1213,7 +1740,7 @@ export default function PlataformaChatSoportePage({
                                                                 type="button"
                                                                 className="flex w-full flex-col gap-0.5 border-b border-border/40 px-3 py-2 text-left last:border-0 hover:bg-muted/60"
                                                                 onClick={() =>
-                                                                    jumpToMessage(
+                                                                    void jumpToMessage(
                                                                         m.id,
                                                                     )
                                                                 }
@@ -1282,6 +1809,25 @@ export default function PlataformaChatSoportePage({
                                                     onLongPress={() =>
                                                         setActionMessage(m)
                                                     }
+                                                    onSwipeReply={() => {
+                                                        setEditingMessage(
+                                                            null,
+                                                        );
+                                                        setReplyTo({
+                                                            id: m.id,
+                                                            body:
+                                                                m.body ||
+                                                                (atts[0]
+                                                                    ?.name ??
+                                                                    ''),
+                                                            user_id:
+                                                                m.user_id,
+                                                            user_name:
+                                                                m.user_name ||
+                                                                t('you'),
+                                                        });
+                                                        composerRef.current?.focus();
+                                                    }}
                                                     className={cn(
                                                         'group flex',
                                                         m.mine
@@ -1340,7 +1886,7 @@ export default function PlataformaChatSoportePage({
                                                                             : 'border-emerald-500/50 bg-muted/60',
                                                                     )}
                                                                     onClick={() =>
-                                                                        jumpToMessage(
+                                                                        void jumpToMessage(
                                                                             m
                                                                                 .reply_to!
                                                                                 .id,
@@ -1826,26 +2372,26 @@ export default function PlataformaChatSoportePage({
                                             </div>
                                         ) : null}
 
-                                        {!editingMessage ? (
+                                        {!editingMessage && templates.length > 0 ? (
                                             <div className="mb-2 flex flex-wrap gap-1.5">
                                                 <span className="self-center text-[10px] font-medium text-muted-foreground">
                                                     {t('templates')}
                                                 </span>
-                                                {TEMPLATE_IDS.map((id) => (
+                                                {templates.map((tpl) => (
                                                     <Button
-                                                        key={id}
+                                                        key={tpl.id}
                                                         type="button"
                                                         size="sm"
                                                         variant="outline"
                                                         className="h-7 rounded-full px-2.5 text-[11px]"
                                                         onClick={() =>
                                                             applyTemplate(
-                                                                id,
+                                                                tpl.body,
                                                                 'composer',
                                                             )
                                                         }
                                                     >
-                                                        {t(`tpl_${id}_label`)}
+                                                        {tpl.label}
                                                     </Button>
                                                 ))}
                                             </div>
@@ -2008,25 +2554,27 @@ export default function PlataformaChatSoportePage({
                             })}
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="mb-2 flex flex-wrap gap-1.5">
-                        <span className="self-center text-[10px] font-medium text-muted-foreground">
-                            {t('templates')}
-                        </span>
-                        {TEMPLATE_IDS.map((id) => (
-                            <Button
-                                key={id}
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                className="h-7 rounded-full px-2.5 text-[11px]"
-                                onClick={() =>
-                                    applyTemplate(id, 'broadcast')
-                                }
-                            >
-                                {t(`tpl_${id}_label`)}
-                            </Button>
-                        ))}
-                    </div>
+                    {templates.length > 0 ? (
+                        <div className="mb-2 flex flex-wrap gap-1.5">
+                            <span className="self-center text-[10px] font-medium text-muted-foreground">
+                                {t('templates')}
+                            </span>
+                            {templates.map((tpl) => (
+                                <Button
+                                    key={tpl.id}
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-7 rounded-full px-2.5 text-[11px]"
+                                    onClick={() =>
+                                        applyTemplate(tpl.body, 'broadcast')
+                                    }
+                                >
+                                    {tpl.label}
+                                </Button>
+                            ))}
+                        </div>
+                    ) : null}
                     <Textarea
                         value={broadcastBody}
                         onChange={(e) => setBroadcastBody(e.target.value)}
@@ -2246,6 +2794,67 @@ export default function PlataformaChatSoportePage({
                 title={t('lightbox')}
                 onOpenChange={(open) => {
                     if (!open) setLightbox(null);
+                }}
+            />
+
+            <SupportNotesDialog
+                open={notesOpen}
+                onOpenChange={setNotesOpen}
+                loading={notesLoading}
+                notes={notes}
+                draft={noteDraft}
+                onDraftChange={setNoteDraft}
+                onSubmit={() => void submitNote()}
+                onDelete={(id) => void deleteNote(id)}
+                submitting={noteSubmitting}
+                canManage={canManage}
+                labels={{
+                    title: t('notes_title'),
+                    hint: t('notes_hint'),
+                    placeholder: t('notes_placeholder'),
+                    save: t('notes_save'),
+                    empty: t('notes_empty'),
+                    cancel: t('cancel'),
+                }}
+            />
+
+            <SupportAssignDialog
+                open={assignOpen}
+                onOpenChange={setAssignOpen}
+                agents={agents}
+                value={assignValue}
+                onChange={setAssignValue}
+                onSave={() => void saveAssign()}
+                saving={assigning}
+                labels={{
+                    title: t('assign_title'),
+                    hint: t('assign_hint'),
+                    none: t('assign_none'),
+                    save: t('assign_save'),
+                    cancel: t('cancel'),
+                }}
+            />
+
+            <SupportTemplatesDialog
+                open={templatesOpen}
+                onOpenChange={setTemplatesOpen}
+                templates={templates}
+                canManage={canManage}
+                onUse={(body) => applyTemplate(body, 'composer')}
+                onReload={() => void reloadTemplates()}
+                onSave={saveTemplate}
+                onDelete={deleteTemplateRow}
+                labels={{
+                    title: t('templates_manage'),
+                    hint: t('templates_manage_hint'),
+                    use: t('templates_use'),
+                    new: t('templates_new'),
+                    label: t('templates_label'),
+                    body: t('templates_body'),
+                    save: t('templates_save'),
+                    cancel: t('cancel'),
+                    delete: t('delete'),
+                    empty: t('templates_empty'),
                 }}
             />
 

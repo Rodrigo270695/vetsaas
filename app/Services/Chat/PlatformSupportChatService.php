@@ -35,6 +35,7 @@ final class PlatformSupportChatService
         $search = trim((string) $search);
 
         $threads = PlatformSupportThread::query()
+            ->with(['assignedAgent:id,name'])
             ->get()
             ->keyBy(static fn (PlatformSupportThread $t): string => (string) $t->tenant_id);
 
@@ -72,6 +73,8 @@ final class PlatformSupportChatService
             }
 
             $thread = $threads->get((string) $tenant->id);
+            $waiting = $thread?->waitingMinutes();
+            $assigned = $thread?->assignedAgent;
 
             $rows[] = [
                 'id' => (string) $tenant->id,
@@ -81,12 +84,27 @@ final class PlatformSupportChatService
                 'plan_codigo' => $planCodigo,
                 'plan_nombre' => is_string($plan?->nombre) ? $plan->nombre : null,
                 'is_free' => $planCodigo !== null ? $isFree : null,
+                'is_vip' => $planCodigo !== null && ! $isFree,
                 'thread' => $thread === null ? null : [
                     'conversation_id' => (string) $thread->conversation_id,
                     'last_message_at' => $thread->last_message_at?->toIso8601String(),
                     'last_preview' => $thread->last_preview,
                     'unread' => $thread->isUnreadForPlatform(),
                     'from_clinic' => (bool) $thread->from_clinic,
+                    'needs_response' => (bool) $thread->from_clinic,
+                    'muted' => $thread->isMuted(),
+                    'waiting_minutes' => $waiting,
+                    'sla_label' => $waiting === null
+                        ? null
+                        : ($waiting >= 60
+                            ? intdiv($waiting, 60).'h '.($waiting % 60).'m'
+                            : $waiting.'m'),
+                    'assigned_agent_id' => $thread->assigned_agent_id !== null
+                        ? (string) $thread->assigned_agent_id
+                        : null,
+                    'assigned_agent_name' => $assigned !== null
+                        ? (string) $assigned->name
+                        : null,
                 ],
             ];
         }
@@ -119,6 +137,10 @@ final class PlatformSupportChatService
         return PlatformSupportThread::query()
             ->where('from_clinic', true)
             ->whereNotNull('last_message_at')
+            ->when(
+                Schema::hasColumn('platform_support_threads', 'muted_at'),
+                static fn ($q) => $q->whereNull('muted_at'),
+            )
             ->where(function ($q): void {
                 $q->whereNull('platform_last_read_at')
                     ->orWhereColumn('last_message_at', '>', 'platform_last_read_at');
@@ -148,6 +170,10 @@ final class PlatformSupportChatService
         $latest = PlatformSupportThread::query()
             ->where('from_clinic', true)
             ->whereNotNull('last_message_at')
+            ->when(
+                Schema::hasColumn('platform_support_threads', 'muted_at'),
+                static fn ($q) => $q->whereNull('muted_at'),
+            )
             ->where(function ($q): void {
                 $q->whereNull('platform_last_read_at')
                     ->orWhereColumn('last_message_at', '>', 'platform_last_read_at');
@@ -311,6 +337,15 @@ final class PlatformSupportChatService
         }
         if (Schema::hasColumn('platform_support_threads', 'platform_last_read_at')) {
             $update['platform_last_read_at'] = now();
+        }
+        if (Schema::hasColumn('platform_support_threads', 'clinic_waiting_since')) {
+            $update['clinic_waiting_since'] = null;
+        }
+        if (Schema::hasColumn('platform_support_threads', 'first_response_at')) {
+            $existing = PlatformSupportThread::query()->where('tenant_id', $tenant->id)->first();
+            if ($existing !== null && $existing->first_response_at === null && $existing->clinic_waiting_since !== null) {
+                $update['first_response_at'] = now();
+            }
         }
 
         PlatformSupportThread::query()
@@ -616,6 +651,259 @@ final class PlatformSupportChatService
 
             return $rows;
         }, enforceAccess: false);
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function messageContext(Tenant $tenant, string $messageId): array
+    {
+        $this->ensureThread($tenant);
+
+        return $this->tenants->runForTenant($tenant, function () use ($tenant, $messageId): array {
+            [$supportUser, $conversation, $message] = $this->resolveSupportMessage($tenant, $messageId);
+
+            return $this->chat->messageContext($conversation, $supportUser, $message);
+        }, enforceAccess: false);
+    }
+
+    public function assignAgent(Tenant $tenant, ?string $agentUserId): array
+    {
+        $this->ensureThread($tenant);
+
+        if ($agentUserId !== null && $agentUserId !== '') {
+            $agent = User::query()->find($agentUserId);
+            if (! $agent instanceof User || (! $agent->isPlatformSuperadmin() && ! $agent->can('plataforma-chat-soporte.manage'))) {
+                throw ValidationException::withMessages([
+                    'assigned_agent_id' => __('Agente no válido.'),
+                ]);
+            }
+        } else {
+            $agentUserId = null;
+        }
+
+        PlatformSupportThread::query()
+            ->where('tenant_id', $tenant->id)
+            ->update(['assigned_agent_id' => $agentUserId]);
+
+        $thread = PlatformSupportThread::query()
+            ->with('assignedAgent:id,name')
+            ->where('tenant_id', $tenant->id)
+            ->first();
+
+        return [
+            'assigned_agent_id' => $thread?->assigned_agent_id !== null
+                ? (string) $thread->assigned_agent_id
+                : null,
+            'assigned_agent_name' => $thread?->assignedAgent?->name,
+        ];
+    }
+
+    public function setMuted(Tenant $tenant, bool $muted): array
+    {
+        $this->ensureThread($tenant);
+
+        if (! Schema::hasColumn('platform_support_threads', 'muted_at')) {
+            return ['muted' => false];
+        }
+
+        PlatformSupportThread::query()
+            ->where('tenant_id', $tenant->id)
+            ->update(['muted_at' => $muted ? now() : null]);
+
+        return ['muted' => $muted];
+    }
+
+    /**
+     * @return list<array{id: string, name: string}>
+     */
+    public function assignableAgents(): array
+    {
+        return User::query()
+            ->whereNull('tenant_id')
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->filter(static function (User $u): bool {
+                try {
+                    return $u->isPlatformSuperadmin()
+                        || $u->can('plataforma-chat-soporte.view');
+                } catch (\Throwable) {
+                    return false;
+                }
+            })
+            ->map(static fn (User $u): array => [
+                'id' => (string) $u->id,
+                'name' => (string) $u->name,
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return list<array{id: string, body: string, user_id: string, user_name: string, created_at: ?string}>
+     */
+    public function listNotes(Tenant $tenant): array
+    {
+        if (! Schema::hasTable('platform_support_notes')) {
+            return [];
+        }
+
+        return \App\Models\PlatformSupportNote::query()
+            ->where('tenant_id', $tenant->id)
+            ->with('author:id,name')
+            ->orderByDesc('created_at')
+            ->limit(100)
+            ->get()
+            ->map(static fn (\App\Models\PlatformSupportNote $n): array => [
+                'id' => (string) $n->id,
+                'body' => (string) $n->body,
+                'user_id' => (string) $n->user_id,
+                'user_name' => (string) ($n->author?->name ?? 'Usuario'),
+                'created_at' => $n->created_at?->toIso8601String(),
+            ])
+            ->all();
+    }
+
+    /**
+     * @return array{id: string, body: string, user_id: string, user_name: string, created_at: ?string}
+     */
+    public function addNote(Tenant $tenant, User $actor, string $body): array
+    {
+        $body = trim($body);
+        if ($body === '') {
+            throw ValidationException::withMessages([
+                'body' => __('Escribe una nota.'),
+            ]);
+        }
+
+        $note = \App\Models\PlatformSupportNote::query()->create([
+            'tenant_id' => $tenant->id,
+            'user_id' => $actor->id,
+            'body' => mb_substr($body, 0, 4000),
+        ]);
+        $note->load('author:id,name');
+
+        return [
+            'id' => (string) $note->id,
+            'body' => (string) $note->body,
+            'user_id' => (string) $note->user_id,
+            'user_name' => (string) ($note->author?->name ?? $actor->name),
+            'created_at' => $note->created_at?->toIso8601String(),
+        ];
+    }
+
+    public function deleteNote(string $noteId, User $actor): void
+    {
+        $note = \App\Models\PlatformSupportNote::query()->findOrFail($noteId);
+        if ((string) $note->user_id !== (string) $actor->id && ! $actor->isPlatformSuperadmin()) {
+            abort(403);
+        }
+        $note->delete();
+    }
+
+    /**
+     * @return list<array{id: string, label: string, body: string, sort_order: int}>
+     */
+    public function listTemplates(bool $activeOnly = true): array
+    {
+        if (! Schema::hasTable('platform_support_templates')) {
+            return $this->builtinTemplates();
+        }
+
+        $q = \App\Models\PlatformSupportTemplate::query()->orderBy('sort_order')->orderBy('label');
+        if ($activeOnly) {
+            $q->where('is_active', true);
+        }
+
+        $rows = $q->get();
+        if ($rows->isEmpty()) {
+            return $this->builtinTemplates();
+        }
+
+        return $rows->map(static fn (\App\Models\PlatformSupportTemplate $t): array => [
+            'id' => (string) $t->id,
+            'label' => (string) $t->label,
+            'body' => (string) $t->body,
+            'sort_order' => (int) $t->sort_order,
+            'is_active' => (bool) $t->is_active,
+        ])->all();
+    }
+
+    /**
+     * @return array{id: string, label: string, body: string, sort_order: int, is_active: bool}
+     */
+    public function upsertTemplate(?string $id, string $label, string $body, ?User $actor = null, ?int $sortOrder = null, bool $isActive = true): array
+    {
+        $label = trim($label);
+        $body = trim($body);
+        if ($label === '' || $body === '') {
+            throw ValidationException::withMessages([
+                'label' => __('Completa etiqueta y texto.'),
+            ]);
+        }
+
+        $template = $id
+            ? \App\Models\PlatformSupportTemplate::query()->findOrFail($id)
+            : new \App\Models\PlatformSupportTemplate;
+
+        $template->fill([
+            'label' => mb_substr($label, 0, 120),
+            'body' => mb_substr($body, 0, 4000),
+            'sort_order' => $sortOrder ?? (int) ($template->sort_order ?? 0),
+            'is_active' => $isActive,
+            'created_by' => $template->exists ? $template->created_by : $actor?->id,
+        ]);
+        $template->save();
+
+        return [
+            'id' => (string) $template->id,
+            'label' => (string) $template->label,
+            'body' => (string) $template->body,
+            'sort_order' => (int) $template->sort_order,
+            'is_active' => (bool) $template->is_active,
+        ];
+    }
+
+    public function deleteTemplate(string $id): void
+    {
+        \App\Models\PlatformSupportTemplate::query()->whereKey($id)->delete();
+    }
+
+    /**
+     * @return list<array{id: string, label: string, body: string, sort_order: int, is_active: bool}>
+     */
+    private function builtinTemplates(): array
+    {
+        return [
+            [
+                'id' => 'builtin-whatsapp',
+                'label' => 'Reconectar WhatsApp',
+                'body' => 'Hola. Actualizamos WhatsApp. Entra a Cola saliente, desvincula y vuelve a escanear el QR para reactivar el envío.',
+                'sort_order' => 1,
+                'is_active' => true,
+            ],
+            [
+                'id' => 'builtin-maintenance',
+                'label' => 'Mantenimiento',
+                'body' => 'Aviso: tendremos una ventana de mantenimiento breve. El servicio puede interrumpirse unos minutos. Gracias por tu paciencia.',
+                'sort_order' => 2,
+                'is_active' => true,
+            ],
+            [
+                'id' => 'builtin-billing',
+                'label' => 'Facturación / plan',
+                'body' => 'Hola. Revisamos tu plan/suscripción. Si tienes dudas de facturación o activación de módulos, responde aquí y te ayudamos.',
+                'sort_order' => 3,
+                'is_active' => true,
+            ],
+            [
+                'id' => 'builtin-greeting',
+                'label' => 'Saludo de soporte',
+                'body' => 'Hola, soy del equipo de Soporte VetSaaS. ¿En qué podemos ayudarte hoy?',
+                'sort_order' => 4,
+                'is_active' => true,
+            ],
+        ];
     }
 
     /**
