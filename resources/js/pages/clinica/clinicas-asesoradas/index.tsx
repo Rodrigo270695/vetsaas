@@ -1,5 +1,6 @@
-import { Head } from '@inertiajs/react';
-import { Building2, Plus, Trash2 } from 'lucide-react';
+import { Head, Link, router } from '@inertiajs/react';
+import { Building2, Filter, Plus, PowerOff, ScreenShare } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Can } from '@/components/can';
@@ -16,11 +17,12 @@ import type { DataTableColumn, FilterChip } from '@/components/data-page';
 import { Button } from '@/components/ui/button';
 import { useDataTablePage } from '@/hooks/use-data-table-page';
 import { usePermission } from '@/hooks/use-permission';
-import { router } from '@inertiajs/react';
 import { ClinicaAsesoradaFormModal } from './components/clinica-asesorada-form-modal';
+import { ClinicaAsesoradaRowActions } from './components/clinica-asesorada-row-actions';
 import type { ClinicaAsesorada, ClinicasAsesoradasPageProps } from './types';
 
 const ROUTE_URL = '/clinica/clinicas-asesoradas';
+const PACIENTES_URL = '/clinica/pacientes';
 const DEFAULT_PER_PAGE = 10;
 const DEFAULT_ESTADO = 'todas';
 
@@ -35,6 +37,7 @@ export default function Index({
     const canCreate = can('clinicas-asesoradas.create');
     const canUpdate = can('clinicas-asesoradas.update');
     const canDelete = can('clinicas-asesoradas.delete');
+    const showRowActions = canUpdate || canDelete;
 
     const [editing, setEditing] = useState<ClinicaAsesorada | null | undefined>(
         undefined,
@@ -55,6 +58,17 @@ export default function Index({
             },
         });
 
+    const activeFiltersCount = useMemo(() => {
+        let c = 0;
+        if (filters.search) {
+            c += 1;
+        }
+        if (filters.estado !== DEFAULT_ESTADO) {
+            c += 1;
+        }
+        return c;
+    }, [filters.estado, filters.search]);
+
     const estadoOptions: readonly FilterChip<string>[] = useMemo(
         () => [
             { value: 'todas', label: t('filters.todas') },
@@ -64,8 +78,8 @@ export default function Index({
         [t],
     );
 
-    const columns = useMemo<DataTableColumn<ClinicaAsesorada>[]>(
-        () => [
+    const columns = useMemo<DataTableColumn<ClinicaAsesorada>[]>(() => {
+        const base: DataTableColumn<ClinicaAsesorada>[] = [
             {
                 key: 'nombre',
                 header: t('columns.nombre'),
@@ -100,6 +114,30 @@ export default function Index({
                 },
             },
             {
+                key: 'mascotas_count',
+                header: t('columns.mascotas'),
+                cell: (row) => {
+                    const count = row.mascotas_count ?? 0;
+                    if (count <= 0) {
+                        return (
+                            <span className="text-sm text-muted-foreground">
+                                0
+                            </span>
+                        );
+                    }
+
+                    return (
+                        <Link
+                            href={`${PACIENTES_URL}?clinica_asesorada_id=${row.id}`}
+                            className="font-medium text-primary underline-offset-4 hover:underline"
+                            preserveState={false}
+                        >
+                            {count}
+                        </Link>
+                    );
+                },
+            },
+            {
                 key: 'estado',
                 header: t('columns.estado'),
                 cell: (row) => (
@@ -114,70 +152,83 @@ export default function Index({
                     />
                 ),
             },
-            {
+        ];
+
+        if (showRowActions) {
+            base.push({
                 key: 'actions',
-                header: '',
+                header: t('columns.acciones'),
                 cell: (row) => (
-                    <div className="flex justify-end gap-1">
-                        {canUpdate ? (
-                            <Button
-                                type="button"
-                                size="sm"
-                                variant="default"
-                                onClick={() => setEditing(row)}
-                            >
-                                {t('actions.edit')}
-                            </Button>
-                        ) : null}
-                        {canDelete ? (
-                            <Button
-                                type="button"
-                                size="icon"
-                                variant="ghost"
-                                className="text-destructive"
-                                onClick={() => setDeleting(row)}
-                            >
-                                <Trash2 className="size-4" />
-                            </Button>
-                        ) : null}
-                    </div>
+                    <ClinicaAsesoradaRowActions
+                        clinica={row}
+                        canUpdate={canUpdate}
+                        canDelete={canDelete}
+                        onEdit={(item) => setEditing(item)}
+                        onDelete={(item) => setDeleting(item)}
+                    />
                 ),
-            },
-        ],
-        [canDelete, canUpdate, t],
-    );
+                className: 'w-12',
+            });
+        }
+
+        return base;
+    }, [canDelete, canUpdate, showRowActions, t]);
 
     return (
         <>
             <Head title={t('title')} />
-            <div className="flex flex-1 flex-col gap-4 p-4 md:gap-6 md:p-6">
+            <div className="flex flex-1 flex-col gap-5 p-4 sm:p-6">
                 <PageHeader
                     title={t('title')}
                     description={t('description')}
-                    badges={[
+                    stats={[
                         {
                             label: t('stats.total'),
                             value: stats.total,
                             variant: 'info',
+                            icon: Building2,
                         },
                         {
                             label: t('stats.activas'),
                             value: stats.activas,
                             variant: 'success',
+                            icon: Building2,
                         },
                         {
                             label: t('stats.inactivas'),
                             value: stats.inactivas,
                             variant: 'muted',
+                            icon: PowerOff as LucideIcon,
+                        },
+                        {
+                            label: t('stats.filters'),
+                            value: activeFiltersCount,
+                            variant: 'warning',
+                            icon: Filter,
+                        },
+                        {
+                            label: t('stats.coincidencias'),
+                            value: stats.coincidencias,
+                            variant: 'primary',
+                            icon: ScreenShare,
                         },
                     ]}
-                    actions={
-                        canCreate ? (
-                            <Button type="button" onClick={() => setEditing(null)}>
-                                <Plus className="size-4" />
-                                {t('actions.new')}
+                    action={
+                        <Can permission="clinicas-asesoradas.create">
+                            <Button
+                                type="button"
+                                className="cursor-pointer gap-2"
+                                onClick={() => setEditing(null)}
+                            >
+                                <Plus className="size-4" strokeWidth={2.5} />
+                                <span className="hidden sm:inline">
+                                    {t('actions.new')}
+                                </span>
+                                <span className="sm:hidden">
+                                    {t('actions.new_short')}
+                                </span>
                             </Button>
-                        ) : null
+                        </Can>
                     }
                 />
 
@@ -217,17 +268,30 @@ export default function Index({
                     emptyState={
                         <EmptyState
                             icon={Building2}
-                            title={t('empty')}
+                            title={
+                                activeFiltersCount > 0
+                                    ? t('empty.no_results_title')
+                                    : t('empty.no_records_title')
+                            }
+                            description={
+                                activeFiltersCount > 0
+                                    ? t('empty.no_results_description')
+                                    : t('empty.no_records_description')
+                            }
                             action={
-                                canCreate ? (
+                                activeFiltersCount === 0 && canCreate ? (
                                     <Button
                                         type="button"
+                                        className="cursor-pointer gap-2"
                                         onClick={() => setEditing(null)}
                                     >
-                                        <Plus className="size-4" />
-                                        {t('actions.new')}
+                                        <Plus
+                                            className="size-4"
+                                            strokeWidth={2.5}
+                                        />
+                                        {t('actions.create_first')}
                                     </Button>
-                                ) : null
+                                ) : undefined
                             }
                         />
                     }
@@ -268,10 +332,13 @@ export default function Index({
                                 type="button"
                                 variant="destructive"
                                 onClick={() => {
-                                    router.delete(`${ROUTE_URL}/${deleting.id}`, {
-                                        preserveScroll: true,
-                                        onSuccess: () => setDeleting(null),
-                                    });
+                                    router.delete(
+                                        `${ROUTE_URL}/${deleting.id}`,
+                                        {
+                                            preserveScroll: true,
+                                            onSuccess: () => setDeleting(null),
+                                        },
+                                    );
                                 }}
                             >
                                 {t('delete.confirm')}

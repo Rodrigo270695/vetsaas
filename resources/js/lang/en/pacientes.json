@@ -3,6 +3,8 @@
     "description": "Pets registered at the clinic and their owner.",
     "search_placeholder": "Search by name, species, microchip or owner…",
     "filter_label": "Status",
+    "filter_clinica_label": "Origin clinic",
+    "filter_clinica_todas": "All clinics",
     "plan_limit": {
         "max_pacientes": "You reached your plan's pet limit. Upgrade your plan to register more."
     },

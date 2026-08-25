@@ -1,10 +1,11 @@
 {
     "title": "Clínicas asesoradas",
     "description": "Veterinarias que atiendes. Luego las eliges al registrar cada mascota.",
-    "empty": "Aún no hay clínicas. Crea la primera.",
     "search_placeholder": "Buscar por nombre, RUC o ubicación…",
     "actions": {
         "new": "Nueva clínica",
+        "new_short": "Nueva",
+        "create_first": "Crear primera clínica",
         "edit": "Editar",
         "delete": "Eliminar"
     },
@@ -12,6 +13,7 @@
         "total": "Total",
         "activas": "Activas",
         "inactivas": "Inactivas",
+        "filters": "Filtros",
         "coincidencias": "Coincidencias"
     },
     "filters": {
@@ -23,7 +25,15 @@
         "nombre": "Nombre",
         "ruc": "RUC",
         "ubicacion": "Ubicación",
-        "estado": "Estado"
+        "mascotas": "Mascotas",
+        "estado": "Estado",
+        "acciones": "Acciones"
+    },
+    "empty": {
+        "no_results_title": "Sin resultados",
+        "no_results_description": "Prueba otro filtro o búsqueda.",
+        "no_records_title": "Aún no hay clínicas",
+        "no_records_description": "Registra las veterinarias que asesoras para asignarlas a cada mascota."
     },
     "estado": {
         "activa": "Activa",

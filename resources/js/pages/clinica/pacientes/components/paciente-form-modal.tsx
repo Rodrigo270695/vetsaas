@@ -48,7 +48,11 @@ export type PacienteFormModalProps = {
     propietariosOpciones: readonly PropietarioOpcion[];
     especieRazaCatalogo?: EspecieRazaCatalogo;
     modoAsesora?: boolean;
-    clinicasAsesoradasOpciones?: readonly { id: string; nombre: string }[];
+    clinicasAsesoradasOpciones?: readonly {
+        id: string;
+        nombre: string;
+        activo?: boolean;
+    }[];
 };
 
 type InternalForm = {
@@ -149,6 +153,16 @@ export function PacienteFormModal({
 
     const { data, setData, post, processing, errors, reset, clearErrors, transform } =
         useForm<PacienteFormData>(emptyForm);
+
+    const clinicasFormOptions = useMemo(() => {
+        const selectedId = data.clinica_asesorada_id || null;
+        return clinicasAsesoradasOpciones
+            .filter((c) => c.activo !== false || c.id === selectedId)
+            .map((c) => ({
+                value: c.id,
+                label: c.nombre,
+            }));
+    }, [clinicasAsesoradasOpciones, data.clinica_asesorada_id]);
 
     type FormSnapshot = {
         internal: InternalForm;
@@ -484,10 +498,7 @@ export function PacienteFormModal({
                         >
                             <Combobox
                                 id="pac-clinica-asesorada"
-                                options={clinicasAsesoradasOpciones.map((c) => ({
-                                    value: c.id,
-                                    label: c.nombre,
-                                }))}
+                                options={clinicasFormOptions}
                                 value={data.clinica_asesorada_id || null}
                                 onChange={(v) =>
                                     setData('clinica_asesorada_id', v ?? '')

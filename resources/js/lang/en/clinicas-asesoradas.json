@@ -1,10 +1,11 @@
 {
     "title": "Advised clinics",
     "description": "Veterinary clinics you advise. Then pick them when registering each pet.",
-    "empty": "No clinics yet. Create the first one.",
     "search_placeholder": "Search by name, tax ID or location…",
     "actions": {
         "new": "New clinic",
+        "new_short": "New",
+        "create_first": "Create first clinic",
         "edit": "Edit",
         "delete": "Delete"
     },
@@ -12,6 +13,7 @@
         "total": "Total",
         "activas": "Active",
         "inactivas": "Inactive",
+        "filters": "Filters",
         "coincidencias": "Matches"
     },
     "filters": {
@@ -23,7 +25,15 @@
         "nombre": "Name",
         "ruc": "Tax ID",
         "ubicacion": "Location",
-        "estado": "Status"
+        "mascotas": "Pets",
+        "estado": "Status",
+        "acciones": "Actions"
+    },
+    "empty": {
+        "no_results_title": "No results",
+        "no_results_description": "Try another filter or search.",
+        "no_records_title": "No clinics yet",
+        "no_records_description": "Register the clinics you advise so you can assign them to each pet."
     },
     "estado": {
         "activa": "Active",

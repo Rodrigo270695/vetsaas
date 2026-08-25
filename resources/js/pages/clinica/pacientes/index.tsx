@@ -56,7 +56,11 @@ import { PacienteRowActions } from './components/paciente-row-actions';
 type Props = {
     pacientes: Paginated<Paciente>;
     propietarios_opciones: readonly PropietarioOpcion[];
-    clinicas_asesoradas_opciones?: readonly { id: string; nombre: string }[];
+    clinicas_asesoradas_opciones?: readonly {
+        id: string;
+        nombre: string;
+        activo?: boolean;
+    }[];
     modo_asesora?: boolean;
     especie_raza_catalogo: EspecieRazaCatalogo;
     filters: PacienteFilters;
@@ -72,6 +76,7 @@ type ModalState =
 
 const DEFAULT_PER_PAGE = 10;
 const DEFAULT_ESTADO: PacienteEstadoFilter = 'todos';
+const CLINICA_FILTER_TODAS = 'todas';
 
 function displayPropietario(p: Paciente['propietario']): string {
     if (!p) {
@@ -132,7 +137,10 @@ export default function Index({
         setSort,
         setPerPage,
         applyFilter,
-    } = useDataTablePage<{ estado: PacienteEstadoFilter }>({
+    } = useDataTablePage<{
+        estado: PacienteEstadoFilter;
+        clinica_asesorada_id?: string | null;
+    }>({
         routeUrl: pacientes.index().url,
         initialFilters: filters,
             only: [
@@ -164,6 +172,24 @@ export default function Index({
         ],
         [t],
     );
+
+    const clinicaFilterOptions: readonly FilterChip<string>[] = useMemo(() => {
+        const options: FilterChip<string>[] = [
+            {
+                value: CLINICA_FILTER_TODAS,
+                label: t('filter_clinica_todas'),
+            },
+        ];
+        for (const c of clinicas_asesoradas_opciones) {
+            options.push({ value: c.id, label: c.nombre });
+        }
+        return options;
+    }, [clinicas_asesoradas_opciones, t]);
+
+    const clinicaFilterValue =
+        filters.clinica_asesorada_id && filters.clinica_asesorada_id !== ''
+            ? filters.clinica_asesorada_id
+            : CLINICA_FILTER_TODAS;
 
     const [modal, setModal] = useState<ModalState>({ type: 'idle' });
     const closeModal = useCallback(() => setModal({ type: 'idle' }), []);
@@ -197,11 +223,20 @@ export default function Index({
         if (filters.estado !== DEFAULT_ESTADO) {
             c += 1;
         }
+        if (filters.clinica_asesorada_id) {
+            c += 1;
+        }
         if (filters.per_page !== DEFAULT_PER_PAGE) {
             c += 1;
         }
         return c;
-    }, [filters.search, filters.sort, filters.estado, filters.per_page]);
+    }, [
+        filters.search,
+        filters.sort,
+        filters.estado,
+        filters.clinica_asesorada_id,
+        filters.per_page,
+    ]);
 
     const exportUrl = useMemo(() => {
         const params = new URLSearchParams();
@@ -217,11 +252,20 @@ export default function Index({
         if (filters.estado !== DEFAULT_ESTADO) {
             params.set('estado', filters.estado);
         }
+        if (filters.clinica_asesorada_id) {
+            params.set('clinica_asesorada_id', filters.clinica_asesorada_id);
+        }
         const qs = params.toString();
         return qs.length > 0
             ? `${pacientes.export().url}?${qs}`
             : pacientes.export().url;
-    }, [filters.search, filters.sort, filters.direction, filters.estado]);
+    }, [
+        filters.search,
+        filters.sort,
+        filters.direction,
+        filters.estado,
+        filters.clinica_asesorada_id,
+    ]);
 
     const columns = useMemo<DataTableColumn<Paciente>[]>(() => {
         const base: DataTableColumn<Paciente>[] = [
@@ -536,14 +580,37 @@ export default function Index({
                                         isSearching={isLoading}
                                         placeholder={t('search_placeholder')}
                                     >
-                                        <FilterChips
-                                            ariaLabel={t('filter_label')}
-                                            value={filters.estado}
-                                            onChange={(estado) =>
-                                                applyFilter({ estado })
-                                            }
-                                            options={estadoOptions}
-                                        />
+                                        <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+                                            <FilterChips
+                                                ariaLabel={t('filter_label')}
+                                                value={filters.estado}
+                                                onChange={(estado) =>
+                                                    applyFilter({ estado })
+                                                }
+                                                options={estadoOptions}
+                                            />
+                                            {modo_asesora ? (
+                                                <FilterChips
+                                                    ariaLabel={t(
+                                                        'filter_clinica_label',
+                                                    )}
+                                                    value={clinicaFilterValue}
+                                                    onChange={(value) =>
+                                                        applyFilter({
+                                                            clinica_asesorada_id:
+                                                                value ===
+                                                                CLINICA_FILTER_TODAS
+                                                                    ? null
+                                                                    : value,
+                                                        })
+                                                    }
+                                                    options={
+                                                        clinicaFilterOptions
+                                                    }
+                                                    triggerClassName="sm:min-w-52"
+                                                />
+                                            ) : null}
+                                        </div>
                                     </DataToolbar>
                                 </div>
                             }
@@ -561,6 +628,9 @@ export default function Index({
                                             filters.estado !== DEFAULT_ESTADO
                                                 ? filters.estado
                                                 : undefined,
+                                        clinica_asesorada_id:
+                                            filters.clinica_asesorada_id ||
+                                            undefined,
                                     }}
                                 />
                             }

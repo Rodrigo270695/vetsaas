@@ -31,7 +31,9 @@ class ClinicaAsesoradaController extends Controller
             $estado = 'todas';
         }
 
-        $query = ClinicaAsesorada::query()->orderBy('nombre');
+        $query = ClinicaAsesorada::query()
+            ->withCount('pacientes')
+            ->orderBy('nombre');
 
         if ($search !== '') {
             $query->where(function ($q) use ($search): void {
@@ -131,6 +133,7 @@ class ClinicaAsesoradaController extends Controller
             'provincia' => $row->provincia,
             'departamento' => $row->departamento,
             'activo' => (bool) $row->activo,
+            'mascotas_count' => (int) ($row->pacientes_count ?? 0),
             'updated_at' => $row->updated_at?->toIso8601String(),
         ];
     }

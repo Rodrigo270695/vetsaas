@@ -147,9 +147,9 @@ class PacienteController extends Controller
         $clinicasAsesoradasOpciones = [];
         if ($modoAsesora) {
             $clinicasAsesoradasOpciones = ClinicaAsesorada::query()
-                ->where('activo', true)
+                ->orderByDesc('activo')
                 ->orderBy('nombre')
-                ->get(['id', 'nombre']);
+                ->get(['id', 'nombre', 'activo']);
         }
 
         return Inertia::render('clinica/pacientes/index', [
@@ -573,6 +573,12 @@ class PacienteController extends Controller
             $query->where('pacientes.activo', true);
         } elseif ($estado === 'inactivo') {
             $query->where('pacientes.activo', false);
+        }
+
+        $modoAsesora = (bool) ClinicSetting::query()->value('modo_asesora_activo');
+        $clinicaAsesoradaId = trim((string) $request->string('clinica_asesorada_id', ''));
+        if ($modoAsesora && $clinicaAsesoradaId !== '') {
+            $query->where('pacientes.clinica_asesorada_id', $clinicaAsesoradaId);
         }
 
         $filename = 'pacientes-'.now()->format('Ymd-His').'.xlsx';

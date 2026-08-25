@@ -13,6 +13,7 @@ export type ClinicaAsesorada = {
     provincia: string | null;
     departamento: string | null;
     activo: boolean;
+    mascotas_count: number;
     updated_at: string | null;
 };
 
