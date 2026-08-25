@@ -18,7 +18,7 @@
     @include('pdf.partials.clinic-header')
     @include('pdf.partials.patient-owner-cards')
 
-    <div class="card card-white">
+    <div class="card card-white" style="padding: 7px 9px;">
         <h2>{{ __('historial_clinico.section_timeline') }}</h2>
         @if ($entriesCount === 0)
             <p class="muted" style="margin:0;">{{ __('historial_clinico.empty') }}</p>
