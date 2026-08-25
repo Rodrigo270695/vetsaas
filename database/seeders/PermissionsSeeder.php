@@ -110,6 +110,7 @@ class PermissionsSeeder extends Seeder
 
         // ───── Plataforma (solo superadmin SaaS) ─────
         'plataforma-tenants' => ['view', 'create', 'update', 'suspend', 'resume', 'delete', 'export', 'bulk-delete', 'impersonate', 'whatsapp-restart', 'whatsapp-stop'],
+        'plataforma-chat-soporte' => ['view', 'manage'],
         'plataforma-planes' => ['view', 'create', 'update', 'delete', 'export', 'bulk-delete'],
         'plataforma-suscripciones' => ['view', 'create', 'update', 'delete', 'export', 'bulk-delete', 'extend-trial', 'change-plan', 'cancel', 'toggle-bot-ia'],
         'plataforma-cobros' => ['view', 'export', 'renew', 'refund', 'resend-invoice', 'add-note'],

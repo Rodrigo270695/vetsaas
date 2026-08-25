@@ -98,6 +98,7 @@
     "pin": "Pin chat",
     "unpin": "Unpin chat",
     "pinned_badge": "Pinned",
+    "support_badge": "Support",
     "presence_online": "Online",
     "presence_last_seen": "Last seen {{time}}",
     "presence_unknown": "No recent activity",

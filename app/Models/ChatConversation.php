@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 /**
  * @property string $id
  * @property string $type
+ * @property string $kind
  * @property ?string $name
  * @property ?string $direct_key
  * @property ?string $created_by_id
@@ -24,10 +25,15 @@ class ChatConversation extends Model
 
     public const TYPE_GROUP = 'group';
 
+    public const KIND_TEAM = 'team';
+
+    public const KIND_SUPPORT = 'support';
+
     protected $table = 'chat_conversations';
 
     protected $fillable = [
         'type',
+        'kind',
         'name',
         'direct_key',
         'created_by_id',
@@ -41,6 +47,12 @@ class ChatConversation extends Model
     public function isGroup(): bool
     {
         return $this->type === self::TYPE_GROUP;
+    }
+
+    public function isSupport(): bool
+    {
+        return $this->kind === self::KIND_SUPPORT
+            || (is_string($this->name) && strcasecmp($this->name, 'Soporte VetSaaS') === 0);
     }
 
     public function createdBy(): BelongsTo

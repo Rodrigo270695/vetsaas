@@ -555,6 +555,12 @@ function useNavConfig(): { singles: NavItem[]; groups: NavGroup[] } {
                             permission: 'plataforma-tenants.view',
                         },
                         {
+                            title: t('items.chat_soporte'),
+                            href: '/plataforma/chat-soporte',
+                            icon: MessagesSquare,
+                            permission: 'plataforma-chat-soporte.view',
+                        },
+                        {
                             title: t('items.auditoria_seguridad'),
                             href: '/plataforma/auditoria-seguridad',
                             icon: ShieldAlert,

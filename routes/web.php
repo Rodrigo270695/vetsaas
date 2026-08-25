@@ -52,6 +52,7 @@ use App\Http\Controllers\PlanController;
 use App\Http\Controllers\PlataformaApiPeruController;
 use App\Http\Controllers\PlataformaChatUsageController;
 use App\Http\Controllers\PlataformaImpersonationAuditController;
+use App\Http\Controllers\PlatformSupportChatController;
 use App\Http\Controllers\PlataformaOperacionesController;
 use App\Http\Controllers\PlataformaReportesController;
 use App\Http\Controllers\PlataformaSecurityAuditController;
@@ -1463,6 +1464,24 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:plataforma-tenants.view')
             ->get('auditoria-soporte', [PlataformaImpersonationAuditController::class, 'index'])
             ->name('auditoria-soporte.index');
+        Route::middleware('permission:plataforma-chat-soporte.view')
+            ->get('chat-soporte', [PlatformSupportChatController::class, 'index'])
+            ->name('chat-soporte.index');
+        Route::middleware('permission:plataforma-chat-soporte.view')
+            ->get('chat-soporte/tenants', [PlatformSupportChatController::class, 'tenants'])
+            ->name('chat-soporte.tenants');
+        Route::middleware('permission:plataforma-chat-soporte.manage')
+            ->post('chat-soporte/tenants/{tenant}/ensure', [PlatformSupportChatController::class, 'ensure'])
+            ->name('chat-soporte.ensure');
+        Route::middleware('permission:plataforma-chat-soporte.view')
+            ->get('chat-soporte/tenants/{tenant}/messages', [PlatformSupportChatController::class, 'messages'])
+            ->name('chat-soporte.messages');
+        Route::middleware('permission:plataforma-chat-soporte.manage')
+            ->post('chat-soporte/tenants/{tenant}/messages', [PlatformSupportChatController::class, 'send'])
+            ->name('chat-soporte.send');
+        Route::middleware('permission:plataforma-chat-soporte.manage')
+            ->post('chat-soporte/broadcast', [PlatformSupportChatController::class, 'broadcast'])
+            ->name('chat-soporte.broadcast');
         Route::middleware('permission:plataforma-tenants.view')
             ->get('auditoria-seguridad', [PlataformaSecurityAuditController::class, 'index'])
             ->name('auditoria-seguridad.index');

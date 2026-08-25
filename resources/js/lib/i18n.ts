@@ -25,6 +25,7 @@ import plataformaOperacionesEn from '@/lang/en/plataforma-operaciones.json';
 import plataformaReportesEn from '@/lang/en/plataforma-reportes.json';
 import plataformaSesionesLoginEn from '@/lang/en/plataforma-sesiones-login.json';
 import plataformaUsoChatEn from '@/lang/en/plataforma-uso-chat.json';
+import plataformaChatSoporteEn from '@/lang/en/plataforma-chat-soporte.json';
 import plataformaApiperuEn from '@/lang/en/plataforma-apiperu.json';
 import plataformaUsoPlanesEn from '@/lang/en/plataforma-uso-planes.json';
 import dashboardEn from '@/lang/en/dashboard.json';
@@ -88,6 +89,7 @@ import plataformaOperacionesEs from '@/lang/es/plataforma-operaciones.json';
 import plataformaReportesEs from '@/lang/es/plataforma-reportes.json';
 import plataformaSesionesLoginEs from '@/lang/es/plataforma-sesiones-login.json';
 import plataformaUsoChatEs from '@/lang/es/plataforma-uso-chat.json';
+import plataformaChatSoporteEs from '@/lang/es/plataforma-chat-soporte.json';
 import plataformaApiperuEs from '@/lang/es/plataforma-apiperu.json';
 import plataformaUsoPlanesEs from '@/lang/es/plataforma-uso-planes.json';
 import dashboardEs from '@/lang/es/dashboard.json';
@@ -179,6 +181,7 @@ const resources = {
         'plataforma-reportes': plataformaReportesEs,
         'plataforma-sesiones-login': plataformaSesionesLoginEs,
         'plataforma-uso-chat': plataformaUsoChatEs,
+        'plataforma-chat-soporte': plataformaChatSoporteEs,
         'plataforma-apiperu': plataformaApiperuEs,
         'plataforma-uso-planes': plataformaUsoPlanesEs,
         dashboard: dashboardEs,
@@ -244,6 +247,7 @@ const resources = {
         'plataforma-reportes': plataformaReportesEn,
         'plataforma-sesiones-login': plataformaSesionesLoginEn,
         'plataforma-uso-chat': plataformaUsoChatEn,
+        'plataforma-chat-soporte': plataformaChatSoporteEn,
         'plataforma-apiperu': plataformaApiperuEn,
         'plataforma-uso-planes': plataformaUsoPlanesEn,
         dashboard: dashboardEn,
@@ -319,6 +323,7 @@ void i18n
             'plataforma-reportes',
             'plataforma-sesiones-login',
             'plataforma-uso-chat',
+            'plataforma-chat-soporte',
             'plataforma-apiperu',
             'plataforma-uso-planes',
             'dashboard',

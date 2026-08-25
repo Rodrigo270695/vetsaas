@@ -98,6 +98,7 @@
     "pin": "Fijar chat",
     "unpin": "Desfijar chat",
     "pinned_badge": "Fijado",
+    "support_badge": "Soporte",
     "presence_online": "En línea",
     "presence_last_seen": "Última vez {{time}}",
     "presence_unknown": "Sin actividad reciente",

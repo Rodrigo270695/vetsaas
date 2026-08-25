@@ -144,6 +144,8 @@ type ChatMessage = {
 type ConversationSummary = {
     id: string;
     type: 'direct' | 'group';
+    kind?: 'team' | 'support' | string;
+    is_support?: boolean;
     title: string;
     name: string | null;
     participants: { id: string; name: string }[];
@@ -2259,6 +2261,15 @@ export default function ChatInternoIndex({
                                                             <span className="truncate text-sm font-medium">
                                                                 {c.title}
                                                             </span>
+                                                            {c.is_support ||
+                                                            c.kind === 'support' ? (
+                                                                <Badge
+                                                                    variant="secondary"
+                                                                    className="h-5 shrink-0 rounded-full px-1.5 text-[10px] font-medium"
+                                                                >
+                                                                    {t('support_badge')}
+                                                                </Badge>
+                                                            ) : null}
                                                             {c.pinned ? (
                                                                 <Pin
                                                                     className="size-3 shrink-0 text-amber-600 dark:text-amber-400"
@@ -2370,8 +2381,19 @@ export default function ChatInternoIndex({
                                             </AvatarFallback>
                                         </Avatar>
                                         <div className="min-w-0 flex-1">
-                                            <p className="truncate text-sm font-semibold">
-                                                {active.title}
+                                            <p className="flex items-center gap-2 truncate text-sm font-semibold">
+                                                <span className="truncate">
+                                                    {active.title}
+                                                </span>
+                                                {active.is_support ||
+                                                active.kind === 'support' ? (
+                                                    <Badge
+                                                        variant="secondary"
+                                                        className="h-5 shrink-0 rounded-full px-1.5 text-[10px] font-medium"
+                                                    >
+                                                        {t('support_badge')}
+                                                    </Badge>
+                                                ) : null}
                                             </p>
                                             <p className="truncate text-xs text-muted-foreground">
                                                 {threadSubtitle}

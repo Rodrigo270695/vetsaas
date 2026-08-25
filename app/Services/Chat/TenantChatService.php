@@ -37,6 +37,10 @@ final class TenantChatService
 
     public const MAX_ATTACHMENTS = 5;
 
+    public const SUPPORT_GROUP_NAME = 'Soporte VetSaaS';
+
+    public const SUPPORT_EMAIL_DOMAIN = 'vetsaas.internal';
+
     /** @var list<string> */
     public const ALLOWED_REACTION_EMOJIS = ['👍', '✅', '❤️', '😂', '🎉'];
 
@@ -70,6 +74,7 @@ final class TenantChatService
     {
         $q = ClinicAdminScope::usersQuery()
             ->where('is_active', true)
+            ->where('email', 'not like', '%@vetsaas.internal')
             ->orderBy('name');
 
         if ($exceptUserId !== null && $exceptUserId !== '') {
@@ -1010,6 +1015,82 @@ final class TenantChatService
     }
 
     /**
+     * Crea o reutiliza el grupo fijo «Soporte VetSaaS» y sincroniza participantes.
+     *
+     * @param  list<string>  $adminUserIds
+     */
+    public function ensureSupportGroup(User $supportUser, array $adminUserIds): ChatConversation
+    {
+        $adminUserIds = collect($adminUserIds)
+            ->map(static fn ($id): string => (string) $id)
+            ->filter(static fn (string $id): bool => $id !== '' && $id !== (string) $supportUser->id)
+            ->unique()
+            ->values()
+            ->all();
+
+        $conversation = ChatConversation::query()
+            ->where('type', ChatConversation::TYPE_GROUP)
+            ->where(function ($q): void {
+                if ($this->schemaHasColumn('chat_conversations', 'kind')) {
+                    $q->where('kind', ChatConversation::KIND_SUPPORT);
+                }
+                $q->orWhereRaw('lower(name) = lower(?)', [self::SUPPORT_GROUP_NAME]);
+            })
+            ->first();
+
+        if ($conversation === null) {
+            $conversation = $this->createGroup($supportUser, self::SUPPORT_GROUP_NAME, $adminUserIds);
+            if ($this->schemaHasColumn('chat_conversations', 'kind')) {
+                $conversation->forceFill(['kind' => ChatConversation::KIND_SUPPORT])->save();
+            }
+        } else {
+            if ($this->schemaHasColumn('chat_conversations', 'kind')
+                && $conversation->kind !== ChatConversation::KIND_SUPPORT) {
+                $conversation->forceFill(['kind' => ChatConversation::KIND_SUPPORT])->save();
+            }
+            if ((string) ($conversation->name ?? '') !== self::SUPPORT_GROUP_NAME) {
+                $conversation->forceFill(['name' => self::SUPPORT_GROUP_NAME])->save();
+            }
+        }
+
+        $now = now();
+        $existing = ChatParticipant::query()
+            ->where('conversation_id', $conversation->id)
+            ->pluck('user_id')
+            ->map(static fn ($id): string => (string) $id)
+            ->all();
+
+        $want = array_values(array_unique(array_merge([(string) $supportUser->id], $adminUserIds)));
+
+        foreach ($want as $uid) {
+            if (in_array($uid, $existing, true)) {
+                continue;
+            }
+            $row = [
+                'conversation_id' => $conversation->id,
+                'user_id' => $uid,
+                'joined_at' => $now,
+                'last_read_at' => $uid === (string) $supportUser->id ? $now : null,
+            ];
+            if ($this->schemaHasColumn('chat_participants', 'pinned_at')
+                && $uid !== (string) $supportUser->id) {
+                $row['pinned_at'] = $now;
+            }
+            ChatParticipant::query()->create($row);
+        }
+
+        if ($this->schemaHasColumn('chat_participants', 'pinned_at')) {
+            ChatParticipant::query()
+                ->where('conversation_id', $conversation->id)
+                ->whereIn('user_id', $adminUserIds)
+                ->whereNull('pinned_at')
+                ->update(['pinned_at' => $now]);
+        }
+
+        return $conversation->fresh(['participants.user:id,name,email']) ?? $conversation;
+    }
+
+    /**
      * Notifica al grupo (p. ej. "Caja"): encuentra o crea el grupo y envía el mensaje.
      */
     public function notifyTeam(User $actor, string $body, string $groupName = 'Caja'): ChatConversation
@@ -1492,6 +1573,10 @@ final class TenantChatService
         return [
             'id' => (string) $conversation->id,
             'type' => $conversation->type,
+            'kind' => $this->schemaHasColumn('chat_conversations', 'kind')
+                ? (string) ($conversation->kind ?? ChatConversation::KIND_TEAM)
+                : ($conversation->isSupport() ? ChatConversation::KIND_SUPPORT : ChatConversation::KIND_TEAM),
+            'is_support' => $conversation->isSupport(),
             'title' => $this->titleFor($conversation, $actor),
             'name' => $conversation->name,
             'participants' => $participants,
