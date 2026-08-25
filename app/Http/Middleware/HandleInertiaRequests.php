@@ -269,6 +269,28 @@ class HandleInertiaRequests extends Middleware
                         return ['unread_total' => 0];
                     }
                 },
+            'platform_support_chat' => $skipHeavySharedProps || $tenantContext !== null
+                ? null
+                : static function () use ($user) {
+                    try {
+                        if (! ($user instanceof User) || ! $user->can('plataforma-chat-soporte.view')) {
+                            return null;
+                        }
+
+                        if (! \Illuminate\Support\Facades\Schema::hasTable('platform_support_threads')) {
+                            return ['unread_total' => 0];
+                        }
+
+                        return [
+                            'unread_total' => app(\App\Services\Chat\PlatformSupportChatService::class)
+                                ->unreadTotal(),
+                        ];
+                    } catch (Throwable $e) {
+                        report($e);
+
+                        return ['unread_total' => 0];
+                    }
+                },
             'in_app_assistant' => $skipHeavySharedProps
                 ? null
                 : static function () use ($tenantContext, $user): ?array {

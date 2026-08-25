@@ -14,6 +14,7 @@ use App\Tenancy\TenantManager;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use RuntimeException;
@@ -84,11 +85,19 @@ final class PlatformSupportChatService
                     'conversation_id' => (string) $thread->conversation_id,
                     'last_message_at' => $thread->last_message_at?->toIso8601String(),
                     'last_preview' => $thread->last_preview,
+                    'unread' => $thread->isUnreadForPlatform(),
+                    'from_clinic' => (bool) $thread->from_clinic,
                 ],
             ];
         }
 
         usort($rows, static function (array $a, array $b): int {
+            $ua = ($a['thread']['unread'] ?? false) ? 1 : 0;
+            $ub = ($b['thread']['unread'] ?? false) ? 1 : 0;
+            if ($ua !== $ub) {
+                return $ub <=> $ua;
+            }
+
             $ta = $a['thread']['last_message_at'] ?? null;
             $tb = $b['thread']['last_message_at'] ?? null;
             if ($ta !== null || $tb !== null) {
@@ -99,6 +108,84 @@ final class PlatformSupportChatService
         });
 
         return $rows;
+    }
+
+    public function unreadTotal(): int
+    {
+        if (! Schema::hasColumn('platform_support_threads', 'from_clinic')) {
+            return 0;
+        }
+
+        return PlatformSupportThread::query()
+            ->where('from_clinic', true)
+            ->whereNotNull('last_message_at')
+            ->where(function ($q): void {
+                $q->whereNull('platform_last_read_at')
+                    ->orWhereColumn('last_message_at', '>', 'platform_last_read_at');
+            })
+            ->count();
+    }
+
+    /**
+     * @return array{
+     *     unread_total: int,
+     *     latest: ?array{
+     *         tenant_id: string,
+     *         tenant_nombre: string,
+     *         preview: string,
+     *         last_message_at: ?string
+     *     }
+     * }
+     */
+    public function inboxPing(): array
+    {
+        $unread = $this->unreadTotal();
+
+        if (! Schema::hasColumn('platform_support_threads', 'from_clinic')) {
+            return ['unread_total' => 0, 'latest' => null];
+        }
+
+        $latest = PlatformSupportThread::query()
+            ->where('from_clinic', true)
+            ->whereNotNull('last_message_at')
+            ->where(function ($q): void {
+                $q->whereNull('platform_last_read_at')
+                    ->orWhereColumn('last_message_at', '>', 'platform_last_read_at');
+            })
+            ->with(['tenant:id,nombre_comercial,razon_social,slug'])
+            ->orderByDesc('last_message_at')
+            ->first();
+
+        if ($latest === null) {
+            return ['unread_total' => $unread, 'latest' => null];
+        }
+
+        $tenant = $latest->tenant;
+        $nombre = trim((string) ($tenant?->nombre_comercial ?: $tenant?->razon_social ?: $tenant?->slug ?: 'Clínica'));
+
+        return [
+            'unread_total' => $unread,
+            'latest' => [
+                'tenant_id' => (string) $latest->tenant_id,
+                'tenant_nombre' => $nombre,
+                'preview' => (string) ($latest->last_preview ?: 'Nuevo mensaje'),
+                'last_message_at' => $latest->last_message_at?->toIso8601String(),
+                'fingerprint' => (string) $latest->tenant_id.'|'.($latest->last_message_at?->timestamp ?? 0),
+            ],
+        ];
+    }
+
+    public function markThreadRead(Tenant $tenant): void
+    {
+        if (! Schema::hasColumn('platform_support_threads', 'platform_last_read_at')) {
+            return;
+        }
+
+        PlatformSupportThread::query()
+            ->where('tenant_id', $tenant->id)
+            ->update([
+                'platform_last_read_at' => now(),
+            ]);
     }
 
     /**
@@ -212,13 +299,21 @@ final class PlatformSupportChatService
             ];
         }, enforceAccess: false);
 
+        $update = [
+            'conversation_id' => $payload['conversation_id'],
+            'last_message_at' => $payload['at'],
+            'last_preview' => $payload['preview'],
+        ];
+        if (Schema::hasColumn('platform_support_threads', 'from_clinic')) {
+            $update['from_clinic'] = false;
+        }
+        if (Schema::hasColumn('platform_support_threads', 'platform_last_read_at')) {
+            $update['platform_last_read_at'] = now();
+        }
+
         PlatformSupportThread::query()
             ->where('tenant_id', $tenant->id)
-            ->update([
-                'conversation_id' => $payload['conversation_id'],
-                'last_message_at' => $payload['at'],
-                'last_preview' => $payload['preview'],
-            ]);
+            ->update($update);
 
         return [
             'message' => $payload['message'],

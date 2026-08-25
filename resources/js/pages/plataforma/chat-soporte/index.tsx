@@ -1,4 +1,4 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import {
     ChevronLeft,
     FileText,
@@ -44,6 +44,7 @@ import {
     PopoverTrigger,
 } from '@/components/ui/popover';
 import { Textarea } from '@/components/ui/textarea';
+import { usePlatformSupportChatUnread } from '@/contexts/platform-support-chat-unread-context';
 import { usePermission } from '@/hooks/use-permission';
 import AppLayout from '@/layouts/app-layout';
 import { toastManager } from '@/lib/toast';
@@ -72,6 +73,8 @@ type TenantRow = {
         conversation_id: string;
         last_message_at: string | null;
         last_preview: string | null;
+        unread?: boolean;
+        from_clinic?: boolean;
     } | null;
 };
 
@@ -176,6 +179,12 @@ export default function PlataformaChatSoportePage({
     const { t } = useTranslation('plataforma-chat-soporte');
     const { can } = usePermission();
     const canManage = can('plataforma-chat-soporte.manage');
+    const page = usePage();
+    const { setActiveTenantId } = usePlatformSupportChatUnread();
+    const deepLinkTenant = useMemo(() => {
+        const raw = (page.url.match(/[?&]tenant=([^&]+)/) ?? [])[1];
+        return raw ? decodeURIComponent(raw) : null;
+    }, [page.url]);
 
     const [tenants, setTenants] = useState(initialTenants);
     const [plan, setPlan] = useState<PlanFilter>(filters.plan ?? 'all');
@@ -208,6 +217,20 @@ export default function PlataformaChatSoportePage({
     useEffect(() => {
         setTenants(initialTenants);
     }, [initialTenants]);
+
+    useEffect(() => {
+        setActiveTenantId(selectedId);
+        return () => setActiveTenantId(null);
+    }, [selectedId, setActiveTenantId]);
+
+    // Refrescar lista (previews/unread) mientras hay página abierta.
+    useEffect(() => {
+        const timer = window.setInterval(() => {
+            if (document.visibilityState !== 'visible') return;
+            router.reload({ only: ['tenants', 'filters'] });
+        }, 15_000);
+        return () => window.clearInterval(timer);
+    }, []);
 
     const selected = useMemo(
         () => tenants.find((row) => row.id === selectedId) ?? null,
@@ -269,6 +292,17 @@ export default function PlataformaChatSoportePage({
                 messages: ChatMessage[];
             }>(`/plataforma/chat-soporte/tenants/${tenantId}/messages`);
             setMessages(data.messages ?? []);
+            setTenants((prev) =>
+                prev.map((row) =>
+                    row.id === tenantId && row.thread
+                        ? {
+                              ...row,
+                              thread: { ...row.thread, unread: false },
+                          }
+                        : row,
+                ),
+            );
+            router.reload({ only: ['tenants', 'filters'] });
             requestAnimationFrame(() => {
                 bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
             });
@@ -280,6 +314,13 @@ export default function PlataformaChatSoportePage({
             setLoadingThread(false);
         }
     };
+
+    useEffect(() => {
+        if (!deepLinkTenant) return;
+        if (selectedIdRef.current === deepLinkTenant) return;
+        void openTenant(deepLinkTenant);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [deepLinkTenant]);
 
     useEffect(() => {
         if (!selectedId) return;
@@ -533,24 +574,31 @@ export default function PlataformaChatSoportePage({
                                             <button
                                                 type="button"
                                                 onClick={() => void openTenant(row.id)}
-                                                className={cn(
-                                                    'flex w-full cursor-pointer items-start gap-3 border-l-2 px-3 py-3.5 text-left transition-colors active:bg-emerald-50/70 lg:py-3',
-                                                    active
-                                                        ? 'border-l-emerald-600 bg-emerald-50/80 dark:bg-emerald-950/35'
-                                                        : 'border-l-transparent hover:bg-background/80',
-                                                )}
-                                            >
+                                                    className={cn(
+                                                        'flex w-full cursor-pointer items-start gap-3 border-l-2 px-3 py-3.5 text-left transition-colors active:bg-emerald-50/70 lg:py-3',
+                                                        active
+                                                            ? 'border-l-emerald-600 bg-emerald-50/80 dark:bg-emerald-950/35'
+                                                            : row.thread?.unread
+                                                              ? 'border-l-emerald-500/70 bg-emerald-50/40 dark:bg-emerald-950/20'
+                                                              : 'border-l-transparent hover:bg-background/80',
+                                                    )}
+                                                >
                                                 <Avatar className="mt-0.5 size-11 border border-border/50 shadow-sm lg:size-10">
                                                     <AvatarFallback className="bg-sky-100 text-xs font-semibold text-sky-800 dark:bg-sky-950 dark:text-sky-200">
                                                         <Users className="size-3.5" />
                                                     </AvatarFallback>
                                                 </Avatar>
                                                 <div className="min-w-0 flex-1">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="truncate text-sm font-medium">
-                                                            {row.nombre}
-                                                        </span>
-                                                        {row.is_free === true ? (
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="truncate text-sm font-medium">
+                                                                {row.nombre}
+                                                            </span>
+                                                            {row.thread?.unread ? (
+                                                                <Badge className="h-5 shrink-0 rounded-full bg-emerald-600 px-1.5 text-[10px] text-white hover:bg-emerald-600">
+                                                                    1
+                                                                </Badge>
+                                                            ) : null}
+                                                            {row.is_free === true ? (
                                                             <Badge
                                                                 variant="secondary"
                                                                 className="h-5 shrink-0 rounded-full px-1.5 text-[10px]"

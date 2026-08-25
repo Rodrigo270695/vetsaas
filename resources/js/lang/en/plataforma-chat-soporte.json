@@ -33,5 +33,7 @@
     "list_hint": "Pick a clinic",
     "search_thread": "Search in thread…",
     "search_thread_empty": "No matches in this chat.",
-    "search_thread_hint": "Type to search messages"
+    "search_thread_hint": "Type to search messages",
+    "toast_title": "{{name}} replied in support",
+    "toast_open": "Open"
 }

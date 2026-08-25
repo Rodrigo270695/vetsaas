@@ -33,5 +33,7 @@
     "list_hint": "Elige una clínica",
     "search_thread": "Buscar en el hilo…",
     "search_thread_empty": "Sin coincidencias en este chat.",
-    "search_thread_hint": "Escribe para buscar mensajes"
+    "search_thread_hint": "Escribe para buscar mensajes",
+    "toast_title": "{{name}} respondió en soporte",
+    "toast_open": "Abrir"
 }

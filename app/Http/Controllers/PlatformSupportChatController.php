@@ -41,6 +41,7 @@ final class PlatformSupportChatController extends Controller
     public function ensure(Tenant $tenant, PlatformSupportChatService $service): JsonResponse
     {
         $result = $service->ensureThread($tenant);
+        $service->markThreadRead($tenant);
 
         return response()->json($result);
     }
@@ -53,9 +54,16 @@ final class PlatformSupportChatController extends Controller
         $afterId = $request->query('after');
         $afterId = is_string($afterId) && $afterId !== '' ? $afterId : null;
 
+        $service->markThreadRead($tenant);
+
         return response()->json(
             $service->messagesForTenant($tenant, $afterId),
         );
+    }
+
+    public function inbox(PlatformSupportChatService $service): JsonResponse
+    {
+        return response()->json($service->inboxPing());
     }
 
     public function send(

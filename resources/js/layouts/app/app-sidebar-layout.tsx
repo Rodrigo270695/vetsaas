@@ -12,7 +12,9 @@ import { SubscriptionRenewalReminderModal } from '@/components/subscription-rene
 import { TenantImpersonationBanner } from '@/components/tenant-impersonation-banner';
 import { WhatsAppNeedsLinkBanner } from '@/components/whatsapp-needs-link-banner';
 import { useWhatsAppDisconnectedToast } from '@/hooks/use-whatsapp-disconnected-toast';
+import { PlatformSupportChatNotifier } from '@/components/plataforma/platform-support-chat-notifier';
 import { TenantChatNotifier } from '@/components/comunicaciones/tenant-chat-notifier';
+import { PlatformSupportChatUnreadProvider } from '@/contexts/platform-support-chat-unread-context';
 import { TenantChatUnreadProvider } from '@/contexts/tenant-chat-unread-context';
 import { usePage } from '@inertiajs/react';
 import type { AppLayoutProps } from '@/types';
@@ -35,9 +37,14 @@ export default function AppSidebarLayout({
     useWhatsAppDisconnectedToast();
     const page = usePage();
     const initialUnread = page.props.tenant_chat?.unread_total ?? 0;
+    const initialPlatformUnread =
+        page.props.platform_support_chat?.unread_total ?? 0;
 
     return (
         <TenantChatUnreadProvider initialUnread={initialUnread}>
+            <PlatformSupportChatUnreadProvider
+                initialUnread={initialPlatformUnread}
+            >
             <AppShell variant="sidebar">
                 <AppSidebar />
                 <AppContent
@@ -54,6 +61,7 @@ export default function AppSidebarLayout({
                     <DemoAccessGeoCapture />
                     <InAppAssistantAnnouncementModal />
                     <TenantChatNotifier />
+                    <PlatformSupportChatNotifier />
                     <AppSidebarHeader breadcrumbs={breadcrumbs} />
                     {/*
                       Por defecto el contenido scrollea. Páginas “pantalla fija”
@@ -65,6 +73,7 @@ export default function AppSidebarLayout({
                     </div>
                 </AppContent>
             </AppShell>
+            </PlatformSupportChatUnreadProvider>
         </TenantChatUnreadProvider>
     );
 }

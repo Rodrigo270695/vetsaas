@@ -64,6 +64,7 @@ import {
     Wallet,
 } from 'lucide-react';
 import { useMemo } from 'react';
+import { usePlatformSupportChatUnread } from '@/contexts/platform-support-chat-unread-context';
 import { useTenantChatUnread } from '@/contexts/tenant-chat-unread-context';
 import { useTranslation } from 'react-i18next';
 import AppLogo from '@/components/app-logo';
@@ -665,21 +666,25 @@ export function AppSidebar() {
     const { t } = useTranslation('nav');
     const { singles, groups } = useNavConfig();
     const { unreadTotal } = useTenantChatUnread();
+    const { unreadTotal: platformSupportUnread } = usePlatformSupportChatUnread();
 
     const groupsWithChatBadge = useMemo(() => {
-        if (unreadTotal <= 0) {
-            return groups;
-        }
-
         return groups.map((group) => ({
             ...group,
-            items: group.items.map((item) =>
-                item.href === '/comunicaciones/chat'
-                    ? { ...item, badgeCount: unreadTotal }
-                    : item,
-            ),
+            items: group.items.map((item) => {
+                if (item.href === '/comunicaciones/chat' && unreadTotal > 0) {
+                    return { ...item, badgeCount: unreadTotal };
+                }
+                if (
+                    item.href === '/plataforma/chat-soporte'
+                    && platformSupportUnread > 0
+                ) {
+                    return { ...item, badgeCount: platformSupportUnread };
+                }
+                return item;
+            }),
         }));
-    }, [groups, unreadTotal]);
+    }, [groups, unreadTotal, platformSupportUnread]);
 
     return (
         <Sidebar collapsible="icon" variant="inset">

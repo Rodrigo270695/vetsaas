@@ -15,6 +15,7 @@ use App\Models\ChatMessageAttachment;
 use App\Models\ChatMessageDelivery;
 use App\Models\ChatMessageReaction;
 use App\Models\ChatParticipant;
+use App\Models\PlatformSupportThread;
 use App\Models\User;
 use App\Services\Push\WebPushSender;
 use App\Support\Tenancy\ClinicAdminScope;
@@ -312,8 +313,56 @@ final class TenantChatService
 
         $this->dispatchMessageCreated($conversation, $actor, $message);
         $this->notifyParticipantsWebPush($conversation, $actor, $message);
+        $this->syncPlatformSupportThreadIndex($conversation, $actor, $message);
 
         return $message;
+    }
+
+    /**
+     * Refleja actividad del grupo Soporte en el índice público (panel plataforma).
+     */
+    private function syncPlatformSupportThreadIndex(
+        ChatConversation $conversation,
+        User $actor,
+        ChatMessage $message,
+    ): void {
+        if (! $conversation->isSupport()) {
+            return;
+        }
+
+        try {
+            $tenantId = app(TenantManager::class)->id()
+                ?? (is_string($actor->tenant_id) ? $actor->tenant_id : null);
+
+            if ($tenantId === null || $tenantId === '') {
+                return;
+            }
+
+            $email = strtolower((string) $actor->email);
+            $fromClinic = ! str_ends_with($email, '@'.self::SUPPORT_EMAIL_DOMAIN);
+
+            $preview = $this->previewFromRow(
+                $message->body,
+                $message->attachment_name,
+                $message->attachment_mime,
+            );
+
+            $payload = [
+                'conversation_id' => (string) $conversation->id,
+                'last_message_at' => $message->created_at ?? now(),
+                'last_preview' => mb_substr($preview, 0, 280),
+            ];
+
+            if (\Illuminate\Support\Facades\Schema::hasColumn('platform_support_threads', 'from_clinic')) {
+                $payload['from_clinic'] = $fromClinic;
+            }
+
+            PlatformSupportThread::query()
+                ->where('tenant_id', $tenantId)
+                ->update($payload);
+        } catch (Throwable) {
+            // Índice plataforma opcional: no bloquear el chat del tenant.
+        }
     }
 
     public function setMuted(ChatConversation $conversation, User $user, bool $muted): void

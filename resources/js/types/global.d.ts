@@ -25,6 +25,7 @@ declare module '@inertiajs/core' {
             bot_ia_addon: { activo: boolean; precio_mensual: string | null } | null;
             modo_asesora: boolean;
             tenant_chat: { unread_total: number } | null;
+            platform_support_chat: { unread_total: number } | null;
             in_app_assistant: {
                 enabled: boolean;
                 configured: boolean;

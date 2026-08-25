@@ -1470,6 +1470,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:plataforma-chat-soporte.view')
             ->get('chat-soporte/tenants', [PlatformSupportChatController::class, 'tenants'])
             ->name('chat-soporte.tenants');
+        Route::middleware('permission:plataforma-chat-soporte.view')
+            ->get('chat-soporte/inbox', [PlatformSupportChatController::class, 'inbox'])
+            ->name('chat-soporte.inbox');
         Route::middleware('permission:plataforma-chat-soporte.manage')
             ->post('chat-soporte/tenants/{tenant}/ensure', [PlatformSupportChatController::class, 'ensure'])
             ->name('chat-soporte.ensure');

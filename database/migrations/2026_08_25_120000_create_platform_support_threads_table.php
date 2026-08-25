@@ -19,6 +19,8 @@ return new class extends Migration
                 ->cascadeOnDelete();
             $table->timestampTz('last_message_at')->nullable();
             $table->string('last_preview', 280)->nullable();
+            $table->boolean('from_clinic')->default(false);
+            $table->timestampTz('platform_last_read_at')->nullable();
             $table->timestampsTz();
 
             $table->unique('tenant_id');

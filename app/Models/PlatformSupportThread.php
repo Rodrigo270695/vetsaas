@@ -8,6 +8,7 @@ use App\Models\Concerns\UsesPublicSchema;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Índice público del hilo «Soporte VetSaaS» por tenant (chat interno).
@@ -18,6 +19,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $support_user_id
  * @property ?\Illuminate\Support\Carbon $last_message_at
  * @property ?string $last_preview
+ * @property bool $from_clinic
+ * @property ?\Illuminate\Support\Carbon $platform_last_read_at
  */
 class PlatformSupportThread extends Model
 {
@@ -31,13 +34,34 @@ class PlatformSupportThread extends Model
         'support_user_id',
         'last_message_at',
         'last_preview',
+        'from_clinic',
+        'platform_last_read_at',
     ];
 
     protected function casts(): array
     {
         return [
             'last_message_at' => 'datetime',
+            'from_clinic' => 'boolean',
+            'platform_last_read_at' => 'datetime',
         ];
+    }
+
+    public function isUnreadForPlatform(): bool
+    {
+        if (! Schema::hasColumn('platform_support_threads', 'from_clinic')) {
+            return false;
+        }
+
+        if (! $this->from_clinic || $this->last_message_at === null) {
+            return false;
+        }
+
+        if ($this->platform_last_read_at === null) {
+            return true;
+        }
+
+        return $this->last_message_at->gt($this->platform_last_read_at);
     }
 
     public function tenant(): BelongsTo
