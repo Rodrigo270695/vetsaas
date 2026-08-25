@@ -26,6 +26,7 @@ type PlanFormData = {
     precio_mensual: string;
     precio_anual: string;
     trial_days: number;
+    referral_reward_days: number;
     orden: number;
     es_publico: boolean;
     activo: boolean;
@@ -40,6 +41,7 @@ const emptyForm: PlanFormData = {
     precio_mensual: '0.00',
     precio_anual: '',
     trial_days: 14,
+    referral_reward_days: 0,
     orden: 0,
     es_publico: true,
     activo: true,
@@ -54,6 +56,7 @@ const buildInitialData = (plan: Plan | null): PlanFormData => ({
     precio_mensual: plan?.precio_mensual ?? '0.00',
     precio_anual: plan?.precio_anual ?? '',
     trial_days: plan?.trial_days ?? 14,
+    referral_reward_days: plan?.referral_reward_days ?? 0,
     orden: plan?.orden ?? 0,
     es_publico: plan?.es_publico ?? true,
     activo: plan?.activo ?? true,
@@ -389,6 +392,30 @@ export function PlanFormModal({
                                 onChange={(e) =>
                                     setData(
                                         'trial_days',
+                                        Number(e.target.value) || 0,
+                                    )
+                                }
+                            />
+                        </FormField>
+
+                        <FormField
+                            id="plan-referral-reward-days"
+                            label={t('planes:form.fields.referral_reward_days')}
+                            required
+                            hint={t(
+                                'planes:form.fields.referral_reward_days_hint',
+                            )}
+                            error={errors.referral_reward_days}
+                        >
+                            <Input
+                                id="plan-referral-reward-days"
+                                type="number"
+                                min="0"
+                                max="365"
+                                value={data.referral_reward_days}
+                                onChange={(e) =>
+                                    setData(
+                                        'referral_reward_days',
                                         Number(e.target.value) || 0,
                                     )
                                 }

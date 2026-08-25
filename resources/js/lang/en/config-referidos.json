@@ -1,6 +1,8 @@
 {
     "title": "Referrals",
-    "description": "Share your code. When a clinic pays their first month, you earn {{days}} free days applied on your next renewal.",
+    "description": "Share your code. When a clinic pays their first month, you earn free days based on the plan they choose; they are added on your next renewal.",
+    "rewards_title": "Reward by referred plan",
+    "rewards_hint": "Configured in Platform → Plans. Credited on the first real payment.",
     "your_code": "Your referral code",
     "copy_code": "Copy code",
     "copy_link": "Copy link",

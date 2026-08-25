@@ -52,6 +52,7 @@ class Plan extends Model
         'precio_mensual',
         'precio_anual',
         'trial_days',
+        'referral_reward_days',
         'orden',
         'es_publico',
         'activo',
@@ -62,6 +63,8 @@ class Plan extends Model
         return [
             'precio_mensual' => 'decimal:2',
             'precio_anual' => 'decimal:2',
+            'trial_days' => 'integer',
+            'referral_reward_days' => 'integer',
             'es_publico' => 'boolean',
             'activo' => 'boolean',
         ];

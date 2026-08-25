@@ -14,7 +14,11 @@ return [
     | se suman a current_period_end / proximo_cobro_at.
     */
 
-    'reward_days' => (int) env('REFERRAL_REWARD_DAYS', 15),
+    /*
+    | El premio por referido ahora vive en plans.referral_reward_days
+    | (configurable en Plataforma → Planes). Este default solo es fallback.
+    */
+    'reward_days' => (int) env('REFERRAL_REWARD_DAYS', 0),
 
     /** Tope de recompensas "earned" por referidor en los últimos 30 días. */
     'max_rewards_per_month' => (int) env('REFERRAL_MAX_REWARDS_PER_MONTH', 10),

@@ -48,6 +48,7 @@ export type Plan = {
     precio_mensual: string;
     precio_anual: string | null;
     trial_days: number;
+    referral_reward_days: number;
     orden: number;
     es_publico: boolean;
     activo: boolean;

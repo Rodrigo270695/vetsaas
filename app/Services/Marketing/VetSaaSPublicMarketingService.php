@@ -109,9 +109,15 @@ final class VetSaaSPublicMarketingService
                 'descripcion' => $plan->descripcion,
                 'badge' => $plan->badge,
                 'color_hex' => $plan->color_hex,
+                'trial_days' => (int) $plan->trial_days,
+                'referral_reward_days' => (int) $plan->referral_reward_days,
                 'limits' => $limits,
                 'features' => $features,
-                'highlights' => $this->marketingHighlights($plan->codigo, $limits),
+                'highlights' => $this->marketingHighlights(
+                    $plan->codigo,
+                    $limits,
+                    (int) $plan->referral_reward_days,
+                ),
             ];
         }
 
@@ -165,7 +171,7 @@ final class VetSaaSPublicMarketingService
      * @param  array<string, int>  $limits
      * @return list<string>
      */
-    private function marketingHighlights(string $codigo, array $limits): array
+    private function marketingHighlights(string $codigo, array $limits, int $referralRewardDays = 0): array
     {
         $lines = ['Todos los módulos incluidos'];
 
@@ -176,11 +182,24 @@ final class VetSaaSPublicMarketingService
         $lines[] = $this->limitLine('Productos', $limits['max_productos'] ?? 0);
         $lines[] = $this->limitLine('Comprobantes SUNAT / mes', $limits['max_comprobantes_mes'] ?? 0);
 
+        if ($referralRewardDays > 0) {
+            $lines[] = $this->referralRewardLine($referralRewardDays);
+        }
+
         if ($codigo === 'free') {
             array_unshift($lines, 'Actívate gratis en minutos');
         }
 
         return array_values(array_filter($lines));
+    }
+
+    private function referralRewardLine(int $days): string
+    {
+        if ($days >= 28) {
+            return 'Referido: 1 mes gratis para quien te invita';
+        }
+
+        return 'Referido: '.$days.' días gratis para quien te invita';
     }
 
     private function limitLine(string $label, mixed $value): string

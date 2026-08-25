@@ -122,7 +122,16 @@ final class ReferralService
             return;
         }
 
-        $days = max(1, (int) config('referral.reward_days', 15));
+        $days = $this->rewardDaysForPlan($plan);
+        if ($days < 1) {
+            Log::info('Referral reward skipped: plan has 0 referral days', [
+                'plan' => $plan?->codigo,
+                'referred' => $payerTenant->slug,
+            ]);
+
+            return;
+        }
+
         $maxPerMonth = max(1, (int) config('referral.max_rewards_per_month', 10));
         $earnedThisMonth = ReferralLedgerEntry::query()
             ->where('referrer_tenant_id', $referrer->id)
@@ -139,7 +148,9 @@ final class ReferralService
             return;
         }
 
-        DB::transaction(function () use ($referrer, $payerTenant, $payment, $days): void {
+        $planLabel = $plan?->nombre ?? $plan?->codigo ?? 'plan';
+
+        DB::transaction(function () use ($referrer, $payerTenant, $payment, $days, $planLabel): void {
             $locked = Tenant::query()->whereKey($referrer->id)->lockForUpdate()->first();
             if ($locked === null) {
                 return;
@@ -155,10 +166,25 @@ final class ReferralService
                 'subscription_payment_id' => $payment->id,
                 'days' => $days,
                 'type' => ReferralLedgerEntry::TYPE_EARNED,
-                'notes' => 'Primer pago del referido '.$payerTenant->slug,
+                'notes' => 'Primer pago del referido '.$payerTenant->slug.' ('.$planLabel.')',
                 'created_at' => now(),
             ]);
         });
+    }
+
+    public function rewardDaysForPlan(?Plan $plan): int
+    {
+        if ($plan === null || $plan->isFree()) {
+            return 0;
+        }
+
+        $fromPlan = (int) ($plan->referral_reward_days ?? 0);
+        if ($fromPlan > 0) {
+            return $fromPlan;
+        }
+
+        // Fallback legacy si el plan aún no tiene valor (migraciones viejas).
+        return max(0, (int) config('referral.reward_days', 0));
     }
 
     /**
@@ -339,11 +365,39 @@ final class ReferralService
         return [
             'referral_code' => $code,
             'share_url' => $this->shareUrl($tenant),
-            'reward_days' => max(1, (int) config('referral.reward_days', 15)),
+            'reward_days' => null,
+            'rewards_by_plan' => $this->rewardsByPlanCatalog(),
             'days_balance' => (int) $tenant->fresh()?->referral_days_balance,
             'referred' => $referredRows,
             'ledger' => $ledger,
         ];
+    }
+
+    /**
+     * @return list<array{codigo: string, nombre: string, days: int, label: string}>
+     */
+    public function rewardsByPlanCatalog(): array
+    {
+        return Plan::query()
+            ->where('activo', true)
+            ->where('es_publico', true)
+            ->where('codigo', '!=', Plan::CODIGO_FREE)
+            ->orderBy('orden')
+            ->get(['codigo', 'nombre', 'referral_reward_days'])
+            ->map(function (Plan $plan): array {
+                $days = (int) $plan->referral_reward_days;
+
+                return [
+                    'codigo' => (string) $plan->codigo,
+                    'nombre' => (string) $plan->nombre,
+                    'days' => $days,
+                    'label' => $days >= 28
+                        ? '1 mes gratis'
+                        : ($days > 0 ? $days.' días' : 'Sin premio'),
+                ];
+            })
+            ->values()
+            ->all();
     }
 
     private function isBillableProcessedPayment(SubscriptionPayment $payment): bool

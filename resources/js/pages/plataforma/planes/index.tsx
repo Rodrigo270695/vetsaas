@@ -321,6 +321,22 @@ export default function Index({
                     ),
             },
             {
+                key: 'referral_reward_days',
+                header: t('planes:columns.referral'),
+                cell: (plan) =>
+                    plan.referral_reward_days > 0 ? (
+                        <span className="text-xs font-mono">
+                            {plan.referral_reward_days >= 28
+                                ? t('planes:row.referral_month')
+                                : `${plan.referral_reward_days} ${t('planes:row.days')}`}
+                        </span>
+                    ) : (
+                        <span className="text-xs text-muted-foreground italic">
+                            {t('planes:row.no_referral')}
+                        </span>
+                    ),
+            },
+            {
                 key: 'flags',
                 header: t('planes:columns.status'),
                 cell: (plan) => (

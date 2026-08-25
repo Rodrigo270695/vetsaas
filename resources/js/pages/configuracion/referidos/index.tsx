@@ -25,10 +25,18 @@ type LedgerRow = {
     created_at: string | null;
 };
 
+type RewardByPlan = {
+    codigo: string;
+    nombre: string;
+    days: number;
+    label: string;
+};
+
 type ReferralPayload = {
     referral_code: string;
     share_url: string;
-    reward_days: number;
+    reward_days: number | null;
+    rewards_by_plan: RewardByPlan[];
     days_balance: number;
     referred: ReferredRow[];
     ledger: LedgerRow[];
@@ -68,7 +76,6 @@ export default function Index({ referral }: Props) {
         t('whatsapp_message', {
             code: referral.referral_code,
             url: referral.share_url,
-            days: referral.reward_days,
         }),
     );
 
@@ -78,8 +85,34 @@ export default function Index({ referral }: Props) {
             <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
                 <PageHeader
                     title={t('title')}
-                    description={t('description', { days: referral.reward_days })}
+                    description={t('description')}
                 />
+
+                {referral.rewards_by_plan.length > 0 && (
+                    <div className="rounded-xl border bg-card p-5">
+                        <div className="mb-3 text-sm font-medium">
+                            {t('rewards_title')}
+                        </div>
+                        <p className="mb-3 text-sm text-muted-foreground">
+                            {t('rewards_hint')}
+                        </p>
+                        <div className="grid gap-2 sm:grid-cols-3">
+                            {referral.rewards_by_plan.map((plan) => (
+                                <div
+                                    key={plan.codigo}
+                                    className="rounded-lg border bg-muted/30 px-4 py-3"
+                                >
+                                    <div className="text-sm font-medium">
+                                        {plan.nombre}
+                                    </div>
+                                    <div className="mt-1 text-lg font-semibold tabular-nums text-primary">
+                                        {plan.label}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 <div className="grid gap-4 md:grid-cols-3">
                     <div className="rounded-xl border bg-card p-5 md:col-span-2">
