@@ -45,6 +45,8 @@ class Tenant extends Model
         'locale',
         'canal_adquisicion',
         'referido_por_tenant_id',
+        'referral_code',
+        'referral_days_balance',
         'modulos_deshabilitados',
     ];
 
@@ -63,6 +65,7 @@ class Tenant extends Model
             'geo_captured_at' => 'datetime',
             'geo_refresh_requested_at' => 'datetime',
             'modulos_deshabilitados' => 'array',
+            'referral_days_balance' => 'integer',
         ];
     }
 
@@ -104,5 +107,15 @@ class Tenant extends Model
     public function planOverrides(): HasMany
     {
         return $this->hasMany(TenantPlanOverride::class, 'tenant_id');
+    }
+
+    public function referrer(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'referido_por_tenant_id');
+    }
+
+    public function referidos(): HasMany
+    {
+        return $this->hasMany(self::class, 'referido_por_tenant_id');
     }
 }

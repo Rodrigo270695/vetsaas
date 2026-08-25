@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/react';
-import { Ban, CalendarPlus, Loader2, Repeat } from 'lucide-react';
+import { Ban, CalendarPlus, Gift, Loader2, Repeat } from 'lucide-react';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
@@ -29,7 +29,11 @@ import type { Subscription, SubscriptionPlanOption } from '../types';
  * Modo del diálogo. Cada uno apunta a un endpoint distinto en el
  * controller, pero comparten la misma estructura visual.
  */
-export type SubscriptionActionMode = 'extend-trial' | 'change-plan' | 'cancel';
+export type SubscriptionActionMode =
+    | 'extend-trial'
+    | 'grant-referral'
+    | 'change-plan'
+    | 'cancel';
 
 export type SubscriptionActionsDialogProps = {
     open: boolean;
@@ -68,6 +72,7 @@ export function SubscriptionActionsDialog({
     // Estados específicos por modo (todos en este componente para no
     // crear 3 sub-componentes con el mismo skeleton).
     const [days, setDays] = useState<number>(7);
+    const [applyNow, setApplyNow] = useState<boolean>(false);
     const [newPlanId, setNewPlanId] = useState<string>('');
     const [keepPrice, setKeepPrice] = useState<boolean>(false);
     const [reason, setReason] = useState<string>('');
@@ -77,12 +82,13 @@ export function SubscriptionActionsDialog({
         if (!open) return;
         setProcessing(false);
         setError(null);
-        setDays(7);
+        setDays(mode === 'grant-referral' ? 15 : 7);
+        setApplyNow(false);
         setNewPlanId(subscription?.plan_id ?? '');
         setKeepPrice(false);
         setReason('');
         setFeedback('');
-    }, [open, subscription?.plan_id]);
+    }, [open, subscription?.plan_id, mode]);
 
     const minReasonLength = 5;
 
@@ -91,6 +97,8 @@ export function SubscriptionActionsDialog({
         switch (mode) {
             case 'extend-trial':
                 return days >= 1 && days <= 365;
+            case 'grant-referral':
+                return days !== 0 && days >= -365 && days <= 365;
             case 'change-plan':
                 return (
                     newPlanId !== '' &&
@@ -134,6 +142,15 @@ export function SubscriptionActionsDialog({
                     opts,
                 );
                 break;
+            case 'grant-referral': {
+                const base = suscripciones.index().url.replace(/\/$/, '');
+                router.post(
+                    `${base}/${subscription.id}/grant-referral-days`,
+                    { days, apply_now: applyNow },
+                    opts,
+                );
+                break;
+            }
             case 'change-plan':
                 router.post(
                     suscripciones.changePlan(subscription.id).url,
@@ -166,6 +183,13 @@ export function SubscriptionActionsDialog({
                 'flex size-11 items-center justify-center rounded-full bg-sky-500/10 text-sky-600 dark:text-sky-400',
             buttonClass:
                 'cursor-pointer gap-2 bg-sky-600 text-white hover:bg-sky-700 focus-visible:ring-sky-500/40 disabled:cursor-not-allowed',
+        },
+        'grant-referral': {
+            icon: Gift,
+            iconClass:
+                'flex size-11 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+            buttonClass:
+                'cursor-pointer gap-2 bg-emerald-600 text-white hover:bg-emerald-700 focus-visible:ring-emerald-500/40 disabled:cursor-not-allowed',
         },
         'change-plan': {
             icon: Repeat,
@@ -241,6 +265,41 @@ export function SubscriptionActionsDialog({
                             <p className="text-xs text-muted-foreground">
                                 {t('suscripciones:extend-trial.days_hint')}
                             </p>
+                        </div>
+                    )}
+
+                    {mode === 'grant-referral' && (
+                        <div className="flex flex-col gap-3">
+                            <div className="flex flex-col gap-1.5">
+                                <Label htmlFor="ref-days">
+                                    {t('suscripciones:grant-referral.days_label')}
+                                </Label>
+                                <Input
+                                    id="ref-days"
+                                    type="number"
+                                    min={-365}
+                                    max={365}
+                                    value={days}
+                                    onChange={(e) =>
+                                        setDays(Number(e.target.value) || 0)
+                                    }
+                                    autoFocus
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                    {t('suscripciones:grant-referral.days_hint')}
+                                </p>
+                            </div>
+                            <label className="flex items-start gap-2 text-sm">
+                                <Checkbox
+                                    checked={applyNow}
+                                    onCheckedChange={(v) =>
+                                        setApplyNow(v === true)
+                                    }
+                                />
+                                <span>
+                                    {t('suscripciones:grant-referral.apply_now')}
+                                </span>
+                            </label>
                         </div>
                     )}
 

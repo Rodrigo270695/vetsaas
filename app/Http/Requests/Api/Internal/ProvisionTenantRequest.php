@@ -35,6 +35,8 @@ class ProvisionTenantRequest extends FormRequest
             'timezone' => ['nullable', 'string', 'max:50'],
             'locale' => ['nullable', 'string', 'max:10'],
             'canal_adquisicion' => ['nullable', 'string', 'max:50'],
+            'referral_code' => ['nullable', 'string', 'max:40'],
+            'promo_code' => ['nullable', 'string', 'max:40'],
             'descuento_pct' => ['nullable', 'numeric', 'between:0,100'],
 
             'admin_nombres' => ['required', 'string', 'max:100'],

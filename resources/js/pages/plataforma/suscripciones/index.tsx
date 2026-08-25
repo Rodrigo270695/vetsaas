@@ -82,6 +82,7 @@ type ModalState =
     | { type: 'create' }
     | { type: 'edit'; subscription: Subscription }
     | { type: 'extend-trial'; subscription: Subscription }
+    | { type: 'grant-referral'; subscription: Subscription }
     | { type: 'change-plan'; subscription: Subscription }
     | { type: 'cancel'; subscription: Subscription }
     | { type: 'delete'; subscription: Subscription }
@@ -283,6 +284,11 @@ export default function Index({
             setModal({ type: 'extend-trial', subscription }),
         [],
     );
+    const openGrantReferral = useCallback(
+        (subscription: Subscription) =>
+            setModal({ type: 'grant-referral', subscription }),
+        [],
+    );
     const openChangePlan = useCallback(
         (subscription: Subscription) =>
             setModal({ type: 'change-plan', subscription }),
@@ -368,6 +374,7 @@ export default function Index({
     const actionsMode: SubscriptionActionMode | null = useMemo(() => {
         if (
             modal.type === 'extend-trial' ||
+            modal.type === 'grant-referral' ||
             modal.type === 'change-plan' ||
             modal.type === 'cancel'
         ) {
@@ -379,6 +386,7 @@ export default function Index({
     const actionsSubscription = useMemo(() => {
         if (
             modal.type === 'extend-trial' ||
+            modal.type === 'grant-referral' ||
             modal.type === 'change-plan' ||
             modal.type === 'cancel'
         ) {
@@ -546,6 +554,7 @@ export default function Index({
                             subscription={s}
                             onEdit={openEdit}
                             onExtendTrial={openExtendTrial}
+                            onGrantReferral={openGrantReferral}
                             onChangePlan={openChangePlan}
                             onCancel={openCancel}
                             onDelete={openDelete}

@@ -13,6 +13,7 @@ use App\Http\Controllers\CitaController;
 use App\Http\Controllers\ClinicalHistoryWhatsAppController;
 use App\Http\Controllers\ClinicBotIaController;
 use App\Http\Controllers\ClinicSettingController;
+use App\Http\Controllers\ClinicReferralController;
 use App\Http\Controllers\ClinicSubscriptionController;
 use App\Http\Controllers\CompraInventarioController;
 use App\Http\Controllers\ConsultaCargoController;
@@ -1197,6 +1198,10 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             ->get('suscripcion', [ClinicSubscriptionController::class, 'show'])
             ->name('suscripcion.show');
 
+        Route::middleware(['tenant.required', 'permission:config-general.view'])
+            ->get('referidos', [ClinicReferralController::class, 'show'])
+            ->name('referidos.show');
+
         Route::inertia('ayuda', 'configuracion/ayuda/index')->name('ayuda');
 
         // Sedes — CRUD real. Cada verbo HTTP exige su permiso específico.
@@ -1607,6 +1612,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:plataforma-suscripciones.extend-trial')
             ->post('suscripciones/{suscripcion}/extend-trial', [SubscriptionController::class, 'extendTrial'])
             ->name('suscripciones.extend-trial');
+        Route::middleware('permission:plataforma-suscripciones.update')
+            ->post('suscripciones/{suscripcion}/grant-referral-days', [SubscriptionController::class, 'grantReferralDays'])
+            ->name('suscripciones.grant-referral-days');
         Route::middleware('permission:plataforma-suscripciones.change-plan')
             ->post('suscripciones/{suscripcion}/change-plan', [SubscriptionController::class, 'changePlan'])
             ->name('suscripciones.change-plan');

@@ -6,6 +6,7 @@ use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\SubscriptionPayment;
 use App\Models\Tenant;
+use App\Services\Referrals\ReferralService;
 use App\Support\Subscriptions\BillingGrace;
 use App\Support\Subscriptions\SubscriptionCiclo;
 use Carbon\CarbonInterface;
@@ -20,6 +21,7 @@ class SubscriptionRenewalService
 {
     public function __construct(
         private readonly SubscriptionPeriodCalculator $periods,
+        private readonly ReferralService $referrals,
     ) {}
 
     /**
@@ -73,6 +75,10 @@ class SubscriptionRenewalService
             ?? $this->defaultPeriodStart($subscription, $paidAt);
         $periodEnd = $this->parseDate($payload['period_end'] ?? null)
             ?? $this->defaultPeriodEnd($periodStart, $ciclo);
+
+        // Días de referido acumulados → se suman al próximo ciclo.
+        $applied = $this->referrals->applyBalanceToPeriodEnd($tenant, $periodEnd);
+        $periodEnd = $applied['period_end'];
 
         $precio = isset($payload['precio_pactado'])
             ? (float) $payload['precio_pactado']
@@ -141,7 +147,7 @@ class SubscriptionRenewalService
             }
         }
 
-        SubscriptionPayment::create([
+        $row = SubscriptionPayment::create([
             'subscription_id' => $subscription->id,
             'tenant_id' => $tenant->id,
             'plan_id' => $plan->id,
@@ -163,6 +169,8 @@ class SubscriptionRenewalService
             'created_at' => now(),
             'internal_note' => $payment['internal_note'] ?? null,
         ]);
+
+        $this->referrals->creditReferrerOnPaidPayment($tenant->fresh() ?? $tenant, $row);
     }
 
     private function parseDate(mixed $value): ?CarbonInterface

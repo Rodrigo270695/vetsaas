@@ -36,6 +36,7 @@ export const MODULE_NAV_LABEL_KEYS: Record<string, string> = {
     reporte_top_pacientes: 'top_pacientes',
     config_general: 'general',
     config_suscripcion: 'suscripcion',
+    config_referidos: 'referidos',
     sedes: 'sedes',
     roles: 'roles',
     horarios: 'horarios',

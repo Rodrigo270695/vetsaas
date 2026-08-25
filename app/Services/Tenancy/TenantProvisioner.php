@@ -7,6 +7,7 @@ use App\Models\Subscription;
 use App\Models\SubscriptionPayment;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Services\Referrals\ReferralService;
 use App\Support\Subscriptions\BillingGrace;
 use App\Support\Subscriptions\SubscriptionCiclo;
 use App\Support\Tenancy\TenantSubdomainUrl;
@@ -27,6 +28,10 @@ use RuntimeException;
  */
 class TenantProvisioner
 {
+    public function __construct(
+        private readonly ReferralService $referrals,
+    ) {}
+
     /**
      * @param  array<string, mixed>  $payload
      *
@@ -61,6 +66,14 @@ class TenantProvisioner
                 'locale' => $payload['locale'] ?? 'es_PE',
                 'canal_adquisicion' => $payload['canal_adquisicion'] ?? 'orvae',
             ]);
+
+            $this->referrals->ensureReferralCode($tenant);
+
+            $referralCode = $payload['referral_code'] ?? $payload['promo_code'] ?? null;
+            if (is_string($referralCode) && $referralCode !== '') {
+                $this->referrals->attachReferrer($tenant, $referralCode);
+                $tenant->refresh();
+            }
 
             $subscription = $this->createSubscription($tenant, $plan, $payload);
 
@@ -194,7 +207,7 @@ class TenantProvisioner
      */
     private function recordPayment(Subscription $subscription, Tenant $tenant, Plan $plan, array $payment): void
     {
-        SubscriptionPayment::create([
+        $row = SubscriptionPayment::create([
             'subscription_id' => $subscription->id,
             'tenant_id' => $tenant->id,
             'plan_id' => $plan->id,
@@ -212,6 +225,8 @@ class TenantProvisioner
             'pagado_at' => isset($payment['pagado_at']) ? Carbon::parse($payment['pagado_at']) : now(),
             'created_at' => now(),
         ]);
+
+        $this->referrals->creditReferrerOnPaidPayment($tenant->fresh() ?? $tenant, $row);
     }
 
     private function createSchemaAndMigrate(string $schema): void

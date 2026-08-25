@@ -7,6 +7,7 @@ use App\Http\Requests\SubscriptionRequest;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\Tenant;
+use App\Services\Referrals\ReferralService;
 use App\Services\Subscriptions\SubscriptionRenewalReminderScanner;
 use App\Services\Subscriptions\SubscriptionRenewalWhatsAppSender;
 use App\Support\Subscriptions\SubscriptionBotIaAddon;
@@ -234,6 +235,49 @@ class SubscriptionController extends Controller
         return back()->with(
             'success',
             sprintf('Trial extendido %d día%s.', $data['days'], $data['days'] === 1 ? '' : 's'),
+        );
+    }
+
+    /**
+     * Otorga días de referido a la bolsa del tenant (o aplica ya al periodo).
+     */
+    public function grantReferralDays(Request $request, Subscription $suscripcion): RedirectResponse
+    {
+        $data = $request->validate([
+            'days' => ['required', 'integer', 'min:-365', 'max:365', 'not_in:0'],
+            'apply_now' => ['nullable', 'boolean'],
+            'notes' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        if ($suscripcion->estado === 'cancelled') {
+            throw ValidationException::withMessages([
+                'days' => 'No se pueden otorgar días a una suscripción cancelada.',
+            ]);
+        }
+
+        $tenant = $suscripcion->tenant;
+        if ($tenant === null) {
+            throw ValidationException::withMessages([
+                'days' => 'La suscripción no tiene tenant.',
+            ]);
+        }
+
+        app(ReferralService::class)->grantDaysManual(
+            $tenant,
+            (int) $data['days'],
+            (bool) ($data['apply_now'] ?? false),
+            $data['notes'] ?? null,
+        );
+
+        return back()->with(
+            'success',
+            sprintf(
+                'Referidos: %s %d día%s (%s).',
+                (int) $data['days'] > 0 ? 'otorgados' : 'ajustados',
+                abs((int) $data['days']),
+                abs((int) $data['days']) === 1 ? '' : 's',
+                ($data['apply_now'] ?? false) ? 'aplicados al periodo' : 'en bolsa',
+            ),
         );
     }
 

@@ -3,6 +3,7 @@ import {
     Ban,
     Bot,
     CalendarPlus,
+    Gift,
     Lock,
     MessageCircle,
     MoreHorizontal,
@@ -30,6 +31,7 @@ export type SubscriptionRowActionsProps = {
     subscription: Subscription;
     onEdit: (s: Subscription) => void;
     onExtendTrial: (s: Subscription) => void;
+    onGrantReferral: (s: Subscription) => void;
     onChangePlan: (s: Subscription) => void;
     onCancel: (s: Subscription) => void;
     onDelete: (s: Subscription) => void;
@@ -62,6 +64,7 @@ export function SubscriptionRowActions({
     subscription,
     onEdit,
     onExtendTrial,
+    onGrantReferral,
     onChangePlan,
     onCancel,
     onDelete,
@@ -170,6 +173,16 @@ export function SubscriptionRowActions({
                             strokeWidth={2.25}
                         />
                         {t('suscripciones:row.extend_trial')}
+                    </DropdownMenuItem>
+                )}
+
+                {canUpdate && !isCancelled && (
+                    <DropdownMenuItem
+                        onSelect={() => onGrantReferral(subscription)}
+                        className="cursor-pointer gap-2 text-emerald-700 focus:text-emerald-700 dark:text-emerald-400"
+                    >
+                        <Gift className="size-4" strokeWidth={2.25} />
+                        {t('suscripciones:row.grant_referral')}
                     </DropdownMenuItem>
                 )}
 

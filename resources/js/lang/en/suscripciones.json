@@ -59,6 +59,7 @@
         "actions_for": "Actions for {{name}}",
         "view_payments": "View payment history",
         "extend_trial": "Extend trial",
+        "grant_referral": "Referral days",
         "change_plan": "Change plan",
         "cancel": "Cancel subscription",
         "cancelled_locked": "Subscription cancelled",
@@ -141,6 +142,14 @@
         "days_label": "Days to add",
         "days_hint": "Between 1 and 365. Added to the current trial end date (or today if it already expired).",
         "confirm": "Extend trial"
+    },
+    "grant-referral": {
+        "title": "Referral days",
+        "description": "Adjust the referral day balance for <strong>{{tenant}}</strong> (manual / support).",
+        "days_label": "Days (+ or −)",
+        "days_hint": "Positive adds to the balance; negative subtracts. Check «apply now» to move them onto the current period.",
+        "apply_now": "Apply now to the period (skip balance)",
+        "confirm": "Save days"
     },
     "change-plan": {
         "title": "Change plan",

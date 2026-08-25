@@ -17,6 +17,7 @@ import serviciosAgendaEn from '@/lang/en/servicios-agenda.json';
 import citasEn from '@/lang/en/citas.json';
 import cobrosEn from '@/lang/en/cobros.json';
 import configSuscripcionEn from '@/lang/en/config-suscripcion.json';
+import configReferidosEn from '@/lang/en/config-referidos.json';
 import comunicacionesEn from '@/lang/en/comunicaciones.json';
 import chatInternoEn from '@/lang/en/chat-interno.json';
 import plataformaAuditoriaSoporteEn from '@/lang/en/plataforma-auditoria-soporte.json';
@@ -81,6 +82,7 @@ import serviciosAgendaEs from '@/lang/es/servicios-agenda.json';
 import citasEs from '@/lang/es/citas.json';
 import cobrosEs from '@/lang/es/cobros.json';
 import configSuscripcionEs from '@/lang/es/config-suscripcion.json';
+import configReferidosEs from '@/lang/es/config-referidos.json';
 import comunicacionesEs from '@/lang/es/comunicaciones.json';
 import chatInternoEs from '@/lang/es/chat-interno.json';
 import plataformaAuditoriaSoporteEs from '@/lang/es/plataforma-auditoria-soporte.json';
@@ -170,6 +172,7 @@ const resources = {
         cobros: cobrosEs,
         'subscription-expiry': subscriptionExpiryEs,
         'config-suscripcion': configSuscripcionEs,
+        'config-referidos': configReferidosEs,
         comunicaciones: comunicacionesEs,
         'chat-interno': chatInternoEs,
         'bot-ia': botIaEs,
@@ -236,6 +239,7 @@ const resources = {
         cobros: cobrosEn,
         'subscription-expiry': subscriptionExpiryEn,
         'config-suscripcion': configSuscripcionEn,
+        'config-referidos': configReferidosEn,
         comunicaciones: comunicacionesEn,
         'chat-interno': chatInternoEn,
         'bot-ia': botIaEn,
@@ -312,6 +316,7 @@ void i18n
             'cobros',
             'subscription-expiry',
             'config-suscripcion',
+            'config-referidos',
             'comunicaciones',
             'chat-interno',
             'bot-ia',

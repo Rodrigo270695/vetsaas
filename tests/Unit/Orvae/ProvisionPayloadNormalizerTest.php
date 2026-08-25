@@ -34,5 +34,29 @@ it('normaliza payload anidado de Orvae al contrato plano de VetSaaS', function (
         ->and($normalized['admin_nombres'])->toBe('María')
         ->and($normalized['admin_apellidos'])->toBe('López')
         ->and((string) $normalized['admin_password'])->not->toBe('')
-        ->and($normalized['payment']['monto'])->toBe(149.0);
+        ->and($normalized['payment']['monto'])->toBe(149.0)
+        ->and($normalized['canal_adquisicion'])->toBe('orvae')
+        ->and($normalized['referral_code'])->toBeNull();
+});
+
+it('propaga referral_code / promo_code y marca canal referido', function (): void {
+    $normalized = ProvisionPayloadNormalizer::normalize([
+        'external_order_id' => 'ord-ref',
+        'referral_code' => 'MEDIVET',
+        'customer' => [
+            'email' => 'otra@clinica.test',
+            'first_name' => 'Ana',
+            'last_name' => 'Ruiz',
+        ],
+        'tenant' => [
+            'name' => 'Otra Clínica',
+            'slug' => 'otra-clinica',
+        ],
+        'subscription' => [
+            'plan_slug' => 'pro',
+        ],
+    ]);
+
+    expect($normalized['referral_code'])->toBe('MEDIVET')
+        ->and($normalized['canal_adquisicion'])->toBe('referido');
 });

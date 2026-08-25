@@ -1,0 +1,26 @@
+{
+    "title": "Referrals",
+    "description": "Share your code. When a clinic pays their first month, you earn {{days}} free days applied on your next renewal.",
+    "your_code": "Your referral code",
+    "copy_code": "Copy code",
+    "copy_link": "Copy link",
+    "share_whatsapp": "Share on WhatsApp",
+    "whatsapp_message": "Hi, I recommend VetSaaS for your clinic. Use my code {{code}} when signing up. {{url}}",
+    "balance_title": "Days balance",
+    "days": "days",
+    "balance_hint": "Applied automatically on your next payment and shifts your billing date.",
+    "referred_title": "Clinics you invited",
+    "referred_empty": "No referrals yet. Share your code with other clinics.",
+    "col_clinic": "Clinic",
+    "col_date": "Joined",
+    "col_status": "Reward",
+    "status_credited": "Days credited",
+    "status_pending": "Waiting 1st payment",
+    "ledger_title": "Activity",
+    "ledger_type": {
+        "earned": "Referral reward",
+        "applied": "Applied on renewal",
+        "manual_grant": "Support grant",
+        "manual_adjust": "Balance adjust"
+    }
+}

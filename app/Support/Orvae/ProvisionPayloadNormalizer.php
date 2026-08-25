@@ -54,6 +54,18 @@ final class ProvisionPayloadNormalizer
             ];
         }
 
+        $referralCode = $input['referral_code']
+            ?? $input['promo_code']
+            ?? $subscription['referral_code']
+            ?? $subscription['promo_code']
+            ?? $tenant['referral_code']
+            ?? null;
+
+        $canal = 'orvae';
+        if (is_string($referralCode) && trim($referralCode) !== '') {
+            $canal = 'referido';
+        }
+
         return array_merge($input, [
             'external_order_id' => (string) ($input['external_order_id'] ?? $input['order_number'] ?? ''),
             'plan_slug' => $planSlug,
@@ -65,7 +77,8 @@ final class ProvisionPayloadNormalizer
             'admin_apellidos' => $lastName,
             'admin_email' => strtolower(trim((string) ($customer['email'] ?? ''))),
             'admin_password' => $input['admin_password'] ?? Str::password(16),
-            'canal_adquisicion' => 'orvae',
+            'canal_adquisicion' => $canal,
+            'referral_code' => is_string($referralCode) ? trim($referralCode) : null,
             'payment' => $payment,
         ]);
     }

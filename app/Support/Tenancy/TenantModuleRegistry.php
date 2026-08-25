@@ -49,6 +49,7 @@ final class TenantModuleRegistry
         'reporte_top_pacientes',
         'config_general',
         'config_suscripcion',
+        'config_referidos',
         'sedes',
         'roles',
         'horarios',
@@ -156,6 +157,7 @@ final class TenantModuleRegistry
                 'modules' => [
                     'config_general',
                     'config_suscripcion',
+                    'config_referidos',
                     'sedes',
                     'roles',
                     'horarios',

@@ -59,6 +59,7 @@
         "actions_for": "Acciones para {{name}}",
         "view_payments": "Ver historial de cobros",
         "extend_trial": "Extender prueba",
+        "grant_referral": "Días de referido",
         "change_plan": "Cambiar de plan",
         "cancel": "Cancelar suscripción",
         "cancelled_locked": "Suscripción cancelada",
@@ -141,6 +142,14 @@
         "days_label": "Días a sumar",
         "days_hint": "Entre 1 y 365. Se suman a la fecha actual de fin de trial (o a hoy si ya venció).",
         "confirm": "Extender prueba"
+    },
+    "grant-referral": {
+        "title": "Días de referido",
+        "description": "Ajusta la bolsa de días de referido de <strong>{{tenant}}</strong> (manual / soporte).",
+        "days_label": "Días (+ o −)",
+        "days_hint": "Positivo suma a la bolsa; negativo resta. Si marcas «aplicar ya», se mueven al periodo actual.",
+        "apply_now": "Aplicar ya al periodo (no dejar en bolsa)",
+        "confirm": "Guardar días"
     },
     "change-plan": {
         "title": "Cambiar plan",
