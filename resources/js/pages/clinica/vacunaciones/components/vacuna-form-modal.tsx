@@ -115,8 +115,6 @@ type FormShape = {
     esquema_antigenos: string;
     fecha_proxima_sugerida: string;
     aplicada_at: string;
-    numero_dosis: string;
-    lote: string;
     notas: string;
     veterinario_id: string | null;
     sede_id: string | null;
@@ -136,8 +134,6 @@ function emptyForm(
         esquema_antigenos: '',
         fecha_proxima_sugerida: '',
         aplicada_at: toDatetimeLocalValue(new Date()),
-        numero_dosis: '',
-        lote: '',
         notas: '',
         veterinario_id: defaultVetId,
         sede_id: resolveDefaultSedeId(sedes),
@@ -155,8 +151,6 @@ function fromVacuna(v: VacunaAplicadaRow, defaultVetId: string | null): FormShap
         esquema_antigenos: v.esquema_antigenos ?? '',
         fecha_proxima_sugerida: isoDateToInput(v.fecha_proxima_sugerida),
         aplicada_at: parseIsoToDatetimeLocal(v.aplicada_at),
-        numero_dosis: v.numero_dosis != null ? String(v.numero_dosis) : '',
-        lote: v.lote ?? '',
         notas: v.notas ?? '',
         veterinario_id: v.veterinario_id ?? defaultVetId,
         sede_id: v.sede_id,
@@ -191,11 +185,27 @@ export function VacunaFormModal({
     );
     const paqueteConProductos = (paqueteSeleccionado?.productos_count ?? 0) > 0;
 
+    const canSubmit = useMemo(() => {
+        return (
+            data.paciente_id.trim() !== '' &&
+            data.servicio_clinico_id != null &&
+            data.servicio_clinico_id !== '' &&
+            data.nombre_vacuna.trim() !== '' &&
+            data.aplicada_at.trim() !== '' &&
+            data.sede_id != null &&
+            data.sede_id !== ''
+        );
+    }, [
+        data.paciente_id,
+        data.servicio_clinico_id,
+        data.nombre_vacuna,
+        data.aplicada_at,
+        data.sede_id,
+    ]);
+
     useEffect(() => {
         transform((raw) => {
             const r = raw;
-            const nd = r.numero_dosis.trim();
-            const ndVal = nd === '' ? null : Number.parseInt(nd, 10);
 
             return {
                 paciente_id: r.paciente_id,
@@ -210,8 +220,8 @@ export function VacunaFormModal({
                 esquema_antigenos: r.esquema_antigenos.trim() === '' ? null : r.esquema_antigenos.trim(),
                 fecha_proxima_sugerida: dateInputToPayload(r.fecha_proxima_sugerida),
                 aplicada_at: r.aplicada_at,
-                numero_dosis: nd === '' || ndVal === null || Number.isNaN(ndVal) ? null : ndVal,
-                lote: r.lote.trim() === '' ? null : r.lote.trim(),
+                numero_dosis: vacuna?.numero_dosis ?? null,
+                lote: vacuna?.lote?.trim() ? vacuna.lote.trim() : null,
                 notas: r.notas.trim() === '' ? null : r.notas.trim(),
                 veterinario_id:
                     r.veterinario_id != null && r.veterinario_id !== '' ? r.veterinario_id : null,
@@ -219,7 +229,7 @@ export function VacunaFormModal({
             };
         });
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [vacuna?.id, vacuna?.numero_dosis, vacuna?.lote]);
 
     useEffect(() => {
         if (!open) {
@@ -295,9 +305,6 @@ export function VacunaFormModal({
     };
 
     const buildCreatePayload = (raw: FormShape): Record<string, unknown> => {
-        const nd = raw.numero_dosis.trim();
-        const ndVal = nd === '' ? null : Number.parseInt(nd, 10);
-
         return {
             paciente_id: raw.paciente_id,
             consulta_id: raw.consulta_id.trim() === '' ? null : raw.consulta_id.trim(),
@@ -311,8 +318,8 @@ export function VacunaFormModal({
             esquema_antigenos: raw.esquema_antigenos.trim() === '' ? null : raw.esquema_antigenos.trim(),
             fecha_proxima_sugerida: dateInputToPayload(raw.fecha_proxima_sugerida),
             aplicada_at: raw.aplicada_at,
-            numero_dosis: nd === '' || ndVal === null || Number.isNaN(ndVal) ? null : ndVal,
-            lote: raw.lote.trim() === '' ? null : raw.lote.trim(),
+            numero_dosis: null,
+            lote: null,
             notas: raw.notas.trim() === '' ? null : raw.notas.trim(),
             veterinario_id:
                 raw.veterinario_id != null && raw.veterinario_id !== '' ? raw.veterinario_id : null,
@@ -322,6 +329,9 @@ export function VacunaFormModal({
 
     const onSubmit = (e: FormEvent) => {
         e.preventDefault();
+        if (!canSubmit || processing) {
+            return;
+        }
         if (isEdit && vacuna) {
             put(clinica.vacunaciones.update({ vacuna_aplicada: vacuna.id }).url, {
                 preserveScroll: true,
@@ -366,7 +376,7 @@ export function VacunaFormModal({
                     <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={processing}>
                         {t('common:actions.cancel')}
                     </Button>
-                    <Button type="submit" disabled={processing} className="gap-2">
+                    <Button type="submit" disabled={processing || !canSubmit} className="gap-2">
                         {processing && <Loader2 className="size-4 animate-spin" aria-hidden />}
                         {isEdit ? t('form.submit_edit') : t('form.submit_create')}
                     </Button>
@@ -519,34 +529,6 @@ export function VacunaFormModal({
                         aria-invalid={Boolean(errors.aplicada_at)}
                     />
                 </FormField>
-
-                <div className="grid gap-4 sm:grid-cols-2">
-                    <FormField
-                        id="vf-dosis"
-                        label={t('form.numero_dosis')}
-                        error={errors.numero_dosis as string | undefined}
-                    >
-                        <Input
-                            id="vf-dosis"
-                            type="number"
-                            min={1}
-                            max={99}
-                            className={controlClass}
-                            value={data.numero_dosis}
-                            onChange={(e) => setData('numero_dosis', e.target.value)}
-                            aria-invalid={Boolean(errors.numero_dosis)}
-                        />
-                    </FormField>
-                    <FormField id="vf-lote" label={t('form.lote')} error={errors.lote as string | undefined}>
-                        <Input
-                            id="vf-lote"
-                            className={controlClass}
-                            value={data.lote}
-                            onChange={(e) => setData('lote', e.target.value)}
-                            aria-invalid={Boolean(errors.lote)}
-                        />
-                    </FormField>
-                </div>
 
                 <SedeFormField
                     id="vf-sede"
