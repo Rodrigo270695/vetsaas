@@ -65,6 +65,28 @@ it('asume entrega ante OpenWA HTTP 500 en send-text', function (): void {
     expect($result['assumed_delivery'] ?? false)->toBeTrue();
 });
 
+it('no asume entrega ante timeout sin respuesta (0 bytes)', function (): void {
+    $client = new OpenWaClient;
+    $msg = 'cURL error 28: Operation timed out after 12001 milliseconds with 0 bytes received (see https://curl.haxx.se/libcurl/c/libcurl-errors.html)';
+
+    expect($client->isNoResponseTimeoutMessage($msg))->toBeTrue();
+    expect($client->isAmbiguousDeliveryErrorMessage($msg))->toBeFalse();
+
+    Http::fake(function () {
+        throw new \Illuminate\Http\Client\ConnectionException(
+            'cURL error 28: Operation timed out after 12001 milliseconds with 0 bytes received',
+        );
+    });
+
+    try {
+        $client->sendTextWithDeliveryFallback('sess-1', '51999111222@c.us', 'Hola');
+        expect(false)->toBeTrue(); // no debió asumir entrega
+    } catch (\Throwable $e) {
+        expect($client->isNoResponseTimeout($e) || str_contains($e->getMessage(), 'timed out') || str_contains($e->getMessage(), '0 bytes'))
+            ->toBeTrue();
+    }
+});
+
 it('intenta start si la sesión OpenWA está caída', function (): void {
     config(['openwa.reconnect_poll_seconds' => 0]);
 

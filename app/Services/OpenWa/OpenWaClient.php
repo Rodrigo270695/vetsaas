@@ -116,10 +116,9 @@ final class OpenWaClient
     }
 
     /**
-     * Igual que {@see sendText}, pero si OpenWA responde con timeout o 5xx
-     * tardío (el mensaje suele haber salido igual), se asume entrega en vez
-     * de propagar el error. Útil para mensajes one-shot iniciados por el
-     * usuario donde un falso "falló" es peor que un improbable duplicado.
+     * Igual que {@see sendText}, pero si OpenWA responde 5xx tardío (el mensaje
+     * suele haber salido), se asume entrega. Un timeout con 0 bytes NO se asume:
+     * OpenWA no respondió y el mensaje probablemente no salió → el caller reintenta.
      *
      * @return array<string, mixed>
      */
@@ -128,6 +127,16 @@ final class OpenWaClient
         try {
             return $this->sendText($sessionId, $chatId, $text);
         } catch (\Throwable $error) {
+            if ($this->isNoResponseTimeout($error)) {
+                Log::warning('OpenWA send-text: timeout sin respuesta; no se asume envío', [
+                    'error' => $error->getMessage(),
+                    'chat_id' => $chatId,
+                    'session_id' => $sessionId,
+                ]);
+
+                throw $error;
+            }
+
             if ($this->isAmbiguousDeliveryError($error)) {
                 Log::warning('OpenWA send-text: respuesta ambigua; se asume envío OK', [
                     'error' => $error->getMessage(),
@@ -142,7 +151,31 @@ final class OpenWaClient
     }
 
     /**
+     * Timeout de red sin ningún byte: no hubo confirmación de entrega.
+     */
+    public function isNoResponseTimeout(\Throwable $error): bool
+    {
+        return $this->isNoResponseTimeoutMessage($error->getMessage());
+    }
+
+    public function isNoResponseTimeoutMessage(string $message): bool
+    {
+        if ($message === '') {
+            return false;
+        }
+
+        if (str_contains($message, '0 bytes received')) {
+            return true;
+        }
+
+        // cURL 28 sin cuerpo útil
+        return str_contains($message, 'cURL error 28')
+            && (str_contains($message, '0 bytes') || str_contains($message, 'Operation timed out'));
+    }
+
+    /**
      * OpenWA a veces responde timeout / 5xx aunque el mensaje ya llegó a WhatsApp.
+     * No incluye timeouts sin respuesta ({@see isNoResponseTimeoutMessage}).
      */
     public function isAmbiguousDeliveryError(\Throwable $error): bool
     {
@@ -155,9 +188,11 @@ final class OpenWaClient
             return false;
         }
 
+        if ($this->isNoResponseTimeoutMessage($message)) {
+            return false;
+        }
+
         if (str_contains($message, 'Error de red con OpenWA')
-            || str_contains($message, 'timed out')
-            || str_contains($message, 'cURL error 28')
             || str_contains($message, 'Internal server error')
             || str_contains($message, '"statusCode":500')) {
             return true;
