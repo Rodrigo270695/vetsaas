@@ -177,6 +177,7 @@ export type VentaLineaShow = {
 };
 
 export type FelDocumentShow = {
+    id?: string;
     numero_completo: string;
     estado: string;
     url_pdf: string | null;
@@ -184,6 +185,7 @@ export type FelDocumentShow = {
     enlace_consulta: string | null;
     error_mensaje: string | null;
     emitido_at: string | null;
+    apisunat_mode?: 'sandbox' | 'produccion' | null;
 };
 
 export type VentaDetalle = {
@@ -226,6 +228,7 @@ export type VentaShowProps = {
         ticket_ancho_mm: '56' | '58' | '80';
         emite_comprobantes_sunat: boolean;
         apisunat_configurado: boolean;
+        apisunat_mode?: 'sandbox' | 'produccion';
         plan_permite_boletas: boolean;
         plan_permite_facturas: boolean;
     };
@@ -235,6 +238,11 @@ export type VentaShowProps = {
         tipo_comprobante: 'boleta' | 'factura';
         serie: string | null;
         doc_cliente: string;
+        es_sandbox?: boolean;
+        puede_pasar_a_produccion?: boolean;
+        pasar_a_produccion_url?: string | null;
+        pasar_a_produccion_motivo?: string | null;
+        siguiente_sandbox_numero?: string | null;
     };
     ticket: {
         puede_imprimir: boolean;

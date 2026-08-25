@@ -1,5 +1,5 @@
-import { Head, Link } from '@inertiajs/react';
-import { Download, Eye, FileText, MessageCircle } from 'lucide-react';
+import { Head, Link, router } from '@inertiajs/react';
+import { ArrowUpRight, Download, Eye, FileText, MessageCircle } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -41,6 +41,9 @@ type DocumentoRow = DocumentoDownloadRow & {
     tipo_label: string;
     estado: string;
     apisunat_mode: 'sandbox' | 'produccion' | null;
+    puede_pasar_a_produccion?: boolean;
+    pasar_a_produccion_url?: string;
+    siguiente_sandbox_numero?: string | null;
     receptor_nombre: string;
     receptor_num_doc: string;
     cliente_telefono: string | null;
@@ -350,7 +353,7 @@ export default function Index({ documentos: paginated, filters, documento_filtro
                 align: 'right',
                 cell: (row) => (
                     <div className="flex items-center justify-end gap-0.5">
-                        {row.estado === 'emitido' ? (
+                        {row.estado === 'emitido' && row.apisunat_mode !== 'sandbox' ? (
                             <Can permission="documentos.send">
                                 <Button
                                     type="button"
@@ -361,6 +364,54 @@ export default function Index({ documentos: paginated, filters, documento_filtro
                                     onClick={() => setWhatsappDocumento(row)}
                                 >
                                     <MessageCircle className="size-4" strokeWidth={2.25} aria-hidden />
+                                </Button>
+                            </Can>
+                        ) : null}
+                        {row.apisunat_mode === 'sandbox' && row.estado === 'emitido' ? (
+                            <Can permission="documentos.create">
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    disabled={!row.puede_pasar_a_produccion}
+                                    className="size-8 shrink-0 border-0 bg-transparent text-amber-700 shadow-none hover:bg-amber-500/10 hover:text-amber-800 disabled:opacity-40 dark:text-amber-300"
+                                    aria-label={
+                                        row.puede_pasar_a_produccion
+                                            ? t('sandbox.pasar_produccion_aria', {
+                                                  numero: row.numero_completo,
+                                              })
+                                            : t('sandbox.esperar_orden', {
+                                                  numero:
+                                                      row.siguiente_sandbox_numero ??
+                                                      row.numero_completo,
+                                              })
+                                    }
+                                    title={
+                                        row.puede_pasar_a_produccion
+                                            ? t('sandbox.pasar_produccion')
+                                            : t('sandbox.esperar_orden', {
+                                                  numero:
+                                                      row.siguiente_sandbox_numero ??
+                                                      row.numero_completo,
+                                              })
+                                    }
+                                    onClick={() => {
+                                        if (!row.puede_pasar_a_produccion || !row.pasar_a_produccion_url) {
+                                            return;
+                                        }
+                                        if (
+                                            !window.confirm(
+                                                t('sandbox.pasar_produccion_confirm', {
+                                                    numero: row.numero_completo,
+                                                }),
+                                            )
+                                        ) {
+                                            return;
+                                        }
+                                        router.post(row.pasar_a_produccion_url, {}, { preserveScroll: true });
+                                    }}
+                                >
+                                    <ArrowUpRight className="size-4" strokeWidth={2.25} aria-hidden />
                                 </Button>
                             </Can>
                         ) : null}
@@ -392,7 +443,7 @@ export default function Index({ documentos: paginated, filters, documento_filtro
             <div className="flex flex-1 flex-col gap-5 p-4 sm:p-6">
                 <PageHeader
                     title="Comprobantes emitidos"
-                    description="Historial de boletas y facturas electrónicas enviadas a SUNAT vía APISUNAT."
+                    description="Historial de boletas y facturas electrónicas enviadas a SUNAT vía APISUNAT. Los de prueba no son válidos: conviértelos a producción en orden de correlativo."
                     stats={[
                         {
                             label: t('stats.monto_total'),

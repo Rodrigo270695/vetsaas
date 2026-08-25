@@ -1021,6 +1021,10 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             ->post('documentos/{felDocument}/enviar-whatsapp', [FelDocumentController::class, 'enviarWhatsApp'])
             ->whereUuid('felDocument')
             ->name('documentos.enviar-whatsapp');
+        Route::middleware('permission:documentos.create')
+            ->post('documentos/{felDocument}/pasar-a-produccion', [FelDocumentController::class, 'pasarAProduccion'])
+            ->whereUuid('felDocument')
+            ->name('documentos.pasar-a-produccion');
 
         // Series de comprobantes
         Route::middleware('permission:series.view')

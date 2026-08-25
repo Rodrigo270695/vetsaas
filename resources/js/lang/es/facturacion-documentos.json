@@ -36,5 +36,12 @@
         "cancel": "Cancelar",
         "sending": "Enviando…",
         "enviar": "Enviar {{numero}} por WhatsApp"
+    },
+    "sandbox": {
+        "pasar_produccion": "Pasar a producción",
+        "pasar_produccion_aria": "Pasar {{numero}} a producción",
+        "pasar_produccion_confirm": "Se reenviará {{numero}} a SUNAT producción con la misma serie y correlativo. Debes hacerlo en orden (1, luego 2…). ¿Continuar?",
+        "esperar_orden": "Primero convierte {{numero}}",
+        "hint": "Los de prueba no son válidos ante SUNAT. Conviértelos a producción en orden de correlativo."
     }
 }

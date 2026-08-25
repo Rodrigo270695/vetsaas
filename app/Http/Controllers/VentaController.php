@@ -28,6 +28,8 @@ use App\Models\Tenant;
 use App\Models\VacunaAplicada;
 use App\Models\Venta;
 use App\Services\Fel\FelEmisionVentaService;
+use App\Services\Fel\FelSandboxToProduccionService;
+use App\Support\Fel\FelDocumentApisunatModeResolver;
 use App\Services\Inventario\InventarioLoteService;
 use App\Services\Venta\VentaAnulacionService;
 use App\Services\Venta\VentaCheckoutService;
@@ -857,6 +859,17 @@ class VentaController extends Controller
         $propietario = $venta->propietario;
         $felEmision = app(FelEmisionVentaService::class);
         $puedeEmitirFel = $felEmision->puedeEmitir($tenantModel, $clinic, $venta);
+        $sandboxProd = app(FelSandboxToProduccionService::class);
+        $felDoc = $venta->felDocument;
+        $felMode = $felDoc !== null
+            ? FelDocumentApisunatModeResolver::resolveAndPersist($felDoc)
+            : null;
+        $esSandboxFel = $felDoc !== null
+            && $felDoc->estado === \App\Models\FelDocument::ESTADO_EMITIDO
+            && $felMode === 'sandbox';
+        $conversionEstado = $felDoc !== null
+            ? $sandboxProd->estadoConversion($felDoc, $clinic)
+            : ['puede' => false, 'motivo' => null, 'siguiente_numero' => null];
         $tipoFel = $venta->tipoComprobanteSunat();
         $serieFelCodigo = app(FelSerieResolver::class)->codigoSerieParaVenta($venta, $tipoFel);
         $puedeImprimirTicket = VentaTicketPolicy::puedeImprimir($venta, $clinic, $tenantModel);
@@ -903,6 +916,7 @@ class VentaController extends Controller
                 'fel_estado' => $venta->fel_estado,
                 'tipo_comprobante_sunat' => $venta->tipo_comprobante_sunat,
                 'fel_document' => $venta->felDocument === null ? null : [
+                    'id' => $venta->felDocument->id,
                     'numero_completo' => $venta->felDocument->numero_completo,
                     'estado' => $venta->felDocument->estado,
                     'url_pdf' => $venta->felDocument->url_pdf,
@@ -910,6 +924,7 @@ class VentaController extends Controller
                     'enlace_consulta' => $venta->felDocument->enlace_consulta,
                     'error_mensaje' => $venta->felDocument->error_mensaje,
                     'emitido_at' => $venta->felDocument->emitido_at?->toIso8601String(),
+                    'apisunat_mode' => $felMode,
                 ],
                 'cliente' => $cliente,
                 'cliente_doc' => $propietario?->numero_documento,
@@ -932,6 +947,9 @@ class VentaController extends Controller
                 'ticket_ancho_mm' => TicketAnchoMm::normalize((string) $clinic->ticket_ancho_mm),
                 'emite_comprobantes_sunat' => (bool) $clinic->emite_comprobantes_sunat,
                 'apisunat_configurado' => ApisunatCredentialResolver::estaConfigurado($clinic),
+                'apisunat_mode' => in_array($clinic->apisunat_mode, ['sandbox', 'produccion'], true)
+                    ? $clinic->apisunat_mode
+                    : 'sandbox',
                 'plan_permite_boletas' => PlanCapabilities::boletasElectronicas($tenantModel),
                 'plan_permite_facturas' => PlanCapabilities::facturasElectronicas($tenantModel),
             ],
@@ -940,13 +958,21 @@ class VentaController extends Controller
                 'emitir_url' => route('caja.ventas.emitir-fel', ['venta' => $venta]),
                 'tipo_comprobante' => FelReceptorResolver::etiquetaTipo($tipoFel),
                 'serie' => $serieFelCodigo,
+                'es_sandbox' => $esSandboxFel,
+                'puede_pasar_a_produccion' => (bool) ($conversionEstado['puede'] ?? false),
+                'pasar_a_produccion_url' => $felDoc !== null
+                    ? route('facturacion.documentos.pasar-a-produccion', $felDoc)
+                    : null,
+                'pasar_a_produccion_motivo' => $conversionEstado['motivo'] ?? null,
+                'siguiente_sandbox_numero' => $conversionEstado['siguiente_numero'] ?? null,
             ],
             'ticket' => [
                 'puede_imprimir' => $puedeImprimirTicket,
             ],
             'anulacion' => [
                 'puede_anular' => $request->user()?->can('ventas.delete')
-                    && $venta->estado === Venta::ESTADO_PAGADO,
+                    && $venta->estado === Venta::ESTADO_PAGADO
+                    && ! $esSandboxFel,
                 'anular_url' => route('caja.ventas.anular', ['venta' => $venta]),
                 'anulado_at' => $venta->anulado_at?->toIso8601String(),
                 'motivo' => $venta->motivo_anulacion,

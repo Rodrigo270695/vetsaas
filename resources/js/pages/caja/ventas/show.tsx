@@ -84,6 +84,7 @@ export default function Show({
     const { can } = usePermission();
     const canAvisarCaja = can('comunicaciones-chat.view');
     const [emitiendoFel, setEmitiendoFel] = useState(false);
+    const [pasandoProduccion, setPasandoProduccion] = useState(false);
     const [anularOpen, setAnularOpen] = useState(false);
     const [motivoAnulacion, setMotivoAnulacion] = useState('');
     const [anulando, setAnulando] = useState(false);
@@ -135,6 +136,29 @@ export default function Show({
             {
                 preserveScroll: true,
                 onFinish: () => setEmitiendoFel(false),
+            },
+        );
+    };
+
+    const pasarAProduccion = () => {
+        if (!fel.pasar_a_produccion_url || !fel.puede_pasar_a_produccion) {
+            return;
+        }
+        const numero = venta.fel_document?.numero_completo ?? venta.numero;
+        if (
+            !window.confirm(
+                t('caja:ventas.show.fel_pasar_produccion_confirm', { numero }),
+            )
+        ) {
+            return;
+        }
+        setPasandoProduccion(true);
+        router.post(
+            fel.pasar_a_produccion_url,
+            {},
+            {
+                preserveScroll: true,
+                onFinish: () => setPasandoProduccion(false),
             },
         );
     };
@@ -702,6 +726,34 @@ export default function Show({
                                             {venta.fel_document.numero_completo}
                                         </p>
                                     ) : null}
+                                    {fel.es_sandbox ? (
+                                        <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-2.5 py-2 text-xs text-amber-950 dark:text-amber-100">
+                                            <p className="font-semibold">
+                                                {t('caja:ventas.show.fel_sandbox_title')}
+                                            </p>
+                                            <p className="mt-1 leading-relaxed">
+                                                {t('caja:ventas.show.fel_sandbox_body')}
+                                            </p>
+                                            {fel.siguiente_sandbox_numero ? (
+                                                <p className="mt-1.5 font-medium tabular-nums">
+                                                    {t('caja:ventas.show.fel_sandbox_hint_orden', {
+                                                        numero: fel.siguiente_sandbox_numero,
+                                                    })}
+                                                </p>
+                                            ) : null}
+                                            {clinica.apisunat_mode !== 'produccion' ? (
+                                                <p className="mt-1.5">
+                                                    {t('caja:ventas.show.fel_sandbox_hint_clinica')}
+                                                </p>
+                                            ) : null}
+                                            {fel.pasar_a_produccion_motivo &&
+                                            !fel.puede_pasar_a_produccion ? (
+                                                <p className="mt-1.5 text-amber-800 dark:text-amber-200">
+                                                    {fel.pasar_a_produccion_motivo}
+                                                </p>
+                                            ) : null}
+                                        </div>
+                                    ) : null}
                                     {venta.fel_estado === 'rechazado' &&
                                     venta.fel_document?.error_mensaje ? (
                                         <p className="text-xs leading-snug text-destructive">
@@ -749,6 +801,30 @@ export default function Show({
                                                     <Loader2 className="size-3.5 animate-spin" aria-hidden />
                                                 ) : null}
                                                 {t('caja:ventas.show.fel_emitir')}
+                                            </Button>
+                                        ) : null}
+                                        {fel.es_sandbox && fel.pasar_a_produccion_url ? (
+                                            <Button
+                                                type="button"
+                                                size="sm"
+                                                className="h-8 gap-1.5"
+                                                disabled={
+                                                    !fel.puede_pasar_a_produccion || pasandoProduccion
+                                                }
+                                                title={
+                                                    !fel.puede_pasar_a_produccion
+                                                        ? (fel.pasar_a_produccion_motivo ??
+                                                          t(
+                                                              'caja:ventas.show.fel_pasar_produccion_bloqueado',
+                                                          ))
+                                                        : undefined
+                                                }
+                                                onClick={pasarAProduccion}
+                                            >
+                                                {pasandoProduccion ? (
+                                                    <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                                                ) : null}
+                                                {t('caja:ventas.show.fel_pasar_produccion')}
                                             </Button>
                                         ) : null}
                                     </div>

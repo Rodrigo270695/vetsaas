@@ -97,6 +97,15 @@ return [
             'apisunat_token_invalido' => 'No se puede descifrar el token de APISUNAT. Revisa la configuración.',
             'factura_requiere_ruc' => 'La factura requiere un propietario con RUC válido.',
             'emitida_ok' => 'Comprobante electrónico emitido correctamente.',
+            'sandbox_prod' => [
+                'solo_emitidos' => 'Solo se pueden pasar a producción comprobantes ya emitidos.',
+                'solo_sandbox' => 'Este comprobante ya no está en modo prueba.',
+                'clinica_debe_produccion' => 'Primero cambia APISUNAT a modo Producción en Configuración › General.',
+                'sin_pendientes' => 'No hay comprobantes de prueba pendientes en esta serie.',
+                'fuera_de_orden' => 'Debes pasar primero :numero (siguiente de la serie :serie).',
+                'venta_no_pagada' => 'La venta vinculada debe estar pagada.',
+                'ok' => 'Comprobante :numero pasado a producción correctamente.',
+            ],
         ],
         'anulacion' => [
             'ok' => 'La venta fue anulada. El stock de productos se revirtió y los vínculos de cobro quedaron liberados.',

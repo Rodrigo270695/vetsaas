@@ -91,6 +91,15 @@ return [
             'sin_serie' => 'No :tipo series configured. Check Settings › Branches (invoice/receipt series) or the clinic FEL catalog.',
             'sin_token' => 'Configure the Nubefact API route and token under Settings › General.',
             'emitida_ok' => 'Electronic receipt issued successfully.',
+            'sandbox_prod' => [
+                'solo_emitidos' => 'Only issued receipts can be moved to production.',
+                'solo_sandbox' => 'This receipt is no longer in test mode.',
+                'clinica_debe_produccion' => 'First switch APISUNAT to Production mode under Settings › General.',
+                'sin_pendientes' => 'No pending test receipts in this series.',
+                'fuera_de_orden' => 'You must convert :numero first (next in series :serie).',
+                'venta_no_pagada' => 'The linked sale must be paid.',
+                'ok' => 'Receipt :numero moved to production successfully.',
+            ],
         ],
         'anulacion' => [
             'ok' => 'The sale was voided. Product stock was reversed and billing links were released.',

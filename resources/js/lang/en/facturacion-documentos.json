@@ -36,5 +36,12 @@
         "cancel": "Cancel",
         "sending": "Sending…",
         "enviar": "Send {{numero}} via WhatsApp"
+    },
+    "sandbox": {
+        "pasar_produccion": "Move to production",
+        "pasar_produccion_aria": "Move {{numero}} to production",
+        "pasar_produccion_confirm": "{{numero}} will be re-sent to SUNAT production with the same series and number. Convert in order (1, then 2…). Continue?",
+        "esperar_orden": "Convert {{numero}} first",
+        "hint": "Test receipts are not valid for SUNAT. Convert them to production in correlative order."
     }
 }

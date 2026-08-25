@@ -11,6 +11,8 @@ use App\Models\Sede;
 use App\Models\Tenant;
 use App\Services\Fel\FelDocumentApisunatFileService;
 use App\Services\Fel\FelDocumentWhatsAppSender;
+use App\Services\Fel\FelSandboxToProduccionService;
+use App\Support\Fel\ApisunatCredentialResolver;
 use App\Support\Fel\FelDocumentApisunatModeResolver;
 use App\Support\Fel\FelDocumentPdfUrls;
 use App\Support\WhatsApp\WhatsAppChatId;
@@ -70,11 +72,24 @@ class FelDocumentController extends Controller
             ->whereIn('id', $sedeIds)
             ->pluck('nombre', 'id');
 
-        $documentos->getCollection()->transform(function (FelDocument $doc) use ($sedeNombres): array {
+        $sandboxProd = app(FelSandboxToProduccionService::class);
+        $siguientesSandbox = $sandboxProd->siguientesPendientesPorSerie();
+        $clinic = ClinicSetting::current();
+        $clinicaEnProduccion = ($clinic->apisunat_mode ?? 'sandbox') === 'produccion'
+            && ApisunatCredentialResolver::estaConfigurado($clinic);
+
+        $documentos->getCollection()->transform(function (FelDocument $doc) use ($sedeNombres, $siguientesSandbox, $clinicaEnProduccion): array {
             $venta = $doc->venta;
             $pdfTicket = $doc->url_pdf;
             $pdfA4 = FelDocumentPdfUrls::pdfA4FromTicket($pdfTicket);
             $propietario = $venta?->propietario;
+            $mode = FelDocumentApisunatModeResolver::resolveAndPersist($doc);
+            $esSandbox = $mode === 'sandbox' && $doc->estado === FelDocument::ESTADO_EMITIDO;
+            $siguiente = $siguientesSandbox[(string) $doc->serie] ?? null;
+            $puedePasar = $clinicaEnProduccion
+                && $esSandbox
+                && $siguiente !== null
+                && (int) $doc->correlativo === (int) $siguiente;
 
             return [
                 'id' => $doc->id,
@@ -101,7 +116,12 @@ class FelDocumentController extends Controller
                 'download_xml_url' => route('facturacion.documentos.download-xml', $doc),
                 'download_cdr_url' => route('facturacion.documentos.download-cdr', $doc),
                 'json_url' => route('facturacion.documentos.json', $doc),
-                'apisunat_mode' => FelDocumentApisunatModeResolver::resolveAndPersist($doc),
+                'apisunat_mode' => $mode,
+                'puede_pasar_a_produccion' => $puedePasar,
+                'pasar_a_produccion_url' => route('facturacion.documentos.pasar-a-produccion', $doc),
+                'siguiente_sandbox_numero' => $siguiente !== null
+                    ? ((string) $doc->serie).'-'.str_pad((string) $siguiente, 8, '0', STR_PAD_LEFT)
+                    : null,
             ];
         });
 
@@ -232,6 +252,37 @@ class FelDocumentController extends Controller
     }
 
     /**
+     * Reenvía un CPE de sandbox a APISUNAT producción (misma serie/correlativo, en orden).
+     */
+    public function pasarAProduccion(
+        Request $request,
+        FelDocument $felDocument,
+        FelSandboxToProduccionService $converter,
+    ): RedirectResponse {
+        abort_unless($request->user()?->can('documentos.create'), 403);
+
+        try {
+            $converted = $converter->convertir($felDocument);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            Log::warning('fel.pasar_a_produccion_failed', [
+                'fel_document_id' => $felDocument->id,
+                'message' => $e->getMessage(),
+            ]);
+
+            return back()->with('error', $e->getMessage());
+        }
+
+        return back()->with(
+            'success',
+            __('caja.ventas.fel.sandbox_prod.ok', [
+                'numero' => $converted->numero_completo,
+            ]),
+        );
+    }
+
+    /**
      * Envía comprobante electrónico por WhatsApp con adjuntos seleccionados.
      */
     public function enviarWhatsApp(
@@ -243,6 +294,10 @@ class FelDocumentController extends Controller
 
         if ($felDocument->estado !== FelDocument::ESTADO_EMITIDO) {
             return back()->with('warning', __('facturacion.documentos.flash.whatsapp_no_emitido'));
+        }
+
+        if (FelDocumentApisunatModeResolver::resolveAndPersist($felDocument) === 'sandbox') {
+            return back()->with('warning', __('facturacion.documentos.flash.whatsapp_sandbox'));
         }
 
         $data = $request->validate([
