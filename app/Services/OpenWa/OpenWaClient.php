@@ -239,7 +239,8 @@ final class OpenWaClient
      */
     public function tryStartIfDown(string $sessionId, string $status): array
     {
-        if (! in_array($status, ['disconnected', 'failed'], true)) {
+        // created = sesión nueva sin motor; sin start no hay QR (OpenWA Baileys).
+        if (! in_array($status, ['created', 'disconnected', 'failed'], true)) {
             return ['attempted' => false, 'remote' => null, 'error' => null];
         }
 
@@ -275,12 +276,12 @@ final class OpenWaClient
         $remote = $this->getSession($sessionId);
         $status = (string) ($remote['status'] ?? $fromStatus);
 
-        // Hasta ~12s: initializing/authenticating → ready (o qr_ready si hace falta QR).
+        // Hasta ~12s: created/initializing → qr_ready / ready / authenticating.
         for ($i = 0; $i < 4; $i++) {
             if (in_array($status, ['ready', 'qr_ready', 'authenticating'], true)) {
                 break;
             }
-            if ($status === 'initializing' || in_array($status, ['disconnected', 'failed'], true)) {
+            if (in_array($status, ['created', 'initializing', 'disconnected', 'failed'], true)) {
                 $wait = max(0, (int) config('openwa.reconnect_poll_seconds', 3));
                 if ($wait > 0) {
                     sleep($wait);

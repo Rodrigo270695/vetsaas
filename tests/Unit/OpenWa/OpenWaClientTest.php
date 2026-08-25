@@ -108,6 +108,24 @@ it('intenta start si la sesión OpenWA está caída', function (): void {
         && $request->url() === 'https://wa.test/api/sessions/sess-1/start');
 });
 
+it('intenta start si la sesión OpenWA está created (nueva)', function (): void {
+    config(['openwa.reconnect_poll_seconds' => 0]);
+
+    Http::fake([
+        'wa.test/api/sessions/sess-2/start' => Http::response(['status' => 'initializing'], 200),
+        'wa.test/api/sessions/sess-2' => Http::response([
+            'id' => 'sess-2',
+            'status' => 'qr_ready',
+        ], 200),
+    ]);
+
+    $result = (new OpenWaClient)->tryStartIfDown('sess-2', 'created');
+
+    expect($result['attempted'])->toBeTrue()
+        ->and($result['error'])->toBeNull()
+        ->and($result['remote']['status'] ?? null)->toBe('qr_ready');
+});
+
 it('no intenta start si la sesión OpenWA ya está ready', function (): void {
     Http::fake();
 
