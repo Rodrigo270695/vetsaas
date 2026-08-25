@@ -116,6 +116,7 @@ final class VetSaaSPublicMarketingService
                 'highlights' => $this->marketingHighlights(
                     $plan->codigo,
                     $limits,
+                    (int) $plan->trial_days,
                     (int) $plan->referral_reward_days,
                 ),
             ];
@@ -140,10 +141,12 @@ final class VetSaaSPublicMarketingService
         ];
 
         $byCodigo = [];
+        $trialByCodigo = [];
         foreach ($plans as $plan) {
             $codigo = strtolower((string) ($plan['codigo'] ?? ''));
             if ($codigo !== '') {
                 $byCodigo[$codigo] = is_array($plan['limits'] ?? null) ? $plan['limits'] : [];
+                $trialByCodigo[$codigo] = (int) ($plan['trial_days'] ?? 0);
             }
         }
 
@@ -156,6 +159,14 @@ final class VetSaaSPublicMarketingService
         }
 
         $rows = [];
+
+        $trialRow = ['key' => 'trial_days', 'label' => 'Días de prueba'];
+        foreach ($codigos as $codigo) {
+            $days = (int) ($trialByCodigo[$codigo] ?? 0);
+            $trialRow[$codigo] = $days > 0 ? (string) $days : '—';
+        }
+        $rows[] = $trialRow;
+
         foreach ($labels as $key => $label) {
             $row = ['key' => $key, 'label' => $label];
             foreach ($codigos as $codigo) {
@@ -171,9 +182,17 @@ final class VetSaaSPublicMarketingService
      * @param  array<string, int>  $limits
      * @return list<string>
      */
-    private function marketingHighlights(string $codigo, array $limits, int $referralRewardDays = 0): array
-    {
+    private function marketingHighlights(
+        string $codigo,
+        array $limits,
+        int $trialDays = 0,
+        int $referralRewardDays = 0,
+    ): array {
         $lines = ['Todos los módulos incluidos'];
+
+        if ($trialDays > 0) {
+            $lines[] = $this->trialLine($trialDays);
+        }
 
         $lines[] = $this->limitLine('Sedes', $limits['max_sedes'] ?? 0);
         $lines[] = $this->limitLine('Usuarios', $limits['max_usuarios'] ?? 0);
@@ -191,6 +210,15 @@ final class VetSaaSPublicMarketingService
         }
 
         return array_values(array_filter($lines));
+    }
+
+    private function trialLine(int $days): string
+    {
+        if ($days >= 28) {
+            return '1 mes de prueba';
+        }
+
+        return $days.' días de prueba';
     }
 
     private function referralRewardLine(int $days): string
