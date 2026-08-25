@@ -373,6 +373,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             Route::middleware('permission:historias-clinicas.view')
                 ->get('historias-clinicas/consultas/{consulta}/pdf', [ConsultaHistoriaController::class, 'pdf'])
                 ->name('historias-clinicas.consultas.pdf');
+            Route::middleware('permission:historias-clinicas.view|historias-clinicas.update')
+                ->get('historias-clinicas/consultas/{consulta}/form', [ConsultaHistoriaController::class, 'formJson'])
+                ->name('historias-clinicas.consultas.form');
             Route::middleware('permission:historias-clinicas.view')
                 ->post('historias-clinicas/consultas/{consulta}/whatsapp', [ClinicalHistoryWhatsAppController::class, 'consulta'])
                 ->name('historias-clinicas.consultas.whatsapp');

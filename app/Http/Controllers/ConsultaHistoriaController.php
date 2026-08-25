@@ -274,6 +274,43 @@ class ConsultaHistoriaController extends Controller
     }
 
     /**
+     * Payload JSON para abrir el modal de edición sin salir del historial del paciente.
+     */
+    public function formJson(Request $request, Consulta $consulta): JsonResponse
+    {
+        abort_unless(
+            ($request->user()?->can('historias-clinicas.view') ?? false)
+            || ($request->user()?->can('historias-clinicas.update') ?? false),
+            403,
+        );
+
+        $canAudit = $request->user()?->can('audit-trail.view') ?? false;
+
+        $consulta->load([
+            'historiaClinica.paciente' => fn ($q) => $q->withTrashed(),
+            'historiaClinica.paciente.propietario' => fn ($q) => $q->withTrashed()->select('id', 'nombres', 'apellidos', 'razon_social'),
+            'veterinario:id,name',
+            'cerradaPor:id,name',
+            'planTratamiento.lineas.producto:id,nombre,unidad,sku',
+            'cargo:id,consulta_id,estado,total',
+            'examenes',
+            'terapiaLineas',
+        ]);
+
+        if ($canAudit) {
+            $consulta->load([
+                'creadoPor:id,name,email',
+                'actualizadoPor:id,name,email',
+            ]);
+        }
+
+        $row = $consulta->toArray();
+        $row['estado_cobro'] = $consulta->estadoCobro();
+
+        return response()->json(['consulta' => $row]);
+    }
+
+    /**
      * Carga una consulta para abrir el modal de edición cuando el listado
      * llega con `?editar_consulta=<uuid>` (p. ej. desde la vista de plan).
      */
@@ -437,7 +474,7 @@ class ConsultaHistoriaController extends Controller
     ): RedirectResponse {
         if ($consulta->cerrada_at !== null) {
             return redirect()
-                ->route('clinica.historias-clinicas')
+                ->back()
                 ->withErrors(['consulta_cerrada' => __('historias-clinicas.errors.no_editable_cerrada')]);
         }
 
@@ -476,7 +513,7 @@ class ConsultaHistoriaController extends Controller
         });
 
         return redirect()
-            ->route('clinica.historias-clinicas')
+            ->back()
             ->with('success', __('historias-clinicas.flash.updated'));
     }
 

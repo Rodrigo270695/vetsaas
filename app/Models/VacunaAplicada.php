@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 
 /**
  * @property string $id
@@ -47,6 +48,41 @@ class VacunaAplicada extends Model
         self::CATEGORIA_DESPARASITACION,
         self::CATEGORIA_OTRO,
     ];
+
+    /**
+     * Deriva la categoría del carnet desde la categoría del paquete/tarifa clínica.
+     * Por defecto: vacuna / inmunización.
+     */
+    public static function categoriaRegistroDesdeNombreCategoriaServicio(?string $nombreCategoria): string
+    {
+        $n = Str::lower(Str::ascii(trim((string) $nombreCategoria)));
+        if ($n === '') {
+            return self::CATEGORIA_VACUNA;
+        }
+
+        if (str_contains($n, 'desparasit') || str_contains($n, 'antiparasit')) {
+            return self::CATEGORIA_DESPARASITACION;
+        }
+
+        if (str_contains($n, 'vacun') || str_contains($n, 'inmun')) {
+            return self::CATEGORIA_VACUNA;
+        }
+
+        return self::CATEGORIA_OTRO;
+    }
+
+    public static function categoriaRegistroDesdeServicioClinico(?ServicioClinico $servicio): string
+    {
+        if ($servicio === null) {
+            return self::CATEGORIA_VACUNA;
+        }
+
+        if (! $servicio->relationLoaded('categoria')) {
+            $servicio->load('categoria:id,nombre');
+        }
+
+        return self::categoriaRegistroDesdeNombreCategoriaServicio($servicio->categoria?->nombre);
+    }
 
     protected $table = 'vacunas_aplicadas';
 

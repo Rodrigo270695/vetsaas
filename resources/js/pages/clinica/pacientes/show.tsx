@@ -1,11 +1,21 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import { CalendarDays, FolderOpen, History } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Can } from '@/components/can';
 import { dashboard } from '@/routes';
 import clinica from '@/routes/clinica';
+import type { CatalogoOpcion } from '../historias-clinicas/components/consulta-form-modal';
+import { ConsultaFormModal } from '../historias-clinicas/components/consulta-form-modal';
+import type { ConsultaHistoriaRow, PacienteHistoriaOpcion } from '../historias-clinicas/types';
 import type { Paciente } from '../propietarios/types';
+import { VacunaFormModal } from '../vacunaciones/components/vacuna-form-modal';
+import type {
+    PacienteVacunaOpcion,
+    SedeVacunaOpcion,
+    ServicioVacunaOpcion,
+    VacunaAplicadaRow,
+} from '../vacunaciones/types';
 import { ClinicalHistoryWhatsAppDialog } from './components/clinical-history-whatsapp-dialog';
 import type { ClinicalHistoryShareTarget } from './components/clinical-history-whatsapp-dialog';
 import { HistorialArchivoPreview } from './components/historial-archivo-preview';
@@ -80,6 +90,7 @@ export type TimelineItem =
           cerrada: boolean;
           veterinario: string | null | undefined;
           historia_url: string;
+          form_url?: string;
           pdf_url: string;
           whatsapp_url: string;
           detalle: TimelineConsultaDetalle;
@@ -94,6 +105,8 @@ export type TimelineItem =
           veterinario: string | null | undefined;
           vacunaciones_url: string;
           pdf_url: string;
+          can_edit?: boolean;
+          registro?: VacunaAplicadaRow;
           detalle: TimelineAplicacionDetalle;
       };
 
@@ -102,6 +115,12 @@ type Props = {
     timeline: readonly TimelineItem[];
     consultas_para_lab?: readonly { id: string; label: string; abierta: boolean }[];
     archivos_subidos?: readonly HistorialArchivoSubido[];
+    pacientes_opciones?: readonly PacienteVacunaOpcion[] | readonly PacienteHistoriaOpcion[];
+    sedes_opciones?: readonly SedeVacunaOpcion[];
+    servicios_vacuna_opciones?: readonly ServicioVacunaOpcion[];
+    servicios_clinicos_opciones?: readonly CatalogoOpcion[];
+    farmacos_opciones?: readonly CatalogoOpcion[];
+    medico_tratante_default?: string;
     links: {
         nueva_consulta: string;
         nueva_aplicacion: string;
@@ -112,17 +131,29 @@ type Props = {
     permisos: {
         consultas_ver: boolean;
         consultas_crear: boolean;
+        consultas_editar?: boolean;
         vacunas_ver: boolean;
         vacunas_crear: boolean;
+        vacunas_editar?: boolean;
         laboratorio_crear: boolean;
     };
 };
+
+function readCsrfToken(): string {
+    return document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? '';
+}
 
 export default function PacienteShow({
     paciente,
     timeline,
     consultas_para_lab = [],
     archivos_subidos = [],
+    pacientes_opciones = [],
+    sedes_opciones = [],
+    servicios_vacuna_opciones = [],
+    servicios_clinicos_opciones = [],
+    farmacos_opciones = [],
+    medico_tratante_default = '',
     links,
     permisos,
 }: Props) {
@@ -133,6 +164,9 @@ export default function PacienteShow({
     const [labPrefillConsultaId, setLabPrefillConsultaId] = useState<string | null>(
         null,
     );
+    const [vacunaEdit, setVacunaEdit] = useState<VacunaAplicadaRow | null>(null);
+    const [consultaEdit, setConsultaEdit] = useState<ConsultaHistoriaRow | null>(null);
+    const [consultaLoadingId, setConsultaLoadingId] = useState<string | null>(null);
 
     const openLaboratorio = (consultaId: string | null = null) => {
         setLabPrefillConsultaId(consultaId);
@@ -162,6 +196,45 @@ export default function PacienteShow({
             total: timeline.length,
         }),
         [timeline],
+    );
+
+    const openVacunaRegistro = useCallback((item: Extract<TimelineItem, { kind: 'aplicacion' }>) => {
+        if (item.registro) {
+            setVacunaEdit(item.registro);
+        }
+    }, []);
+
+    const openConsultaRegistro = useCallback(
+        async (item: Extract<TimelineItem, { kind: 'consulta' }>) => {
+            if (!item.form_url) {
+                return;
+            }
+
+            setConsultaLoadingId(item.id);
+
+            try {
+                const res = await fetch(item.form_url, {
+                    headers: {
+                        Accept: 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': readCsrfToken(),
+                    },
+                    credentials: 'same-origin',
+                });
+
+                if (!res.ok) {
+                    return;
+                }
+
+                const payload = (await res.json()) as { consulta?: ConsultaHistoriaRow };
+                if (payload.consulta) {
+                    setConsultaEdit(payload.consulta);
+                }
+            } finally {
+                setConsultaLoadingId(null);
+            }
+        },
+        [],
     );
 
     return (
@@ -244,6 +317,9 @@ export default function PacienteShow({
                                         appTz={appTz}
                                         permisos={permisos}
                                         isLast={index === timeline.length - 1}
+                                        consultaOpeningId={consultaLoadingId}
+                                        onOpenConsulta={openConsultaRegistro}
+                                        onOpenAplicacion={openVacunaRegistro}
                                         onShareConsulta={(consulta) =>
                                             setShareTarget({
                                                 url: consulta.whatsapp_url,
@@ -300,6 +376,34 @@ export default function PacienteShow({
                     prefillConsultaId={labPrefillConsultaId}
                 />
             ) : null}
+
+            <VacunaFormModal
+                open={vacunaEdit !== null}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setVacunaEdit(null);
+                    }
+                }}
+                vacuna={vacunaEdit}
+                pacientesOpciones={pacientes_opciones as readonly PacienteVacunaOpcion[]}
+                sedesOpciones={sedes_opciones}
+                serviciosVacunaOpciones={servicios_vacuna_opciones}
+            />
+
+            <ConsultaFormModal
+                open={consultaEdit !== null}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setConsultaEdit(null);
+                    }
+                }}
+                consulta={consultaEdit}
+                pacientesOpciones={pacientes_opciones as readonly PacienteHistoriaOpcion[]}
+                serviciosClinicosOpciones={servicios_clinicos_opciones}
+                farmacosOpciones={farmacos_opciones}
+                medicoTratanteDefault={medico_tratante_default}
+                puedeCerrarConsulta={Boolean(permisos.consultas_editar)}
+            />
         </>
     );
 }

@@ -592,9 +592,7 @@ class VacunacionController extends Controller
         }
 
         return redirect()
-            ->route('clinica.vacunaciones.index', $request->only([
-                'search', 'per_page', 'sort', 'direction', 'aplicada_desde', 'aplicada_hasta',
-            ]))
+            ->back()
             ->with('success', __('vacunaciones.flash.updated'));
     }
 

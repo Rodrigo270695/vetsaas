@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Http\Requests\Concerns\AssignsAuthenticatedVeterinario;
 use App\Models\Consulta;
+use App\Models\ServicioClinico;
 use App\Models\VacunaAplicada;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -46,6 +47,22 @@ class StoreVacunaAplicadaRequest extends FormRequest
         }
 
         $this->mergeAuthenticatedVeterinario();
+        $this->mergeCategoriaDesdePaquete();
+    }
+
+    private function mergeCategoriaDesdePaquete(): void
+    {
+        $servicioId = $this->input('servicio_clinico_id');
+        if (! is_string($servicioId) || $servicioId === '') {
+            $this->merge(['categoria_registro' => VacunaAplicada::CATEGORIA_VACUNA]);
+
+            return;
+        }
+
+        $servicio = ServicioClinico::query()->with('categoria:id,nombre')->find($servicioId);
+        $this->merge([
+            'categoria_registro' => VacunaAplicada::categoriaRegistroDesdeServicioClinico($servicio),
+        ]);
     }
 
     public function withValidator(\Illuminate\Validation\Validator $validator): void
@@ -87,7 +104,7 @@ class StoreVacunaAplicadaRequest extends FormRequest
                 ),
             ],
             'servicio_clinico_id' => [
-                'nullable',
+                'required',
                 'uuid',
                 Rule::exists('servicios_clinicos', 'id')->where(
                     fn ($q) => $q->where('activo', true),
@@ -109,7 +126,7 @@ class StoreVacunaAplicadaRequest extends FormRequest
                 ),
             ],
             'sede_id' => [
-                ($this->filled('producto_id') || $this->filled('servicio_clinico_id')) ? 'required' : 'nullable',
+                'required',
                 'uuid',
                 Rule::exists('sedes', 'id')->where(
                     fn ($q) => $q->where('tenant_id', $tenantId)->where('activa', true),

@@ -7,13 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Combobox } from '@/components/ui/combobox';
 import type { ComboboxOption } from '@/components/ui/combobox';
 import { Input } from '@/components/ui/input';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { resolveDefaultSedeId } from '@/lib/default-sede';
 import { enqueueIfOffline } from '@/lib/offline/enqueue-if-offline';
@@ -78,6 +71,27 @@ function displayPropietario(p: PacienteVacunaOpcion['propietario']): string {
     }
 
     return [p.nombres, p.apellidos].filter(Boolean).join(' ');
+}
+
+/** Alinea con VacunaAplicada::categoriaRegistroDesdeNombreCategoriaServicio. */
+function categoriaDesdePaquete(categoriaNombre: string | null | undefined): string {
+    const n = (categoriaNombre ?? '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .trim();
+
+    if (n === '') {
+        return 'vacuna';
+    }
+    if (n.includes('desparasit') || n.includes('antiparasit')) {
+        return 'desparasitacion';
+    }
+    if (n.includes('vacun') || n.includes('inmun')) {
+        return 'vacuna';
+    }
+
+    return 'otro';
 }
 
 export type VacunaFormModalProps = {
@@ -176,7 +190,6 @@ export function VacunaFormModal({
         [serviciosVacunaOpciones, data.servicio_clinico_id],
     );
     const paqueteConProductos = (paqueteSeleccionado?.productos_count ?? 0) > 0;
-    const sedeImportante = Boolean(data.producto_id) || paqueteConProductos;
 
     useEffect(() => {
         transform((raw) => {
@@ -192,7 +205,7 @@ export function VacunaFormModal({
                     r.servicio_clinico_id != null && r.servicio_clinico_id !== ''
                         ? r.servicio_clinico_id
                         : null,
-                categoria_registro: r.categoria_registro,
+                categoria_registro: r.categoria_registro || 'vacuna',
                 nombre_vacuna: r.nombre_vacuna.trim(),
                 esquema_antigenos: r.esquema_antigenos.trim() === '' ? null : r.esquema_antigenos.trim(),
                 fecha_proxima_sugerida: dateInputToPayload(r.fecha_proxima_sugerida),
@@ -252,6 +265,7 @@ export function VacunaFormModal({
             setData((prev) => ({
                 ...prev,
                 servicio_clinico_id: null,
+                categoria_registro: 'vacuna',
             }));
 
             return;
@@ -261,6 +275,7 @@ export function VacunaFormModal({
         setData((prev) => ({
             ...prev,
             servicio_clinico_id: value,
+            categoria_registro: categoriaDesdePaquete(servicio?.categoria),
             nombre_vacuna: servicio?.nombre ?? prev.nombre_vacuna,
             producto_id: null,
         }));
@@ -291,7 +306,7 @@ export function VacunaFormModal({
                 raw.servicio_clinico_id != null && raw.servicio_clinico_id !== ''
                     ? raw.servicio_clinico_id
                     : null,
-            categoria_registro: raw.categoria_registro,
+            categoria_registro: raw.categoria_registro || 'vacuna',
             nombre_vacuna: raw.nombre_vacuna.trim(),
             esquema_antigenos: raw.esquema_antigenos.trim() === '' ? null : raw.esquema_antigenos.trim(),
             fecha_proxima_sugerida: dateInputToPayload(raw.fecha_proxima_sugerida),
@@ -397,25 +412,24 @@ export function VacunaFormModal({
                     ) : null
                 ) : null}
 
-                {serviciosVacunaOpciones.length > 0 ? (
-                    <FormField
+                <FormField
+                    id="vf-paquete"
+                    label={t('form.paquete')}
+                    required
+                    error={errors.servicio_clinico_id as string | undefined}
+                >
+                    <Combobox
                         id="vf-paquete"
-                        label={t('form.paquete')}
-                        error={errors.servicio_clinico_id as string | undefined}
-                    >
-                        <Combobox
-                            id="vf-paquete"
-                            options={servicioComboboxOptions}
-                            value={data.servicio_clinico_id}
-                            onChange={onServicioSelect}
-                            placeholder={t('form.paquete_placeholder')}
-                            searchPlaceholder={t('form.paquete_search')}
-                            emptyMessage={t('form.paquete_empty')}
-                            disabled={processing}
-                            aria-invalid={Boolean(errors.servicio_clinico_id)}
-                        />
-                    </FormField>
-                ) : null}
+                        options={servicioComboboxOptions}
+                        value={data.servicio_clinico_id}
+                        onChange={onServicioSelect}
+                        placeholder={t('form.paquete_placeholder')}
+                        searchPlaceholder={t('form.paquete_search')}
+                        emptyMessage={t('form.paquete_empty')}
+                        disabled={processing}
+                        aria-invalid={Boolean(errors.servicio_clinico_id)}
+                    />
+                </FormField>
 
                 {paqueteConProductos ? (
                     <p className="text-xs text-muted-foreground">{t('form.paquete_stock_hint')}</p>
@@ -441,29 +455,6 @@ export function VacunaFormModal({
                         />
                     </FormField>
                 ) : null}
-
-                <FormField
-                    id="vf-categoria"
-                    label={t('form.categoria_registro')}
-                    required
-                    error={errors.categoria_registro as string | undefined}
-                >
-                    <Select
-                        value={data.categoria_registro}
-                        onValueChange={(v) => setData('categoria_registro', v)}
-                    >
-                        <SelectTrigger id="vf-categoria" className={controlClass}>
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="vacuna">{t('form.categoria_vacuna')}</SelectItem>
-                            <SelectItem value="desparasitacion">
-                                {t('form.categoria_desparasitacion')}
-                            </SelectItem>
-                            <SelectItem value="otro">{t('form.categoria_otro')}</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </FormField>
 
                 <FormField
                     id="vf-nombre"
@@ -563,7 +554,7 @@ export function VacunaFormModal({
                     sedes={sedesOpciones}
                     value={data.sede_id}
                     onChange={(sedeId) => setData('sede_id', sedeId)}
-                    required={sedeImportante}
+                    required
                     hint={
                         paqueteConProductos
                             ? t('form.paquete_stock_hint')

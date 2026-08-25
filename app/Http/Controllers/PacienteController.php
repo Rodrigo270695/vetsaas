@@ -9,6 +9,7 @@ use App\Http\Controllers\Concerns\ResolvesClinicPdfBranding;
 use App\Http\Requests\PacienteRequest;
 use App\Models\Cirugia;
 use App\Models\Consulta;
+use App\Models\Farmaco;
 use App\Models\HistoriaClinica;
 use App\Models\Internamiento;
 use App\Models\ClinicaAsesorada;
@@ -18,6 +19,8 @@ use App\Models\PedidoLaboratorio;
 use App\Models\PedidoLaboratorioLinea;
 use App\Models\Propietario;
 use App\Models\Receta;
+use App\Models\Sede;
+use App\Models\ServicioClinico;
 use App\Models\VacunaAplicada;
 use App\Services\Clinica\PacienteImportService;
 use App\Support\Clinica\PublicClinicalHistoryPayload;
@@ -33,6 +36,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -191,6 +195,7 @@ class PacienteController extends Controller
         $user = $request->user();
         $canVerConsultas = $user?->can('historias-clinicas.view') ?? false;
         $canCrearConsulta = $user?->can('historias-clinicas.create') ?? false;
+        $canEditarConsulta = $user?->can('historias-clinicas.update') ?? false;
         $canVerVacunas = $user?->can('vacunaciones.view') ?? false;
         $canCrearVacuna = $user?->can('vacunaciones.create') ?? false;
         $canEditarVacuna = $user?->can('vacunaciones.update') ?? false;
@@ -269,11 +274,80 @@ class PacienteController extends Controller
             }
         }
 
+        $tenantId = tenant_id();
+        $pacientesOpcionesModal = [[
+            'id' => $paciente->id,
+            'nombre' => $paciente->nombre,
+            'propietario' => $paciente->propietario === null ? null : [
+                'id' => $paciente->propietario->id,
+                'nombres' => $paciente->propietario->nombres,
+                'apellidos' => $paciente->propietario->apellidos,
+                'razon_social' => $paciente->propietario->razon_social,
+            ],
+        ]];
+
+        $sedesOpciones = [];
+        $serviciosVacunaOpciones = [];
+        if ($canVerVacunas || $canEditarVacuna) {
+            $sedesOpciones = Sede::query()
+                ->where('tenant_id', $tenantId)
+                ->where('activa', true)
+                ->orderBy('nombre')
+                ->limit(100)
+                ->get(['id', 'nombre', 'codigo']);
+
+            if (Schema::hasTable('servicios_clinicos')) {
+                $serviciosQuery = ServicioClinico::query()
+                    ->where('activo', true)
+                    ->with('categoria:id,nombre')
+                    ->orderBy('orden')
+                    ->orderBy('nombre');
+
+                if (Schema::hasTable('servicio_clinico_productos')) {
+                    $serviciosQuery->withCount('productosPaquete as productos_count');
+                }
+
+                $serviciosVacunaOpciones = $serviciosQuery
+                    ->get(['id', 'nombre', 'precio_lista', 'categoria_id'])
+                    ->map(static function (ServicioClinico $s): array {
+                        return [
+                            'id' => $s->id,
+                            'nombre' => $s->nombre,
+                            'precio_lista' => (string) $s->precio_lista,
+                            'categoria' => $s->categoria?->nombre,
+                            'productos_count' => (int) ($s->productos_count ?? 0),
+                        ];
+                    })
+                    ->all();
+            }
+        }
+
+        $serviciosClinicosOpciones = [];
+        $farmacosOpciones = [];
+        if ($canVerConsultas || $canEditarConsulta) {
+            $serviciosClinicosOpciones = ServicioClinico::query()
+                ->where('activo', true)
+                ->orderBy('nombre')
+                ->limit(500)
+                ->get(['id', 'nombre']);
+
+            $farmacosOpciones = Farmaco::query()
+                ->orderBy('nombre')
+                ->limit(500)
+                ->get(['id', 'nombre']);
+        }
+
         return Inertia::render('clinica/pacientes/show', [
             'paciente' => $paciente,
             'timeline' => $timeline,
             'consultas_para_lab' => $consultasParaLab,
             'archivos_subidos' => $archivosSubidos,
+            'pacientes_opciones' => $pacientesOpcionesModal,
+            'sedes_opciones' => $sedesOpciones,
+            'servicios_vacuna_opciones' => $serviciosVacunaOpciones,
+            'servicios_clinicos_opciones' => $serviciosClinicosOpciones,
+            'farmacos_opciones' => $farmacosOpciones,
+            'medico_tratante_default' => $user?->name ?? '',
             'links' => [
                 'nueva_consulta' => route('clinica.historias-clinicas', ['nuevo_para_paciente' => $paciente->id]),
                 'nueva_aplicacion' => route('clinica.vacunaciones.index', ['prefill_paciente_id' => $paciente->id]),
@@ -308,8 +382,10 @@ class PacienteController extends Controller
             'permisos' => [
                 'consultas_ver' => $canVerConsultas,
                 'consultas_crear' => $canCrearConsulta,
+                'consultas_editar' => $canEditarConsulta,
                 'vacunas_ver' => $canVerVacunas,
                 'vacunas_crear' => $canCrearVacuna,
+                'vacunas_editar' => $canEditarVacuna,
                 'laboratorio_crear' => $canLabCreate,
                 'petpass_register' => $canPetPassRegister,
             ],
@@ -797,6 +873,7 @@ class PacienteController extends Controller
                             'atendido_desde' => $at->copy()->startOfMonth()->toDateString(),
                             'atendido_hasta' => $at->copy()->endOfMonth()->toDateString(),
                         ]),
+                        'form_url' => route('clinica.historias-clinicas.consultas.form', $c),
                         'pdf_url' => route('clinica.historias-clinicas.consultas.pdf', $c),
                         'whatsapp_url' => route('clinica.historias-clinicas.consultas.whatsapp', $c),
                         'detalle' => [
@@ -849,7 +926,14 @@ class PacienteController extends Controller
         if ($canVerVacunas) {
             $vacunas = VacunaAplicada::query()
                 ->where('paciente_id', $paciente->id)
-                ->with(['veterinario:id,name', 'consulta:id', 'producto:id,nombre,sku'])
+                ->with([
+                    'paciente.propietario:id,nombres,apellidos,razon_social',
+                    'veterinario:id,name',
+                    'sede:id,nombre,codigo',
+                    'consulta:id,atendido_at,cerrada_at',
+                    'producto:id,nombre,sku',
+                    'servicioClinico:id,nombre,precio_lista',
+                ])
                 ->orderByDesc('aplicada_at')
                 ->limit(200)
                 ->get();
@@ -874,6 +958,32 @@ class PacienteController extends Controller
                     'veterinario' => $v->veterinario?->name,
                     'vacunaciones_url' => route('clinica.vacunaciones.index', $vacunacionesParams),
                     'pdf_url' => route('clinica.vacunaciones.aplicacion-pdf', $v),
+                    'can_edit' => $canEditarVacuna,
+                    'registro' => [
+                        'id' => $v->id,
+                        'paciente_id' => $v->paciente_id,
+                        'consulta_id' => $v->consulta_id,
+                        'producto_id' => $v->producto_id,
+                        'servicio_clinico_id' => $v->servicio_clinico_id,
+                        'nombre_vacuna' => $v->nombre_vacuna,
+                        'categoria_registro' => $v->categoria_registro,
+                        'esquema_antigenos' => $v->esquema_antigenos,
+                        'fecha_proxima_sugerida' => $v->fecha_proxima_sugerida?->toDateString(),
+                        'aplicada_at' => $v->aplicada_at?->toIso8601String(),
+                        'numero_dosis' => $v->numero_dosis,
+                        'lote' => $v->lote,
+                        'notas' => $v->notas,
+                        'veterinario_id' => $v->veterinario_id,
+                        'sede_id' => $v->sede_id,
+                        'created_at' => $v->created_at?->toIso8601String(),
+                        'updated_at' => $v->updated_at?->toIso8601String(),
+                        'paciente' => $v->paciente,
+                        'producto' => $v->producto,
+                        'servicio_clinico' => $v->servicioClinico,
+                        'veterinario' => $v->veterinario,
+                        'sede' => $v->sede,
+                        'consulta' => $v->consulta,
+                    ],
                     'detalle' => [
                         'producto_nombre' => $v->producto?->nombre,
                         'producto_sku' => $v->producto?->sku,

@@ -102,5 +102,7 @@ export type ServicioVacunaOpcion = {
     id: string;
     nombre: string;
     precio_lista: string;
+    /** Nombre de categoría del catálogo de tarifas (p. ej. Vacunación). */
+    categoria?: string | null;
     productos_count: number;
 };

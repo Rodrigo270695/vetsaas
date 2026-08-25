@@ -7,6 +7,7 @@ import {
     FileDown,
     FlaskConical,
     Heart,
+    Loader2,
     MessageCircle,
     Stethoscope,
     Syringe,
@@ -39,6 +40,9 @@ type TimelineRowProps = {
         laboratorio_crear?: boolean;
     };
     isLast: boolean;
+    consultaOpeningId?: string | null;
+    onOpenConsulta?: (item: Extract<TimelineItem, { kind: 'consulta' }>) => void;
+    onOpenAplicacion?: (item: Extract<TimelineItem, { kind: 'aplicacion' }>) => void;
     onShareConsulta?: (item: Extract<TimelineItem, { kind: 'consulta' }>) => void;
     onUploadLaboratorio?: (consultaId: string) => void;
     variant?: 'admin' | 'public';
@@ -180,6 +184,9 @@ export function PacienteTimelineRow({
     appTz,
     permisos,
     isLast,
+    consultaOpeningId = null,
+    onOpenConsulta,
+    onOpenAplicacion,
     onShareConsulta,
     onUploadLaboratorio,
     variant = 'admin',
@@ -375,13 +382,29 @@ export function PacienteTimelineRow({
                         <div className="flex shrink-0 flex-wrap gap-1.5 sm:flex-col sm:items-stretch">
                             {item.kind === 'consulta' && permisos.consultas_ver ? (
                                 <>
-                                    {!isPublic && item.historia_url ? (
-                                        <Button type="button" size="sm" className="h-8 gap-1.5 px-2.5 text-xs" asChild>
-                                            <a href={item.historia_url}>
+                                    {!isPublic && (onOpenConsulta || item.historia_url) ? (
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            className="h-8 gap-1.5 px-2.5 text-xs"
+                                            disabled={consultaOpeningId === item.id}
+                                            onClick={() => {
+                                                if (onOpenConsulta) {
+                                                    onOpenConsulta(item);
+                                                    return;
+                                                }
+                                                if (item.historia_url) {
+                                                    window.location.href = item.historia_url;
+                                                }
+                                            }}
+                                        >
+                                            {consultaOpeningId === item.id ? (
+                                                <Loader2 className="size-3.5 animate-spin" strokeWidth={2.25} />
+                                            ) : (
                                                 <ExternalLink className="size-3.5" strokeWidth={2.25} />
-                                                <span className="hidden sm:inline">{t('historial.ver_consulta_corta')}</span>
-                                                <span className="sm:hidden">{t('historial.ver_consulta_completa')}</span>
-                                            </a>
+                                            )}
+                                            <span className="hidden sm:inline">{t('historial.ver_consulta_corta')}</span>
+                                            <span className="sm:hidden">{t('historial.ver_consulta_completa')}</span>
                                         </Button>
                                     ) : null}
                                     {item.pdf_url ? (
@@ -432,14 +455,27 @@ export function PacienteTimelineRow({
                             ) : null}
                             {item.kind === 'aplicacion' && permisos.vacunas_ver ? (
                                 <>
-                                    {!isPublic && item.vacunaciones_url ? (
-                                        <Button type="button" size="sm" className="h-8 gap-1.5 px-2.5 text-xs" asChild>
-                                            <Link href={item.vacunaciones_url} prefetch>
+                                    {!isPublic && (onOpenAplicacion || item.vacunaciones_url) ? (
+                                        onOpenAplicacion && item.registro ? (
+                                            <Button
+                                                type="button"
+                                                size="sm"
+                                                className="h-8 gap-1.5 px-2.5 text-xs"
+                                                onClick={() => onOpenAplicacion(item)}
+                                            >
                                                 <ExternalLink className="size-3.5" strokeWidth={2.25} />
                                                 <span className="hidden sm:inline">{t('historial.ver_aplicacion_corta')}</span>
                                                 <span className="sm:hidden">{t('historial.ver_aplicacion_completa')}</span>
-                                            </Link>
-                                        </Button>
+                                            </Button>
+                                        ) : item.vacunaciones_url ? (
+                                            <Button type="button" size="sm" className="h-8 gap-1.5 px-2.5 text-xs" asChild>
+                                                <Link href={item.vacunaciones_url} prefetch>
+                                                    <ExternalLink className="size-3.5" strokeWidth={2.25} />
+                                                    <span className="hidden sm:inline">{t('historial.ver_aplicacion_corta')}</span>
+                                                    <span className="sm:hidden">{t('historial.ver_aplicacion_completa')}</span>
+                                                </Link>
+                                            </Button>
+                                        ) : null
                                     ) : null}
                                     {item.pdf_url ? (
                                         <Button
