@@ -143,6 +143,9 @@
         "disconnected_title": "WhatsApp sin vincular",
         "disconnected_body_tenant": "Actualizamos el envío de notificaciones. Debes volver a conectar el WhatsApp de la clínica: entra a Cola saliente, pulsa Conectar y escanea el código QR. Hasta entonces no se enviarán recordatorios ni mensajes.",
         "disconnected_body_platform": "Actualizamos el gateway WhatsApp. Vuelve a vincular el número de plataforma (avisos de renovación): Conectar + escanear QR.",
-        "reconnect": "Ir a conectar"
+        "reconnect": "Ir a conectar",
+        "banner_title": "Acción requerida: vincular WhatsApp",
+        "banner_body_tenant": "Actualizamos las notificaciones. Sin escanear el QR no saldrán recordatorios ni mensajes de la cola. Pulsa «Ir a conectar».",
+        "banner_body_platform": "Actualizamos el gateway. Vincula de nuevo el WhatsApp de plataforma para avisos de renovación."
     }
 }

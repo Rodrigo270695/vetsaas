@@ -143,6 +143,9 @@
         "disconnected_title": "WhatsApp not linked",
         "disconnected_body_tenant": "We updated notification delivery. Re-link the clinic WhatsApp: open Outgoing queue, tap Connect, and scan the QR code. Reminders and queue messages will not send until then.",
         "disconnected_body_platform": "We updated the WhatsApp gateway. Re-link the platform number (renewal notices): Connect + scan QR.",
-        "reconnect": "Go connect"
+        "reconnect": "Go connect",
+        "banner_title": "Action required: link WhatsApp",
+        "banner_body_tenant": "We updated notifications. Without scanning the QR, reminders and queue messages will not send. Tap «Go connect».",
+        "banner_body_platform": "We updated the gateway. Re-link platform WhatsApp for renewal notices."
     }
 }

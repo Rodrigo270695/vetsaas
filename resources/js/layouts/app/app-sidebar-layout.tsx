@@ -10,6 +10,7 @@ import { InAppAssistantAnnouncementModal } from '@/components/in-app-assistant/i
 import { OfflineStatusBanner } from '@/components/offline-status-banner';
 import { SubscriptionRenewalReminderModal } from '@/components/subscription-renewal-reminder-modal';
 import { TenantImpersonationBanner } from '@/components/tenant-impersonation-banner';
+import { WhatsAppNeedsLinkBanner } from '@/components/whatsapp-needs-link-banner';
 import { useWhatsAppDisconnectedToast } from '@/hooks/use-whatsapp-disconnected-toast';
 import { TenantChatNotifier } from '@/components/comunicaciones/tenant-chat-notifier';
 import { TenantChatUnreadProvider } from '@/contexts/tenant-chat-unread-context';
@@ -44,6 +45,7 @@ export default function AppSidebarLayout({
                     className="h-svh max-h-svh overflow-hidden md:h-[calc(100svh-(--spacing(4)))] md:max-h-[calc(100svh-(--spacing(4)))]"
                 >
                     <TenantImpersonationBanner />
+                    <WhatsAppNeedsLinkBanner />
                     <OfflineStatusBanner />
                     <ClinicSedeLocationBanner />
                     <SubscriptionRenewalReminderModal />
