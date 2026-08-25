@@ -198,8 +198,12 @@ Genera en `{BACKUP_PATH}/{Y-m-d_His}/`:
 
 Si `BACKUP_REMOTE_ENABLED=true`, sube la carpeta a S3/R2.
 
+Tras un backup OK (o con `--prune-only`) elimina carpetas **locales y remotas**
+más antiguas que `BACKUP_RETENTION_DAYS` (default **14**). Así R2 no acumula meses.
+
 ```bash
 php artisan vetsaas:backup-database
+php artisan vetsaas:backup-database --prune-only   # limpia sin generar dump
 ```
 
 **Scheduler:** diario **02:00**. También se puede disparar desde **Plataforma → Operaciones → Correr ahora**.

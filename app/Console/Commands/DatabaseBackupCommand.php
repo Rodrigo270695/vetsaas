@@ -9,12 +9,17 @@ use Illuminate\Console\Command;
 
 class DatabaseBackupCommand extends Command
 {
-    protected $signature = 'vetsaas:backup-database';
+    protected $signature = 'vetsaas:backup-database
+                            {--prune-only : Solo elimina backups locales/remotos fuera de retención}';
 
     protected $description = 'Dump PostgreSQL completo + public + cada schema vet_* (backups diarios)';
 
     public function handle(DatabaseBackupService $backups): int
     {
+        if ($this->option('prune-only')) {
+            return $this->runPruneOnly($backups);
+        }
+
         $this->info('Iniciando backup de base de datos…');
 
         $result = $backups->run();
@@ -47,7 +52,47 @@ class DatabaseBackupCommand extends Command
             }
         }
 
+        if (isset($result['prune']) && is_array($result['prune'])) {
+            $this->reportPrune($result['prune']);
+        }
+
         return self::SUCCESS;
+    }
+
+    private function runPruneOnly(DatabaseBackupService $backups): int
+    {
+        $this->info('Podando backups fuera de retención (local + R2/S3)…');
+
+        $prune = $backups->prune();
+        $this->reportPrune($prune);
+
+        if (($prune['remote_error'] ?? null) !== null) {
+            $this->error('Error al podar remoto: '.$prune['remote_error']);
+
+            return self::FAILURE;
+        }
+
+        return self::SUCCESS;
+    }
+
+    /**
+     * @param  array{
+     *     retention_days?: int,
+     *     local_deleted?: int,
+     *     remote_deleted?: int,
+     *     remote_skipped?: bool,
+     *     remote_error?: string|null
+     * }  $prune
+     */
+    private function reportPrune(array $prune): void
+    {
+        $this->info(sprintf(
+            'Retención %d días — eliminados local=%d, remoto=%d%s',
+            (int) ($prune['retention_days'] ?? 14),
+            (int) ($prune['local_deleted'] ?? 0),
+            (int) ($prune['remote_deleted'] ?? 0),
+            ($prune['remote_skipped'] ?? false) ? ' (remoto omitido)' : '',
+        ));
     }
 
     private function humanBytes(int $bytes): string

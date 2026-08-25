@@ -98,7 +98,8 @@ final class DatabaseBackupService
                 ...$remote,
             ]);
 
-            $this->pruneOldBackups($basePath);
+            $prune = $this->prune();
+            $manifest['prune'] = $prune;
 
             return $manifest;
         } catch (Throwable $e) {
@@ -641,15 +642,144 @@ final class DatabaseBackupService
         }
     }
 
-    private function pruneOldBackups(string $basePath): void
+    /**
+     * Elimina carpetas de backup más antiguas que BACKUP_RETENTION_DAYS
+     * tanto en disco local como en S3/R2 (si remoto está habilitado).
+     *
+     * @return array{
+     *     retention_days: int,
+     *     local_deleted: int,
+     *     remote_deleted: int,
+     *     remote_skipped: bool,
+     *     remote_error: string|null
+     * }
+     */
+    public function prune(): array
     {
         $retention = max(1, (int) config('backup.retention_days', 14));
-        $cutoff = Carbon::now()->subDays($retention)->getTimestamp();
+        $basePath = rtrim((string) config('backup.path'), DIRECTORY_SEPARATOR);
+        $cutoff = Carbon::now()->subDays($retention);
+
+        $localDeleted = $this->pruneLocalBackups($basePath, $cutoff);
+        $remote = $this->pruneRemoteBackups($cutoff);
+
+        if ($localDeleted > 0 || ($remote['deleted'] ?? 0) > 0) {
+            Log::info('Backups podados por retención', [
+                'retention_days' => $retention,
+                'cutoff' => $cutoff->toIso8601String(),
+                'local_deleted' => $localDeleted,
+                'remote_deleted' => $remote['deleted'],
+                'remote_error' => $remote['error'],
+            ]);
+        }
+
+        return [
+            'retention_days' => $retention,
+            'local_deleted' => $localDeleted,
+            'remote_deleted' => $remote['deleted'],
+            'remote_skipped' => $remote['skipped'],
+            'remote_error' => $remote['error'],
+        ];
+    }
+
+    private function pruneLocalBackups(string $basePath, Carbon $cutoff): int
+    {
+        if (! File::isDirectory($basePath)) {
+            return 0;
+        }
+
+        $deleted = 0;
 
         foreach (File::directories($basePath) as $dir) {
-            if (File::lastModified($dir) < $cutoff) {
-                File::deleteDirectory($dir);
+            $name = basename($dir);
+
+            if ($name === '_safety' || ! $this->isBackupFolderName($name)) {
+                continue;
             }
+
+            $folderAt = $this->backupFolderTimestamp($name);
+            if ($folderAt === null || $folderAt >= $cutoff->getTimestamp()) {
+                continue;
+            }
+
+            File::deleteDirectory($dir);
+            $deleted++;
+        }
+
+        return $deleted;
+    }
+
+    /**
+     * @return array{deleted: int, skipped: bool, error: string|null}
+     */
+    private function pruneRemoteBackups(Carbon $cutoff): array
+    {
+        $enabled = (bool) config('backup.remote.enabled', false);
+
+        if (! $enabled) {
+            return ['deleted' => 0, 'skipped' => true, 'error' => null];
+        }
+
+        if (! $this->isRemoteConfigured()) {
+            return [
+                'deleted' => 0,
+                'skipped' => true,
+                'error' => 'Remoto activo pero sin credenciales/bucket.',
+            ];
+        }
+
+        try {
+            $diskName = (string) config('backup.remote.disk', 'backups');
+            $prefix = trim((string) config('backup.remote.prefix', 'vetsaas/db'), '/');
+            $disk = Storage::disk($diskName);
+
+            $directories = $prefix !== ''
+                ? $disk->directories($prefix)
+                : $disk->directories();
+
+            $deleted = 0;
+
+            foreach ($directories as $directory) {
+                $name = basename(str_replace('\\', '/', $directory));
+
+                if ($name === '_safety' || $name === self::MANIFEST_NAME || ! $this->isBackupFolderName($name)) {
+                    continue;
+                }
+
+                $folderAt = $this->backupFolderTimestamp($name);
+                if ($folderAt === null || $folderAt >= $cutoff->getTimestamp()) {
+                    continue;
+                }
+
+                $disk->deleteDirectory($directory);
+                $deleted++;
+            }
+
+            return ['deleted' => $deleted, 'skipped' => false, 'error' => null];
+        } catch (Throwable $e) {
+            report($e);
+
+            return ['deleted' => 0, 'skipped' => false, 'error' => $e->getMessage()];
+        }
+    }
+
+    private function isBackupFolderName(string $name): bool
+    {
+        return (bool) preg_match('/^\d{4}-\d{2}-\d{2}_\d{6}$/', $name);
+    }
+
+    private function backupFolderTimestamp(string $folderName): ?int
+    {
+        if (! $this->isBackupFolderName($folderName)) {
+            return null;
+        }
+
+        try {
+            $dt = Carbon::createFromFormat('Y-m-d_His', $folderName);
+
+            return $dt instanceof Carbon ? $dt->getTimestamp() : null;
+        } catch (Throwable) {
+            return null;
         }
     }
 }

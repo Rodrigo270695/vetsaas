@@ -19,6 +19,7 @@ return [
     |
     | Remoto (S3 / Cloudflare R2): si BACKUP_REMOTE_ENABLED=true, tras el
     | dump local se sube la carpeta al disco configurado (default: s3).
+    | La retención (BACKUP_RETENTION_DAYS, default 14) aplica a local y remoto.
     */
 
     'enabled' => (bool) env('BACKUP_ENABLED', true),
