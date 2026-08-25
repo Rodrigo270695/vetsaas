@@ -102,9 +102,9 @@ class UserController extends Controller
                 'rol' => $rol !== '' ? $rol : null,
             ],
             'stats' => [
-                'total' => User::query()->count(),
-                'activos' => User::query()->where('is_active', true)->count(),
-                'inactivos' => User::query()->where('is_active', false)->count(),
+                'total' => ClinicAdminScope::usersQuery()->count(),
+                'activos' => ClinicAdminScope::usersQuery()->where('is_active', true)->count(),
+                'inactivos' => ClinicAdminScope::usersQuery()->where('is_active', false)->count(),
                 'coincidencias' => $users->total(),
             ],
             'roles_catalog' => $rolesCatalog,
@@ -148,6 +148,8 @@ class UserController extends Controller
 
     public function update(UserRequest $request, User $user): RedirectResponse
     {
+        ClinicAdminScope::assertUserAccessible($user);
+
         // No permitimos que un usuario se desactive a sí mismo: dejaría
         // su propia sesión zombi y al cerrar quedaría fuera del sistema.
         if ($request->user()?->id === $user->id && $request->boolean('is_active') === false) {
@@ -267,7 +269,7 @@ class UserController extends Controller
         if (empty($deletableIds)) {
             return back()->with(
                 'info',
-                'No se eliminaron usuarios: la selección solo incluía cuentas protegidas (superadmin o tu propia sesión).',
+                'No se eliminaron usuarios: la selección solo incluía cuentas protegidas (sistema, superadmin o tu propia sesión).',
             );
         }
 

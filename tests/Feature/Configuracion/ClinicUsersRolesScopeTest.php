@@ -286,3 +286,32 @@ it('mantiene en el catálogo un permiso quitado de admin_clinica para poder reas
 
     expect($role->fresh()->hasPermissionTo($removed))->toBeTrue();
 });
+
+it('oculta y protege la cuenta interna Soporte VetSaaS en Usuarios del tenant', function (): void {
+    $bot = User::factory()->create([
+        'name' => 'Soporte VetSaaS',
+        'email' => 'soporte+'.$this->testTenant->slug.'@vetsaas.internal',
+        'tenant_id' => $this->testTenant->id,
+        'password' => Hash::make(Str::random(40)),
+        'is_active' => true,
+        'email_verified_at' => now(),
+    ]);
+
+    expect($bot->isInternalSystemAccount())->toBeTrue();
+
+    $this->actingAs($this->testTenantAdmin);
+
+    $index = $this->get('http://'.$this->testTenantHost.'/configuracion/usuarios');
+    $index->assertOk();
+    $index->assertInertia(fn ($page) => $page
+        ->component('configuracion/usuarios/index')
+        ->has('users.data', 1)
+        ->where('users.data.0.email', $this->testTenantAdmin->email)
+        ->where('stats.total', 1)
+    );
+
+    $this->delete('http://'.$this->testTenantHost.'/configuracion/usuarios/'.$bot->id)
+        ->assertNotFound();
+
+    expect(User::query()->whereKey($bot->id)->exists())->toBeTrue();
+});

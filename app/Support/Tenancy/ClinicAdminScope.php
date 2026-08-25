@@ -66,6 +66,7 @@ final class ClinicAdminScope
 
         return $query
             ->where('tenant_id', tenant_id())
+            ->where('email', 'not like', '%@vetsaas.internal')
             ->whereDoesntHave('roles', function (Builder $q): void {
                 $q->whereIn('name', self::hiddenRoleNames());
             });
@@ -194,6 +195,10 @@ final class ClinicAdminScope
         }
 
         abort_unless($user->belongsToTenant(tenant_id()), 404);
+
+        if ($user->isInternalSystemAccount()) {
+            abort(404);
+        }
 
         if ($user->hasRole(self::hiddenRoleNames())) {
             abort(404);

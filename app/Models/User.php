@@ -147,6 +147,17 @@ class User extends Authenticatable
     }
 
     /**
+     * Bot / cuenta de sistema (p. ej. Soporte VetSaaS @vetsaas.internal).
+     * No debe listarse ni gestionarse desde Configuración → Usuarios del tenant.
+     */
+    public function isInternalSystemAccount(): bool
+    {
+        $email = strtolower(trim((string) $this->email));
+
+        return $email !== '' && str_ends_with($email, '@vetsaas.internal');
+    }
+
+    /**
      * ¿Este usuario pertenece al tenant cuyo UUID se pasa?
      * `null` en el parámetro significa "panel central".
      */
