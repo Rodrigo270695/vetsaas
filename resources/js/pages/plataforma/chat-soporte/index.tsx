@@ -1,13 +1,19 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import {
+    Check,
     ChevronLeft,
     FileText,
+    Forward,
     Loader2,
     Megaphone,
+    MoreHorizontal,
     Paperclip,
+    Pencil,
+    Reply,
     Search,
     SendHorizonal,
     Smile,
+    Trash2,
     Users,
     X,
 } from 'lucide-react';
@@ -39,6 +45,13 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
     Popover,
     PopoverContent,
     PopoverTrigger,
@@ -52,6 +65,7 @@ import { cn } from '@/lib/utils';
 
 const ROUTE_URL = '/plataforma/chat-soporte';
 const MAX_ATTACHMENTS = 5;
+const REACTION_EMOJIS = ['👍', '✅', '❤️', '😂', '🎉'] as const;
 const EMOJIS = [
     '😀', '😁', '😂', '🙂', '😉', '😊', '😍', '🤩',
     '😎', '🤔', '😢', '😭', '😤', '🙌', '👍', '👎',
@@ -60,6 +74,7 @@ const EMOJIS = [
 ];
 
 type PlanFilter = 'all' | 'free' | 'paid';
+type ReactionEmoji = (typeof REACTION_EMOJIS)[number];
 
 type TenantRow = {
     id: string;
@@ -85,14 +100,39 @@ type ChatAttachment = {
     size?: number;
 };
 
+type ChatReaction = {
+    emoji: string;
+    count: number;
+    reacted?: boolean;
+};
+
+type ReplyPreview = {
+    id: string;
+    body: string;
+    user_id?: string;
+    user_name: string;
+};
+
 type ChatMessage = {
     id: string;
     body: string;
     mine: boolean;
+    user_id?: string;
     user_name?: string;
     created_at: string | null;
+    edited_at?: string | null;
+    deleted?: boolean;
+    is_deleted?: boolean;
     attachments?: ChatAttachment[];
     attachment?: ChatAttachment | null;
+    reply_to?: ReplyPreview | null;
+    reactions?: ChatReaction[];
+};
+
+type ForwardTarget = {
+    id: string;
+    title: string;
+    type: string;
 };
 
 type Props = {
@@ -172,6 +212,23 @@ const messageAttachments = (m: ChatMessage): ChatAttachment[] => {
     return [];
 };
 
+const isMessageDeleted = (m: ChatMessage): boolean =>
+    Boolean(m.deleted || m.is_deleted);
+
+const stripActorPrefix = (body: string): string =>
+    body.replace(/^\[[^\]]+\]\s*/, '');
+
+const upsertMessage = (
+    prev: ChatMessage[],
+    msg: ChatMessage,
+): ChatMessage[] => {
+    const idx = prev.findIndex((m) => m.id === msg.id);
+    if (idx === -1) return [...prev, msg];
+    const next = [...prev];
+    next[idx] = { ...prev[idx], ...msg };
+    return next;
+};
+
 export default function PlataformaChatSoportePage({
     tenants: initialTenants,
     filters,
@@ -203,6 +260,21 @@ export default function PlataformaChatSoportePage({
     const [searchOpen, setSearchOpen] = useState(false);
     const [threadQuery, setThreadQuery] = useState('');
     const [highlightId, setHighlightId] = useState<string | null>(null);
+    const [replyTo, setReplyTo] = useState<ReplyPreview | null>(null);
+    const [editingMessage, setEditingMessage] = useState<ChatMessage | null>(
+        null,
+    );
+    const [deleteMessage, setDeleteMessage] = useState<ChatMessage | null>(
+        null,
+    );
+    const [deleting, setDeleting] = useState(false);
+    const [forwardMessage, setForwardMessage] = useState<ChatMessage | null>(
+        null,
+    );
+    const [forwardTargets, setForwardTargets] = useState<ForwardTarget[]>([]);
+    const [forwardTargetId, setForwardTargetId] = useState('');
+    const [forwardLoading, setForwardLoading] = useState(false);
+    const [forwarding, setForwarding] = useState(false);
 
     const bottomRef = useRef<HTMLDivElement | null>(null);
     const fileRef = useRef<HTMLInputElement | null>(null);
@@ -210,6 +282,7 @@ export default function PlataformaChatSoportePage({
     const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
     const selectedIdRef = useRef<string | null>(null);
     const lastMessageIdRef = useRef<string | null>(null);
+    const pollTickRef = useRef(0);
     selectedIdRef.current = selectedId;
     lastMessageIdRef.current =
         messages.length > 0 ? (messages[messages.length - 1]?.id ?? null) : null;
@@ -278,9 +351,14 @@ export default function PlataformaChatSoportePage({
         setMessages([]);
         setComposer('');
         setFiles([]);
+        setReplyTo(null);
+        setEditingMessage(null);
+        setDeleteMessage(null);
+        setForwardMessage(null);
         setSearchOpen(false);
         setThreadQuery('');
         setLoadingThread(true);
+        pollTickRef.current = 0;
         try {
             if (canManage) {
                 await apiJson(`/plataforma/chat-soporte/tenants/${tenantId}/ensure`, {
@@ -328,25 +406,31 @@ export default function PlataformaChatSoportePage({
         const tick = async () => {
             const id = selectedIdRef.current;
             if (!id) return;
-            const last = lastMessageIdRef.current;
+            pollTickRef.current += 1;
+            const fullRefresh = pollTickRef.current % 4 === 0;
+            const last = fullRefresh ? null : lastMessageIdRef.current;
             try {
                 const url = last
                     ? `/plataforma/chat-soporte/tenants/${id}/messages?after=${encodeURIComponent(last)}`
                     : `/plataforma/chat-soporte/tenants/${id}/messages`;
                 const data = await apiJson<{ messages: ChatMessage[] }>(url);
-                if (!data.messages?.length) return;
-                if (last) {
-                    setMessages((prev) => {
-                        const seen = new Set(prev.map((m) => m.id));
-                        const next = data.messages.filter((m) => !seen.has(m.id));
-                        return next.length ? [...prev, ...next] : prev;
-                    });
-                } else {
-                    setMessages(data.messages);
+                if (!data.messages?.length && !fullRefresh) return;
+                if (fullRefresh || !last) {
+                    setMessages(data.messages ?? []);
+                    return;
                 }
-                requestAnimationFrame(() => {
-                    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+                setMessages((prev) => {
+                    const seen = new Set(prev.map((m) => m.id));
+                    const next = data.messages.filter((m) => !seen.has(m.id));
+                    return next.length ? [...prev, ...next] : prev;
                 });
+                if (data.messages.length) {
+                    requestAnimationFrame(() => {
+                        bottomRef.current?.scrollIntoView({
+                            behavior: 'smooth',
+                        });
+                    });
+                }
             } catch {
                 // silent poll
             }
@@ -388,16 +472,129 @@ export default function PlataformaChatSoportePage({
         setEmojiOpen(false);
     };
 
+    const cancelEditing = () => {
+        setEditingMessage(null);
+        setComposer('');
+    };
+
+    const startEditMessage = (m: ChatMessage) => {
+        setReplyTo(null);
+        setEditingMessage(m);
+        setComposer(stripActorPrefix(m.body || ''));
+        setFiles([]);
+        requestAnimationFrame(() => composerRef.current?.focus());
+    };
+
+    const toggleReaction = async (message: ChatMessage, emoji: ReactionEmoji) => {
+        if (!selectedId || !canManage || isMessageDeleted(message)) return;
+        try {
+            const data = await apiJson<{ message: ChatMessage }>(
+                `/plataforma/chat-soporte/tenants/${selectedId}/messages/${message.id}/reaction`,
+                { method: 'POST', json: { emoji } },
+            );
+            if (data.message) {
+                setMessages((prev) => upsertMessage(prev, data.message));
+            }
+        } catch {
+            toastManager.error({ title: t('action_error') });
+        }
+    };
+
+    const confirmDelete = async () => {
+        if (!selectedId || !deleteMessage || deleting) return;
+        setDeleting(true);
+        try {
+            const data = await apiJson<{ message: ChatMessage }>(
+                `/plataforma/chat-soporte/tenants/${selectedId}/messages/${deleteMessage.id}`,
+                { method: 'DELETE' },
+            );
+            if (data.message) {
+                setMessages((prev) => upsertMessage(prev, data.message));
+            }
+            setDeleteMessage(null);
+        } catch {
+            toastManager.error({ title: t('action_error') });
+        } finally {
+            setDeleting(false);
+        }
+    };
+
+    const openForward = async (m: ChatMessage) => {
+        if (!selectedId) return;
+        setForwardMessage(m);
+        setForwardTargetId('');
+        setForwardTargets([]);
+        setForwardLoading(true);
+        try {
+            const data = await apiJson<{ conversations: ForwardTarget[] }>(
+                `/plataforma/chat-soporte/tenants/${selectedId}/forward-targets`,
+            );
+            setForwardTargets(data.conversations ?? []);
+        } catch {
+            toastManager.error({ title: t('action_error') });
+            setForwardMessage(null);
+        } finally {
+            setForwardLoading(false);
+        }
+    };
+
+    const submitForward = async () => {
+        if (!selectedId || !forwardMessage || !forwardTargetId || forwarding) {
+            return;
+        }
+        setForwarding(true);
+        try {
+            await apiJson(
+                `/plataforma/chat-soporte/tenants/${selectedId}/messages/${forwardMessage.id}/forward`,
+                {
+                    method: 'POST',
+                    json: { target_conversation_id: forwardTargetId },
+                },
+            );
+            setForwardMessage(null);
+            setForwardTargetId('');
+            toastManager.success({ title: t('forward_ok') });
+        } catch {
+            toastManager.error({ title: t('action_error') });
+        } finally {
+            setForwarding(false);
+        }
+    };
+
     const sendMessage = async (e?: FormEvent) => {
         e?.preventDefault();
         if (!selectedId || !canManage) return;
         const body = composer.trim();
+        if (sending) return;
+
+        if (editingMessage) {
+            if (!body) return;
+            setSending(true);
+            try {
+                const data = await apiJson<{ message: ChatMessage }>(
+                    `/plataforma/chat-soporte/tenants/${selectedId}/messages/${editingMessage.id}`,
+                    { method: 'PATCH', json: { body } },
+                );
+                if (data.message) {
+                    setMessages((prev) => upsertMessage(prev, data.message));
+                }
+                setEditingMessage(null);
+                setComposer('');
+            } catch {
+                toastManager.error({ title: t('send_error') });
+            } finally {
+                setSending(false);
+            }
+            return;
+        }
+
         if ((!body && files.length === 0) || sending) return;
 
         setSending(true);
         try {
             const fd = new FormData();
             if (body) fd.append('body', body);
+            if (replyTo?.id) fd.append('reply_to_id', replyTo.id);
             files.forEach((file) => fd.append('attachments[]', file));
 
             const data = await apiJson<{ message: ChatMessage }>(
@@ -406,6 +603,7 @@ export default function PlataformaChatSoportePage({
             );
             setComposer('');
             setFiles([]);
+            setReplyTo(null);
             if (data.message) {
                 setMessages((prev) =>
                     prev.some((m) => m.id === data.message.id)
@@ -774,7 +972,11 @@ export default function PlataformaChatSoportePage({
                                         </p>
                                     ) : (
                                         messages.map((m) => {
-                                            const atts = messageAttachments(m);
+                                            const deleted = isMessageDeleted(m);
+                                            const atts = deleted
+                                                ? []
+                                                : messageAttachments(m);
+                                            const reactions = m.reactions ?? [];
                                             return (
                                                 <div
                                                     key={m.id}
@@ -791,7 +993,7 @@ export default function PlataformaChatSoportePage({
                                                         }
                                                     }}
                                                     className={cn(
-                                                        'flex',
+                                                        'group flex',
                                                         m.mine
                                                             ? 'justify-end'
                                                             : 'justify-start',
@@ -799,86 +1001,383 @@ export default function PlataformaChatSoportePage({
                                                             'animate-pulse',
                                                     )}
                                                 >
-                                                    <div
-                                                        className={cn(
-                                                            'max-w-[min(85%,28rem)] overflow-hidden rounded-2xl text-sm shadow-sm',
-                                                            m.mine
-                                                                ? 'rounded-br-md bg-emerald-600 text-white'
-                                                                : 'rounded-bl-md border border-border/50 bg-card text-foreground',
-                                                        )}
-                                                    >
-                                                        <div className="space-y-1.5 px-3.5 py-2">
-                                                            {!m.mine &&
-                                                            m.user_name ? (
-                                                                <p className="text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
-                                                                    {m.user_name}
-                                                                </p>
-                                                            ) : null}
-                                                            {m.body ? (
-                                                                <p className="wrap-break-word whitespace-pre-wrap">
-                                                                    {m.body}
-                                                                </p>
-                                                            ) : null}
-                                                            {atts.map((att) =>
-                                                                att.mime.startsWith(
-                                                                    'image/',
-                                                                ) ? (
-                                                                    <a
-                                                                        key={att.url}
-                                                                        href={
-                                                                            att.url
-                                                                        }
-                                                                        target="_blank"
-                                                                        rel="noreferrer"
-                                                                        className="block overflow-hidden rounded-lg"
-                                                                    >
-                                                                        <img
-                                                                            src={
-                                                                                att.url
-                                                                            }
-                                                                            alt={
-                                                                                att.name
-                                                                            }
-                                                                            className="max-h-56 w-full object-cover"
-                                                                        />
-                                                                    </a>
-                                                                ) : (
-                                                                    <a
-                                                                        key={att.url}
-                                                                        href={
-                                                                            att.url
-                                                                        }
-                                                                        target="_blank"
-                                                                        rel="noreferrer"
-                                                                        className={cn(
-                                                                            'flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs',
-                                                                            m.mine
-                                                                                ? 'bg-white/15'
-                                                                                : 'bg-muted',
-                                                                        )}
-                                                                    >
-                                                                        <FileText className="size-3.5 shrink-0" />
-                                                                        <span className="truncate">
-                                                                            {
-                                                                                att.name
-                                                                            }
-                                                                        </span>
-                                                                    </a>
-                                                                ),
+                                                    <div className="flex max-w-[min(85%,28rem)] flex-col gap-0.5">
+                                                        <div
+                                                            className={cn(
+                                                                'relative overflow-hidden rounded-2xl text-sm shadow-sm',
+                                                                deleted
+                                                                    ? 'border border-dashed border-border/70 bg-muted/40 text-muted-foreground'
+                                                                    : m.mine
+                                                                      ? 'rounded-br-md bg-emerald-600 text-white'
+                                                                      : 'rounded-bl-md border border-border/50 bg-card text-foreground',
+                                                                highlightId ===
+                                                                    m.id &&
+                                                                    'ring-2 ring-amber-400/80 ring-offset-2 ring-offset-background',
                                                             )}
-                                                            <p
+                                                        >
+                                                            {!m.mine &&
+                                                            !deleted &&
+                                                            m.user_name ? (
+                                                                <p className="px-3.5 pt-2 text-[10px] font-semibold tracking-wide text-emerald-700 uppercase dark:text-emerald-300">
+                                                                    {
+                                                                        m.user_name
+                                                                    }
+                                                                </p>
+                                                            ) : null}
+
+                                                            {!deleted &&
+                                                            m.reply_to ? (
+                                                                <button
+                                                                    type="button"
+                                                                    className={cn(
+                                                                        'mx-2 mt-2 block w-[calc(100%-1rem)] rounded-lg border-l-2 px-2.5 py-1.5 text-left text-xs',
+                                                                        m.mine
+                                                                            ? 'border-emerald-200/70 bg-emerald-700/40'
+                                                                            : 'border-emerald-500/50 bg-muted/60',
+                                                                    )}
+                                                                    onClick={() =>
+                                                                        jumpToMessage(
+                                                                            m
+                                                                                .reply_to!
+                                                                                .id,
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    <span className="font-semibold">
+                                                                        {
+                                                                            m
+                                                                                .reply_to
+                                                                                .user_name
+                                                                        }
+                                                                    </span>
+                                                                    <span className="mt-0.5 line-clamp-2 block opacity-90">
+                                                                        {
+                                                                            m
+                                                                                .reply_to
+                                                                                .body
+                                                                        }
+                                                                    </span>
+                                                                </button>
+                                                            ) : null}
+
+                                                            <div className="space-y-1.5 px-3.5 py-2">
+                                                                {deleted ? (
+                                                                    <p className="italic opacity-80">
+                                                                        {t(
+                                                                            'message_deleted',
+                                                                        )}
+                                                                    </p>
+                                                                ) : m.body ? (
+                                                                    <p className="wrap-break-word whitespace-pre-wrap">
+                                                                        {
+                                                                            m.body
+                                                                        }
+                                                                    </p>
+                                                                ) : null}
+                                                                {atts.map(
+                                                                    (att) =>
+                                                                        att.mime.startsWith(
+                                                                            'image/',
+                                                                        ) ? (
+                                                                            <a
+                                                                                key={
+                                                                                    att.url
+                                                                                }
+                                                                                href={
+                                                                                    att.url
+                                                                                }
+                                                                                target="_blank"
+                                                                                rel="noreferrer"
+                                                                                className="block overflow-hidden rounded-lg"
+                                                                            >
+                                                                                <img
+                                                                                    src={
+                                                                                        att.url
+                                                                                    }
+                                                                                    alt={
+                                                                                        att.name
+                                                                                    }
+                                                                                    className="max-h-56 w-full object-cover"
+                                                                                />
+                                                                            </a>
+                                                                        ) : (
+                                                                            <a
+                                                                                key={
+                                                                                    att.url
+                                                                                }
+                                                                                href={
+                                                                                    att.url
+                                                                                }
+                                                                                target="_blank"
+                                                                                rel="noreferrer"
+                                                                                className={cn(
+                                                                                    'flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs',
+                                                                                    m.mine
+                                                                                        ? 'bg-white/15'
+                                                                                        : 'bg-muted',
+                                                                                )}
+                                                                            >
+                                                                                <FileText className="size-3.5 shrink-0" />
+                                                                                <span className="truncate">
+                                                                                    {
+                                                                                        att.name
+                                                                                    }
+                                                                                </span>
+                                                                            </a>
+                                                                        ),
+                                                                )}
+                                                            </div>
+
+                                                            <div
                                                                 className={cn(
-                                                                    'text-right text-[10px]',
+                                                                    'flex items-center gap-1 px-3.5 pb-1.5',
                                                                     m.mine
-                                                                        ? 'text-white/70'
-                                                                        : 'text-muted-foreground',
+                                                                        ? 'justify-end text-emerald-100/90'
+                                                                        : 'justify-end text-muted-foreground',
+                                                                    deleted &&
+                                                                        'text-muted-foreground',
                                                                 )}
                                                             >
-                                                                {formatListTime(
-                                                                    m.created_at,
+                                                                {!deleted &&
+                                                                canManage ? (
+                                                                    <>
+                                                                        <button
+                                                                            type="button"
+                                                                            className={cn(
+                                                                                'mr-auto rounded p-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100',
+                                                                                m.mine
+                                                                                    ? 'hover:bg-emerald-700/50'
+                                                                                    : 'hover:bg-muted',
+                                                                            )}
+                                                                            onClick={() => {
+                                                                                setEditingMessage(
+                                                                                    null,
+                                                                                );
+                                                                                setReplyTo(
+                                                                                    {
+                                                                                        id: m.id,
+                                                                                        body:
+                                                                                            m.body
+                                                                                            || (atts[0]
+                                                                                                ?.name
+                                                                                                ?? ''),
+                                                                                        user_id:
+                                                                                            m.user_id,
+                                                                                        user_name:
+                                                                                            m.user_name
+                                                                                            || t(
+                                                                                                'you',
+                                                                                            ),
+                                                                                    },
+                                                                                );
+                                                                                composerRef.current?.focus();
+                                                                            }}
+                                                                            aria-label={t(
+                                                                                'reply',
+                                                                            )}
+                                                                            title={t(
+                                                                                'reply',
+                                                                            )}
+                                                                        >
+                                                                            <Reply className="size-3.5" />
+                                                                        </button>
+                                                                        <Popover>
+                                                                            <PopoverTrigger
+                                                                                asChild
+                                                                            >
+                                                                                <button
+                                                                                    type="button"
+                                                                                    className={cn(
+                                                                                        'rounded p-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100',
+                                                                                        m.mine
+                                                                                            ? 'hover:bg-emerald-700/50'
+                                                                                            : 'hover:bg-muted',
+                                                                                    )}
+                                                                                    aria-label={t(
+                                                                                        'react',
+                                                                                    )}
+                                                                                >
+                                                                                    <Smile className="size-3.5" />
+                                                                                </button>
+                                                                            </PopoverTrigger>
+                                                                            <PopoverContent
+                                                                                className="w-auto p-1.5"
+                                                                                side="top"
+                                                                                align="end"
+                                                                            >
+                                                                                <div className="flex gap-0.5">
+                                                                                    {REACTION_EMOJIS.map(
+                                                                                        (
+                                                                                            emoji,
+                                                                                        ) => (
+                                                                                            <button
+                                                                                                key={
+                                                                                                    emoji
+                                                                                                }
+                                                                                                type="button"
+                                                                                                className="rounded-md px-1.5 py-1 text-base hover:bg-muted"
+                                                                                                onClick={() =>
+                                                                                                    void toggleReaction(
+                                                                                                        m,
+                                                                                                        emoji,
+                                                                                                    )
+                                                                                                }
+                                                                                            >
+                                                                                                {
+                                                                                                    emoji
+                                                                                                }
+                                                                                            </button>
+                                                                                        ),
+                                                                                    )}
+                                                                                </div>
+                                                                            </PopoverContent>
+                                                                        </Popover>
+                                                                        <DropdownMenu>
+                                                                            <DropdownMenuTrigger
+                                                                                asChild
+                                                                            >
+                                                                                <button
+                                                                                    type="button"
+                                                                                    className={cn(
+                                                                                        'rounded p-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100',
+                                                                                        m.mine
+                                                                                            ? 'hover:bg-emerald-700/50'
+                                                                                            : 'hover:bg-muted',
+                                                                                    )}
+                                                                                    aria-label={t(
+                                                                                        'message_actions',
+                                                                                    )}
+                                                                                >
+                                                                                    <MoreHorizontal className="size-3.5" />
+                                                                                </button>
+                                                                            </DropdownMenuTrigger>
+                                                                            <DropdownMenuContent
+                                                                                align="end"
+                                                                                className="w-44"
+                                                                            >
+                                                                                <DropdownMenuItem
+                                                                                    onSelect={() =>
+                                                                                        void openForward(
+                                                                                            m,
+                                                                                        )
+                                                                                    }
+                                                                                >
+                                                                                    <Forward className="size-4" />
+                                                                                    {t(
+                                                                                        'forward',
+                                                                                    )}
+                                                                                </DropdownMenuItem>
+                                                                                {m.mine ? (
+                                                                                    <>
+                                                                                        <DropdownMenuItem
+                                                                                            onSelect={() =>
+                                                                                                startEditMessage(
+                                                                                                    m,
+                                                                                                )
+                                                                                            }
+                                                                                        >
+                                                                                            <Pencil className="size-4" />
+                                                                                            {t(
+                                                                                                'edit',
+                                                                                            )}
+                                                                                        </DropdownMenuItem>
+                                                                                        <DropdownMenuSeparator />
+                                                                                        <DropdownMenuItem
+                                                                                            className="text-destructive focus:text-destructive"
+                                                                                            onSelect={() =>
+                                                                                                setDeleteMessage(
+                                                                                                    m,
+                                                                                                )
+                                                                                            }
+                                                                                        >
+                                                                                            <Trash2 className="size-4" />
+                                                                                            {t(
+                                                                                                'delete',
+                                                                                            )}
+                                                                                        </DropdownMenuItem>
+                                                                                    </>
+                                                                                ) : null}
+                                                                            </DropdownMenuContent>
+                                                                        </DropdownMenu>
+                                                                    </>
+                                                                ) : (
+                                                                    <span className="mr-auto" />
                                                                 )}
-                                                            </p>
+                                                                {m.edited_at &&
+                                                                !deleted ? (
+                                                                    <span className="text-[10px] opacity-80">
+                                                                        {t(
+                                                                            'edited',
+                                                                        )}
+                                                                    </span>
+                                                                ) : null}
+                                                                <p
+                                                                    className={cn(
+                                                                        'text-[10px]',
+                                                                        deleted
+                                                                            ? 'text-muted-foreground'
+                                                                            : m.mine
+                                                                              ? 'text-white/70'
+                                                                              : 'text-muted-foreground',
+                                                                    )}
+                                                                >
+                                                                    {formatListTime(
+                                                                        m.created_at,
+                                                                    )}
+                                                                </p>
+                                                            </div>
                                                         </div>
+
+                                                        {!deleted &&
+                                                        reactions.length >
+                                                            0 ? (
+                                                            <div
+                                                                className={cn(
+                                                                    'flex flex-wrap gap-1 px-1',
+                                                                    m.mine
+                                                                        ? 'justify-end'
+                                                                        : 'justify-start',
+                                                                )}
+                                                            >
+                                                                {reactions.map(
+                                                                    (r) => (
+                                                                        <button
+                                                                            key={`${m.id}-${r.emoji}`}
+                                                                            type="button"
+                                                                            className={cn(
+                                                                                'inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[11px] transition-colors',
+                                                                                r.reacted
+                                                                                    ? 'border-emerald-500/50 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200'
+                                                                                    : 'border-border/60 bg-card text-foreground hover:bg-muted/70',
+                                                                            )}
+                                                                            disabled={
+                                                                                !canManage
+                                                                            }
+                                                                            onClick={() =>
+                                                                                void toggleReaction(
+                                                                                    m,
+                                                                                    r.emoji as ReactionEmoji,
+                                                                                )
+                                                                            }
+                                                                        >
+                                                                            <span>
+                                                                                {
+                                                                                    r.emoji
+                                                                                }
+                                                                            </span>
+                                                                            {r.count >
+                                                                            1 ? (
+                                                                                <span className="tabular-nums text-muted-foreground">
+                                                                                    {
+                                                                                        r.count
+                                                                                    }
+                                                                                </span>
+                                                                            ) : null}
+                                                                        </button>
+                                                                    ),
+                                                                )}
+                                                            </div>
+                                                        ) : null}
                                                     </div>
                                                 </div>
                                             );
@@ -892,7 +1391,61 @@ export default function PlataformaChatSoportePage({
                                         onSubmit={(e) => void sendMessage(e)}
                                         className="border-t border-border/60 bg-card/95 p-3 backdrop-blur-sm"
                                     >
-                                        {files.length > 0 ? (
+                                        {editingMessage ? (
+                                            <div className="mb-2 flex items-start gap-2 rounded-xl border border-amber-600/20 bg-amber-50/70 px-2.5 py-2 dark:bg-amber-950/30">
+                                                <Pencil className="mt-0.5 size-3.5 shrink-0 text-amber-700 dark:text-amber-300" />
+                                                <div className="min-w-0 flex-1">
+                                                    <p className="text-[10px] font-semibold text-amber-800 dark:text-amber-200">
+                                                        {t('edit_banner')}
+                                                    </p>
+                                                    <p className="truncate text-xs text-muted-foreground">
+                                                        {editingMessage.body}
+                                                    </p>
+                                                </div>
+                                                <Button
+                                                    type="button"
+                                                    size="icon"
+                                                    variant="ghost"
+                                                    className="size-7"
+                                                    onClick={cancelEditing}
+                                                    aria-label={t('edit_cancel')}
+                                                >
+                                                    <X className="size-3.5" />
+                                                </Button>
+                                            </div>
+                                        ) : null}
+
+                                        {replyTo && !editingMessage ? (
+                                            <div className="mb-2 flex items-start gap-2 rounded-xl border border-emerald-600/20 bg-emerald-50/70 px-2.5 py-2 dark:bg-emerald-950/30">
+                                                <Reply className="mt-0.5 size-3.5 shrink-0 text-emerald-700 dark:text-emerald-300" />
+                                                <div className="min-w-0 flex-1">
+                                                    <p className="text-[10px] font-semibold text-emerald-800 dark:text-emerald-200">
+                                                        {t('reply_to', {
+                                                            name: replyTo.user_name,
+                                                        })}
+                                                    </p>
+                                                    <p className="truncate text-xs text-muted-foreground">
+                                                        {replyTo.body}
+                                                    </p>
+                                                </div>
+                                                <Button
+                                                    type="button"
+                                                    size="icon"
+                                                    variant="ghost"
+                                                    className="size-7"
+                                                    onClick={() =>
+                                                        setReplyTo(null)
+                                                    }
+                                                    aria-label={t(
+                                                        'reply_cancel',
+                                                    )}
+                                                >
+                                                    <X className="size-3.5" />
+                                                </Button>
+                                            </div>
+                                        ) : null}
+
+                                        {files.length > 0 && !editingMessage ? (
                                             <div className="mb-2 flex flex-wrap gap-2">
                                                 {files.map((file, idx) => (
                                                     <div
@@ -948,22 +1501,24 @@ export default function PlataformaChatSoportePage({
                                                     e.target.value = '';
                                                 }}
                                             />
-                                            <Button
-                                                type="button"
-                                                size="icon"
-                                                variant="ghost"
-                                                className="size-9 shrink-0 text-muted-foreground"
-                                                onClick={() =>
-                                                    fileRef.current?.click()
-                                                }
-                                                disabled={
-                                                    files.length >=
-                                                    MAX_ATTACHMENTS
-                                                }
-                                                aria-label={t('attach')}
-                                            >
-                                                <Paperclip className="size-4" />
-                                            </Button>
+                                            {!editingMessage ? (
+                                                <Button
+                                                    type="button"
+                                                    size="icon"
+                                                    variant="ghost"
+                                                    className="size-9 shrink-0 text-muted-foreground"
+                                                    onClick={() =>
+                                                        fileRef.current?.click()
+                                                    }
+                                                    disabled={
+                                                        files.length >=
+                                                        MAX_ATTACHMENTS
+                                                    }
+                                                    aria-label={t('attach')}
+                                                >
+                                                    <Paperclip className="size-4" />
+                                                </Button>
+                                            ) : null}
                                             <Popover
                                                 open={emojiOpen}
                                                 onOpenChange={setEmojiOpen}
@@ -1008,9 +1563,15 @@ export default function PlataformaChatSoportePage({
                                                 onChange={(e) =>
                                                     setComposer(e.target.value)
                                                 }
-                                                placeholder={t(
-                                                    'composer_placeholder',
-                                                )}
+                                                placeholder={
+                                                    editingMessage
+                                                        ? t(
+                                                              'composer_edit_placeholder',
+                                                          )
+                                                        : t(
+                                                              'composer_placeholder',
+                                                          )
+                                                }
                                                 rows={1}
                                                 className="max-h-32 min-h-11 flex-1 resize-none"
                                                 onKeyDown={(e) => {
@@ -1028,24 +1589,32 @@ export default function PlataformaChatSoportePage({
                                                 size="icon"
                                                 disabled={
                                                     sending ||
-                                                    (!composer.trim() &&
-                                                        files.length === 0)
+                                                    (editingMessage
+                                                        ? !composer.trim()
+                                                        : !composer.trim() &&
+                                                          files.length === 0)
                                                 }
                                                 className="size-10 shrink-0 bg-emerald-600 hover:bg-emerald-700"
                                             >
                                                 {sending ? (
                                                     <Loader2 className="size-4 animate-spin" />
+                                                ) : editingMessage ? (
+                                                    <Check className="size-4" />
                                                 ) : (
                                                     <SendHorizonal className="size-4" />
                                                 )}
                                                 <span className="sr-only">
-                                                    {t('send')}
+                                                    {editingMessage
+                                                        ? t('save_edit')
+                                                        : t('send')}
                                                 </span>
                                             </Button>
                                         </div>
-                                        <p className="mt-1.5 text-[10px] text-muted-foreground">
-                                            {t('attach_hint')}
-                                        </p>
+                                        {!editingMessage ? (
+                                            <p className="mt-1.5 text-[10px] text-muted-foreground">
+                                                {t('attach_hint')}
+                                            </p>
+                                        ) : null}
                                     </form>
                                 ) : null}
                             </>
@@ -1077,7 +1646,7 @@ export default function PlataformaChatSoportePage({
                             onClick={() => setBroadcastOpen(false)}
                             disabled={broadcasting}
                         >
-                            Cancelar
+                            {t('cancel')}
                         </Button>
                         <Button
                             type="button"
@@ -1091,6 +1660,131 @@ export default function PlataformaChatSoportePage({
                             {t('broadcast_confirm', {
                                 count: tenants.length,
                             })}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={!!deleteMessage}
+                onOpenChange={(open) => {
+                    if (!open) setDeleteMessage(null);
+                }}
+            >
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>{t('delete_confirm')}</DialogTitle>
+                        <DialogDescription>
+                            {t('delete_confirm_hint')}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setDeleteMessage(null)}
+                            disabled={deleting}
+                        >
+                            {t('cancel')}
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="destructive"
+                            onClick={() => void confirmDelete()}
+                            disabled={deleting}
+                        >
+                            {deleting ? (
+                                <Loader2 className="size-4 animate-spin" />
+                            ) : null}
+                            {t('delete')}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={!!forwardMessage}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setForwardMessage(null);
+                        setForwardTargetId('');
+                        setForwardTargets([]);
+                    }
+                }}
+            >
+                <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-md">
+                    <DialogHeader className="border-b border-border/60 px-5 py-4">
+                        <DialogTitle className="text-base">
+                            {t('forward_title')}
+                        </DialogTitle>
+                        <DialogDescription className="text-xs">
+                            {t('forward_hint')}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="max-h-72 space-y-1 overflow-y-auto p-3">
+                        {forwardLoading ? (
+                            <p className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
+                                <Loader2 className="size-4 animate-spin" />
+                                {t('loading')}
+                            </p>
+                        ) : forwardTargets.length === 0 ? (
+                            <p className="py-8 text-center text-sm text-muted-foreground">
+                                {t('forward_empty')}
+                            </p>
+                        ) : (
+                            forwardTargets.map((c) => (
+                                <button
+                                    key={c.id}
+                                    type="button"
+                                    onClick={() => setForwardTargetId(c.id)}
+                                    className={cn(
+                                        'flex w-full items-center gap-3 rounded-lg px-2.5 py-2.5 text-left transition-colors',
+                                        forwardTargetId === c.id
+                                            ? 'bg-emerald-50 dark:bg-emerald-950/40'
+                                            : 'hover:bg-muted/60',
+                                    )}
+                                >
+                                    <Avatar className="size-9 border border-border/50">
+                                        <AvatarFallback className="text-xs font-semibold">
+                                            {c.type === 'group' ? (
+                                                <Users className="size-3.5" />
+                                            ) : (
+                                                c.title.slice(0, 2).toUpperCase()
+                                            )}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                                        {c.title}
+                                    </span>
+                                    {forwardTargetId === c.id ? (
+                                        <Check className="size-4 shrink-0 text-emerald-600" />
+                                    ) : null}
+                                </button>
+                            ))
+                        )}
+                    </div>
+                    <DialogFooter className="gap-2 border-t border-border/60 bg-muted/20 px-4 py-3 sm:gap-2">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                                setForwardMessage(null);
+                                setForwardTargetId('');
+                            }}
+                            disabled={forwarding}
+                        >
+                            {t('cancel')}
+                        </Button>
+                        <Button
+                            type="button"
+                            className="bg-emerald-600 hover:bg-emerald-700"
+                            disabled={!forwardTargetId || forwarding}
+                            onClick={() => void submitForward()}
+                        >
+                            {forwarding ? (
+                                <Loader2 className="size-4 animate-spin" />
+                            ) : null}
+                            {t('forward_submit')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

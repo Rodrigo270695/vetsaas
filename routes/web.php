@@ -1483,6 +1483,21 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             ->post('chat-soporte/tenants/{tenant}/messages', [PlatformSupportChatController::class, 'send'])
             ->name('chat-soporte.send');
         Route::middleware('permission:plataforma-chat-soporte.manage')
+            ->patch('chat-soporte/tenants/{tenant}/messages/{message}', [PlatformSupportChatController::class, 'updateMessage'])
+            ->name('chat-soporte.messages.update');
+        Route::middleware('permission:plataforma-chat-soporte.manage')
+            ->delete('chat-soporte/tenants/{tenant}/messages/{message}', [PlatformSupportChatController::class, 'destroyMessage'])
+            ->name('chat-soporte.messages.destroy');
+        Route::middleware('permission:plataforma-chat-soporte.manage')
+            ->post('chat-soporte/tenants/{tenant}/messages/{message}/reaction', [PlatformSupportChatController::class, 'react'])
+            ->name('chat-soporte.messages.react');
+        Route::middleware('permission:plataforma-chat-soporte.manage')
+            ->post('chat-soporte/tenants/{tenant}/messages/{message}/forward', [PlatformSupportChatController::class, 'forward'])
+            ->name('chat-soporte.messages.forward');
+        Route::middleware('permission:plataforma-chat-soporte.view')
+            ->get('chat-soporte/tenants/{tenant}/forward-targets', [PlatformSupportChatController::class, 'forwardTargets'])
+            ->name('chat-soporte.forward-targets');
+        Route::middleware('permission:plataforma-chat-soporte.manage')
             ->post('chat-soporte/broadcast', [PlatformSupportChatController::class, 'broadcast'])
             ->name('chat-soporte.broadcast');
         Route::middleware('permission:plataforma-tenants.view')

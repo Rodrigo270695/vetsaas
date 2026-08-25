@@ -245,6 +245,7 @@ final class PlatformSupportChatService
         ?string $body,
         ?User $platformActor = null,
         UploadedFile|array|null $attachment = null,
+        ?string $replyToId = null,
     ): array {
         $body = trim((string) $body);
         $files = is_array($attachment)
@@ -265,7 +266,7 @@ final class PlatformSupportChatService
 
         $this->ensureThread($tenant);
 
-        $payload = $this->tenants->runForTenant($tenant, function () use ($tenant, $body, $platformActor, $files): array {
+        $payload = $this->tenants->runForTenant($tenant, function () use ($tenant, $body, $platformActor, $files, $replyToId): array {
             $supportUser = $this->ensureSupportUser($tenant);
             $adminIds = $this->adminUserIds($tenant);
             $conversation = $this->chat->ensureSupportGroup($supportUser, $adminIds);
@@ -283,7 +284,8 @@ final class PlatformSupportChatService
                 $supportUser,
                 $body === '' ? '' : $prefix.$body,
                 $files === [] ? null : $files,
-                tenantSlug: (string) $tenant->slug,
+                (string) $tenant->slug,
+                $replyToId,
             );
 
             $serialized = $this->chat->serializeMessage($message, $supportUser, $conversation);
@@ -413,6 +415,161 @@ final class PlatformSupportChatService
                     ->all(),
             ];
         }, enforceAccess: false);
+    }
+
+    /**
+     * @return array{message: array<string, mixed>, reactions: list<array<string, mixed>>, removed: bool}
+     */
+    public function react(Tenant $tenant, string $messageId, string $emoji): array
+    {
+        $this->ensureThread($tenant);
+
+        return $this->tenants->runForTenant($tenant, function () use ($tenant, $messageId, $emoji): array {
+            [$supportUser, , $message] = $this->resolveSupportMessage($tenant, $messageId);
+
+            return $this->chat->toggleReaction($message, $supportUser, $emoji);
+        }, enforceAccess: false);
+    }
+
+    /**
+     * @return array{message: array<string, mixed>}
+     */
+    public function editMessage(Tenant $tenant, string $messageId, string $body, ?User $platformActor = null): array
+    {
+        $this->ensureThread($tenant);
+
+        return $this->tenants->runForTenant($tenant, function () use ($tenant, $messageId, $body, $platformActor): array {
+            [$supportUser, $conversation, $message] = $this->resolveSupportMessage($tenant, $messageId);
+
+            $prefix = '';
+            if ($platformActor !== null) {
+                $actorName = trim((string) $platformActor->name);
+                if ($actorName !== '') {
+                    $prefix = '['.$actorName.'] ';
+                }
+            }
+
+            $edited = $this->chat->editMessage($message, $supportUser, $prefix.trim($body));
+
+            return [
+                'message' => $this->chat->serializeMessage($edited, $supportUser, $conversation),
+            ];
+        }, enforceAccess: false);
+    }
+
+    /**
+     * @return array{message: array<string, mixed>}
+     */
+    public function deleteMessage(Tenant $tenant, string $messageId): array
+    {
+        $this->ensureThread($tenant);
+
+        return $this->tenants->runForTenant($tenant, function () use ($tenant, $messageId): array {
+            [$supportUser, $conversation, $message] = $this->resolveSupportMessage($tenant, $messageId);
+
+            $deleted = $this->chat->softDeleteMessage($message, $supportUser);
+
+            return [
+                'message' => $this->chat->serializeMessage($deleted, $supportUser, $conversation),
+            ];
+        }, enforceAccess: false);
+    }
+
+    /**
+     * @return array{message: array<string, mixed>, conversation_id: string}
+     */
+    public function forwardMessage(Tenant $tenant, string $messageId, string $targetConversationId): array
+    {
+        $this->ensureThread($tenant);
+
+        return $this->tenants->runForTenant($tenant, function () use ($tenant, $messageId, $targetConversationId): array {
+            [$supportUser, $supportConversation, $message] = $this->resolveSupportMessage($tenant, $messageId);
+
+            $target = ChatConversation::query()->findOrFail($targetConversationId);
+            if ((string) $target->id === (string) $supportConversation->id) {
+                throw ValidationException::withMessages([
+                    'target_conversation_id' => __('Elige otro chat para reenviar.'),
+                ]);
+            }
+
+            $exists = $target->participants()
+                ->where('user_id', $supportUser->id)
+                ->exists();
+            if (! $exists) {
+                $target->participants()->create([
+                    'user_id' => $supportUser->id,
+                    'last_read_at' => now(),
+                ]);
+            }
+
+            $forwarded = $this->chat->forwardMessage($message, $supportUser, $target);
+
+            return [
+                'message' => $this->chat->serializeMessage($forwarded, $supportUser, $target),
+                'conversation_id' => (string) $target->id,
+            ];
+        }, enforceAccess: false);
+    }
+
+    /**
+     * @return list<array{id: string, title: string, type: string}>
+     */
+    public function forwardTargets(Tenant $tenant): array
+    {
+        $this->ensureThread($tenant);
+
+        return $this->tenants->runForTenant($tenant, function () use ($tenant): array {
+            $supportUser = $this->ensureSupportUser($tenant);
+            $adminIds = $this->adminUserIds($tenant);
+            $supportConversation = $this->chat->ensureSupportGroup($supportUser, $adminIds);
+
+            $admin = $adminIds[0] ?? null;
+            $actor = $admin !== null ? User::query()->find($admin) : null;
+            if (! $actor instanceof User) {
+                return [];
+            }
+
+            $conversations = $this->chat->listConversationsPayload($actor);
+
+            $rows = [];
+            foreach ($conversations as $row) {
+                if (! is_array($row)) {
+                    continue;
+                }
+                $id = (string) ($row['id'] ?? '');
+                if ($id === '' || $id === (string) $supportConversation->id) {
+                    continue;
+                }
+                $rows[] = [
+                    'id' => $id,
+                    'title' => (string) ($row['title'] ?? $row['name'] ?? 'Chat'),
+                    'type' => (string) ($row['type'] ?? 'group'),
+                ];
+            }
+
+            return $rows;
+        }, enforceAccess: false);
+    }
+
+    /**
+     * @return array{0: User, 1: ChatConversation, 2: ChatMessage}
+     */
+    private function resolveSupportMessage(Tenant $tenant, string $messageId): array
+    {
+        $supportUser = $this->ensureSupportUser($tenant);
+        $adminIds = $this->adminUserIds($tenant);
+        $conversation = $this->chat->ensureSupportGroup($supportUser, $adminIds);
+
+        $message = ChatMessage::query()->find($messageId);
+        if (! $message instanceof ChatMessage) {
+            abort(404);
+        }
+
+        if ((string) $message->conversation_id !== (string) $conversation->id) {
+            abort(404);
+        }
+
+        return [$supportUser, $conversation, $message];
     }
 
     private function ensureSupportUser(Tenant $tenant): User

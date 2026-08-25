@@ -75,6 +75,7 @@ final class PlatformSupportChatController extends Controller
 
         $data = $request->validate([
             'body' => ['nullable', 'string', 'max:4000'],
+            'reply_to_id' => ['nullable', 'uuid'],
             'attachment' => ['nullable', 'file', 'max:15360', "mimes:{$mimes}"],
             'attachments' => ['nullable', 'array', 'max:5'],
             'attachments.*' => ['file', 'max:15360', "mimes:{$mimes}"],
@@ -90,14 +91,87 @@ final class PlatformSupportChatController extends Controller
             ], 422);
         }
 
+        $replyToId = isset($data['reply_to_id']) && is_string($data['reply_to_id'])
+            ? $data['reply_to_id']
+            : null;
+
         $result = $service->sendToTenant(
             $tenant,
             $body,
             $request->user(),
             $files,
+            $replyToId,
         );
 
         return response()->json($result);
+    }
+
+    public function updateMessage(
+        Request $request,
+        Tenant $tenant,
+        string $message,
+        PlatformSupportChatService $service,
+    ): JsonResponse {
+        $data = $request->validate([
+            'body' => ['required', 'string', 'max:4000'],
+        ]);
+
+        return response()->json(
+            $service->editMessage($tenant, $message, (string) $data['body'], $request->user()),
+        );
+    }
+
+    public function destroyMessage(
+        Tenant $tenant,
+        string $message,
+        PlatformSupportChatService $service,
+    ): JsonResponse {
+        return response()->json(
+            $service->deleteMessage($tenant, $message),
+        );
+    }
+
+    public function react(
+        Request $request,
+        Tenant $tenant,
+        string $message,
+        PlatformSupportChatService $service,
+    ): JsonResponse {
+        $data = $request->validate([
+            'emoji' => ['required', 'string', 'max:16'],
+        ]);
+
+        return response()->json(
+            $service->react($tenant, $message, (string) $data['emoji']),
+        );
+    }
+
+    public function forward(
+        Request $request,
+        Tenant $tenant,
+        string $message,
+        PlatformSupportChatService $service,
+    ): JsonResponse {
+        $data = $request->validate([
+            'target_conversation_id' => ['required', 'uuid'],
+        ]);
+
+        return response()->json(
+            $service->forwardMessage(
+                $tenant,
+                $message,
+                (string) $data['target_conversation_id'],
+            ),
+        );
+    }
+
+    public function forwardTargets(
+        Tenant $tenant,
+        PlatformSupportChatService $service,
+    ): JsonResponse {
+        return response()->json([
+            'conversations' => $service->forwardTargets($tenant),
+        ]);
     }
 
     public function broadcast(Request $request, PlatformSupportChatService $service): JsonResponse
