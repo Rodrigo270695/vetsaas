@@ -62,7 +62,7 @@ export function ChatListAside({
                     className,
                 )}
             >
-                <div className="flex items-center gap-2 border-b border-border/50 px-3 py-3 lg:hidden">
+                <div className="flex items-center gap-2 border-b border-border/50 bg-card px-3 py-3 lg:hidden">
                     <span className="flex size-8 items-center justify-center rounded-lg bg-emerald-600/10 text-emerald-700 dark:text-emerald-300">
                         <MessagesSquare className="size-3.5" aria-hidden />
                     </span>

@@ -47,7 +47,7 @@ import {
 } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PushNotificationPrompt } from '@/components/push/push-notification-prompt';
-import { ChatMessageScroller, ChatSearchInput, ChatShell } from '@/components/chat';
+import { ChatListAside, ChatMessageScroller, ChatSearchInput, ChatShell } from '@/components/chat';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -2144,67 +2144,21 @@ export default function ChatInternoIndex({
                 </div>
 
                 <div className="relative min-h-0 flex-1 overflow-hidden lg:grid lg:grid-cols-[minmax(17rem,21rem)_1fr]">
-                    <button
-                        type="button"
-                        aria-label={t('close_list')}
-                        tabIndex={mobileListOpen && active ? 0 : -1}
-                        onClick={closeMobileList}
-                        className={cn(
-                            'absolute inset-0 z-30 bg-slate-950/40 backdrop-blur-[3px] transition-opacity duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] lg:pointer-events-none lg:hidden',
-                            active && mobileListOpen
-                                ? 'opacity-100'
-                                : 'pointer-events-none opacity-0',
-                        )}
-                    />
-
-                    <aside
-                        className={cn(
-                            'z-40 flex min-h-0 flex-col bg-muted/20 lg:relative lg:z-auto lg:translate-x-0 lg:border-r lg:border-border/60 lg:shadow-none',
-                            'max-lg:absolute max-lg:inset-y-0 max-lg:left-0 max-lg:bg-card max-lg:transition-transform max-lg:duration-500 max-lg:ease-[cubic-bezier(0.22,1,0.36,1)] max-lg:will-change-transform',
-                            !active && 'max-lg:inset-0 max-lg:w-full max-lg:translate-x-0',
-                            active
-                                && 'max-lg:w-[min(20.5rem,82vw)] max-lg:border-r max-lg:border-border/50 max-lg:shadow-[12px_0_40px_-12px_rgba(15,23,42,0.35)]',
-                            active
-                                && (mobileListOpen
-                                    ? 'max-lg:translate-x-0'
-                                    : 'max-lg:translate-x-[-105%]'),
-                        )}
-                    >
-                        <div className="flex items-center gap-2 border-b border-border/50 px-3 py-3 lg:hidden">
-                            <span className="flex size-8 items-center justify-center rounded-lg bg-emerald-600/10 text-emerald-700 dark:text-emerald-300">
-                                <MessagesSquare className="size-3.5" aria-hidden />
-                            </span>
-                            <div className="min-w-0 flex-1">
-                                <p className="truncate text-sm font-semibold">
-                                    {t('conversations_title')}
-                                </p>
-                                <p className="truncate text-[10px] text-muted-foreground">
-                                    {t('conversations_hint')}
-                                </p>
-                            </div>
-                            {active ? (
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    className="size-8 shrink-0 cursor-pointer"
-                                    onClick={closeMobileList}
-                                    aria-label={t('close_list')}
-                                >
-                                    <X className="size-4" />
-                                </Button>
-                            ) : null}
-                        </div>
-
-                        <div className="border-b border-border/50 p-3">
+                    <ChatListAside
+                        mobileTitle={t('conversations_title')}
+                        mobileSubtitle={t('conversations_hint')}
+                        hasActiveThread={active !== null}
+                        mobileListOpen={mobileListOpen}
+                        onCloseMobileList={closeMobileList}
+                        onBackdropClick={closeMobileList}
+                        toolbar={
                             <ChatSearchInput
                                 value={listQuery}
                                 onChange={(e) => setListQuery(e.target.value)}
                                 placeholder={t('search_placeholder')}
                             />
-                        </div>
-
-                        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+                        }
+                    >
                             {filteredConversations.length === 0 ? (
                                 <p className="px-4 py-10 text-center text-sm text-muted-foreground">
                                     {t('empty_list')}
@@ -2317,8 +2271,7 @@ export default function ChatInternoIndex({
                                     })}
                                 </ul>
                             )}
-                        </div>
-                    </aside>
+                    </ChatListAside>
 
                     <section
                         className={cn(

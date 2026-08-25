@@ -1,6 +1,5 @@
 import { Head, router } from '@inertiajs/react';
 import {
-    Building2,
     ChevronLeft,
     FileText,
     Loader2,
@@ -9,6 +8,7 @@ import {
     Search,
     SendHorizonal,
     Smile,
+    Users,
     X,
 } from 'lucide-react';
 import {
@@ -161,13 +161,6 @@ const formatListTime = (iso: string | null): string => {
         });
     }
     return d.toLocaleDateString('es-PE', { day: '2-digit', month: 'short' });
-};
-
-const initials = (name: string): string => {
-    const parts = name.trim().split(/\s+/).filter(Boolean);
-    if (parts.length === 0) return '?';
-    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-    return `${parts[0][0] ?? ''}${parts[1][0] ?? ''}`.toUpperCase();
 };
 
 const messageAttachments = (m: ChatMessage): ChatAttachment[] => {
@@ -453,16 +446,6 @@ export default function PlataformaChatSoportePage({
         }
     };
 
-    const closeThreadMobile = () => {
-        setSelectedId(null);
-        setMessages([]);
-        setComposer('');
-        setFiles([]);
-        setSearchOpen(false);
-        setThreadQuery('');
-        setMobileListOpen(true);
-    };
-
     return (
         <>
             <Head title={t('title')} />
@@ -559,7 +542,7 @@ export default function PlataformaChatSoportePage({
                                             >
                                                 <Avatar className="mt-0.5 size-11 border border-border/50 shadow-sm lg:size-10">
                                                     <AvatarFallback className="bg-sky-100 text-xs font-semibold text-sky-800 dark:bg-sky-950 dark:text-sky-200">
-                                                        <Building2 className="size-3.5" />
+                                                        <Users className="size-3.5" />
                                                     </AvatarFallback>
                                                 </Avatar>
                                                 <div className="min-w-0 flex-1">
@@ -614,7 +597,7 @@ export default function PlataformaChatSoportePage({
                         {!selected ? (
                             <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
                                 <div className="flex size-16 items-center justify-center rounded-2xl bg-emerald-600/10 text-emerald-700 ring-1 ring-emerald-600/15 dark:text-emerald-300">
-                                    <Building2 className="size-7" aria-hidden />
+                                    <Users className="size-7" aria-hidden />
                                 </div>
                                 <p className="text-sm font-semibold">
                                     {t('empty_thread')}
@@ -628,15 +611,15 @@ export default function PlataformaChatSoportePage({
                                             type="button"
                                             variant="ghost"
                                             size="icon"
-                                            className="size-9 shrink-0 lg:hidden"
-                                            onClick={closeThreadMobile}
-                                            aria-label="Volver"
+                                            className="size-9 shrink-0 cursor-pointer lg:hidden"
+                                            onClick={() => setMobileListOpen(true)}
+                                            aria-label={t('list_title')}
                                         >
                                             <ChevronLeft className="size-5" />
                                         </Button>
                                         <Avatar className="size-9 border border-border/50 shadow-sm sm:size-10">
                                             <AvatarFallback className="bg-sky-100 text-xs font-semibold text-sky-800 dark:bg-sky-950 dark:text-sky-200">
-                                                {initials(selected.nombre)}
+                                                <Users className="size-3.5" />
                                             </AvatarFallback>
                                         </Avatar>
                                         <div className="min-w-0 flex-1">
