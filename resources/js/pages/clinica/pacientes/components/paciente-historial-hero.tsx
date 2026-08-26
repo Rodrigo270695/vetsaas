@@ -2,6 +2,7 @@ import { Link } from '@inertiajs/react';
 import {
     ArrowLeft,
     Cake,
+    CalendarPlus,
     Cat,
     Dog,
     ExternalLink,
@@ -42,6 +43,7 @@ type Props = {
         consultas_crear: boolean;
         vacunas_crear: boolean;
         laboratorio_crear: boolean;
+        citas_crear?: boolean;
         petpass_register?: boolean;
     };
     timelineStats: {
@@ -52,6 +54,7 @@ type Props = {
     hasTimeline: boolean;
     onShareHistory?: () => void;
     onOpenLaboratorio?: () => void;
+    onOpenCita?: () => void;
     /** Vista pública para el titular: sin CTAs de administración. */
     variant?: 'admin' | 'public';
     clinicName?: string;
@@ -132,6 +135,7 @@ export function PacienteHistorialHero({
     hasTimeline,
     onShareHistory,
     onOpenLaboratorio,
+    onOpenCita,
     variant = 'admin',
     clinicName,
     expiresAt,
@@ -376,6 +380,18 @@ export function PacienteHistorialHero({
                         >
                             <FlaskConical className="size-4" strokeWidth={2.25} />
                             {t('historial.action_laboratorio')}
+                        </Button>
+                    ) : null}
+                    {!isPublic && permisos.citas_crear ? (
+                        <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="gap-2 border-violet-500/30 text-violet-800 hover:bg-violet-500/10 dark:text-violet-200"
+                            onClick={() => onOpenCita?.()}
+                        >
+                            <CalendarPlus className="size-4" strokeWidth={2.25} />
+                            {t('historial.action_agendar_cita')}
                         </Button>
                     ) : null}
                     {links.historial_pdf && (isPublic || hasTimeline) ? (

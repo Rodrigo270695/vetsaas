@@ -172,6 +172,7 @@
         "action_nueva_consulta": "Nueva consulta",
         "action_nueva_aplicacion": "Registrar aplicación",
         "action_laboratorio": "Subir archivo",
+        "action_agendar_cita": "Agendar cita",
         "action_lab_consulta": "Subir examen",
         "action_lab_consulta_corta": "Lab",
         "lab_rapido_consulta_fijada": "Consulta fijada desde el historial.",

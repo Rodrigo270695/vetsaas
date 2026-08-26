@@ -174,7 +174,10 @@ export function CitaFormModal({
     const [hora, setHora] = useState('09:00');
 
     const isEdit = cita !== null;
-    const lockPaciente = isEdit;
+    const lockPaciente =
+        isEdit ||
+        Boolean(prefill?.lockPaciente) ||
+        Boolean(prefill?.paciente_id);
     const lockedDate = !isEdit && prefill?.fecha ? prefill.fecha : null;
 
     const lockedDateLabel = useMemo(() => {
@@ -222,15 +225,28 @@ export function CitaFormModal({
             setData({
                 ...emptyForm(defaultVetId, sedesOpciones),
                 inicio_at: `${prefill.fecha}T${nextHora}`,
+                paciente_id: prefill.paciente_id ?? '',
             });
         } else {
-            setData(emptyForm(defaultVetId, sedesOpciones));
+            setData({
+                ...emptyForm(defaultVetId, sedesOpciones),
+                paciente_id: prefill?.paciente_id ?? '',
+            });
             setHora('09:00');
         }
 
         setDefaults();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [open, cita?.id, defaultVetId, cita, prefill?.fecha, prefill?.hora, sedesOpciones]);
+    }, [
+        open,
+        cita?.id,
+        defaultVetId,
+        cita,
+        prefill?.fecha,
+        prefill?.hora,
+        prefill?.paciente_id,
+        sedesOpciones,
+    ]);
 
     const applyHora = (nextHora: string) => {
         if (lockedDate && isHoraPastOnDate(lockedDate, nextHora)) {

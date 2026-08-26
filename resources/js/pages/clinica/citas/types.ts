@@ -19,8 +19,13 @@ export type CitaFiltroUi = {
 };
 
 export type CitaFormPrefill = {
-    fecha: string;
+    /** YYYY-MM-DD: fija la fecha (flujo calendario) y solo pide hora. */
+    fecha?: string;
     hora?: string;
+    /** Prefija el paciente (p. ej. desde historial clínico). */
+    paciente_id?: string;
+    /** Si true (o si hay paciente_id), el combobox de paciente queda bloqueado. */
+    lockPaciente?: boolean;
 };
 
 export type CitaStats = {

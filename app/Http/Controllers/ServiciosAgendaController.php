@@ -165,6 +165,7 @@ class ServiciosAgendaController extends Controller
         $pacientesOpciones = Paciente::query()
             ->with(['propietario' => fn ($q) => $q->withTrashed()->select('id', 'nombres', 'apellidos', 'razon_social')])
             ->where('activo', true)
+            ->orderByDesc('created_at')
             ->orderBy('nombre')
             ->limit(500)
             ->get(['id', 'nombre', 'propietario_id']);

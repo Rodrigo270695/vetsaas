@@ -242,6 +242,7 @@ class PacienteController extends Controller
 
         $canLabCreate = $user?->can('laboratorio.create') ?? false;
         $canLabView = $user?->can('laboratorio.view') ?? false;
+        $canCrearCita = $user?->can('citas.create') ?? false;
 
         $archivosSubidos = [];
         if ($canLabView) {
@@ -288,7 +289,7 @@ class PacienteController extends Controller
 
         $sedesOpciones = [];
         $serviciosVacunaOpciones = [];
-        if ($canVerVacunas || $canEditarVacuna) {
+        if ($canVerVacunas || $canEditarVacuna || $canCrearCita) {
             $sedesOpciones = Sede::query()
                 ->where('tenant_id', $tenantId)
                 ->where('activa', true)
@@ -296,7 +297,7 @@ class PacienteController extends Controller
                 ->limit(100)
                 ->get(['id', 'nombre', 'codigo']);
 
-            if (Schema::hasTable('servicios_clinicos')) {
+            if (($canVerVacunas || $canEditarVacuna) && Schema::hasTable('servicios_clinicos')) {
                 $serviciosQuery = ServicioClinico::query()
                     ->where('activo', true)
                     ->with('categoria:id,nombre')
@@ -387,6 +388,7 @@ class PacienteController extends Controller
                 'vacunas_crear' => $canCrearVacuna,
                 'vacunas_editar' => $canEditarVacuna,
                 'laboratorio_crear' => $canLabCreate,
+                'citas_crear' => $canCrearCita,
                 'petpass_register' => $canPetPassRegister,
             ],
         ]);

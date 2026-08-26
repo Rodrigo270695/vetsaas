@@ -5,6 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { Can } from '@/components/can';
 import { dashboard } from '@/routes';
 import clinica from '@/routes/clinica';
+import { CitaFormModal } from '../citas/components/cita-form-modal';
+import type { PacienteCitaOpcion, SedeCitaOpcion } from '../citas/types';
 import type { CatalogoOpcion } from '../historias-clinicas/components/consulta-form-modal';
 import { ConsultaFormModal } from '../historias-clinicas/components/consulta-form-modal';
 import type { ConsultaHistoriaRow, PacienteHistoriaOpcion } from '../historias-clinicas/types';
@@ -136,9 +138,9 @@ type Props = {
         vacunas_crear: boolean;
         vacunas_editar?: boolean;
         laboratorio_crear: boolean;
+        citas_crear?: boolean;
     };
 };
-
 function readCsrfToken(): string {
     return document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? '';
 }
@@ -167,11 +169,39 @@ export default function PacienteShow({
     const [vacunaEdit, setVacunaEdit] = useState<VacunaAplicadaRow | null>(null);
     const [consultaEdit, setConsultaEdit] = useState<ConsultaHistoriaRow | null>(null);
     const [consultaLoadingId, setConsultaLoadingId] = useState<string | null>(null);
+    const [citaOpen, setCitaOpen] = useState(false);
 
     const openLaboratorio = (consultaId: string | null = null) => {
         setLabPrefillConsultaId(consultaId);
         setLabOpen(true);
     };
+
+    const pacientesCitaOpciones = useMemo((): readonly PacienteCitaOpcion[] => {
+        const fromProps = pacientes_opciones as readonly PacienteCitaOpcion[];
+        if (fromProps.some((p) => p.id === paciente.id)) {
+            return fromProps;
+        }
+
+        const prop = paciente.propietario;
+
+        return [
+            {
+                id: paciente.id,
+                nombre: paciente.nombre,
+                propietario: prop
+                    ? {
+                          id: prop.id,
+                          nombres: prop.nombres,
+                          apellidos: prop.apellidos,
+                          razon_social: prop.razon_social,
+                      }
+                    : undefined,
+            },
+            ...fromProps,
+        ];
+    }, [paciente, pacientes_opciones]);
+
+    const sedesCitaOpciones = sedes_opciones as readonly SedeCitaOpcion[];
 
     const title = useMemo(() => `${paciente.nombre} · ${t('historial.title_suffix')}`, [paciente.nombre, t]);
 
@@ -257,6 +287,7 @@ export default function PacienteShow({
                         }
                     }}
                     onOpenLaboratorio={() => openLaboratorio(null)}
+                    onOpenCita={() => setCitaOpen(true)}
                 />
 
                 {archivos_subidos.length > 0 ? (
@@ -404,6 +435,20 @@ export default function PacienteShow({
                 medicoTratanteDefault={medico_tratante_default}
                 puedeCerrarConsulta={Boolean(permisos.consultas_editar)}
             />
+
+            {permisos.citas_crear ? (
+                <CitaFormModal
+                    open={citaOpen}
+                    onOpenChange={setCitaOpen}
+                    cita={null}
+                    prefill={{
+                        paciente_id: paciente.id,
+                        lockPaciente: true,
+                    }}
+                    pacientesOpciones={pacientesCitaOpciones}
+                    sedesOpciones={sedesCitaOpciones}
+                />
+            ) : null}
         </>
     );
 }
