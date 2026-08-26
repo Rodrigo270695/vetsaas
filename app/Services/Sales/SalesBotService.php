@@ -238,10 +238,12 @@ Si el prospecto pregunta algo específico (precio, comprobantes, módulos, etc.)
 ### DEMO (para que prueben SIN registrarse)
 Es un entorno compartido con datos de ejemplo, listo para explorar ahora mismo.
 - URL: {$demoUrl}
-- Usuario: {$demoEmail}
+- Usuario (correo EXACTO, no inventes otro): {$demoEmail}
 - Contraseña: {$demoPassword}
+⚠️ NUNCA inventes el correo. PROHIBIDO usar demo@vetsaas.orvae.pe u otros.
+El único correo válido de la demo es exactamente: {$demoEmail}
 Úsalo cuando el prospecto quiera VER cómo funciona antes de comprometerse con nada.
-Frase sugerida: "Puedes entrar ahora mismo sin registrarte: {$demoUrl} — usuario demo@vetsaas.pe, clave demo1234"
+Frase sugerida: "Puedes entrar ahora mismo sin registrarte: {$demoUrl} — usuario {$demoEmail}, clave {$demoPassword}"
 
 ### PLAN FREE (para que usen con su propia clínica, gratis)
 Es un plan real donde el prospecto se registra y obtiene SU PROPIO sistema personalizado.
@@ -625,6 +627,7 @@ PROMPT;
 
         if ($product === self::PRODUCT_VETSAAS) {
             $botReply = $this->attachMeetLinkIfRequested($conversation, $botReply, $incomingMessage);
+            $botReply = $this->sanitizeDemoCredentialsInReply($botReply);
         }
 
         // 4. Guardar respuesta del bot en el historial.
@@ -1127,6 +1130,55 @@ PROMPT;
         }
 
         $conversation->meet_notified_at = now();
+    }
+
+    /**
+     * Corrige correos de demo inventados por el modelo (p. ej. demo@vetsaas.orvae.pe).
+     */
+    public function sanitizeDemoCredentialsInReply(string $reply): string
+    {
+        $email = trim((string) config('salesbot.demo_email', 'demo@vetsaas.pe'));
+        if ($email === '') {
+            $email = 'demo@vetsaas.pe';
+        }
+
+        $password = trim((string) config('salesbot.demo_password', 'demo1234'));
+        if ($password === '') {
+            $password = 'demo1234';
+        }
+
+        $out = $reply;
+
+        foreach ([
+            'demo@vetsaas.orvae.pe',
+            'demo@demo.vetsaas.orvae.pe',
+            'demo@orvae.pe',
+            'user@vetsaas.pe',
+            'usuario@vetsaas.pe',
+        ] as $wrong) {
+            $out = str_ireplace($wrong, $email, $out);
+        }
+
+        // Cualquier demo@…orvae… → correo canónico.
+        $out = preg_replace('/\bdemo@[a-z0-9.\-]*orvae[a-z0-9.\-]*\b/iu', $email, $out) ?? $out;
+
+        // Si menciona usuario/correo demo con otro dominio vetsaas erróneo.
+        $out = preg_replace(
+            '/\bdemo@vetsaas\.(?!pe\b)[a-z0-9.\-]+\b/iu',
+            $email,
+            $out,
+        ) ?? $out;
+
+        // Normaliza variantes de clave frecuentes si el bot inventa otra.
+        if (preg_match('/\b(clave|password|contraseña)\s*[:=]?\s*demo\d+\b/iu', $out) === 1) {
+            $out = preg_replace(
+                '/\b(clave|password|contraseña)\s*[:=]?\s*demo\d+\b/iu',
+                '$1 '.$password,
+                $out,
+            ) ?? $out;
+        }
+
+        return $out;
     }
 
     /**
