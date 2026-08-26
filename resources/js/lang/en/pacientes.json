@@ -275,6 +275,7 @@
         "stat_consultas": "{{count}} consultation(s)",
         "stat_aplicaciones": "{{count}} application(s)",
         "ver_consulta_corta": "Open consultation",
+        "eliminar_consulta": "Delete",
         "ver_aplicacion_corta": "Open record",
         "vinculos_corto": "links",
         "vinculos_lead": "Linked to this consultation",

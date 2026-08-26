@@ -17,7 +17,8 @@ import type { ConsultaHistoriaRow } from '../types';
 export type ConsultaDeleteDialogProps = {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    consulta: ConsultaHistoriaRow | null;
+    /** Solo se necesita el id para eliminar. */
+    consulta: Pick<ConsultaHistoriaRow, 'id'> | null;
 };
 
 export function ConsultaDeleteDialog({

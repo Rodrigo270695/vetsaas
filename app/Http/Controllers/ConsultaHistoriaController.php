@@ -770,7 +770,7 @@ class ConsultaHistoriaController extends Controller
         $consulta->delete();
 
         return redirect()
-            ->route('clinica.historias-clinicas')
+            ->back()
             ->with('success', __('historias-clinicas.flash.deleted'));
     }
 

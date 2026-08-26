@@ -24,6 +24,7 @@ import { HistorialArchivoPreview } from './components/historial-archivo-preview'
 import { LaboratorioRapidoModal } from './components/laboratorio-rapido-modal';
 import { PacienteHistorialHero } from './components/paciente-historial-hero';
 import { PacienteTimelineRow } from './components/paciente-timeline-row';
+import { ConsultaDeleteDialog } from '../historias-clinicas/components/consulta-delete-dialog';
 
 export type TimelineLabLinea = {
     id: string;
@@ -139,6 +140,7 @@ type Props = {
         vacunas_editar?: boolean;
         laboratorio_crear: boolean;
         laboratorio_eliminar?: boolean;
+        consultas_eliminar?: boolean;
         citas_crear?: boolean;
     };
 };
@@ -170,6 +172,7 @@ export default function PacienteShow({
     const [vacunaEdit, setVacunaEdit] = useState<VacunaAplicadaRow | null>(null);
     const [consultaEdit, setConsultaEdit] = useState<ConsultaHistoriaRow | null>(null);
     const [consultaLoadingId, setConsultaLoadingId] = useState<string | null>(null);
+    const [consultaToDelete, setConsultaToDelete] = useState<{ id: string } | null>(null);
     const [citaOpen, setCitaOpen] = useState(false);
 
     const openLaboratorio = (consultaId: string | null = null) => {
@@ -369,6 +372,12 @@ export default function PacienteShow({
                                                       openLaboratorio(consultaId)
                                                 : undefined
                                         }
+                                        onDeleteConsulta={
+                                            permisos.consultas_eliminar
+                                                ? (consulta) =>
+                                                      setConsultaToDelete({ id: consulta.id })
+                                                : undefined
+                                        }
                                     />
                                 ))}
                             </ul>
@@ -396,6 +405,16 @@ export default function PacienteShow({
                         setShareTarget(null);
                     }
                 }}
+            />
+
+            <ConsultaDeleteDialog
+                open={consultaToDelete !== null}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setConsultaToDelete(null);
+                    }
+                }}
+                consulta={consultaToDelete}
             />
 
             {links.laboratorio_rapido ? (

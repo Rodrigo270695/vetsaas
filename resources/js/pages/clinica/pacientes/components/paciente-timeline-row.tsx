@@ -12,6 +12,7 @@ import {
     Stethoscope,
     Syringe,
     Thermometer,
+    Trash2,
     Wind,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -39,6 +40,7 @@ type TimelineRowProps = {
         vacunas_ver: boolean;
         laboratorio_crear?: boolean;
         laboratorio_eliminar?: boolean;
+        consultas_eliminar?: boolean;
     };
     isLast: boolean;
     consultaOpeningId?: string | null;
@@ -46,6 +48,7 @@ type TimelineRowProps = {
     onOpenAplicacion?: (item: Extract<TimelineItem, { kind: 'aplicacion' }>) => void;
     onShareConsulta?: (item: Extract<TimelineItem, { kind: 'consulta' }>) => void;
     onUploadLaboratorio?: (consultaId: string) => void;
+    onDeleteConsulta?: (item: Extract<TimelineItem, { kind: 'consulta' }>) => void;
     variant?: 'admin' | 'public';
 };
 
@@ -190,6 +193,7 @@ export function PacienteTimelineRow({
     onOpenAplicacion,
     onShareConsulta,
     onUploadLaboratorio,
+    onDeleteConsulta,
     variant = 'admin',
 }: TimelineRowProps) {
     const { t } = useTranslation(['pacientes', 'recetas', 'laboratorio', 'cirugia', 'common']);
@@ -453,6 +457,25 @@ export function PacienteTimelineRow({
                                             </span>
                                             <span className="sm:hidden">
                                                 {t('historial.action_lab_consulta_corta')}
+                                            </span>
+                                        </Button>
+                                    ) : null}
+                                    {!isPublic &&
+                                    permisos.consultas_eliminar &&
+                                    onDeleteConsulta ? (
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="outline"
+                                            className="h-8 gap-1.5 border-destructive/30 px-2.5 text-xs text-destructive hover:bg-destructive/10"
+                                            onClick={() => onDeleteConsulta(item)}
+                                        >
+                                            <Trash2 className="size-3.5" strokeWidth={2.25} />
+                                            <span className="hidden sm:inline">
+                                                {t('historial.eliminar_consulta')}
+                                            </span>
+                                            <span className="sm:hidden">
+                                                {t('common:actions.delete')}
                                             </span>
                                         </Button>
                                     ) : null}

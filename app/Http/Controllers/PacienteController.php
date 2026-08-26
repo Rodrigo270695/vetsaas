@@ -196,6 +196,7 @@ class PacienteController extends Controller
         $canVerConsultas = $user?->can('historias-clinicas.view') ?? false;
         $canCrearConsulta = $user?->can('historias-clinicas.create') ?? false;
         $canEditarConsulta = $user?->can('historias-clinicas.update') ?? false;
+        $canEliminarConsulta = $user?->can('historias-clinicas.delete') ?? false;
         $canVerVacunas = $user?->can('vacunaciones.view') ?? false;
         $canCrearVacuna = $user?->can('vacunaciones.create') ?? false;
         $canEditarVacuna = $user?->can('vacunaciones.update') ?? false;
@@ -385,6 +386,7 @@ class PacienteController extends Controller
                 'consultas_ver' => $canVerConsultas,
                 'consultas_crear' => $canCrearConsulta,
                 'consultas_editar' => $canEditarConsulta,
+                'consultas_eliminar' => $canEliminarConsulta,
                 'vacunas_ver' => $canVerVacunas,
                 'vacunas_crear' => $canCrearVacuna,
                 'vacunas_editar' => $canEditarVacuna,
