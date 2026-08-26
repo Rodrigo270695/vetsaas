@@ -71,6 +71,7 @@
         "section_basic_hint": "User contact information and identification.",
         "section_professional": "Professional profile",
         "section_professional_hint": "Optional. ID, license number and files for the veterinarian. You can complete them later.",
+        "professional_banner": "Veterinarian role: scroll down for the professional profile (ID/RENIEC, license, CV and signature).",
         "section_access": "Access",
         "section_access_hint_create": "Set the initial password for this account.",
         "section_access_hint_edit": "Change the password if needed. Leave empty to keep the current one.",

@@ -119,8 +119,9 @@ export function UserFormModal({
     const { data, setData, post, put, processing, errors, reset, clearErrors, transform } =
         useForm<UserFormData>(emptyForm);
 
-    const showProfessional = data.role === 'veterinario';
+    const showProfessional = data.role.trim().toLowerCase() === 'veterinario';
     const canSubmit = isFormValid(data, isEdit) && !processing;
+    const professionalRef = useRef<HTMLDivElement | null>(null);
 
     const initialSnapshotRef = useRef<UserFormData>(emptyForm);
 
@@ -137,6 +138,16 @@ export function UserFormModal({
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, user?.id]);
+
+    useEffect(() => {
+        if (!open || !showProfessional) {
+            return;
+        }
+        const id = window.setTimeout(() => {
+            professionalRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 120);
+        return () => window.clearTimeout(id);
+    }, [open, showProfessional, user?.id]);
 
     const isDirty = useMemo(() => {
         const initial = initialSnapshotRef.current;
@@ -268,7 +279,7 @@ export function UserFormModal({
                     ? t('usuarios:form.description_edit')
                     : t('usuarios:form.description_create')
             }
-            size="lg"
+            size="xl"
             onSubmit={onSubmit}
             footer={
                 <>
@@ -303,6 +314,14 @@ export function UserFormModal({
                         role="alert"
                     >
                         {errors.plan_limit}
+                    </p>
+                ) : null}
+                {showProfessional ? (
+                    <p
+                        className="rounded-lg border border-primary/30 bg-primary/10 px-3 py-2 text-sm text-foreground"
+                        role="status"
+                    >
+                        {t('usuarios:form.professional_banner')}
                     </p>
                 ) : null}
                 <FormSection
@@ -428,6 +447,7 @@ export function UserFormModal({
                 </FormSection>
 
                 {showProfessional ? (
+                    <div ref={professionalRef}>
                     <FormSection
                         index={1}
                         title={t('usuarios:form.section_professional')}
@@ -609,6 +629,7 @@ export function UserFormModal({
                             />
                         </div>
                     </FormSection>
+                    </div>
                 ) : null}
 
                 <FormSection
