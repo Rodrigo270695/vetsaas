@@ -3,14 +3,19 @@
 namespace App\Http\Controllers;
 
 use App\Exports\UsersXlsxExport;
+use App\Http\Controllers\Concerns\RespondsToApiPeruConsulta;
 use App\Http\Requests\UserRequest;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\Audit\PlatformSecurityAuditLogger;
+use App\Services\Integrations\ApiPeruDniService;
 use App\Support\Tenancy\ClinicAdminScope;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -18,6 +23,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class UserController extends Controller
 {
+    use RespondsToApiPeruConsulta;
     /**
      * Tamaños de página permitidos en el selector del paginador.
      */
@@ -120,10 +126,15 @@ class UserController extends Controller
             'name' => $data['name'],
             'email' => $data['email'],
             'phone' => $data['phone'] ?? null,
+            'documento_tipo' => $data['documento_tipo'] ?? null,
+            'documento_numero' => $data['documento_numero'] ?? null,
+            'colegiatura' => $data['colegiatura'] ?? null,
             'password' => $data['password'],
             'is_active' => $data['is_active'],
             'created_by_id' => $request->user()?->id,
         ]);
+
+        $this->syncProfessionalFiles($request, $user);
 
         $user->syncRoles([$data['role']]);
 
@@ -164,6 +175,9 @@ class UserController extends Controller
             'name' => $data['name'],
             'email' => $data['email'],
             'phone' => $data['phone'] ?? null,
+            'documento_tipo' => $data['documento_tipo'] ?? null,
+            'documento_numero' => $data['documento_numero'] ?? null,
+            'colegiatura' => $data['colegiatura'] ?? null,
             'is_active' => $data['is_active'],
         ];
 
@@ -182,6 +196,7 @@ class UserController extends Controller
         ];
 
         $user->update($payload);
+        $this->syncProfessionalFiles($request, $user);
         $user->syncRoles([$data['role']]);
 
         PlatformSecurityAuditLogger::log(
@@ -207,6 +222,72 @@ class UserController extends Controller
         );
 
         return back()->with('success', 'Usuario actualizado correctamente.');
+    }
+
+    /**
+     * Consulta DNI (RENIEC vía APIPerú / Lucode) para autocompletar el nombre del staff.
+     */
+    public function consultaDni(Request $request, ApiPeruDniService $apiPeru): JsonResponse
+    {
+        abort_unless(
+            $request->user()?->can('usuarios.create')
+            || $request->user()?->can('usuarios.update'),
+            403,
+        );
+
+        $dni = preg_replace('/\D+/', '', (string) $request->query('dni', ''));
+        $request->merge(['dni' => $dni]);
+
+        $validated = $request->validate([
+            'dni' => ['required', 'string', 'regex:/^[0-9]{8}$/'],
+        ]);
+
+        return $this->consultaApiPeruResponse(
+            fn () => $apiPeru->consultar($validated['dni']),
+        );
+    }
+
+    private function syncProfessionalFiles(UserRequest $request, User $user): void
+    {
+        $disk = Storage::disk('public');
+        $tenantId = (string) ($user->tenant_id ?? tenant_id() ?? 'central');
+        $baseDir = 'tenants/'.$tenantId.'/staff/'.$user->id;
+
+        $map = [
+            'cv' => ['path' => 'cv_path', 'remove' => 'remove_cv'],
+            'dni_file' => ['path' => 'dni_file_path', 'remove' => 'remove_dni_file'],
+            'firma' => ['path' => 'firma_path', 'remove' => 'remove_firma'],
+        ];
+
+        $updates = [];
+
+        foreach ($map as $input => $meta) {
+            $column = $meta['path'];
+            if ($request->boolean($meta['remove'])) {
+                if (filled($user->{$column}) && $disk->exists((string) $user->{$column})) {
+                    $disk->delete((string) $user->{$column});
+                }
+                $updates[$column] = null;
+            }
+
+            $file = $request->file($input);
+            if (! $file instanceof UploadedFile) {
+                continue;
+            }
+
+            if (filled($user->{$column}) && $disk->exists((string) $user->{$column})) {
+                $disk->delete((string) $user->{$column});
+            }
+
+            $ext = strtolower($file->getClientOriginalExtension() ?: 'bin');
+            $filename = $input.'-'.now()->format('YmdHis').'.'.$ext;
+            $path = $file->storeAs($baseDir, $filename, 'public');
+            $updates[$column] = $path;
+        }
+
+        if ($updates !== []) {
+            $user->forceFill($updates)->save();
+        }
     }
 
     public function destroy(Request $request, User $user): RedirectResponse

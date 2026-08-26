@@ -1355,6 +1355,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:usuarios.export')
             ->get('usuarios/export', [UserController::class, 'export'])
             ->name('usuarios.export');
+        Route::middleware('permission:usuarios.create|usuarios.update')
+            ->get('usuarios/consulta-dni', [UserController::class, 'consultaDni'])
+            ->name('usuarios.consulta-dni');
         Route::middleware('permission:usuarios.create')
             ->post('usuarios', [UserController::class, 'store'])
             ->name('usuarios.store');

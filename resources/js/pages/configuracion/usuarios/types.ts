@@ -26,6 +26,12 @@ export type User = {
     name: string;
     email: string;
     phone: string | null;
+    documento_tipo?: string | null;
+    documento_numero?: string | null;
+    colegiatura?: string | null;
+    cv_url?: string | null;
+    dni_file_url?: string | null;
+    firma_url?: string | null;
     is_active: boolean;
     email_verified_at: string | null;
     last_login_at: string | null;

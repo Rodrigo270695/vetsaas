@@ -72,6 +72,17 @@ class UserRequest extends FormRequest
             ],
             'phone' => ['nullable', 'string', 'max:32'],
 
+            // Ficha profesional (opcional; pensada para rol veterinario).
+            'documento_tipo' => ['nullable', 'string', 'max:10', Rule::in(['DNI', 'CE', 'PAS', 'OTRO'])],
+            'documento_numero' => ['nullable', 'string', 'max:32'],
+            'colegiatura' => ['nullable', 'string', 'max:40'],
+            'cv' => ['nullable', 'file', 'max:5120', 'mimes:pdf,doc,docx,jpg,jpeg,png'],
+            'dni_file' => ['nullable', 'file', 'max:5120', 'mimes:pdf,jpg,jpeg,png'],
+            'firma' => ['nullable', 'file', 'max:2048', 'mimes:png,jpg,jpeg,webp'],
+            'remove_cv' => ['sometimes', 'boolean'],
+            'remove_dni_file' => ['sometimes', 'boolean'],
+            'remove_firma' => ['sometimes', 'boolean'],
+
             // En CREATE el password es obligatorio. En UPDATE solo se valida
             // si llega un string no vacío (el usuario tecleó algo). El front
             // manda `null` cuando no quiere cambiar la contraseña.
@@ -103,22 +114,39 @@ class UserRequest extends FormRequest
             'password' => 'contraseña',
             'is_active' => 'estado',
             'role' => 'rol',
+            'documento_tipo' => 'tipo de documento',
+            'documento_numero' => 'número de documento',
+            'colegiatura' => 'número de colegiatura',
+            'cv' => 'CV',
+            'dni_file' => 'documento de identidad',
+            'firma' => 'firma digital',
         ];
     }
 
     protected function prepareForValidation(): void
     {
+        $tipo = strtoupper(trim((string) $this->input('documento_tipo', '')));
+        $numero = preg_replace('/\s+/', '', (string) $this->input('documento_numero', '')) ?? '';
+
+        if ($tipo === 'DNI') {
+            $numero = preg_replace('/\D+/', '', $numero) ?? '';
+        }
+
         $this->merge([
             'name' => trim((string) $this->input('name', '')),
             'email' => strtolower(trim((string) $this->input('email', ''))),
             'phone' => trim((string) $this->input('phone', '')) ?: null,
-            // El front envía 'true'/'false' como string en multipart o
-            // boolean en JSON. Normalizamos a boolean real.
+            'documento_tipo' => $tipo !== '' ? $tipo : null,
+            'documento_numero' => $numero !== '' ? $numero : null,
+            'colegiatura' => trim((string) $this->input('colegiatura', '')) ?: null,
             'is_active' => filter_var(
                 $this->input('is_active', true),
                 FILTER_VALIDATE_BOOLEAN,
                 FILTER_NULL_ON_FAILURE,
             ) ?? true,
+            'remove_cv' => filter_var($this->input('remove_cv', false), FILTER_VALIDATE_BOOLEAN),
+            'remove_dni_file' => filter_var($this->input('remove_dni_file', false), FILTER_VALIDATE_BOOLEAN),
+            'remove_firma' => filter_var($this->input('remove_firma', false), FILTER_VALIDATE_BOOLEAN),
         ]);
     }
 
@@ -134,6 +162,17 @@ class UserRequest extends FormRequest
             $role = (string) $this->input('role', '');
             if (in_array($role, Role::platformOnlyRoleNames(), true)) {
                 $v->errors()->add('role', __('validation.in', ['attribute' => 'rol']));
+            }
+
+            $tipo = (string) ($this->input('documento_tipo') ?? '');
+            $numero = (string) ($this->input('documento_numero') ?? '');
+
+            if ($tipo === 'DNI' && $numero !== '' && ! preg_match('/^[0-9]{8}$/', $numero)) {
+                $v->errors()->add('documento_numero', 'El DNI debe tener exactamente 8 dígitos.');
+            }
+
+            if ($numero !== '' && $tipo === '') {
+                $v->errors()->add('documento_tipo', 'Indica el tipo de documento.');
             }
         });
     }

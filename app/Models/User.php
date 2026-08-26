@@ -23,6 +23,12 @@ use Spatie\Permission\Traits\HasRoles;
     'name',
     'email',
     'phone',
+    'documento_tipo',
+    'documento_numero',
+    'colegiatura',
+    'cv_path',
+    'dni_file_path',
+    'firma_path',
     'password',
     'is_active',
     'must_change_password',
@@ -31,13 +37,31 @@ use Spatie\Permission\Traits\HasRoles;
     'last_login_at',
     'created_by_id',
 ])]
-#[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token', 'bootstrap_login_token'])]
+#[Hidden([
+    'password',
+    'two_factor_secret',
+    'two_factor_recovery_codes',
+    'remember_token',
+    'bootstrap_login_token',
+    'cv_path',
+    'dni_file_path',
+    'firma_path',
+])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, HasRoles, HasUuids, Notifiable, SoftDeletes, TwoFactorAuthenticatable, UsesPublicSchema;
 
     private ?bool $isPlatformSuperadminMemo = null;
+
+    /**
+     * @var list<string>
+     */
+    protected $appends = [
+        'cv_url',
+        'dni_file_url',
+        'firma_url',
+    ];
 
     /**
      * Get the attributes that should be cast.
@@ -57,6 +81,30 @@ class User extends Authenticatable
             'last_seen_at' => 'datetime',
             'last_path_at' => 'datetime',
         ];
+    }
+
+    public function getCvUrlAttribute(): ?string
+    {
+        return $this->publicDiskUrl($this->cv_path);
+    }
+
+    public function getDniFileUrlAttribute(): ?string
+    {
+        return $this->publicDiskUrl($this->dni_file_path);
+    }
+
+    public function getFirmaUrlAttribute(): ?string
+    {
+        return $this->publicDiskUrl($this->firma_path);
+    }
+
+    private function publicDiskUrl(?string $path): ?string
+    {
+        if (! filled($path)) {
+            return null;
+        }
+
+        return asset('storage/'.ltrim((string) $path, '/'));
     }
 
     /**
