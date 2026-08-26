@@ -10,6 +10,7 @@ use App\Models\Tenant;
 use App\Services\Referrals\ReferralService;
 use App\Services\Subscriptions\SubscriptionRenewalReminderScanner;
 use App\Services\Subscriptions\SubscriptionRenewalWhatsAppSender;
+use App\Services\Subscriptions\SubscriptionWinBackService;
 use App\Support\Subscriptions\SubscriptionBotIaAddon;
 use App\Support\Subscriptions\SubscriptionCiclo;
 use Illuminate\Database\Eloquent\Builder;
@@ -190,6 +191,66 @@ class SubscriptionController extends Controller
         return back()->with(
             'success',
             "Link de renovación enviado por WhatsApp a {$tenantName}.",
+        );
+    }
+
+    public function generateWinBackMessage(
+        Request $request,
+        Subscription $suscripcion,
+        SubscriptionWinBackService $winBack,
+    ): JsonResponse {
+        $suscripcion->load(['tenant', 'plan']);
+        $tenant = $suscripcion->tenant;
+        if ($tenant === null) {
+            return response()->json(['message' => 'La suscripción no tiene tenant.'], 422);
+        }
+
+        $data = $request->validate([
+            'message' => ['nullable', 'string', 'max:5000'],
+        ]);
+
+        $draft = trim((string) ($data['message'] ?? ''));
+        $generated = $winBack->generateWithAi($tenant, $suscripcion, $draft);
+
+        return response()->json([
+            'ok' => true,
+            'message' => $generated,
+        ]);
+    }
+
+    public function sendWinBackWhatsApp(
+        Request $request,
+        Subscription $suscripcion,
+        SubscriptionWinBackService $winBack,
+    ): RedirectResponse {
+        $suscripcion->load(['tenant', 'plan']);
+
+        $data = $request->validate([
+            'message' => ['required', 'string', 'min:20', 'max:5000'],
+            'grant_free_month' => ['sometimes', 'boolean'],
+        ]);
+
+        $result = $winBack->send(
+            $suscripcion,
+            (string) $data['message'],
+            (bool) ($data['grant_free_month'] ?? true),
+        );
+
+        if (! $result['ok']) {
+            return back()->with('error', $result['error']);
+        }
+
+        $tenantName = $suscripcion->tenant?->nombre_comercial
+            ?: $suscripcion->tenant?->razon_social
+            ?: 'la clínica';
+
+        $extra = $result['granted_days']
+            ? " Se otorgaron {$result['granted_days']} días de acceso (1 mes gratis)."
+            : '';
+
+        return back()->with(
+            'success',
+            "Mensaje de reenganche enviado por WhatsApp a {$tenantName}.{$extra}",
         );
     }
 

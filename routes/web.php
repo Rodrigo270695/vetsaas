@@ -1617,6 +1617,12 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:plataforma-suscripciones.update')
             ->post('suscripciones/{suscripcion}/send-renewal-whatsapp', [SubscriptionController::class, 'sendRenewalWhatsApp'])
             ->name('suscripciones.send-renewal-whatsapp');
+        Route::middleware('permission:plataforma-suscripciones.update')
+            ->post('suscripciones/{suscripcion}/win-back/generate', [SubscriptionController::class, 'generateWinBackMessage'])
+            ->name('suscripciones.win-back.generate');
+        Route::middleware('permission:plataforma-suscripciones.update')
+            ->post('suscripciones/{suscripcion}/win-back/send', [SubscriptionController::class, 'sendWinBackWhatsApp'])
+            ->name('suscripciones.win-back.send');
         Route::middleware('permission:plataforma-suscripciones.export')
             ->get('suscripciones/export', [SubscriptionController::class, 'export'])
             ->name('suscripciones.export');

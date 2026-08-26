@@ -55,6 +55,7 @@
         "edit_note": "Editar nota interna",
         "resend_invoice": "Reenviar factura",
         "send_payment_whatsapp": "Enviar método de pago por WhatsApp",
+        "win_back_whatsapp": "Traer de vuelta (WhatsApp)",
         "manual_renewal": "Registrar pago y renovar",
         "mark_refunded": "Marcar reembolso manual",
         "refunded_locked": "Cobro ya reembolsado",
@@ -144,6 +145,20 @@
         "description": "Se enviará por WhatsApp a {{name}} el importe de renovación y el enlace seguro para pagar.",
         "hint": "El mensaje usa el teléfono registrado de la clínica e incluye su plan, vencimiento, total y enlace de pago de Orvae.",
         "confirm": "Enviar por WhatsApp"
+    },
+    "win_back": {
+        "title": "Traer de vuelta a la clínica",
+        "description": "Mensaje de reenganche para {{name}}: novedades (chat interno, plantillas, referidos) y oferta de 1 mes gratis.",
+        "message_label": "Mensaje WhatsApp",
+        "message_placeholder": "Escribe o genera el mensaje…",
+        "default_message": "Hola, {{name}} 👋\n\nTe extrañamos en VetSaaS. Queremos que vuelvas a probar la plataforma con tranquilidad.\n\nNovedades recientes:\n• Chat interno del equipo de la clínica\n• Plantillas de mensajes listas para WhatsApp\n• Programa de referidos\n\nComo gesto, te regalamos 1 mes gratis para que explores todo sin compromiso.\n\n¿Te parece si te dejamos el mes activo y nos cuentas qué te gustaría ver?\n\n— Equipo Orvae / VetSaaS",
+        "generate_ai": "Generar con IA",
+        "generate_hint": "La IA reescribe o completa tu texto asegurando la oferta de 1 mes gratis y las novedades.",
+        "generate_ok": "Mensaje generado",
+        "generate_error": "No se pudo generar el mensaje. Revisa la API de OpenAI o edita el texto a mano.",
+        "grant_month": "Al enviar, otorgar 1 mes gratis (trial 30 días)",
+        "grant_month_hint": "Pasa la suscripción a trial y suma 30 días desde hoy (o desde el trial vigente).",
+        "confirm": "Enviar y reactivar"
     },
     "manual_renewal": {
         "title": "Registrar pago y renovar",

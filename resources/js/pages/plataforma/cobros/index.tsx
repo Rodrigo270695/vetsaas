@@ -34,6 +34,10 @@ import { useDataTablePage } from '@/hooks/use-data-table-page';
 import { usePermission } from '@/hooks/use-permission';
 import AppLayout from '@/layouts/app-layout';
 import { livingSubscription } from '@/lib/living-subscription';
+import {
+    daysUntilRenewal,
+    resolveExpiryAnchor,
+} from '@/lib/subscription-expiry';
 import cobros from '@/routes/plataforma/cobros';
 import type { Paginated } from '@/types';
 import { PaymentDetailModal } from './components/payment-detail-modal';
@@ -43,6 +47,7 @@ import { PaymentRefundDialog } from './components/payment-refund-dialog';
 import { PaymentRenewalWhatsAppDialog } from './components/payment-renewal-whatsapp-dialog';
 import { PaymentResendInvoiceDialog } from './components/payment-resend-invoice-dialog';
 import { PaymentRowActions } from './components/payment-row-actions';
+import { PaymentWinBackWhatsAppDialog } from './components/payment-win-back-whatsapp-dialog';
 import type {
     PaymentEstadoFilter,
     PaymentFilters,
@@ -74,7 +79,21 @@ type ModalState =
     | { type: 'note'; payment: SubscriptionPayment }
     | { type: 'resend'; payment: SubscriptionPayment }
     | { type: 'manual-renewal'; payment: SubscriptionPayment }
-    | { type: 'renewal-whatsapp'; payment: SubscriptionPayment };
+    | { type: 'renewal-whatsapp'; payment: SubscriptionPayment }
+    | { type: 'win-back-whatsapp'; payment: SubscriptionPayment };
+
+const isPaymentSubscriptionExpired = (payment: SubscriptionPayment): boolean => {
+    const live =
+        livingSubscription(payment.tenant?.subscriptions) ?? payment.subscription;
+    if (!live) {
+        return false;
+    }
+    if (live.estado === 'suspended') {
+        return true;
+    }
+    const days = daysUntilRenewal(resolveExpiryAnchor(live));
+    return days !== null && days < 0;
+};
 
 const DEFAULT_PER_PAGE = 10;
 const DEFAULT_ESTADO: PaymentEstadoFilter = 'todos';
@@ -304,6 +323,11 @@ export default function Index({
     const openRenewalWhatsApp = useCallback(
         (payment: SubscriptionPayment) =>
             setModal({ type: 'renewal-whatsapp', payment }),
+        [],
+    );
+    const openWinBackWhatsApp = useCallback(
+        (payment: SubscriptionPayment) =>
+            setModal({ type: 'win-back-whatsapp', payment }),
         [],
     );
     const openManualRenewal = useCallback(
@@ -597,12 +621,15 @@ params.set('plan_id', filters.plan_id);
                             onMarkRefunded={openRefund}
                             onResendInvoice={openResend}
                             onSendRenewalWhatsApp={openRenewalWhatsApp}
+                            onWinBackWhatsApp={openWinBackWhatsApp}
                             onManualRenew={openManualRenewal}
                             canAddNote={canAddNote}
                             canRefund={canRefund}
                             canResend={canResend}
                             canSendRenewalWhatsApp={canSendRenewalWhatsApp}
+                            canWinBackWhatsApp={canSendRenewalWhatsApp}
                             canManualRenew={canManualRenew}
+                            isExpiredSubscription={isPaymentSubscriptionExpired(p)}
                         />
                     </div>
                 ),
@@ -625,6 +652,7 @@ params.set('plan_id', filters.plan_id);
         openRefund,
         openResend,
         openRenewalWhatsApp,
+        openWinBackWhatsApp,
         openManualRenewal,
     ]);
 
@@ -853,6 +881,17 @@ closeModal();
                 }}
                 payment={
                     modal.type === 'renewal-whatsapp' ? modal.payment : null
+                }
+            />
+            <PaymentWinBackWhatsAppDialog
+                open={modal.type === 'win-back-whatsapp'}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        closeModal();
+                    }
+                }}
+                payment={
+                    modal.type === 'win-back-whatsapp' ? modal.payment : null
                 }
             />
             <PaymentManualRenewalDialog
