@@ -5,6 +5,7 @@ return [
         'created' => 'Pedido de laboratorio guardado correctamente.',
         'updated' => 'Pedido actualizado correctamente.',
         'deleted' => 'Pedido eliminado correctamente.',
+        'archivo_deleted' => 'Archivo eliminado correctamente.',
         'whatsapp_enviado' => 'Resultados enviados por WhatsApp.',
         'whatsapp_no_phone' => 'Indica un número de WhatsApp válido.',
         'whatsapp_fallo' => 'No se pudieron enviar los resultados por WhatsApp.',

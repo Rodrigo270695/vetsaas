@@ -114,6 +114,9 @@ type FormShape = {
     nombre_vacuna: string;
     esquema_antigenos: string;
     fecha_proxima_sugerida: string;
+    proxima_servicio_clinico_id: string | null;
+    proxima_inicio_at: string;
+    proxima_duracion_minutos: string;
     aplicada_at: string;
     notas: string;
     veterinario_id: string | null;
@@ -133,6 +136,9 @@ function emptyForm(
         nombre_vacuna: '',
         esquema_antigenos: '',
         fecha_proxima_sugerida: '',
+        proxima_servicio_clinico_id: null,
+        proxima_inicio_at: '',
+        proxima_duracion_minutos: '30',
         aplicada_at: toDatetimeLocalValue(new Date()),
         notas: '',
         veterinario_id: defaultVetId,
@@ -140,7 +146,30 @@ function emptyForm(
     };
 }
 
-function fromVacuna(v: VacunaAplicadaRow, defaultVetId: string | null): FormShape {
+function resolveProximaPaqueteId(
+    v: VacunaAplicadaRow,
+    servicios: readonly ServicioVacunaOpcion[],
+): string | null {
+    const motivo = (v.cita_proxima?.motivo ?? '').toLowerCase();
+    if (motivo !== '') {
+        const hit = servicios.find((s) => motivo.includes(s.nombre.toLowerCase()));
+        if (hit) {
+            return hit.id;
+        }
+    }
+
+    return v.servicio_clinico_id ?? null;
+}
+
+function fromVacuna(
+    v: VacunaAplicadaRow,
+    defaultVetId: string | null,
+    servicios: readonly ServicioVacunaOpcion[],
+): FormShape {
+    const citaInicio = v.cita_proxima?.inicio_at
+        ? parseIsoToDatetimeLocal(v.cita_proxima.inicio_at)
+        : '';
+
     return {
         paciente_id: v.paciente_id,
         consulta_id: v.consulta_id ?? '',
@@ -150,6 +179,10 @@ function fromVacuna(v: VacunaAplicadaRow, defaultVetId: string | null): FormShap
         nombre_vacuna: v.nombre_vacuna,
         esquema_antigenos: v.esquema_antigenos ?? '',
         fecha_proxima_sugerida: isoDateToInput(v.fecha_proxima_sugerida),
+        proxima_servicio_clinico_id:
+            v.cita_proxima != null ? resolveProximaPaqueteId(v, servicios) : null,
+        proxima_inicio_at: citaInicio,
+        proxima_duracion_minutos: String(v.cita_proxima?.duracion_minutos ?? 30),
         aplicada_at: parseIsoToDatetimeLocal(v.aplicada_at),
         notas: v.notas ?? '',
         veterinario_id: v.veterinario_id ?? defaultVetId,
@@ -218,7 +251,21 @@ export function VacunaFormModal({
                 categoria_registro: r.categoria_registro || 'vacuna',
                 nombre_vacuna: r.nombre_vacuna.trim(),
                 esquema_antigenos: r.esquema_antigenos.trim() === '' ? null : r.esquema_antigenos.trim(),
-                fecha_proxima_sugerida: dateInputToPayload(r.fecha_proxima_sugerida),
+                fecha_proxima_sugerida: dateInputToPayload(
+                    r.proxima_inicio_at.trim() !== ''
+                        ? r.proxima_inicio_at.slice(0, 10)
+                        : r.fecha_proxima_sugerida,
+                ),
+                proxima_servicio_clinico_id:
+                    r.proxima_servicio_clinico_id != null && r.proxima_servicio_clinico_id !== ''
+                        ? r.proxima_servicio_clinico_id
+                        : null,
+                proxima_inicio_at: r.proxima_inicio_at.trim() === '' ? null : r.proxima_inicio_at,
+                proxima_duracion_minutos: (() => {
+                    const n = Number.parseInt(r.proxima_duracion_minutos, 10);
+
+                    return Number.isFinite(n) ? n : 30;
+                })(),
                 aplicada_at: r.aplicada_at,
                 numero_dosis: vacuna?.numero_dosis ?? null,
                 lote: vacuna?.lote?.trim() ? vacuna.lote.trim() : null,
@@ -237,7 +284,7 @@ export function VacunaFormModal({
         }
         clearErrors();
         if (vacuna !== null) {
-            setData(fromVacuna(vacuna, defaultVetId));
+            setData(fromVacuna(vacuna, defaultVetId, serviciosVacunaOpciones));
         } else {
             const base = emptyForm(defaultVetId, sedesOpciones);
             if (prefillCreate) {
@@ -316,7 +363,21 @@ export function VacunaFormModal({
             categoria_registro: raw.categoria_registro || 'vacuna',
             nombre_vacuna: raw.nombre_vacuna.trim(),
             esquema_antigenos: raw.esquema_antigenos.trim() === '' ? null : raw.esquema_antigenos.trim(),
-            fecha_proxima_sugerida: dateInputToPayload(raw.fecha_proxima_sugerida),
+            fecha_proxima_sugerida: dateInputToPayload(
+                raw.proxima_inicio_at.trim() !== ''
+                    ? raw.proxima_inicio_at.slice(0, 10)
+                    : raw.fecha_proxima_sugerida,
+            ),
+            proxima_servicio_clinico_id:
+                raw.proxima_servicio_clinico_id != null && raw.proxima_servicio_clinico_id !== ''
+                    ? raw.proxima_servicio_clinico_id
+                    : null,
+            proxima_inicio_at: raw.proxima_inicio_at.trim() === '' ? null : raw.proxima_inicio_at,
+            proxima_duracion_minutos: (() => {
+                const n = Number.parseInt(raw.proxima_duracion_minutos, 10);
+
+                return Number.isFinite(n) ? n : 30;
+            })(),
             aplicada_at: raw.aplicada_at,
             numero_dosis: null,
             lote: null,
@@ -498,21 +559,100 @@ export function VacunaFormModal({
                 </FormField>
                 <p className="text-xs text-muted-foreground">{t('form.esquema_hint')}</p>
 
-                <FormField
-                    id="vf-proxima"
-                    label={t('form.fecha_proxima_sugerida')}
-                    error={errors.fecha_proxima_sugerida as string | undefined}
-                >
-                    <Input
-                        id="vf-proxima"
-                        type="date"
-                        className={controlClass}
-                        value={data.fecha_proxima_sugerida}
-                        onChange={(e) => setData('fecha_proxima_sugerida', e.target.value)}
-                        aria-invalid={Boolean(errors.fecha_proxima_sugerida)}
-                    />
-                </FormField>
-                <p className="text-xs text-muted-foreground">{t('form.fecha_proxima_hint')}</p>
+                <div className="space-y-3 rounded-lg border border-border/70 bg-muted/15 p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-sm font-medium text-foreground">
+                            {t('form.fecha_proxima_sugerida')}
+                        </p>
+                        <a
+                            href="/clinica/citas"
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-xs font-medium text-violet-700 underline-offset-2 hover:underline dark:text-violet-300"
+                        >
+                            {t('form.proxima_citas_link')}
+                        </a>
+                    </div>
+                    <p className="text-xs text-muted-foreground">{t('form.fecha_proxima_hint')}</p>
+
+                    <FormField
+                        id="vf-proxima-paquete"
+                        label={t('form.proxima_paquete')}
+                        error={errors.proxima_servicio_clinico_id as string | undefined}
+                    >
+                        <Combobox
+                            id="vf-proxima-paquete"
+                            options={servicioComboboxOptions}
+                            value={data.proxima_servicio_clinico_id}
+                            onChange={(value) =>
+                                setData(
+                                    'proxima_servicio_clinico_id',
+                                    value != null && value !== '' ? value : null,
+                                )
+                            }
+                            placeholder={t('form.proxima_paquete_placeholder')}
+                            searchPlaceholder={t('form.proxima_paquete_search')}
+                            emptyMessage={t('form.proxima_paquete_empty')}
+                            disabled={processing}
+                            aria-invalid={Boolean(errors.proxima_servicio_clinico_id)}
+                        />
+                    </FormField>
+
+                    <div className="grid gap-3 sm:grid-cols-[1fr_7rem]">
+                        <FormField
+                            id="vf-proxima-inicio"
+                            label={t('form.proxima_inicio_at')}
+                            error={errors.proxima_inicio_at as string | undefined}
+                        >
+                            <Input
+                                id="vf-proxima-inicio"
+                                type="datetime-local"
+                                className={controlClass}
+                                value={data.proxima_inicio_at}
+                                onChange={(e) => setData('proxima_inicio_at', e.target.value)}
+                                aria-invalid={Boolean(errors.proxima_inicio_at)}
+                            />
+                        </FormField>
+                        <FormField
+                            id="vf-proxima-duracion"
+                            label={t('form.proxima_duracion_minutos')}
+                            error={errors.proxima_duracion_minutos as string | undefined}
+                        >
+                            <Input
+                                id="vf-proxima-duracion"
+                                type="number"
+                                min={5}
+                                max={480}
+                                step={5}
+                                className={controlClass}
+                                value={data.proxima_duracion_minutos}
+                                onChange={(e) => setData('proxima_duracion_minutos', e.target.value)}
+                                aria-invalid={Boolean(errors.proxima_duracion_minutos)}
+                            />
+                        </FormField>
+                    </div>
+
+                    {data.proxima_servicio_clinico_id || data.proxima_inicio_at ? (
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 px-2 text-xs text-muted-foreground"
+                            disabled={processing}
+                            onClick={() =>
+                                setData((prev) => ({
+                                    ...prev,
+                                    proxima_servicio_clinico_id: null,
+                                    proxima_inicio_at: '',
+                                    fecha_proxima_sugerida: '',
+                                    proxima_duracion_minutos: '30',
+                                }))
+                            }
+                        >
+                            {t('form.proxima_clear')}
+                        </Button>
+                    ) : null}
+                </div>
 
                 <FormField
                     id="vf-fecha"

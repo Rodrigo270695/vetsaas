@@ -555,6 +555,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             Route::middleware('permission:laboratorio.delete')
                 ->delete('laboratorio/{pedido_laboratorio}', [LaboratorioController::class, 'destroy'])
                 ->name('laboratorio.destroy');
+            Route::middleware('permission:laboratorio.delete|laboratorio.create')
+                ->delete('laboratorio/lineas/{linea}', [LaboratorioController::class, 'destroyLinea'])
+                ->name('laboratorio.lineas.destroy');
             Route::middleware('permission:laboratorio.view')
                 ->post('laboratorio/{pedido_laboratorio}/enviar-whatsapp', [LaboratorioController::class, 'enviarWhatsApp'])
                 ->name('laboratorio.enviar-whatsapp');

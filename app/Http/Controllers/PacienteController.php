@@ -242,6 +242,7 @@ class PacienteController extends Controller
 
         $canLabCreate = $user?->can('laboratorio.create') ?? false;
         $canLabView = $user?->can('laboratorio.view') ?? false;
+        $canLabDelete = ($user?->can('laboratorio.delete') ?? false) || $canLabCreate;
         $canCrearCita = $user?->can('citas.create') ?? false;
 
         $archivosSubidos = [];
@@ -388,6 +389,7 @@ class PacienteController extends Controller
                 'vacunas_crear' => $canCrearVacuna,
                 'vacunas_editar' => $canEditarVacuna,
                 'laboratorio_crear' => $canLabCreate,
+                'laboratorio_eliminar' => $canLabDelete,
                 'citas_crear' => $canCrearCita,
                 'petpass_register' => $canPetPassRegister,
             ],

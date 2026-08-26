@@ -35,6 +35,16 @@ class StoreVacunaAplicadaRequest extends FormRequest
         if ($fp === '' || $fp === null) {
             $out['fecha_proxima_sugerida'] = null;
         }
+        foreach (['proxima_servicio_clinico_id', 'proxima_inicio_at'] as $key) {
+            $v = $this->input($key);
+            if ($v === '' || $v === null) {
+                $out[$key] = null;
+            }
+        }
+        $pd = $this->input('proxima_duracion_minutos');
+        if ($pd === '' || $pd === null) {
+            $out['proxima_duracion_minutos'] = null;
+        }
         $esq = $this->input('esquema_antigenos');
         if ($esq === null || $esq === '') {
             $out['esquema_antigenos'] = null;
@@ -69,19 +79,28 @@ class StoreVacunaAplicadaRequest extends FormRequest
     {
         $validator->after(function (\Illuminate\Validation\Validator $v): void {
             $cid = $this->input('consulta_id');
-            if ($cid === null || $cid === '') {
-                return;
+            if ($cid !== null && $cid !== '') {
+                $pid = $this->input('paciente_id');
+                $consulta = Consulta::query()->with('historiaClinica:id,paciente_id')->find($cid);
+                if ($consulta === null || $consulta->historiaClinica === null
+                    || (string) $consulta->historiaClinica->paciente_id !== (string) $pid) {
+                    $v->errors()->add('consulta_id', __('vacunaciones.validation.consulta_invalida'));
+                } elseif ($consulta->cerrada_at !== null) {
+                    $v->errors()->add('consulta_id', __('vacunaciones.validation.consulta_cerrada'));
+                }
             }
-            $pid = $this->input('paciente_id');
-            $consulta = Consulta::query()->with('historiaClinica:id,paciente_id')->find($cid);
-            if ($consulta === null || $consulta->historiaClinica === null
-                || (string) $consulta->historiaClinica->paciente_id !== (string) $pid) {
-                $v->errors()->add('consulta_id', __('vacunaciones.validation.consulta_invalida'));
 
-                return;
-            }
-            if ($consulta->cerrada_at !== null) {
-                $v->errors()->add('consulta_id', __('vacunaciones.validation.consulta_cerrada'));
+            $proximaServicio = $this->input('proxima_servicio_clinico_id');
+            $proximaInicio = $this->input('proxima_inicio_at');
+            $hasServicio = is_string($proximaServicio) && $proximaServicio !== '';
+            $hasInicio = is_string($proximaInicio) && $proximaInicio !== '';
+            if ($hasServicio xor $hasInicio) {
+                if (! $hasServicio) {
+                    $v->errors()->add('proxima_servicio_clinico_id', __('vacunaciones.validation.proxima_paquete_required'));
+                }
+                if (! $hasInicio) {
+                    $v->errors()->add('proxima_inicio_at', __('vacunaciones.validation.proxima_inicio_required'));
+                }
             }
         });
     }
@@ -115,6 +134,15 @@ class StoreVacunaAplicadaRequest extends FormRequest
             'categoria_registro' => ['required', 'string', Rule::in(VacunaAplicada::CATEGORIAS_REGISTRO)],
             'esquema_antigenos' => ['nullable', 'string', 'max:2000'],
             'fecha_proxima_sugerida' => ['nullable', 'date'],
+            'proxima_servicio_clinico_id' => [
+                'nullable',
+                'uuid',
+                Rule::exists('servicios_clinicos', 'id')->where(
+                    fn ($q) => $q->where('activo', true),
+                ),
+            ],
+            'proxima_inicio_at' => ['nullable', 'date'],
+            'proxima_duracion_minutos' => ['nullable', 'integer', 'min:5', 'max:480'],
             'numero_dosis' => ['nullable', 'integer', 'min:1', 'max:99'],
             'lote' => ['nullable', 'string', 'max:128'],
             'notas' => ['nullable', 'string', 'max:20000'],

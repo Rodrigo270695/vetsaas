@@ -9,6 +9,8 @@ return [
     'validation' => [
         'consulta_invalida' => 'The consultation does not belong to this patient.',
         'consulta_cerrada' => 'You cannot link an application to a consultation that is already closed.',
+        'proxima_paquete_required' => 'Choose the package for the next visit (e.g. Sextuple).',
+        'proxima_inicio_required' => 'Enter date and time for the next appointment.',
     ],
     'stock' => [
         'notas' => 'Vaccination: :vacuna — patient :paciente (record :id).',

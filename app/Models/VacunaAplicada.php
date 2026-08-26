@@ -23,6 +23,7 @@ use Illuminate\Support\Str;
  * @property string $categoria_registro
  * @property ?string $esquema_antigenos
  * @property ?\Illuminate\Support\Carbon $fecha_proxima_sugerida
+ * @property ?string $cita_proxima_id
  * @property ?string $notas
  * @property ?string $veterinario_id
  * @property ?string $sede_id
@@ -98,6 +99,7 @@ class VacunaAplicada extends Model
         'categoria_registro',
         'esquema_antigenos',
         'fecha_proxima_sugerida',
+        'cita_proxima_id',
         'notas',
         'veterinario_id',
         'sede_id',
@@ -190,6 +192,11 @@ class VacunaAplicada extends Model
     public function servicioClinico(): BelongsTo
     {
         return $this->belongsTo(ServicioClinico::class, 'servicio_clinico_id');
+    }
+
+    public function citaProxima(): BelongsTo
+    {
+        return $this->belongsTo(Cita::class, 'cita_proxima_id');
     }
 
     public function veterinario(): BelongsTo

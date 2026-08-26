@@ -9,6 +9,8 @@ return [
     'validation' => [
         'consulta_invalida' => 'La consulta no pertenece a este paciente.',
         'consulta_cerrada' => 'No puedes vincular una aplicación a una consulta ya cerrada.',
+        'proxima_paquete_required' => 'Elige el paquete de la próxima visita (ej. Séxtuple).',
+        'proxima_inicio_required' => 'Indica fecha y hora de la próxima cita.',
     ],
     'stock' => [
         'notas' => 'Vacunación: :vacuna — paciente :paciente (registro :id).',

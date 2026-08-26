@@ -10,6 +10,7 @@ use App\Models\VacunaAplicada;
 use App\Support\WhatsApp\WhatsAppChatId;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Schema;
 
 final class VaccineReminderScanner
 {
@@ -34,14 +35,19 @@ final class VaccineReminderScanner
         $clinicName = $this->messages->clinicDisplayName($setting);
         $enqueued = 0;
 
-        $vacunas = VacunaAplicada::query()
+        $vacunasQuery = VacunaAplicada::query()
             ->with(['paciente.propietario'])
             ->where(function ($query) use ($targetDates): void {
                 foreach ($targetDates->keys() as $targetDate) {
                     $query->orWhereDate('fecha_proxima_sugerida', $targetDate);
                 }
-            })
-            ->get();
+            });
+
+        if (Schema::hasColumn('vacunas_aplicadas', 'cita_proxima_id')) {
+            $vacunasQuery->whereNull('cita_proxima_id');
+        }
+
+        $vacunas = $vacunasQuery->get();
 
         foreach ($vacunas as $vacuna) {
             $targetDate = Carbon::parse($vacuna->fecha_proxima_sugerida)->toDateString();

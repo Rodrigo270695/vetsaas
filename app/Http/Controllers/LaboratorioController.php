@@ -393,6 +393,49 @@ class LaboratorioController extends Controller
     }
 
     /**
+     * Elimina un archivo/examen (línea) desde el historial del paciente.
+     * Si el pedido queda vacío, también lo elimina.
+     */
+    public function destroyLinea(Request $request, PedidoLaboratorioLinea $linea): RedirectResponse
+    {
+        $user = $request->user();
+        abort_unless(
+            ($user?->can('laboratorio.delete') ?? false)
+            || ($user?->can('laboratorio.create') ?? false),
+            403,
+        );
+
+        $linea->loadMissing('pedidoLaboratorio:id,paciente_id');
+        $pedido = $linea->pedidoLaboratorio;
+        abort_unless($pedido instanceof PedidoLaboratorio, 404);
+
+        $pacienteId = (string) $pedido->paciente_id;
+
+        DB::transaction(function () use ($linea, $pedido): void {
+            $linea->delete();
+
+            $restantes = PedidoLaboratorioLinea::query()
+                ->where('pedido_laboratorio_id', $pedido->id)
+                ->count();
+
+            if ($restantes === 0) {
+                $pedido->delete();
+            }
+        });
+
+        $redirect = $request->headers->get('referer');
+        if (is_string($redirect) && $redirect !== '') {
+            return redirect()
+                ->to($redirect)
+                ->with('success', __('laboratorio.flash.archivo_deleted'));
+        }
+
+        return redirect()
+            ->route('clinica.pacientes.show', $pacienteId)
+            ->with('success', __('laboratorio.flash.archivo_deleted'));
+    }
+
+    /**
      * Solo parámetros de la query string (evita mezclar el body del POST del formulario).
      *
      * @param  list<string>  $keys

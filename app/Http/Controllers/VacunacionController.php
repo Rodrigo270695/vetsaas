@@ -16,6 +16,7 @@ use App\Models\ServicioClinico;
 use App\Models\User;
 use App\Models\VacunaAplicada;
 use App\Services\Clinica\VacunaAplicadaImportService;
+use App\Services\Clinica\VacunaProximaCitaSync;
 use App\Support\Pdf\HistorialClinicoPdfBuilder;
 use App\Support\Vacunas\VacunaAplicadaStockSync;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -108,6 +109,10 @@ class VacunacionController extends Controller
                 ])
                 ->whereKey($editarVacunaRaw);
 
+            if (Schema::hasColumn('vacunas_aplicadas', 'cita_proxima_id')) {
+                $vacEditQuery->with(['citaProxima:id,inicio_at,duracion_minutos,motivo,estado']);
+            }
+
             if ($canAuditVac) {
                 $vacEditQuery->with([
                     'creadoPor:id,name,email',
@@ -139,6 +144,9 @@ class VacunacionController extends Controller
             'sede:id,nombre,codigo',
             'consulta:id,atendido_at,cerrada_at',
         ];
+        if (Schema::hasColumn('vacunas_aplicadas', 'cita_proxima_id')) {
+            $withVacuna[] = 'citaProxima:id,inicio_at,duracion_minutos,motivo,estado';
+        }
         if (Schema::hasColumn('consulta_cargos', 'vacuna_aplicada_id')) {
             $withVacuna[] = 'cargo:id,vacuna_aplicada_id,estado,venta_id,total';
         }
@@ -218,6 +226,18 @@ class VacunacionController extends Controller
                 'categoria_registro' => $v->categoria_registro,
                 'esquema_antigenos' => $v->esquema_antigenos,
                 'fecha_proxima_sugerida' => $v->fecha_proxima_sugerida?->toDateString(),
+                'cita_proxima_id' => Schema::hasColumn('vacunas_aplicadas', 'cita_proxima_id')
+                    ? $v->cita_proxima_id
+                    : null,
+                'cita_proxima' => Schema::hasColumn('vacunas_aplicadas', 'cita_proxima_id') && $v->citaProxima !== null
+                    ? [
+                        'id' => $v->citaProxima->id,
+                        'inicio_at' => $v->citaProxima->inicio_at?->toIso8601String(),
+                        'duracion_minutos' => $v->citaProxima->duracion_minutos,
+                        'motivo' => $v->citaProxima->motivo,
+                        'estado' => $v->citaProxima->estado,
+                    ]
+                    : null,
                 'aplicada_at' => $v->aplicada_at?->toIso8601String(),
                 'numero_dosis' => $v->numero_dosis,
                 'lote' => $v->lote,
@@ -511,8 +531,21 @@ class VacunacionController extends Controller
         $data['created_by_id'] = Auth::id();
         $data['updated_by_id'] = Auth::id();
 
+        $proxima = [
+            'proxima_servicio_clinico_id' => $data['proxima_servicio_clinico_id'] ?? null,
+            'proxima_inicio_at' => $data['proxima_inicio_at'] ?? null,
+            'proxima_duracion_minutos' => $data['proxima_duracion_minutos'] ?? 30,
+        ];
+        unset(
+            $data['proxima_servicio_clinico_id'],
+            $data['proxima_inicio_at'],
+            $data['proxima_duracion_minutos'],
+        );
+
         try {
-            DB::transaction(function () use ($data): void {
+            /** @var VacunaAplicada|null $created */
+            $created = null;
+            DB::transaction(function () use ($data, &$created): void {
                 /** @var VacunaAplicada $vacuna */
                 $vacuna = VacunaAplicada::query()->create($data);
 
@@ -520,7 +553,13 @@ class VacunacionController extends Controller
                     $mov = VacunaAplicadaStockSync::registrarSalida($vacuna, Auth::id() !== null ? (string) Auth::id() : null);
                     $vacuna->forceFill(['movimiento_inventario_id' => $mov->id])->save();
                 }
+
+                $created = $vacuna;
             });
+
+            if ($created !== null) {
+                app(VacunaProximaCitaSync::class)->sync($created, $proxima);
+            }
         } catch (ValidationException $e) {
             $errors = $e->errors();
             if (isset($errors['cantidad'])) {
@@ -551,6 +590,17 @@ class VacunacionController extends Controller
         $data['nombre_vacuna'] = Str::limit(trim($data['nombre_vacuna']), 500, '');
         $data['updated_by_id'] = Auth::id();
 
+        $proxima = [
+            'proxima_servicio_clinico_id' => $data['proxima_servicio_clinico_id'] ?? null,
+            'proxima_inicio_at' => $data['proxima_inicio_at'] ?? null,
+            'proxima_duracion_minutos' => $data['proxima_duracion_minutos'] ?? 30,
+        ];
+        unset(
+            $data['proxima_servicio_clinico_id'],
+            $data['proxima_inicio_at'],
+            $data['proxima_duracion_minutos'],
+        );
+
         try {
             DB::transaction(function () use ($vacuna_aplicada, $data): void {
                 $movAnterior = null;
@@ -576,6 +626,8 @@ class VacunacionController extends Controller
                     $vacuna_aplicada->forceFill(['movimiento_inventario_id' => $mov->id])->save();
                 }
             });
+
+            app(VacunaProximaCitaSync::class)->sync($vacuna_aplicada->fresh() ?? $vacuna_aplicada, $proxima);
         } catch (ValidationException $e) {
             $errors = $e->errors();
             if (isset($errors['cantidad'])) {

@@ -5,6 +5,7 @@ return [
         'created' => 'Lab order saved successfully.',
         'updated' => 'Lab order updated successfully.',
         'deleted' => 'Lab order deleted successfully.',
+        'archivo_deleted' => 'File deleted successfully.',
         'whatsapp_enviado' => 'Results sent via WhatsApp.',
         'whatsapp_no_phone' => 'Enter a valid WhatsApp number.',
         'whatsapp_fallo' => 'Could not send lab results via WhatsApp.',

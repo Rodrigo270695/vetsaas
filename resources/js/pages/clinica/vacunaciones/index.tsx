@@ -322,16 +322,38 @@ export default function Index({
             {
                 key: 'fecha_proxima_sugerida',
                 header: t('columns.proxima'),
-                cell: (row) => (
-                    <span className="whitespace-nowrap text-sm text-muted-foreground">
-                        {row.fecha_proxima_sugerida
-                            ? formatDateOnlyLabel(
-                                  row.fecha_proxima_sugerida,
-                                  uiLocale,
-                              )
-                            : '—'}
-                    </span>
-                ),
+                cell: (row) => {
+                    const cita = row.cita_proxima;
+                    if (cita?.inicio_at) {
+                        return (
+                            <div className="min-w-0 space-y-0.5">
+                                <span className="block whitespace-nowrap text-sm text-foreground">
+                                    {formatAtendidoInAppTimezone(
+                                        cita.inicio_at,
+                                        uiLocale,
+                                        appTz,
+                                    )}
+                                </span>
+                                {cita.motivo ? (
+                                    <span className="block truncate text-xs text-muted-foreground">
+                                        {cita.motivo}
+                                    </span>
+                                ) : null}
+                            </div>
+                        );
+                    }
+
+                    return (
+                        <span className="whitespace-nowrap text-sm text-muted-foreground">
+                            {row.fecha_proxima_sugerida
+                                ? formatDateOnlyLabel(
+                                      row.fecha_proxima_sugerida,
+                                      uiLocale,
+                                  )
+                                : '—'}
+                        </span>
+                    );
+                },
             },
             {
                 key: 'numero_dosis',

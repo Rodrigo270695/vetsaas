@@ -58,6 +58,14 @@ export type VacunaAplicadaRow = {
     categoria_registro?: string;
     esquema_antigenos?: string | null;
     fecha_proxima_sugerida?: string | null;
+    cita_proxima_id?: string | null;
+    cita_proxima?: {
+        id: string;
+        inicio_at: string;
+        duracion_minutos: number;
+        motivo: string | null;
+        estado: string;
+    } | null;
     aplicada_at: string;
     numero_dosis: number | null;
     lote: string | null;

@@ -138,6 +138,7 @@ type Props = {
         vacunas_crear: boolean;
         vacunas_editar?: boolean;
         laboratorio_crear: boolean;
+        laboratorio_eliminar?: boolean;
         citas_crear?: boolean;
     };
 };
@@ -309,7 +310,11 @@ export default function PacienteShow({
                         </header>
                         <div className="flex flex-wrap gap-2 p-3 sm:p-4">
                             {archivos_subidos.map((archivo) => (
-                                <HistorialArchivoPreview key={archivo.id} archivo={archivo} />
+                                <HistorialArchivoPreview
+                                    key={archivo.id}
+                                    archivo={archivo}
+                                    canDelete={Boolean(permisos.laboratorio_eliminar)}
+                                />
                             ))}
                         </div>
                     </section>

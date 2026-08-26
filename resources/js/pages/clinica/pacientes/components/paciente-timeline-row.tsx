@@ -38,6 +38,7 @@ type TimelineRowProps = {
         consultas_ver: boolean;
         vacunas_ver: boolean;
         laboratorio_crear?: boolean;
+        laboratorio_eliminar?: boolean;
     };
     isLast: boolean;
     consultaOpeningId?: string | null;
@@ -373,6 +374,10 @@ export function PacienteTimelineRow({
                                         <HistorialArchivoPreview
                                             key={archivo.id}
                                             archivo={archivo}
+                                            canDelete={
+                                                variant !== 'public' &&
+                                                Boolean(permisos.laboratorio_eliminar)
+                                            }
                                         />
                                     ))}
                                 </div>
