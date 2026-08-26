@@ -149,14 +149,14 @@
         "description": "Re-engagement message for {{name}}: new features (internal chat, templates, referrals) and 1 free month.",
         "message_label": "WhatsApp message",
         "message_placeholder": "Write or generate the message…",
-        "default_message": "Hi, {{name}} 👋\n\nWe miss you on VetSaaS. We'd love you to try the platform again.\n\nRecent updates:\n• Internal team chat\n• Ready-to-use WhatsApp templates\n• Referral program\n\nAs a gesture, we're giving you 1 free month to explore everything risk-free.\n\nShall we activate the month and hear what you'd like to see?\n\n— Orvae / VetSaaS team",
+        "default_message": "Hi, {{name}} 👋\n\nWe miss you on VetSaaS. We'd love you to try the platform again.\n\nRecent updates:\n• Internal team chat\n• Ready-to-use WhatsApp templates\n• Referral program\n\nAs a gesture, we're giving you 1 free month to explore everything risk-free.\n\nShall we activate it? Reply «Yes» or «I accept» and we'll turn it on.\n\n— Orvae / VetSaaS team",
         "generate_ai": "Generate with AI",
-        "generate_hint": "AI rewrites or completes your draft ensuring the free-month offer and new features.",
+        "generate_hint": "AI rewrites or completes your draft ensuring the free-month offer, new features, and asking them to reply Yes to activate.",
         "generate_ok": "Message generated",
         "generate_error": "Could not generate the message. Check OpenAI or edit manually.",
-        "grant_month": "On send, grant 1 free month (30-day trial)",
-        "grant_month_hint": "Sets subscription to trial and adds 30 days from today (or from current trial).",
-        "confirm": "Send and reactivate"
+        "grant_month": "Offer 1 free month (activates when they reply Yes)",
+        "grant_month_hint": "On send it stays pending in Conversations. When they write «Yes» or «I accept», a 30-day trial is activated automatically.",
+        "confirm": "Send offer"
     },
     "manual_renewal": {
         "title": "Record payment and renew",

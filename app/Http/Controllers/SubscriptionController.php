@@ -244,8 +244,8 @@ class SubscriptionController extends Controller
             ?: $suscripcion->tenant?->razon_social
             ?: 'la clínica';
 
-        $extra = $result['granted_days']
-            ? " Se otorgaron {$result['granted_days']} días de acceso (1 mes gratis)."
+        $extra = ($result['pending_offer'] ?? false)
+            ? ' La oferta de 1 mes gratis queda pendiente: se activa cuando respondan «Sí» o «Acepto» en Conversaciones.'
             : '';
 
         return back()->with(

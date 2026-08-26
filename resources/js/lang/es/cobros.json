@@ -151,14 +151,14 @@
         "description": "Mensaje de reenganche para {{name}}: novedades (chat interno, plantillas, referidos) y oferta de 1 mes gratis.",
         "message_label": "Mensaje WhatsApp",
         "message_placeholder": "Escribe o genera el mensaje…",
-        "default_message": "Hola, {{name}} 👋\n\nTe extrañamos en VetSaaS. Queremos que vuelvas a probar la plataforma con tranquilidad.\n\nNovedades recientes:\n• Chat interno del equipo de la clínica\n• Plantillas de mensajes listas para WhatsApp\n• Programa de referidos\n\nComo gesto, te regalamos 1 mes gratis para que explores todo sin compromiso.\n\n¿Te parece si te dejamos el mes activo y nos cuentas qué te gustaría ver?\n\n— Equipo Orvae / VetSaaS",
+        "default_message": "Hola, {{name}} 👋\n\nTe extrañamos en VetSaaS. Queremos que vuelvas a probar la plataforma con tranquilidad.\n\nNovedades recientes:\n• Chat interno del equipo de la clínica\n• Plantillas de mensajes listas para WhatsApp\n• Programa de referidos\n\nComo gesto, te regalamos 1 mes gratis para que explores todo sin compromiso.\n\n¿Te activamos el mes gratis? Responde «Sí» o «Acepto» y lo dejamos listo.\n\n— Equipo Orvae / VetSaaS",
         "generate_ai": "Generar con IA",
-        "generate_hint": "La IA reescribe o completa tu texto asegurando la oferta de 1 mes gratis y las novedades.",
+        "generate_hint": "La IA reescribe o completa tu texto asegurando la oferta de 1 mes gratis, las novedades y que pidan responder Sí para activar.",
         "generate_ok": "Mensaje generado",
         "generate_error": "No se pudo generar el mensaje. Revisa la API de OpenAI o edita el texto a mano.",
-        "grant_month": "Al enviar, otorgar 1 mes gratis (trial 30 días)",
-        "grant_month_hint": "Pasa la suscripción a trial y suma 30 días desde hoy (o desde el trial vigente).",
-        "confirm": "Enviar y reactivar"
+        "grant_month": "Ofrecer 1 mes gratis (se activa al responder Sí)",
+        "grant_month_hint": "Al enviar queda pendiente en Conversaciones. Cuando escriban «Sí» o «Acepto», se activa el trial de 30 días automáticamente.",
+        "confirm": "Enviar oferta"
     },
     "manual_renewal": {
         "title": "Registrar pago y renovar",

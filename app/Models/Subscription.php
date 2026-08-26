@@ -34,6 +34,9 @@ class Subscription extends Model
         'bot_ia_activo',
         'bot_ia_precio_mensual',
         'bot_ia_activado_at',
+        'win_back_pending_at',
+        'win_back_accepted_at',
+        'win_back_phone',
     ];
 
     protected static function booted(): void
@@ -53,6 +56,8 @@ class Subscription extends Model
             'cancelled_at' => 'datetime',
             'proximo_cobro_at' => 'datetime',
             'bot_ia_activado_at' => 'datetime',
+            'win_back_pending_at' => 'datetime',
+            'win_back_accepted_at' => 'datetime',
             'precio_pactado' => 'decimal:2',
             'descuento_pct' => 'decimal:2',
             'bot_ia_precio_mensual' => 'decimal:2',

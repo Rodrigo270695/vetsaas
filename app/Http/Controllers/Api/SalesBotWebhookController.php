@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Services\OpenWa\PlatformWhatsAppMessenger;
 use App\Services\Sales\SalesBotService;
+use App\Services\Subscriptions\SubscriptionWinBackService;
 use App\Support\WhatsApp\BotInboundDebounceScheduler;
 use App\Support\WhatsApp\BotInboundDebouncer;
 use App\Support\WhatsApp\WhatsAppContactResolver;
@@ -46,6 +47,7 @@ final class SalesBotWebhookController extends Controller
         private readonly SalesBotService $botService,
         private readonly PlatformWhatsAppMessenger $messenger,
         private readonly WhatsAppContactResolver $contactResolver,
+        private readonly SubscriptionWinBackService $winBack,
     ) {}
 
     public function handle(Request $request): JsonResponse
@@ -75,18 +77,9 @@ final class SalesBotWebhookController extends Controller
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
-        // ── 2. Verificar que el bot está habilitado ───────────────────────
-        if (! config('salesbot.enabled')) {
-            return response()->json(['ok' => false, 'reason' => 'salesbot disabled'], 200);
-        }
-
-        // ── 3. Deduplicar — responder inmediatamente para que OpenWA no reintente ──
-        // OpenWA reintenta el webhook si no recibe respuesta en ~10s.
-        // Como el procesamiento de audio puede tomar 20-30s, cerramos la
-        // conexión HTTP de inmediato y seguimos procesando en background.
-        // Ver: https://laravel.com/docs/http-client#making-asynchronous-requests
-
-        // ── 3. Extraer datos del payload ──────────────────────────────────
+        // ── 2. Extraer datos del payload ──────────────────────────────────
+        // (salesbot.enabled se valida más abajo; el reenganche win-back
+        //  debe funcionar aunque el bot de ventas esté pausado/desactivado.)
         $payload = $request->all();
 
         // Soporta payload directo { body, from, ... } o anidado { data: { ... } }
@@ -238,6 +231,21 @@ final class SalesBotWebhookController extends Controller
                     return response()->json(['ok' => true, 'skipped' => 'audio_transcription_failed']);
                 }
             }
+        }
+
+        // ── Reenganche Cobros: oferta pendiente → «Sí»/«Acepto» activa 1 mes ──
+        $winBackResult = $this->winBack->tryHandleInbound($phone, $waChatId, $prospectName, $body);
+        if ($winBackResult['handled']) {
+            return response()->json([
+                'ok' => true,
+                'win_back' => $winBackResult['status'],
+                'granted_days' => $winBackResult['granted_days'],
+            ]);
+        }
+
+        // ── Bot de ventas habilitado ──────────────────────────────────────
+        if (! config('salesbot.enabled')) {
+            return response()->json(['ok' => false, 'reason' => 'salesbot disabled'], 200);
         }
 
         // ── 4. Lógica de activación del bot ───────────────────────────────

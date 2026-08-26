@@ -28,7 +28,7 @@ function readCsrfToken(): string {
 
 /**
  * Reenganche de clínicas vencidas: mensaje editable + Generar con IA + envío WhatsApp.
- * Opcionalmente otorga 1 mes gratis al enviar.
+ * La oferta de 1 mes se activa cuando el cliente responde «Sí» en Conversaciones.
  */
 export function PaymentWinBackWhatsAppDialog({
     open,
@@ -37,7 +37,7 @@ export function PaymentWinBackWhatsAppDialog({
 }: Props) {
     const { t } = useTranslation(['cobros', 'common']);
     const [message, setMessage] = useState('');
-    const [grantFreeMonth, setGrantFreeMonth] = useState(true);
+    const [offerFreeMonth, setOfferFreeMonth] = useState(true);
     const [generating, setGenerating] = useState(false);
     const [sending, setSending] = useState(false);
 
@@ -52,7 +52,7 @@ export function PaymentWinBackWhatsAppDialog({
         if (!open) {
             return;
         }
-        setGrantFreeMonth(true);
+        setOfferFreeMonth(true);
         setMessage(
             t('cobros:win_back.default_message', {
                 name: tenantName || 'equipo',
@@ -113,7 +113,7 @@ export function PaymentWinBackWhatsAppDialog({
             `/plataforma/suscripciones/${subscriptionId}/win-back/send`,
             {
                 message: message.trim(),
-                grant_free_month: grantFreeMonth,
+                grant_free_month: offerFreeMonth,
             },
             {
                 preserveScroll: true,
@@ -175,8 +175,8 @@ export function PaymentWinBackWhatsAppDialog({
 
                     <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-border/70 bg-muted/20 px-3 py-2.5 text-sm">
                         <Checkbox
-                            checked={grantFreeMonth}
-                            onCheckedChange={(v) => setGrantFreeMonth(v === true)}
+                            checked={offerFreeMonth}
+                            onCheckedChange={(v) => setOfferFreeMonth(v === true)}
                             disabled={busy}
                             className="mt-0.5"
                         />
