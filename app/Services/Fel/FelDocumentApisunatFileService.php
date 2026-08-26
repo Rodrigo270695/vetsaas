@@ -107,7 +107,15 @@ final class FelDocumentApisunatFileService
         try {
             $response = Http::timeout(45)
                 ->withToken($credenciales['token'])
+                ->withHeaders(['Accept' => '*/*'])
                 ->get($url);
+
+            // Algunas URLs Lucode de XML/CDR responden sin exigir Bearer.
+            if (! $response->successful() && in_array($tipo, ['xml', 'cdr'], true)) {
+                $response = Http::timeout(45)
+                    ->withHeaders(['Accept' => '*/*'])
+                    ->get($url);
+            }
         } catch (Throwable $e) {
             throw new RuntimeException(
                 'Error al descargar '.$label.' desde Lucode: '.$e->getMessage(),
@@ -135,10 +143,23 @@ final class FelDocumentApisunatFileService
             }
         }
 
-        if (($tipo === 'xml' || $tipo === 'cdr') && ! str_contains($body, '<?xml') && ! str_starts_with($body, 'PK')) {
-            throw new RuntimeException(
-                'Lucode no devolvió un XML válido para '.$label.'.',
-            );
+        if ($tipo === 'xml' || $tipo === 'cdr') {
+            $looksXml = str_contains($body, '<?xml')
+                || str_contains($body, 'ApplicationResponse')
+                || str_contains($body, 'ResponseCode')
+                || str_contains($body, '<') && str_contains($body, 'Description');
+            $looksZip = str_starts_with($body, 'PK') || str_starts_with($body, "\x1f\x8b");
+            if (! $looksXml && ! $looksZip) {
+                // A veces Lucode responde JSON de error en la URL del CDR.
+                $json = json_decode($body, true);
+                if (is_array($json) && is_string($json['message'] ?? null) && $json['message'] !== '') {
+                    throw new RuntimeException((string) $json['message']);
+                }
+
+                throw new RuntimeException(
+                    'Lucode no devolvió un XML/CDR válido para '.$label.'.',
+                );
+            }
         }
 
         return $body;

@@ -22,24 +22,58 @@ final class ApisunatCdrMotivoExtractor
      */
     public static function fromXml(string $xml): ?string
     {
-        $trimmed = trim($xml);
-        if ($trimmed === '' || ! str_contains($trimmed, '<')) {
+        $trimmed = self::normalizarEntrada($xml);
+        if ($trimmed === null) {
             return null;
         }
 
-        // Algunos CDR vienen empaquetados en ZIP (PK…).
+        $fromDom = self::desdeDom($trimmed);
+        if ($fromDom !== null) {
+            return $fromDom;
+        }
+
+        return self::desdeRegex($trimmed);
+    }
+
+    private static function normalizarEntrada(string $xml): ?string
+    {
+        $trimmed = preg_replace('/^\xEF\xBB\xBF/', '', $xml) ?? $xml;
+        $trimmed = trim($trimmed);
+        if ($trimmed === '') {
+            return null;
+        }
+
+        // gzip
+        if (str_starts_with($trimmed, "\x1f\x8b")) {
+            $decoded = @gzdecode($trimmed);
+            if (! is_string($decoded) || $decoded === '') {
+                return null;
+            }
+            $trimmed = trim($decoded);
+        }
+
+        // ZIP (CDR SUNAT clásico)
         if (str_starts_with($trimmed, 'PK')) {
             $fromZip = self::xmlDesdeZip($trimmed);
             if ($fromZip === null) {
                 return null;
             }
-            $trimmed = $fromZip;
+            $trimmed = trim($fromZip);
         }
 
+        if (! str_contains($trimmed, '<')) {
+            return null;
+        }
+
+        return $trimmed;
+    }
+
+    private static function desdeDom(string $xml): ?string
+    {
         try {
             $dom = new DOMDocument;
             $previous = libxml_use_internal_errors(true);
-            $loaded = $dom->loadXML($trimmed);
+            $loaded = $dom->loadXML($xml);
             libxml_clear_errors();
             libxml_use_internal_errors($previous);
             if (! $loaded) {
@@ -52,7 +86,7 @@ final class ApisunatCdrMotivoExtractor
         $xpath = new DOMXPath($dom);
         $parts = [];
 
-        foreach ($xpath->query('//*[local-name()="DocumentResponse"]/*[local-name()="Response"]') ?: [] as $response) {
+        foreach ($xpath->query('//*[local-name()="Response"]') ?: [] as $response) {
             if (! $response instanceof DOMElement) {
                 continue;
             }
@@ -61,7 +95,6 @@ final class ApisunatCdrMotivoExtractor
             if ($desc === null || $desc === '') {
                 continue;
             }
-            // 0 / 00 / 0000 = aceptado; no es motivo de rechazo.
             if ($code !== null && preg_match('/^0+$/', $code) === 1) {
                 continue;
             }
@@ -69,8 +102,25 @@ final class ApisunatCdrMotivoExtractor
         }
 
         if ($parts === []) {
+            foreach ($xpath->query('//*[local-name()="Status"]') ?: [] as $status) {
+                if (! $status instanceof DOMElement) {
+                    continue;
+                }
+                $code = self::childLocalText($status, 'StatusReasonCode');
+                $desc = self::childLocalText($status, 'StatusReason');
+                if ($desc === null || $desc === '') {
+                    continue;
+                }
+                if ($code !== null && preg_match('/^0+$/', $code) === 1) {
+                    continue;
+                }
+                $parts[] = $code !== null && $code !== '' ? "[{$code}] {$desc}" : $desc;
+            }
+        }
+
+        if ($parts === []) {
             foreach ($xpath->query('//*[local-name()="StatusReason"]') ?: [] as $node) {
-                $text = trim((string) $node->textContent);
+                $text = trim(html_entity_decode((string) $node->textContent, ENT_QUOTES | ENT_XML1, 'UTF-8'));
                 if ($text !== '') {
                     $parts[] = $text;
                 }
@@ -79,7 +129,7 @@ final class ApisunatCdrMotivoExtractor
 
         if ($parts === []) {
             foreach ($xpath->query('//*[local-name()="Note"]') ?: [] as $node) {
-                $text = trim((string) $node->textContent);
+                $text = trim(html_entity_decode((string) $node->textContent, ENT_QUOTES | ENT_XML1, 'UTF-8'));
                 if ($text !== '' && ! self::esNotaIrrelevante($text)) {
                     $parts[] = $text;
                 }
@@ -90,16 +140,58 @@ final class ApisunatCdrMotivoExtractor
             return null;
         }
 
-        $joined = implode(' · ', array_values(array_unique($parts)));
+        return mb_substr(implode(' · ', array_values(array_unique($parts))), 0, 2000);
+    }
 
-        return mb_substr($joined, 0, 2000);
+    private static function desdeRegex(string $xml): ?string
+    {
+        $parts = [];
+
+        if (preg_match_all(
+            '/<(?:\w+:)?ResponseCode[^>]*>\s*([^<\s]+)\s*<\/(?:\w+:)?ResponseCode>/iu',
+            $xml,
+            $codes,
+        ) && preg_match_all(
+            '/<(?:\w+:)?Description[^>]*>\s*(.*?)\s*<\/(?:\w+:)?Description>/ius',
+            $xml,
+            $descs,
+        )) {
+            $n = min(count($codes[1]), count($descs[1]));
+            for ($i = 0; $i < $n; $i++) {
+                $code = trim(html_entity_decode((string) $codes[1][$i], ENT_QUOTES | ENT_XML1, 'UTF-8'));
+                $desc = trim(html_entity_decode(strip_tags((string) $descs[1][$i]), ENT_QUOTES | ENT_XML1, 'UTF-8'));
+                if ($desc === '' || preg_match('/^0+$/', $code) === 1) {
+                    continue;
+                }
+                $parts[] = $code !== '' ? "[{$code}] {$desc}" : $desc;
+            }
+        }
+
+        if ($parts === [] && preg_match_all(
+            '/<(?:\w+:)?StatusReason(?:Code)?[^>]*>\s*(.*?)\s*<\/(?:\w+:)?StatusReason(?:Code)?>/ius',
+            $xml,
+            $reasons,
+        )) {
+            foreach ($reasons[1] as $raw) {
+                $text = trim(html_entity_decode(strip_tags((string) $raw), ENT_QUOTES | ENT_XML1, 'UTF-8'));
+                if ($text !== '' && ! preg_match('/^0+$/', $text)) {
+                    $parts[] = $text;
+                }
+            }
+        }
+
+        if ($parts === []) {
+            return null;
+        }
+
+        return mb_substr(implode(' · ', array_values(array_unique($parts))), 0, 2000);
     }
 
     private static function childLocalText(DOMElement $parent, string $localName): ?string
     {
         foreach ($parent->childNodes as $child) {
             if ($child instanceof DOMElement && $child->localName === $localName) {
-                $text = trim($child->textContent);
+                $text = trim(html_entity_decode($child->textContent, ENT_QUOTES | ENT_XML1, 'UTF-8'));
 
                 return $text === '' ? null : $text;
             }

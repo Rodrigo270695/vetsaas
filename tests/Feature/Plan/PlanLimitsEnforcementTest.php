@@ -228,6 +228,45 @@ it('rechaza crear un usuario cuando se alcanza max_usuarios del plan', function 
     expect(User::query()->where('tenant_id', $this->testTenant->id)->count())->toBe(1);
 });
 
+it('no cuenta el usuario de soporte @vetsaas.internal en max_usuarios', function (): void {
+    PlanFeature::query()->create([
+        'plan_id' => $this->plan->id,
+        'feature' => 'max_usuarios',
+        'valor_int' => 1,
+        'valor_bool' => null,
+        'valor_str' => null,
+    ]);
+
+    User::query()->create([
+        'tenant_id' => $this->testTenant->id,
+        'name' => 'Soporte VetSaaS',
+        'email' => 'soporte+'.$this->testTenantSlug.'@vetsaas.internal',
+        'password' => bcrypt('Password1!'),
+        'is_active' => true,
+        'must_change_password' => false,
+        'email_verified_at' => now(),
+    ]);
+
+    TenantContext::runForSlug($this->testTenantSlug, function (): void {
+        expect(User::query()->where('tenant_id', $this->testTenant->id)->count())->toBe(2)
+            ->and(PlanLimits::currentCount('max_usuarios'))->toBe(1)
+            ->and(PlanLimits::wouldExceed('max_usuarios'))->toBeTrue()
+            ->and(PlanLimits::isReached('max_usuarios'))->toBeTrue();
+    });
+
+    // Con límite 1 y solo 1 usuario “real”, al subir el cupo a 2 ya no está alcanzado.
+    PlanFeature::query()
+        ->where('plan_id', $this->plan->id)
+        ->where('feature', 'max_usuarios')
+        ->update(['valor_int' => 2]);
+
+    TenantContext::runForSlug($this->testTenantSlug, function (): void {
+        expect(PlanLimits::currentCount('max_usuarios'))->toBe(1)
+            ->and(PlanLimits::isReached('max_usuarios'))->toBeFalse()
+            ->and(PlanLimits::wouldExceed('max_usuarios'))->toBeFalse();
+    });
+});
+
 it('rechaza crear un producto cuando se alcanza max_productos del plan', function (): void {
     PlanFeature::query()->create([
         'plan_id' => $this->plan->id,

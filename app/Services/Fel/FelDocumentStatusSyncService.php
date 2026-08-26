@@ -142,16 +142,40 @@ final class FelDocumentStatusSyncService
             throw new RuntimeException('APISUNAT no devolvió el campo payload.estado.');
         }
 
-        return DB::transaction(function () use ($document, $respuesta, $sunat, $credenciales, $clinic): array {
+        $enlaces = $this->apisunat->extraerEnlaces($respuesta);
+        $error = null;
+        $cdrDebug = null;
+        if (in_array($sunat, ['RECHAZADO', 'EXCEPCION'], true)) {
+            $resolved = $this->resolverMotivoRechazo($respuesta, $document, $enlaces['cdr'] ?? null, $clinic);
+            $error = $resolved['motivo'];
+            $cdrDebug = $resolved['debug'];
+        }
+
+        return DB::transaction(function () use (
+            $document,
+            $respuesta,
+            $sunat,
+            $credenciales,
+            $enlaces,
+            $error,
+            $cdrDebug,
+        ): array {
             $locked = FelDocument::query()->whereKey($document->id)->lockForUpdate()->firstOrFail();
             $before = (string) $locked->estado;
             $beforeError = (string) ($locked->error_mensaje ?? '');
             $mapped = $this->mapSunatToLocal($sunat);
 
-            $enlaces = $this->apisunat->extraerEnlaces($respuesta);
-            $error = null;
-            if (in_array($sunat, ['RECHAZADO', 'EXCEPCION'], true)) {
-                $error = $this->resolverMotivoRechazo($respuesta, $enlaces['cdr'] ?? $locked->url_cdr, $clinic);
+            $payloadMerge = [
+                'success' => (bool) ($respuesta['success'] ?? false),
+                'message' => $respuesta['message'] ?? null,
+                'payload' => $respuesta['payload'] ?? null,
+                '_http_status' => $respuesta['_http_status'] ?? null,
+                '_vetsaas_emission_mode' => $credenciales['mode'],
+                '_vetsaas_api_base' => $respuesta['_vetsaas_api_base'] ?? null,
+                '_vetsaas_status_synced_at' => now()->toIso8601String(),
+            ];
+            if ($cdrDebug !== null) {
+                $payloadMerge['_vetsaas_cdr_motivo_debug'] = $cdrDebug;
             }
 
             $locked->fill([
@@ -163,15 +187,7 @@ final class FelDocumentStatusSyncService
                 'enlace_consulta' => $enlaces['consulta'] ?? $locked->enlace_consulta,
                 'apisunat_payload' => array_merge(
                     is_array($locked->apisunat_payload) ? $locked->apisunat_payload : [],
-                    [
-                        'success' => (bool) ($respuesta['success'] ?? false),
-                        'message' => $respuesta['message'] ?? null,
-                        'payload' => $respuesta['payload'] ?? null,
-                        '_http_status' => $respuesta['_http_status'] ?? null,
-                        '_vetsaas_emission_mode' => $credenciales['mode'],
-                        '_vetsaas_api_base' => $respuesta['_vetsaas_api_base'] ?? null,
-                        '_vetsaas_status_synced_at' => now()->toIso8601String(),
-                    ],
+                    $payloadMerge,
                 ),
                 'apisunat_mode' => $credenciales['mode'],
                 'error_mensaje' => $error,
@@ -198,35 +214,93 @@ final class FelDocumentStatusSyncService
 
     /**
      * @param  array<string, mixed>  $respuesta
+     * @return array{motivo: string, debug: array<string, mixed>}
      */
-    private function resolverMotivoRechazo(array $respuesta, ?string $cdrUrl, ClinicSetting $clinic): string
-    {
+    private function resolverMotivoRechazo(
+        array $respuesta,
+        FelDocument $document,
+        ?string $cdrUrlFromStatus,
+        ClinicSetting $clinic,
+    ): array {
         $motivo = $this->apisunat->extraerMotivoRechazo($respuesta);
+        $debug = [
+            'cdr_urls_tried' => [],
+            'cdr_error' => null,
+            'cdr_parsed' => false,
+        ];
 
         if ($motivo !== '' && ! $this->apisunat->esMensajeGenericoRechazo($motivo)) {
-            return mb_substr($motivo, 0, 2000);
+            return ['motivo' => mb_substr($motivo, 0, 2000), 'debug' => $debug];
         }
 
-        if (is_string($cdrUrl) && trim($cdrUrl) !== '') {
+        $cdrUrls = [];
+        foreach ([
+            $cdrUrlFromStatus,
+            $document->url_cdr,
+            data_get($respuesta, 'payload.cdr'),
+            data_get($document->apisunat_payload, 'payload.cdr'),
+            data_get($document->apisunat_payload, 'cdr'),
+        ] as $candidate) {
+            if (! is_string($candidate)) {
+                continue;
+            }
+            $candidate = trim($candidate);
+            if ($candidate === '' || in_array($candidate, $cdrUrls, true)) {
+                continue;
+            }
+            $cdrUrls[] = $candidate;
+        }
+
+        foreach ($cdrUrls as $cdrUrl) {
+            $debug['cdr_urls_tried'][] = $cdrUrl;
             try {
-                $cdrBody = $this->files->descargarUrl(trim($cdrUrl), $clinic, 'cdr');
+                $cdrBody = $this->files->descargarUrl($cdrUrl, $clinic, 'cdr');
                 $desdeCdr = ApisunatCdrMotivoExtractor::fromXml($cdrBody);
                 if (is_string($desdeCdr) && $desdeCdr !== '') {
-                    return mb_substr($desdeCdr, 0, 2000);
+                    $debug['cdr_parsed'] = true;
+
+                    return ['motivo' => mb_substr($desdeCdr, 0, 2000), 'debug' => $debug];
                 }
+                $debug['cdr_error'] = 'CDR descargado pero sin Description/ResponseCode parseable (len='.strlen($cdrBody).').';
             } catch (Throwable $e) {
-                Log::info('fel.cdr_motivo_unavailable', [
+                $debug['cdr_error'] = $e->getMessage();
+                Log::warning('fel.cdr_motivo_unavailable', [
+                    'fel_document_id' => $document->id,
+                    'numero' => $document->numero_completo,
                     'message' => $e->getMessage(),
                     'cdr' => $cdrUrl,
                 ]);
             }
         }
 
-        if ($motivo !== '') {
-            return mb_substr($motivo, 0, 2000);
+        if ($cdrUrls === []) {
+            $debug['cdr_error'] = 'Lucode no devolvió URL de CDR para este rechazo.';
         }
 
-        return 'APISUNAT: RECHAZADO (sin detalle; descarga el CDR).';
+        // Si solo hay mensaje genérico, deja pista accionable (el detalle real no viene en /status).
+        if ($motivo !== '' && $this->apisunat->esMensajeGenericoRechazo($motivo)) {
+            $hint = $debug['cdr_error'] ?? 'sin CDR';
+
+            return [
+                'motivo' => mb_substr(
+                    'Rechazado por SUNAT (Lucode no envió el detalle técnico). '
+                    .$hint
+                    .' Descarga el CDR en Acciones o revísalo en el panel Lucode.',
+                    0,
+                    2000,
+                ),
+                'debug' => $debug,
+            ];
+        }
+
+        if ($motivo !== '') {
+            return ['motivo' => mb_substr($motivo, 0, 2000), 'debug' => $debug];
+        }
+
+        return [
+            'motivo' => 'APISUNAT: RECHAZADO (sin detalle; descarga el CDR).',
+            'debug' => $debug,
+        ];
     }
 
     /**

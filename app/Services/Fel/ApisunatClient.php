@@ -367,12 +367,13 @@ final class ApisunatClient
         ];
 
         foreach ($genericos as $g) {
-            if (str_starts_with($normalized, $g) || $normalized === $g) {
+            if (str_starts_with($normalized, $g) || $normalized === $g || str_contains($normalized, $g)) {
                 return true;
             }
         }
 
-        return false;
+        return str_contains($normalized, 'comuníquese con soporte')
+            || str_contains($normalized, 'comuniquese con soporte');
     }
 
     /**

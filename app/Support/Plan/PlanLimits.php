@@ -12,6 +12,7 @@ use App\Models\Sede;
 use App\Models\Tenant;
 use App\Models\TenantPlanOverride;
 use App\Models\User;
+use App\Services\Chat\TenantChatService;
 use App\Tenancy\TenantManager;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -175,7 +176,12 @@ final class PlanLimits
                 }
 
                 if ($feature === 'max_usuarios') {
-                    return User::query()->where('tenant_id', $tenantId)->count();
+                    // Cuentas @vetsaas.internal (Soporte VetSaaS / chat plataforma)
+                    // no consumen cupo del plan de la clínica.
+                    return User::query()
+                        ->where('tenant_id', $tenantId)
+                        ->where('email', 'not like', '%@'.TenantChatService::SUPPORT_EMAIL_DOMAIN)
+                        ->count();
                 }
 
                 // sedes vive en public.*; no usar Schema::hasTable('sedes') con
