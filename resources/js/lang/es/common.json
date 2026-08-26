@@ -48,8 +48,12 @@
     "impersonation": {
         "banner_title": "Modo soporte (impersonación)",
         "banner_body": "Estás operando en {{clinic}} con tu cuenta de superadmin. Cierra la sesión de soporte cuando termines.",
+        "banner_body_short": "Operando en {{clinic}} como superadmin.",
         "banner_leave": "Salir del modo soporte",
-        "banner_fallback_clinic": "esta clínica"
+        "banner_leave_short": "Salir",
+        "banner_fallback_clinic": "esta clínica",
+        "chip_label": "Soporte · {{clinic}}",
+        "minimize": "Ocultar aviso"
     },
     "table": {
         "showing": "Mostrando",

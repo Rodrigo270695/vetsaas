@@ -48,8 +48,12 @@
     "impersonation": {
         "banner_title": "Support mode (impersonation)",
         "banner_body": "You are operating in {{clinic}} with your superadmin account. End support mode when finished.",
+        "banner_body_short": "Operating in {{clinic}} as superadmin.",
         "banner_leave": "Exit support mode",
-        "banner_fallback_clinic": "this clinic"
+        "banner_leave_short": "Exit",
+        "banner_fallback_clinic": "this clinic",
+        "chip_label": "Support · {{clinic}}",
+        "minimize": "Hide notice"
     },
     "table": {
         "showing": "Showing",
