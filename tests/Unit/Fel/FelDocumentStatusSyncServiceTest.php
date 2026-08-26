@@ -8,7 +8,10 @@ use App\Services\Fel\ApisunatClient;
 use App\Services\Fel\FelDocumentStatusSyncService;
 
 it('mapea estados Lucode a estados locales de forma estricta', function (): void {
-    $service = new FelDocumentStatusSyncService(app(ApisunatClient::class));
+    $service = new FelDocumentStatusSyncService(
+        app(ApisunatClient::class),
+        app(\App\Services\Fel\FelDocumentApisunatFileService::class),
+    );
 
     expect($service->mapSunatToLocal('ACEPTADO'))->toBe([
         'fel_document' => FelDocument::ESTADO_EMITIDO,

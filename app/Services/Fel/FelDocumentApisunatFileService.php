@@ -80,6 +80,18 @@ final class FelDocumentApisunatFileService
         return $this->fetchLucodeUrl(trim($url), $clinic, $label, $tipo);
     }
 
+    /**
+     * Descarga un CDR (u otro XML) desde URL Lucode con el token de la clínica.
+     *
+     * @param  'xml'|'cdr'  $tipo
+     */
+    public function descargarUrl(string $url, ClinicSetting $clinic, string $tipo = 'cdr'): string
+    {
+        $label = $tipo === 'xml' ? 'XML' : 'CDR';
+
+        return $this->fetchLucodeUrl(trim($url), $clinic, $label, $tipo);
+    }
+
     private function fetchLucodeUrl(
         string $url,
         ClinicSetting $clinic,
@@ -123,7 +135,7 @@ final class FelDocumentApisunatFileService
             }
         }
 
-        if (($tipo === 'xml' || $tipo === 'cdr') && ! str_contains($body, '<?xml')) {
+        if (($tipo === 'xml' || $tipo === 'cdr') && ! str_contains($body, '<?xml') && ! str_starts_with($body, 'PK')) {
             throw new RuntimeException(
                 'Lucode no devolvió un XML válido para '.$label.'.',
             );

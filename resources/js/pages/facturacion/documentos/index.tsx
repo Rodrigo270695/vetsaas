@@ -351,15 +351,16 @@ export default function Index({
                 key: 'estado',
                 header: 'Estado',
                 cell: (row) => (
-                    <div className="flex max-w-[14rem] flex-col gap-0.5">
+                    <div className="flex max-w-72 flex-col gap-0.5">
                         <Badge variant={ESTADO_BADGE[row.estado] ?? 'outline'}>
                             {ESTADO_LABEL[row.estado] ?? row.estado}
                         </Badge>
                         {row.estado === 'rechazado' && row.error_mensaje ? (
                             <span
-                                className="line-clamp-2 max-w-56 text-[11px] leading-snug text-destructive"
+                                className="line-clamp-4 text-[11px] leading-snug text-destructive"
                                 title={row.error_mensaje}
                             >
+                                <span className="font-medium">Motivo: </span>
                                 {row.error_mensaje}
                             </span>
                         ) : null}

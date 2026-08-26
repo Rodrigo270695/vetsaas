@@ -22,6 +22,7 @@ final class FelDocumentStatusSyncService
 {
     public function __construct(
         private readonly ApisunatClient $apisunat,
+        private readonly FelDocumentApisunatFileService $files,
     ) {}
 
     /**
@@ -141,21 +142,16 @@ final class FelDocumentStatusSyncService
             throw new RuntimeException('APISUNAT no devolvió el campo payload.estado.');
         }
 
-        return DB::transaction(function () use ($document, $respuesta, $sunat, $credenciales): array {
+        return DB::transaction(function () use ($document, $respuesta, $sunat, $credenciales, $clinic): array {
             $locked = FelDocument::query()->whereKey($document->id)->lockForUpdate()->firstOrFail();
             $before = (string) $locked->estado;
+            $beforeError = (string) ($locked->error_mensaje ?? '');
             $mapped = $this->mapSunatToLocal($sunat);
 
             $enlaces = $this->apisunat->extraerEnlaces($respuesta);
             $error = null;
             if (in_array($sunat, ['RECHAZADO', 'EXCEPCION'], true)) {
-                $error = mb_substr(
-                    is_string($respuesta['message'] ?? null)
-                        ? (string) $respuesta['message']
-                        : 'APISUNAT: '.$sunat,
-                    0,
-                    2000,
-                );
+                $error = $this->resolverMotivoRechazo($respuesta, $enlaces['cdr'] ?? $locked->url_cdr, $clinic);
             }
 
             $locked->fill([
@@ -192,11 +188,45 @@ final class FelDocumentStatusSyncService
                 ->update(['fel_estado' => $mapped['venta']]);
 
             return [
-                'changed' => $before !== $mapped['fel_document'],
+                'changed' => $before !== $mapped['fel_document']
+                    || $beforeError !== (string) ($error ?? ''),
                 'sunat' => $sunat,
                 'estado' => $mapped['fel_document'],
             ];
         });
+    }
+
+    /**
+     * @param  array<string, mixed>  $respuesta
+     */
+    private function resolverMotivoRechazo(array $respuesta, ?string $cdrUrl, ClinicSetting $clinic): string
+    {
+        $motivo = $this->apisunat->extraerMotivoRechazo($respuesta);
+
+        if ($motivo !== '' && ! $this->apisunat->esMensajeGenericoRechazo($motivo)) {
+            return mb_substr($motivo, 0, 2000);
+        }
+
+        if (is_string($cdrUrl) && trim($cdrUrl) !== '') {
+            try {
+                $cdrBody = $this->files->descargarUrl(trim($cdrUrl), $clinic, 'cdr');
+                $desdeCdr = ApisunatCdrMotivoExtractor::fromXml($cdrBody);
+                if (is_string($desdeCdr) && $desdeCdr !== '') {
+                    return mb_substr($desdeCdr, 0, 2000);
+                }
+            } catch (Throwable $e) {
+                Log::info('fel.cdr_motivo_unavailable', [
+                    'message' => $e->getMessage(),
+                    'cdr' => $cdrUrl,
+                ]);
+            }
+        }
+
+        if ($motivo !== '') {
+            return mb_substr($motivo, 0, 2000);
+        }
+
+        return 'APISUNAT: RECHAZADO (sin detalle; descarga el CDR).';
     }
 
     /**
