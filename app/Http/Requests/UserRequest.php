@@ -72,7 +72,7 @@ class UserRequest extends FormRequest
             ],
             'phone' => ['nullable', 'string', 'max:32'],
 
-            // Ficha profesional (opcional; pensada para rol veterinario).
+            // Documento de identidad y adjuntos (opcionales, cualquier rol).
             'documento_tipo' => ['nullable', 'string', 'max:10', Rule::in(['DNI', 'CE', 'PAS', 'OTRO'])],
             'documento_numero' => ['nullable', 'string', 'max:32'],
             'colegiatura' => ['nullable', 'string', 'max:40'],

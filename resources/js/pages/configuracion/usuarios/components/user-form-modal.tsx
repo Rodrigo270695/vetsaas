@@ -103,7 +103,7 @@ const isFormValid = (data: UserFormData, isEdit: boolean): boolean => {
 
 /**
  * Modal de crear/editar usuario.
- * Si el rol es `veterinario`, muestra ficha profesional opcional (doc, colegiatura, archivos).
+ * Documento de identidad (tipo/número) y adjuntos opcionales para cualquier rol.
  */
 export function UserFormModal({
     open,
@@ -119,9 +119,7 @@ export function UserFormModal({
     const { data, setData, post, put, processing, errors, reset, clearErrors, transform } =
         useForm<UserFormData>(emptyForm);
 
-    const showProfessional = data.role.trim().toLowerCase() === 'veterinario';
     const canSubmit = isFormValid(data, isEdit) && !processing;
-    const professionalRef = useRef<HTMLDivElement | null>(null);
 
     const initialSnapshotRef = useRef<UserFormData>(emptyForm);
 
@@ -138,16 +136,6 @@ export function UserFormModal({
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, user?.id]);
-
-    useEffect(() => {
-        if (!open || !showProfessional) {
-            return;
-        }
-        const id = window.setTimeout(() => {
-            professionalRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }, 120);
-        return () => window.clearTimeout(id);
-    }, [open, showProfessional, user?.id]);
 
     const isDirty = useMemo(() => {
         const initial = initialSnapshotRef.current;
@@ -245,11 +233,6 @@ export function UserFormModal({
 
         transform((form) => {
             const payload: Record<string, unknown> = { ...form };
-            if (!showProfessional) {
-                payload.documento_tipo = form.documento_tipo || null;
-                payload.documento_numero = form.documento_numero || null;
-                payload.colegiatura = form.colegiatura || null;
-            }
             if (!form.cv) delete payload.cv;
             if (!form.dni_file) delete payload.dni_file;
             if (!form.firma) delete payload.firma;
@@ -316,14 +299,6 @@ export function UserFormModal({
                         {errors.plan_limit}
                     </p>
                 ) : null}
-                {showProfessional ? (
-                    <p
-                        className="rounded-lg border border-primary/30 bg-primary/10 px-3 py-2 text-sm text-foreground"
-                        role="status"
-                    >
-                        {t('usuarios:form.professional_banner')}
-                    </p>
-                ) : null}
                 <FormSection
                     index={0}
                     title={t('usuarios:form.section_basic')}
@@ -382,7 +357,6 @@ export function UserFormModal({
                             label={t('usuarios:form.fields.role')}
                             required
                             error={errors.role}
-                            hint={t('usuarios:form.fields.role_professional_hint')}
                         >
                             <Select
                                 value={data.role}
@@ -420,6 +394,175 @@ export function UserFormModal({
                         </FormField>
 
                         <FormField
+                            id="user-documento-tipo"
+                            label={t('usuarios:form.fields.documento_tipo')}
+                            error={errors.documento_tipo}
+                        >
+                            <Select
+                                value={data.documento_tipo || undefined}
+                                onValueChange={(value) => {
+                                    lastDniConsultaRef.current = null;
+                                    let numero = data.documento_numero;
+                                    if (value === 'DNI') {
+                                        numero = numero.replace(/\D+/g, '').slice(0, 8);
+                                    }
+                                    setData({
+                                        ...data,
+                                        documento_tipo: value,
+                                        documento_numero: numero,
+                                    });
+                                }}
+                            >
+                                <SelectTrigger id="user-documento-tipo" className="w-full">
+                                    <SelectValue
+                                        placeholder={t(
+                                            'usuarios:form.fields.documento_tipo_placeholder',
+                                        )}
+                                    />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="DNI">DNI</SelectItem>
+                                    <SelectItem value="CE">CE</SelectItem>
+                                    <SelectItem value="PAS">Pasaporte</SelectItem>
+                                    <SelectItem value="OTRO">Otro</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </FormField>
+
+                        <FormField
+                            id="user-documento-numero"
+                            label={t('usuarios:form.fields.documento_numero')}
+                            error={errors.documento_numero}
+                            hint={
+                                data.documento_tipo === 'DNI'
+                                    ? t('usuarios:form.fields.documento_numero_dni_hint')
+                                    : undefined
+                            }
+                        >
+                            <div className="flex gap-2">
+                                <Input
+                                    id="user-documento-numero"
+                                    value={data.documento_numero}
+                                    onChange={(e) => {
+                                        lastDniConsultaRef.current = null;
+                                        const raw = e.target.value;
+                                        setData(
+                                            'documento_numero',
+                                            data.documento_tipo === 'DNI'
+                                                ? raw.replace(/\D+/g, '').slice(0, 8)
+                                                : raw.slice(0, 32),
+                                        );
+                                    }}
+                                    placeholder={
+                                        data.documento_tipo === 'DNI'
+                                            ? '12345678'
+                                            : t(
+                                                  'usuarios:form.fields.documento_numero_placeholder',
+                                              )
+                                    }
+                                    inputMode={
+                                        data.documento_tipo === 'DNI' ? 'numeric' : 'text'
+                                    }
+                                    autoComplete="off"
+                                />
+                                {data.documento_tipo === 'DNI' ? (
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="shrink-0 cursor-pointer gap-1.5"
+                                        disabled={
+                                            consultandoDni ||
+                                            data.documento_numero.length !== 8
+                                        }
+                                        onClick={() => void onConsultarDni()}
+                                    >
+                                        {consultandoDni ? (
+                                            <Loader2
+                                                className="size-4 animate-spin"
+                                                aria-hidden
+                                            />
+                                        ) : (
+                                            <Search className="size-4" aria-hidden />
+                                        )}
+                                        {t('usuarios:form.consultar_dni')}
+                                    </Button>
+                                ) : null}
+                            </div>
+                        </FormField>
+
+                        <FormField
+                            id="user-colegiatura"
+                            label={t('usuarios:form.fields.colegiatura')}
+                            error={errors.colegiatura}
+                            hint={t('usuarios:form.fields.colegiatura_hint')}
+                            className="sm:col-span-2"
+                        >
+                            <Input
+                                id="user-colegiatura"
+                                value={data.colegiatura}
+                                onChange={(e) => setData('colegiatura', e.target.value)}
+                                placeholder={t(
+                                    'usuarios:form.fields.colegiatura_placeholder',
+                                )}
+                                autoComplete="off"
+                            />
+                        </FormField>
+
+                        <FileField
+                            id="user-cv"
+                            label={t('usuarios:form.fields.cv')}
+                            hint={t('usuarios:form.fields.cv_hint')}
+                            error={errors.cv}
+                            accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                            existingUrl={!data.remove_cv ? (user?.cv_url ?? null) : null}
+                            onFile={(file) => {
+                                setData('cv', file);
+                                setData('remove_cv', false);
+                            }}
+                            onClearExisting={() => {
+                                setData('cv', null);
+                                setData('remove_cv', true);
+                            }}
+                        />
+
+                        <FileField
+                            id="user-dni-file"
+                            label={t('usuarios:form.fields.dni_file')}
+                            hint={t('usuarios:form.fields.dni_file_hint')}
+                            error={errors.dni_file}
+                            accept=".pdf,.jpg,.jpeg,.png"
+                            existingUrl={
+                                !data.remove_dni_file ? (user?.dni_file_url ?? null) : null
+                            }
+                            onFile={(file) => {
+                                setData('dni_file', file);
+                                setData('remove_dni_file', false);
+                            }}
+                            onClearExisting={() => {
+                                setData('dni_file', null);
+                                setData('remove_dni_file', true);
+                            }}
+                        />
+
+                        <FileField
+                            id="user-firma"
+                            label={t('usuarios:form.fields.firma')}
+                            hint={t('usuarios:form.fields.firma_hint')}
+                            error={errors.firma}
+                            accept=".png,.jpg,.jpeg,.webp"
+                            existingUrl={!data.remove_firma ? (user?.firma_url ?? null) : null}
+                            onFile={(file) => {
+                                setData('firma', file);
+                                setData('remove_firma', false);
+                            }}
+                            onClearExisting={() => {
+                                setData('firma', null);
+                                setData('remove_firma', true);
+                            }}
+                            className="sm:col-span-2"
+                        />
+
+                        <FormField
                             id="user-is-active"
                             label={t('usuarios:form.fields.is_active')}
                             hint={t('usuarios:form.fields.is_active_hint')}
@@ -447,194 +590,8 @@ export function UserFormModal({
                     </div>
                 </FormSection>
 
-                {showProfessional ? (
-                    <div ref={professionalRef}>
-                    <FormSection
-                        index={1}
-                        title={t('usuarios:form.section_professional')}
-                        description={t('usuarios:form.section_professional_hint')}
-                    >
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                            <FormField
-                                id="user-documento-tipo"
-                                label={t('usuarios:form.fields.documento_tipo')}
-                                error={errors.documento_tipo}
-                            >
-                                <Select
-                                    value={data.documento_tipo || undefined}
-                                    onValueChange={(value) => {
-                                        lastDniConsultaRef.current = null;
-                                        let numero = data.documento_numero;
-                                        if (value === 'DNI') {
-                                            numero = numero.replace(/\D+/g, '').slice(0, 8);
-                                        }
-                                        setData({
-                                            ...data,
-                                            documento_tipo: value,
-                                            documento_numero: numero,
-                                        });
-                                    }}
-                                >
-                                    <SelectTrigger id="user-documento-tipo" className="w-full">
-                                        <SelectValue
-                                            placeholder={t(
-                                                'usuarios:form.fields.documento_tipo_placeholder',
-                                            )}
-                                        />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="DNI">DNI</SelectItem>
-                                        <SelectItem value="CE">CE</SelectItem>
-                                        <SelectItem value="PAS">Pasaporte</SelectItem>
-                                        <SelectItem value="OTRO">Otro</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </FormField>
-
-                            <FormField
-                                id="user-documento-numero"
-                                label={t('usuarios:form.fields.documento_numero')}
-                                error={errors.documento_numero}
-                                hint={
-                                    data.documento_tipo === 'DNI'
-                                        ? t('usuarios:form.fields.documento_numero_dni_hint')
-                                        : undefined
-                                }
-                            >
-                                <div className="flex gap-2">
-                                    <Input
-                                        id="user-documento-numero"
-                                        value={data.documento_numero}
-                                        onChange={(e) => {
-                                            lastDniConsultaRef.current = null;
-                                            const raw = e.target.value;
-                                            setData(
-                                                'documento_numero',
-                                                data.documento_tipo === 'DNI'
-                                                    ? raw.replace(/\D+/g, '').slice(0, 8)
-                                                    : raw.slice(0, 32),
-                                            );
-                                        }}
-                                        placeholder={
-                                            data.documento_tipo === 'DNI'
-                                                ? '12345678'
-                                                : t(
-                                                      'usuarios:form.fields.documento_numero_placeholder',
-                                                  )
-                                        }
-                                        inputMode={
-                                            data.documento_tipo === 'DNI' ? 'numeric' : 'text'
-                                        }
-                                        autoComplete="off"
-                                    />
-                                    {data.documento_tipo === 'DNI' ? (
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            className="shrink-0 cursor-pointer gap-1.5"
-                                            disabled={
-                                                consultandoDni ||
-                                                data.documento_numero.length !== 8
-                                            }
-                                            onClick={() => void onConsultarDni()}
-                                        >
-                                            {consultandoDni ? (
-                                                <Loader2
-                                                    className="size-4 animate-spin"
-                                                    aria-hidden
-                                                />
-                                            ) : (
-                                                <Search className="size-4" aria-hidden />
-                                            )}
-                                            {t('usuarios:form.consultar_dni')}
-                                        </Button>
-                                    ) : null}
-                                </div>
-                            </FormField>
-
-                            <FormField
-                                id="user-colegiatura"
-                                label={t('usuarios:form.fields.colegiatura')}
-                                error={errors.colegiatura}
-                                className="sm:col-span-2"
-                            >
-                                <Input
-                                    id="user-colegiatura"
-                                    value={data.colegiatura}
-                                    onChange={(e) => setData('colegiatura', e.target.value)}
-                                    placeholder={t(
-                                        'usuarios:form.fields.colegiatura_placeholder',
-                                    )}
-                                    autoComplete="off"
-                                />
-                            </FormField>
-
-                            <FileField
-                                id="user-cv"
-                                label={t('usuarios:form.fields.cv')}
-                                hint={t('usuarios:form.fields.cv_hint')}
-                                error={errors.cv}
-                                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                                existingUrl={
-                                    !data.remove_cv ? (user?.cv_url ?? null) : null
-                                }
-                                onFile={(file) => {
-                                    setData('cv', file);
-                                    setData('remove_cv', false);
-                                }}
-                                onClearExisting={() => {
-                                    setData('cv', null);
-                                    setData('remove_cv', true);
-                                }}
-                            />
-
-                            <FileField
-                                id="user-dni-file"
-                                label={t('usuarios:form.fields.dni_file')}
-                                hint={t('usuarios:form.fields.dni_file_hint')}
-                                error={errors.dni_file}
-                                accept=".pdf,.jpg,.jpeg,.png"
-                                existingUrl={
-                                    !data.remove_dni_file
-                                        ? (user?.dni_file_url ?? null)
-                                        : null
-                                }
-                                onFile={(file) => {
-                                    setData('dni_file', file);
-                                    setData('remove_dni_file', false);
-                                }}
-                                onClearExisting={() => {
-                                    setData('dni_file', null);
-                                    setData('remove_dni_file', true);
-                                }}
-                            />
-
-                            <FileField
-                                id="user-firma"
-                                label={t('usuarios:form.fields.firma')}
-                                hint={t('usuarios:form.fields.firma_hint')}
-                                error={errors.firma}
-                                accept=".png,.jpg,.jpeg,.webp"
-                                existingUrl={
-                                    !data.remove_firma ? (user?.firma_url ?? null) : null
-                                }
-                                onFile={(file) => {
-                                    setData('firma', file);
-                                    setData('remove_firma', false);
-                                }}
-                                onClearExisting={() => {
-                                    setData('firma', null);
-                                    setData('remove_firma', true);
-                                }}
-                                className="sm:col-span-2"
-                            />
-                        </div>
-                    </FormSection>
-                    </div>
-                ) : null}
-
                 <FormSection
-                    index={showProfessional ? 2 : 1}
+                    index={1}
                     title={t('usuarios:form.section_access')}
                     description={
                         isEdit
