@@ -94,6 +94,7 @@
             "password_confirmation": "Confirmar contraseña",
             "role": "Rol",
             "role_placeholder": "Selecciona un rol",
+            "role_professional_hint": "Si eliges veterinario, aparecen abajo DNI, colegiatura, CV, escaneo DNI y firma.",
             "is_active": "Cuenta activa",
             "is_active_hint": "Si está desactivada, el usuario no podrá iniciar sesión.",
             "documento_tipo": "Tipo de documento",

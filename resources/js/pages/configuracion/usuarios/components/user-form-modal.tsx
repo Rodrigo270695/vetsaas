@@ -382,6 +382,7 @@ export function UserFormModal({
                             label={t('usuarios:form.fields.role')}
                             required
                             error={errors.role}
+                            hint={t('usuarios:form.fields.role_professional_hint')}
                         >
                             <Select
                                 value={data.role}

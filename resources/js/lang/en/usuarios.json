@@ -94,6 +94,7 @@
             "password_confirmation": "Confirm password",
             "role": "Role",
             "role_placeholder": "Select a role",
+            "role_professional_hint": "If you choose veterinarian, DNI, license, CV, ID scan and signature appear below.",
             "is_active": "Active account",
             "is_active_hint": "If disabled, the user won't be able to sign in.",
             "documento_tipo": "Document type",
