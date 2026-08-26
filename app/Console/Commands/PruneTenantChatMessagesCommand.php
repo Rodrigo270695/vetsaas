@@ -36,7 +36,7 @@ final class PruneTenantChatMessagesCommand extends Command
 
         foreach ($query->cursor() as $tenant) {
             try {
-                $tenants->run($tenant, function () use ($chat, $overrideDays, $dry, $tenant, &$total): void {
+                $tenants->runForTenant($tenant, function () use ($chat, $overrideDays, $dry, $tenant, &$total): void {
                     if (! Schema::hasTable('chat_messages')) {
                         return;
                     }
@@ -65,7 +65,7 @@ final class PruneTenantChatMessagesCommand extends Command
                     $deleted = $chat->pruneOlderThan($days);
                     $this->info("[{$tenant->slug}] eliminados: {$deleted} (retención {$days}d)");
                     $total += $deleted;
-                });
+                }, enforceAccess: false);
             } catch (Throwable $e) {
                 $this->error("[{$tenant->slug}] ".$e->getMessage());
             }

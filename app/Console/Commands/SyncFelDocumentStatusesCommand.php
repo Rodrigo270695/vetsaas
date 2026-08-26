@@ -47,7 +47,7 @@ final class SyncFelDocumentStatusesCommand extends Command
 
         foreach ($tenantsList as $tenant) {
             try {
-                $tenants->run($tenant, function () use ($sync, $limit, $tenant, &$totalUpdated, &$totalChecked): void {
+                $tenants->runForTenant($tenant, function () use ($sync, $limit, $tenant, &$totalUpdated, &$totalChecked): void {
                     if (! Schema::hasTable('fel_documents')) {
                         return;
                     }
@@ -74,7 +74,7 @@ final class SyncFelDocumentStatusesCommand extends Command
                     foreach (array_slice($stats['errors'], 0, 5) as $error) {
                         $this->warn('  · '.$error);
                     }
-                });
+                }, enforceAccess: false);
             } catch (Throwable $e) {
                 $this->error("[{$tenant->slug}] ".$e->getMessage());
             }

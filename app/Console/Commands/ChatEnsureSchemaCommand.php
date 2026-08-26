@@ -37,7 +37,7 @@ final class ChatEnsureSchemaCommand extends Command
 
         foreach ($query->cursor() as $tenant) {
             try {
-                $tenants->run($tenant, function () use ($tenant, $dry, &$created, &$skipped): void {
+                $tenants->runForTenant($tenant, function () use ($tenant, $dry, &$created, &$skipped): void {
                     if (! Schema::hasTable('chat_messages')) {
                         $this->line("[{$tenant->slug}] sin chat_messages — omitido");
                         $skipped++;
@@ -75,7 +75,7 @@ final class ChatEnsureSchemaCommand extends Command
 
                     $this->info("[{$tenant->slug}] creada chat_message_reactions");
                     $created++;
-                });
+                }, enforceAccess: false);
             } catch (Throwable $e) {
                 $this->error("[{$tenant->slug}] ".$e->getMessage());
             }
