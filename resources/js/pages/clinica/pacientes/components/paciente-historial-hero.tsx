@@ -217,15 +217,15 @@ export function PacienteHistorialHero({
             >
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                     <div className="flex min-w-0 gap-4">
-                        <div className="relative shrink-0">
+                        <div className="relative size-20 shrink-0 sm:size-24">
                             {paciente.foto_url ? (
                                 <img
                                     src={paciente.foto_url}
                                     alt=""
-                                    className="size-20 rounded-2xl border-2 border-background object-cover shadow-md ring-2 ring-primary/20 sm:size-24"
+                                    className="size-full rounded-2xl border-2 border-background object-cover shadow-md ring-2 ring-primary/20"
                                 />
                             ) : (
-                                <span className="flex size-20 items-center justify-center rounded-2xl border-2 border-dashed border-primary/25 bg-background/70 shadow-sm sm:size-24">
+                                <span className="flex size-full items-center justify-center rounded-2xl border-2 border-dashed border-primary/25 bg-background/70 shadow-sm">
                                     <SpeciesIcon
                                         especie={paciente.especie}
                                         className="size-9 text-primary/70"
@@ -234,10 +234,21 @@ export function PacienteHistorialHero({
                             )}
                             <span
                                 className={cn(
-                                    'absolute -bottom-1 -right-1 flex size-7 items-center justify-center rounded-full border-2 border-background shadow-sm',
-                                    paciente.activo ? 'bg-emerald-500 text-white' : 'bg-muted text-muted-foreground',
+                                    'absolute right-0 bottom-0 z-10 flex size-6 translate-x-1/4 translate-y-1/4 items-center justify-center rounded-full border-2 border-background shadow-sm sm:size-7',
+                                    paciente.activo
+                                        ? 'bg-emerald-500 text-white'
+                                        : 'bg-red-500 text-white',
                                 )}
-                                title={paciente.activo ? t('historial.estado_activo') : t('historial.estado_inactivo')}
+                                title={
+                                    paciente.activo
+                                        ? t('historial.estado_activo')
+                                        : t('historial.estado_inactivo')
+                                }
+                                aria-label={
+                                    paciente.activo
+                                        ? t('historial.estado_activo')
+                                        : t('historial.estado_inactivo')
+                                }
                             >
                                 <span className="size-2 rounded-full bg-current" />
                             </span>
