@@ -46,6 +46,7 @@
         "suspended": "Suspendido",
         "current_user_badge": "Tú",
         "copy_email": "Copiar email",
+        "documents": "Documentos / CV",
         "actions_for": "Acciones para {{name}}",
         "self_locked": "No puedes editar o eliminar tu propia cuenta desde aquí.",
         "superadmin_locked": "Las cuentas de superadmin se gestionan desde el seeder."
@@ -68,10 +69,12 @@
         "submit_create": "Crear usuario",
         "submit_edit": "Guardar cambios",
         "section_basic": "Datos personales",
-        "section_basic_hint": "Contacto, rol, documento de identidad y archivos opcionales.",
-        "section_professional": "Ficha profesional",
-        "section_professional_hint": "Opcional. Documento, colegiatura y archivos. Puedes completarlos después.",
-        "professional_banner": "Completa el documento de identidad y, si aplica, colegiatura y archivos.",
+        "section_basic_hint": "Contacto, rol y documento de identidad.",
+        "section_identity": "Identidad",
+        "section_identity_hint": "Documento primero; con DNI completo se consulta RENIEC automáticamente.",
+        "section_professional": "Documentos profesionales",
+        "section_professional_hint": "Colegiatura, CV, escaneo de documento y firma. Opcional.",
+        "professional_banner": "Completa el documento de identidad.",
         "section_access": "Acceso",
         "section_access_hint_create": "Define la contraseña inicial de esta cuenta.",
         "section_access_hint_edit": "Cambia la contraseña si lo necesitas. Si no quieres cambiarla, deja los campos vacíos.",
@@ -94,7 +97,7 @@
             "password_confirmation": "Confirmar contraseña",
             "role": "Rol",
             "role_placeholder": "Selecciona un rol",
-            "role_professional_hint": "Documento, colegiatura y archivos son opcionales para cualquier rol.",
+            "role_professional_hint": "Los archivos (CV, firma) se cargan desde Documentos en el menú de acciones.",
             "is_active": "Cuenta activa",
             "is_active_hint": "Si está desactivada, el usuario no podrá iniciar sesión.",
             "documento_tipo": "Tipo de documento",
@@ -112,6 +115,11 @@
             "firma": "Firma digital",
             "firma_hint": "Imagen PNG/JPG de la firma, máx. 2 MB."
         }
+    },
+    "documents": {
+        "title": "Documentos — {{name}}",
+        "description": "Colegiatura, CV, escaneo de documento y firma. Opcional; puedes completarlos después.",
+        "submit": "Guardar documentos"
     },
     "delete": {
         "title": "Eliminar usuario",

@@ -7,12 +7,18 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import {
-    PROPIETARIO_DOCUMENT_TYPE_CODES,
-    isPropietarioDocumentTypeCode,
-} from '@/lib/document-type-options';
+import { PROPIETARIO_DOCUMENT_TYPE_CODES } from '@/lib/document-type-options';
 
 const NONE_VALUE = '__none__';
+
+/** Códigos de documento para staff/usuarios (sin RUC). */
+export const STAFF_DOCUMENT_TYPE_CODES = ['DNI', 'CE', 'PAS', 'OTRO'] as const;
+
+export type StaffDocumentTypeCode = (typeof STAFF_DOCUMENT_TYPE_CODES)[number];
+
+export function isStaffDocumentTypeCode(value: string): value is StaffDocumentTypeCode {
+    return (STAFF_DOCUMENT_TYPE_CODES as readonly string[]).includes(value);
+}
 
 export type DocumentTypeSelectProps = {
     id: string;
@@ -23,15 +29,17 @@ export type DocumentTypeSelectProps = {
     className?: string;
     /** Activa borde de error (el mensaje lo muestra `FormField`). */
     invalid?: boolean;
+    /**
+     * Catálogo de códigos. Default: titulares (incluye RUC).
+     * Para usuarios/staff pasa `STAFF_DOCUMENT_TYPE_CODES`.
+     */
+    codes?: readonly string[];
 };
 
-function i18nKeyForCode(code: (typeof PROPIETARIO_DOCUMENT_TYPE_CODES)[number]): string {
-    return `form.document_type_${code.toLowerCase()}`;
-}
-
 /**
- * Selector de tipo de documento (DNI, RUC, CE, pasaporte, otro).
- * Textos bajo namespace `propietarios` (`form.document_type_*`, `form.document_type_placeholder`).
+ * Selector de tipo de documento.
+ * Labels desde namespace `propietarios` (`form.document_type_*`).
+ * `OTRO` reutiliza la etiqueta de `OTR`.
  */
 export function DocumentTypeSelect({
     id,
@@ -40,14 +48,21 @@ export function DocumentTypeSelect({
     disabled,
     className,
     invalid,
+    codes = PROPIETARIO_DOCUMENT_TYPE_CODES,
 }: DocumentTypeSelectProps) {
     const { t } = useTranslation('propietarios');
-    const selectValue =
-        value && isPropietarioDocumentTypeCode(value) ? value : NONE_VALUE;
+    const known = codes.includes(value) ? value : NONE_VALUE;
+
+    const labelFor = (code: string): string => {
+        if (code === 'OTRO') {
+            return t('form.document_type_otr');
+        }
+        return t(`form.document_type_${code.toLowerCase()}`);
+    };
 
     return (
         <Select
-            value={selectValue}
+            value={known}
             onValueChange={(v) => {
                 onValueChange(v === NONE_VALUE ? '' : v);
             }}
@@ -68,9 +83,9 @@ export function DocumentTypeSelect({
                 <SelectItem value={NONE_VALUE} className="cursor-pointer">
                     {t('form.document_type_placeholder')}
                 </SelectItem>
-                {PROPIETARIO_DOCUMENT_TYPE_CODES.map((code) => (
+                {codes.map((code) => (
                     <SelectItem key={code} value={code} className="cursor-pointer">
-                        {t(i18nKeyForCode(code))}
+                        {labelFor(code)}
                     </SelectItem>
                 ))}
             </SelectContent>

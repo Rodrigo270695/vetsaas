@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Exports\UsersXlsxExport;
 use App\Http\Controllers\Concerns\RespondsToApiPeruConsulta;
+use App\Http\Requests\UserDocumentsRequest;
 use App\Http\Requests\UserRequest;
 use App\Models\Role;
 use App\Models\User;
@@ -128,13 +129,10 @@ class UserController extends Controller
             'phone' => $data['phone'] ?? null,
             'documento_tipo' => $data['documento_tipo'] ?? null,
             'documento_numero' => $data['documento_numero'] ?? null,
-            'colegiatura' => $data['colegiatura'] ?? null,
             'password' => $data['password'],
             'is_active' => $data['is_active'],
             'created_by_id' => $request->user()?->id,
         ]);
-
-        $this->syncProfessionalFiles($request, $user);
 
         $user->syncRoles([$data['role']]);
 
@@ -177,7 +175,6 @@ class UserController extends Controller
             'phone' => $data['phone'] ?? null,
             'documento_tipo' => $data['documento_tipo'] ?? null,
             'documento_numero' => $data['documento_numero'] ?? null,
-            'colegiatura' => $data['colegiatura'] ?? null,
             'is_active' => $data['is_active'],
         ];
 
@@ -196,7 +193,6 @@ class UserController extends Controller
         ];
 
         $user->update($payload);
-        $this->syncProfessionalFiles($request, $user);
         $user->syncRoles([$data['role']]);
 
         PlatformSecurityAuditLogger::log(
@@ -225,6 +221,40 @@ class UserController extends Controller
     }
 
     /**
+     * Actualiza colegiatura y archivos profesionales (modal aparte del alta).
+     */
+    public function updateDocuments(UserDocumentsRequest $request, User $user): RedirectResponse
+    {
+        ClinicAdminScope::assertUserAccessible($user);
+
+        $data = $request->validated();
+
+        $user->forceFill([
+            'colegiatura' => $data['colegiatura'] ?? null,
+        ])->save();
+
+        $this->syncProfessionalFiles($request, $user);
+
+        PlatformSecurityAuditLogger::log(
+            action: 'users.documents_updated',
+            modulo: 'usuarios',
+            summary: 'Actualizó documentos del usuario '.$user->email,
+            metadata: [
+                'user_id' => $user->id,
+                'colegiatura' => $user->colegiatura,
+                'has_cv' => filled($user->cv_path),
+                'has_dni_file' => filled($user->dni_file_path),
+                'has_firma' => filled($user->firma_path),
+            ],
+            subjectType: 'user',
+            subjectId: (string) $user->id,
+            subjectLabel: $user->email,
+        );
+
+        return back()->with('success', 'Documentos del usuario actualizados.');
+    }
+
+    /**
      * Consulta DNI (RENIEC vía APIPerú / Lucode) para autocompletar el nombre del staff.
      */
     public function consultaDni(Request $request, ApiPeruDniService $apiPeru): JsonResponse
@@ -247,7 +277,7 @@ class UserController extends Controller
         );
     }
 
-    private function syncProfessionalFiles(UserRequest $request, User $user): void
+    private function syncProfessionalFiles(UserDocumentsRequest|UserRequest $request, User $user): void
     {
         $disk = Storage::disk('public');
         $tenantId = (string) ($user->tenant_id ?? tenant_id() ?? 'central');

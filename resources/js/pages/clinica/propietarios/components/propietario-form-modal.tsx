@@ -1,8 +1,8 @@
 import { useForm } from '@inertiajs/react';
-import { Loader2, Search } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { DocumentTypeSelect, FormField, FormModal, FormSection } from '@/components/forms';
+import { DocumentNumberLookupField, DocumentTypeSelect, FormField, FormModal, FormSection } from '@/components/forms';
 import {
     GeoCascadeFields,
     type GeoCascadeValue,
@@ -13,7 +13,6 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { isPropietarioDocumentTypeCode } from '@/lib/document-type-options';
 import { enqueueIfOffline } from '@/lib/offline/enqueue-if-offline';
-import { cn } from '@/lib/utils';
 import { toastManager } from '@/lib/toast';
 import { useOfflineSync } from '@/hooks/use-offline-sync';
 import propietarios from '@/routes/clinica/propietarios';
@@ -497,71 +496,17 @@ export function PropietarioFormModal({
                         label={t('form.numero_documento')}
                         error={errors.numero_documento}
                     >
-                        <div
-                            className={cn(
-                                'flex gap-2',
-                                isConsultableDoc ? 'items-stretch' : 'flex-col',
-                            )}
-                        >
-                            <div className="relative min-w-0 flex-1">
-                                <Input
-                                    id="prop-num-doc"
-                                    className={cn(
-                                        isConsultableDoc && 'pr-14 tabular-nums tracking-wide',
-                                    )}
-                                    inputMode={isConsultableDoc ? 'numeric' : undefined}
-                                    autoComplete="off"
-                                    maxLength={docMaxLen}
-                                    value={data.numero_documento}
-                                    onChange={(e) =>
-                                        setData(
-                                            'numero_documento',
-                                            isConsultableDoc
-                                                ? soloDigitos(e.target.value, docMaxLen)
-                                                : e.target.value,
-                                        )
-                                    }
-                                    aria-invalid={Boolean(errors.numero_documento)}
-                                />
-                                {isConsultableDoc && docMaxLen !== undefined ? (
-                                    <span
-                                        className={cn(
-                                            'pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs font-medium tabular-nums',
-                                            docCompleto
-                                                ? 'text-emerald-600 dark:text-emerald-400'
-                                                : 'text-muted-foreground',
-                                        )}
-                                        aria-hidden
-                                    >
-                                        {docLen}/{docMaxLen}
-                                    </span>
-                                ) : null}
-                            </div>
-                            {isConsultableDoc ? (
-                                <Button
-                                    type="button"
-                                    size="icon"
-                                    variant="ghost"
-                                    disabled={consultandoDoc || submitting || !docCompleto}
-                                    onClick={() => void onConsultarDocumento()}
-                                    className={cn(
-                                        'size-9 shrink-0 cursor-pointer rounded-lg border-0 shadow-sm transition-all',
-                                        'bg-gradient-to-br from-teal-500 to-emerald-600 text-white',
-                                        'hover:from-teal-600 hover:to-emerald-700 hover:shadow-md',
-                                        'focus-visible:ring-2 focus-visible:ring-emerald-500/40',
-                                        'disabled:cursor-not-allowed disabled:from-muted disabled:to-muted disabled:text-muted-foreground disabled:opacity-60 disabled:shadow-none',
-                                    )}
-                                    aria-label={t('form.consultar_sunat')}
-                                    title={t('form.consultar_sunat')}
-                                >
-                                    {consultandoDoc ? (
-                                        <Loader2 className="size-4 animate-spin" aria-hidden />
-                                    ) : (
-                                        <Search className="size-4" aria-hidden />
-                                    )}
-                                </Button>
-                            ) : null}
-                        </div>
+                        <DocumentNumberLookupField
+                            id="prop-num-doc"
+                            value={data.numero_documento}
+                            onChange={(next) => setData('numero_documento', next)}
+                            maxLength={docMaxLen}
+                            consulting={consultandoDoc}
+                            disabled={submitting}
+                            invalid={Boolean(errors.numero_documento)}
+                            onConsult={() => void onConsultarDocumento()}
+                            consultAriaLabel={t('form.consultar_sunat')}
+                        />
                     </FormField>
                     <FormField
                         id="prop-nombres"

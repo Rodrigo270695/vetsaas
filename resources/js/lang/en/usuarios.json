@@ -46,6 +46,7 @@
         "suspended": "Suspended",
         "current_user_badge": "You",
         "copy_email": "Copy email",
+        "documents": "Documents / CV",
         "actions_for": "Actions for {{name}}",
         "self_locked": "You can't edit or delete your own account from here.",
         "superadmin_locked": "Superadmin accounts are managed from the seeder."
@@ -68,10 +69,12 @@
         "submit_create": "Create user",
         "submit_edit": "Save changes",
         "section_basic": "Personal data",
-        "section_basic_hint": "Contact, role, identity document and optional files.",
-        "section_professional": "Professional profile",
-        "section_professional_hint": "Optional. ID, license number and files. You can complete them later.",
-        "professional_banner": "Fill in the identity document and, if applicable, license and files.",
+        "section_basic_hint": "Contact, role and identity document.",
+        "section_identity": "Identity",
+        "section_identity_hint": "Document first; a complete DNI triggers RENIEC automatically.",
+        "section_professional": "Professional documents",
+        "section_professional_hint": "License, CV, ID scan and signature. Optional.",
+        "professional_banner": "Fill in the identity document.",
         "section_access": "Access",
         "section_access_hint_create": "Set the initial password for this account.",
         "section_access_hint_edit": "Change the password if needed. Leave empty to keep the current one.",
@@ -94,7 +97,7 @@
             "password_confirmation": "Confirm password",
             "role": "Role",
             "role_placeholder": "Select a role",
-            "role_professional_hint": "Document, license and files are optional for any role.",
+            "role_professional_hint": "Files (CV, signature) are uploaded from Documents in the row actions menu.",
             "is_active": "Active account",
             "is_active_hint": "If disabled, the user won't be able to sign in.",
             "documento_tipo": "Document type",
@@ -112,6 +115,11 @@
             "firma": "Digital signature",
             "firma_hint": "PNG/JPG signature image, max 2 MB."
         }
+    },
+    "documents": {
+        "title": "Documents — {{name}}",
+        "description": "License, CV, ID scan and signature. Optional; you can complete them later.",
+        "submit": "Save documents"
     },
     "delete": {
         "title": "Delete user",

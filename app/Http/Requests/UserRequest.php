@@ -72,8 +72,8 @@ class UserRequest extends FormRequest
             ],
             'phone' => ['nullable', 'string', 'max:32'],
 
-            // Documento de identidad y adjuntos (opcionales, cualquier rol).
-            'documento_tipo' => ['nullable', 'string', 'max:10', Rule::in(['DNI', 'CE', 'PAS', 'OTRO'])],
+            // Documento de identidad (opcional). Archivos → UserDocumentsRequest.
+            'documento_tipo' => ['nullable', 'string', 'max:10', Rule::in(['DNI', 'CE', 'PAS', 'OTRO', 'OTR'])],
             'documento_numero' => ['nullable', 'string', 'max:32'],
             'colegiatura' => ['nullable', 'string', 'max:40'],
             'cv' => ['nullable', 'file', 'max:5120', 'mimes:pdf,doc,docx,jpg,jpeg,png'],
@@ -126,6 +126,9 @@ class UserRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $tipo = strtoupper(trim((string) $this->input('documento_tipo', '')));
+        if ($tipo === 'OTR') {
+            $tipo = 'OTRO';
+        }
         $numero = preg_replace('/\s+/', '', (string) $this->input('documento_numero', '')) ?? '';
 
         if ($tipo === 'DNI') {

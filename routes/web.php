@@ -1367,6 +1367,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:usuarios.update')
             ->match(['put', 'patch'], 'usuarios/{user}', [UserController::class, 'update'])
             ->name('usuarios.update');
+        Route::middleware('permission:usuarios.update')
+            ->match(['put', 'patch'], 'usuarios/{user}/documentos', [UserController::class, 'updateDocuments'])
+            ->name('usuarios.documentos.update');
         Route::middleware('permission:usuarios.delete')
             ->delete('usuarios/{user}', [UserController::class, 'destroy'])
             ->name('usuarios.destroy');
