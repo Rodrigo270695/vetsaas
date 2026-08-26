@@ -240,7 +240,9 @@ Es un entorno compartido con datos de ejemplo, listo para explorar ahora mismo.
 - URL: {$demoUrl}
 - Usuario (correo EXACTO, no inventes otro): {$demoEmail}
 - Contraseña: {$demoPassword}
-⚠️ NUNCA inventes el correo. PROHIBIDO usar demo@vetsaas.orvae.pe u otros.
+⚠️ NUNCA inventes el correo a partir de la URL.
+La URL puede ser demo.vetsaas.orvae.pe, pero el correo NO es demo@vetsaas.orvae.pe.
+PROHIBIDO: demo@vetsaas.orvae.pe, demo@orvae.pe, o cualquier variación.
 El único correo válido de la demo es exactamente: {$demoEmail}
 Úsalo cuando el prospecto quiera VER cómo funciona antes de comprometerse con nada.
 Frase sugerida: "Puedes entrar ahora mismo sin registrarte: {$demoUrl} — usuario {$demoEmail}, clave {$demoPassword}"
@@ -590,9 +592,22 @@ PROMPT;
         $product = $this->resolveConversationProduct($conversation);
 
         // 2. Construir el payload para OpenAI.
+        // Sanitizamos el historial: si un turno anterior inventó demo@vetsaas.orvae.pe,
+        // el modelo tiende a repetirlo.
+        $historyForAi = $conversation->getOpenAiMessages();
+        if ($product === self::PRODUCT_VETSAAS) {
+            $historyForAi = array_map(function (array $msg): array {
+                if (($msg['role'] ?? '') === 'assistant' && isset($msg['content']) && is_string($msg['content'])) {
+                    $msg['content'] = $this->sanitizeDemoCredentialsInReply($msg['content']);
+                }
+
+                return $msg;
+            }, $historyForAi);
+        }
+
         $messages = array_merge(
             [['role' => 'system', 'content' => $this->buildSystemPrompt($product)]],
-            $conversation->getOpenAiMessages(),
+            $historyForAi,
         );
 
         $maxTokens = $product === self::PRODUCT_PAGINAS_WEB
@@ -1166,6 +1181,13 @@ PROMPT;
         $out = preg_replace(
             '/\bdemo@vetsaas\.(?!pe\b)[a-z0-9.\-]+\b/iu',
             $email,
+            $out,
+        ) ?? $out;
+
+        // Por si el modelo escribe "usuario: demo@…" con espacios raros.
+        $out = preg_replace(
+            '/\b(usuario|correo|email|user)\s*[:=]?\s*demo@[a-z0-9.\-]+\b/iu',
+            '$1 '.$email,
             $out,
         ) ?? $out;
 
