@@ -1,4 +1,4 @@
-import { Copy, Lock, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { Copy, FileStack, Lock, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import {
@@ -16,6 +16,7 @@ export type UserRowActionsProps = {
     /** ID del usuario autenticado, para mostrar lock en su propia fila. */
     currentUserId: string | null;
     onEdit: (user: User) => void;
+    onDocuments: (user: User) => void;
     onDelete: (user: User) => void;
     canUpdate?: boolean;
     canDelete?: boolean;
@@ -25,16 +26,14 @@ export type UserRowActionsProps = {
  * Dropdown de acciones por fila para usuarios.
  *
  * Opciones:
- *  - "Copiar email" → siempre disponible.
- *  - "Editar" / "Eliminar" → siempre que se tenga el permiso y NO sea
- *    la propia cuenta del usuario logueado ni una cuenta superadmin
- *    (el backend rechaza ambos casos, esta es defensa en UI).
- *  - Cuentas protegidas muestran un item informativo "Bloqueado".
+ *  - "Copiar email" → siempre.
+ *  - "Editar" / "Documentos / CV" / "Eliminar" → según permiso.
  */
 export function UserRowActions({
     user,
     currentUserId,
     onEdit,
+    onDocuments,
     onDelete,
     canUpdate = true,
     canDelete = true,
@@ -43,9 +42,6 @@ export function UserRowActions({
 
     const isSelf = currentUserId === user.id;
     const isSuperadmin = user.roles.some((r) => r.name === 'superadmin');
-    // Proteger superadmin solo del DELETE; editarlo (cambiar nombre/email/
-    // rol) está permitido para que el dueño pueda actualizar su perfil
-    // desde el listado si quiere.
     const showEdit = canUpdate;
     const showDelete = canDelete && !isSelf && !isSuperadmin;
 
@@ -95,6 +91,16 @@ export function UserRowActions({
                     >
                         <Pencil className="size-4" strokeWidth={2.25} />
                         {t('common:actions.edit')}
+                    </DropdownMenuItem>
+                )}
+
+                {showEdit && (
+                    <DropdownMenuItem
+                        onSelect={() => onDocuments(user)}
+                        className="cursor-pointer gap-2"
+                    >
+                        <FileStack className="size-4" strokeWidth={2.25} />
+                        {t('usuarios:row.documents')}
                     </DropdownMenuItem>
                 )}
 
