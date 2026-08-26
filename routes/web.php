@@ -1021,6 +1021,13 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             ->post('documentos/{felDocument}/enviar-whatsapp', [FelDocumentController::class, 'enviarWhatsApp'])
             ->whereUuid('felDocument')
             ->name('documentos.enviar-whatsapp');
+        Route::middleware('permission:documentos.view')
+            ->post('documentos/sincronizar-estados', [FelDocumentController::class, 'sincronizarEstados'])
+            ->name('documentos.sincronizar-estados');
+        Route::middleware('permission:documentos.view')
+            ->post('documentos/{felDocument}/sincronizar-estado', [FelDocumentController::class, 'sincronizarEstado'])
+            ->whereUuid('felDocument')
+            ->name('documentos.sincronizar-estado');
         Route::middleware('permission:documentos.create')
             ->post('documentos/{felDocument}/pasar-a-produccion', [FelDocumentController::class, 'pasarAProduccion'])
             ->whereUuid('felDocument')

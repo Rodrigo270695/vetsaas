@@ -133,10 +133,30 @@ final class FelEmisionVentaService
             $enlaces = $this->apisunat->extraerEnlaces($respuesta);
             $estadoApisunat = strtoupper((string) (($respuesta['payload'] ?? [])['estado'] ?? ''));
 
+            if (in_array($estadoApisunat, ['RECHAZADO', 'EXCEPCION'], true)) {
+                $mensaje = $this->apisunat->extraerMensajeError($respuesta);
+                $this->marcarRechazado($documento, $venta, $mensaje, $emisionModo);
+
+                throw new RuntimeException($mensaje !== '' ? $mensaje : 'APISUNAT rechazó el comprobante.');
+            }
+
+            // Solo ACEPTADO cuenta como emitido. PENDIENTE u estado vacío = pendiente SUNAT
+            // (el PDF de Lucode no implica aceptación; el cron/UI sincronizan luego).
+            $mapped = match ($estadoApisunat) {
+                'ACEPTADO' => [
+                    'doc' => FelDocument::ESTADO_EMITIDO,
+                    'venta' => Venta::FEL_EMITIDO,
+                ],
+                default => [
+                    'doc' => FelDocument::ESTADO_PENDIENTE,
+                    'venta' => Venta::FEL_PENDIENTE,
+                ],
+            };
+
             $serie->update(['ultimo_correlativo' => $correlativo]);
 
             $documento->update([
-                'estado' => FelDocument::ESTADO_EMITIDO,
+                'estado' => $mapped['doc'],
                 'nubefact_id' => $estadoApisunat !== '' ? 'apisunat:'.$estadoApisunat : null,
                 'url_pdf' => $enlaces['pdf'],
                 'url_xml' => $enlaces['xml'],
@@ -145,10 +165,10 @@ final class FelEmisionVentaService
                 'apisunat_payload' => $respuesta,
                 'apisunat_mode' => $emisionModo,
                 'error_mensaje' => null,
-                'emitido_at' => now(),
+                'emitido_at' => $mapped['doc'] === FelDocument::ESTADO_EMITIDO ? now() : null,
             ]);
 
-            $venta->update(['fel_estado' => Venta::FEL_EMITIDO]);
+            $venta->update(['fel_estado' => $mapped['venta']]);
 
             return $documento->fresh();
         });
@@ -156,7 +176,20 @@ final class FelEmisionVentaService
 
     private function estadoPermiteEmision(Venta $venta): bool
     {
-        if (in_array($venta->fel_estado, [Venta::FEL_PENDIENTE, Venta::FEL_RECHAZADO], true)) {
+        if ($venta->fel_estado === Venta::FEL_RECHAZADO) {
+            return true;
+        }
+
+        if ($venta->fel_estado === Venta::FEL_PENDIENTE) {
+            // Ya enviado a Lucode (serie/correlativo): esperar sync SUNAT, no reemitir.
+            $doc = $venta->relationLoaded('felDocument')
+                ? $venta->felDocument
+                : FelDocument::query()->where('venta_id', $venta->id)->first();
+
+            if ($doc !== null && filled($doc->serie) && $doc->correlativo !== null) {
+                return false;
+            }
+
             return true;
         }
 

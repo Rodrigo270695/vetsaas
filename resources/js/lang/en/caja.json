@@ -319,6 +319,7 @@
             "fel_pasar_produccion": "Move to production",
             "fel_pasar_produccion_confirm": "{{numero}} will be re-sent to SUNAT production with the same series and number. Continue?",
             "fel_pasar_produccion_bloqueado": "This receipt cannot be converted yet.",
+            "fel_sincronizar_estado": "Sync SUNAT status",
             "ticket_espera_cpe": "Print the receipt after issuing the SUNAT voucher.",
             "anular_venta": "Void sale",
             "anular_venta_desc": "Reverses product stock, releases pre-invoice/grooming/hotel links, and voids the SUNAT receipt if already issued.",

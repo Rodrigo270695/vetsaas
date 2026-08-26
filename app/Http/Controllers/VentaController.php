@@ -965,6 +965,9 @@ class VentaController extends Controller
                     : null,
                 'pasar_a_produccion_motivo' => $conversionEstado['motivo'] ?? null,
                 'siguiente_sandbox_numero' => $conversionEstado['siguiente_numero'] ?? null,
+                'sincronizar_estado_url' => $felDoc !== null
+                    ? route('facturacion.documentos.sincronizar-estado', $felDoc)
+                    : null,
             ],
             'ticket' => [
                 'puede_imprimir' => $puedeImprimirTicket,

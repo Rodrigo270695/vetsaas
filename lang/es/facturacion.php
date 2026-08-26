@@ -9,6 +9,8 @@ return [
             'whatsapp_no_emitido' => 'Solo se pueden enviar comprobantes en estado emitido.',
             'whatsapp_sandbox' => 'No se puede enviar por WhatsApp un comprobante en modo prueba. Pásalo a producción primero.',
             'whatsapp_sin_adjuntos' => 'Selecciona al menos un archivo para enviar.',
+            'status_synced' => ':numero actualizado: :estado.',
+            'status_synced_bulk' => 'Sincronizados :checked comprobantes (:updated actualizados; :pending pendientes, :rejected rechazados).',
         ],
     ],
 ];

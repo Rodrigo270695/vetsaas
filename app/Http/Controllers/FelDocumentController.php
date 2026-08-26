@@ -10,6 +10,7 @@ use App\Models\FelSerie;
 use App\Models\Sede;
 use App\Models\Tenant;
 use App\Services\Fel\FelDocumentApisunatFileService;
+use App\Services\Fel\FelDocumentStatusSyncService;
 use App\Services\Fel\FelDocumentWhatsAppSender;
 use App\Services\Fel\FelSandboxToProduccionService;
 use App\Support\Fel\ApisunatCredentialResolver;
@@ -122,6 +123,8 @@ class FelDocumentController extends Controller
                 'siguiente_sandbox_numero' => $siguiente !== null
                     ? ((string) $doc->serie).'-'.str_pad((string) $siguiente, 8, '0', STR_PAD_LEFT)
                     : null,
+                'error_mensaje' => $doc->error_mensaje,
+                'sincronizar_estado_url' => route('facturacion.documentos.sincronizar-estado', $doc),
             ];
         });
 
@@ -138,9 +141,12 @@ class FelDocumentController extends Controller
                 'fecha_hasta' => $ctx['fecha_hasta'],
             ],
             'documento_filtro_ui' => $documentoFiltroUi,
+            'sincronizar_estados_url' => route('facturacion.documentos.sincronizar-estados'),
             'stats' => [
                 'total' => FelDocument::query()->count(),
                 'emitidos' => FelDocument::query()->where('estado', FelDocument::ESTADO_EMITIDO)->count(),
+                'pendientes' => FelDocument::query()->where('estado', FelDocument::ESTADO_PENDIENTE)->count(),
+                'rechazados' => FelDocument::query()->where('estado', FelDocument::ESTADO_RECHAZADO)->count(),
                 'coincidencias' => $documentos->total(),
                 'monto_total' => number_format($montoFiltrado, 2, '.', ''),
                 'moneda' => 'PEN',
@@ -278,6 +284,54 @@ class FelDocumentController extends Controller
             'success',
             __('caja.ventas.fel.sandbox_prod.ok', [
                 'numero' => $converted->numero_completo,
+            ]),
+        );
+    }
+
+    public function sincronizarEstado(
+        Request $request,
+        FelDocument $felDocument,
+        FelDocumentStatusSyncService $sync,
+    ): RedirectResponse {
+        abort_unless($request->user()?->can('documentos.view'), 403);
+
+        try {
+            $result = $sync->syncDocument($felDocument);
+        } catch (Throwable $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        $label = match ($result['sunat']) {
+            'ACEPTADO' => 'aceptado por SUNAT',
+            'PENDIENTE' => 'pendiente en SUNAT',
+            'RECHAZADO', 'EXCEPCION' => 'rechazado por SUNAT',
+            default => strtolower((string) $result['sunat']),
+        };
+
+        return back()->with(
+            'success',
+            __('facturacion.documentos.flash.status_synced', [
+                'numero' => $felDocument->numero_completo,
+                'estado' => $label,
+            ]),
+        );
+    }
+
+    public function sincronizarEstados(
+        Request $request,
+        FelDocumentStatusSyncService $sync,
+    ): RedirectResponse {
+        abort_unless($request->user()?->can('documentos.view'), 403);
+
+        $stats = $sync->syncClinic(limit: 200);
+
+        return back()->with(
+            'success',
+            __('facturacion.documentos.flash.status_synced_bulk', [
+                'checked' => $stats['checked'],
+                'updated' => $stats['updated'],
+                'rejected' => $stats['rejected'],
+                'pending' => $stats['pending'],
             ]),
         );
     }

@@ -174,9 +174,27 @@ final class FelSandboxToProduccionService
 
             $enlaces = $this->apisunat->extraerEnlaces($respuesta);
             $estadoApisunat = strtoupper((string) (($respuesta['payload'] ?? [])['estado'] ?? ''));
+            $mapped = match ($estadoApisunat) {
+                'ACEPTADO' => [
+                    'doc' => FelDocument::ESTADO_EMITIDO,
+                    'venta' => Venta::FEL_EMITIDO,
+                ],
+                'PENDIENTE' => [
+                    'doc' => FelDocument::ESTADO_PENDIENTE,
+                    'venta' => Venta::FEL_PENDIENTE,
+                ],
+                'RECHAZADO', 'EXCEPCION' => [
+                    'doc' => FelDocument::ESTADO_RECHAZADO,
+                    'venta' => Venta::FEL_RECHAZADO,
+                ],
+                default => [
+                    'doc' => FelDocument::ESTADO_PENDIENTE,
+                    'venta' => Venta::FEL_PENDIENTE,
+                ],
+            };
 
             $documento->update([
-                'estado' => FelDocument::ESTADO_EMITIDO,
+                'estado' => $mapped['doc'],
                 'nubefact_id' => $estadoApisunat !== '' ? 'apisunat:'.$estadoApisunat : $documento->nubefact_id,
                 'url_pdf' => $enlaces['pdf'] ?? $documento->url_pdf,
                 'url_xml' => $enlaces['xml'] ?? $documento->url_xml,
@@ -184,11 +202,13 @@ final class FelSandboxToProduccionService
                 'enlace_consulta' => $enlaces['consulta'] ?? $documento->enlace_consulta,
                 'apisunat_payload' => $respuesta,
                 'apisunat_mode' => 'produccion',
-                'error_mensaje' => null,
+                'error_mensaje' => in_array($estadoApisunat, ['RECHAZADO', 'EXCEPCION'], true)
+                    ? mb_substr((string) ($respuesta['message'] ?? 'APISUNAT: '.$estadoApisunat), 0, 2000)
+                    : null,
                 'emitido_at' => $documento->emitido_at ?? now(),
             ]);
 
-            $venta->update(['fel_estado' => Venta::FEL_EMITIDO]);
+            $venta->update(['fel_estado' => $mapped['venta']]);
 
             $this->siguientesCache = null;
 

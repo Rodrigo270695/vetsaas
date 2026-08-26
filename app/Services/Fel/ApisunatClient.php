@@ -29,6 +29,10 @@ final class ApisunatClient
 
     private const SANDBOX_SUMMARY_URL = 'https://sandbox.apisunat.pe/api/v3/daily-summary';
 
+    private const PROD_STATUS_URL = 'https://app.apisunat.pe/api/v3/status';
+
+    private const SANDBOX_STATUS_URL = 'https://sandbox.apisunat.pe/api/v3/status';
+
     private const DOC_NOMBRES = [
         FelSerie::TIPO_FACTURA => 'factura',
         FelSerie::TIPO_BOLETA => 'boleta',
@@ -96,6 +100,42 @@ final class ApisunatClient
                 'numero' => $numero,
             ]],
         ]);
+    }
+
+    /**
+     * Consulta el estado SUNAT/Lucode de un comprobante ya enviado.
+     *
+     * @param  array{token: string, mode: 'sandbox'|'produccion'}  $credenciales
+     * @return array<string, mixed>
+     */
+    public function consultarEstado(
+        array $credenciales,
+        string $documentoNombre,
+        string $serie,
+        int $numero,
+    ): array {
+        $url = $credenciales['mode'] === 'produccion' ? self::PROD_STATUS_URL : self::SANDBOX_STATUS_URL;
+
+        return $this->postJson($credenciales, $url, [
+            'documento' => $documentoNombre,
+            'serie' => $serie,
+            'numero' => $numero,
+        ]);
+    }
+
+    /**
+     * Extrae el estado Lucode (ACEPTADO|PENDIENTE|RECHAZADO|EXCEPCION|…).
+     *
+     * @param  array<string, mixed>  $respuesta
+     */
+    public function extraerEstado(array $respuesta): ?string
+    {
+        $estado = $respuesta['payload']['estado'] ?? null;
+        if (! is_string($estado) || trim($estado) === '') {
+            return null;
+        }
+
+        return strtoupper(trim($estado));
     }
 
     /**

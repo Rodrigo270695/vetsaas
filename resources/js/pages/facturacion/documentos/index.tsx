@@ -1,5 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { ArrowUpRight, Download, Eye, FileText, MessageCircle } from 'lucide-react';
+import { ArrowUpRight, Download, Eye, FileText, MessageCircle, RefreshCw } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -54,6 +54,8 @@ type DocumentoRow = DocumentoDownloadRow & {
     venta_estado: string | null;
     metodo_pago: string | null;
     sede: string;
+    error_mensaje?: string | null;
+    sincronizar_estado_url?: string;
 };
 
 type Props = {
@@ -73,9 +75,12 @@ type Props = {
         default_hasta: string;
         fuera_del_mes_actual: boolean;
     };
+    sincronizar_estados_url?: string;
     stats: {
         total: number;
         emitidos: number;
+        pendientes?: number;
+        rechazados?: number;
         coincidencias: number;
         /** Suma de `total` de los CPE que cumplen los filtros actuales. */
         monto_total: string;
@@ -113,10 +118,10 @@ const ESTADO_BADGE: Record<string, 'default' | 'secondary' | 'destructive' | 'ou
 };
 
 const ESTADO_LABEL: Record<string, string> = {
-    emitido: 'Emitido',
+    emitido: 'Aceptado SUNAT',
     anulado: 'Anulado',
-    rechazado: 'Rechazado',
-    pendiente: 'Pendiente',
+    rechazado: 'Rechazado SUNAT',
+    pendiente: 'Pendiente SUNAT',
 };
 
 function modoBadge(mode: DocumentoRow['apisunat_mode']): {
@@ -146,7 +151,13 @@ function formatMonto(amount: string, moneda: string, locale: string): string {
     return new Intl.NumberFormat(locale, { style: 'currency', currency: cur }).format(n);
 }
 
-export default function Index({ documentos: paginated, filters, documento_filtro_ui, stats }: Props) {
+export default function Index({
+    documentos: paginated,
+    filters,
+    documento_filtro_ui,
+    stats,
+    sincronizar_estados_url,
+}: Props) {
     const { t, i18n } = useTranslation(['facturacion-documentos', 'common']);
     const [whatsappDocumento, setWhatsappDocumento] = useState<DocumentoWhatsAppRow | null>(null);
 
@@ -340,9 +351,19 @@ export default function Index({ documentos: paginated, filters, documento_filtro
                 key: 'estado',
                 header: 'Estado',
                 cell: (row) => (
-                    <Badge variant={ESTADO_BADGE[row.estado] ?? 'outline'}>
-                        {ESTADO_LABEL[row.estado] ?? row.estado}
-                    </Badge>
+                    <div className="flex max-w-[14rem] flex-col gap-0.5">
+                        <Badge variant={ESTADO_BADGE[row.estado] ?? 'outline'}>
+                            {ESTADO_LABEL[row.estado] ?? row.estado}
+                        </Badge>
+                        {row.estado === 'rechazado' && row.error_mensaje ? (
+                            <span
+                                className="line-clamp-2 max-w-56 text-[11px] leading-snug text-destructive"
+                                title={row.error_mensaje}
+                            >
+                                {row.error_mensaje}
+                            </span>
+                        ) : null}
+                    </div>
                 ),
                 sortable: true,
                 sortKey: 'estado',
@@ -353,6 +374,30 @@ export default function Index({ documentos: paginated, filters, documento_filtro
                 align: 'right',
                 cell: (row) => (
                     <div className="flex items-center justify-end gap-0.5">
+                        {row.sincronizar_estado_url &&
+                        (row.estado === 'pendiente' ||
+                            row.estado === 'emitido' ||
+                            row.estado === 'rechazado') ? (
+                            <Can permission="documentos.view">
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="size-8 shrink-0 border-0 bg-transparent text-sky-600 shadow-none hover:bg-sky-500/10 hover:text-sky-700 dark:text-sky-400 dark:hover:text-sky-300"
+                                    aria-label={`Sincronizar estado SUNAT de ${row.numero_completo}`}
+                                    title="Consultar estado en Lucode/SUNAT"
+                                    onClick={() => {
+                                        router.post(
+                                            row.sincronizar_estado_url!,
+                                            {},
+                                            { preserveScroll: true },
+                                        );
+                                    }}
+                                >
+                                    <RefreshCw className="size-4" strokeWidth={2.25} aria-hidden />
+                                </Button>
+                            </Can>
+                        ) : null}
                         {row.estado === 'emitido' && row.apisunat_mode !== 'sandbox' ? (
                             <Can permission="documentos.send">
                                 <Button
@@ -443,7 +488,7 @@ export default function Index({ documentos: paginated, filters, documento_filtro
             <div className="flex flex-1 flex-col gap-5 p-4 sm:p-6">
                 <PageHeader
                     title="Comprobantes emitidos"
-                    description="Historial de boletas y facturas electrónicas enviadas a SUNAT vía APISUNAT. Los de prueba no son válidos: conviértelos a producción en orden de correlativo."
+                    description="Historial de boletas y facturas electrónicas enviadas a SUNAT vía APISUNAT. El estado local se alinea con Lucode (solo ACEPTADO = emitido). Usa «Sincronizar estados» si hay desfase. Los de prueba no son válidos: conviértelos a producción en orden de correlativo."
                     stats={[
                         {
                             label: t('stats.monto_total'),
@@ -456,6 +501,24 @@ export default function Index({ documentos: paginated, filters, documento_filtro
                         },
                         { label: t('stats.total'), value: stats.total, variant: 'muted' },
                         { label: t('stats.emitidos'), value: stats.emitidos, variant: 'primary' },
+                        ...(stats.pendientes != null
+                            ? [
+                                  {
+                                      label: 'Pendientes SUNAT',
+                                      value: stats.pendientes,
+                                      variant: 'default' as const,
+                                  },
+                              ]
+                            : []),
+                        ...(stats.rechazados != null && stats.rechazados > 0
+                            ? [
+                                  {
+                                      label: 'Rechazados',
+                                      value: stats.rechazados,
+                                      variant: 'default' as const,
+                                  },
+                              ]
+                            : []),
                         {
                             label: t('stats.coincidencias'),
                             value: stats.coincidencias,
@@ -463,22 +526,47 @@ export default function Index({ documentos: paginated, filters, documento_filtro
                         },
                     ]}
                     action={
-                        <Button
-                            asChild
-                            variant="outline"
-                            className="h-10 shrink-0 cursor-pointer gap-2 px-3 font-normal"
-                        >
-                            <a href={exportUrl} download>
-                                <Download
-                                    className="size-4 shrink-0 opacity-70"
-                                    strokeWidth={2.5}
-                                    aria-hidden
-                                />
-                                <span className="hidden sm:inline">
-                                    {t('common:actions.export_xlsx')}
-                                </span>
-                            </a>
-                        </Button>
+                        <div className="flex flex-wrap items-center justify-end gap-2">
+                            {sincronizar_estados_url ? (
+                                <Can permission="documentos.view">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="h-10 shrink-0 cursor-pointer gap-2 px-3 font-normal"
+                                        onClick={() => {
+                                            router.post(
+                                                sincronizar_estados_url,
+                                                {},
+                                                { preserveScroll: true },
+                                            );
+                                        }}
+                                    >
+                                        <RefreshCw
+                                            className="size-4 shrink-0 opacity-70"
+                                            strokeWidth={2.5}
+                                            aria-hidden
+                                        />
+                                        <span className="hidden sm:inline">Sincronizar estados</span>
+                                    </Button>
+                                </Can>
+                            ) : null}
+                            <Button
+                                asChild
+                                variant="outline"
+                                className="h-10 shrink-0 cursor-pointer gap-2 px-3 font-normal"
+                            >
+                                <a href={exportUrl} download>
+                                    <Download
+                                        className="size-4 shrink-0 opacity-70"
+                                        strokeWidth={2.5}
+                                        aria-hidden
+                                    />
+                                    <span className="hidden sm:inline">
+                                        {t('common:actions.export_xlsx')}
+                                    </span>
+                                </a>
+                            </Button>
+                        </div>
                     }
                 />
 

@@ -8,6 +8,7 @@ import {
     MessagesSquare,
     Printer,
     Receipt,
+    RefreshCw,
     Stethoscope,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
@@ -85,6 +86,7 @@ export default function Show({
     const canAvisarCaja = can('comunicaciones-chat.view');
     const [emitiendoFel, setEmitiendoFel] = useState(false);
     const [pasandoProduccion, setPasandoProduccion] = useState(false);
+    const [sincronizandoEstado, setSincronizandoEstado] = useState(false);
     const [anularOpen, setAnularOpen] = useState(false);
     const [motivoAnulacion, setMotivoAnulacion] = useState('');
     const [anulando, setAnulando] = useState(false);
@@ -159,6 +161,21 @@ export default function Show({
             {
                 preserveScroll: true,
                 onFinish: () => setPasandoProduccion(false),
+            },
+        );
+    };
+
+    const sincronizarEstadoSunat = () => {
+        if (!fel.sincronizar_estado_url) {
+            return;
+        }
+        setSincronizandoEstado(true);
+        router.post(
+            fel.sincronizar_estado_url,
+            {},
+            {
+                preserveScroll: true,
+                onFinish: () => setSincronizandoEstado(false),
             },
         );
     };
@@ -801,6 +818,23 @@ export default function Show({
                                                     <Loader2 className="size-3.5 animate-spin" aria-hidden />
                                                 ) : null}
                                                 {t('caja:ventas.show.fel_emitir')}
+                                            </Button>
+                                        ) : null}
+                                        {esComprobanteSunat && fel.sincronizar_estado_url && !esAnulada ? (
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                className="h-8 gap-1.5"
+                                                disabled={sincronizandoEstado}
+                                                onClick={sincronizarEstadoSunat}
+                                            >
+                                                {sincronizandoEstado ? (
+                                                    <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                                                ) : (
+                                                    <RefreshCw className="size-3.5" aria-hidden />
+                                                )}
+                                                {t('caja:ventas.show.fel_sincronizar_estado')}
                                             </Button>
                                         ) : null}
                                         {fel.es_sandbox && fel.pasar_a_produccion_url ? (

@@ -245,6 +245,7 @@ final class ComprobantesQuota
         }
 
         $query = FelDocument::query()
+            ->where('estado', FelDocument::ESTADO_EMITIDO)
             ->whereNotNull('emitido_at')
             ->whereBetween('emitido_at', [$start, $end]);
 

@@ -128,10 +128,9 @@ beforeEach(function (): void {
         $clinic = ClinicSetting::query()->firstOrFail();
         $clinic->update([
             'emite_comprobantes_sunat' => true,
-            'nubefact_configurado' => true,
-            'nubefact_ruc' => '20600655571',
-            'nubefact_api_ruta' => 'https://api.nubefact.com/api/v1/fel-test-local',
-            'nubefact_token_enc' => Crypt::encryptString('token-fel-test'),
+            'apisunat_configurado' => true,
+            'apisunat_mode' => 'sandbox',
+            'apisunat_token_enc' => Crypt::encryptString('token-fel-test'),
         ]);
     });
 });
@@ -170,10 +169,13 @@ afterEach(function (): void {
 it('emite FEL vía job síncrono al registrar venta cuando plan y clínica lo permiten', function (): void {
     Http::fake([
         '*' => Http::response([
-            'aceptada_por_sunat' => true,
-            'codigo_unico' => 'NUBEFACT-TEST-001',
-            'enlace_del_pdf' => 'https://example.test/cpe.pdf',
-            'enlace_del_xml' => 'https://example.test/cpe.xml',
+            'success' => true,
+            'message' => 'OK',
+            'payload' => [
+                'estado' => 'ACEPTADO',
+                'pdf' => ['ticket' => 'https://example.test/cpe.pdf'],
+                'xml' => 'https://example.test/cpe.xml',
+            ],
         ], 200),
     ]);
 
@@ -191,7 +193,7 @@ it('emite FEL vía job síncrono al registrar venta cuando plan y clínica lo pe
         $doc = FelDocument::query()->where('venta_id', $venta->id)->first();
         expect($doc)->not->toBeNull();
         expect($doc->estado)->toBe(FelDocument::ESTADO_EMITIDO);
-        expect($doc->nubefact_id)->toBe('NUBEFACT-TEST-001');
+        expect($doc->nubefact_id)->toBe('apisunat:ACEPTADO');
 
         $serie = FelSerie::query()->whereKey($doc->fel_serie_id)->first();
         expect($serie)->not->toBeNull();
@@ -222,9 +224,9 @@ it('expone emitir FEL manual cuando la venta sigue pendiente de emisión', funct
 
         ClinicSetting::query()->firstOrFail()->update([
             'emite_comprobantes_sunat' => true,
-            'nubefact_configurado' => true,
-            'nubefact_api_ruta' => 'https://api.nubefact.com/api/v1/fel-test-local-2',
-            'nubefact_token_enc' => Crypt::encryptString('token-fel-test-2'),
+            'apisunat_configurado' => true,
+            'apisunat_mode' => 'sandbox',
+            'apisunat_token_enc' => Crypt::encryptString('token-fel-test-2'),
         ]);
 
         $venta->update(['fel_estado' => Venta::FEL_PENDIENTE]);
@@ -232,9 +234,12 @@ it('expone emitir FEL manual cuando la venta sigue pendiente de emisión', funct
 
     Http::fake([
         '*' => Http::response([
-            'aceptada_por_sunat' => true,
-            'codigo_unico' => 'NUBEFACT-MANUAL-002',
-            'enlace_del_pdf' => 'https://example.test/manual.pdf',
+            'success' => true,
+            'message' => 'OK',
+            'payload' => [
+                'estado' => 'ACEPTADO',
+                'pdf' => ['ticket' => 'https://example.test/manual.pdf'],
+            ],
         ], 200),
     ]);
 
@@ -245,8 +250,6 @@ it('expone emitir FEL manual cuando la venta sigue pendiente de emisión', funct
         ]);
     });
 
-    $fechaHoy = now(config('app.timezone'))->format('d-m-Y');
-
     $this->actingAs($this->cajero)
         ->post($this->baseUrl.'/caja/ventas/'.$ventaId.'/emitir-fel')
         ->assertRedirect();
@@ -255,10 +258,8 @@ it('expone emitir FEL manual cuando la venta sigue pendiente de emisión', funct
         $venta = Venta::query()->findOrFail($ventaId);
         expect($venta->fel_estado)->toBe(Venta::FEL_EMITIDO);
         $doc = FelDocument::query()->where('venta_id', $ventaId)->first();
-        expect($doc?->nubefact_id)->toBe('NUBEFACT-MANUAL-002');
+        expect($doc?->nubefact_id)->toBe('apisunat:ACEPTADO');
     });
 
-    Http::assertSent(function ($request) use ($fechaHoy): bool {
-        return ($request['fecha_de_emision'] ?? '') === $fechaHoy;
-    });
+    Http::assertSentCount(1);
 });

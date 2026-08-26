@@ -243,6 +243,7 @@ export type VentaShowProps = {
         pasar_a_produccion_url?: string | null;
         pasar_a_produccion_motivo?: string | null;
         siguiente_sandbox_numero?: string | null;
+        sincronizar_estado_url?: string | null;
     };
     ticket: {
         puede_imprimir: boolean;
