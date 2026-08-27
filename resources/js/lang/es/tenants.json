@@ -28,7 +28,8 @@
         "create_first": "Crear el primer tenant",
         "delete_selected": "Eliminar seleccionados",
         "win_back_free_selected": "Win-back Free ({{count}})",
-        "win_back_free_all": "Win-back Free vencidos"
+        "win_back_free_all": "Win-back Free vencidos",
+        "win_back_history": "Historial win-back"
     },
     "columns": {
         "tenant": "Tenant",
@@ -172,6 +173,18 @@
         "force_hint": "Ignora el cooldown de ofertas recientes (72 h) o aceptaciones recientes.",
         "confirm": "Enviar a {{count}}",
         "confirm_all": "Enviar a todos los Free vencidos"
+    },
+    "win_back_history": {
+        "title": "Historial win-back Free",
+        "description": "Último envío por clínica (WhatsApp o email). No es un log de cada intento: muestra el estado actual de la oferta.",
+        "empty": "Aún no hay envíos de win-back Free registrados.",
+        "col_tenant": "Clínica",
+        "col_channel": "Canal",
+        "col_status": "Estado",
+        "col_when": "Fecha",
+        "col_contact": "Contacto",
+        "status_pending": "Pendiente (esperando Sí)",
+        "status_accepted": "Aceptado"
     },
     "empty": {
         "no_records_title": "Aún no hay tenants",

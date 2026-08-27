@@ -28,7 +28,8 @@
         "create_first": "Create the first tenant",
         "delete_selected": "Delete selected",
         "win_back_free_selected": "Win-back Free ({{count}})",
-        "win_back_free_all": "Win-back expired Free"
+        "win_back_free_all": "Win-back expired Free",
+        "win_back_history": "Win-back history"
     },
     "columns": {
         "tenant": "Tenant",
@@ -172,6 +173,18 @@
         "force_hint": "Ignores cooldown for recent offers (72h) or recent acceptances.",
         "confirm": "Send to {{count}}",
         "confirm_all": "Send to all expired Free"
+    },
+    "win_back_history": {
+        "title": "Free win-back history",
+        "description": "Latest offer per clinic (WhatsApp or email). Not a full attempt log — shows current offer status.",
+        "empty": "No Free win-back sends recorded yet.",
+        "col_tenant": "Clinic",
+        "col_channel": "Channel",
+        "col_status": "Status",
+        "col_when": "Date",
+        "col_contact": "Contact",
+        "status_pending": "Pending (waiting for Yes)",
+        "status_accepted": "Accepted"
     },
     "empty": {
         "no_records_title": "No tenants yet",

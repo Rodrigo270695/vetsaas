@@ -5,6 +5,7 @@ import {
     CheckCircle2,
     Download,
     Filter,
+    History,
     Mail,
     Plus,
     PauseCircle,
@@ -52,6 +53,10 @@ import { TenantRecoverAdminDialog } from './components/tenant-recover-admin-dial
 import { TenantRowActions } from './components/tenant-row-actions';
 import { TenantSuspendDialog } from './components/tenant-suspend-dialog';
 import { TenantWinBackFreeDialog } from './components/tenant-win-back-free-dialog';
+import {
+    TenantWinBackHistoryDialog,
+    type WinBackRecentRow,
+} from './components/tenant-win-back-history-dialog';
 import type {
     GeoOption,
     Tenant,
@@ -69,6 +74,7 @@ type TenantsIndexProps = {
     plans_catalog: readonly TenantPlanOption[];
     departamentos: readonly GeoOption[];
     openwa_configured: boolean;
+    win_back_recent?: readonly WinBackRecentRow[];
 };
 
 /**
@@ -86,7 +92,8 @@ type ModalState =
     | { type: 'change-slug'; tenant: Tenant }
     | { type: 'recover-admin'; tenant: Tenant }
     | { type: 'bulk-delete' }
-    | { type: 'win-back-free'; ids: string[]; allFreeExpired?: boolean };
+    | { type: 'win-back-free'; ids: string[]; allFreeExpired?: boolean }
+    | { type: 'win-back-history' };
 
 const DEFAULT_PER_PAGE = 10;
 const DEFAULT_ESTADO: TenantEstadoFilter = 'todos';
@@ -116,6 +123,7 @@ export default function Index({
     plans_catalog,
     departamentos,
     openwa_configured,
+    win_back_recent = [],
 }: TenantsIndexProps) {
     const { t } = useTranslation(['tenants', 'subscription-expiry', 'common']);
     const { can } = usePermission();
@@ -285,6 +293,9 @@ export default function Index({
     }, []);
     const openAllFreeExpiredWinBack = useCallback(() => {
         setModal({ type: 'win-back-free', ids: [], allFreeExpired: true });
+    }, []);
+    const openWinBackHistory = useCallback(() => {
+        setModal({ type: 'win-back-history' });
     }, []);
 
     /** Selección de filas. UUID → tipamos como string. */
@@ -615,17 +626,30 @@ export default function Index({
                     action={
                         <div className="flex flex-row items-center gap-2">
                             {canUpdate && (
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={openAllFreeExpiredWinBack}
-                                    className="cursor-pointer gap-2"
-                                >
-                                    <Mail className="size-4" strokeWidth={2.5} />
-                                    <span className="hidden sm:inline">
-                                        {t('tenants:actions.win_back_free_all')}
-                                    </span>
-                                </Button>
+                                <>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={openWinBackHistory}
+                                        className="cursor-pointer gap-2"
+                                    >
+                                        <History className="size-4" strokeWidth={2.5} />
+                                        <span className="hidden lg:inline">
+                                            {t('tenants:actions.win_back_history')}
+                                        </span>
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={openAllFreeExpiredWinBack}
+                                        className="cursor-pointer gap-2"
+                                    >
+                                        <Mail className="size-4" strokeWidth={2.5} />
+                                        <span className="hidden sm:inline">
+                                            {t('tenants:actions.win_back_free_all')}
+                                        </span>
+                                    </Button>
+                                </>
                             )}
                             {canExport && (
                                 <Button
@@ -824,6 +848,14 @@ export default function Index({
                         : false
                 }
                 onCompleted={() => selection.clear()}
+            />
+
+            <TenantWinBackHistoryDialog
+                open={modal.type === 'win-back-history'}
+                onOpenChange={(open) => {
+                    if (!open) closeModal();
+                }}
+                rows={win_back_recent}
             />
 
             {(canBulkDelete || canUpdate) && (

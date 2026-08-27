@@ -8,6 +8,7 @@ use App\Http\Requests\RecoverTenantAdminAccessRequest;
 use App\Http\Requests\TenantRequest;
 use App\Models\Departamento;
 use App\Models\Plan;
+use App\Models\Subscription;
 use App\Models\Tenant;
 use App\Support\Clinic\ClinicBrandingUrls;
 use App\Services\OpenWa\OpenWaClient;
@@ -141,6 +142,52 @@ class TenantController extends Controller
             ->pluck('total', 'estado')
             ->all();
 
+        $winBackRecent = Subscription::query()
+            ->with([
+                'tenant:id,slug,razon_social,nombre_comercial,email_admin,telefono',
+                'plan:id,codigo,nombre',
+            ])
+            ->whereHas('plan', fn ($q) => $q->where('codigo', Plan::CODIGO_FREE))
+            ->where(function ($q): void {
+                $q->whereNotNull('win_back_pending_at')
+                    ->orWhereNotNull('win_back_accepted_at');
+            })
+            ->orderByRaw('COALESCE(win_back_accepted_at, win_back_pending_at) DESC')
+            ->limit(150)
+            ->get([
+                'id',
+                'tenant_id',
+                'plan_id',
+                'estado',
+                'win_back_pending_at',
+                'win_back_accepted_at',
+                'win_back_channel',
+                'win_back_email',
+                'win_back_phone',
+            ])
+            ->map(function (Subscription $sub): array {
+                $tenant = $sub->tenant;
+
+                return [
+                    'id' => $sub->id,
+                    'channel' => $sub->win_back_channel,
+                    'pending_at' => $sub->win_back_pending_at?->toIso8601String(),
+                    'accepted_at' => $sub->win_back_accepted_at?->toIso8601String(),
+                    'status' => $sub->win_back_accepted_at !== null
+                        ? 'accepted'
+                        : ($sub->win_back_pending_at !== null ? 'pending' : 'unknown'),
+                    'contact_email' => $sub->win_back_email ?: $tenant?->email_admin,
+                    'contact_phone' => $sub->win_back_phone ?: $tenant?->telefono,
+                    'tenant' => $tenant === null ? null : [
+                        'id' => $tenant->id,
+                        'slug' => $tenant->slug,
+                        'name' => $tenant->nombre_comercial ?: $tenant->razon_social,
+                    ],
+                ];
+            })
+            ->values()
+            ->all();
+
         return Inertia::render('plataforma/tenants/index', [
             'tenants' => $tenants,
             'filters' => [
@@ -162,6 +209,7 @@ class TenantController extends Controller
             'plans_catalog' => $plansCatalog,
             'departamentos' => $departamentos,
             'openwa_configured' => app(OpenWaClient::class)->isConfigured(),
+            'win_back_recent' => $winBackRecent,
         ]);
     }
 
