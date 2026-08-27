@@ -11,6 +11,7 @@ use App\Models\Plan;
 use App\Models\Tenant;
 use App\Support\Clinic\ClinicBrandingUrls;
 use App\Services\OpenWa\OpenWaClient;
+use App\Services\Subscriptions\FreePlanWinBackService;
 use App\Services\Tenancy\TenantAdminAccessRecoverer;
 use App\Services\Tenancy\TenantProvisioner;
 use App\Services\Tenancy\TenantSlugChangeService;
@@ -442,6 +443,71 @@ class TenantController extends Controller
         $manager->flushCacheFor($tenant);
 
         return back()->with('success', 'Tenant eliminado (soft delete) correctamente.');
+    }
+
+    /**
+     * Envía win-back Free por email a tenants seleccionados (vencidos + plan free).
+     */
+    public function sendWinBackFree(Request $request, FreePlanWinBackService $winBack): RedirectResponse
+    {
+        $data = $request->validate([
+            'ids' => ['nullable', 'array', 'max:200'],
+            'ids.*' => ['uuid'],
+            'scope' => ['nullable', 'string', 'in:selected,all_free_expired'],
+            'force' => ['nullable', 'boolean'],
+        ]);
+
+        $force = (bool) ($data['force'] ?? false);
+        $scope = (string) ($data['scope'] ?? 'selected');
+
+        if ($scope === 'all_free_expired') {
+            $subscriptions = $winBack->findAllEligibleFreeExpired(limit: 500);
+        } else {
+            $ids = $data['ids'] ?? [];
+            if ($ids === []) {
+                return back()->with('info', 'Selecciona al menos un tenant Free vencido.');
+            }
+            $subscriptions = $winBack->findEligibleByTenantIds($ids);
+        }
+
+        if ($subscriptions->isEmpty()) {
+            return back()->with(
+                'info',
+                'Ningún tenant es Free vencido con correo válido.',
+            );
+        }
+
+        $result = $winBack->sendOffers($subscriptions, $force);
+
+        if ($result['sent'] === 0 && $result['failed'] === 0) {
+            return back()->with(
+                'info',
+                sprintf(
+                    'No se envió ningún correo (%d omitidos: cooldown, no vencido o sin email).',
+                    $result['skipped'],
+                ),
+            );
+        }
+
+        $parts = [];
+        if ($result['sent'] > 0) {
+            $parts[] = sprintf('%d enviados', $result['sent']);
+        }
+        if ($result['skipped'] > 0) {
+            $parts[] = sprintf('%d omitidos', $result['skipped']);
+        }
+        if ($result['failed'] > 0) {
+            $parts[] = sprintf('%d fallidos', $result['failed']);
+        }
+
+        $message = 'Win-back Free: '.implode(', ', $parts).'.';
+        if ($result['failed'] > 0 && $result['errors'] !== []) {
+            $message .= ' '.$result['errors'][0];
+
+            return back()->with('error', $message);
+        }
+
+        return back()->with('success', $message);
     }
 
     /**

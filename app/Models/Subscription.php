@@ -37,6 +37,9 @@ class Subscription extends Model
         'win_back_pending_at',
         'win_back_accepted_at',
         'win_back_phone',
+        'win_back_email',
+        'win_back_token',
+        'win_back_channel',
     ];
 
     protected static function booted(): void

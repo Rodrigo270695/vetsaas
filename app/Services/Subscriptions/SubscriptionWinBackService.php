@@ -365,6 +365,7 @@ PROMPT;
             'cancelled_at' => null,
             'win_back_pending_at' => null,
             'win_back_accepted_at' => now(),
+            'win_back_token' => null,
         ]);
 
         return $days;

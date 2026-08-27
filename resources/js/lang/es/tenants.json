@@ -26,7 +26,9 @@
         "new": "Nuevo tenant",
         "new_short": "Nuevo",
         "create_first": "Crear el primer tenant",
-        "delete_selected": "Eliminar seleccionados"
+        "delete_selected": "Eliminar seleccionados",
+        "win_back_free_selected": "Win-back Free ({{count}})",
+        "win_back_free_all": "Win-back Free vencidos"
     },
     "columns": {
         "tenant": "Tenant",
@@ -46,6 +48,7 @@
         "open_subdomain": "Abrir subdominio",
         "enter_support": "Entrar como soporte",
         "recover_admin": "Recuperar acceso admin",
+        "win_back_free": "Traer Free (email)",
         "whatsapp_restart": "Reiniciar WhatsApp",
         "whatsapp_stop": "Detener WhatsApp",
         "whatsapp_status": "WhatsApp: {{status}}",
@@ -159,6 +162,16 @@
         "delete_description": "Se cancelarán y archivarán {{count}} tenants. Los activos se omiten automáticamente.",
         "delete_confirm_singular": "Eliminar 1 tenant",
         "delete_confirm_plural": "Eliminar {{count}} tenants"
+    },
+    "win_back_free": {
+        "title": "Win-back Free por email ({{count}})",
+        "title_all": "Win-back Free a todos los vencidos",
+        "description": "Enviaremos un correo ofreciendo 1 mes gratis. Si aceptan con el botón del mail, se activa el trial y reciben subdominio, correo y contraseña temporal. Solo aplica a Free vencidos con email.",
+        "description_all": "Enviaremos el correo de reenganche a todos los tenants Free vencidos que tengan email admin (máx. 500). Si aceptan el botón, reciben 1 mes gratis + credenciales.",
+        "force_label": "Forzar reenvío",
+        "force_hint": "Ignora el cooldown de ofertas recientes (72 h) o aceptaciones recientes.",
+        "confirm": "Enviar a {{count}}",
+        "confirm_all": "Enviar a todos los Free vencidos"
     },
     "empty": {
         "no_records_title": "Aún no hay tenants",

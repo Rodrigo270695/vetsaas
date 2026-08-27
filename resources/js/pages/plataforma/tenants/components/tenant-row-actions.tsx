@@ -7,6 +7,7 @@ import {
     KeyRound,
     LayoutGrid,
     Lock,
+    Mail,
     MessageCircle,
     MoreHorizontal,
     PauseCircle,
@@ -26,6 +27,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { isFreeExpiredWinBackCandidate } from '@/lib/living-subscription';
 import { tenantLoginUrl, useTenancy } from '@/lib/tenancy-url';
 import { toastManager } from '@/lib/toast';
 import type { Tenant } from '../types';
@@ -38,6 +40,7 @@ export type TenantRowActionsProps = {
     onResume: (tenant: Tenant) => void;
     onChangeSlug?: (tenant: Tenant) => void;
     onRecoverAdmin?: (tenant: Tenant) => void;
+    onWinBackFree?: (tenant: Tenant) => void;
     onEnterSupport?: (tenant: Tenant) => void;
     onRestartWhatsApp?: (tenant: Tenant) => void;
     onStopWhatsApp?: (tenant: Tenant) => void;
@@ -62,6 +65,7 @@ export function TenantRowActions({
     onResume,
     onChangeSlug,
     onRecoverAdmin,
+    onWinBackFree,
     onEnterSupport,
     onRestartWhatsApp,
     onStopWhatsApp,
@@ -100,6 +104,11 @@ export function TenantRowActions({
         canUpdate &&
         typeof onRecoverAdmin === 'function' &&
         !isCancelled;
+
+    const showWinBackFree =
+        canUpdate &&
+        typeof onWinBackFree === 'function' &&
+        isFreeExpiredWinBackCandidate(tenant);
 
     const showWhatsAppActions =
         openwaConfigured &&
@@ -209,6 +218,16 @@ export function TenantRowActions({
 
                 {(showEdit || showChangeSlug || showRecoverAdmin || showSuspend || showResume || showDelete) && (
                     <DropdownMenuSeparator />
+                )}
+
+                {showWinBackFree && (
+                    <DropdownMenuItem
+                        onSelect={() => onWinBackFree?.(tenant)}
+                        className="cursor-pointer gap-2 text-sky-700 focus:text-sky-700 dark:text-sky-400"
+                    >
+                        <Mail className="size-4" strokeWidth={2.25} />
+                        {t('tenants:row.win_back_free')}
+                    </DropdownMenuItem>
                 )}
 
                 {showRecoverAdmin && (

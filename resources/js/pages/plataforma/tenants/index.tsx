@@ -5,6 +5,7 @@ import {
     CheckCircle2,
     Download,
     Filter,
+    Mail,
     Plus,
     PauseCircle,
     ScreenShare,
@@ -34,7 +35,10 @@ import { Button } from '@/components/ui/button';
 import { SubscriptionExpiryBadge } from '@/components/plataforma/subscription-expiry-badge';
 import { useDataTablePage } from '@/hooks/use-data-table-page';
 import { usePermission } from '@/hooks/use-permission';
-import { livingSubscription } from '@/lib/living-subscription';
+import {
+    isFreeExpiredWinBackCandidate,
+    livingSubscription,
+} from '@/lib/living-subscription';
 import { useRowSelection } from '@/hooks/use-row-selection';
 import AppLayout from '@/layouts/app-layout';
 import tenants from '@/routes/plataforma/tenants';
@@ -47,6 +51,7 @@ import { TenantLogoPreview } from './components/tenant-logo-preview';
 import { TenantRecoverAdminDialog } from './components/tenant-recover-admin-dialog';
 import { TenantRowActions } from './components/tenant-row-actions';
 import { TenantSuspendDialog } from './components/tenant-suspend-dialog';
+import { TenantWinBackFreeDialog } from './components/tenant-win-back-free-dialog';
 import type {
     GeoOption,
     Tenant,
@@ -80,7 +85,8 @@ type ModalState =
     | { type: 'resume'; tenant: Tenant }
     | { type: 'change-slug'; tenant: Tenant }
     | { type: 'recover-admin'; tenant: Tenant }
-    | { type: 'bulk-delete' };
+    | { type: 'bulk-delete' }
+    | { type: 'win-back-free'; ids: string[]; allFreeExpired?: boolean };
 
 const DEFAULT_PER_PAGE = 10;
 const DEFAULT_ESTADO: TenantEstadoFilter = 'todos';
@@ -274,12 +280,40 @@ export default function Index({
         () => setModal({ type: 'bulk-delete' }),
         [],
     );
+    const openWinBackFree = useCallback((tenant: Tenant) => {
+        setModal({ type: 'win-back-free', ids: [tenant.id] });
+    }, []);
+    const openAllFreeExpiredWinBack = useCallback(() => {
+        setModal({ type: 'win-back-free', ids: [], allFreeExpired: true });
+    }, []);
 
     /** Selección de filas. UUID → tipamos como string. */
     const selection = useRowSelection<Tenant, string>({
         rows: paginated.data,
         rowKey: (tenant) => tenant.id,
     });
+
+    const selectedWinBackEligibleCount = useMemo(
+        () =>
+            paginated.data.filter(
+                (tenant) =>
+                    selection.selectedIds.has(tenant.id) &&
+                    isFreeExpiredWinBackCandidate(tenant),
+            ).length,
+        [paginated.data, selection.selectedIds],
+    );
+
+    const openBulkWinBackFree = useCallback(() => {
+        const selected = paginated.data.filter(
+            (tenant) =>
+                selection.selectedIds.has(tenant.id) &&
+                isFreeExpiredWinBackCandidate(tenant),
+        );
+        setModal({
+            type: 'win-back-free',
+            ids: selected.map((tenant) => tenant.id),
+        });
+    }, [paginated.data, selection.selectedIds]);
 
     const activeFiltersCount = useMemo(() => {
         let count = 0;
@@ -483,6 +517,7 @@ export default function Index({
                             onResume={openResume}
                             onChangeSlug={openChangeSlug}
                             onRecoverAdmin={openRecoverAdmin}
+                            onWinBackFree={openWinBackFree}
                             onEnterSupport={enterSupport}
                             onRestartWhatsApp={restartWhatsApp}
                             onStopWhatsApp={stopWhatsApp}
@@ -579,6 +614,19 @@ export default function Index({
                     ]}
                     action={
                         <div className="flex flex-row items-center gap-2">
+                            {canUpdate && (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={openAllFreeExpiredWinBack}
+                                    className="cursor-pointer gap-2"
+                                >
+                                    <Mail className="size-4" strokeWidth={2.5} />
+                                    <span className="hidden sm:inline">
+                                        {t('tenants:actions.win_back_free_all')}
+                                    </span>
+                                </Button>
+                            )}
                             {canExport && (
                                 <Button
                                     asChild
@@ -764,7 +812,21 @@ export default function Index({
                 onCompleted={() => selection.clear()}
             />
 
-            {canBulkDelete && (
+            <TenantWinBackFreeDialog
+                open={modal.type === 'win-back-free'}
+                onOpenChange={(open) => {
+                    if (!open) closeModal();
+                }}
+                ids={modal.type === 'win-back-free' ? modal.ids : []}
+                allFreeExpired={
+                    modal.type === 'win-back-free'
+                        ? Boolean(modal.allFreeExpired)
+                        : false
+                }
+                onCompleted={() => selection.clear()}
+            />
+
+            {(canBulkDelete || canUpdate) && (
                 <BulkActionBar
                     count={selection.count}
                     labels={{
@@ -773,18 +835,36 @@ export default function Index({
                     }}
                     onClear={selection.clear}
                 >
-                    <BulkAction
-                        type="button"
-                        variant="destructive"
-                        size="sm"
-                        onClick={openBulkDelete}
-                        className="cursor-pointer gap-1.5"
-                    >
-                        <Trash2 className="size-4" strokeWidth={2.5} />
-                        <span className="hidden sm:inline">
-                            {t('tenants:actions.delete_selected')}
-                        </span>
-                    </BulkAction>
+                    {canUpdate && selectedWinBackEligibleCount > 0 && (
+                        <BulkAction
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={openBulkWinBackFree}
+                            className="cursor-pointer gap-1.5"
+                        >
+                            <Mail className="size-4" strokeWidth={2.5} />
+                            <span className="hidden sm:inline">
+                                {t('tenants:actions.win_back_free_selected', {
+                                    count: selectedWinBackEligibleCount,
+                                })}
+                            </span>
+                        </BulkAction>
+                    )}
+                    {canBulkDelete && (
+                        <BulkAction
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            onClick={openBulkDelete}
+                            className="cursor-pointer gap-1.5"
+                        >
+                            <Trash2 className="size-4" strokeWidth={2.5} />
+                            <span className="hidden sm:inline">
+                                {t('tenants:actions.delete_selected')}
+                            </span>
+                        </BulkAction>
+                    )}
                 </BulkActionBar>
             )}
         </>

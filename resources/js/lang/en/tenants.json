@@ -26,7 +26,9 @@
         "new": "New tenant",
         "new_short": "New",
         "create_first": "Create the first tenant",
-        "delete_selected": "Delete selected"
+        "delete_selected": "Delete selected",
+        "win_back_free_selected": "Win-back Free ({{count}})",
+        "win_back_free_all": "Win-back expired Free"
     },
     "columns": {
         "tenant": "Tenant",
@@ -46,6 +48,7 @@
         "open_subdomain": "Open subdomain",
         "enter_support": "Enter as support",
         "recover_admin": "Recover admin access",
+        "win_back_free": "Win back Free (email)",
         "whatsapp_restart": "Restart WhatsApp",
         "whatsapp_stop": "Stop WhatsApp",
         "whatsapp_status": "WhatsApp: {{status}}",
@@ -159,6 +162,16 @@
         "delete_description": "{{count}} tenants will be cancelled and archived. Active ones are skipped automatically.",
         "delete_confirm_singular": "Delete 1 tenant",
         "delete_confirm_plural": "Delete {{count}} tenants"
+    },
+    "win_back_free": {
+        "title": "Win-back Free by email ({{count}})",
+        "title_all": "Win-back Free for all expired",
+        "description": "We will email an offer for 1 free month. If they accept via the button, trial is activated and they receive subdomain, email and a temporary password. Only expired Free tenants with email.",
+        "description_all": "We will email all expired Free tenants that have an admin email (max 500). If they accept, they get 1 free month + credentials.",
+        "force_label": "Force resend",
+        "force_hint": "Ignores cooldown for recent offers (72h) or recent acceptances.",
+        "confirm": "Send to {{count}}",
+        "confirm_all": "Send to all expired Free"
     },
     "empty": {
         "no_records_title": "No tenants yet",

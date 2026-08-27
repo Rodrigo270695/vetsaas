@@ -25,6 +25,7 @@ use App\Http\Controllers\DemoAccessGeoController;
 use App\Http\Controllers\FelAnulacionHistorialController;
 use App\Http\Controllers\FelDocumentController;
 use App\Http\Controllers\FelSerieController;
+use App\Http\Controllers\FreeWinBackAcceptController;
 use App\Http\Controllers\GeoController;
 use App\Http\Controllers\TenantChatController;
 use App\Http\Controllers\TenantGeoController;
@@ -128,6 +129,11 @@ Route::get('/', function () {
         ? redirect()->route('dashboard')
         : redirect()->route('login');
 })->name('home');
+
+Route::middleware('throttle:30,1')
+    ->get('win-back/free/{token}', FreeWinBackAcceptController::class)
+    ->where('token', '[A-Za-z0-9]{32,128}')
+    ->name('win-back.free.accept');
 
 /*
 |--------------------------------------------------------------------------
@@ -1465,6 +1471,10 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:plataforma-tenants.bulk-delete')
             ->delete('tenants/bulk', [TenantController::class, 'bulkDestroy'])
             ->name('tenants.bulk-destroy');
+        Route::middleware('permission:plataforma-tenants.update')
+            ->post('tenants/win-back-free/send', [TenantController::class, 'sendWinBackFree'])
+            ->middleware('throttle:20,1')
+            ->name('tenants.win-back-free.send');
         Route::middleware('permission:plataforma-tenants.suspend')
             ->post('tenants/{tenant}/suspend', [TenantController::class, 'suspend'])
             ->name('tenants.suspend');
