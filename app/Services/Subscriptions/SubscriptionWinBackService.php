@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Subscriptions;
 
+use App\Models\Plan;
 use App\Models\SalesConversation;
 use App\Models\Subscription;
 use App\Models\Tenant;
@@ -202,6 +203,7 @@ PROMPT;
                 'win_back_pending_at' => now(),
                 'win_back_accepted_at' => null,
                 'win_back_phone' => $phone,
+                'win_back_channel' => 'whatsapp',
             ]);
         } else {
             $subscription->update([
@@ -255,6 +257,20 @@ PROMPT;
         $confirm = "¡Listo! 🎉 Ya activamos 1 mes gratis de VetSaaS para {$name}. "
             .'Entras con tu usuario habitual. Si necesitas ayuda, escríbenos por aquí.';
 
+        $subscription->loadMissing('plan');
+        if ($subscription->plan?->codigo === Plan::CODIGO_FREE) {
+            $creds = app(FreePlanWinBackService::class)
+                ->completeAcceptanceAfterWhatsAppReply($subscription);
+
+            if ($creds['ok']) {
+                $confirm = "¡Listo! 🎉 Ya activamos 1 mes gratis de VetSaaS para {$name}. "
+                    .'Te enviamos las credenciales de acceso (correo y/o este chat).';
+                if (is_string($creds['login_url']) && $creds['login_url'] !== '') {
+                    $confirm .= ' Enlace: '.$creds['login_url'];
+                }
+            }
+        }
+
         $conversation->pushMessage('assistant', $confirm);
         $conversation->save();
 
@@ -277,6 +293,16 @@ PROMPT;
         ]);
 
         return ['handled' => true, 'status' => 'accepted', 'granted_days' => $days];
+    }
+
+    public function messengerIsReady(): bool
+    {
+        return $this->messenger->isReady();
+    }
+
+    public function sendRawText(string $waChatId, string $message): void
+    {
+        $this->messenger->sendText($waChatId, $message);
     }
 
     public function findPendingByPhone(string $phone): ?Subscription

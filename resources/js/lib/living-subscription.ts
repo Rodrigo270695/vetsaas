@@ -20,6 +20,7 @@ export function livingSubscription<
  */
 export function isFreeExpiredWinBackCandidate(tenant: {
     email_admin?: string | null;
+    telefono?: string | null;
     estado?: string;
     subscriptions?: readonly {
         estado: string;
@@ -35,7 +36,10 @@ export function isFreeExpiredWinBackCandidate(tenant: {
     }
 
     const email = (tenant.email_admin ?? '').trim();
-    if (email === '' || !email.includes('@')) {
+    const phone = (tenant.telefono ?? '').replace(/\D+/g, '');
+    const hasEmail = email !== '' && email.includes('@');
+    const hasPhone = phone.length >= 9;
+    if (!hasEmail && !hasPhone) {
         return false;
     }
 

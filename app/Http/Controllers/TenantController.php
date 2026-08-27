@@ -473,7 +473,7 @@ class TenantController extends Controller
         if ($subscriptions->isEmpty()) {
             return back()->with(
                 'info',
-                'Ningún tenant es Free vencido con correo válido.',
+                'Ningún tenant es Free vencido con celular o correo válido.',
             );
         }
 
@@ -483,7 +483,7 @@ class TenantController extends Controller
             return back()->with(
                 'info',
                 sprintf(
-                    'No se envió ningún correo (%d omitidos: cooldown, no vencido o sin email).',
+                    'No se envió ningún mensaje (%d omitidos: cooldown, no vencido o sin contacto).',
                     $result['skipped'],
                 ),
             );
@@ -492,6 +492,12 @@ class TenantController extends Controller
         $parts = [];
         if ($result['sent'] > 0) {
             $parts[] = sprintf('%d enviados', $result['sent']);
+            if (($result['via_whatsapp'] ?? 0) > 0) {
+                $parts[] = sprintf('%d por WhatsApp', $result['via_whatsapp']);
+            }
+            if (($result['via_email'] ?? 0) > 0) {
+                $parts[] = sprintf('%d por email', $result['via_email']);
+            }
         }
         if ($result['skipped'] > 0) {
             $parts[] = sprintf('%d omitidos', $result['skipped']);

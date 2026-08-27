@@ -48,7 +48,7 @@
         "open_subdomain": "Abrir subdominio",
         "enter_support": "Entrar como soporte",
         "recover_admin": "Recuperar acceso admin",
-        "win_back_free": "Traer Free (email)",
+        "win_back_free": "Traer Free (WA/email)",
         "whatsapp_restart": "Reiniciar WhatsApp",
         "whatsapp_stop": "Detener WhatsApp",
         "whatsapp_status": "WhatsApp: {{status}}",
@@ -164,10 +164,10 @@
         "delete_confirm_plural": "Eliminar {{count}} tenants"
     },
     "win_back_free": {
-        "title": "Win-back Free por email ({{count}})",
+        "title": "Win-back Free ({{count}})",
         "title_all": "Win-back Free a todos los vencidos",
-        "description": "Enviaremos un correo ofreciendo 1 mes gratis. Si aceptan con el botón del mail, se activa el trial y reciben subdominio, correo y contraseña temporal. Solo aplica a Free vencidos con email.",
-        "description_all": "Enviaremos el correo de reenganche a todos los tenants Free vencidos que tengan email admin (máx. 500). Si aceptan el botón, reciben 1 mes gratis + credenciales.",
+        "description": "Prioriza WhatsApp si hay celular; si no hay o falla, usa el correo. Ofrece 1 mes gratis. Si aceptan, reciben credenciales.",
+        "description_all": "A todos los Free vencidos con celular o email (máx. 500): primero WhatsApp, si no funciona → correo. Si aceptan, 1 mes gratis + credenciales.",
         "force_label": "Forzar reenvío",
         "force_hint": "Ignora el cooldown de ofertas recientes (72 h) o aceptaciones recientes.",
         "confirm": "Enviar a {{count}}",

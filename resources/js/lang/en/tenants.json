@@ -48,7 +48,7 @@
         "open_subdomain": "Open subdomain",
         "enter_support": "Enter as support",
         "recover_admin": "Recover admin access",
-        "win_back_free": "Win back Free (email)",
+        "win_back_free": "Win back Free (WA/email)",
         "whatsapp_restart": "Restart WhatsApp",
         "whatsapp_stop": "Stop WhatsApp",
         "whatsapp_status": "WhatsApp: {{status}}",
@@ -164,10 +164,10 @@
         "delete_confirm_plural": "Delete {{count}} tenants"
     },
     "win_back_free": {
-        "title": "Win-back Free by email ({{count}})",
+        "title": "Win-back Free ({{count}})",
         "title_all": "Win-back Free for all expired",
-        "description": "We will email an offer for 1 free month. If they accept via the button, trial is activated and they receive subdomain, email and a temporary password. Only expired Free tenants with email.",
-        "description_all": "We will email all expired Free tenants that have an admin email (max 500). If they accept, they get 1 free month + credentials.",
+        "description": "WhatsApp first if they have a phone; if missing or it fails, email. Offers 1 free month. On accept they get credentials.",
+        "description_all": "All expired Free tenants with phone or email (max 500): WhatsApp first, fallback to email. On accept: 1 free month + credentials.",
         "force_label": "Force resend",
         "force_hint": "Ignores cooldown for recent offers (72h) or recent acceptances.",
         "confirm": "Send to {{count}}",
