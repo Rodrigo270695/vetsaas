@@ -39,6 +39,7 @@ import { usePermission } from '@/hooks/use-permission';
 import AppLayout from '@/layouts/app-layout';
 import { AtencionDateRangeFilter } from '@/pages/clinica/historias-clinicas/components/atencion-date-range-filter';
 import type { Paginated } from '@/types';
+import { ScrapingLoaderModal } from './components/scraping-loader-modal';
 
 type Tipo = 'clinica' | 'hospital';
 type Origen = 'manual' | 'scraping_auto';
@@ -839,6 +840,7 @@ export default function ProspectosVeterinariasIndex({
             </div>
 
             <ManualCreateModal open={manualOpen} onOpenChange={setManualOpen} />
+            <ScrapingLoaderModal open={scraping} />
         </>
     );
 }

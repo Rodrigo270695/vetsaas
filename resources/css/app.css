@@ -284,6 +284,96 @@
 }
 
 /* ============================================================
+   Energy Ball — loader "estilo Genkidama" del scraping de
+   prospectos veterinarios (partículas convergiendo a un núcleo
+   que pulsa + anillos de radar). Puramente decorativo: se apaga
+   entero con `prefers-reduced-motion`.
+   ============================================================ */
+@keyframes ev-core-pulse {
+    0%,
+    100% {
+        transform: scale(0.92);
+        filter: brightness(1);
+    }
+    50% {
+        transform: scale(1.08);
+        filter: brightness(1.35);
+    }
+}
+@keyframes ev-glow-pulse {
+    0%,
+    100% {
+        transform: scale(0.85);
+        opacity: 0.55;
+    }
+    50% {
+        transform: scale(1.25);
+        opacity: 0.95;
+    }
+}
+@keyframes ev-ring-expand {
+    0% {
+        transform: scale(0.35);
+        opacity: 0.9;
+    }
+    100% {
+        transform: scale(1.9);
+        opacity: 0;
+    }
+}
+@keyframes ev-orbit {
+    0% {
+        transform: rotate(0deg) translateX(var(--ev-orbit-radius, 68px)) scale(0.4);
+        opacity: 0;
+    }
+    12% {
+        opacity: 1;
+    }
+    85% {
+        opacity: 1;
+    }
+    100% {
+        transform: rotate(var(--ev-orbit-spin, 300deg)) translateX(6px) scale(1.15);
+        opacity: 0;
+    }
+}
+@keyframes ev-shimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(220%);
+    }
+}
+
+.ev-core {
+    animation: ev-core-pulse 1.8s ease-in-out infinite;
+}
+.ev-glow {
+    animation: ev-glow-pulse 1.8s ease-in-out infinite;
+}
+.ev-ring {
+    animation: ev-ring-expand 2.4s cubic-bezier(0.2, 0.7, 0.4, 1) infinite;
+}
+.ev-particle {
+    animation: ev-orbit 1.6s linear infinite;
+}
+.ev-shimmer {
+    animation: ev-shimmer 1.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ev-core,
+    .ev-glow,
+    .ev-ring,
+    .ev-particle,
+    .ev-shimmer,
+    .ev-radar-spin {
+        animation: none !important;
+    }
+}
+
+/* ============================================================
    Scrollbar oculto — usado en contenedores donde el scroll
    funciona (rueda, touch, teclado) pero no queremos mostrar la
    barra visual porque tenemos indicadores propios (fades + chip).
