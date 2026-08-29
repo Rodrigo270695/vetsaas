@@ -1,6 +1,7 @@
 import { Head, router } from '@inertiajs/react';
 import {
     Building2,
+    ChevronRight,
     Contact,
     Loader2,
     Mail,
@@ -812,76 +813,81 @@ export default function ProspectosVeterinariasIndex({
                                     triggerClassName="h-9"
                                     onApply={handleFechaApply}
                                 />
-                                <Select
-                                    value={filters.departamento ?? 'todos'}
-                                    onValueChange={handleDepartamentoChange}
-                                >
-                                    <SelectTrigger className="h-9 w-40 text-xs">
-                                        <SelectValue placeholder="Departamento" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="todos">
-                                            Todos los deptos.
-                                        </SelectItem>
-                                        {departamentoOptions.map((dep) => (
-                                            <SelectItem key={dep} value={dep}>
-                                                {dep}
+                                <div className="flex items-center gap-0.5 rounded-md border border-input bg-transparent pl-2 dark:bg-input/30">
+                                    <MapPin className="size-3.5 shrink-0 text-muted-foreground" />
+                                    <Select
+                                        value={filters.departamento ?? 'todos'}
+                                        onValueChange={handleDepartamentoChange}
+                                    >
+                                        <SelectTrigger className="h-9 w-32 gap-1 border-0 bg-transparent px-2 text-xs shadow-none focus-visible:ring-0">
+                                            <SelectValue placeholder="Departamento" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="todos">
+                                                Todos los deptos.
                                             </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <Select
-                                    value={filters.provincia ?? 'todos'}
-                                    onValueChange={handleProvinciaChange}
-                                    disabled={!filters.departamento}
-                                >
-                                    <SelectTrigger className="h-9 w-40 text-xs">
-                                        <SelectValue
-                                            placeholder={
-                                                filters.departamento
-                                                    ? 'Provincia'
-                                                    : 'Elige depto. primero'
-                                            }
-                                        />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="todos">
-                                            Todas las provincias
-                                        </SelectItem>
-                                        {provinciaOptions.map((prov) => (
-                                            <SelectItem key={prov} value={prov}>
-                                                {prov}
+                                            {departamentoOptions.map((dep) => (
+                                                <SelectItem key={dep} value={dep}>
+                                                    {dep}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+
+                                    <ChevronRight className="size-3.5 shrink-0 text-muted-foreground/40" />
+
+                                    <Select
+                                        value={filters.provincia ?? 'todos'}
+                                        onValueChange={handleProvinciaChange}
+                                        disabled={!filters.departamento}
+                                    >
+                                        <SelectTrigger className="h-9 w-32 gap-1 border-0 bg-transparent px-2 text-xs shadow-none focus-visible:ring-0">
+                                            <SelectValue placeholder="Provincia" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="todos">
+                                                Todas las provincias
                                             </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <Select
-                                    value={filters.distrito ?? 'todos'}
-                                    onValueChange={handleDistritoChange}
-                                    disabled={!filters.departamento || distritoOptions.length === 0}
-                                >
-                                    <SelectTrigger className="h-9 w-40 text-xs">
-                                        <SelectValue
-                                            placeholder={
-                                                !filters.departamento
-                                                    ? 'Elige depto. primero'
-                                                    : distritoOptions.length === 0
+                                            {provinciaOptions.map((prov) => (
+                                                <SelectItem key={prov} value={prov}>
+                                                    {prov}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+
+                                    <ChevronRight className="size-3.5 shrink-0 text-muted-foreground/40" />
+
+                                    <Select
+                                        value={filters.distrito ?? 'todos'}
+                                        onValueChange={handleDistritoChange}
+                                        disabled={
+                                            !filters.departamento ||
+                                            distritoOptions.length === 0
+                                        }
+                                    >
+                                        <SelectTrigger className="h-9 w-32 gap-1 border-0 bg-transparent px-2 text-xs shadow-none focus-visible:ring-0">
+                                            <SelectValue
+                                                placeholder={
+                                                    filters.departamento &&
+                                                    distritoOptions.length === 0
                                                         ? 'Sin distritos'
                                                         : 'Distrito'
-                                            }
-                                        />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="todos">
-                                            Todos los distritos
-                                        </SelectItem>
-                                        {distritoOptions.map((dist) => (
-                                            <SelectItem key={dist} value={dist}>
-                                                {dist}
+                                                }
+                                            />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="todos">
+                                                Todos los distritos
                                             </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                            {distritoOptions.map((dist) => (
+                                                <SelectItem key={dist} value={dist}>
+                                                    {dist}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
                             </div>
                         </DataToolbar>
                     }
