@@ -9,6 +9,7 @@ use App\Models\VeterinariaProspectoScrapeRun;
 use App\Services\Prospectos\VeterinariaProspectoScraperService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -27,6 +28,8 @@ final class ProspectoVeterinariaController extends Controller
         $search = trim((string) $request->input('search', ''));
         $estado = (string) $request->input('estado', 'todos');
         $tipo = (string) $request->input('tipo', 'todos');
+        $departamento = trim((string) $request->input('departamento', ''));
+        $provincia = trim((string) $request->input('provincia', ''));
         $sort = (string) $request->input('sort', 'capturado_at');
         $direction = (string) $request->input('direction', 'desc') === 'asc' ? 'asc' : 'desc';
         $perPage = (int) $request->input('per_page', 25);
@@ -40,7 +43,22 @@ final class ProspectoVeterinariaController extends Controller
             $sort = 'capturado_at';
         }
 
+        // Filtro de fechas: siempre arranca en el mes actual (1ro del mes → hoy).
+        $defaultDesde = Carbon::now()->startOfMonth()->toDateString();
+        $defaultHasta = Carbon::now()->toDateString();
+        $capturadoDesde = $this->parseDateParam($request->query('capturado_desde')) ?? $defaultDesde;
+        $capturadoHasta = $this->parseDateParam($request->query('capturado_hasta')) ?? $defaultHasta;
+
+        if ($capturadoDesde > $capturadoHasta) {
+            [$capturadoDesde, $capturadoHasta] = [$capturadoHasta, $capturadoDesde];
+        }
+
         $query = VeterinariaProspecto::query();
+
+        $query->whereBetween('capturado_at', [
+            Carbon::parse($capturadoDesde)->startOfDay(),
+            Carbon::parse($capturadoHasta)->endOfDay(),
+        ]);
 
         if ($search !== '') {
             $query->where(function ($q) use ($search): void {
@@ -58,6 +76,14 @@ final class ProspectoVeterinariaController extends Controller
 
         if ($tipo === 'clinica' || $tipo === 'hospital') {
             $query->where('tipo', $tipo);
+        }
+
+        if ($departamento !== '') {
+            $query->where('departamento', $departamento);
+        }
+
+        if ($provincia !== '') {
+            $query->where('provincia', $provincia);
         }
 
         $query->orderBy($sort, $direction);
@@ -85,10 +111,19 @@ final class ProspectoVeterinariaController extends Controller
                 'search' => $search,
                 'estado' => $estado,
                 'tipo' => $tipo,
+                'departamento' => $departamento !== '' ? $departamento : null,
+                'provincia' => $provincia !== '' ? $provincia : null,
+                'capturado_desde' => $capturadoDesde,
+                'capturado_hasta' => $capturadoHasta,
                 'sort' => $sort,
                 'direction' => $direction,
                 'per_page' => $perPage,
             ],
+            'fecha_filtro_ui' => [
+                'default_desde' => $defaultDesde,
+                'default_hasta' => $defaultHasta,
+            ],
+            'geo_filtro' => $this->geoFiltroOptions(),
             'stats' => $stats,
             'estados' => VeterinariaProspecto::ESTADOS,
             'ultima_corrida' => $ultimaCorrida ? [
@@ -100,6 +135,44 @@ final class ProspectoVeterinariaController extends Controller
                 'ubicaciones_visitadas' => $ultimaCorrida->ubicaciones_visitadas,
             ] : null,
         ]);
+    }
+
+    private function parseDateParam(mixed $value): ?string
+    {
+        if (! is_string($value) || preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) !== 1) {
+            return null;
+        }
+
+        return $value;
+    }
+
+    /**
+     * Departamentos → provincias realmente presentes en la data (para el
+     * filtro en cascada). Se calcula sobre TODA la tabla, no solo el
+     * resultado filtrado, así el usuario siempre ve todas las opciones.
+     *
+     * @return array<string, list<string>>
+     */
+    private function geoFiltroOptions(): array
+    {
+        $rows = VeterinariaProspecto::query()
+            ->whereNotNull('departamento')
+            ->select('departamento', 'provincia')
+            ->distinct()
+            ->orderBy('departamento')
+            ->orderBy('provincia')
+            ->get();
+
+        $options = [];
+        foreach ($rows as $row) {
+            $dep = $row->departamento;
+            $options[$dep] ??= [];
+            if ($row->provincia !== null && ! in_array($row->provincia, $options[$dep], true)) {
+                $options[$dep][] = $row->provincia;
+            }
+        }
+
+        return $options;
     }
 
     /**

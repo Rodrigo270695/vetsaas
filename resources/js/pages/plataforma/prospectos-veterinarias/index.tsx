@@ -37,6 +37,7 @@ import {
 import { useDataTablePage } from '@/hooks/use-data-table-page';
 import { usePermission } from '@/hooks/use-permission';
 import AppLayout from '@/layouts/app-layout';
+import { AtencionDateRangeFilter } from '@/pages/clinica/historias-clinicas/components/atencion-date-range-filter';
 import type { Paginated } from '@/types';
 
 type Tipo = 'clinica' | 'hospital';
@@ -72,10 +73,22 @@ type Filters = {
     search: string;
     estado: EstadoFilter;
     tipo: TipoFilter;
+    departamento: string | null;
+    provincia: string | null;
+    capturado_desde: string;
+    capturado_hasta: string;
     sort: string | null;
     direction: 'asc' | 'desc' | null;
     per_page: number;
 };
+
+type FechaFiltroUi = {
+    default_desde: string;
+    default_hasta: string;
+};
+
+/** Departamento → lista de provincias realmente presentes en la data. */
+type GeoFiltro = Record<string, string[]>;
 
 type Stats = {
     total: number;
@@ -101,6 +114,8 @@ type Props = {
     stats: Stats;
     estados: Estado[];
     ultima_corrida: UltimaCorrida;
+    fecha_filtro_ui: FechaFiltroUi;
+    geo_filtro: GeoFiltro;
 };
 
 const DEFAULT_PER_PAGE = 25;
@@ -335,11 +350,22 @@ function ManualCreateModal({
     );
 }
 
+type ProspectosFilterExtras = {
+    estado: EstadoFilter;
+    tipo: TipoFilter;
+    departamento: string | null;
+    provincia: string | null;
+    capturado_desde: string;
+    capturado_hasta: string;
+};
+
 export default function ProspectosVeterinariasIndex({
     prospectos,
     filters,
     stats,
     ultima_corrida,
+    fecha_filtro_ui,
+    geo_filtro,
 }: Props) {
     const { can } = usePermission();
     const canCreate = can('plataforma-prospectos.create');
@@ -350,22 +376,66 @@ export default function ProspectosVeterinariasIndex({
     const [updatingId, setUpdatingId] = useState<string | null>(null);
 
     const { search, setSearch, isLoading, sort, setSort, setPerPage, applyFilter } =
-        useDataTablePage<{ estado: EstadoFilter; tipo: TipoFilter }>({
+        useDataTablePage<ProspectosFilterExtras>({
             routeUrl: '/plataforma/prospectos-veterinarias',
             initialFilters: filters,
-            only: ['prospectos', 'filters', 'stats'],
+            only: ['prospectos', 'filters', 'stats', 'geo_filtro'],
             errorMessage: 'Error al cargar los prospectos',
             storageKey: 'vetsaas.plataforma.prospectos-veterinarias.prefs',
             defaults: { per_page: DEFAULT_PER_PAGE, sort: null, direction: null },
         });
+
+    const departamentoOptions = useMemo(
+        () => Object.keys(geo_filtro).sort((a, b) => a.localeCompare(b)),
+        [geo_filtro],
+    );
+
+    const provinciaOptions = useMemo(() => {
+        if (!filters.departamento) return [];
+        return [...(geo_filtro[filters.departamento] ?? [])].sort((a, b) =>
+            a.localeCompare(b),
+        );
+    }, [geo_filtro, filters.departamento]);
+
+    const handleDepartamentoChange = (value: string) => {
+        applyFilter({
+            departamento: value === 'todos' ? null : value,
+            provincia: null,
+        });
+    };
+
+    const handleProvinciaChange = (value: string) => {
+        applyFilter({ provincia: value === 'todos' ? null : value });
+    };
+
+    const handleFechaApply = (desde: string, hasta: string) => {
+        applyFilter({ capturado_desde: desde, capturado_hasta: hasta });
+    };
 
     const activeFiltersCount = useMemo(() => {
         let n = 0;
         if (filters.search) n++;
         if (filters.estado !== DEFAULT_ESTADO) n++;
         if (filters.tipo !== DEFAULT_TIPO) n++;
+        if (filters.departamento) n++;
+        if (filters.provincia) n++;
+        if (
+            filters.capturado_desde !== fecha_filtro_ui.default_desde ||
+            filters.capturado_hasta !== fecha_filtro_ui.default_hasta
+        ) {
+            n++;
+        }
         return n;
-    }, [filters.search, filters.estado, filters.tipo]);
+    }, [
+        filters.search,
+        filters.estado,
+        filters.tipo,
+        filters.departamento,
+        filters.provincia,
+        filters.capturado_desde,
+        filters.capturado_hasta,
+        fecha_filtro_ui,
+    ]);
 
     const estadoOptions: readonly FilterChip<EstadoFilter>[] = useMemo(
         () => [
@@ -673,6 +743,59 @@ export default function ProspectosVeterinariasIndex({
                                     onChange={(tipo) => applyFilter({ tipo })}
                                     options={tipoOptions}
                                 />
+                                <AtencionDateRangeFilter
+                                    desde={filters.capturado_desde}
+                                    hasta={filters.capturado_hasta}
+                                    defaultDesde={fecha_filtro_ui.default_desde}
+                                    defaultHasta={fecha_filtro_ui.default_hasta}
+                                    disabled={isLoading}
+                                    translationNs="plataforma-prospectos-veterinarias"
+                                    triggerClassName="h-9"
+                                    onApply={handleFechaApply}
+                                />
+                                <Select
+                                    value={filters.departamento ?? 'todos'}
+                                    onValueChange={handleDepartamentoChange}
+                                >
+                                    <SelectTrigger className="h-9 w-40 text-xs">
+                                        <SelectValue placeholder="Departamento" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="todos">
+                                            Todos los deptos.
+                                        </SelectItem>
+                                        {departamentoOptions.map((dep) => (
+                                            <SelectItem key={dep} value={dep}>
+                                                {dep}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <Select
+                                    value={filters.provincia ?? 'todos'}
+                                    onValueChange={handleProvinciaChange}
+                                    disabled={!filters.departamento}
+                                >
+                                    <SelectTrigger className="h-9 w-40 text-xs">
+                                        <SelectValue
+                                            placeholder={
+                                                filters.departamento
+                                                    ? 'Provincia'
+                                                    : 'Elige depto. primero'
+                                            }
+                                        />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="todos">
+                                            Todas las provincias
+                                        </SelectItem>
+                                        {provinciaOptions.map((prov) => (
+                                            <SelectItem key={prov} value={prov}>
+                                                {prov}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
                         </DataToolbar>
                     }
@@ -691,6 +814,10 @@ export default function ProspectosVeterinariasIndex({
                                     filters.tipo !== DEFAULT_TIPO
                                         ? filters.tipo
                                         : undefined,
+                                departamento: filters.departamento ?? undefined,
+                                provincia: filters.provincia ?? undefined,
+                                capturado_desde: filters.capturado_desde,
+                                capturado_hasta: filters.capturado_hasta,
                             }}
                         />
                     }

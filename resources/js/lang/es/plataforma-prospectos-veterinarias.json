@@ -1,0 +1,6 @@
+{
+    "date_filter": {
+        "placeholder": "Rango de fechas",
+        "aria": "Filtrar por fecha de captura"
+    }
+}

@@ -1,0 +1,6 @@
+{
+    "date_filter": {
+        "placeholder": "Date range",
+        "aria": "Filter by capture date"
+    }
+}
