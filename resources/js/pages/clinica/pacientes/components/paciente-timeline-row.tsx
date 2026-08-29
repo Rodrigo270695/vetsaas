@@ -44,6 +44,8 @@ import type {
 
 type TimelineRowProps = {
     item: TimelineItem;
+    /** Posición en la línea de tiempo (0 = más reciente). Anima la entrada y resalta lo último. */
+    index?: number;
     appLocale: string;
     appTz: string | undefined;
     permisos: {
@@ -232,11 +234,13 @@ function VitalChip({
 function itemTheme(item: TimelineItem) {
     if (item.kind === 'consulta') {
         return {
-            stripe: 'bg-sky-500',
-            dot: 'border-sky-500 bg-sky-500 text-white shadow-sky-500/30',
-            iconBg: 'bg-sky-500/15',
+            stripe: 'bg-gradient-to-b from-sky-400 to-sky-600',
+            dot: 'border-sky-400/70 bg-gradient-to-br from-sky-400 to-sky-600 text-white shadow-sky-500/25',
+            dotGlow: 'group-hover:shadow-[0_0_0_5px_rgba(14,165,233,0.16)]',
+            ringPulse: 'bg-sky-500/50',
+            iconBg: 'bg-gradient-to-br from-sky-500/20 to-sky-500/5',
             iconText: 'text-sky-600 dark:text-sky-400',
-            cardHover: 'hover:border-sky-500/35 hover:shadow-sky-500/5',
+            cardHover: 'hover:border-sky-500/35 hover:shadow-sky-500/10',
             Icon: ClipboardList,
         };
     }
@@ -245,38 +249,45 @@ function itemTheme(item: TimelineItem) {
 
     if (cat === 'desparasitacion') {
         return {
-            stripe: 'bg-amber-500',
-            dot: 'border-amber-500 bg-amber-500 text-white shadow-amber-500/30',
-            iconBg: 'bg-amber-500/15',
+            stripe: 'bg-gradient-to-b from-amber-400 to-amber-600',
+            dot: 'border-amber-400/70 bg-gradient-to-br from-amber-400 to-amber-600 text-white shadow-amber-500/25',
+            dotGlow: 'group-hover:shadow-[0_0_0_5px_rgba(245,158,11,0.16)]',
+            ringPulse: 'bg-amber-500/50',
+            iconBg: 'bg-gradient-to-br from-amber-500/20 to-amber-500/5',
             iconText: 'text-amber-700 dark:text-amber-300',
-            cardHover: 'hover:border-amber-500/35 hover:shadow-amber-500/5',
+            cardHover: 'hover:border-amber-500/35 hover:shadow-amber-500/10',
             Icon: Syringe,
         };
     }
 
     if (cat === 'otro') {
         return {
-            stripe: 'bg-violet-500',
-            dot: 'border-violet-500 bg-violet-500 text-white shadow-violet-500/30',
-            iconBg: 'bg-violet-500/15',
+            stripe: 'bg-gradient-to-b from-violet-400 to-violet-600',
+            dot: 'border-violet-400/70 bg-gradient-to-br from-violet-400 to-violet-600 text-white shadow-violet-500/25',
+            dotGlow: 'group-hover:shadow-[0_0_0_5px_rgba(139,92,246,0.16)]',
+            ringPulse: 'bg-violet-500/50',
+            iconBg: 'bg-gradient-to-br from-violet-500/20 to-violet-500/5',
             iconText: 'text-violet-600 dark:text-violet-400',
-            cardHover: 'hover:border-violet-500/35 hover:shadow-violet-500/5',
+            cardHover: 'hover:border-violet-500/35 hover:shadow-violet-500/10',
             Icon: Syringe,
         };
     }
 
     return {
-        stripe: 'bg-emerald-500',
-        dot: 'border-emerald-500 bg-emerald-500 text-white shadow-emerald-500/30',
-        iconBg: 'bg-emerald-500/15',
+        stripe: 'bg-gradient-to-b from-emerald-400 to-emerald-600',
+        dot: 'border-emerald-400/70 bg-gradient-to-br from-emerald-400 to-emerald-600 text-white shadow-emerald-500/25',
+        dotGlow: 'group-hover:shadow-[0_0_0_5px_rgba(16,185,129,0.16)]',
+        ringPulse: 'bg-emerald-500/50',
+        iconBg: 'bg-gradient-to-br from-emerald-500/20 to-emerald-500/5',
         iconText: 'text-emerald-600 dark:text-emerald-400',
-        cardHover: 'hover:border-emerald-500/35 hover:shadow-emerald-500/5',
+        cardHover: 'hover:border-emerald-500/35 hover:shadow-emerald-500/10',
         Icon: Syringe,
     };
 }
 
 export function PacienteTimelineRow({
     item,
+    index = 0,
     appLocale,
     appTz,
     permisos,
@@ -293,6 +304,8 @@ export function PacienteTimelineRow({
     const [resumenAbierto, setResumenAbierto] = useState(false);
     const theme = itemTheme(item);
     const isPublic = variant === 'public';
+    const isFirst = index === 0;
+    const enterDelayMs = Math.min(index, 8) * 45;
 
     const fechaFmt = formatAtendidoInAppTimezone(
         item.ocurrido_at,
@@ -335,29 +348,44 @@ export function PacienteTimelineRow({
             : [];
 
     return (
-        <li className="relative flex gap-3 pb-5 last:pb-0 sm:gap-4">
+        <li
+            className="group relative flex gap-3 pb-5 opacity-0 last:pb-0 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:fill-mode-forwards sm:gap-4"
+            style={{ animationDelay: `${enterDelayMs}ms`, animationDuration: '420ms' }}
+        >
             {!isLast ? (
                 <div
-                    className="absolute left-[15px] top-9 hidden h-[calc(100%-1.25rem)] w-0.5 bg-gradient-to-b from-border via-primary/20 to-transparent sm:block"
+                    className="absolute left-[15px] top-9 hidden h-[calc(100%-1.25rem)] w-px bg-gradient-to-b from-border via-primary/25 to-transparent sm:block"
                     aria-hidden
                 />
             ) : null}
 
-            <div
-                className={cn(
-                    'relative z-[1] hidden size-8 shrink-0 items-center justify-center rounded-full border-2 shadow-md sm:flex',
-                    theme.dot,
-                )}
-            >
-                <theme.Icon className="size-3.5" strokeWidth={2.5} />
+            <div className="relative z-[1] hidden size-8 shrink-0 items-center justify-center sm:flex">
+                {isFirst ? (
+                    <span
+                        className={cn(
+                            'absolute inset-0 rounded-full motion-safe:animate-ping motion-safe:[animation-duration:2.2s]',
+                            theme.ringPulse,
+                        )}
+                        aria-hidden
+                    />
+                ) : null}
+                <div
+                    className={cn(
+                        'relative flex size-8 items-center justify-center rounded-full border-2 shadow-md transition-all duration-300 group-hover:scale-110',
+                        theme.dot,
+                        theme.dotGlow,
+                    )}
+                >
+                    <theme.Icon className="size-3.5" strokeWidth={2.5} />
+                </div>
             </div>
 
             <article
                 className={cn(
-                    'relative min-w-0 flex-1 overflow-hidden rounded-xl border border-border/80 bg-card shadow-sm transition-all duration-200',
-                    'ring-1 ring-black/[0.03] dark:ring-white/5',
+                    'relative min-w-0 flex-1 overflow-hidden rounded-xl border border-border/60 bg-card shadow-xs transition-all duration-300 ease-out',
+                    'ring-1 ring-black/[0.02] dark:ring-white/[0.03]',
                     theme.cardHover,
-                    'hover:shadow-md',
+                    'hover:-translate-y-0.5 hover:shadow-lg',
                 )}
             >
                 <div className={cn('absolute inset-y-0 left-0 w-1', theme.stripe)} aria-hidden />

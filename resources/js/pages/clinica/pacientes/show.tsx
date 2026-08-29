@@ -370,6 +370,7 @@ export default function PacienteShow({
                                     <PacienteTimelineRow
                                         key={`${item.kind}-${item.id}`}
                                         item={item}
+                                        index={index}
                                         appLocale={String(appLocale ?? 'es')}
                                         appTz={appTz}
                                         permisos={permisos}
