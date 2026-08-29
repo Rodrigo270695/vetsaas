@@ -74,6 +74,7 @@ use App\Http\Controllers\ReporteFinancieroController;
 use App\Http\Controllers\ReporteVentasController;
 use App\Http\Controllers\ReporteEgresosController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\ProspectoVeterinariaController;
 use App\Http\Controllers\SalesBotConversationController;
 use App\Http\Controllers\SalesBotKnowledgeController;
 use App\Http\Controllers\SalesBotMeetingController;
@@ -1720,6 +1721,20 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:salesbot-knowledge.update')
             ->post('salesbot-conversations/import-csv', [SalesBotConversationController::class, 'importCsv'])
             ->name('salesbot-conversations.import-csv');
+
+        // ── Prospección comercial: veterinarias capturadas por scraping o a mano ──
+        Route::middleware('permission:plataforma-prospectos.view')
+            ->get('prospectos-veterinarias', [ProspectoVeterinariaController::class, 'index'])
+            ->name('prospectos-veterinarias.index');
+        Route::middleware('permission:plataforma-prospectos.create')
+            ->post('prospectos-veterinarias', [ProspectoVeterinariaController::class, 'store'])
+            ->name('prospectos-veterinarias.store');
+        Route::middleware('permission:plataforma-prospectos.create')
+            ->post('prospectos-veterinarias/scrape', [ProspectoVeterinariaController::class, 'scrapeNow'])
+            ->name('prospectos-veterinarias.scrape');
+        Route::middleware('permission:plataforma-prospectos.update')
+            ->post('prospectos-veterinarias/{prospecto}/estado', [ProspectoVeterinariaController::class, 'updateEstado'])
+            ->name('prospectos-veterinarias.update-estado');
 
         // ── Bot de ventas: base de conocimiento (planes, módulos, FAQs) ──
         // Solo superadmin. Cualquier cambio invalida el caché del bot (5 min).

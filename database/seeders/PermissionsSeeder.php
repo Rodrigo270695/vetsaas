@@ -141,6 +141,12 @@ class PermissionsSeeder extends Seeder
         'salesbot-knowledge' => ['view', 'create', 'update', 'delete'],
 
         /*
+         * Prospectos veterinarios (clínicas/hospitales) capturados por
+         * scraping diario o registro manual, para prospección comercial.
+         */
+        'plataforma-prospectos' => ['view', 'create', 'update'],
+
+        /*
          * Guías y conocimiento del asistente in-app.
          * Recurso global en public, administrado exclusivamente desde Plataforma.
          */
