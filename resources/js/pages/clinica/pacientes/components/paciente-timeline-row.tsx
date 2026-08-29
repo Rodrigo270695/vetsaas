@@ -141,7 +141,7 @@ function CobroPill({
     }
 
     const pillClass =
-        'inline-flex h-7 items-center gap-1.5 rounded-full border border-violet-500/25 bg-violet-500/8 px-2.5 text-[0.7rem] font-medium text-violet-700 transition-colors hover:bg-violet-500/15 dark:border-violet-400/25 dark:bg-violet-400/10 dark:text-violet-300';
+        'inline-flex h-7 items-center gap-1.5 rounded-full border border-violet-500/25 bg-gradient-to-r from-violet-500/10 to-violet-500/5 px-2.5 text-[0.7rem] font-medium text-violet-700 transition-all duration-200 hover:scale-[1.03] hover:border-violet-500/40 hover:from-violet-500/15 hover:to-violet-500/10 hover:shadow-sm dark:border-violet-400/25 dark:from-violet-400/12 dark:to-violet-400/5 dark:text-violet-300';
 
     if (ventasConLink.length === 1) {
         const venta = ventasConLink[0];
@@ -349,7 +349,7 @@ export function PacienteTimelineRow({
 
     return (
         <li
-            className="group relative flex gap-3 pb-5 opacity-0 last:pb-0 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:fill-mode-forwards sm:gap-4"
+            className="group relative flex gap-3 pb-5 last:pb-0 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:fill-mode-both sm:gap-4"
             style={{ animationDelay: `${enterDelayMs}ms`, animationDuration: '420ms' }}
         >
             {!isLast ? (
@@ -526,7 +526,7 @@ export function PacienteTimelineRow({
                                             <Button
                                                 type="button"
                                                 size="sm"
-                                                className="h-8 gap-1.5 px-2.5 text-xs"
+                                                className="group/btn h-8 gap-1.5 px-2.5 text-xs"
                                                 disabled={consultaOpeningId === item.id}
                                                 onClick={() => {
                                                     if (onOpenConsulta) {
@@ -541,7 +541,10 @@ export function PacienteTimelineRow({
                                                 {consultaOpeningId === item.id ? (
                                                     <Loader2 className="size-3.5 animate-spin" strokeWidth={2.25} />
                                                 ) : (
-                                                    <ExternalLink className="size-3.5" strokeWidth={2.25} />
+                                                    <ExternalLink
+                                                        className="size-3.5 transition-transform duration-200 group-hover/btn:translate-x-0.5"
+                                                        strokeWidth={2.25}
+                                                    />
                                                 )}
                                                 <span className="hidden sm:inline">{t('historial.ver_consulta_corta')}</span>
                                                 <span className="sm:hidden">{t('historial.ver_consulta_completa')}</span>
@@ -622,17 +625,28 @@ export function PacienteTimelineRow({
                                                 <Button
                                                     type="button"
                                                     size="sm"
-                                                    className="h-8 gap-1.5 px-2.5 text-xs"
+                                                    className="group/btn h-8 gap-1.5 px-2.5 text-xs"
                                                     onClick={() => onOpenAplicacion(item)}
                                                 >
-                                                    <ExternalLink className="size-3.5" strokeWidth={2.25} />
+                                                    <ExternalLink
+                                                        className="size-3.5 transition-transform duration-200 group-hover/btn:translate-x-0.5"
+                                                        strokeWidth={2.25}
+                                                    />
                                                     <span className="hidden sm:inline">{t('historial.ver_aplicacion_corta')}</span>
                                                     <span className="sm:hidden">{t('historial.ver_aplicacion_completa')}</span>
                                                 </Button>
                                             ) : item.vacunaciones_url ? (
-                                                <Button type="button" size="sm" className="h-8 gap-1.5 px-2.5 text-xs" asChild>
+                                                <Button
+                                                    type="button"
+                                                    size="sm"
+                                                    className="group/btn h-8 gap-1.5 px-2.5 text-xs"
+                                                    asChild
+                                                >
                                                     <Link href={item.vacunaciones_url} prefetch>
-                                                        <ExternalLink className="size-3.5" strokeWidth={2.25} />
+                                                        <ExternalLink
+                                                            className="size-3.5 transition-transform duration-200 group-hover/btn:translate-x-0.5"
+                                                            strokeWidth={2.25}
+                                                        />
                                                         <span className="hidden sm:inline">{t('historial.ver_aplicacion_corta')}</span>
                                                         <span className="sm:hidden">{t('historial.ver_aplicacion_completa')}</span>
                                                     </Link>
