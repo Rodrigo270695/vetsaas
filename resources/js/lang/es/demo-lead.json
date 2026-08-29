@@ -1,0 +1,24 @@
+{
+    "title": "¿Te ayudamos a seguir?",
+    "description": "Déjanos un celular o un correo para enviarte acceso o soporte. El nombre de la clínica es opcional.",
+    "optional": "opcional",
+    "hint_one_of": "Basta con celular o correo (uno de los dos).",
+    "fields": {
+        "clinic_name": "Nombre de la clínica",
+        "phone": "Celular / WhatsApp",
+        "email": "Correo"
+    },
+    "placeholders": {
+        "clinic_name": "Ej. Clínica Vet Sur",
+        "phone": "999 888 777",
+        "email": "tu@correo.com"
+    },
+    "actions": {
+        "save": "Continuar",
+        "skip": "Ahora no"
+    },
+    "errors": {
+        "contact_required": "Indica un celular o un correo.",
+        "generic": "No se pudo guardar. Intenta de nuevo."
+    }
+}

@@ -32,6 +32,7 @@ import plataformaUsoPlanesEn from '@/lang/en/plataforma-uso-planes.json';
 import dashboardEn from '@/lang/en/dashboard.json';
 import onboardingEn from '@/lang/en/onboarding.json';
 import descuentosPromocionesEn from '@/lang/en/descuentos-promociones.json';
+import demoLeadEn from '@/lang/en/demo-lead.json';
 import commonEn from '@/lang/en/common.json';
 import comprasInventarioEn from '@/lang/en/compras-inventario.json';
 import consultaCargosEn from '@/lang/en/consulta-cargos.json';
@@ -97,6 +98,7 @@ import plataformaUsoPlanesEs from '@/lang/es/plataforma-uso-planes.json';
 import dashboardEs from '@/lang/es/dashboard.json';
 import onboardingEs from '@/lang/es/onboarding.json';
 import descuentosPromocionesEs from '@/lang/es/descuentos-promociones.json';
+import demoLeadEs from '@/lang/es/demo-lead.json';
 import commonEs from '@/lang/es/common.json';
 import comprasInventarioEs from '@/lang/es/compras-inventario.json';
 import consultaCargosEs from '@/lang/es/consulta-cargos.json';
@@ -214,6 +216,7 @@ const resources = {
         'facturacion-documentos': facturacionDocumentosEs,
         'tarifas-servicios': tarifasServiciosEs,
         'descuentos-promociones': descuentosPromocionesEs,
+        'demo-lead': demoLeadEs,
         'bot-ia-announcements': botIaAnnouncementsEs,
         'salesbot-knowledge': salesbotKnowledgeEs,
         'reportes-ventas': reportesVentasEs,
@@ -281,6 +284,7 @@ const resources = {
         'facturacion-documentos': facturacionDocumentosEn,
         'tarifas-servicios': tarifasServiciosEn,
         'descuentos-promociones': descuentosPromocionesEn,
+        'demo-lead': demoLeadEn,
         'bot-ia-announcements': botIaAnnouncementsEn,
         'salesbot-knowledge': salesbotKnowledgeEn,
         'reportes-ventas': reportesVentasEn,
@@ -356,6 +360,7 @@ void i18n
             'caja',
             'tarifas-servicios',
             'descuentos-promociones',
+            'demo-lead',
             'salesbot-knowledge',
             'bot-ia-announcements',
             'reportes-ventas',

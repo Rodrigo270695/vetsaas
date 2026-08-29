@@ -24,6 +24,11 @@ class DemoAccessLog extends Model
         'ip',
         'user_agent',
         'user_id',
+        'clinic_name',
+        'phone',
+        'email',
+        'lead_captured_at',
+        'lead_skipped_at',
         'created_at',
     ];
 
@@ -32,6 +37,8 @@ class DemoAccessLog extends Model
         return [
             'lat' => 'decimal:7',
             'lng' => 'decimal:7',
+            'lead_captured_at' => 'datetime',
+            'lead_skipped_at' => 'datetime',
             'created_at' => 'datetime',
         ];
     }

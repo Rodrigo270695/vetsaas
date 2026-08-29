@@ -42,13 +42,27 @@
         "map_title": "Demo access origins",
         "map_hint": "Each point is an access with browser GPS. If they denied location, only an IP log remains (no map point).",
         "empty": "No demo accesses with GPS yet.",
+        "leads_title": "Captured contacts",
+        "leads_hint": "People who left a phone or email in the demo (works even without GPS).",
+        "leads_empty": "No demo leads yet.",
+        "leads_gps_yes": "On map",
+        "leads_gps_no": "IP only",
+        "leads_cols": {
+            "when": "Date",
+            "clinic": "Clinic",
+            "phone": "Phone",
+            "email": "Email",
+            "gps": "Location"
+        },
         "kpis": {
             "total": "Logged accesses",
             "total_hint": "Includes visits with or without GPS.",
             "gps": "With coordinates",
             "gps_hint": "Visible on the map.",
             "no_gps": "IP only",
-            "no_gps_hint": "Entered without sharing location."
+            "no_gps_hint": "Entered without sharing location.",
+            "lead": "With contact",
+            "lead_hint": "Left a phone or email."
         }
     },
     "kpis": {

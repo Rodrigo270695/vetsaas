@@ -7,6 +7,7 @@ type TenantProp = {
 } | null;
 
 const SESSION_KEY = 'vetsaas.demo_access_geo_done';
+const LOG_ID_KEY = 'vetsaas.demo_access_log_id';
 
 function csrfHeaders(): Record<string, string> {
     const meta =
@@ -25,13 +26,20 @@ function csrfHeaders(): Record<string, string> {
     };
 }
 
-async function postDemoGeo(lat: number | null, lng: number | null): Promise<void> {
-    await fetch('/demo/access-geo', {
+async function postDemoGeo(
+    lat: number | null,
+    lng: number | null,
+): Promise<void> {
+    const res = await fetch('/demo/access-geo', {
         method: 'POST',
         credentials: 'same-origin',
         headers: csrfHeaders(),
         body: JSON.stringify({ lat, lng }),
     });
+    const data = (await res.json().catch(() => null)) as { id?: string } | null;
+    if (data?.id) {
+        sessionStorage.setItem(LOG_ID_KEY, data.id);
+    }
 }
 
 /**

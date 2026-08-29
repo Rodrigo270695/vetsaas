@@ -1,0 +1,24 @@
+{
+    "title": "Want us to follow up?",
+    "description": "Leave a phone or email so we can send access or support. Clinic name is optional.",
+    "optional": "optional",
+    "hint_one_of": "Phone or email is enough (either one).",
+    "fields": {
+        "clinic_name": "Clinic name",
+        "phone": "Mobile / WhatsApp",
+        "email": "Email"
+    },
+    "placeholders": {
+        "clinic_name": "e.g. South Vet Clinic",
+        "phone": "+51 999 888 777",
+        "email": "you@email.com"
+    },
+    "actions": {
+        "save": "Continue",
+        "skip": "Not now"
+    },
+    "errors": {
+        "contact_required": "Enter a phone or an email.",
+        "generic": "Could not save. Please try again."
+    }
+}

@@ -33,16 +33,40 @@ class DemoAccessGeoController extends Controller
 
         $lat = $validated['lat'] ?? null;
         $lng = $validated['lng'] ?? null;
+        $roundedLat = $lat !== null ? round((float) $lat, 7) : null;
+        $roundedLng = $lng !== null ? round((float) $lng, 7) : null;
 
-        DemoAccessLog::query()->create([
-            'lat' => $lat !== null ? round((float) $lat, 7) : null,
-            'lng' => $lng !== null ? round((float) $lng, 7) : null,
-            'ip' => $request->ip(),
-            'user_agent' => substr((string) $request->userAgent(), 0, 2000),
-            'user_id' => $request->user()?->id,
-            'created_at' => Carbon::now(),
+        // Si el lead modal creó el log antes del GPS, completa esa misma fila.
+        $log = DemoAccessLog::query()
+            ->where('ip', $request->ip())
+            ->where('created_at', '>=', Carbon::now()->subHours(6))
+            ->whereNull('lat')
+            ->orderByDesc('created_at')
+            ->first();
+
+        if ($log !== null) {
+            $log->fill([
+                'lat' => $roundedLat,
+                'lng' => $roundedLng,
+                'user_agent' => $log->user_agent
+                    ?: substr((string) $request->userAgent(), 0, 2000),
+                'user_id' => $log->user_id ?: $request->user()?->id,
+            ]);
+            $log->save();
+        } else {
+            $log = DemoAccessLog::query()->create([
+                'lat' => $roundedLat,
+                'lng' => $roundedLng,
+                'ip' => $request->ip(),
+                'user_agent' => substr((string) $request->userAgent(), 0, 2000),
+                'user_id' => $request->user()?->id,
+                'created_at' => Carbon::now(),
+            ]);
+        }
+
+        return response()->json([
+            'ok' => true,
+            'id' => $log->id,
         ]);
-
-        return response()->json(['ok' => true]);
     }
 }

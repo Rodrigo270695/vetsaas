@@ -3,6 +3,7 @@ import { AppShell } from '@/components/app-shell';
 import { AppSidebar } from '@/components/app-sidebar';
 import { AppSidebarHeader } from '@/components/app-sidebar-header';
 import { DemoAccessGeoCapture } from '@/components/clinic-location/demo-access-geo-capture';
+import { DemoLeadCaptureModal } from '@/components/clinic-location/demo-lead-capture-modal';
 import { TenantGeoRefreshCapture } from '@/components/clinic-location/tenant-geo-refresh-capture';
 import { TenantGpsConsentModal } from '@/components/clinic-location/tenant-gps-consent-modal';
 import { InAppAssistantAnnouncementModal } from '@/components/in-app-assistant/in-app-assistant-announcement-modal';
@@ -60,6 +61,7 @@ export default function AppSidebarLayout({
                     <TenantGpsConsentModal />
                     <TenantGeoRefreshCapture />
                     <DemoAccessGeoCapture />
+                    <DemoLeadCaptureModal />
                     <InAppAssistantAnnouncementModal />
                     <TenantChatNotifier />
                     <PlatformSupportChatNotifier />

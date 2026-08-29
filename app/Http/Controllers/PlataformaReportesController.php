@@ -97,22 +97,62 @@ class PlataformaReportesController extends Controller
     {
         $markers = [];
         $withGps = 0;
+        $withLead = 0;
+        $leads = [];
 
         if (PublicSchema::hasTable('demo_access_logs')) {
             $rows = DemoAccessLog::query()
                 ->orderByDesc('created_at')
                 ->limit(500)
-                ->get(['id', 'lat', 'lng', 'ip', 'created_at']);
+                ->get([
+                    'id',
+                    'lat',
+                    'lng',
+                    'ip',
+                    'clinic_name',
+                    'phone',
+                    'email',
+                    'lead_captured_at',
+                    'created_at',
+                ]);
 
             foreach ($rows as $row) {
+                $hasLead = $row->lead_captured_at !== null
+                    && ($row->phone || $row->email);
+                if ($hasLead) {
+                    $withLead++;
+                    $leads[] = [
+                        'id' => (string) $row->id,
+                        'clinic_name' => $row->clinic_name,
+                        'phone' => $row->phone,
+                        'email' => $row->email,
+                        'has_gps' => $row->lat !== null && $row->lng !== null,
+                        'ip' => $row->ip,
+                        'captured_at' => $row->lead_captured_at
+                            ?->timezone(config('app.timezone'))
+                            ->format('d/m/Y H:i'),
+                    ];
+                }
+
                 if ($row->lat === null || $row->lng === null) {
                     continue;
                 }
                 $withGps++;
+
+                $contactBits = array_filter([
+                    $row->clinic_name,
+                    $row->phone,
+                    $row->email,
+                ]);
+                $when = $row->created_at?->timezone(config('app.timezone'))->format('d/m/Y H:i') ?? '';
+                $label = $contactBits !== []
+                    ? implode(' · ', $contactBits)
+                    : 'Demo · '.$when;
+
                 $markers[] = [
                     'tenant_id' => (string) $row->id,
                     'slug' => $row->ip ? 'ip:'.$row->ip : 'demo',
-                    'label' => 'Demo · '.($row->created_at?->timezone(config('app.timezone'))->format('d/m/Y H:i') ?? ''),
+                    'label' => $label,
                     'segment' => 'free',
                     'lat' => (float) (string) $row->lat,
                     'lng' => (float) (string) $row->lng,
@@ -126,6 +166,7 @@ class PlataformaReportesController extends Controller
 
         return Inertia::render('plataforma/reportes/mapa-demos', [
             'markers' => $markers,
+            'leads' => array_slice($leads, 0, 100),
             'summary' => [
                 'total_logs' => PublicSchema::hasTable('demo_access_logs')
                     ? DemoAccessLog::query()->count()
@@ -134,6 +175,7 @@ class PlataformaReportesController extends Controller
                 'without_gps' => PublicSchema::hasTable('demo_access_logs')
                     ? DemoAccessLog::query()->whereNull('lat')->count()
                     : 0,
+                'with_lead' => $withLead,
             ],
         ]);
     }
