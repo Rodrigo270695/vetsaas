@@ -16,10 +16,11 @@ class BillingSupervisorCommand extends Command
         $result = $supervisor->run();
 
         $this->info(sprintf(
-            'Supervisor: %d trial→grace, %d active→grace, %d grace→suspended',
+            'Supervisor: %d trial→grace, %d active→grace, %d grace→suspended, %d periodos free sincronizados',
             $result['trials_to_grace'],
             $result['active_to_grace'],
             $result['grace_to_suspended'],
+            $result['free_periods_synced'],
         ));
 
         return self::SUCCESS;

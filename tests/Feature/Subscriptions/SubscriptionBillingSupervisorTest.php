@@ -211,3 +211,93 @@ it('suspende active vencido aunque grace_ends_at este desfasada al futuro', func
         ->and($subscription->estado)->toBe('suspended')
         ->and($tenant->estado)->toBe('suspended');
 });
+
+it('re-ancla el periodo de un Free activo desfasado meses adelante a máximo 30 días', function (): void {
+    $plan = Plan::query()->create([
+        'codigo' => Plan::CODIGO_FREE,
+        'nombre' => 'Free',
+        'descripcion' => null,
+        'precio_mensual' => '0.00',
+        'precio_anual' => null,
+        'trial_days' => 0,
+        'orden' => 1,
+        'es_publico' => true,
+        'activo' => true,
+    ]);
+
+    $tenant = Tenant::query()->create([
+        'slug' => 'freedrift-'.Str::lower(Str::random(6)),
+        'schema_name' => 'vet_'.Str::lower(Str::random(6)),
+        'razon_social' => 'Clínica Free Drift',
+        'email_admin' => Str::lower(Str::random(8)).'@freedrift.test',
+        'estado' => 'active',
+    ]);
+
+    $subscription = Subscription::withoutEvents(function () use ($tenant, $plan): Subscription {
+        return Subscription::query()->create([
+            'tenant_id' => $tenant->id,
+            'plan_id' => $plan->id,
+            'estado' => 'active',
+            'ciclo' => 'mensual',
+            // Simula una fecha desfasada ~61 días adelante (heredada de un
+            // cambio de plan/renovación anterior nunca reajustado).
+            'current_period_start' => now()->addDays(31),
+            'current_period_end' => now()->addDays(61),
+            'proximo_cobro_at' => now()->addDays(61),
+            'precio_pactado' => '0.00',
+        ]);
+    });
+
+    $result = app(SubscriptionBillingSupervisor::class)->run();
+
+    $subscription->refresh();
+
+    expect($result['free_periods_synced'])->toBe(1)
+        ->and($subscription->estado)->toBe('active')
+        ->and($subscription->proximo_cobro_at?->diffInDays(now()))->toBeLessThanOrEqual(30)
+        ->and($subscription->current_period_end?->diffInDays(now()))->toBeLessThanOrEqual(30);
+});
+
+it('no toca un Free activo cuyo periodo ya está dentro de la ventana de 30 días', function (): void {
+    $plan = Plan::query()->create([
+        'codigo' => Plan::CODIGO_FREE,
+        'nombre' => 'Free',
+        'descripcion' => null,
+        'precio_mensual' => '0.00',
+        'precio_anual' => null,
+        'trial_days' => 0,
+        'orden' => 2,
+        'es_publico' => true,
+        'activo' => true,
+    ]);
+
+    $tenant = Tenant::query()->create([
+        'slug' => 'freeok-'.Str::lower(Str::random(6)),
+        'schema_name' => 'vet_'.Str::lower(Str::random(6)),
+        'razon_social' => 'Clínica Free Ok',
+        'email_admin' => Str::lower(Str::random(8)).'@freeok.test',
+        'estado' => 'active',
+    ]);
+
+    $expectedEnd = now()->addDays(10);
+
+    $subscription = Subscription::withoutEvents(function () use ($tenant, $plan, $expectedEnd): Subscription {
+        return Subscription::query()->create([
+            'tenant_id' => $tenant->id,
+            'plan_id' => $plan->id,
+            'estado' => 'active',
+            'ciclo' => 'mensual',
+            'current_period_start' => now()->subDays(20),
+            'current_period_end' => $expectedEnd,
+            'proximo_cobro_at' => $expectedEnd,
+            'precio_pactado' => '0.00',
+        ]);
+    });
+
+    $result = app(SubscriptionBillingSupervisor::class)->run();
+
+    $subscription->refresh();
+
+    expect($result['free_periods_synced'])->toBe(0)
+        ->and($subscription->proximo_cobro_at?->equalTo($expectedEnd))->toBeTrue();
+});

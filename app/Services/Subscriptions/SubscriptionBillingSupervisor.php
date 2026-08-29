@@ -19,10 +19,11 @@ class SubscriptionBillingSupervisor
 {
     public function __construct(
         private readonly SubscriptionPaymentCoverage $coverage,
+        private readonly FreePeriodSyncService $freePeriodSync = new FreePeriodSyncService(),
     ) {}
 
     /**
-     * @return array{trials_to_grace: int, active_to_grace: int, grace_to_suspended: int}
+     * @return array{trials_to_grace: int, active_to_grace: int, grace_to_suspended: int, free_periods_synced: int}
      */
     public function run(?CarbonInterface $now = null): array
     {
@@ -32,6 +33,10 @@ class SubscriptionBillingSupervisor
             'trials_to_grace' => $this->processExpiredTrials($now),
             'active_to_grace' => $this->processOverdueActive($now),
             'grace_to_suspended' => $this->processExpiredGrace($now),
+            // Free "active" no pasa por cobro/grace: re-ancla sus fechas de
+            // periodo a la ventana de 30 días para que el badge de
+            // vencimiento no muestre cifras heredadas de otro estado.
+            'free_periods_synced' => $this->freePeriodSync->run()['synced'],
         ];
     }
 
