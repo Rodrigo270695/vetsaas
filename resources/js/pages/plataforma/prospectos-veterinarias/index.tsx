@@ -1,7 +1,6 @@
 import { Head, router } from '@inertiajs/react';
 import {
     Building2,
-    ChevronRight,
     Contact,
     Loader2,
     Mail,
@@ -421,6 +420,38 @@ export default function ProspectosVeterinariasIndex({
         );
     }, [geo_filtro, filters.departamento]);
 
+    const departamentoFilterOptions: readonly FilterChip<string>[] = useMemo(
+        () => [
+            { value: 'todos', label: 'Todos los deptos.' },
+            ...departamentoOptions.map((dep) => ({ value: dep, label: dep })),
+        ],
+        [departamentoOptions],
+    );
+
+    const provinciaFilterOptions: readonly FilterChip<string>[] = useMemo(
+        () => [
+            { value: 'todos', label: 'Todas las provincias' },
+            ...provinciaOptions.map((prov) => ({ value: prov, label: prov })),
+        ],
+        [provinciaOptions],
+    );
+
+    const distritoFilterOptions: readonly FilterChip<string>[] = useMemo(
+        () => [
+            { value: 'todos', label: 'Todos los distritos' },
+            ...distritoOptions.map((dist) => ({ value: dist, label: dist })),
+        ],
+        [distritoOptions],
+    );
+
+    const scrapeDepartamentoOptions: readonly FilterChip<string>[] = useMemo(
+        () => [
+            { value: SCRAPE_AUTO, label: 'Automático (variado)' },
+            ...departamentos_catalogo.map((dep) => ({ value: dep, label: dep })),
+        ],
+        [departamentos_catalogo],
+    );
+
     const handleDepartamentoChange = (value: string) => {
         applyFilter({
             departamento: value === 'todos' ? null : value,
@@ -726,28 +757,14 @@ export default function ProspectosVeterinariasIndex({
                                 </Button>
                             )}
                             {canCreate && (
-                                <Select
+                                <FilterChips
+                                    ariaLabel="Elegir departamento a scrapear"
                                     value={scrapeDepartamento}
-                                    onValueChange={setScrapeDepartamento}
+                                    onChange={setScrapeDepartamento}
+                                    options={scrapeDepartamentoOptions}
                                     disabled={scraping}
-                                >
-                                    <SelectTrigger
-                                        className="h-9 w-48 text-xs"
-                                        title="Elige a qué departamento dirigir la búsqueda, o deja el automático para variar por todo el Perú"
-                                    >
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value={SCRAPE_AUTO}>
-                                            🎲 Automático (variado)
-                                        </SelectItem>
-                                        {departamentos_catalogo.map((dep) => (
-                                            <SelectItem key={dep} value={dep}>
-                                                {dep}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                    triggerClassName="h-9 min-w-[13rem]"
+                                />
                             )}
                             {canCreate && (
                                 <Button
@@ -813,81 +830,29 @@ export default function ProspectosVeterinariasIndex({
                                     triggerClassName="h-9"
                                     onApply={handleFechaApply}
                                 />
-                                <div className="flex items-center gap-0.5 rounded-md border border-input bg-transparent pl-2 dark:bg-input/30">
-                                    <MapPin className="size-3.5 shrink-0 text-muted-foreground" />
-                                    <Select
-                                        value={filters.departamento ?? 'todos'}
-                                        onValueChange={handleDepartamentoChange}
-                                    >
-                                        <SelectTrigger className="h-9 w-32 gap-1 border-0 bg-transparent px-2 text-xs shadow-none focus-visible:ring-0">
-                                            <SelectValue placeholder="Departamento" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="todos">
-                                                Todos los deptos.
-                                            </SelectItem>
-                                            {departamentoOptions.map((dep) => (
-                                                <SelectItem key={dep} value={dep}>
-                                                    {dep}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-
-                                    <ChevronRight className="size-3.5 shrink-0 text-muted-foreground/40" />
-
-                                    <Select
-                                        value={filters.provincia ?? 'todos'}
-                                        onValueChange={handleProvinciaChange}
-                                        disabled={!filters.departamento}
-                                    >
-                                        <SelectTrigger className="h-9 w-32 gap-1 border-0 bg-transparent px-2 text-xs shadow-none focus-visible:ring-0">
-                                            <SelectValue placeholder="Provincia" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="todos">
-                                                Todas las provincias
-                                            </SelectItem>
-                                            {provinciaOptions.map((prov) => (
-                                                <SelectItem key={prov} value={prov}>
-                                                    {prov}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-
-                                    <ChevronRight className="size-3.5 shrink-0 text-muted-foreground/40" />
-
-                                    <Select
-                                        value={filters.distrito ?? 'todos'}
-                                        onValueChange={handleDistritoChange}
-                                        disabled={
-                                            !filters.departamento ||
-                                            distritoOptions.length === 0
-                                        }
-                                    >
-                                        <SelectTrigger className="h-9 w-32 gap-1 border-0 bg-transparent px-2 text-xs shadow-none focus-visible:ring-0">
-                                            <SelectValue
-                                                placeholder={
-                                                    filters.departamento &&
-                                                    distritoOptions.length === 0
-                                                        ? 'Sin distritos'
-                                                        : 'Distrito'
-                                                }
-                                            />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="todos">
-                                                Todos los distritos
-                                            </SelectItem>
-                                            {distritoOptions.map((dist) => (
-                                                <SelectItem key={dist} value={dist}>
-                                                    {dist}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
+                                <FilterChips
+                                    ariaLabel="Filtrar por departamento"
+                                    value={filters.departamento ?? 'todos'}
+                                    onChange={handleDepartamentoChange}
+                                    options={departamentoFilterOptions}
+                                />
+                                <FilterChips
+                                    ariaLabel="Filtrar por provincia"
+                                    value={filters.provincia ?? 'todos'}
+                                    onChange={handleProvinciaChange}
+                                    options={provinciaFilterOptions}
+                                    disabled={!filters.departamento}
+                                />
+                                <FilterChips
+                                    ariaLabel="Filtrar por distrito"
+                                    value={filters.distrito ?? 'todos'}
+                                    onChange={handleDistritoChange}
+                                    options={distritoFilterOptions}
+                                    disabled={
+                                        !filters.departamento ||
+                                        distritoOptions.length === 0
+                                    }
+                                />
                             </div>
                         </DataToolbar>
                     }

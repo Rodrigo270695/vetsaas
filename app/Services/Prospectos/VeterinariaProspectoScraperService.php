@@ -321,7 +321,7 @@ class VeterinariaProspectoScraperService
         $count = count($lines);
 
         for ($i = 0; $i < $count; $i++) {
-            if (! preg_match('/^N[uú]mero de Tel[eé]fono\s*:\s*(.*)$/iu', $lines[$i], $m)) {
+            if (! preg_match('/^(?:N[uú]mero de )?Tel[eé]fono\s*:\s*(.*)$/iu', $lines[$i], $m)) {
                 continue;
             }
 
@@ -343,7 +343,7 @@ class VeterinariaProspectoScraperService
             $direccion = '';
             $horario = '';
             for ($k = $i + 1; $k < $count; $k++) {
-                if (preg_match('/^N[uú]mero de Tel[eé]fono\s*:/iu', $lines[$k])) {
+                if (preg_match('/^(?:N[uú]mero de )?Tel[eé]fono\s*:/iu', $lines[$k])) {
                     break;
                 }
                 if (preg_match('/^Direcci[oó]n\s*:\s*(.*)$/iu', $lines[$k], $mm)) {
@@ -371,7 +371,7 @@ class VeterinariaProspectoScraperService
 
     private function isLabelLine(string $line): bool
     {
-        return (bool) preg_match('/^(N[uú]mero de Tel[eé]fono|Direcci[oó]n|Web|Horario)\s*:/iu', $line);
+        return (bool) preg_match('/^((?:N[uú]mero de )?Tel[eé]fono|Direcci[oó]n|Web|Horario)\s*:/iu', $line);
     }
 
     /**
