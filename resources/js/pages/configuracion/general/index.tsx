@@ -317,7 +317,7 @@ export default function Index({
     plan_permite_factura_electronica,
 }: ConfiguracionGeneralProps) {
     const { t } = useTranslation(['general', 'common']);
-    const { can } = usePermission();
+    const { can, isSuperadmin } = usePermission();
     const canUpdate = can('config-general.update');
 
     const [data, setDataInternal] = useState<FormState>(() =>
@@ -1876,8 +1876,60 @@ export default function Index({
                                     ) : null}
                                 </div>
 
-                                {/* APISUNAT: solo visible si el plan permite facturación */}
-                                {plan_permite_factura_electronica && (
+                                {/* APISUNAT: solo visible si el plan permite facturación.
+                                    El token NUNCA se muestra ni se deja editar a la clínica:
+                                    si lo tuviera en claro podría reutilizarlo en otra cuenta de
+                                    APISUNAT fuera de VetSaaS. Solo el superadmin de la
+                                    plataforma (rol global, ver isPlatformSuperadmin()) ve el
+                                    formulario editable; el tenant solo ve un estado informativo. */}
+                                {plan_permite_factura_electronica && !isSuperadmin && (
+                                    <div className="sm:col-span-2">
+                                        <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
+                                            <div className="flex items-center gap-2">
+                                                <span className="flex size-7 items-center justify-center rounded-md bg-primary/10 text-primary ring-1 ring-primary/20">
+                                                    <KeyRound
+                                                        className="size-4"
+                                                        strokeWidth={2}
+                                                    />
+                                                </span>
+                                                <div>
+                                                    <p className="text-sm font-semibold">
+                                                        Integración APISUNAT
+                                                    </p>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        Esta credencial la
+                                                        gestiona el equipo de
+                                                        VetSaaS por seguridad.
+                                                        Si necesitas activarla o
+                                                        cambiarla, escríbenos a
+                                                        soporte.
+                                                    </p>
+                                                </div>
+                                                <span
+                                                    className={`ml-auto inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ring-1 ${
+                                                        setting.apisunat_configurado
+                                                            ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
+                                                            : 'bg-amber-50 text-amber-700 ring-amber-200'
+                                                    }`}
+                                                >
+                                                    {setting.apisunat_configurado ? (
+                                                        <>
+                                                            <CheckCircle2 className="size-3" />
+                                                            Configurado
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <XCircle className="size-3" />
+                                                            Pendiente
+                                                        </>
+                                                    )}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {plan_permite_factura_electronica && isSuperadmin && (
                                     <div className="sm:col-span-2">
                                         <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
                                             <div className="mb-3 flex items-center gap-2">
@@ -1898,8 +1950,12 @@ export default function Index({
                                                         electrónicos.
                                                     </p>
                                                 </div>
+                                                <span className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary ring-1 ring-primary/20">
+                                                    <ShieldCheck className="size-3" />
+                                                    Solo superadmin
+                                                </span>
                                                 {setting.apisunat_configurado && (
-                                                    <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-emerald-200">
+                                                    <span className="ml-2 inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-emerald-200">
                                                         <CheckCircle2 className="size-3" />
                                                         Configurado
                                                     </span>

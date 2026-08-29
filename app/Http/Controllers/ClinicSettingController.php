@@ -6,6 +6,7 @@ use App\Http\Middleware\EnsureTenant;
 use App\Http\Requests\ClinicSettingRequest;
 use App\Models\ClinicSetting;
 use App\Models\Departamento;
+use App\Models\User;
 use App\Services\Tenancy\TenantShowcaseService;
 use App\Support\Caja\TicketAnchoMm;
 use App\Support\PlanCapabilities;
@@ -148,7 +149,15 @@ class ClinicSettingController extends Controller
 
         $this->applyLogo($setting, $request, $tenants);
 
-        if ($planPermiteFacturaElectronica) {
+        // El token de APISUNAT SOLO lo puede tocar el superadmin de la
+        // plataforma (rol global, tenant_id null). Si un usuario de la
+        // clínica manda estos campos a mano (curl/inspector), se ignoran
+        // en silencio: nunca deben poder fijar ni ver su propio token,
+        // porque podrían reutilizarlo fuera de VetSaaS.
+        $user = Auth::user();
+        $isPlatformSuperadmin = $user instanceof User && $user->isPlatformSuperadmin();
+
+        if ($planPermiteFacturaElectronica && $isPlatformSuperadmin) {
             $this->applyApisunatToken($setting, $data);
         }
 
