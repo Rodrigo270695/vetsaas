@@ -76,6 +76,7 @@ type Filters = {
     tipo: TipoFilter;
     departamento: string | null;
     provincia: string | null;
+    distrito: string | null;
     capturado_desde: string;
     capturado_hasta: string;
     sort: string | null;
@@ -88,8 +89,15 @@ type FechaFiltroUi = {
     default_hasta: string;
 };
 
-/** Departamento → lista de provincias realmente presentes en la data. */
-type GeoFiltro = Record<string, string[]>;
+/**
+ * Departamento → provincias y → distritos realmente presentes en la
+ * data. El distrito se agrupa solo por departamento (casi toda la data
+ * con distrito es de Lima, que siempre cae en la provincia "Lima").
+ */
+type GeoFiltro = {
+    provincias: Record<string, string[]>;
+    distritos: Record<string, string[]>;
+};
 
 type Stats = {
     total: number;
@@ -360,6 +368,7 @@ type ProspectosFilterExtras = {
     tipo: TipoFilter;
     departamento: string | null;
     provincia: string | null;
+    distrito: string | null;
     capturado_desde: string;
     capturado_hasta: string;
 };
@@ -393,14 +402,21 @@ export default function ProspectosVeterinariasIndex({
         });
 
     const departamentoOptions = useMemo(
-        () => Object.keys(geo_filtro).sort((a, b) => a.localeCompare(b)),
+        () => Object.keys(geo_filtro.provincias).sort((a, b) => a.localeCompare(b)),
         [geo_filtro],
     );
 
     const provinciaOptions = useMemo(() => {
         if (!filters.departamento) return [];
-        return [...(geo_filtro[filters.departamento] ?? [])].sort((a, b) =>
-            a.localeCompare(b),
+        return [...(geo_filtro.provincias[filters.departamento] ?? [])].sort(
+            (a, b) => a.localeCompare(b),
+        );
+    }, [geo_filtro, filters.departamento]);
+
+    const distritoOptions = useMemo(() => {
+        if (!filters.departamento) return [];
+        return [...(geo_filtro.distritos[filters.departamento] ?? [])].sort(
+            (a, b) => a.localeCompare(b),
         );
     }, [geo_filtro, filters.departamento]);
 
@@ -408,11 +424,16 @@ export default function ProspectosVeterinariasIndex({
         applyFilter({
             departamento: value === 'todos' ? null : value,
             provincia: null,
+            distrito: null,
         });
     };
 
     const handleProvinciaChange = (value: string) => {
         applyFilter({ provincia: value === 'todos' ? null : value });
+    };
+
+    const handleDistritoChange = (value: string) => {
+        applyFilter({ distrito: value === 'todos' ? null : value });
     };
 
     const handleFechaApply = (desde: string, hasta: string) => {
@@ -426,6 +447,7 @@ export default function ProspectosVeterinariasIndex({
         if (filters.tipo !== DEFAULT_TIPO) n++;
         if (filters.departamento) n++;
         if (filters.provincia) n++;
+        if (filters.distrito) n++;
         if (
             filters.capturado_desde !== fecha_filtro_ui.default_desde ||
             filters.capturado_hasta !== fecha_filtro_ui.default_hasta
@@ -439,6 +461,7 @@ export default function ProspectosVeterinariasIndex({
         filters.tipo,
         filters.departamento,
         filters.provincia,
+        filters.distrito,
         filters.capturado_desde,
         filters.capturado_hasta,
         fecha_filtro_ui,
@@ -832,6 +855,33 @@ export default function ProspectosVeterinariasIndex({
                                         ))}
                                     </SelectContent>
                                 </Select>
+                                <Select
+                                    value={filters.distrito ?? 'todos'}
+                                    onValueChange={handleDistritoChange}
+                                    disabled={!filters.departamento || distritoOptions.length === 0}
+                                >
+                                    <SelectTrigger className="h-9 w-40 text-xs">
+                                        <SelectValue
+                                            placeholder={
+                                                !filters.departamento
+                                                    ? 'Elige depto. primero'
+                                                    : distritoOptions.length === 0
+                                                        ? 'Sin distritos'
+                                                        : 'Distrito'
+                                            }
+                                        />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="todos">
+                                            Todos los distritos
+                                        </SelectItem>
+                                        {distritoOptions.map((dist) => (
+                                            <SelectItem key={dist} value={dist}>
+                                                {dist}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
                         </DataToolbar>
                     }
@@ -852,6 +902,7 @@ export default function ProspectosVeterinariasIndex({
                                         : undefined,
                                 departamento: filters.departamento ?? undefined,
                                 provincia: filters.provincia ?? undefined,
+                                distrito: filters.distrito ?? undefined,
                                 capturado_desde: filters.capturado_desde,
                                 capturado_hasta: filters.capturado_hasta,
                             }}

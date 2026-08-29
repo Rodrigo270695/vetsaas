@@ -30,6 +30,7 @@ final class ProspectoVeterinariaController extends Controller
         $tipo = (string) $request->input('tipo', 'todos');
         $departamento = trim((string) $request->input('departamento', ''));
         $provincia = trim((string) $request->input('provincia', ''));
+        $distrito = trim((string) $request->input('distrito', ''));
         $sort = (string) $request->input('sort', 'capturado_at');
         $direction = (string) $request->input('direction', 'desc') === 'asc' ? 'asc' : 'desc';
         $perPage = (int) $request->input('per_page', 25);
@@ -86,6 +87,10 @@ final class ProspectoVeterinariaController extends Controller
             $query->where('provincia', $provincia);
         }
 
+        if ($distrito !== '') {
+            $query->where('distrito', $distrito);
+        }
+
         $query->orderBy($sort, $direction);
 
         $prospectos = $query
@@ -113,6 +118,7 @@ final class ProspectoVeterinariaController extends Controller
                 'tipo' => $tipo,
                 'departamento' => $departamento !== '' ? $departamento : null,
                 'provincia' => $provincia !== '' ? $provincia : null,
+                'distrito' => $distrito !== '' ? $distrito : null,
                 'capturado_desde' => $capturadoDesde,
                 'capturado_hasta' => $capturadoHasta,
                 'sort' => $sort,
@@ -148,32 +154,46 @@ final class ProspectoVeterinariaController extends Controller
     }
 
     /**
-     * Departamentos → provincias realmente presentes en la data (para el
-     * filtro en cascada). Se calcula sobre TODA la tabla, no solo el
-     * resultado filtrado, así el usuario siempre ve todas las opciones.
+     * Departamentos → provincias y → distritos realmente presentes en la
+     * data (para los filtros en cascada). Se calcula sobre TODA la tabla,
+     * no solo el resultado filtrado, así el usuario siempre ve todas las
+     * opciones disponibles.
      *
-     * @return array<string, list<string>>
+     * El distrito se agrupa solo por departamento (no por provincia):
+     * en la práctica casi toda la data con distrito es de Lima, que
+     * siempre cae en la provincia "Lima", así que exigir elegir provincia
+     * antes de distrito sería un clic redundante.
+     *
+     * @return array{provincias: array<string, list<string>>, distritos: array<string, list<string>>}
      */
     private function geoFiltroOptions(): array
     {
         $rows = VeterinariaProspecto::query()
             ->whereNotNull('departamento')
-            ->select('departamento', 'provincia')
+            ->select('departamento', 'provincia', 'distrito')
             ->distinct()
             ->orderBy('departamento')
             ->orderBy('provincia')
+            ->orderBy('distrito')
             ->get();
 
-        $options = [];
+        $provincias = [];
+        $distritos = [];
         foreach ($rows as $row) {
             $dep = $row->departamento;
-            $options[$dep] ??= [];
-            if ($row->provincia !== null && ! in_array($row->provincia, $options[$dep], true)) {
-                $options[$dep][] = $row->provincia;
+            $provincias[$dep] ??= [];
+            $distritos[$dep] ??= [];
+
+            if ($row->provincia !== null && ! in_array($row->provincia, $provincias[$dep], true)) {
+                $provincias[$dep][] = $row->provincia;
+            }
+
+            if ($row->distrito !== null && ! in_array($row->distrito, $distritos[$dep], true)) {
+                $distritos[$dep][] = $row->distrito;
             }
         }
 
-        return $options;
+        return ['provincias' => $provincias, 'distritos' => $distritos];
     }
 
     /**

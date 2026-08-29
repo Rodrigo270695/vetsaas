@@ -147,8 +147,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('vetsaas:backup-database')->dailyAt('02:00');
         $schedule->command('vetsaas:chat-prune')->dailyAt('04:15');
 
-        // Prospección comercial: trae ~30-50 veterinarias nuevas de Perú cada día.
-        $schedule->command('vetsaas:prospectos-scrape')->dailyAt('07:00');
+        // Prospección comercial: desactivado a pedido — ahora solo se
+        // ejecuta manualmente desde el botón "Traer nuevos" del panel
+        // (plataforma/prospectos-veterinarias). Descomentar para volver
+        // a traer veterinarias automáticamente todos los días.
+        // $schedule->command('vetsaas:prospectos-scrape')->dailyAt('07:00');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->reportable(function (\Throwable $e): void {
