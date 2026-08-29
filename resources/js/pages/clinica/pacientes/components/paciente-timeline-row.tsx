@@ -9,6 +9,7 @@ import {
     Heart,
     Loader2,
     MessageCircle,
+    MoreHorizontal,
     Receipt,
     Stethoscope,
     Syringe,
@@ -21,6 +22,13 @@ import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { HistorialArchivoPreview } from './historial-archivo-preview';
 import { formatAtendidoInAppTimezone } from '../../historias-clinicas/format-atendido';
@@ -108,7 +116,12 @@ function comprobanteLabelKey(tipo: number): string {
     return 'historial.comprobante_ticket';
 }
 
-function TimelineCobroActions({
+/**
+ * Chip compacto de pago: si hay una sola venta cobrada, es un enlace directo
+ * al comprobante; con varias, despliega un menú. Vive separado de los
+ * badges de estado clínico para no competir visualmente con ellos.
+ */
+function CobroPill({
     cobro,
     isPublic,
 }: {
@@ -120,47 +133,54 @@ function TimelineCobroActions({
         return null;
     }
 
-    return (
-        <>
-            {cobro.ventas.slice(0, 2).map((venta) => {
-                const href = comprobanteHref(venta);
-                if (!href) {
-                    return null;
-                }
-                const label = t(comprobanteLabelKey(venta.tipo_comprobante_sunat));
-                const numero = venta.fel_numero || venta.numero;
+    const ventasConLink = cobro.ventas.filter((v) => comprobanteHref(v) !== null);
+    if (ventasConLink.length === 0) {
+        return null;
+    }
 
-                return (
-                    <Button
-                        key={venta.id}
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        className="h-8 gap-1.5 border-violet-500/30 px-2.5 text-xs text-violet-800 hover:bg-violet-500/10 dark:text-violet-200"
-                        asChild
-                    >
-                        <a href={href} target="_blank" rel="noopener noreferrer" title={numero}>
-                            <Receipt className="size-3.5" strokeWidth={2.25} />
-                            <span className="hidden sm:inline">{label}</span>
-                            <span className="sm:hidden">{label}</span>
+    const pillClass =
+        'inline-flex h-7 items-center gap-1.5 rounded-full border border-violet-500/25 bg-violet-500/8 px-2.5 text-[0.7rem] font-medium text-violet-700 transition-colors hover:bg-violet-500/15 dark:border-violet-400/25 dark:bg-violet-400/10 dark:text-violet-300';
+
+    if (ventasConLink.length === 1) {
+        const venta = ventasConLink[0];
+        const href = comprobanteHref(venta) as string;
+        const label = t(comprobanteLabelKey(venta.tipo_comprobante_sunat));
+        const numero = venta.fel_numero || venta.numero;
+
+        return (
+            <a href={href} target="_blank" rel="noopener noreferrer" className={pillClass}>
+                <Receipt className="size-3" strokeWidth={2.25} />
+                {label}
+                <span className="opacity-60">·</span>
+                <span className="font-mono text-[0.65rem]">{numero}</span>
+            </a>
+        );
+    }
+
+    return (
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <button type="button" className={cn(pillClass, 'cursor-pointer')}>
+                    <Receipt className="size-3" strokeWidth={2.25} />
+                    {t('historial.badge_cobrado')}
+                    <span className="opacity-60">({ventasConLink.length})</span>
+                    <ChevronDown className="size-3 opacity-60" />
+                </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+                {ventasConLink.map((venta) => (
+                    <DropdownMenuItem key={venta.id} asChild className="cursor-pointer gap-2">
+                        <a href={comprobanteHref(venta) as string} target="_blank" rel="noopener noreferrer">
+                            <Receipt className="size-3.5 shrink-0 opacity-70" />
+                            <span className="truncate">
+                                {t(comprobanteLabelKey(venta.tipo_comprobante_sunat))} ·{' '}
+                                {venta.fel_numero || venta.numero}
+                            </span>
                         </a>
-                    </Button>
-                );
-            })}
-            {cobro.ventas.length > 2 && cobro.ventas[0]?.show_url ? (
-                <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    className="h-8 px-2 text-[0.65rem] text-muted-foreground"
-                    asChild
-                >
-                    <a href={cobro.ventas[0].show_url} target="_blank" rel="noopener noreferrer">
-                        +{cobro.ventas.length - 2}
-                    </a>
-                </Button>
-            ) : null}
-        </>
+                    </DropdownMenuItem>
+                ))}
+            </DropdownMenuContent>
+        </DropdownMenu>
     );
 }
 
@@ -382,14 +402,6 @@ export function PacienteTimelineRow({
                                         {categoriaEtiqueta(item.categoria)}
                                     </Badge>
                                 )}
-                                {item.cobro?.estado === 'cobrado' ? (
-                                    <Badge className="border-0 bg-violet-500/15 text-[0.65rem] font-medium text-violet-900 dark:text-violet-100">
-                                        {t('historial.badge_cobrado')}
-                                        {item.cobro.ventas[0]
-                                            ? ` · ${item.cobro.ventas[0].fel_numero || item.cobro.ventas[0].numero}`
-                                            : ''}
-                                    </Badge>
-                                ) : null}
                                 {vinculosCount > 0 ? (
                                     <Badge variant="outline" className="text-[0.6rem] font-normal text-muted-foreground">
                                         +{vinculosCount} {t('historial.vinculos_corto')}
@@ -397,8 +409,15 @@ export function PacienteTimelineRow({
                                 ) : null}
                             </div>
 
-                            <h3 className="text-sm font-semibold leading-snug text-foreground sm:text-[0.95rem]">
-                                {item.titulo}
+                            <h3
+                                className={cn(
+                                    'text-sm font-semibold leading-snug sm:text-[0.95rem]',
+                                    item.titulo === '—'
+                                        ? 'italic text-muted-foreground'
+                                        : 'text-foreground',
+                                )}
+                            >
+                                {item.titulo === '—' ? t('historial.sin_motivo') : item.titulo}
                             </h3>
 
                             <p className="text-xs text-muted-foreground">
@@ -469,141 +488,146 @@ export function PacienteTimelineRow({
                             ) : null}
                         </div>
 
-                        <div className="flex shrink-0 flex-wrap gap-1.5 sm:flex-col sm:items-stretch">
-                            {item.kind === 'consulta' && permisos.consultas_ver ? (
-                                <>
-                                    {!isPublic && (onOpenConsulta || item.historia_url) ? (
-                                        <Button
-                                            type="button"
-                                            size="sm"
-                                            className="h-8 gap-1.5 px-2.5 text-xs"
-                                            disabled={consultaOpeningId === item.id}
-                                            onClick={() => {
-                                                if (onOpenConsulta) {
-                                                    onOpenConsulta(item);
-                                                    return;
-                                                }
-                                                if (item.historia_url) {
-                                                    window.location.href = item.historia_url;
-                                                }
-                                            }}
-                                        >
-                                            {consultaOpeningId === item.id ? (
-                                                <Loader2 className="size-3.5 animate-spin" strokeWidth={2.25} />
-                                            ) : (
-                                                <ExternalLink className="size-3.5" strokeWidth={2.25} />
-                                            )}
-                                            <span className="hidden sm:inline">{t('historial.ver_consulta_corta')}</span>
-                                            <span className="sm:hidden">{t('historial.ver_consulta_completa')}</span>
-                                        </Button>
-                                    ) : null}
-                                    {item.pdf_url ? (
-                                        <Button
-                                            type="button"
-                                            size="sm"
-                                            variant="outline"
-                                            className="h-8 gap-1.5 px-2.5 text-xs"
-                                            asChild
-                                        >
-                                            <a href={item.pdf_url} target="_blank" rel="noopener noreferrer">
-                                                <FileDown className="size-3.5" strokeWidth={2.25} />
-                                                PDF
-                                            </a>
-                                        </Button>
-                                    ) : null}
-                                    <TimelineCobroActions cobro={item.cobro} isPublic={isPublic} />
-                                    {!isPublic && onShareConsulta && item.whatsapp_url ? (
-                                        <Button
-                                            type="button"
-                                            size="sm"
-                                            variant="outline"
-                                            className="h-8 gap-1.5 border-emerald-500/30 px-2.5 text-xs text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-300"
-                                            onClick={() => onShareConsulta(item)}
-                                        >
-                                            <MessageCircle className="size-3.5" strokeWidth={2.25} />
-                                            <span className="sr-only">{t('historial.action_whatsapp')}</span>
-                                            <span aria-hidden>WhatsApp</span>
-                                        </Button>
-                                    ) : null}
-                                    {!isPublic && onUploadLaboratorio ? (
-                                        <Button
-                                            type="button"
-                                            size="sm"
-                                            variant="outline"
-                                            className="h-8 gap-1.5 border-sky-500/30 px-2.5 text-xs text-sky-800 hover:bg-sky-500/10 dark:text-sky-200"
-                                            onClick={() => onUploadLaboratorio(item.id)}
-                                        >
-                                            <FlaskConical className="size-3.5" strokeWidth={2.25} />
-                                            <span className="hidden sm:inline">
-                                                {t('historial.action_lab_consulta')}
-                                            </span>
-                                            <span className="sm:hidden">
-                                                {t('historial.action_lab_consulta_corta')}
-                                            </span>
-                                        </Button>
-                                    ) : null}
-                                    {!isPublic &&
-                                    permisos.consultas_eliminar &&
-                                    onDeleteConsulta ? (
-                                        <Button
-                                            type="button"
-                                            size="sm"
-                                            variant="outline"
-                                            className="h-8 gap-1.5 border-destructive/30 px-2.5 text-xs text-destructive hover:bg-destructive/10"
-                                            onClick={() => onDeleteConsulta(item)}
-                                        >
-                                            <Trash2 className="size-3.5" strokeWidth={2.25} />
-                                            <span className="hidden sm:inline">
-                                                {t('historial.eliminar_consulta')}
-                                            </span>
-                                            <span className="sm:hidden">
-                                                {t('common:actions.delete')}
-                                            </span>
-                                        </Button>
-                                    ) : null}
-                                </>
-                            ) : null}
-                            {item.kind === 'aplicacion' && permisos.vacunas_ver ? (
-                                <>
-                                    {!isPublic && (onOpenAplicacion || item.vacunaciones_url) ? (
-                                        onOpenAplicacion && item.registro ? (
+                        <div className="flex shrink-0 flex-col items-end gap-1.5">
+                            <CobroPill cobro={item.cobro} isPublic={isPublic} />
+
+                            <div className="flex flex-wrap items-center justify-end gap-1.5">
+                                {item.kind === 'consulta' && permisos.consultas_ver ? (
+                                    <>
+                                        {!isPublic && (onOpenConsulta || item.historia_url) ? (
                                             <Button
                                                 type="button"
                                                 size="sm"
                                                 className="h-8 gap-1.5 px-2.5 text-xs"
-                                                onClick={() => onOpenAplicacion(item)}
+                                                disabled={consultaOpeningId === item.id}
+                                                onClick={() => {
+                                                    if (onOpenConsulta) {
+                                                        onOpenConsulta(item);
+                                                        return;
+                                                    }
+                                                    if (item.historia_url) {
+                                                        window.location.href = item.historia_url;
+                                                    }
+                                                }}
                                             >
-                                                <ExternalLink className="size-3.5" strokeWidth={2.25} />
-                                                <span className="hidden sm:inline">{t('historial.ver_aplicacion_corta')}</span>
-                                                <span className="sm:hidden">{t('historial.ver_aplicacion_completa')}</span>
+                                                {consultaOpeningId === item.id ? (
+                                                    <Loader2 className="size-3.5 animate-spin" strokeWidth={2.25} />
+                                                ) : (
+                                                    <ExternalLink className="size-3.5" strokeWidth={2.25} />
+                                                )}
+                                                <span className="hidden sm:inline">{t('historial.ver_consulta_corta')}</span>
+                                                <span className="sm:hidden">{t('historial.ver_consulta_completa')}</span>
                                             </Button>
-                                        ) : item.vacunaciones_url ? (
-                                            <Button type="button" size="sm" className="h-8 gap-1.5 px-2.5 text-xs" asChild>
-                                                <Link href={item.vacunaciones_url} prefetch>
+                                        ) : null}
+                                        {item.pdf_url ? (
+                                            <Button
+                                                type="button"
+                                                size="sm"
+                                                variant="outline"
+                                                className="h-8 gap-1.5 px-2.5 text-xs"
+                                                asChild
+                                            >
+                                                <a href={item.pdf_url} target="_blank" rel="noopener noreferrer">
+                                                    <FileDown className="size-3.5" strokeWidth={2.25} />
+                                                    PDF
+                                                </a>
+                                            </Button>
+                                        ) : null}
+                                        {!isPublic &&
+                                        ((onShareConsulta && item.whatsapp_url) ||
+                                            onUploadLaboratorio ||
+                                            (permisos.consultas_eliminar && onDeleteConsulta)) ? (
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button
+                                                        type="button"
+                                                        size="icon"
+                                                        variant="ghost"
+                                                        className="size-8 shrink-0 cursor-pointer text-muted-foreground"
+                                                    >
+                                                        <MoreHorizontal className="size-4" strokeWidth={2.25} />
+                                                        <span className="sr-only">
+                                                            {t('common:actions.more_options')}
+                                                        </span>
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end" className="w-52">
+                                                    {onShareConsulta && item.whatsapp_url ? (
+                                                        <DropdownMenuItem
+                                                            onSelect={() => onShareConsulta(item)}
+                                                            className="cursor-pointer gap-2 text-emerald-700 dark:text-emerald-300"
+                                                        >
+                                                            <MessageCircle className="size-3.5" strokeWidth={2.25} />
+                                                            {t('historial.action_whatsapp')}
+                                                        </DropdownMenuItem>
+                                                    ) : null}
+                                                    {onUploadLaboratorio ? (
+                                                        <DropdownMenuItem
+                                                            onSelect={() => onUploadLaboratorio(item.id)}
+                                                            className="cursor-pointer gap-2"
+                                                        >
+                                                            <FlaskConical className="size-3.5" strokeWidth={2.25} />
+                                                            {t('historial.action_lab_consulta')}
+                                                        </DropdownMenuItem>
+                                                    ) : null}
+                                                    {permisos.consultas_eliminar && onDeleteConsulta ? (
+                                                        <>
+                                                            <DropdownMenuSeparator />
+                                                            <DropdownMenuItem
+                                                                onSelect={() => onDeleteConsulta(item)}
+                                                                className="cursor-pointer gap-2 text-destructive focus:text-destructive"
+                                                            >
+                                                                <Trash2 className="size-3.5" strokeWidth={2.25} />
+                                                                {t('historial.eliminar_consulta')}
+                                                            </DropdownMenuItem>
+                                                        </>
+                                                    ) : null}
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        ) : null}
+                                    </>
+                                ) : null}
+                                {item.kind === 'aplicacion' && permisos.vacunas_ver ? (
+                                    <>
+                                        {!isPublic && (onOpenAplicacion || item.vacunaciones_url) ? (
+                                            onOpenAplicacion && item.registro ? (
+                                                <Button
+                                                    type="button"
+                                                    size="sm"
+                                                    className="h-8 gap-1.5 px-2.5 text-xs"
+                                                    onClick={() => onOpenAplicacion(item)}
+                                                >
                                                     <ExternalLink className="size-3.5" strokeWidth={2.25} />
                                                     <span className="hidden sm:inline">{t('historial.ver_aplicacion_corta')}</span>
                                                     <span className="sm:hidden">{t('historial.ver_aplicacion_completa')}</span>
-                                                </Link>
+                                                </Button>
+                                            ) : item.vacunaciones_url ? (
+                                                <Button type="button" size="sm" className="h-8 gap-1.5 px-2.5 text-xs" asChild>
+                                                    <Link href={item.vacunaciones_url} prefetch>
+                                                        <ExternalLink className="size-3.5" strokeWidth={2.25} />
+                                                        <span className="hidden sm:inline">{t('historial.ver_aplicacion_corta')}</span>
+                                                        <span className="sm:hidden">{t('historial.ver_aplicacion_completa')}</span>
+                                                    </Link>
+                                                </Button>
+                                            ) : null
+                                        ) : null}
+                                        {item.pdf_url ? (
+                                            <Button
+                                                type="button"
+                                                size="sm"
+                                                variant="outline"
+                                                className="h-8 gap-1.5 px-2.5 text-xs"
+                                                asChild
+                                            >
+                                                <a href={item.pdf_url} target="_blank" rel="noopener noreferrer">
+                                                    <FileDown className="size-3.5" strokeWidth={2.25} />
+                                                    PDF
+                                                </a>
                                             </Button>
-                                        ) : null
-                                    ) : null}
-                                    {item.pdf_url ? (
-                                        <Button
-                                            type="button"
-                                            size="sm"
-                                            variant="outline"
-                                            className="h-8 gap-1.5 px-2.5 text-xs"
-                                            asChild
-                                        >
-                                            <a href={item.pdf_url} target="_blank" rel="noopener noreferrer">
-                                                <FileDown className="size-3.5" strokeWidth={2.25} />
-                                                PDF
-                                            </a>
-                                        </Button>
-                                    ) : null}
-                                    <TimelineCobroActions cobro={item.cobro} isPublic={isPublic} />
-                                </>
-                            ) : null}
+                                        ) : null}
+                                    </>
+                                ) : null}
+                            </div>
                         </div>
                     </div>
 

@@ -245,6 +245,7 @@
         "comprobante_ticket": "Ticket",
         "comprobante_boleta": "Receipt",
         "comprobante_factura": "Invoice",
+        "sin_motivo": "No reason recorded",
         "cat_vacuna": "Vaccine",
         "cat_desparasitacion": "Antiparasitic",
         "cat_otro": "Other",

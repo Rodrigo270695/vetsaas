@@ -245,6 +245,7 @@
         "comprobante_ticket": "Ticket",
         "comprobante_boleta": "Boleta",
         "comprobante_factura": "Factura",
+        "sin_motivo": "Sin motivo registrado",
         "cat_vacuna": "Vacuna",
         "cat_desparasitacion": "Antiparasitario",
         "cat_otro": "Otro",
