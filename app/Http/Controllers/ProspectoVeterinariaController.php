@@ -124,6 +124,7 @@ final class ProspectoVeterinariaController extends Controller
                 'default_hasta' => $defaultHasta,
             ],
             'geo_filtro' => $this->geoFiltroOptions(),
+            'departamentos_catalogo' => $this->departamentosCatalogo(),
             'stats' => $stats,
             'estados' => VeterinariaProspecto::ESTADOS,
             'ultima_corrida' => $ultimaCorrida ? [
@@ -176,6 +177,28 @@ final class ProspectoVeterinariaController extends Controller
     }
 
     /**
+     * Departamentos disponibles en el catálogo de scraping (config), para
+     * que el usuario pueda dirigir manualmente una corrida a uno en
+     * particular desde el botón "Traer nuevos".
+     *
+     * @return list<string>
+     */
+    private function departamentosCatalogo(): array
+    {
+        $deps = [];
+        foreach (config('prospectos.ubicaciones', []) as $loc) {
+            $dep = $loc['departamento'] ?? null;
+            if ($dep !== null && ! in_array($dep, $deps, true)) {
+                $deps[] = $dep;
+            }
+        }
+
+        sort($deps);
+
+        return $deps;
+    }
+
+    /**
      * Registro manual de un prospecto (botón "Agregar manual" en el panel).
      */
     public function store(Request $request): RedirectResponse
@@ -215,10 +238,22 @@ final class ProspectoVeterinariaController extends Controller
      * Dispara una corrida de scraping manual ("Traer nuevos ahora") desde
      * el panel. Corre de forma síncrona (dura pocos segundos): el frontend
      * muestra un loader mientras dura el request.
+     *
+     * Por defecto (sin `departamento`) reparte la búsqueda en varios
+     * departamentos del país en una sola corrida; si se indica uno, se
+     * dirige la búsqueda solo a ese departamento.
      */
     public function scrapeNow(Request $request, VeterinariaProspectoScraperService $scraper): RedirectResponse
     {
-        $result = $scraper->run(origen: 'manual', iniciadoPorId: $request->user()?->id);
+        $data = $request->validate([
+            'departamento' => ['nullable', 'string', 'max:100'],
+        ]);
+
+        $result = $scraper->run(
+            origen: 'manual',
+            iniciadoPorId: $request->user()?->id,
+            departamento: $data['departamento'] ?? null,
+        );
 
         $mensaje = $result['nuevos'] > 0
             ? "Se encontraron {$result['nuevos']} prospectos nuevos ({$result['duplicados']} ya existían)."

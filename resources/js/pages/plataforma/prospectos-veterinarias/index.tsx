@@ -117,7 +117,11 @@ type Props = {
     ultima_corrida: UltimaCorrida;
     fecha_filtro_ui: FechaFiltroUi;
     geo_filtro: GeoFiltro;
+    departamentos_catalogo: string[];
 };
+
+/** Valor especial del selector de scraping: reparte la búsqueda en varios departamentos. */
+const SCRAPE_AUTO = '__auto__';
 
 const DEFAULT_PER_PAGE = 25;
 const DEFAULT_ESTADO: EstadoFilter = 'todos';
@@ -367,12 +371,14 @@ export default function ProspectosVeterinariasIndex({
     ultima_corrida,
     fecha_filtro_ui,
     geo_filtro,
+    departamentos_catalogo,
 }: Props) {
     const { can } = usePermission();
     const canCreate = can('plataforma-prospectos.create');
     const canUpdate = can('plataforma-prospectos.update');
 
     const [scraping, setScraping] = useState(false);
+    const [scrapeDepartamento, setScrapeDepartamento] = useState<string>(SCRAPE_AUTO);
     const [manualOpen, setManualOpen] = useState(false);
     const [updatingId, setUpdatingId] = useState<string | null>(null);
 
@@ -464,7 +470,12 @@ export default function ProspectosVeterinariasIndex({
         setScraping(true);
         router.post(
             '/plataforma/prospectos-veterinarias/scrape',
-            {},
+            {
+                departamento:
+                    scrapeDepartamento !== SCRAPE_AUTO
+                        ? scrapeDepartamento
+                        : undefined,
+            },
             {
                 preserveScroll: true,
                 onFinish: () => setScraping(false),
@@ -677,7 +688,7 @@ export default function ProspectosVeterinariasIndex({
                         { label: 'Hoy', value: stats.hoy, variant: 'warning', icon: Radar },
                     ]}
                     action={
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                             {canCreate && (
                                 <Button
                                     type="button"
@@ -689,6 +700,30 @@ export default function ProspectosVeterinariasIndex({
                                     <Plus className="size-3.5" />
                                     Agregar manual
                                 </Button>
+                            )}
+                            {canCreate && (
+                                <Select
+                                    value={scrapeDepartamento}
+                                    onValueChange={setScrapeDepartamento}
+                                    disabled={scraping}
+                                >
+                                    <SelectTrigger
+                                        className="h-9 w-48 text-xs"
+                                        title="Elige a qué departamento dirigir la búsqueda, o deja el automático para variar por todo el Perú"
+                                    >
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value={SCRAPE_AUTO}>
+                                            🎲 Automático (variado)
+                                        </SelectItem>
+                                        {departamentos_catalogo.map((dep) => (
+                                            <SelectItem key={dep} value={dep}>
+                                                {dep}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             )}
                             {canCreate && (
                                 <Button
@@ -840,7 +875,14 @@ export default function ProspectosVeterinariasIndex({
             </div>
 
             <ManualCreateModal open={manualOpen} onOpenChange={setManualOpen} />
-            <ScrapingLoaderModal open={scraping} />
+            <ScrapingLoaderModal
+                open={scraping}
+                departamento={
+                    scrapeDepartamento !== SCRAPE_AUTO
+                        ? scrapeDepartamento
+                        : null
+                }
+            />
         </>
     );
 }

@@ -32,12 +32,12 @@ class VeterinariaProspectoScraperService
      *     errores: list<string>,
      * }
      */
-    public function run(string $origen = 'cron', ?string $iniciadoPorId = null): array
+    public function run(string $origen = 'cron', ?string $iniciadoPorId = null, ?string $departamento = null): array
     {
         $maxNuevos = (int) config('prospectos.max_por_corrida', 40);
         $maxUbicaciones = (int) config('prospectos.max_ubicaciones_por_corrida', 6);
 
-        $locations = $this->pickLocations($maxUbicaciones);
+        $locations = $this->pickLocations($maxUbicaciones, $departamento);
 
         $nuevos = 0;
         $duplicados = 0;
@@ -129,18 +129,38 @@ class VeterinariaProspectoScraperService
     }
 
     /**
-     * Elige las próximas `$max` ubicaciones a visitar: primero las nunca
-     * visitadas, luego las visitadas hace más tiempo. Así, con el tiempo,
-     * el cron recorre todo el catálogo sin repetir siempre las mismas.
+     * Elige las próximas `$max` ubicaciones a visitar.
+     *
+     * - Si se indica `$departamento`, se limita el catálogo a ese
+     *   departamento y se prioriza por recencia (nunca visitada primero,
+     *   luego la más antigua) — modo "manual dirigido".
+     * - Si no se indica (modo "automático/variado", el default del cron y
+     *   del botón "Traer nuevos"), se agrupa el catálogo por departamento
+     *   y se reparte en **round-robin**: una ubicación de cada departamento
+     *   (priorizando los departamentos menos visitados) antes de repetir
+     *   ninguno. Así una sola corrida trae variedad geográfica real en vez
+     *   de agotar Lima (que tiene muchos más distritos en el catálogo)
+     *   antes de tocar el resto del país.
      *
      * @return list<array{slug: string, departamento: ?string, provincia: ?string, distrito: ?string}>
      */
-    private function pickLocations(int $max): array
+    private function pickLocations(int $max, ?string $departamento = null): array
     {
         $catalog = config('prospectos.ubicaciones', []);
 
         if ($catalog === []) {
             return [];
+        }
+
+        if ($departamento !== null && $departamento !== '') {
+            $catalog = array_values(array_filter(
+                $catalog,
+                static fn (array $loc): bool => $loc['departamento'] === $departamento,
+            ));
+
+            if ($catalog === []) {
+                return [];
+            }
         }
 
         $lastVisited = VeterinariaProspecto::query()
@@ -149,19 +169,59 @@ class VeterinariaProspectoScraperService
             ->groupBy('ubicacion_slug')
             ->pluck('ultima', 'ubicacion_slug');
 
-        $withPriority = [];
-        foreach ($catalog as $loc) {
-            $ultima = $lastVisited->get($loc['slug']);
-            $withPriority[] = [
-                'loc' => $loc,
-                // null (nunca visitada) va primero; luego la más antigua.
-                'sort' => $ultima ? (string) $ultima : '',
-            ];
+        // null (nunca visitada) ordena primero; luego la más antigua.
+        $sortKey = static fn (array $loc): string => (string) ($lastVisited->get($loc['slug']) ?? '');
+
+        if ($departamento !== null && $departamento !== '') {
+            usort($catalog, static fn (array $a, array $b): int => $sortKey($a) <=> $sortKey($b));
+
+            return array_slice($catalog, 0, $max);
         }
 
-        usort($withPriority, static fn ($a, $b) => $a['sort'] <=> $b['sort']);
+        /** @var array<string, list<array{slug: string, departamento: ?string, provincia: ?string, distrito: ?string}>> $porDepartamento */
+        $porDepartamento = [];
+        foreach ($catalog as $loc) {
+            $porDepartamento[$loc['departamento'] ?? '—'][] = $loc;
+        }
 
-        return array_slice(array_map(static fn ($x) => $x['loc'], $withPriority), 0, $max);
+        foreach ($porDepartamento as $dep => $locs) {
+            usort($locs, static fn (array $a, array $b): int => $sortKey($a) <=> $sortKey($b));
+            $porDepartamento[$dep] = $locs;
+        }
+
+        $ordenDepartamentos = array_keys($porDepartamento);
+        usort(
+            $ordenDepartamentos,
+            static fn (string $a, string $b): int => $sortKey($porDepartamento[$a][0]) <=> $sortKey($porDepartamento[$b][0]),
+        );
+
+        $picked = [];
+        $cursor = array_fill_keys($ordenDepartamentos, 0);
+
+        while (count($picked) < $max) {
+            $agregoAlgo = false;
+
+            foreach ($ordenDepartamentos as $dep) {
+                if (count($picked) >= $max) {
+                    break;
+                }
+
+                $idx = $cursor[$dep];
+                if (! isset($porDepartamento[$dep][$idx])) {
+                    continue;
+                }
+
+                $picked[] = $porDepartamento[$dep][$idx];
+                $cursor[$dep]++;
+                $agregoAlgo = true;
+            }
+
+            if (! $agregoAlgo) {
+                break;
+            }
+        }
+
+        return $picked;
     }
 
     /**

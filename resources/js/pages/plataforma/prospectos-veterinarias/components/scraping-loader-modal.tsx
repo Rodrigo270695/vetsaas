@@ -7,13 +7,19 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 
-const MESSAGES = [
-    'Conectando con los directorios de veterinarias de Perú…',
-    'Escaneando clínicas y hospitales por departamento…',
-    'Extrayendo teléfonos, correos y direcciones…',
-    'Cargando energía de prospección… casi listo',
-    'Filtrando duplicados y guardando resultados…',
-];
+function buildMessages(departamento: string | null): string[] {
+    return [
+        departamento
+            ? `Conectando con directorios de veterinarias en ${departamento}…`
+            : 'Conectando con los directorios de veterinarias de Perú…',
+        departamento
+            ? `Escaneando clínicas y hospitales en ${departamento}…`
+            : 'Escaneando clínicas y hospitales en varios departamentos…',
+        'Extrayendo teléfonos, correos y direcciones…',
+        'Cargando energía de prospección… casi listo',
+        'Filtrando duplicados y guardando resultados…',
+    ];
+}
 
 /** Ángulos de partida de cada partícula que converge al núcleo. */
 const PARTICLE_ANGLES = [0, 45, 90, 135, 180, 225, 270, 315];
@@ -24,15 +30,17 @@ const PARTICLE_ANGLES = [0, 45, 90, 135, 180, 225, 270, 315];
  * estado que va cambiando. Se monta desde cero cada vez que el modal se
  * abre, así el ciclo de mensajes siempre arranca en el primero.
  */
-function EnergyBallLoader() {
+function EnergyBallLoader({ departamento }: { departamento: string | null }) {
     const [messageIndex, setMessageIndex] = useState(0);
+    const messages = buildMessages(departamento);
 
     useEffect(() => {
         const id = setInterval(() => {
-            setMessageIndex((prev) => (prev + 1) % MESSAGES.length);
+            setMessageIndex((prev) => (prev + 1) % messages.length);
         }, 1900);
 
         return () => clearInterval(id);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     return (
@@ -100,7 +108,7 @@ function EnergyBallLoader() {
                     key={messageIndex}
                     className="animate-in fade-in slide-in-from-bottom-1 text-sm font-medium text-emerald-50 duration-500"
                 >
-                    {MESSAGES[messageIndex]}
+                    {messages[messageIndex]}
                 </p>
             </div>
 
@@ -118,6 +126,8 @@ function EnergyBallLoader() {
 
 type ScrapingLoaderModalProps = {
     open: boolean;
+    /** Departamento elegido para dirigir la búsqueda, o `null` en modo automático/variado. */
+    departamento?: string | null;
 };
 
 /**
@@ -125,7 +135,10 @@ type ScrapingLoaderModalProps = {
  * ("Traer nuevos"). No se puede cerrar mientras `open` es true — el
  * propio request lo cierra al terminar.
  */
-export function ScrapingLoaderModal({ open }: ScrapingLoaderModalProps) {
+export function ScrapingLoaderModal({
+    open,
+    departamento = null,
+}: ScrapingLoaderModalProps) {
     return (
         <Dialog open={open} onOpenChange={() => {}}>
             <DialogContent
@@ -139,7 +152,7 @@ export function ScrapingLoaderModal({ open }: ScrapingLoaderModalProps) {
                     Buscando veterinarias en Perú
                 </DialogTitle>
 
-                {open && <EnergyBallLoader />}
+                {open && <EnergyBallLoader departamento={departamento} />}
             </DialogContent>
         </Dialog>
     );
