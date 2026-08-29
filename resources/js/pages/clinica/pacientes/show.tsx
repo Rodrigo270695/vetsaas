@@ -74,6 +74,22 @@ export type TimelineConsultaDetalle = {
     vinculos: TimelineConsultaVinculos;
 };
 
+export type TimelineCobroVenta = {
+    id: string;
+    numero: string;
+    total: string;
+    tipo_comprobante_sunat: 0 | 1 | 2;
+    show_url: string | null;
+    ticket_url: string | null;
+    fel_pdf_url: string | null;
+    fel_numero: string | null;
+};
+
+export type TimelineCobro = {
+    estado: 'cobrado';
+    ventas: readonly TimelineCobroVenta[];
+};
+
 export type TimelineAplicacionDetalle = {
     producto_nombre: string | null | undefined;
     producto_sku: string | null | undefined;
@@ -96,6 +112,7 @@ export type TimelineItem =
           form_url?: string;
           pdf_url: string;
           whatsapp_url: string;
+          cobro?: TimelineCobro | null;
           detalle: TimelineConsultaDetalle;
       }
     | {
@@ -109,6 +126,7 @@ export type TimelineItem =
           vacunaciones_url: string;
           pdf_url: string;
           can_edit?: boolean;
+          cobro?: TimelineCobro | null;
           registro?: VacunaAplicadaRow;
           detalle: TimelineAplicacionDetalle;
       };

@@ -6,9 +6,12 @@ namespace App\Http\Controllers;
 
 use App\Models\DemoAccessLog;
 use App\Models\Tenant;
+use App\Services\Demo\DemoLeadOutreachService;
+use App\Services\OpenWa\OpenWaClient;
 use App\Services\Platform\PlataformaReportesSnapshotService;
 use App\Support\Database\PublicSchema;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -113,6 +116,8 @@ class PlataformaReportesController extends Controller
                     'phone',
                     'email',
                     'lead_captured_at',
+                    'outreach_sent_at',
+                    'outreach_channel',
                     'created_at',
                 ]);
 
@@ -131,6 +136,10 @@ class PlataformaReportesController extends Controller
                         'captured_at' => $row->lead_captured_at
                             ?->timezone(config('app.timezone'))
                             ->format('d/m/Y H:i'),
+                        'outreach_sent_at' => $row->outreach_sent_at
+                            ?->timezone(config('app.timezone'))
+                            ->format('d/m/Y H:i'),
+                        'outreach_channel' => $row->outreach_channel,
                     ];
                 }
 
@@ -177,6 +186,31 @@ class PlataformaReportesController extends Controller
                     : 0,
                 'with_lead' => $withLead,
             ],
+            'openwa_configured' => app(OpenWaClient::class)->isConfigured(),
         ]);
+    }
+
+    public function sendDemoLeadOutreach(
+        Request $request,
+        string $id,
+        DemoLeadOutreachService $outreach,
+    ): RedirectResponse {
+        abort_unless(PublicSchema::hasTable('demo_access_logs'), 404);
+
+        $validated = $request->validate([
+            'force' => ['sometimes', 'boolean'],
+        ]);
+
+        $log = DemoAccessLog::query()->findOrFail($id);
+        $result = $outreach->send($log, (bool) ($validated['force'] ?? false));
+
+        if (! $result['ok']) {
+            return back()->with(
+                $result['skipped'] ? 'info' : 'error',
+                $result['message'],
+            );
+        }
+
+        return back()->with('success', $result['message']);
     }
 }

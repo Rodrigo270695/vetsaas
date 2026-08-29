@@ -52,8 +52,13 @@
             "clinic": "Clínica",
             "phone": "Celular",
             "email": "Correo",
-            "gps": "Ubicación"
+            "gps": "Ubicación",
+            "action": "Invitar"
         },
+        "outreach_send": "Invitar a pagar",
+        "outreach_resend": "Reenviar",
+        "outreach_sent": "Enviado · {{channel}} · {{when}}",
+        "outreach_wa_hint": "WhatsApp de plataforma no configurado: si hay correo se enviará por email.",
         "kpis": {
             "total": "Accesos registrados",
             "total_hint": "Incluye visitas con o sin GPS.",

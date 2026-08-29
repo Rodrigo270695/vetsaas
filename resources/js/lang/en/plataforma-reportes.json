@@ -52,8 +52,13 @@
             "clinic": "Clinic",
             "phone": "Phone",
             "email": "Email",
-            "gps": "Location"
+            "gps": "Location",
+            "action": "Invite"
         },
+        "outreach_send": "Invite to paid",
+        "outreach_resend": "Resend",
+        "outreach_sent": "Sent · {{channel}} · {{when}}",
+        "outreach_wa_hint": "Platform WhatsApp not configured: if there is an email it will be sent by email.",
         "kpis": {
             "total": "Logged accesses",
             "total_hint": "Includes visits with or without GPS.",

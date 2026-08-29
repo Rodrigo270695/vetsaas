@@ -9,6 +9,7 @@ import {
     Heart,
     Loader2,
     MessageCircle,
+    Receipt,
     Stethoscope,
     Syringe,
     Thermometer,
@@ -25,6 +26,8 @@ import { HistorialArchivoPreview } from './historial-archivo-preview';
 import { formatAtendidoInAppTimezone } from '../../historias-clinicas/format-atendido';
 import type {
     TimelineAplicacionDetalle,
+    TimelineCobro,
+    TimelineCobroVenta,
     TimelineConsultaDetalle,
     TimelineConsultaVinculos,
     TimelineItem,
@@ -88,6 +91,76 @@ function aplicacionDetalleTieneContenido(d: TimelineAplicacionDetalle): boolean 
             d.fecha_proxima_sugerida ||
             d.esquema_antigenos ||
             d.notas,
+    );
+}
+
+function comprobanteHref(venta: TimelineCobroVenta): string | null {
+    return venta.fel_pdf_url || venta.ticket_url || venta.show_url;
+}
+
+function comprobanteLabelKey(tipo: number): string {
+    if (tipo === 1) {
+        return 'historial.comprobante_factura';
+    }
+    if (tipo === 2) {
+        return 'historial.comprobante_boleta';
+    }
+    return 'historial.comprobante_ticket';
+}
+
+function TimelineCobroActions({
+    cobro,
+    isPublic,
+}: {
+    cobro: TimelineCobro | null | undefined;
+    isPublic: boolean;
+}) {
+    const { t } = useTranslation('pacientes');
+    if (isPublic || !cobro?.ventas?.length) {
+        return null;
+    }
+
+    return (
+        <>
+            {cobro.ventas.slice(0, 2).map((venta) => {
+                const href = comprobanteHref(venta);
+                if (!href) {
+                    return null;
+                }
+                const label = t(comprobanteLabelKey(venta.tipo_comprobante_sunat));
+                const numero = venta.fel_numero || venta.numero;
+
+                return (
+                    <Button
+                        key={venta.id}
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-8 gap-1.5 border-violet-500/30 px-2.5 text-xs text-violet-800 hover:bg-violet-500/10 dark:text-violet-200"
+                        asChild
+                    >
+                        <a href={href} target="_blank" rel="noopener noreferrer" title={numero}>
+                            <Receipt className="size-3.5" strokeWidth={2.25} />
+                            <span className="hidden sm:inline">{label}</span>
+                            <span className="sm:hidden">{label}</span>
+                        </a>
+                    </Button>
+                );
+            })}
+            {cobro.ventas.length > 2 && cobro.ventas[0]?.show_url ? (
+                <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 px-2 text-[0.65rem] text-muted-foreground"
+                    asChild
+                >
+                    <a href={cobro.ventas[0].show_url} target="_blank" rel="noopener noreferrer">
+                        +{cobro.ventas.length - 2}
+                    </a>
+                </Button>
+            ) : null}
+        </>
     );
 }
 
@@ -309,6 +382,14 @@ export function PacienteTimelineRow({
                                         {categoriaEtiqueta(item.categoria)}
                                     </Badge>
                                 )}
+                                {item.cobro?.estado === 'cobrado' ? (
+                                    <Badge className="border-0 bg-violet-500/15 text-[0.65rem] font-medium text-violet-900 dark:text-violet-100">
+                                        {t('historial.badge_cobrado')}
+                                        {item.cobro.ventas[0]
+                                            ? ` · ${item.cobro.ventas[0].fel_numero || item.cobro.ventas[0].numero}`
+                                            : ''}
+                                    </Badge>
+                                ) : null}
                                 {vinculosCount > 0 ? (
                                     <Badge variant="outline" className="text-[0.6rem] font-normal text-muted-foreground">
                                         +{vinculosCount} {t('historial.vinculos_corto')}
@@ -430,6 +511,7 @@ export function PacienteTimelineRow({
                                             </a>
                                         </Button>
                                     ) : null}
+                                    <TimelineCobroActions cobro={item.cobro} isPublic={isPublic} />
                                     {!isPublic && onShareConsulta && item.whatsapp_url ? (
                                         <Button
                                             type="button"
@@ -519,6 +601,7 @@ export function PacienteTimelineRow({
                                             </a>
                                         </Button>
                                     ) : null}
+                                    <TimelineCobroActions cobro={item.cobro} isPublic={isPublic} />
                                 </>
                             ) : null}
                         </div>

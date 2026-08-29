@@ -9,7 +9,9 @@ use App\Http\Controllers\Concerns\ResolvesClinicPdfBranding;
 use App\Http\Requests\PacienteRequest;
 use App\Models\Cirugia;
 use App\Models\Consulta;
+use App\Models\ConsultaCargo;
 use App\Models\Farmaco;
+use App\Models\FelSerie;
 use App\Models\HistoriaClinica;
 use App\Models\Internamiento;
 use App\Models\ClinicaAsesorada;
@@ -22,6 +24,7 @@ use App\Models\Receta;
 use App\Models\Sede;
 use App\Models\ServicioClinico;
 use App\Models\VacunaAplicada;
+use App\Models\Venta;
 use App\Services\Clinica\PacienteImportService;
 use App\Support\Clinica\PublicClinicalHistoryPayload;
 use App\Support\Pacientes\PacienteEspecieRazaCatalogo;
@@ -859,6 +862,12 @@ class PacienteController extends Controller
                             ->orderByDesc('solicitado_at'),
                         'cirugias' => fn ($q) => $q->orderByDesc('programada_at'),
                         'internamientos' => fn ($q) => $q->orderByDesc('ingreso_at'),
+                        'cargos' => fn ($q) => $q
+                            ->whereNotNull('venta_id')
+                            ->with([
+                                'venta:id,numero,total,tipo_comprobante_sunat,fel_document_id,estado',
+                                'venta.felDocument:id,url_pdf,enlace_consulta,numero_completo',
+                            ]),
                     ])
                     ->orderByDesc('atendido_at')
                     ->limit(200)
@@ -882,6 +891,7 @@ class PacienteController extends Controller
                         'form_url' => route('clinica.historias-clinicas.consultas.form', $c),
                         'pdf_url' => route('clinica.historias-clinicas.consultas.pdf', $c),
                         'whatsapp_url' => route('clinica.historias-clinicas.consultas.whatsapp', $c),
+                        'cobro' => $this->timelineCobroPayload($user, $c->cargos),
                         'detalle' => [
                             'peso_kg' => $c->peso_kg !== null && trim((string) $c->peso_kg) !== '' ? trim((string) $c->peso_kg) : null,
                             'temperatura_c' => $c->temperatura_c !== null && trim((string) $c->temperatura_c) !== '' ? trim((string) $c->temperatura_c) : null,
@@ -939,6 +949,12 @@ class PacienteController extends Controller
                     'consulta:id,atendido_at,cerrada_at',
                     'producto:id,nombre,sku',
                     'servicioClinico:id,nombre,precio_lista',
+                    'cargos' => fn ($q) => $q
+                        ->whereNotNull('venta_id')
+                        ->with([
+                            'venta:id,numero,total,tipo_comprobante_sunat,fel_document_id,estado',
+                            'venta.felDocument:id,url_pdf,enlace_consulta,numero_completo',
+                        ]),
                 ])
                 ->orderByDesc('aplicada_at')
                 ->limit(200)
@@ -965,6 +981,7 @@ class PacienteController extends Controller
                     'vacunaciones_url' => route('clinica.vacunaciones.index', $vacunacionesParams),
                     'pdf_url' => route('clinica.vacunaciones.aplicacion-pdf', $v),
                     'can_edit' => $canEditarVacuna,
+                    'cobro' => $this->timelineCobroPayload($user, $v->cargos),
                     'registro' => [
                         'id' => $v->id,
                         'paciente_id' => $v->paciente_id,
@@ -1006,6 +1023,64 @@ class PacienteController extends Controller
         usort($timeline, fn (array $a, array $b): int => strcmp((string) $b['ocurrido_at'], (string) $a['ocurrido_at']));
 
         return $timeline;
+    }
+
+    /**
+     * Ventas cobradas desde precuenta(s) vinculadas a la fila del timeline.
+     *
+     * @param  Collection<int, ConsultaCargo>|iterable<int, ConsultaCargo>  $cargos
+     * @return array{
+     *     estado: 'cobrado',
+     *     ventas: list<array{
+     *         id: string,
+     *         numero: string,
+     *         total: string,
+     *         tipo_comprobante_sunat: int,
+     *         show_url: string|null,
+     *         ticket_url: string|null,
+     *         fel_pdf_url: string|null,
+     *         fel_numero: string|null
+     *     }>
+     * }|null
+     */
+    private function timelineCobroPayload(?Authenticatable $user, $cargos): ?array
+    {
+        $canViewVentas = $user !== null && $user->can('ventas.view');
+        $ventasById = [];
+
+        foreach ($cargos as $cargo) {
+            /** @var ConsultaCargo $cargo */
+            $venta = $cargo->venta;
+            if ($venta === null || $venta->estado === Venta::ESTADO_ANULADO) {
+                continue;
+            }
+            if (isset($ventasById[$venta->id])) {
+                continue;
+            }
+
+            $tipo = $venta->tipo_comprobante_sunat;
+            $fel = $venta->relationLoaded('felDocument') ? $venta->felDocument : null;
+
+            $ventasById[$venta->id] = [
+                'id' => $venta->id,
+                'numero' => (string) $venta->numero,
+                'total' => (string) $venta->total,
+                'tipo_comprobante_sunat' => $tipo !== null ? (int) $tipo : FelSerie::TIPO_TICKET,
+                'show_url' => $canViewVentas ? route('caja.ventas.show', $venta) : null,
+                'ticket_url' => $canViewVentas ? route('caja.ventas.ticket', $venta) : null,
+                'fel_pdf_url' => $canViewVentas && filled($fel?->url_pdf) ? (string) $fel->url_pdf : null,
+                'fel_numero' => filled($fel?->numero_completo) ? (string) $fel->numero_completo : null,
+            ];
+        }
+
+        if ($ventasById === []) {
+            return null;
+        }
+
+        return [
+            'estado' => 'cobrado',
+            'ventas' => array_values($ventasById),
+        ];
     }
 
     /**

@@ -1443,6 +1443,10 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:plataforma-reportes.view')
             ->get('reportes/mapa-demos', [PlataformaReportesController::class, 'mapaDemos'])
             ->name('reportes.mapa-demos');
+        Route::middleware('permission:plataforma-reportes.view')
+            ->post('reportes/mapa-demos/leads/{id}/outreach', [PlataformaReportesController::class, 'sendDemoLeadOutreach'])
+            ->middleware('throttle:20,1')
+            ->name('reportes.mapa-demos.outreach');
 
         Route::middleware('permission:plataforma-operaciones.view')
             ->get('sesiones-login', [PlataformaUserAuthSessionController::class, 'index'])
