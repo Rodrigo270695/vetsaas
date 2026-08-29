@@ -10,6 +10,7 @@ import type { PacienteCitaOpcion, SedeCitaOpcion } from '../citas/types';
 import type { CatalogoOpcion } from '../historias-clinicas/components/consulta-form-modal';
 import { ConsultaFormModal } from '../historias-clinicas/components/consulta-form-modal';
 import type { ConsultaHistoriaRow, PacienteHistoriaOpcion } from '../historias-clinicas/types';
+import { dateKeyInAppTimezone } from '../historias-clinicas/format-atendido';
 import type { Paciente } from '../propietarios/types';
 import { VacunaFormModal } from '../vacunaciones/components/vacuna-form-modal';
 import type {
@@ -181,7 +182,7 @@ export default function PacienteShow({
     permisos,
 }: Props) {
     const { t } = useTranslation(['pacientes', 'common']);
-    const { locale: appLocale, timezone: appTz } = usePage().props;
+    const { timezone: appTz } = usePage().props;
     const [shareTarget, setShareTarget] = useState<ClinicalHistoryShareTarget>(null);
     const [labOpen, setLabOpen] = useState(false);
     const [labPrefillConsultaId, setLabPrefillConsultaId] = useState<string | null>(
@@ -249,6 +250,20 @@ export default function PacienteShow({
         }),
         [timeline],
     );
+
+    // Marca el primer ítem de cada día para que la tarjeta dibuje el encabezado
+    // de fecha (grupo por día) en vez de repetirla en cada fila.
+    const timelineDateHeaders = useMemo(() => {
+        const tz = appTz ?? 'UTC';
+        let prevDayKey = '';
+
+        return timeline.map((item) => {
+            const dayKey = dateKeyInAppTimezone(item.ocurrido_at, tz);
+            const isNewDay = dayKey !== prevDayKey;
+            prevDayKey = dayKey;
+            return isNewDay;
+        });
+    }, [timeline, appTz]);
 
     const openVacunaRegistro = useCallback((item: Extract<TimelineItem, { kind: 'aplicacion' }>) => {
         if (item.registro) {
@@ -371,7 +386,7 @@ export default function PacienteShow({
                                         key={`${item.kind}-${item.id}`}
                                         item={item}
                                         index={index}
-                                        appLocale={String(appLocale ?? 'es')}
+                                        showDateHeader={timelineDateHeaders[index]}
                                         appTz={appTz}
                                         permisos={permisos}
                                         isLast={index === timeline.length - 1}

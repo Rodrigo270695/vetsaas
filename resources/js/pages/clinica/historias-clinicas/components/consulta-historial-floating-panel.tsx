@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { dateKeyInAppTimezone } from '@/pages/clinica/historias-clinicas/format-atendido';
 import { PacienteTimelineRow } from '@/pages/clinica/pacientes/components/paciente-timeline-row';
 import type { TimelineItem } from '@/pages/clinica/pacientes/show';
 
@@ -104,7 +105,7 @@ export function ConsultaHistorialFloatingPanel({
     pacienteNombre = null,
 }: Props) {
     const { t } = useTranslation(['historias-clinicas', 'common']);
-    const { locale: appLocale, timezone: appTz } = usePage().props;
+    const { timezone: appTz } = usePage().props;
     const [geom, setGeom] = useState<WindowGeom>(() => loadWindowGeom());
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -262,6 +263,14 @@ export function ConsultaHistorialFloatingPanel({
 
     const titleName = payload?.paciente.nombre ?? pacienteNombre ?? t('form.paciente');
     const timeline = payload?.timeline ?? [];
+    const timelineTz = typeof appTz === 'string' ? appTz : 'UTC';
+    let prevTimelineDayKey = '';
+    const timelineDateHeaders = timeline.map((item) => {
+        const dayKey = dateKeyInAppTimezone(item.ocurrido_at, timelineTz);
+        const isNewDay = dayKey !== prevTimelineDayKey;
+        prevTimelineDayKey = dayKey;
+        return isNewDay;
+    });
 
     return createPortal(
         <div
@@ -348,8 +357,9 @@ export function ConsultaHistorialFloatingPanel({
                             <PacienteTimelineRow
                                 key={`${item.kind}-${item.id}`}
                                 item={item}
-                                appLocale={String(appLocale ?? 'es')}
-                                appTz={typeof appTz === 'string' ? appTz : undefined}
+                                index={index}
+                                showDateHeader={timelineDateHeaders[index]}
+                                appTz={timelineTz}
                                 permisos={{
                                     consultas_ver: payload?.permisos.consultas_ver ?? false,
                                     vacunas_ver: payload?.permisos.vacunas_ver ?? false,

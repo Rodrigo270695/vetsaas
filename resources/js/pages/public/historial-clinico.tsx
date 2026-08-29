@@ -6,6 +6,7 @@ import type { Paciente } from '@/pages/clinica/propietarios/types';
 import { PacienteHistorialHero } from '@/pages/clinica/pacientes/components/paciente-historial-hero';
 import { PacienteTimelineRow } from '@/pages/clinica/pacientes/components/paciente-timeline-row';
 import type { TimelineItem } from '@/pages/clinica/pacientes/show';
+import { dateKeyInAppTimezone } from '@/pages/clinica/historias-clinicas/format-atendido';
 
 type Props = {
     clinic: {
@@ -38,7 +39,7 @@ export default function PublicHistorialClinico({
     permisos,
 }: Props) {
     const { t } = useTranslation(['pacientes']);
-    const { locale: appLocale, timezone: appTz } = usePage().props;
+    const { timezone: appTz } = usePage().props;
 
     const title = useMemo(
         () => `${paciente.nombre} · ${t('historial.title_suffix')}`,
@@ -53,6 +54,18 @@ export default function PublicHistorialClinico({
         }),
         [timeline],
     );
+
+    const timelineDateHeaders = useMemo(() => {
+        const tz = appTz ?? 'UTC';
+        let prevDayKey = '';
+
+        return timeline.map((item) => {
+            const dayKey = dateKeyInAppTimezone(item.ocurrido_at, tz);
+            const isNewDay = dayKey !== prevDayKey;
+            prevDayKey = dayKey;
+            return isNewDay;
+        });
+    }, [timeline, appTz]);
 
     return (
         <>
@@ -116,8 +129,9 @@ export default function PublicHistorialClinico({
                                     <PacienteTimelineRow
                                         key={`${item.kind}-${item.id}`}
                                         item={item}
+                                        index={index}
+                                        showDateHeader={timelineDateHeaders[index]}
                                         variant="public"
-                                        appLocale={String(appLocale ?? 'es')}
                                         appTz={appTz}
                                         permisos={permisos}
                                         isLast={index === timeline.length - 1}

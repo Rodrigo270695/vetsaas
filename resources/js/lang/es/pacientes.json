@@ -246,6 +246,8 @@
         "comprobante_boleta": "Boleta",
         "comprobante_factura": "Factura",
         "sin_motivo": "Sin motivo registrado",
+        "fecha_hoy": "Hoy",
+        "fecha_ayer": "Ayer",
         "cat_vacuna": "Vacuna",
         "cat_desparasitacion": "Antiparasitario",
         "cat_otro": "Otro",

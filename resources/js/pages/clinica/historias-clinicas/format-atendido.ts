@@ -35,6 +35,68 @@ export function todayCalendarDateInAppTimezone(timeZone: string): string {
 }
 
 /**
+ * Clave de día (Y-m-d) de un instante ISO en la zona de la app. Útil para agrupar
+ * eventos por día calendario sin desalinearse por UTC vs. hora local.
+ */
+export function dateKeyInAppTimezone(iso: string, timeZone: string): string {
+    try {
+        const d = new TZDate(iso, timeZone);
+
+        if (Number.isNaN(d.getTime())) {
+            return '';
+        }
+
+        return format(d, 'yyyy-MM-dd');
+    } catch {
+        return '';
+    }
+}
+
+/**
+ * Solo la hora (HH:mm) de un instante ISO en la zona de la app.
+ */
+export function formatTimeOnlyInAppTimezone(iso: string, timeZone: string): string {
+    try {
+        const d = new TZDate(iso, timeZone);
+
+        if (Number.isNaN(d.getTime())) {
+            return '—';
+        }
+
+        return format(d, 'HH:mm');
+    } catch {
+        return '—';
+    }
+}
+
+/**
+ * Etiqueta de fecha completa ("viernes 14 de agosto de 2026" / "Friday, August 14, 2026")
+ * para usar como encabezado de grupo en un timeline. No resuelve "Hoy"/"Ayer": eso se
+ * decide en el componente para poder traducirlo con las claves i18n correctas.
+ */
+export function formatFullDateLabelInAppTimezone(
+    iso: string,
+    localeCode: string,
+    timeZone: string,
+): string {
+    try {
+        const d = new TZDate(iso, timeZone);
+
+        if (Number.isNaN(d.getTime())) {
+            return '—';
+        }
+
+        const isEs = localeCode.toLowerCase().startsWith('es');
+        const loc = isEs ? es : enUS;
+        const pattern = isEs ? "EEEE d 'de' MMMM 'de' yyyy" : 'EEEE, MMMM d, yyyy';
+
+        return format(d, pattern, { locale: loc });
+    } catch {
+        return '—';
+    }
+}
+
+/**
  * Formatea una fecha calendario (Y-m-d o ISO con hora) sin componente horario.
  */
 export function formatDateOnlyLabel(value: string, localeCode: string): string {

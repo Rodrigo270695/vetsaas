@@ -246,6 +246,8 @@
         "comprobante_boleta": "Receipt",
         "comprobante_factura": "Invoice",
         "sin_motivo": "No reason recorded",
+        "fecha_hoy": "Today",
+        "fecha_ayer": "Yesterday",
         "cat_vacuna": "Vaccine",
         "cat_desparasitacion": "Antiparasitic",
         "cat_otro": "Other",

@@ -1,7 +1,9 @@
 import { Link } from '@inertiajs/react';
 import {
     Activity,
+    CalendarDays,
     ChevronDown,
+    Clock,
     ClipboardList,
     ExternalLink,
     FileDown,
@@ -31,7 +33,12 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { HistorialArchivoPreview } from './historial-archivo-preview';
-import { formatAtendidoInAppTimezone } from '../../historias-clinicas/format-atendido';
+import {
+    dateKeyInAppTimezone,
+    formatAtendidoInAppTimezone,
+    formatFullDateLabelInAppTimezone,
+    formatTimeOnlyInAppTimezone,
+} from '../../historias-clinicas/format-atendido';
 import type {
     TimelineAplicacionDetalle,
     TimelineCobro,
@@ -46,7 +53,8 @@ type TimelineRowProps = {
     item: TimelineItem;
     /** Posición en la línea de tiempo (0 = más reciente). Anima la entrada y resalta lo último. */
     index?: number;
-    appLocale: string;
+    /** true si este es el primer ítem de un nuevo día: dibuja el encabezado de fecha. */
+    showDateHeader?: boolean;
     appTz: string | undefined;
     permisos: {
         consultas_ver: boolean;
@@ -231,6 +239,36 @@ function VitalChip({
     );
 }
 
+/**
+ * Encabezado de grupo por día: convierte la fecha en el elemento más prominente
+ * del bloque (en vez de un texto gris diluido dentro de cada tarjeta). "Hoy" se
+ * resalta con el color primario para ubicar de inmediato la visita más reciente.
+ */
+function TimelineDateHeader({ label, isToday }: { label: string; isToday: boolean }) {
+    return (
+        <div className="mb-3 flex items-center gap-3 pl-0 sm:pl-0.5">
+            <span
+                className={cn(
+                    'inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1 text-[0.82rem] font-bold capitalize tracking-tight',
+                    isToday
+                        ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/25'
+                        : 'bg-muted text-foreground/90',
+                )}
+            >
+                <CalendarDays className="size-3.5 opacity-80" strokeWidth={2.25} />
+                {label}
+            </span>
+            <span
+                className={cn(
+                    'h-px flex-1 bg-gradient-to-r to-transparent',
+                    isToday ? 'from-primary/40' : 'from-border',
+                )}
+                aria-hidden
+            />
+        </div>
+    );
+}
+
 function itemTheme(item: TimelineItem) {
     if (item.kind === 'consulta') {
         return {
@@ -288,7 +326,7 @@ function itemTheme(item: TimelineItem) {
 export function PacienteTimelineRow({
     item,
     index = 0,
-    appLocale,
+    showDateHeader = false,
     appTz,
     permisos,
     isLast,
@@ -300,18 +338,41 @@ export function PacienteTimelineRow({
     onDeleteConsulta,
     variant = 'admin',
 }: TimelineRowProps) {
-    const { t } = useTranslation(['pacientes', 'recetas', 'laboratorio', 'cirugia', 'common']);
+    const { t, i18n } = useTranslation(['pacientes', 'recetas', 'laboratorio', 'cirugia', 'common']);
     const [resumenAbierto, setResumenAbierto] = useState(false);
     const theme = itemTheme(item);
     const isPublic = variant === 'public';
     const isFirst = index === 0;
     const enterDelayMs = Math.min(index, 8) * 45;
+    const tz = appTz ?? 'UTC';
+    // El idioma de la fecha sigue al idioma activo de la UI (i18next), no al locale
+    // del servidor: así el timeline nunca "cambia de idioma" a mitad de pantalla.
+    const localeCode = i18n.language?.toLowerCase().startsWith('en') ? 'en' : 'es';
 
-    const fechaFmt = formatAtendidoInAppTimezone(
-        item.ocurrido_at,
-        String(appLocale ?? 'es'),
-        appTz ?? 'UTC',
-    );
+    const horaFmt = formatTimeOnlyInAppTimezone(item.ocurrido_at, tz);
+    const fechaCompletaTitle = formatAtendidoInAppTimezone(item.ocurrido_at, localeCode, tz);
+
+    const dateHeaderLabel = showDateHeader
+        ? (() => {
+              const itemKey = dateKeyInAppTimezone(item.ocurrido_at, tz);
+              const todayKey = dateKeyInAppTimezone(new Date().toISOString(), tz);
+              const yesterdayKey = dateKeyInAppTimezone(
+                  new Date(Date.now() - 86_400_000).toISOString(),
+                  tz,
+              );
+
+              if (itemKey === todayKey) {
+                  return t('historial.fecha_hoy');
+              }
+              if (itemKey === yesterdayKey) {
+                  return t('historial.fecha_ayer');
+              }
+              const label = formatFullDateLabelInAppTimezone(item.ocurrido_at, localeCode, tz);
+              return label.charAt(0).toUpperCase() + label.slice(1);
+          })()
+        : '';
+    const isHeaderToday =
+        showDateHeader && dateKeyInAppTimezone(item.ocurrido_at, tz) === dateKeyInAppTimezone(new Date().toISOString(), tz);
 
     const categoriaEtiqueta = (c: string) => {
         const k = (c ?? 'vacuna').toLowerCase();
@@ -348,47 +409,52 @@ export function PacienteTimelineRow({
             : [];
 
     return (
-        <li
-            className="group relative flex gap-3 pb-5 last:pb-0 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:fill-mode-both sm:gap-4"
-            style={{ animationDelay: `${enterDelayMs}ms`, animationDuration: '420ms' }}
-        >
-            {!isLast ? (
-                <div
-                    className="absolute left-[15px] top-9 hidden h-[calc(100%-1.25rem)] w-px bg-gradient-to-b from-border via-primary/25 to-transparent sm:block"
-                    aria-hidden
-                />
+        <li className="relative pb-5 last:pb-0">
+            {showDateHeader ? (
+                <TimelineDateHeader label={dateHeaderLabel} isToday={isHeaderToday} />
             ) : null}
 
-            <div className="relative z-[1] hidden size-8 shrink-0 items-center justify-center sm:flex">
-                {isFirst ? (
-                    <span
-                        className={cn(
-                            'absolute inset-0 rounded-full motion-safe:animate-ping motion-safe:[animation-duration:2.2s]',
-                            theme.ringPulse,
-                        )}
+            <div
+                className="group relative flex gap-3 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:fill-mode-both sm:gap-4"
+                style={{ animationDelay: `${enterDelayMs}ms`, animationDuration: '420ms' }}
+            >
+                {!isLast ? (
+                    <div
+                        className="absolute left-[15px] top-9 bottom-0 hidden w-px bg-gradient-to-b from-border via-primary/25 to-transparent sm:block"
                         aria-hidden
                     />
                 ) : null}
-                <div
+
+                <div className="relative z-[1] hidden size-8 shrink-0 items-center justify-center sm:flex">
+                    {isFirst ? (
+                        <span
+                            className={cn(
+                                'absolute inset-0 rounded-full motion-safe:animate-ping motion-safe:[animation-duration:2.2s]',
+                                theme.ringPulse,
+                            )}
+                            aria-hidden
+                        />
+                    ) : null}
+                    <div
+                        className={cn(
+                            'relative flex size-8 items-center justify-center rounded-full border-2 shadow-md transition-all duration-300 group-hover:scale-110',
+                            theme.dot,
+                            theme.dotGlow,
+                        )}
+                    >
+                        <theme.Icon className="size-3.5" strokeWidth={2.5} />
+                    </div>
+                </div>
+
+                <article
                     className={cn(
-                        'relative flex size-8 items-center justify-center rounded-full border-2 shadow-md transition-all duration-300 group-hover:scale-110',
-                        theme.dot,
-                        theme.dotGlow,
+                        'relative min-w-0 flex-1 overflow-hidden rounded-xl border border-border/60 bg-card shadow-xs transition-all duration-300 ease-out',
+                        'ring-1 ring-black/[0.02] dark:ring-white/[0.03]',
+                        theme.cardHover,
+                        'hover:-translate-y-0.5 hover:shadow-lg',
                     )}
                 >
-                    <theme.Icon className="size-3.5" strokeWidth={2.5} />
-                </div>
-            </div>
-
-            <article
-                className={cn(
-                    'relative min-w-0 flex-1 overflow-hidden rounded-xl border border-border/60 bg-card shadow-xs transition-all duration-300 ease-out',
-                    'ring-1 ring-black/[0.02] dark:ring-white/[0.03]',
-                    theme.cardHover,
-                    'hover:-translate-y-0.5 hover:shadow-lg',
-                )}
-            >
-                <div className={cn('absolute inset-y-0 left-0 w-1', theme.stripe)} aria-hidden />
+                    <div className={cn('absolute inset-y-0 left-0 w-1', theme.stripe)} aria-hidden />
 
                 <div className="p-3 pl-4 sm:p-3.5 sm:pl-5">
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
@@ -448,16 +514,22 @@ export function PacienteTimelineRow({
                                 {item.titulo === '—' ? t('historial.sin_motivo') : item.titulo}
                             </h3>
 
-                            <p className="text-xs text-muted-foreground">
+                            <div className="flex flex-wrap items-center gap-2">
+                                <time
+                                    dateTime={item.ocurrido_at}
+                                    title={fechaCompletaTitle}
+                                    className="inline-flex items-center gap-1 rounded-md bg-foreground/[0.06] px-1.5 py-0.5 font-mono text-[0.72rem] font-bold tabular-nums text-foreground/90 dark:bg-foreground/10"
+                                >
+                                    <Clock className="size-3 opacity-70" strokeWidth={2.5} />
+                                    {horaFmt}
+                                </time>
                                 {item.veterinario ? (
-                                    <span className="inline-flex items-center gap-1">
+                                    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                                         <Stethoscope className="size-3 text-primary/70" />
                                         {item.veterinario}
-                                        <span className="opacity-40">·</span>
                                     </span>
                                 ) : null}
-                                <time dateTime={item.ocurrido_at}>{fechaFmt}</time>
-                            </p>
+                            </div>
 
                             {item.kind === 'consulta' &&
                             (item.detalle.peso_kg ||
@@ -811,7 +883,8 @@ export function PacienteTimelineRow({
                         </Collapsible>
                     ) : null}
                 </div>
-            </article>
+                </article>
+            </div>
         </li>
     );
 }
