@@ -1735,6 +1735,15 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:plataforma-prospectos.update')
             ->post('prospectos-veterinarias/{prospecto}/estado', [ProspectoVeterinariaController::class, 'updateEstado'])
             ->name('prospectos-veterinarias.update-estado');
+        Route::middleware('permission:plataforma-prospectos.update')
+            ->post('prospectos-veterinarias/{prospecto}/enviar-mensaje', [ProspectoVeterinariaController::class, 'enviarMensaje'])
+            ->name('prospectos-veterinarias.enviar-mensaje');
+        Route::middleware('permission:plataforma-prospectos.update')
+            ->post('prospectos-veterinarias/enviar-masivo', [ProspectoVeterinariaController::class, 'enviarMasivo'])
+            ->name('prospectos-veterinarias.enviar-masivo');
+        Route::middleware('permission:plataforma-prospectos.update')
+            ->post('prospectos-veterinarias/outreach-config', [ProspectoVeterinariaController::class, 'outreachConfig'])
+            ->name('prospectos-veterinarias.outreach-config');
 
         // ── Bot de ventas: base de conocimiento (planes, módulos, FAQs) ──
         // Solo superadmin. Cualquier cambio invalida el caché del bot (5 min).

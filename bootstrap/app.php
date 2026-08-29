@@ -152,6 +152,13 @@ return Application::configure(basePath: dirname(__DIR__))
         // (plataforma/prospectos-veterinarias). Descomentar para volver
         // a traer veterinarias automáticamente todos los días.
         // $schedule->command('vetsaas:prospectos-scrape')->dailyAt('07:00');
+
+        // Outreach IA/WhatsApp a prospectos veterinarios: corre cada hora
+        // pero el comando solo envía si el admin activó el envío automático
+        // y la hora actual coincide con la configurada (panel → Prospectos
+        // veterinarias → Configurar envío IA). Así la hora es editable sin
+        // tocar el scheduler.
+        $schedule->command('vetsaas:prospectos-outreach')->hourly();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->reportable(function (\Throwable $e): void {

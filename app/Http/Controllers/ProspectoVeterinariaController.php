@@ -4,8 +4,12 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Jobs\SendVeterinariaProspectoOutreachBatchJob;
 use App\Models\VeterinariaProspecto;
+use App\Models\VeterinariaProspectoOutreachSetting;
 use App\Models\VeterinariaProspectoScrapeRun;
+use App\Services\OpenWa\PlatformWhatsAppMessenger;
+use App\Services\Prospectos\VeterinariaProspectoOutreachService;
 use App\Services\Prospectos\VeterinariaProspectoScraperService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -13,6 +17,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
+use Throwable;
 
 /**
  * Panel de prospección comercial: clínicas/hospitales veterinarios
@@ -23,7 +28,7 @@ final class ProspectoVeterinariaController extends Controller
 {
     private const PER_PAGE_OPTIONS = [15, 25, 50, 100];
 
-    public function index(Request $request): Response
+    public function index(Request $request, PlatformWhatsAppMessenger $messenger): Response
     {
         $search = trim((string) $request->input('search', ''));
         $estado = (string) $request->input('estado', 'todos');
@@ -110,6 +115,14 @@ final class ProspectoVeterinariaController extends Controller
             ->orderByDesc('iniciado_at')
             ->first();
 
+        $outreachSetting = VeterinariaProspectoOutreachSetting::current();
+        $elegiblesOutreach = VeterinariaProspecto::query()
+            ->where('estado', 'nuevo')
+            ->whereNull('mensaje_enviado_at')
+            ->whereNotNull('telefono_normalizado')
+            ->where('telefono_normalizado', '!=', '')
+            ->count();
+
         return Inertia::render('plataforma/prospectos-veterinarias/index', [
             'prospectos' => $prospectos,
             'filters' => [
@@ -141,6 +154,14 @@ final class ProspectoVeterinariaController extends Controller
                 'duplicados' => $ultimaCorrida->duplicados,
                 'ubicaciones_visitadas' => $ultimaCorrida->ubicaciones_visitadas,
             ] : null,
+            'outreach' => [
+                'whatsapp_listo' => $messenger->isReady(),
+                'automatico_activo' => $outreachSetting->automatico_activo,
+                'mensajes_por_corrida' => $outreachSetting->mensajes_por_corrida,
+                'hora_envio' => $outreachSetting->hora_envio,
+                'ultima_corrida_at' => optional($outreachSetting->ultima_corrida_at)->toIso8601String(),
+                'elegibles' => $elegiblesOutreach,
+            ],
         ]);
     }
 
@@ -291,5 +312,77 @@ final class ProspectoVeterinariaController extends Controller
         $prospecto->update(['estado' => $data['estado']]);
 
         return back()->with('success', 'Estado actualizado.');
+    }
+
+    /**
+     * Envía el mensaje de contacto (IA + WhatsApp) a UN prospecto puntual
+     * (botón individual de la fila). Se ejecuta de forma síncrona: es una
+     * sola llamada a OpenAI + WhatsApp, dura pocos segundos.
+     */
+    public function enviarMensaje(
+        Request $request,
+        VeterinariaProspecto $prospecto,
+        VeterinariaProspectoOutreachService $service,
+    ): RedirectResponse {
+        try {
+            $service->enviarIndividual($prospecto, usuarioId: $request->user()?->id);
+        } catch (Throwable $e) {
+            return back()->with('error', 'No se pudo enviar el mensaje: '.$e->getMessage());
+        }
+
+        return back()->with('success', "Mensaje enviado a {$prospecto->nombre}.");
+    }
+
+    /**
+     * Dispara el envío masivo ("Enviar ahora") a los prospectos elegibles.
+     * Se procesa en cola (Job) porque el envío real dura varios minutos
+     * (delay anti-bloqueo entre cada mensaje).
+     */
+    public function enviarMasivo(Request $request, PlatformWhatsAppMessenger $messenger): RedirectResponse
+    {
+        if (! $messenger->isReady()) {
+            return back()->with('error', 'OpenWA (WhatsApp de plataforma) no está conectado. Conéctalo antes de enviar.');
+        }
+
+        $data = $request->validate([
+            'limit' => ['nullable', 'integer', 'min:1', 'max:'.VeterinariaProspectoOutreachService::MAX_LIMIT],
+        ]);
+
+        $limit = $data['limit'] ?? VeterinariaProspectoOutreachSetting::current()->mensajes_por_corrida;
+
+        SendVeterinariaProspectoOutreachBatchJob::dispatch($limit);
+
+        return back()->with(
+            'success',
+            "Envío en marcha: hasta {$limit} prospectos recibirán su mensaje de contacto en los próximos minutos (con pausas entre cada uno para evitar bloqueos de WhatsApp)."
+        );
+    }
+
+    /**
+     * Guarda la configuración del envío automático diario (checkbox
+     * activo, cantidad de mensajes, hora de la corrida).
+     */
+    public function outreachConfig(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'automatico_activo' => ['required', 'boolean'],
+            'mensajes_por_corrida' => [
+                'required',
+                'integer',
+                'min:'.VeterinariaProspectoOutreachSetting::MIN_MENSAJES_POR_CORRIDA,
+                'max:'.VeterinariaProspectoOutreachSetting::MAX_MENSAJES_POR_CORRIDA,
+            ],
+            'hora_envio' => ['required', 'regex:/^([01]\d|2[0-3]):[0-5]\d$/'],
+        ]);
+
+        $setting = VeterinariaProspectoOutreachSetting::current();
+        $setting->update([
+            'automatico_activo' => $data['automatico_activo'],
+            'mensajes_por_corrida' => $data['mensajes_por_corrida'],
+            'hora_envio' => $data['hora_envio'],
+            'actualizado_por_id' => $request->user()?->id,
+        ]);
+
+        return back()->with('success', 'Configuración de envío guardada.');
     }
 }

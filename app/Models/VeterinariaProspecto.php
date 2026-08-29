@@ -33,6 +33,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $estado
  * @property \Illuminate\Support\Carbon $capturado_at
  * @property ?string $creado_por_id
+ * @property ?string $sales_conversation_id vincula con `sales_conversations` una vez contactado, así el
+ *           chatbot IA existente (webhook + `plataforma/salesbot-conversations`) sigue la charla solo.
+ * @property ?\Illuminate\Support\Carbon $mensaje_enviado_at fecha del primer mensaje de contacto enviado
+ * @property ?string $mensaje_enviado_por_id quién lo disparó manualmente (null = automático/cron)
+ * @property int $mensaje_intentos
+ * @property ?string $mensaje_error último error al intentar contactar (si falló)
  */
 class VeterinariaProspecto extends Model
 {
@@ -74,6 +80,11 @@ class VeterinariaProspecto extends Model
         'ubicacion_slug',
         'origen',
         'estado',
+        'sales_conversation_id',
+        'mensaje_enviado_at',
+        'mensaje_enviado_por_id',
+        'mensaje_intentos',
+        'mensaje_error',
         'capturado_at',
         'creado_por_id',
     ];
@@ -83,12 +94,36 @@ class VeterinariaProspecto extends Model
         return [
             'es_24_horas' => 'boolean',
             'capturado_at' => 'datetime',
+            'mensaje_enviado_at' => 'datetime',
+            'mensaje_intentos' => 'integer',
         ];
     }
 
     public function creadoPor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'creado_por_id');
+    }
+
+    public function salesConversation(): BelongsTo
+    {
+        return $this->belongsTo(SalesConversation::class, 'sales_conversation_id');
+    }
+
+    public function mensajeEnviadoPor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'mensaje_enviado_por_id');
+    }
+
+    /**
+     * Elegible para recibir el primer mensaje de contacto (IA + WhatsApp):
+     * nunca se le ha escrito, tiene teléfono y sigue como "nuevo".
+     */
+    public function esElegibleParaOutreach(): bool
+    {
+        return $this->mensaje_enviado_at === null
+            && $this->telefono_normalizado !== null
+            && $this->telefono_normalizado !== ''
+            && $this->estado === 'nuevo';
     }
 
     public static function normalizarTelefono(?string $telefono): ?string

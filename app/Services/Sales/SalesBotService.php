@@ -1904,6 +1904,81 @@ PROMPT;
     }
 
     /**
+     * Envía el PRIMER mensaje de contacto (cold outreach) a un prospecto que
+     * nunca ha escrito (ej. clínica veterinaria capturada por scraping).
+     *
+     * A diferencia de `sendReactivationMessage` (retoma un chat que se
+     * enfrió), aquí no hay historial previo: la IA redacta una presentación
+     * breve y natural, como si Rodrigo mismo escribiera por primera vez.
+     *
+     * El mensaje se guarda como turno 'assistant' en la MISMA tabla
+     * `sales_conversations` que usa el webhook entrante — así, si la
+     * clínica responde por WhatsApp, el chatbot IA ya existente
+     * (`plataforma/salesbot-conversations`) sigue la conversación solo,
+     * sin necesidad de lógica adicional.
+     */
+    public function sendColdOutreachMessage(
+        SalesConversation $conversation,
+        ?string $prospectName,
+        ?string $ciudad = null,
+        string $tipoNegocio = 'clínica veterinaria',
+    ): string {
+        $apiKey = (string) config('salesbot.openai_api_key', '');
+        if ($apiKey === '') {
+            throw new RuntimeException('OPENAI_API_KEY no está configurada.');
+        }
+
+        $name = $prospectName ?? 'equipo';
+        $lugar = $ciudad !== null && $ciudad !== '' ? " en {$ciudad}" : '';
+
+        $outreachPrompt = "Escribe UN mensaje de WhatsApp breve para el PRIMER contacto con \"{$name}\", una {$tipoNegocio}{$lugar}. "
+            ."Nunca han hablado antes. Preséntate como parte del equipo de VetSaaS (software para clínicas veterinarias), "
+            ."menciona que vieron su negocio y ofrece una demo gratuita sin compromiso. "
+            ."Tono cercano, humano, natural — como un mensaje real de WhatsApp, NO como publicidad ni plantilla de spam. "
+            .'No uses signos de admiración en exceso, ni emojis salvo máximo uno. Máximo 3 líneas. '
+            .'Termina con UNA pregunta simple (ej. si les interesaría ver cómo funciona). '
+            .'No digas que eres una IA ni que esto es un mensaje automático.';
+
+        $systemPrompt = $this->buildSystemPrompt(self::PRODUCT_VETSAAS);
+
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer '.$apiKey,
+            'Content-Type'  => 'application/json',
+        ])->timeout(30)->post('https://api.openai.com/v1/chat/completions', [
+            'model'       => (string) config('salesbot.openai_model', 'gpt-4o-mini'),
+            'messages'    => [
+                ['role' => 'system', 'content' => $systemPrompt],
+                ['role' => 'user', 'content' => $outreachPrompt],
+            ],
+            'max_tokens'  => 150,
+            'temperature' => 0.8,
+        ]);
+
+        if (! $response->successful()) {
+            throw new RuntimeException('OpenAI respondió con HTTP '.$response->status());
+        }
+
+        $outreachMsg = trim((string) ($response->json('choices.0.message.content') ?? ''));
+
+        if ($outreachMsg === '') {
+            throw new RuntimeException('OpenAI devolvió una respuesta vacía.');
+        }
+
+        if (! $this->messenger->isReady()) {
+            throw new RuntimeException('El messenger OpenWA no está listo.');
+        }
+
+        $this->messenger->sendText($conversation->wa_chat_id, $outreachMsg);
+        $this->rememberOutgoingBotMessage((string) $conversation->phone, $outreachMsg);
+
+        $conversation->pushMessage('assistant', '[outreach inicial] '.$outreachMsg);
+        $conversation->bot_active = true;
+        $conversation->save();
+
+        return $outreachMsg;
+    }
+
+    /**
      * Saludo automático del anuncio de Facebook (mensaje saliente fromMe).
      */
     public function isFacebookWelcomeMessage(string $body): bool

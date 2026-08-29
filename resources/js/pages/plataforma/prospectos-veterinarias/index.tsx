@@ -1,6 +1,8 @@
 import { Head, router } from '@inertiajs/react';
 import {
+    Bot,
     Building2,
+    CheckCircle2,
     Contact,
     Loader2,
     Mail,
@@ -9,6 +11,8 @@ import {
     Plus,
     Radar,
     RadioTower,
+    Send,
+    Settings2,
     Sparkles,
     Stethoscope,
     UserPlus,
@@ -34,11 +38,13 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useDataTablePage } from '@/hooks/use-data-table-page';
 import { usePermission } from '@/hooks/use-permission';
 import AppLayout from '@/layouts/app-layout';
 import { AtencionDateRangeFilter } from '@/pages/clinica/historias-clinicas/components/atencion-date-range-filter';
 import type { Paginated } from '@/types';
+import { OutreachConfigModal, type OutreachSettings } from './components/outreach-config-modal';
 import { ScrapingLoaderModal } from './components/scraping-loader-modal';
 
 type Tipo = 'clinica' | 'hospital';
@@ -65,6 +71,7 @@ type Prospecto = {
     origen: Origen;
     estado: Estado;
     capturado_at: string;
+    mensaje_enviado_at: string | null;
 };
 
 type EstadoFilter = 'todos' | Estado;
@@ -126,6 +133,7 @@ type Props = {
     fecha_filtro_ui: FechaFiltroUi;
     geo_filtro: GeoFiltro;
     departamentos_catalogo: string[];
+    outreach: OutreachSettings;
 };
 
 /** Valor especial del selector de scraping: reparte la búsqueda en varios departamentos. */
@@ -381,6 +389,7 @@ export default function ProspectosVeterinariasIndex({
     fecha_filtro_ui,
     geo_filtro,
     departamentos_catalogo,
+    outreach,
 }: Props) {
     const { can } = usePermission();
     const canCreate = can('plataforma-prospectos.create');
@@ -390,6 +399,9 @@ export default function ProspectosVeterinariasIndex({
     const [scrapeDepartamento, setScrapeDepartamento] = useState<string>(SCRAPE_AUTO);
     const [manualOpen, setManualOpen] = useState(false);
     const [updatingId, setUpdatingId] = useState<string | null>(null);
+    const [outreachConfigOpen, setOutreachConfigOpen] = useState(false);
+    const [sendingMasivo, setSendingMasivo] = useState(false);
+    const [sendingMensajeId, setSendingMensajeId] = useState<string | null>(null);
 
     const { search, setSearch, isLoading, sort, setSort, setPerPage, applyFilter } =
         useDataTablePage<ProspectosFilterExtras>({
@@ -551,6 +563,31 @@ export default function ProspectosVeterinariasIndex({
         );
     };
 
+    const handleEnviarMensaje = (prospecto: Prospecto) => {
+        setSendingMensajeId(prospecto.id);
+        router.post(
+            `/plataforma/prospectos-veterinarias/${prospecto.id}/enviar-mensaje`,
+            {},
+            {
+                preserveScroll: true,
+                preserveState: true,
+                onFinish: () => setSendingMensajeId(null),
+            },
+        );
+    };
+
+    const handleEnviarMasivo = () => {
+        setSendingMasivo(true);
+        router.post(
+            '/plataforma/prospectos-veterinarias/enviar-masivo',
+            { limit: outreach.mensajes_por_corrida },
+            {
+                preserveScroll: true,
+                onFinish: () => setSendingMasivo(false),
+            },
+        );
+    };
+
     const columns = useMemo<DataTableColumn<Prospecto>[]>(
         () => [
             {
@@ -611,6 +648,12 @@ export default function ProspectosVeterinariasIndex({
                                 <span className="truncate">{p.correo}</span>
                             </a>
                         ) : null}
+                        {p.mensaje_enviado_at && (
+                            <span className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
+                                <Bot className="size-3 shrink-0" />
+                                IA contactó · {formatFecha(p.mensaje_enviado_at)}
+                            </span>
+                        )}
                     </div>
                 ),
             },
@@ -683,29 +726,78 @@ export default function ProspectosVeterinariasIndex({
                 key: 'acciones',
                 header: <span className="sr-only">Acciones</span>,
                 align: 'right',
-                className: 'w-16',
+                className: 'w-24',
                 cell: (p) => {
                     const wa = waLink(p.telefono_normalizado);
+                    const yaEnviado = Boolean(p.mensaje_enviado_at);
+                    const sinTelefono = !p.telefono_normalizado;
+                    const enviando = sendingMensajeId === p.id;
 
-                    return wa ? (
-                        <Button
-                            type="button"
-                            size="icon"
-                            variant="ghost"
-                            asChild
-                            className="size-8 cursor-pointer text-emerald-500 hover:text-emerald-600"
-                            title="Escribir por WhatsApp"
-                        >
-                            <a href={wa} target="_blank" rel="noreferrer">
-                                <Contact className="size-4" strokeWidth={2.5} />
-                            </a>
-                        </Button>
-                    ) : null;
+                    return (
+                        <div className="flex items-center justify-end gap-1">
+                            {canUpdate && (
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <span>
+                                            <Button
+                                                type="button"
+                                                size="icon"
+                                                variant="ghost"
+                                                className={`size-8 cursor-pointer ${
+                                                    yaEnviado
+                                                        ? 'text-emerald-500'
+                                                        : 'text-primary hover:text-primary'
+                                                }`}
+                                                disabled={
+                                                    yaEnviado ||
+                                                    sinTelefono ||
+                                                    enviando ||
+                                                    !outreach.whatsapp_listo
+                                                }
+                                                onClick={() => handleEnviarMensaje(p)}
+                                            >
+                                                {enviando ? (
+                                                    <Loader2 className="size-4 animate-spin" />
+                                                ) : yaEnviado ? (
+                                                    <CheckCircle2 className="size-4" strokeWidth={2.25} />
+                                                ) : (
+                                                    <Bot className="size-4" strokeWidth={2.25} />
+                                                )}
+                                            </Button>
+                                        </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        {yaEnviado
+                                            ? 'Ya se le envió un mensaje de contacto'
+                                            : sinTelefono
+                                              ? 'Sin teléfono para contactar'
+                                              : !outreach.whatsapp_listo
+                                                ? 'WhatsApp de plataforma no está conectado'
+                                                : 'Enviar mensaje de presentación con IA'}
+                                    </TooltipContent>
+                                </Tooltip>
+                            )}
+                            {wa ? (
+                                <Button
+                                    type="button"
+                                    size="icon"
+                                    variant="ghost"
+                                    asChild
+                                    className="size-8 cursor-pointer text-emerald-500 hover:text-emerald-600"
+                                    title="Escribir por WhatsApp"
+                                >
+                                    <a href={wa} target="_blank" rel="noreferrer">
+                                        <Contact className="size-4" strokeWidth={2.5} />
+                                    </a>
+                                </Button>
+                            ) : null}
+                        </div>
+                    );
                 },
             },
         ],
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [canUpdate, updatingId],
+        [canUpdate, updatingId, sendingMensajeId, outreach.whatsapp_listo],
     );
 
     return (
@@ -786,6 +878,71 @@ export default function ProspectosVeterinariasIndex({
                                         </>
                                     )}
                                 </Button>
+                            )}
+                            {canUpdate && (
+                                <span className="mx-1 hidden h-6 w-px bg-border sm:inline-block" />
+                            )}
+                            {canUpdate && (
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            className="cursor-pointer gap-1.5"
+                                            onClick={() => setOutreachConfigOpen(true)}
+                                        >
+                                            <Settings2 className="size-3.5" />
+                                            Envío IA
+                                            {outreach.automatico_activo && (
+                                                <span className="ml-0.5 flex size-1.5 rounded-full bg-emerald-500" />
+                                            )}
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        {outreach.automatico_activo
+                                            ? `Automático activado · ${outreach.hora_envio} (${outreach.mensajes_por_corrida}/día)`
+                                            : 'Automático desactivado'}
+                                    </TooltipContent>
+                                </Tooltip>
+                            )}
+                            {canUpdate && (
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <span>
+                                            <Button
+                                                type="button"
+                                                size="sm"
+                                                className="cursor-pointer gap-1.5 bg-emerald-600 text-white hover:bg-emerald-700"
+                                                disabled={
+                                                    sendingMasivo ||
+                                                    !outreach.whatsapp_listo ||
+                                                    outreach.elegibles === 0
+                                                }
+                                                onClick={handleEnviarMasivo}
+                                            >
+                                                {sendingMasivo ? (
+                                                    <>
+                                                        <Loader2 className="size-3.5 animate-spin" />
+                                                        Encolando…
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Send className="size-3.5" />
+                                                        Enviar ahora ({outreach.elegibles})
+                                                    </>
+                                                )}
+                                            </Button>
+                                        </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        {!outreach.whatsapp_listo
+                                            ? 'WhatsApp de plataforma no está conectado'
+                                            : outreach.elegibles === 0
+                                              ? 'No hay prospectos nuevos con teléfono por contactar'
+                                              : `Manda el mensaje de presentación (IA) a hasta ${outreach.mensajes_por_corrida} prospectos, en background`}
+                                    </TooltipContent>
+                                </Tooltip>
                             )}
                         </div>
                     }
@@ -904,6 +1061,11 @@ export default function ProspectosVeterinariasIndex({
                         ? scrapeDepartamento
                         : null
                 }
+            />
+            <OutreachConfigModal
+                open={outreachConfigOpen}
+                onOpenChange={setOutreachConfigOpen}
+                settings={outreach}
             />
         </>
     );
