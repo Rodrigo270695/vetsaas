@@ -12,7 +12,10 @@ export type OutreachSettings = {
     mensajes_por_corrida: number;
     hora_envio: string;
     ultima_corrida_at: string | null;
+    /** Cantidad de elegibles que calzan con los filtros ACTUALES de la tabla. */
     elegibles: number;
+    /** True si hay algún filtro (búsqueda, estado, ubicación, fechas) activo. */
+    filtros_aplicados: boolean;
 };
 
 const MIN_MENSAJES = 1;
@@ -189,6 +192,7 @@ export function OutreachConfigModal({
                 <span className="flex items-center gap-1">
                     <MessageSquareText className="size-3.5" />
                     {settings.elegibles} prospecto(s) listos para recibir mensaje
+                    {settings.filtros_aplicados && ' (con los filtros que tienes activos)'}
                 </span>
                 <span>Última corrida: {formatFechaHora(settings.ultima_corrida_at)}</span>
             </div>

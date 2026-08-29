@@ -65,9 +65,6 @@ final class ProspectosOutreachCommand extends Command
             return self::FAILURE;
         }
 
-        $setting->ultima_corrida_at = now();
-        $setting->save();
-
         if ($resultado['sin_elegibles']) {
             $this->info('No había prospectos elegibles (nuevos, con teléfono, sin contactar).');
 

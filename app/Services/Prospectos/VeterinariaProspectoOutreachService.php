@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Services\Prospectos;
 
 use App\Models\VeterinariaProspecto;
+use App\Models\VeterinariaProspectoOutreachSetting;
 use App\Services\OpenWa\PlatformWhatsAppMessenger;
 use App\Services\Sales\SalesBotService;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
 use Throwable;
@@ -101,8 +103,13 @@ final class VeterinariaProspectoOutreachService
     }
 
     /**
-     * Corrida masiva: toma hasta `$limit` prospectos elegibles y les manda
-     * el mensaje de contacto uno por uno, con espera entre cada uno.
+     * Corrida masiva "global": toma hasta `$limit` prospectos elegibles
+     * (sin filtro particular, cualquier departamento/tipo/etc.) y les
+     * manda el mensaje de contacto uno por uno. Pensada para el cron
+     * automático, que no tiene noción de "filtros aplicados en el panel".
+     *
+     * Para el envío manual desde el panel (que SÍ respeta los filtros que
+     * el usuario tiene activos) usa `runForIds()`.
      *
      * IMPORTANTE: esta llamada puede tardar varios minutos (por el delay
      * anti-bloqueo). Debe ejecutarse en background (Job/comando), nunca
@@ -110,15 +117,9 @@ final class VeterinariaProspectoOutreachService
      *
      * @return array{enviados: int, fallidos: int, sin_elegibles: bool}
      */
-    public function run(int $limit, string $origen = 'manual'): array
+    public function run(int $limit, string $origen = 'automatico'): array
     {
         $limit = max(1, min($limit, self::MAX_LIMIT));
-
-        if (! $this->messenger->isReady()) {
-            Log::warning('ProspectosOutreach: OpenWA no conectado, corrida cancelada.', ['origen' => $origen]);
-
-            throw new RuntimeException('OpenWA (WhatsApp de plataforma) no está conectado.');
-        }
 
         $candidatos = VeterinariaProspecto::query()
             ->where('estado', 'nuevo')
@@ -129,8 +130,50 @@ final class VeterinariaProspectoOutreachService
             ->limit($limit)
             ->get();
 
+        return $this->procesarCandidatos($candidatos, $origen);
+    }
+
+    /**
+     * Corrida masiva sobre una lista EXACTA de IDs (ya resuelta por el
+     * controller respetando los filtros que el usuario tenía aplicados en
+     * el panel al presionar "Enviar ahora"). Vuelve a validar elegibilidad
+     * por si algo cambió entre que se resolvió la lista y que corre el Job.
+     *
+     * @param  list<string>  $ids
+     * @return array{enviados: int, fallidos: int, sin_elegibles: bool}
+     */
+    public function runForIds(array $ids, string $origen = 'manual'): array
+    {
+        if ($ids === []) {
+            return ['enviados' => 0, 'fallidos' => 0, 'sin_elegibles' => true];
+        }
+
+        $candidatos = VeterinariaProspecto::query()
+            ->whereIn('id', $ids)
+            ->where('estado', 'nuevo')
+            ->whereNull('mensaje_enviado_at')
+            ->whereNotNull('telefono_normalizado')
+            ->where('telefono_normalizado', '!=', '')
+            ->orderBy('capturado_at')
+            ->get();
+
+        return $this->procesarCandidatos($candidatos, $origen);
+    }
+
+    /**
+     * @param  Collection<int, VeterinariaProspecto>  $candidatos
+     * @return array{enviados: int, fallidos: int, sin_elegibles: bool}
+     */
+    private function procesarCandidatos(Collection $candidatos, string $origen): array
+    {
         if ($candidatos->isEmpty()) {
             return ['enviados' => 0, 'fallidos' => 0, 'sin_elegibles' => true];
+        }
+
+        if (! $this->messenger->isReady()) {
+            Log::warning('ProspectosOutreach: OpenWA no conectado, corrida cancelada.', ['origen' => $origen]);
+
+            throw new RuntimeException('OpenWA (WhatsApp de plataforma) no está conectado.');
         }
 
         $enviados = 0;
@@ -165,6 +208,8 @@ final class VeterinariaProspectoOutreachService
                 sleep(self::DELAY_BASE_SEG + random_int(0, self::DELAY_JITTER_SEG));
             }
         }
+
+        VeterinariaProspectoOutreachSetting::current()->update(['ultima_corrida_at' => now()]);
 
         return ['enviados' => $enviados, 'fallidos' => $fallidos, 'sin_elegibles' => false];
     }

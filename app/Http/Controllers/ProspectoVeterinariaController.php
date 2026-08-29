@@ -11,6 +11,7 @@ use App\Models\VeterinariaProspectoScrapeRun;
 use App\Services\OpenWa\PlatformWhatsAppMessenger;
 use App\Services\Prospectos\VeterinariaProspectoOutreachService;
 use App\Services\Prospectos\VeterinariaProspectoScraperService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -30,12 +31,6 @@ final class ProspectoVeterinariaController extends Controller
 
     public function index(Request $request, PlatformWhatsAppMessenger $messenger): Response
     {
-        $search = trim((string) $request->input('search', ''));
-        $estado = (string) $request->input('estado', 'todos');
-        $tipo = (string) $request->input('tipo', 'todos');
-        $departamento = trim((string) $request->input('departamento', ''));
-        $provincia = trim((string) $request->input('provincia', ''));
-        $distrito = trim((string) $request->input('distrito', ''));
         $sort = (string) $request->input('sort', 'capturado_at');
         $direction = (string) $request->input('direction', 'desc') === 'asc' ? 'asc' : 'desc';
         $perPage = (int) $request->input('per_page', 25);
@@ -49,52 +44,23 @@ final class ProspectoVeterinariaController extends Controller
             $sort = 'capturado_at';
         }
 
-        // Filtro de fechas: siempre arranca en el mes actual (1ro del mes → hoy).
         $defaultDesde = Carbon::now()->startOfMonth()->toDateString();
         $defaultHasta = Carbon::now()->toDateString();
-        $capturadoDesde = $this->parseDateParam($request->query('capturado_desde')) ?? $defaultDesde;
-        $capturadoHasta = $this->parseDateParam($request->query('capturado_hasta')) ?? $defaultHasta;
-
-        if ($capturadoDesde > $capturadoHasta) {
-            [$capturadoDesde, $capturadoHasta] = [$capturadoHasta, $capturadoDesde];
-        }
+        $filtros = $this->resolveFiltros($request, $defaultDesde, $defaultHasta);
 
         $query = VeterinariaProspecto::query();
+        $this->applyFiltros($query, $filtros);
 
-        $query->whereBetween('capturado_at', [
-            Carbon::parse($capturadoDesde)->startOfDay(),
-            Carbon::parse($capturadoHasta)->endOfDay(),
-        ]);
-
-        if ($search !== '') {
-            $query->where(function ($q) use ($search): void {
-                $q->where('nombre', 'ilike', "%{$search}%")
-                    ->orWhere('telefono', 'ilike', "%{$search}%")
-                    ->orWhere('correo', 'ilike', "%{$search}%")
-                    ->orWhere('departamento', 'ilike', "%{$search}%")
-                    ->orWhere('distrito', 'ilike', "%{$search}%");
-            });
-        }
-
-        if ($estado !== 'todos' && in_array($estado, VeterinariaProspecto::ESTADOS, true)) {
-            $query->where('estado', $estado);
-        }
-
-        if ($tipo === 'clinica' || $tipo === 'hospital') {
-            $query->where('tipo', $tipo);
-        }
-
-        if ($departamento !== '') {
-            $query->where('departamento', $departamento);
-        }
-
-        if ($provincia !== '') {
-            $query->where('provincia', $provincia);
-        }
-
-        if ($distrito !== '') {
-            $query->where('distrito', $distrito);
-        }
+        // Clonamos ANTES de paginar/ordenar: sirve para calcular cuántos de
+        // los prospectos que calzan con los filtros actuales están listos
+        // para recibir el mensaje de contacto ("Enviar ahora" solo manda a
+        // los que el usuario está viendo en este momento, no a todos).
+        $elegiblesOutreach = (clone $query)
+            ->where('estado', 'nuevo')
+            ->whereNull('mensaje_enviado_at')
+            ->whereNotNull('telefono_normalizado')
+            ->where('telefono_normalizado', '!=', '')
+            ->count();
 
         $query->orderBy($sort, $direction);
 
@@ -116,24 +82,18 @@ final class ProspectoVeterinariaController extends Controller
             ->first();
 
         $outreachSetting = VeterinariaProspectoOutreachSetting::current();
-        $elegiblesOutreach = VeterinariaProspecto::query()
-            ->where('estado', 'nuevo')
-            ->whereNull('mensaje_enviado_at')
-            ->whereNotNull('telefono_normalizado')
-            ->where('telefono_normalizado', '!=', '')
-            ->count();
 
         return Inertia::render('plataforma/prospectos-veterinarias/index', [
             'prospectos' => $prospectos,
             'filters' => [
-                'search' => $search,
-                'estado' => $estado,
-                'tipo' => $tipo,
-                'departamento' => $departamento !== '' ? $departamento : null,
-                'provincia' => $provincia !== '' ? $provincia : null,
-                'distrito' => $distrito !== '' ? $distrito : null,
-                'capturado_desde' => $capturadoDesde,
-                'capturado_hasta' => $capturadoHasta,
+                'search' => $filtros['search'],
+                'estado' => $filtros['estado'],
+                'tipo' => $filtros['tipo'],
+                'departamento' => $filtros['departamento'] !== '' ? $filtros['departamento'] : null,
+                'provincia' => $filtros['provincia'] !== '' ? $filtros['provincia'] : null,
+                'distrito' => $filtros['distrito'] !== '' ? $filtros['distrito'] : null,
+                'capturado_desde' => $filtros['capturado_desde'],
+                'capturado_hasta' => $filtros['capturado_hasta'],
                 'sort' => $sort,
                 'direction' => $direction,
                 'per_page' => $perPage,
@@ -161,6 +121,7 @@ final class ProspectoVeterinariaController extends Controller
                 'hora_envio' => $outreachSetting->hora_envio,
                 'ultima_corrida_at' => optional($outreachSetting->ultima_corrida_at)->toIso8601String(),
                 'elegibles' => $elegiblesOutreach,
+                'filtros_aplicados' => $this->hayFiltrosActivos($filtros, $defaultDesde, $defaultHasta),
             ],
         ]);
     }
@@ -172,6 +133,98 @@ final class ProspectoVeterinariaController extends Controller
         }
 
         return $value;
+    }
+
+    /**
+     * Normaliza los filtros de la lista, ya sea que vengan de query string
+     * (GET del listado) o del body (POST de "Enviar ahora"), para que
+     * ambos flujos usen exactamente los mismos criterios.
+     *
+     * @return array{search: string, estado: string, tipo: string, departamento: string, provincia: string, distrito: string, capturado_desde: string, capturado_hasta: string}
+     */
+    private function resolveFiltros(Request $request, string $defaultDesde, string $defaultHasta): array
+    {
+        $capturadoDesde = $this->parseDateParam($request->input('capturado_desde')) ?? $defaultDesde;
+        $capturadoHasta = $this->parseDateParam($request->input('capturado_hasta')) ?? $defaultHasta;
+
+        if ($capturadoDesde > $capturadoHasta) {
+            [$capturadoDesde, $capturadoHasta] = [$capturadoHasta, $capturadoDesde];
+        }
+
+        return [
+            'search' => trim((string) $request->input('search', '')),
+            'estado' => (string) $request->input('estado', 'todos'),
+            'tipo' => (string) $request->input('tipo', 'todos'),
+            'departamento' => trim((string) $request->input('departamento', '')),
+            'provincia' => trim((string) $request->input('provincia', '')),
+            'distrito' => trim((string) $request->input('distrito', '')),
+            'capturado_desde' => $capturadoDesde,
+            'capturado_hasta' => $capturadoHasta,
+        ];
+    }
+
+    /**
+     * Aplica sobre `$query` los mismos filtros que ve el usuario en la
+     * tabla (búsqueda, estado, tipo, ubicación y rango de fechas).
+     *
+     * @param  array{search: string, estado: string, tipo: string, departamento: string, provincia: string, distrito: string, capturado_desde: string, capturado_hasta: string}  $filtros
+     */
+    private function applyFiltros(Builder $query, array $filtros): void
+    {
+        $query->whereBetween('capturado_at', [
+            Carbon::parse($filtros['capturado_desde'])->startOfDay(),
+            Carbon::parse($filtros['capturado_hasta'])->endOfDay(),
+        ]);
+
+        if ($filtros['search'] !== '') {
+            $search = $filtros['search'];
+            $query->where(function ($q) use ($search): void {
+                $q->where('nombre', 'ilike', "%{$search}%")
+                    ->orWhere('telefono', 'ilike', "%{$search}%")
+                    ->orWhere('correo', 'ilike', "%{$search}%")
+                    ->orWhere('departamento', 'ilike', "%{$search}%")
+                    ->orWhere('distrito', 'ilike', "%{$search}%");
+            });
+        }
+
+        if ($filtros['estado'] !== 'todos' && in_array($filtros['estado'], VeterinariaProspecto::ESTADOS, true)) {
+            $query->where('estado', $filtros['estado']);
+        }
+
+        if ($filtros['tipo'] === 'clinica' || $filtros['tipo'] === 'hospital') {
+            $query->where('tipo', $filtros['tipo']);
+        }
+
+        if ($filtros['departamento'] !== '') {
+            $query->where('departamento', $filtros['departamento']);
+        }
+
+        if ($filtros['provincia'] !== '') {
+            $query->where('provincia', $filtros['provincia']);
+        }
+
+        if ($filtros['distrito'] !== '') {
+            $query->where('distrito', $filtros['distrito']);
+        }
+    }
+
+    /**
+     * True si el usuario tiene algún filtro distinto del estado por
+     * defecto (para avisarle en el botón "Enviar ahora" que el envío
+     * masivo solo alcanza a lo que está viendo).
+     *
+     * @param  array{search: string, estado: string, tipo: string, departamento: string, provincia: string, distrito: string, capturado_desde: string, capturado_hasta: string}  $filtros
+     */
+    private function hayFiltrosActivos(array $filtros, string $defaultDesde, string $defaultHasta): bool
+    {
+        return $filtros['search'] !== ''
+            || $filtros['estado'] !== 'todos'
+            || $filtros['tipo'] !== 'todos'
+            || $filtros['departamento'] !== ''
+            || $filtros['provincia'] !== ''
+            || $filtros['distrito'] !== ''
+            || $filtros['capturado_desde'] !== $defaultDesde
+            || $filtros['capturado_hasta'] !== $defaultHasta;
     }
 
     /**
@@ -334,8 +387,11 @@ final class ProspectoVeterinariaController extends Controller
     }
 
     /**
-     * Dispara el envío masivo ("Enviar ahora") a los prospectos elegibles.
-     * Se procesa en cola (Job) porque el envío real dura varios minutos
+     * Dispara el envío masivo ("Enviar ahora") a los prospectos elegibles
+     * QUE CALZAN CON LOS FILTROS que el usuario tiene aplicados en ese
+     * momento (búsqueda, estado, tipo, ubicación, rango de fechas) — no a
+     * toda la base. Se resuelve la lista exacta de IDs aquí (rápido) y se
+     * procesa en cola (Job) porque el envío real dura varios minutos
      * (delay anti-bloqueo entre cada mensaje).
      */
     public function enviarMasivo(Request $request, PlatformWhatsAppMessenger $messenger): RedirectResponse
@@ -350,11 +406,34 @@ final class ProspectoVeterinariaController extends Controller
 
         $limit = $data['limit'] ?? VeterinariaProspectoOutreachSetting::current()->mensajes_por_corrida;
 
-        SendVeterinariaProspectoOutreachBatchJob::dispatch($limit);
+        $defaultDesde = Carbon::now()->startOfMonth()->toDateString();
+        $defaultHasta = Carbon::now()->toDateString();
+        $filtros = $this->resolveFiltros($request, $defaultDesde, $defaultHasta);
+
+        $query = VeterinariaProspecto::query();
+        $this->applyFiltros($query, $filtros);
+
+        $ids = $query
+            ->where('estado', 'nuevo')
+            ->whereNull('mensaje_enviado_at')
+            ->whereNotNull('telefono_normalizado')
+            ->where('telefono_normalizado', '!=', '')
+            ->orderBy('capturado_at')
+            ->limit($limit)
+            ->pluck('id')
+            ->all();
+
+        if ($ids === []) {
+            return back()->with('error', 'No hay prospectos elegibles con los filtros actuales (nuevos, con teléfono, sin contactar).');
+        }
+
+        SendVeterinariaProspectoOutreachBatchJob::dispatch($ids);
+
+        $cantidad = count($ids);
 
         return back()->with(
             'success',
-            "Envío en marcha: hasta {$limit} prospectos recibirán su mensaje de contacto en los próximos minutos (con pausas entre cada uno para evitar bloqueos de WhatsApp)."
+            "Envío en marcha: {$cantidad} prospecto(s) (según tus filtros actuales) recibirán su mensaje de contacto en los próximos minutos, con pausas entre cada uno para evitar bloqueos de WhatsApp."
         );
     }
 

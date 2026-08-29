@@ -17,7 +17,7 @@ import {
     Stethoscope,
     UserPlus,
 } from 'lucide-react';
-import { useMemo, useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import {
     DataPagination,
     DataTable,
@@ -402,16 +402,38 @@ export default function ProspectosVeterinariasIndex({
     const [outreachConfigOpen, setOutreachConfigOpen] = useState(false);
     const [sendingMasivo, setSendingMasivo] = useState(false);
     const [sendingMensajeId, setSendingMensajeId] = useState<string | null>(null);
+    const [batchPolling, setBatchPolling] = useState(false);
+    const pollTicksRef = useRef(0);
 
     const { search, setSearch, isLoading, sort, setSort, setPerPage, applyFilter } =
         useDataTablePage<ProspectosFilterExtras>({
             routeUrl: '/plataforma/prospectos-veterinarias',
             initialFilters: filters,
-            only: ['prospectos', 'filters', 'stats', 'geo_filtro'],
+            only: ['prospectos', 'filters', 'stats', 'geo_filtro', 'outreach'],
             errorMessage: 'Error al cargar los prospectos',
             storageKey: 'vetsaas.plataforma.prospectos-veterinarias.prefs',
             defaults: { per_page: DEFAULT_PER_PAGE, sort: null, direction: null },
         });
+
+    // Mientras el envío masivo procesa en background (Job en cola con
+    // pausas entre cada mensaje), refrescamos periódicamente la tabla para
+    // que los estados ("Nuevo" → "Contactado") se vayan actualizando solos
+    // sin que el usuario tenga que recargar la página a mano.
+    useEffect(() => {
+        if (!batchPolling) return;
+
+        pollTicksRef.current = 0;
+        const interval = setInterval(() => {
+            pollTicksRef.current += 1;
+            router.reload({ only: ['prospectos', 'stats', 'outreach'] });
+
+            if (pollTicksRef.current >= 24) {
+                setBatchPolling(false);
+            }
+        }, 20000);
+
+        return () => clearInterval(interval);
+    }, [batchPolling]);
 
     const departamentoOptions = useMemo(
         () => Object.keys(geo_filtro.provincias).sort((a, b) => a.localeCompare(b)),
@@ -580,9 +602,23 @@ export default function ProspectosVeterinariasIndex({
         setSendingMasivo(true);
         router.post(
             '/plataforma/prospectos-veterinarias/enviar-masivo',
-            { limit: outreach.mensajes_por_corrida },
+            {
+                limit: outreach.mensajes_por_corrida,
+                // Mismos filtros que el usuario ve en la tabla: el envío
+                // masivo solo alcanza a los prospectos que calzan con
+                // ellos, no a toda la base.
+                search: filters.search || undefined,
+                estado: filters.estado,
+                tipo: filters.tipo,
+                departamento: filters.departamento ?? undefined,
+                provincia: filters.provincia ?? undefined,
+                distrito: filters.distrito ?? undefined,
+                capturado_desde: filters.capturado_desde,
+                capturado_hasta: filters.capturado_hasta,
+            },
             {
                 preserveScroll: true,
+                onSuccess: () => setBatchPolling(true),
                 onFinish: () => setSendingMasivo(false),
             },
         );
@@ -926,6 +962,11 @@ export default function ProspectosVeterinariasIndex({
                                                         <Loader2 className="size-3.5 animate-spin" />
                                                         Encolando…
                                                     </>
+                                                ) : batchPolling ? (
+                                                    <>
+                                                        <Loader2 className="size-3.5 animate-spin" />
+                                                        Enviando…
+                                                    </>
                                                 ) : (
                                                     <>
                                                         <Send className="size-3.5" />
@@ -939,8 +980,10 @@ export default function ProspectosVeterinariasIndex({
                                         {!outreach.whatsapp_listo
                                             ? 'WhatsApp de plataforma no está conectado'
                                             : outreach.elegibles === 0
-                                              ? 'No hay prospectos nuevos con teléfono por contactar'
-                                              : `Manda el mensaje de presentación (IA) a hasta ${outreach.mensajes_por_corrida} prospectos, en background`}
+                                              ? 'No hay prospectos que calcen con tus filtros por contactar'
+                                              : outreach.filtros_aplicados
+                                                ? `Manda el mensaje (IA) solo a los ${outreach.elegibles} prospecto(s) que calzan con tus filtros actuales (máx. ${outreach.mensajes_por_corrida})`
+                                                : `Manda el mensaje de presentación (IA) a hasta ${outreach.mensajes_por_corrida} prospectos, en background`}
                                     </TooltipContent>
                                 </Tooltip>
                             )}
