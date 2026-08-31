@@ -15,6 +15,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -119,6 +121,9 @@ final class ProspectoVeterinariaController extends Controller
                 'automatico_activo' => $outreachSetting->automatico_activo,
                 'mensajes_por_corrida' => $outreachSetting->mensajes_por_corrida,
                 'hora_envio' => $outreachSetting->hora_envio,
+                'enviar_con_imagen' => $outreachSetting->enviar_con_imagen !== false,
+                'imagen_url' => $outreachSetting->imagenPublicaUrl(),
+                'imagen_personalizada' => $outreachSetting->imagen_path !== null && $outreachSetting->imagen_path !== '',
                 'ultima_corrida_at' => optional($outreachSetting->ultima_corrida_at)->toIso8601String(),
                 'elegibles' => $elegiblesOutreach,
                 'filtros_aplicados' => $this->hayFiltrosActivos($filtros, $defaultDesde, $defaultHasta),
@@ -452,15 +457,46 @@ final class ProspectoVeterinariaController extends Controller
                 'max:'.VeterinariaProspectoOutreachSetting::MAX_MENSAJES_POR_CORRIDA,
             ],
             'hora_envio' => ['required', 'regex:/^([01]\d|2[0-3]):[0-5]\d$/'],
+            'enviar_con_imagen' => ['required', 'boolean'],
+            'imagen' => ['nullable', 'image', 'max:4096'],
+            'quitar_imagen' => ['sometimes', 'boolean'],
         ]);
 
         $setting = VeterinariaProspectoOutreachSetting::current();
-        $setting->update([
+        $payload = [
             'automatico_activo' => $data['automatico_activo'],
             'mensajes_por_corrida' => $data['mensajes_por_corrida'],
             'hora_envio' => $data['hora_envio'],
+            'enviar_con_imagen' => $data['enviar_con_imagen'],
             'actualizado_por_id' => $request->user()?->id,
-        ]);
+        ];
+
+        $disk = Storage::disk('public');
+        $dir = 'plataforma/prospectos-outreach';
+
+        if ($request->boolean('quitar_imagen') && $setting->imagen_path) {
+            if ($disk->exists($setting->imagen_path)) {
+                $disk->delete($setting->imagen_path);
+            }
+            $payload['imagen_path'] = null;
+        }
+
+        if ($request->hasFile('imagen')) {
+            $file = $request->file('imagen');
+            if ($file !== null) {
+                $extension = strtolower($file->getClientOriginalExtension() ?: $file->guessExtension() ?: 'jpg');
+                $filename = Str::uuid()->toString().'.'.$extension;
+
+                if ($setting->imagen_path && $disk->exists($setting->imagen_path)) {
+                    $disk->delete($setting->imagen_path);
+                }
+
+                $disk->putFileAs($dir, $file, $filename, 'public');
+                $payload['imagen_path'] = $dir.'/'.$filename;
+            }
+        }
+
+        $setting->update($payload);
 
         return back()->with('success', 'Configuración de envío guardada.');
     }

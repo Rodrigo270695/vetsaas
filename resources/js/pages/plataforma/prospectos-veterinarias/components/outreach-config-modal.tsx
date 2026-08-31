@@ -1,5 +1,13 @@
 import { router } from '@inertiajs/react';
-import { Bot, Clock, Info, Loader2, MessageSquareText, ShieldCheck } from 'lucide-react';
+import {
+    Bot,
+    Clock,
+    ImagePlus,
+    Info,
+    Loader2,
+    MessageSquareText,
+    ShieldCheck,
+} from 'lucide-react';
 import { useEffect, useState, type FormEvent } from 'react';
 import { FormField, FormModal, FormSection } from '@/components/forms';
 import { Button } from '@/components/ui/button';
@@ -11,6 +19,9 @@ export type OutreachSettings = {
     automatico_activo: boolean;
     mensajes_por_corrida: number;
     hora_envio: string;
+    enviar_con_imagen: boolean;
+    imagen_url: string;
+    imagen_personalizada: boolean;
     ultima_corrida_at: string | null;
     /** Cantidad de elegibles que calzan con los filtros ACTUALES de la tabla. */
     elegibles: number;
@@ -49,15 +60,39 @@ export function OutreachConfigModal({
     const [activo, setActivo] = useState(settings.automatico_activo);
     const [cantidad, setCantidad] = useState(settings.mensajes_por_corrida);
     const [hora, setHora] = useState(settings.hora_envio);
+    const [conImagen, setConImagen] = useState(settings.enviar_con_imagen);
+    const [imagenFile, setImagenFile] = useState<File | null>(null);
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+    const [quitarImagen, setQuitarImagen] = useState(false);
     const [saving, setSaving] = useState(false);
 
     useEffect(() => {
-        if (open) {
-            setActivo(settings.automatico_activo);
-            setCantidad(settings.mensajes_por_corrida);
-            setHora(settings.hora_envio);
+        if (!open) {
+            return;
         }
+
+        setActivo(settings.automatico_activo);
+        setCantidad(settings.mensajes_por_corrida);
+        setHora(settings.hora_envio);
+        setConImagen(settings.enviar_con_imagen);
+        setImagenFile(null);
+        setQuitarImagen(false);
+        setPreviewUrl(null);
     }, [open, settings]);
+
+    useEffect(() => {
+        if (!imagenFile) {
+            return;
+        }
+
+        const url = URL.createObjectURL(imagenFile);
+        setPreviewUrl(url);
+
+        return () => URL.revokeObjectURL(url);
+    }, [imagenFile]);
+
+    const imagenVisible = previewUrl
+        ?? (quitarImagen ? '/images/vetsaas-hero-pets.png' : settings.imagen_url);
 
     const handleSubmit = (e?: FormEvent) => {
         e?.preventDefault();
@@ -68,8 +103,12 @@ export function OutreachConfigModal({
                 automatico_activo: activo,
                 mensajes_por_corrida: cantidad,
                 hora_envio: hora,
+                enviar_con_imagen: conImagen,
+                imagen: imagenFile ?? undefined,
+                quitar_imagen: quitarImagen,
             },
             {
+                forceFormData: true,
                 preserveScroll: true,
                 onSuccess: () => onOpenChange(false),
                 onFinish: () => setSaving(false),
@@ -172,6 +211,74 @@ export function OutreachConfigModal({
                         onChange={(e) => setHora(e.target.value)}
                     />
                 </FormField>
+            </FormSection>
+
+            <FormSection title="Imagen del primer mensaje" icon={ImagePlus} className="mt-4">
+                <label
+                    htmlFor="pv-outreach-con-imagen"
+                    className="flex cursor-pointer items-start gap-3 rounded-lg border border-border/60 bg-muted/20 p-3"
+                >
+                    <Checkbox
+                        id="pv-outreach-con-imagen"
+                        checked={conImagen}
+                        onCheckedChange={(v) => setConImagen(v === true)}
+                        className="mt-0.5"
+                    />
+                    <span className="flex flex-col gap-0.5">
+                        <span className="text-sm font-medium text-foreground">
+                            Enviar con foto (recomendado)
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                            El texto de la IA va como pie de la imagen, en
+                            una sola burbuja de WhatsApp. Si la foto falla,
+                            se manda solo el texto.
+                        </span>
+                    </span>
+                </label>
+
+                {conImagen && (
+                    <div className="flex flex-col gap-3 sm:flex-row">
+                        <div className="overflow-hidden rounded-lg border border-border/60 bg-muted/20 sm:w-44">
+                            <img
+                                src={imagenVisible}
+                                alt="Imagen que acompaña el primer mensaje"
+                                className="aspect-4/3 h-full w-full object-cover"
+                            />
+                        </div>
+                        <div className="flex min-w-0 flex-1 flex-col gap-2">
+                            <FormField
+                                id="pv-outreach-imagen"
+                                label="Cambiar imagen"
+                                hint="JPG o PNG, máximo 4 MB. Si no subes nada, se usa la foto de VetSaaS (perro y gato en consulta)."
+                            >
+                                <Input
+                                    id="pv-outreach-imagen"
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/webp"
+                                    onChange={(e) => {
+                                        const file = e.target.files?.[0] ?? null;
+                                        setImagenFile(file);
+                                        setQuitarImagen(false);
+                                    }}
+                                />
+                            </FormField>
+                            {settings.imagen_personalizada && !quitarImagen && (
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="w-fit px-0 text-xs text-muted-foreground"
+                                    onClick={() => {
+                                        setImagenFile(null);
+                                        setQuitarImagen(true);
+                                    }}
+                                >
+                                    Volver a la imagen por defecto
+                                </Button>
+                            )}
+                        </div>
+                    </div>
+                )}
             </FormSection>
 
             <div className="mt-4 flex items-start gap-2 rounded-lg border border-primary/20 bg-primary/5 p-3">

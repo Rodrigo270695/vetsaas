@@ -7,6 +7,7 @@ namespace App\Services\Sales;
 use App\Models\Plan;
 use App\Models\SalesBotKnowledge;
 use App\Models\SalesConversation;
+use App\Models\VeterinariaProspectoOutreachSetting;
 use App\Services\Google\GoogleCalendarMeetService;
 use App\Services\OpenWa\PlatformWhatsAppMessenger;
 use App\Services\Platform\PlatformPushNotificationService;
@@ -1937,7 +1938,8 @@ PROMPT;
             ."Tono cercano, humano, natural — como un mensaje real de WhatsApp, NO como publicidad ni plantilla de spam. "
             .'No uses signos de admiración en exceso, ni emojis salvo máximo uno. Máximo 3 líneas. '
             .'Termina con UNA pregunta simple (ej. si les interesaría ver cómo funciona). '
-            .'No digas que eres una IA ni que esto es un mensaje automático.';
+            .'No digas que eres una IA ni que esto es un mensaje automático. '
+            .'El mensaje irá como pie de una foto; no menciones la imagen.';
 
         $systemPrompt = $this->buildSystemPrompt(self::PRODUCT_VETSAAS);
 
@@ -1968,10 +1970,34 @@ PROMPT;
             throw new RuntimeException('El messenger OpenWA no está listo.');
         }
 
-        $this->messenger->sendText($conversation->wa_chat_id, $outreachMsg);
+        $setting = VeterinariaProspectoOutreachSetting::current();
+        $conImagen = $setting->enviar_con_imagen !== false;
+        $sentAsImage = false;
+
+        if ($conImagen) {
+            try {
+                $this->messenger->sendImage(
+                    $conversation->wa_chat_id,
+                    $setting->imagenPublicaUrl(),
+                    $outreachMsg,
+                );
+                $sentAsImage = true;
+            } catch (Throwable $e) {
+                Log::warning('SalesBot cold outreach: imagen no enviada, se envía solo texto', [
+                    'phone' => $conversation->phone,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        if (! $sentAsImage) {
+            $this->messenger->sendText($conversation->wa_chat_id, $outreachMsg);
+        }
+
         $this->rememberOutgoingBotMessage((string) $conversation->phone, $outreachMsg);
 
-        $conversation->pushMessage('assistant', '[outreach inicial] '.$outreachMsg);
+        $prefix = $sentAsImage ? '[outreach inicial + imagen] ' : '[outreach inicial] ';
+        $conversation->pushMessage('assistant', $prefix.$outreachMsg);
         $conversation->bot_active = true;
         $conversation->save();
 

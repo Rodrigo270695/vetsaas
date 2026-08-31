@@ -61,6 +61,18 @@ final class PlatformWhatsAppMessenger
         return $this->client->sendTextWithDeliveryFallback($sessionId, $chatId, $text);
     }
 
+    /**
+     * Imagen por URL pública, con pie de foto opcional (caption de WhatsApp).
+     *
+     * @return array<string, mixed>
+     */
+    public function sendImage(string $chatId, string $url, ?string $caption = null): array
+    {
+        $sessionId = $this->resolveReadySessionId();
+
+        return $this->client->sendImage($sessionId, $chatId, $url, $caption);
+    }
+
     private function resolveReadySessionId(): string
     {
         $session = $this->sync->ensure();

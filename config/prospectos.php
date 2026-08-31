@@ -25,6 +25,12 @@ return [
 
     'timeout_seg' => 15,
 
+    /**
+     * Imagen por defecto del primer contacto (ruta relativa a `public/`).
+     * OpenWA la descarga por URL pública (APP_URL + esta ruta).
+     */
+    'outreach_imagen_default' => 'images/vetsaas-hero-pets.png',
+
     'ubicaciones' => [
         // ── Lima Metropolitana (distritos) ──
         ['slug' => 'lima/barranco', 'departamento' => 'Lima', 'provincia' => 'Lima', 'distrito' => 'Barranco'],
