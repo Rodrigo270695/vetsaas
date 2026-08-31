@@ -56,6 +56,10 @@ final class VeterinariaProspectoOutreachService
             throw new RuntimeException('OpenWA (WhatsApp de plataforma) no está conectado.');
         }
 
+        if ($prospecto->yaFueContactado()) {
+            throw new RuntimeException('Este prospecto ya fue contactado. No se reenvía el mensaje inicial.');
+        }
+
         if (! VeterinariaProspecto::esCelularPeruano($prospecto->telefono_normalizado)) {
             throw new RuntimeException('Solo se envía a celulares (+51 y 9 dígitos). Este número parece un teléfono fijo.');
         }
@@ -180,6 +184,15 @@ final class VeterinariaProspectoOutreachService
             $index++;
 
             try {
+                if (! $prospecto->esElegibleParaOutreach()) {
+                    Log::info('ProspectosOutreach: omitido (ya contactado o no es celular)', [
+                        'origen' => $origen,
+                        'prospecto_id' => $prospecto->id,
+                    ]);
+
+                    continue;
+                }
+
                 $this->enviarIndividual($prospecto, usuarioId: null);
                 $enviados++;
 

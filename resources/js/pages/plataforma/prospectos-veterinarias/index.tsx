@@ -777,7 +777,8 @@ export default function ProspectosVeterinariasIndex({
                 className: 'w-24',
                 cell: (p) => {
                     const wa = waLink(p.telefono_normalizado);
-                    const yaEnviado = Boolean(p.mensaje_enviado_at);
+                    const yaEnviado =
+                        Boolean(p.mensaje_enviado_at) || p.estado !== 'nuevo';
                     const sinTelefono = !p.telefono_normalizado;
                     const noEsCelular =
                         !sinTelefono &&
@@ -820,7 +821,7 @@ export default function ProspectosVeterinariasIndex({
                                     </TooltipTrigger>
                                     <TooltipContent>
                                         {yaEnviado
-                                            ? 'Ya se le envió un mensaje de contacto'
+                                            ? 'Ya fue contactado: no se vuelve a enviar el mensaje inicial'
                                             : sinTelefono
                                               ? 'Sin teléfono para contactar'
                                               : noEsCelular

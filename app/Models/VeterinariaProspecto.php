@@ -134,13 +134,29 @@ class VeterinariaProspecto extends Model
     }
 
     /**
+     * Ya recibió el primer mensaje, o el estado ya no es "nuevo"
+     * (contactado / conversando / cliente / etc.). Nunca se reenvía.
+     */
+    public function yaFueContactado(): bool
+    {
+        if ($this->mensaje_enviado_at !== null) {
+            return true;
+        }
+
+        if ($this->sales_conversation_id !== null && $this->sales_conversation_id !== '') {
+            return true;
+        }
+
+        return $this->estado !== 'nuevo';
+    }
+
+    /**
      * Elegible para recibir el primer mensaje de contacto (IA + WhatsApp):
      * nunca se le ha escrito, tiene celular (no fijo) y sigue como "nuevo".
      */
     public function esElegibleParaOutreach(): bool
     {
-        return $this->mensaje_enviado_at === null
-            && $this->estado === 'nuevo'
+        return ! $this->yaFueContactado()
             && self::esCelularPeruano($this->telefono_normalizado);
     }
 
@@ -172,6 +188,7 @@ class VeterinariaProspecto extends Model
         return $query
             ->where('estado', 'nuevo')
             ->whereNull('mensaje_enviado_at')
+            ->whereNull('sales_conversation_id')
             ->soloCelulares();
     }
 
