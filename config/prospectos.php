@@ -28,8 +28,12 @@ return [
     /**
      * Imagen por defecto del primer contacto (ruta relativa a `public/`).
      * OpenWA la descarga por URL pública (APP_URL + esta ruta).
+     * Si OpenWA está en otro servidor, `outreach_imagen_url` debe ser una
+     * URL http(s) alcanzable desde ese servidor (no localhost).
      */
     'outreach_imagen_default' => 'images/vetsaas-hero-pets.png',
+
+    'outreach_imagen_url' => env('PROSPECTOS_OUTREACH_IMAGEN_URL'),
 
     'ubicaciones' => [
         // ── Lima Metropolitana (distritos) ──

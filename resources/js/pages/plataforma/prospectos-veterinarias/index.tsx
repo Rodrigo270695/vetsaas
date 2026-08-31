@@ -177,6 +177,13 @@ function waLink(telefonoNormalizado: string | null): string | null {
     return `https://wa.me/${telefonoNormalizado}`;
 }
 
+/** Celular Perú: +51 y 9 dígitos (el móvil empieza en 9). */
+function esCelularPeruano(telefonoNormalizado: string | null): boolean {
+    if (!telefonoNormalizado) return false;
+    const d = telefonoNormalizado.replace(/\D/g, '');
+    return /^519\d{8}$/.test(d) || /^9\d{8}$/.test(d);
+}
+
 function ubicacionLabel(p: Prospecto): string {
     return [p.distrito, p.provincia ?? p.departamento]
         .filter((v, i, arr) => Boolean(v) && arr.indexOf(v) === i)
@@ -675,6 +682,11 @@ export default function ProspectosVeterinariasIndex({
                                 Sin teléfono
                             </span>
                         )}
+                        {p.telefono_normalizado && !esCelularPeruano(p.telefono_normalizado) && (
+                            <span className="text-[11px] text-muted-foreground">
+                                Fijo · no se envía por WhatsApp
+                            </span>
+                        )}
                         {p.correo ? (
                             <a
                                 href={`mailto:${p.correo}`}
@@ -767,6 +779,9 @@ export default function ProspectosVeterinariasIndex({
                     const wa = waLink(p.telefono_normalizado);
                     const yaEnviado = Boolean(p.mensaje_enviado_at);
                     const sinTelefono = !p.telefono_normalizado;
+                    const noEsCelular =
+                        !sinTelefono &&
+                        !esCelularPeruano(p.telefono_normalizado);
                     const enviando = sendingMensajeId === p.id;
 
                     return (
@@ -787,6 +802,7 @@ export default function ProspectosVeterinariasIndex({
                                                 disabled={
                                                     yaEnviado ||
                                                     sinTelefono ||
+                                                    noEsCelular ||
                                                     enviando ||
                                                     !outreach.whatsapp_listo
                                                 }
@@ -807,9 +823,11 @@ export default function ProspectosVeterinariasIndex({
                                             ? 'Ya se le envió un mensaje de contacto'
                                             : sinTelefono
                                               ? 'Sin teléfono para contactar'
-                                              : !outreach.whatsapp_listo
-                                                ? 'WhatsApp de plataforma no está conectado'
-                                                : 'Enviar mensaje de presentación con IA'}
+                                              : noEsCelular
+                                                ? 'Solo se envía a celulares (+51 y 9 dígitos)'
+                                                : !outreach.whatsapp_listo
+                                                  ? 'WhatsApp de plataforma no está conectado'
+                                                  : 'Enviar mensaje de presentación con IA + foto'}
                                     </TooltipContent>
                                 </Tooltip>
                             )}
@@ -980,10 +998,10 @@ export default function ProspectosVeterinariasIndex({
                                         {!outreach.whatsapp_listo
                                             ? 'WhatsApp de plataforma no está conectado'
                                             : outreach.elegibles === 0
-                                              ? 'No hay prospectos que calcen con tus filtros por contactar'
+                                              ? 'No hay celulares nuevos que calcen con tus filtros'
                                               : outreach.filtros_aplicados
-                                                ? `Manda el mensaje (IA) solo a los ${outreach.elegibles} prospecto(s) que calzan con tus filtros actuales (máx. ${outreach.mensajes_por_corrida})`
-                                                : `Manda el mensaje de presentación (IA) a hasta ${outreach.mensajes_por_corrida} prospectos, en background`}
+                                                ? `Foto + IA solo a ${outreach.elegibles} celular(es) de tus filtros (máx. ${outreach.mensajes_por_corrida})`
+                                                : `Foto + IA a hasta ${outreach.mensajes_por_corrida} celulares (+51 y 9 dígitos)`}
                                     </TooltipContent>
                                 </Tooltip>
                             )}

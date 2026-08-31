@@ -1972,32 +1972,22 @@ PROMPT;
 
         $setting = VeterinariaProspectoOutreachSetting::current();
         $conImagen = $setting->enviar_con_imagen !== false;
-        $sentAsImage = false;
 
         if ($conImagen) {
-            try {
-                $this->messenger->sendImage(
-                    $conversation->wa_chat_id,
-                    $setting->imagenPublicaUrl(),
-                    $outreachMsg,
-                );
-                $sentAsImage = true;
-            } catch (Throwable $e) {
-                Log::warning('SalesBot cold outreach: imagen no enviada, se envía solo texto', [
-                    'phone' => $conversation->phone,
-                    'error' => $e->getMessage(),
-                ]);
-            }
-        }
-
-        if (! $sentAsImage) {
+            $imageUrl = $setting->imagenPublicaUrl();
+            $this->messenger->sendImage(
+                $conversation->wa_chat_id,
+                $imageUrl,
+                $outreachMsg,
+            );
+            $this->rememberOutgoingBotMessage((string) $conversation->phone, $outreachMsg);
+            $conversation->pushMessage('assistant', '[outreach inicial + imagen] '.$outreachMsg);
+        } else {
             $this->messenger->sendText($conversation->wa_chat_id, $outreachMsg);
+            $this->rememberOutgoingBotMessage((string) $conversation->phone, $outreachMsg);
+            $conversation->pushMessage('assistant', '[outreach inicial] '.$outreachMsg);
         }
 
-        $this->rememberOutgoingBotMessage((string) $conversation->phone, $outreachMsg);
-
-        $prefix = $sentAsImage ? '[outreach inicial + imagen] ' : '[outreach inicial] ';
-        $conversation->pushMessage('assistant', $prefix.$outreachMsg);
         $conversation->bot_active = true;
         $conversation->save();
 

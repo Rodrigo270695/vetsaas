@@ -58,10 +58,7 @@ final class ProspectoVeterinariaController extends Controller
         // para recibir el mensaje de contacto ("Enviar ahora" solo manda a
         // los que el usuario está viendo en este momento, no a todos).
         $elegiblesOutreach = (clone $query)
-            ->where('estado', 'nuevo')
-            ->whereNull('mensaje_enviado_at')
-            ->whereNotNull('telefono_normalizado')
-            ->where('telefono_normalizado', '!=', '')
+            ->elegiblesParaOutreach()
             ->count();
 
         $query->orderBy($sort, $direction);
@@ -419,17 +416,14 @@ final class ProspectoVeterinariaController extends Controller
         $this->applyFiltros($query, $filtros);
 
         $ids = $query
-            ->where('estado', 'nuevo')
-            ->whereNull('mensaje_enviado_at')
-            ->whereNotNull('telefono_normalizado')
-            ->where('telefono_normalizado', '!=', '')
+            ->elegiblesParaOutreach()
             ->orderBy('capturado_at')
             ->limit($limit)
             ->pluck('id')
             ->all();
 
         if ($ids === []) {
-            return back()->with('error', 'No hay prospectos elegibles con los filtros actuales (nuevos, con teléfono, sin contactar).');
+            return back()->with('error', 'No hay prospectos elegibles con los filtros actuales (nuevos, con celular +51 de 9 dígitos, sin contactar).');
         }
 
         SendVeterinariaProspectoOutreachBatchJob::dispatch($ids);

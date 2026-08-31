@@ -115,15 +115,64 @@ class VeterinariaProspecto extends Model
     }
 
     /**
+     * WhatsApp de celular Perú: +51 y 9 dígitos (el 9 inicial del móvil).
+     * Fijos tipo +51 1 2727819 o +51 74 221172 se excluyen del outreach.
+     */
+    public static function esCelularPeruano(?string $telefono): bool
+    {
+        if ($telefono === null || $telefono === '') {
+            return false;
+        }
+
+        $digits = preg_replace('/\D+/', '', $telefono) ?? '';
+
+        if (strlen($digits) === 9 && str_starts_with($digits, '9')) {
+            return true;
+        }
+
+        return strlen($digits) === 11 && str_starts_with($digits, '519');
+    }
+
+    /**
      * Elegible para recibir el primer mensaje de contacto (IA + WhatsApp):
-     * nunca se le ha escrito, tiene teléfono y sigue como "nuevo".
+     * nunca se le ha escrito, tiene celular (no fijo) y sigue como "nuevo".
      */
     public function esElegibleParaOutreach(): bool
     {
         return $this->mensaje_enviado_at === null
-            && $this->telefono_normalizado !== null
-            && $this->telefono_normalizado !== ''
-            && $this->estado === 'nuevo';
+            && $this->estado === 'nuevo'
+            && self::esCelularPeruano($this->telefono_normalizado);
+    }
+
+    /**
+     * @param  \Illuminate\Database\Eloquent\Builder<self>  $query
+     * @return \Illuminate\Database\Eloquent\Builder<self>
+     */
+    public function scopeSoloCelulares($query)
+    {
+        return $query->where(function ($q): void {
+            $q->where(function ($inner): void {
+                $inner->whereRaw('LENGTH(telefono_normalizado) = 11')
+                    ->where('telefono_normalizado', 'like', '519%');
+            })->orWhere(function ($inner): void {
+                $inner->whereRaw('LENGTH(telefono_normalizado) = 9')
+                    ->where('telefono_normalizado', 'like', '9%');
+            });
+        });
+    }
+
+    /**
+     * Prospectos nuevos, sin contactar, con celular WhatsApp.
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder<self>  $query
+     * @return \Illuminate\Database\Eloquent\Builder<self>
+     */
+    public function scopeElegiblesParaOutreach($query)
+    {
+        return $query
+            ->where('estado', 'nuevo')
+            ->whereNull('mensaje_enviado_at')
+            ->soloCelulares();
     }
 
     public static function normalizarTelefono(?string $telefono): ?string

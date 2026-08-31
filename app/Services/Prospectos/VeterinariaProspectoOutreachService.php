@@ -56,8 +56,8 @@ final class VeterinariaProspectoOutreachService
             throw new RuntimeException('OpenWA (WhatsApp de plataforma) no está conectado.');
         }
 
-        if ($prospecto->telefono_normalizado === null || $prospecto->telefono_normalizado === '') {
-            throw new RuntimeException('Este prospecto no tiene un teléfono válido.');
+        if (! VeterinariaProspecto::esCelularPeruano($prospecto->telefono_normalizado)) {
+            throw new RuntimeException('Solo se envía a celulares (+51 y 9 dígitos). Este número parece un teléfono fijo.');
         }
 
         $phone = $this->botService->normalizeLeadPhone($prospecto->telefono_normalizado);
@@ -122,10 +122,7 @@ final class VeterinariaProspectoOutreachService
         $limit = max(1, min($limit, self::MAX_LIMIT));
 
         $candidatos = VeterinariaProspecto::query()
-            ->where('estado', 'nuevo')
-            ->whereNull('mensaje_enviado_at')
-            ->whereNotNull('telefono_normalizado')
-            ->where('telefono_normalizado', '!=', '')
+            ->elegiblesParaOutreach()
             ->orderBy('capturado_at')
             ->limit($limit)
             ->get();
@@ -150,10 +147,7 @@ final class VeterinariaProspectoOutreachService
 
         $candidatos = VeterinariaProspecto::query()
             ->whereIn('id', $ids)
-            ->where('estado', 'nuevo')
-            ->whereNull('mensaje_enviado_at')
-            ->whereNotNull('telefono_normalizado')
-            ->where('telefono_normalizado', '!=', '')
+            ->elegiblesParaOutreach()
             ->orderBy('capturado_at')
             ->get();
 

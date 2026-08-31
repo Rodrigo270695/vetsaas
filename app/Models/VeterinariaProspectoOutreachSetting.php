@@ -68,6 +68,11 @@ class VeterinariaProspectoOutreachSetting extends Model
             return rtrim((string) config('app.url'), '/').'/'.ltrim($url, '/');
         }
 
+        $override = trim((string) config('prospectos.outreach_imagen_url', ''));
+        if ($override !== '' && str_starts_with($override, 'http')) {
+            return $override;
+        }
+
         $default = ltrim((string) config('prospectos.outreach_imagen_default', 'images/vetsaas-hero-pets.png'), '/');
 
         return rtrim((string) config('app.url'), '/').'/'.$default;
