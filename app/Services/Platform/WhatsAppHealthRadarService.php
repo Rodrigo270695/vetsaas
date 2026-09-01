@@ -8,9 +8,9 @@ use App\Models\PlatformWhatsAppSession;
 use App\Models\Tenant;
 use App\Models\TenantWhatsAppSession;
 use App\Services\OpenWa\OpenWaClient;
+use DateTimeInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Carbon;
 
 /**
  * Radar de sesiones WhatsApp por clínica. Solo lee DB local
@@ -115,7 +115,7 @@ final class WhatsAppHealthRadarService
     /**
      * @param  Builder<Tenant>  $query
      */
-    private function applyScope(Builder $query, string $scope, Carbon $staleBefore): void
+    private function applyScope(Builder $query, string $scope, DateTimeInterface $staleBefore): void
     {
         match ($scope) {
             'listos' => $query->where('tws.status', TenantWhatsAppSession::STATUS_READY)
@@ -160,7 +160,7 @@ SQL;
     /**
      * @return array<string, mixed>
      */
-    private function stats(Carbon $staleBefore): array
+    private function stats(DateTimeInterface $staleBefore): array
     {
         $living = Tenant::query()->whereIn('estado', self::LIVING_ESTADOS);
         $livingCount = (clone $living)->count();
@@ -221,7 +221,7 @@ SQL;
     /**
      * @return array<string, mixed>
      */
-    private function serialize(Tenant $tenant, Carbon $staleBefore): array
+    private function serialize(Tenant $tenant, DateTimeInterface $staleBefore): array
     {
         $session = $tenant->whatsappSession;
         $lastSynced = $session?->last_synced_at;
