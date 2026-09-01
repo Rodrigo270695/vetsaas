@@ -1095,6 +1095,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             Route::post('chat/direct', [TenantChatController::class, 'storeDirect'])->name('chat.direct');
             Route::post('chat/notify-team', [TenantChatController::class, 'notifyTeam'])->name('chat.notify-team');
             Route::post('chat/presence', [TenantChatController::class, 'presence'])->name('chat.presence');
+            Route::post('chat/{chatConversation}/members', [TenantChatController::class, 'addMembers'])
+                ->whereUuid('chatConversation')
+                ->name('chat.members');
             Route::post('chat/{chatConversation}/messages', [TenantChatController::class, 'storeMessage'])
                 ->whereUuid('chatConversation')
                 ->name('chat.messages.store');

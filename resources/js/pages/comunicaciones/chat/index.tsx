@@ -28,6 +28,7 @@ import {
     Trash2,
     Volume2,
     VolumeX,
+    UserPlus,
     Users,
     UserRound,
     X,
@@ -510,6 +511,10 @@ export default function ChatInternoIndex({
     const [listQuery, setListQuery] = useState('');
     const [dmOpen, setDmOpen] = useState(false);
     const [groupOpen, setGroupOpen] = useState(false);
+    const [membersOpen, setMembersOpen] = useState(false);
+    const [memberIds, setMemberIds] = useState<string[]>([]);
+    const [memberQuery, setMemberQuery] = useState('');
+    const [membersSaving, setMembersSaving] = useState(false);
     const [userQuery, setUserQuery] = useState('');
     const [body, setBody] = useState('');
     const [files, setFiles] = useState<File[]>([]);
@@ -1081,6 +1086,25 @@ export default function ChatInternoIndex({
         );
     }, [users, userQuery]);
 
+    const inviteableUsers = useMemo(() => {
+        if (!active) {
+            return [];
+        }
+        const inGroup = new Set(active.participants.map((p) => p.id));
+        const q = memberQuery.trim().toLowerCase();
+
+        return users.filter((u) => {
+            if (inGroup.has(u.id)) {
+                return false;
+            }
+            if (!q) {
+                return true;
+            }
+
+            return `${u.name} ${u.email}`.toLowerCase().includes(q);
+        });
+    }, [active, users, memberQuery]);
+
     const mentionCandidates = useMemo(() => {
         const base =
             active?.participants?.length
@@ -1573,6 +1597,41 @@ export default function ChatInternoIndex({
         });
     };
 
+    const openMembers = () => {
+        setMemberIds([]);
+        setMemberQuery('');
+        setMembersOpen(true);
+    };
+
+    const toggleInvite = (userId: string) => {
+        setMemberIds((prev) =>
+            prev.includes(userId)
+                ? prev.filter((id) => id !== userId)
+                : [...prev, userId],
+        );
+    };
+
+    const submitMembers = (e: FormEvent) => {
+        e.preventDefault();
+        if (!active || memberIds.length === 0 || membersSaving) {
+            return;
+        }
+        setMembersSaving(true);
+        router.post(
+            `/comunicaciones/chat/${active.id}/members`,
+            { user_ids: memberIds },
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setMembersOpen(false);
+                    setMemberIds([]);
+                    setMemberQuery('');
+                },
+                onFinish: () => setMembersSaving(false),
+            },
+        );
+    };
+
     const toggleMute = async () => {
         if (!active || muting) return;
         const next = !active.muted;
@@ -1848,6 +1907,12 @@ export default function ChatInternoIndex({
             : t('dm_badge'));
 
     const canWrite = active == null || active.can_write !== false;
+    const canEditGroupMembers =
+        Boolean(active)
+        && canWrite
+        && active?.type === 'group'
+        && !active.is_support
+        && active.kind !== 'support';
 
     const renderDeliveryStatus = (m: ChatMessage) => {
         if (!m.mine && m.user_id !== meId) return null;
@@ -2310,9 +2375,42 @@ export default function ChatInternoIndex({
                                                 ) : null}
                                             </p>
                                             <p className="truncate text-xs text-muted-foreground">
-                                                {threadSubtitle}
+                                                {canEditGroupMembers ? (
+                                                    <button
+                                                        type="button"
+                                                        className="cursor-pointer truncate text-left hover:underline"
+                                                        onClick={openMembers}
+                                                    >
+                                                        {threadSubtitle}
+                                                        {' · '}
+                                                        {t('add_members_short')}
+                                                    </button>
+                                                ) : (
+                                                    threadSubtitle
+                                                )}
                                             </p>
                                         </div>
+                                        {canEditGroupMembers ? (
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <Button
+                                                        type="button"
+                                                        size="icon"
+                                                        variant="ghost"
+                                                        className="size-8 shrink-0 text-emerald-700 dark:text-emerald-300"
+                                                        onClick={openMembers}
+                                                        aria-label={t(
+                                                            'add_members',
+                                                        )}
+                                                    >
+                                                        <UserPlus className="size-4" />
+                                                    </Button>
+                                                </TooltipTrigger>
+                                                <TooltipContent side="bottom">
+                                                    {t('add_members')}
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        ) : null}
                                         {canWrite ? (
                                         <Tooltip>
                                             <TooltipTrigger asChild>
@@ -3719,6 +3817,121 @@ export default function ChatInternoIndex({
                                 className="cursor-pointer bg-emerald-600 hover:bg-emerald-700"
                             >
                                 {t('group_submit')}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={membersOpen} onOpenChange={setMembersOpen}>
+                <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-md">
+                    <form onSubmit={submitMembers}>
+                        <DialogHeader className="border-b border-border/60 bg-linear-to-r from-emerald-50/90 to-card px-5 py-4 dark:from-emerald-950/40">
+                            <div className="flex items-center gap-3">
+                                <span className="flex size-10 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-sm">
+                                    <UserPlus className="size-4" aria-hidden />
+                                </span>
+                                <div className="min-w-0 text-left">
+                                    <DialogTitle className="text-base">
+                                        {t('add_members')}
+                                    </DialogTitle>
+                                    <DialogDescription className="text-xs">
+                                        {t('add_members_hint', {
+                                            name: active?.title ?? '',
+                                        })}
+                                    </DialogDescription>
+                                </div>
+                            </div>
+                        </DialogHeader>
+                        <div className="space-y-3 p-4">
+                            <ChatSearchInput
+                                value={memberQuery}
+                                onChange={(e) =>
+                                    setMemberQuery(e.target.value)
+                                }
+                                placeholder={t('direct_search')}
+                                className="h-10 bg-muted/30"
+                            />
+                            <div className="max-h-64 space-y-1 overflow-y-auto rounded-xl border border-border/50 bg-muted/15 p-1.5">
+                                {inviteableUsers.length === 0 ? (
+                                    <p className="py-8 text-center text-sm text-muted-foreground">
+                                        {t('add_members_empty')}
+                                    </p>
+                                ) : (
+                                    inviteableUsers.map((u) => {
+                                        const selected = memberIds.includes(
+                                            u.id,
+                                        );
+
+                                        return (
+                                            <button
+                                                key={u.id}
+                                                type="button"
+                                                onClick={() =>
+                                                    toggleInvite(u.id)
+                                                }
+                                                className={cn(
+                                                    'flex w-full cursor-pointer items-center gap-3 rounded-lg px-2.5 py-2 text-left text-sm transition-colors',
+                                                    selected
+                                                        ? 'bg-emerald-50 ring-1 ring-emerald-600/20 dark:bg-emerald-950/40'
+                                                        : 'hover:bg-background/90',
+                                                )}
+                                            >
+                                                <Avatar className="size-9 border border-border/40">
+                                                    <AvatarFallback
+                                                        className={cn(
+                                                            'text-[10px] font-semibold',
+                                                            selected
+                                                                ? 'bg-emerald-600 text-white'
+                                                                : 'bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-200',
+                                                        )}
+                                                    >
+                                                        {initials(u.name)}
+                                                    </AvatarFallback>
+                                                </Avatar>
+                                                <div className="min-w-0 flex-1">
+                                                    <p className="truncate font-medium">
+                                                        {u.name}
+                                                    </p>
+                                                    <p className="truncate text-xs text-muted-foreground">
+                                                        {u.email}
+                                                    </p>
+                                                </div>
+                                                <span
+                                                    className={cn(
+                                                        'flex size-5 items-center justify-center rounded-full border',
+                                                        selected
+                                                            ? 'border-emerald-600 bg-emerald-600 text-white'
+                                                            : 'border-muted-foreground/30',
+                                                    )}
+                                                >
+                                                    {selected ? (
+                                                        <Check className="size-3" />
+                                                    ) : null}
+                                                </span>
+                                            </button>
+                                        );
+                                    })
+                                )}
+                            </div>
+                        </div>
+                        <DialogFooter className="gap-2 border-t border-border/60 bg-muted/20 px-4 py-3 sm:gap-2">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setMembersOpen(false)}
+                                className="cursor-pointer"
+                            >
+                                {t('cancel')}
+                            </Button>
+                            <Button
+                                type="submit"
+                                disabled={
+                                    membersSaving || memberIds.length === 0
+                                }
+                                className="cursor-pointer bg-emerald-600 hover:bg-emerald-700"
+                            >
+                                {t('add_members_submit')}
                             </Button>
                         </DialogFooter>
                     </form>

@@ -144,6 +144,25 @@ class TenantChatController extends Controller
         return redirect()->route('comunicaciones.chat', ['c' => $conversation->id]);
     }
 
+    public function addMembers(Request $request, ChatConversation $chatConversation): RedirectResponse
+    {
+        $user = $request->user();
+        abort_unless($user !== null, 401);
+
+        $data = $request->validate([
+            'user_ids' => ['required', 'array', 'min:1'],
+            'user_ids.*' => ['uuid'],
+        ]);
+
+        $conversation = $this->chat->addMembers(
+            $chatConversation,
+            $user,
+            array_values($data['user_ids'] ?? []),
+        );
+
+        return redirect()->route('comunicaciones.chat', ['c' => $conversation->id]);
+    }
+
     public function notifyTeam(Request $request): RedirectResponse
     {
         $user = $request->user();

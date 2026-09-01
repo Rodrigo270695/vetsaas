@@ -252,6 +252,65 @@ final class TenantChatService
     }
 
     /**
+     * Agrega integrantes a un grupo de equipo (Caja u otros). No aplica a Soporte VetSaaS.
+     *
+     * @param  list<string>  $memberIds
+     */
+    public function addMembers(ChatConversation $conversation, User $actor, array $memberIds): ChatConversation
+    {
+        $this->assertParticipant($conversation, $actor);
+
+        if (! $conversation->isGroup()) {
+            throw ValidationException::withMessages([
+                'user_ids' => __('Solo se pueden agregar personas a un grupo.'),
+            ]);
+        }
+
+        if ($conversation->isSupport()) {
+            throw ValidationException::withMessages([
+                'user_ids' => __('Los integrantes de Soporte se sincronizan solos.'),
+            ]);
+        }
+
+        $existing = ChatParticipant::query()
+            ->where('conversation_id', $conversation->id)
+            ->pluck('user_id')
+            ->map(static fn ($id): string => (string) $id)
+            ->all();
+
+        $ids = collect($memberIds)
+            ->map(static fn ($id): string => (string) $id)
+            ->filter(static fn (string $id): bool => $id !== '')
+            ->unique()
+            ->reject(static fn (string $id): bool => in_array($id, $existing, true))
+            ->values();
+
+        if ($ids->isEmpty()) {
+            throw ValidationException::withMessages([
+                'user_ids' => __('Elegí al menos una persona que aún no esté en el grupo.'),
+            ]);
+        }
+
+        foreach ($ids as $id) {
+            $this->assertTenantUser($id);
+        }
+
+        $now = now();
+        foreach ($ids as $uid) {
+            ChatParticipant::query()->create([
+                'conversation_id' => $conversation->id,
+                'user_id' => $uid,
+                'joined_at' => $now,
+                'last_read_at' => null,
+            ]);
+        }
+
+        $conversation->touch();
+
+        return $conversation->fresh(['participants.user:id,name,email']) ?? $conversation;
+    }
+
+    /**
      * @param  UploadedFile|list<UploadedFile>|null  $attachment
      * @param  list<string>  $mentionedUserIds
      */
