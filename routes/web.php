@@ -1713,6 +1713,12 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:salesbot-knowledge.view|plataforma-prospectos.view|plataforma-suscripciones.view')
             ->get('cola-cierre', [PlataformaClosingQueueController::class, 'index'])
             ->name('cola-cierre.index');
+        Route::middleware('permission:salesbot-knowledge.update|plataforma-prospectos.update|plataforma-suscripciones.update')
+            ->post('cola-cierre/send', [PlataformaClosingQueueController::class, 'send'])
+            ->name('cola-cierre.send');
+        Route::middleware('permission:salesbot-knowledge.update|plataforma-prospectos.update|plataforma-suscripciones.update')
+            ->post('cola-cierre/send-bulk', [PlataformaClosingQueueController::class, 'sendBulk'])
+            ->name('cola-cierre.send-bulk');
 
         // ── Bot de ventas: conversaciones (panel de control) ──
         // Rodrigo pausa/reactiva el bot por lead desde el navegador (celular ok).

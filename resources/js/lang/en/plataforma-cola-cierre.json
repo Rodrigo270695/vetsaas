@@ -3,7 +3,7 @@
     "description": "Today: hot leads, trials expiring, pipeline prospects, and one WhatsApp to each paying clinic asking for a referral. Month goal: {{paying}} / {{goal}}.",
     "refresh": "Refresh",
     "search_placeholder": "Search name or phone…",
-    "note": "WhatsApp opens wa.me with the script ready. Copy the text or send it. Referrals use the Orvae link with that clinic’s code (or slug).",
+    "note": "The green button sends the script from Orvae’s WhatsApp (OpenWA); it does not open wa.me. Bulk sends wait ~1 minute between messages to reduce ban risk.",
     "stats": {
         "remaining": "Left to hit {{goal}}",
         "paying": "Paying now",
@@ -33,10 +33,23 @@
         "actions": "Actions"
     },
     "actions": {
-        "whatsapp": "WhatsApp",
+        "whatsapp": "Send WhatsApp",
+        "wa_offline": "Platform WhatsApp is disconnected",
         "open": "Open panel",
         "copy": "Copy script",
-        "copied": "Script copied"
+        "copied": "Script copied",
+        "sent": "WhatsApp sent",
+        "send_failed": "Could not send"
+    },
+    "bulk": {
+        "send": "Send WhatsApp",
+        "title": "Bulk send",
+        "body": "Up to {{count}} messages will be queued (max {{max_bulk}}). They go out one by one, {{min}}–{{max}} seconds apart, from the platform WhatsApp. If one fails, the batch stops.",
+        "confirm": "Queue sends",
+        "cancel": "Cancel",
+        "queued_title": "Batch queued",
+        "selected_singular": "row selected",
+        "selected_plural": "rows selected"
     },
     "empty": {
         "title": "Queue is empty",

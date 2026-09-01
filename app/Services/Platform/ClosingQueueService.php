@@ -98,6 +98,29 @@ final class ClosingQueueService
     }
 
     /**
+     * @param  list<string>  $ids
+     * @return Collection<int, array<string, mixed>>
+     */
+    public function rowsByIds(array $ids): Collection
+    {
+        $want = [];
+        foreach ($ids as $id) {
+            $id = trim((string) $id);
+            if ($id !== '') {
+                $want[$id] = true;
+            }
+        }
+
+        if ($want === []) {
+            return collect();
+        }
+
+        return $this->collectRows(now())
+            ->filter(static fn (array $row): bool => isset($want[(string) ($row['id'] ?? '')]))
+            ->values();
+    }
+
+    /**
      * @return Collection<int, array<string, mixed>>
      */
     private function collectRows(CarbonInterface $now): Collection

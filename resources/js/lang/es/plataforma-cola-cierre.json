@@ -3,7 +3,7 @@
     "description": "Hoy: leads calientes, trials por vencer, prospectos en pipeline y un WhatsApp a cada clínica de pago pidiendo referido. Meta del mes: {{paying}} / {{goal}}.",
     "refresh": "Actualizar",
     "search_placeholder": "Buscar nombre o teléfono…",
-    "note": "WhatsApp abre wa.me con el guion listo. El lápiz no aplica: copiá el texto o mandalo. Los referidos usan el link de Orvae con el código de esa clínica (o su slug).",
+    "note": "El botón verde manda el guion por el WhatsApp de Orvae (OpenWA), no abre wa.me. En lote respeta una pausa de ~1 minuto entre mensajes para no banear la sesión.",
     "stats": {
         "remaining": "Faltan para {{goal}}",
         "paying": "Pagando ahora",
@@ -33,10 +33,23 @@
         "actions": "Acciones"
     },
     "actions": {
-        "whatsapp": "WhatsApp",
+        "whatsapp": "Enviar WhatsApp",
+        "wa_offline": "WhatsApp de plataforma desconectado",
         "open": "Abrir panel",
         "copy": "Copiar guion",
-        "copied": "Guion copiado"
+        "copied": "Guion copiado",
+        "sent": "WhatsApp enviado",
+        "send_failed": "No se pudo enviar"
+    },
+    "bulk": {
+        "send": "Enviar WhatsApp",
+        "title": "Envío masivo",
+        "body": "Se van a encolar hasta {{count}} mensajes (máx. {{max_bulk}}). Salen uno por uno, con {{min}}–{{max}} segundos entre cada uno, por el WhatsApp de plataforma. Si uno falla, el lote se detiene.",
+        "confirm": "Encolar envíos",
+        "cancel": "Cancelar",
+        "queued_title": "Lote en cola",
+        "selected_singular": "fila seleccionada",
+        "selected_plural": "filas seleccionadas"
     },
     "empty": {
         "title": "Nada en la cola",

@@ -4,15 +4,18 @@ import {
     ExternalLink,
     Flame,
     Gift,
+    Loader2,
     MessageCircle,
     Radar,
     RefreshCw,
     Timer,
     UserRound,
 } from 'lucide-react';
-import { useMemo, type ReactNode } from 'react';
+import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+    BulkAction,
+    BulkActionBar,
     DataPagination,
     DataTable,
     DataToolbar,
@@ -23,8 +26,17 @@ import {
 import type { DataTableColumn } from '@/components/data-page';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { useAutoRefresh } from '@/hooks/use-auto-refresh';
 import { useDataTablePage } from '@/hooks/use-data-table-page';
+import { useRowSelection } from '@/hooks/use-row-selection';
 import AppLayout from '@/layouts/app-layout';
 import { toastManager } from '@/lib/toast';
 import { cn } from '@/lib/utils';
@@ -73,6 +85,10 @@ type Props = {
         prospectos: number;
         referidos: number;
     };
+    wa_ready?: boolean;
+    wa_bulk_max?: number;
+    wa_delay_min?: number;
+    wa_delay_max?: number;
 };
 
 const EMPTY_PAGINATED: Paginated<ClosingRow> = {
@@ -92,6 +108,26 @@ const EMPTY_PAGINATED: Paginated<ClosingRow> = {
 };
 
 const SCOPES: Scope[] = ['hoy', 'leads', 'trials', 'prospectos', 'referidos'];
+
+function csrfPostJson(
+    url: string,
+    body: Record<string, unknown>,
+): Promise<Response> {
+    const xsrf =
+        document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/)?.[1] ?? '';
+
+    return fetch(url, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-XSRF-TOKEN': decodeURIComponent(xsrf),
+        },
+        body: JSON.stringify(body),
+    });
+}
 
 function kindClass(kind: Kind): string {
     if (kind === 'trial') {
@@ -119,6 +155,10 @@ export default function PlataformaColaCierreIndex({
         prospectos: 0,
         referidos: 0,
     },
+    wa_ready = false,
+    wa_bulk_max = 15,
+    wa_delay_min = 45,
+    wa_delay_max = 75,
 }: Props) {
     const { t } = useTranslation('plataforma-cola-cierre');
 
@@ -138,11 +178,86 @@ export default function PlataformaColaCierreIndex({
         });
 
     const { secondsSince, isRefreshing, refresh } = useAutoRefresh({
-        only: ['items', 'filters', 'stats'],
+        only: ['items', 'filters', 'stats', 'wa_ready'],
         enabled: true,
         intervalMs: 60_000,
         busy: isLoading,
     });
+
+    const selection = useRowSelection<ClosingRow, string>({
+        rows: paginated.data,
+        rowKey: (row) => row.id,
+    });
+
+    const [sendingId, setSendingId] = useState<string | null>(null);
+    const sendingLock = useRef(false);
+    const [bulkOpen, setBulkOpen] = useState(false);
+    const [bulkBusy, setBulkBusy] = useState(false);
+
+    const sendOne = useCallback(async (row: ClosingRow) => {
+        if (!row.phone || sendingLock.current) {
+            return;
+        }
+        sendingLock.current = true;
+        setSendingId(row.id);
+        try {
+            const res = await csrfPostJson(`${ROUTE_URL}/send`, { id: row.id });
+            const data = (await res.json()) as {
+                ok?: boolean;
+                message?: string;
+            };
+            if (!res.ok || !data.ok) {
+                toastManager.error({
+                    title: t('actions.send_failed'),
+                    description: data.message ?? t('actions.send_failed'),
+                });
+
+                return;
+            }
+            toastManager.success({
+                title: t('actions.sent'),
+                description: data.message,
+            });
+        } catch {
+            toastManager.error({ title: t('actions.send_failed') });
+        } finally {
+            sendingLock.current = false;
+            setSendingId(null);
+        }
+    }, [t]);
+
+    const sendBulk = useCallback(async () => {
+        const ids = Array.from(selection.selectedIds).slice(0, wa_bulk_max);
+        if (ids.length === 0 || bulkBusy) {
+            return;
+        }
+        setBulkBusy(true);
+        try {
+            const res = await csrfPostJson(`${ROUTE_URL}/send-bulk`, { ids });
+            const data = (await res.json()) as {
+                ok?: boolean;
+                message?: string;
+            };
+            if (!res.ok || !data.ok) {
+                toastManager.error({
+                    title: t('actions.send_failed'),
+                    description: data.message ?? t('actions.send_failed'),
+                });
+
+                return;
+            }
+            toastManager.success({
+                title: t('bulk.queued_title'),
+                description: data.message,
+            });
+            setBulkOpen(false);
+            selection.clear();
+        } catch {
+            toastManager.error({ title: t('actions.send_failed') });
+        } finally {
+            setBulkBusy(false);
+        }
+    }, [bulkBusy, selection, t, wa_bulk_max]);
 
     const columns = useMemo<DataTableColumn<ClosingRow>[]>(
         () => [
@@ -206,26 +321,24 @@ export default function PlataformaColaCierreIndex({
                             className={cn(
                                 'size-8 border-[#25D366]/35 bg-[#25D366]/10 text-[#128C7E] hover:bg-[#25D366]/20 hover:text-[#075E54]',
                                 'dark:border-[#25D366]/40 dark:bg-[#25D366]/15 dark:text-[#4ADE80] dark:hover:bg-[#25D366]/25 dark:hover:text-[#86EFAC]',
-                                !row.wa_url && 'opacity-40',
+                                !row.phone && 'opacity-40',
                             )}
-                            disabled={!row.wa_url}
-                            asChild={Boolean(row.wa_url)}
-                            title={t('actions.whatsapp')}
+                            disabled={!row.phone || sendingId !== null}
+                            title={
+                                wa_ready
+                                    ? t('actions.whatsapp')
+                                    : t('actions.wa_offline')
+                            }
+                            onClick={() => void sendOne(row)}
                         >
-                            {row.wa_url ? (
-                                <a
-                                    href={row.wa_url}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                >
-                                    <MessageCircle className="size-4" />
-                                    <span className="sr-only">
-                                        {t('actions.whatsapp')}
-                                    </span>
-                                </a>
+                            {sendingId === row.id ? (
+                                <Loader2 className="size-4 animate-spin" />
                             ) : (
                                 <MessageCircle className="size-4" />
                             )}
+                            <span className="sr-only">
+                                {t('actions.whatsapp')}
+                            </span>
                         </Button>
                         <Button
                             type="button"
@@ -262,7 +375,7 @@ export default function PlataformaColaCierreIndex({
                 ),
             },
         ],
-        [t],
+        [sendOne, sendingId, t, wa_ready],
     );
 
     const isEmpty =
@@ -388,6 +501,7 @@ export default function PlataformaColaCierreIndex({
                         data={paginated.data}
                         rowKey={(row) => row.id}
                         isLoading={isLoading}
+                        selection={selection}
                         footer={
                             <DataPagination
                                 meta={paginated}
@@ -405,6 +519,65 @@ export default function PlataformaColaCierreIndex({
                     />
                 )}
             </div>
+
+            <BulkActionBar
+                count={selection.count}
+                labels={{
+                    singular: t('bulk.selected_singular'),
+                    plural: t('bulk.selected_plural'),
+                }}
+                onClear={selection.clear}
+            >
+                <BulkAction
+                    type="button"
+                    size="sm"
+                    className="cursor-pointer gap-1.5 bg-[#25D366] text-white hover:bg-[#1ebe57]"
+                    disabled={!wa_ready || bulkBusy}
+                    onClick={() => setBulkOpen(true)}
+                >
+                    <MessageCircle className="size-4" />
+                    {t('bulk.send')}
+                </BulkAction>
+            </BulkActionBar>
+
+            <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>{t('bulk.title')}</DialogTitle>
+                        <DialogDescription>
+                            {t('bulk.body', {
+                                count: Math.min(selection.count, wa_bulk_max),
+                                min: wa_delay_min,
+                                max: wa_delay_max,
+                                max_bulk: wa_bulk_max,
+                            })}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setBulkOpen(false)}
+                            disabled={bulkBusy}
+                        >
+                            {t('bulk.cancel')}
+                        </Button>
+                        <Button
+                            type="button"
+                            className="bg-[#25D366] text-white hover:bg-[#1ebe57]"
+                            disabled={bulkBusy || selection.count === 0}
+                            onClick={() => void sendBulk()}
+                        >
+                            {bulkBusy ? (
+                                <Loader2 className="size-4 animate-spin" />
+                            ) : (
+                                <MessageCircle className="size-4" />
+                            )}
+                            {t('bulk.confirm')}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </>
     );
 }
