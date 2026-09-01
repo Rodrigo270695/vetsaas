@@ -57,6 +57,7 @@ use App\Http\Controllers\PlataformaApiPeruController;
 use App\Http\Controllers\PlataformaChatUsageController;
 use App\Http\Controllers\PlataformaWhatsAppHealthController;
 use App\Http\Controllers\PlataformaSaaSFunnelController;
+use App\Http\Controllers\PlataformaTenantModulesController;
 use App\Http\Controllers\PlataformaImpersonationAuditController;
 use App\Http\Controllers\PlatformSupportChatController;
 use App\Http\Controllers\PlataformaOperacionesController;
@@ -1494,6 +1495,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:plataforma-tenants.view')
             ->get('tenants', [TenantController::class, 'index'])
             ->name('tenants.index');
+        Route::middleware('permission:plataforma-tenants.view')
+            ->get('modulos-clinicas', [PlataformaTenantModulesController::class, 'index'])
+            ->name('modulos-clinicas.index');
         Route::middleware('permission:plataforma-tenants.export')
             ->get('tenants/export', [TenantController::class, 'export'])
             ->name('tenants.export');

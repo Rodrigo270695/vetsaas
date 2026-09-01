@@ -1,0 +1,54 @@
+{
+    "title": "Módulos por clínica",
+    "description": "Qué tiene encendido cada clínica (nav) y capacidades de plan: Bot IA cobrado, WhatsApp, SUNAT y CPE. No entra a los schemas de las clínicas.",
+    "refresh": "Actualizar",
+    "search_placeholder": "Buscar clínica…",
+    "note": "Un módulo apagado es una clave en modulos_deshabilitados. Bot IA nav ≠ add-on cobrado. SUNAT es el flag public, no la config FEL dentro de la clínica.",
+    "edit": "Editar módulos",
+    "scope": {
+        "todos": "Todas",
+        "con_apagados": "Con algo apagado",
+        "sin_grooming": "Sin grooming",
+        "sin_hotel": "Sin hotel",
+        "sin_laboratorio": "Sin laboratorio",
+        "sin_bot_nav": "Sin Bot IA (menú)",
+        "sin_bot_addon": "Sin add-on Bot IA",
+        "sin_whatsapp": "Sin WhatsApp listo",
+        "sin_fel": "SUNAT no marcado",
+        "upsell_bot": "Bot en menú, sin cobro"
+    },
+    "stats": {
+        "living": "Clínicas vivas",
+        "apagados": "Con módulos off",
+        "whatsapp": "WhatsApp listo",
+        "bot_addon": "Add-on Bot IA",
+        "sunat": "SUNAT marcado"
+    },
+    "columns": {
+        "tenant": "Clínica",
+        "plan": "Plan",
+        "off": "Off",
+        "grooming": "Grooming",
+        "hotel": "Hotel",
+        "laboratorio": "Lab",
+        "hospitalizacion": "Hosp.",
+        "cirugias": "Cirugías",
+        "documentos": "CPE",
+        "bot_ia": "Bot menú",
+        "comunicaciones_cola": "Cola WA",
+        "bot_addon": "Bot cobrado",
+        "whatsapp": "WA listo",
+        "sunat": "SUNAT",
+        "boletas": "Boletas",
+        "facturas": "Facturas",
+        "actions": ""
+    },
+    "on": "Sí",
+    "off": "No",
+    "empty": {
+        "title": "Sin clínicas",
+        "description": "No hay clínicas vivas (trial, activa, grace o suspendida).",
+        "filtered_title": "Sin coincidencias",
+        "filtered_description": "Cambiá la búsqueda o el filtro."
+    }
+}

@@ -29,6 +29,7 @@ import plataformaProspectosVeterinariasEn from '@/lang/en/plataforma-prospectos-
 import plataformaUsoChatEn from '@/lang/en/plataforma-uso-chat.json';
 import plataformaWhatsappSaludEn from '@/lang/en/plataforma-whatsapp-salud.json';
 import plataformaEmbudoEn from '@/lang/en/plataforma-embudo.json';
+import plataformaModulosClinicasEn from '@/lang/en/plataforma-modulos-clinicas.json';
 import plataformaChatSoporteEn from '@/lang/en/plataforma-chat-soporte.json';
 import plataformaApiperuEn from '@/lang/en/plataforma-apiperu.json';
 import plataformaUsoPlanesEn from '@/lang/en/plataforma-uso-planes.json';
@@ -98,6 +99,7 @@ import plataformaProspectosVeterinariasEs from '@/lang/es/plataforma-prospectos-
 import plataformaUsoChatEs from '@/lang/es/plataforma-uso-chat.json';
 import plataformaWhatsappSaludEs from '@/lang/es/plataforma-whatsapp-salud.json';
 import plataformaEmbudoEs from '@/lang/es/plataforma-embudo.json';
+import plataformaModulosClinicasEs from '@/lang/es/plataforma-modulos-clinicas.json';
 import plataformaChatSoporteEs from '@/lang/es/plataforma-chat-soporte.json';
 import plataformaApiperuEs from '@/lang/es/plataforma-apiperu.json';
 import plataformaUsoPlanesEs from '@/lang/es/plataforma-uso-planes.json';
@@ -195,6 +197,7 @@ const resources = {
         'plataforma-uso-chat': plataformaUsoChatEs,
         'plataforma-whatsapp-salud': plataformaWhatsappSaludEs,
         'plataforma-embudo': plataformaEmbudoEs,
+        'plataforma-modulos-clinicas': plataformaModulosClinicasEs,
         'plataforma-chat-soporte': plataformaChatSoporteEs,
         'plataforma-apiperu': plataformaApiperuEs,
         'plataforma-uso-planes': plataformaUsoPlanesEs,
@@ -266,6 +269,7 @@ const resources = {
         'plataforma-uso-chat': plataformaUsoChatEn,
         'plataforma-whatsapp-salud': plataformaWhatsappSaludEn,
         'plataforma-embudo': plataformaEmbudoEn,
+        'plataforma-modulos-clinicas': plataformaModulosClinicasEn,
         'plataforma-chat-soporte': plataformaChatSoporteEn,
         'plataforma-apiperu': plataformaApiperuEn,
         'plataforma-uso-planes': plataformaUsoPlanesEn,
@@ -347,6 +351,7 @@ void i18n
             'plataforma-uso-chat',
             'plataforma-whatsapp-salud',
             'plataforma-embudo',
+            'plataforma-modulos-clinicas',
             'plataforma-chat-soporte',
             'plataforma-apiperu',
             'plataforma-uso-planes',

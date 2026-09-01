@@ -580,6 +580,12 @@ function useNavConfig(): { singles: NavItem[]; groups: NavGroup[] } {
                             permission: 'plataforma-tenants.view',
                         },
                         {
+                            title: t('items.modulos_clinicas'),
+                            href: '/plataforma/modulos-clinicas',
+                            icon: LayoutGrid,
+                            permission: 'plataforma-tenants.view',
+                        },
+                        {
                             title: t('items.auditoria_soporte'),
                             href: '/plataforma/auditoria-soporte',
                             icon: Headset,

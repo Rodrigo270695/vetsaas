@@ -1,0 +1,54 @@
+{
+    "title": "Clinic modules",
+    "description": "What each clinic has enabled (nav) plus commercial flags: paid AI bot, WhatsApp, SUNAT and e-invoicing. Does not enter tenant schemas.",
+    "refresh": "Refresh",
+    "search_placeholder": "Search clinic…",
+    "note": "A disabled module is a key in modulos_deshabilitados. Nav Bot IA ≠ paid add-on. SUNAT is the public flag, not in-clinic FEL settings.",
+    "edit": "Edit modules",
+    "scope": {
+        "todos": "All",
+        "con_apagados": "Something off",
+        "sin_grooming": "No grooming",
+        "sin_hotel": "No hotel",
+        "sin_laboratorio": "No lab",
+        "sin_bot_nav": "No Bot IA (menu)",
+        "sin_bot_addon": "No Bot IA add-on",
+        "sin_whatsapp": "WhatsApp not ready",
+        "sin_fel": "SUNAT not flagged",
+        "upsell_bot": "Bot in menu, unpaid"
+    },
+    "stats": {
+        "living": "Living clinics",
+        "apagados": "With modules off",
+        "whatsapp": "WhatsApp ready",
+        "bot_addon": "Bot IA add-on",
+        "sunat": "SUNAT flagged"
+    },
+    "columns": {
+        "tenant": "Clinic",
+        "plan": "Plan",
+        "off": "Off",
+        "grooming": "Grooming",
+        "hotel": "Hotel",
+        "laboratorio": "Lab",
+        "hospitalizacion": "Hosp.",
+        "cirugias": "Surgery",
+        "documentos": "Invoices",
+        "bot_ia": "Bot menu",
+        "comunicaciones_cola": "WA queue",
+        "bot_addon": "Paid bot",
+        "whatsapp": "WA ready",
+        "sunat": "SUNAT",
+        "boletas": "Boletas",
+        "facturas": "Facturas",
+        "actions": ""
+    },
+    "on": "Yes",
+    "off": "No",
+    "empty": {
+        "title": "No clinics",
+        "description": "No living clinics (trial, active, grace or suspended).",
+        "filtered_title": "No matches",
+        "filtered_description": "Change the search or filter."
+    }
+}
