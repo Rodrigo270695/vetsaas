@@ -623,6 +623,12 @@ function useNavConfig(): { singles: NavItem[]; groups: NavGroup[] } {
                             permission: 'plataforma-suscripciones.view',
                         },
                         {
+                            title: t('items.embudo'),
+                            href: '/plataforma/embudo',
+                            icon: Banknote,
+                            permission: 'plataforma-suscripciones.view',
+                        },
+                        {
                             title: t('items.avisos_renovacion'),
                             href: '/plataforma/avisos-renovacion',
                             icon: BellRing,

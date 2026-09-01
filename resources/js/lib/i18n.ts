@@ -28,6 +28,7 @@ import plataformaSesionesLoginEn from '@/lang/en/plataforma-sesiones-login.json'
 import plataformaProspectosVeterinariasEn from '@/lang/en/plataforma-prospectos-veterinarias.json';
 import plataformaUsoChatEn from '@/lang/en/plataforma-uso-chat.json';
 import plataformaWhatsappSaludEn from '@/lang/en/plataforma-whatsapp-salud.json';
+import plataformaEmbudoEn from '@/lang/en/plataforma-embudo.json';
 import plataformaChatSoporteEn from '@/lang/en/plataforma-chat-soporte.json';
 import plataformaApiperuEn from '@/lang/en/plataforma-apiperu.json';
 import plataformaUsoPlanesEn from '@/lang/en/plataforma-uso-planes.json';
@@ -96,6 +97,7 @@ import plataformaSesionesLoginEs from '@/lang/es/plataforma-sesiones-login.json'
 import plataformaProspectosVeterinariasEs from '@/lang/es/plataforma-prospectos-veterinarias.json';
 import plataformaUsoChatEs from '@/lang/es/plataforma-uso-chat.json';
 import plataformaWhatsappSaludEs from '@/lang/es/plataforma-whatsapp-salud.json';
+import plataformaEmbudoEs from '@/lang/es/plataforma-embudo.json';
 import plataformaChatSoporteEs from '@/lang/es/plataforma-chat-soporte.json';
 import plataformaApiperuEs from '@/lang/es/plataforma-apiperu.json';
 import plataformaUsoPlanesEs from '@/lang/es/plataforma-uso-planes.json';
@@ -192,6 +194,7 @@ const resources = {
         'plataforma-prospectos-veterinarias': plataformaProspectosVeterinariasEs,
         'plataforma-uso-chat': plataformaUsoChatEs,
         'plataforma-whatsapp-salud': plataformaWhatsappSaludEs,
+        'plataforma-embudo': plataformaEmbudoEs,
         'plataforma-chat-soporte': plataformaChatSoporteEs,
         'plataforma-apiperu': plataformaApiperuEs,
         'plataforma-uso-planes': plataformaUsoPlanesEs,
@@ -262,6 +265,7 @@ const resources = {
         'plataforma-prospectos-veterinarias': plataformaProspectosVeterinariasEn,
         'plataforma-uso-chat': plataformaUsoChatEn,
         'plataforma-whatsapp-salud': plataformaWhatsappSaludEn,
+        'plataforma-embudo': plataformaEmbudoEn,
         'plataforma-chat-soporte': plataformaChatSoporteEn,
         'plataforma-apiperu': plataformaApiperuEn,
         'plataforma-uso-planes': plataformaUsoPlanesEn,
@@ -342,6 +346,7 @@ void i18n
             'plataforma-prospectos-veterinarias',
             'plataforma-uso-chat',
             'plataforma-whatsapp-salud',
+            'plataforma-embudo',
             'plataforma-chat-soporte',
             'plataforma-apiperu',
             'plataforma-uso-planes',

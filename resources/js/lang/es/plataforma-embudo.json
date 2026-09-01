@@ -1,0 +1,61 @@
+{
+    "title": "Embudo SaaS",
+    "description": "Trials, conversión a paga, riesgo de cobro y MRR mensual (precio pactado normalizado por ciclo + Bot IA).",
+    "refresh": "Actualizar",
+    "search_placeholder": "Buscar clínica o plan…",
+    "note": "La conversión del mes usa trials cuyo trial_ends_at ya pasó este mes. El cash es cobros procesados con pagado_at del mes (no es lo mismo que MRR).",
+    "funnel": {
+        "trials": "Trials",
+        "activos": "Activos de pago",
+        "grace": "Grace",
+        "suspended": "Suspendidas",
+        "cancelados": "Bajas 30d"
+    },
+    "stats": {
+        "mrr": "MRR",
+        "cash_month": "Cobrado este mes",
+        "conversion": "Conversión trial → activa",
+        "conversion_hint": "{{converted}} de {{cohort}} trials que vencieron este mes",
+        "vence_7d": "Trials vencen 7d",
+        "cobro_7d": "Cobro en 7d",
+        "fallidos_7d": "Cobros fallidos 7d",
+        "pendientes": "Cobros pendientes"
+    },
+    "scope": {
+        "atencion": "Requieren atención",
+        "trials": "Trials",
+        "vence_7d": "Vencen en 7 días",
+        "activos": "Activos de pago",
+        "grace": "Grace",
+        "suspended": "Suspendidas",
+        "cancelados_30d": "Bajas 30 días",
+        "cobro_7d": "Cobro en 7 días"
+    },
+    "columns": {
+        "tenant": "Clínica",
+        "plan": "Plan",
+        "estado": "Estado",
+        "ciclo": "Ciclo",
+        "mrr": "MRR",
+        "fecha": "Fecha clave"
+    },
+    "estado": {
+        "trial": "Trial",
+        "active": "Activa",
+        "grace": "Grace",
+        "suspended": "Suspendida",
+        "cancelled": "Cancelada"
+    },
+    "fecha": {
+        "trial": "Trial hasta",
+        "grace": "Grace hasta",
+        "cobro": "Próximo cobro",
+        "cancel": "Canceló"
+    },
+    "empty": {
+        "title": "Nada urgente",
+        "description": "Ninguna suscripción encaja en «requieren atención». Revisá otros filtros o el listado de suscripciones.",
+        "filtered_title": "Sin coincidencias",
+        "filtered_description": "Cambiá la búsqueda o el filtro."
+    }
+}

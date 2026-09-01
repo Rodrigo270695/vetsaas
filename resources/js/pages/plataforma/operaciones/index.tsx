@@ -896,11 +896,18 @@ export default function Index({ snapshot, can_manage }: Props) {
                         description={t('subscriptions.description')}
                         icon={Repeat}
                         badge={
-                            <Button variant="outline" size="sm" asChild>
-                                <Link href={suscripciones.index().url}>
-                                    {t('subscriptions.cta')}
-                                </Link>
-                            </Button>
+                            <div className="flex flex-wrap gap-2">
+                                <Button variant="outline" size="sm" asChild>
+                                    <Link href="/plataforma/embudo">
+                                        {t('subscriptions.funnel_cta')}
+                                    </Link>
+                                </Button>
+                                <Button variant="outline" size="sm" asChild>
+                                    <Link href={suscripciones.index().url}>
+                                        {t('subscriptions.cta')}
+                                    </Link>
+                                </Button>
+                            </div>
                         }
                     >
                         <div className="flex flex-wrap gap-2">

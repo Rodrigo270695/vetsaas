@@ -124,7 +124,8 @@
         "grace": "In grace",
         "suspended": "Suspended",
         "proximo_cobro_7d": "Charge in 7 days",
-        "cta": "View subscriptions"
+        "cta": "View subscriptions",
+        "funnel_cta": "View funnel"
     },
     "cobros": {
         "title": "Payments",

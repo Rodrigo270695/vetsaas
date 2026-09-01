@@ -124,7 +124,8 @@
         "grace": "En grace",
         "suspended": "Suspendidas",
         "proximo_cobro_7d": "Cobro en 7 días",
-        "cta": "Ver suscripciones"
+        "cta": "Ver suscripciones",
+        "funnel_cta": "Ver embudo"
     },
     "cobros": {
         "title": "Cobros",

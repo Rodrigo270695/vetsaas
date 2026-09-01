@@ -1,0 +1,61 @@
+{
+    "title": "SaaS funnel",
+    "description": "Trials, paid conversion, collection risk and monthly MRR (contracted price normalized by cycle + AI bot).",
+    "refresh": "Refresh",
+    "search_placeholder": "Search clinic or plan…",
+    "note": "Month conversion uses trials whose trial_ends_at already passed this month. Cash is processed payments with pagado_at this month (not the same as MRR).",
+    "funnel": {
+        "trials": "Trials",
+        "activos": "Paid active",
+        "grace": "Grace",
+        "suspended": "Suspended",
+        "cancelados": "Churn 30d"
+    },
+    "stats": {
+        "mrr": "MRR",
+        "cash_month": "Collected this month",
+        "conversion": "Trial → active conversion",
+        "conversion_hint": "{{converted}} of {{cohort}} trials that ended this month",
+        "vence_7d": "Trials ending in 7d",
+        "cobro_7d": "Charge in 7d",
+        "fallidos_7d": "Failed charges 7d",
+        "pendientes": "Pending charges"
+    },
+    "scope": {
+        "atencion": "Needs attention",
+        "trials": "Trials",
+        "vence_7d": "Ending in 7 days",
+        "activos": "Paid active",
+        "grace": "Grace",
+        "suspended": "Suspended",
+        "cancelados_30d": "Churn 30 days",
+        "cobro_7d": "Charge in 7 days"
+    },
+    "columns": {
+        "tenant": "Clinic",
+        "plan": "Plan",
+        "estado": "Status",
+        "ciclo": "Cycle",
+        "mrr": "MRR",
+        "fecha": "Key date"
+    },
+    "estado": {
+        "trial": "Trial",
+        "active": "Active",
+        "grace": "Grace",
+        "suspended": "Suspended",
+        "cancelled": "Cancelled"
+    },
+    "fecha": {
+        "trial": "Trial until",
+        "grace": "Grace until",
+        "cobro": "Next charge",
+        "cancel": "Cancelled"
+    },
+    "empty": {
+        "title": "Nothing urgent",
+        "description": "No subscription matches “needs attention”. Try another filter or the subscriptions list.",
+        "filtered_title": "No matches",
+        "filtered_description": "Change the search or filter."
+    }
+}
