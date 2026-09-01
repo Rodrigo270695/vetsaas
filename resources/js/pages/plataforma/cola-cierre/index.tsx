@@ -203,7 +203,11 @@ export default function PlataformaColaCierreIndex({
                             type="button"
                             variant="outline"
                             size="icon"
-                            className="size-8"
+                            className={cn(
+                                'size-8 border-[#25D366]/35 bg-[#25D366]/10 text-[#128C7E] hover:bg-[#25D366]/20 hover:text-[#075E54]',
+                                'dark:border-[#25D366]/40 dark:bg-[#25D366]/15 dark:text-[#4ADE80] dark:hover:bg-[#25D366]/25 dark:hover:text-[#86EFAC]',
+                                !row.wa_url && 'opacity-40',
+                            )}
                             disabled={!row.wa_url}
                             asChild={Boolean(row.wa_url)}
                             title={t('actions.whatsapp')}
@@ -227,7 +231,7 @@ export default function PlataformaColaCierreIndex({
                             type="button"
                             variant="outline"
                             size="icon"
-                            className="size-8"
+                            className="size-8 border-amber-500/35 bg-amber-500/10 text-amber-800 hover:bg-amber-500/20 hover:text-amber-950 dark:border-amber-400/40 dark:bg-amber-400/10 dark:text-amber-300 dark:hover:bg-amber-400/20 dark:hover:text-amber-200"
                             title={t('actions.copy')}
                             onClick={() => {
                                 void navigator.clipboard.writeText(row.script);
@@ -243,7 +247,7 @@ export default function PlataformaColaCierreIndex({
                             type="button"
                             variant="outline"
                             size="icon"
-                            className="size-8"
+                            className="size-8 border-sky-500/35 bg-sky-500/10 text-sky-700 hover:bg-sky-500/20 hover:text-sky-900 dark:border-sky-400/40 dark:bg-sky-400/10 dark:text-sky-300 dark:hover:bg-sky-400/20 dark:hover:text-sky-200"
                             asChild
                             title={t('actions.open')}
                         >
