@@ -1,5 +1,5 @@
 import { Head, Link, router, resetLayoutProps, setLayoutProps } from '@inertiajs/react';
-import { Banknote, Coins, Download, Receipt } from 'lucide-react';
+import { Banknote, Coins, CreditCard, Download, FileText, Landmark, Receipt, Smartphone, Ticket } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/data-page';
@@ -95,14 +95,18 @@ export default function IngresosVentasIndex({
     const [search, setSearch] = useState('');
     const canExport = can_export ?? can('reporte-financiero.export');
 
-    const tipoOptions = TIPO_KEYS.map((value) => ({
-        value,
-        label: t(`ingresos.tipos.${value}`),
-    }));
-    const metodoOptions = METODO_KEYS.map((value) => ({
-        value,
-        label: t(`ingresos.metodos.${value}`),
-    }));
+    const tipoOptions = [
+        { value: 'ticket', label: t('ingresos.tipos.ticket'), icon: Ticket, tone: 'warning' as const },
+        { value: 'boleta', label: t('ingresos.tipos.boleta'), icon: Receipt, tone: 'success' as const },
+        { value: 'factura', label: t('ingresos.tipos.factura'), icon: FileText, tone: 'info' as const },
+    ];
+    const metodoOptions = [
+        { value: 'efectivo', label: t('ingresos.metodos.efectivo'), icon: Banknote, tone: 'success' as const },
+        { value: 'yape', label: t('ingresos.metodos.yape'), icon: Smartphone, tone: 'default' as const },
+        { value: 'plin', label: t('ingresos.metodos.plin'), icon: Smartphone, tone: 'info' as const },
+        { value: 'tarjeta', label: t('ingresos.metodos.tarjeta'), icon: CreditCard, tone: 'default' as const },
+        { value: 'transferencia', label: t('ingresos.metodos.transferencia'), icon: Landmark, tone: 'muted' as const },
+    ];
 
     useEffect(() => {
         setLayoutProps({
@@ -220,14 +224,14 @@ export default function IngresosVentasIndex({
                 >
                     <ReportCheckboxSelect
                         label={t('ingresos.filter_tipos')}
-                        allLabel={t('ingresos.todos')}
+                        allLabel={t('ingresos.todos_comprobantes')}
                         options={tipoOptions}
                         selected={filtros.tipos}
                         onChange={(tipos) => applyFilters({ tipos })}
                     />
                     <ReportCheckboxSelect
                         label={t('ingresos.filter_metodos')}
-                        allLabel={t('ingresos.todos')}
+                        allLabel={t('ingresos.todos_metodos')}
                         options={metodoOptions}
                         selected={filtros.metodos}
                         onChange={(metodos) => applyFilters({ metodos })}

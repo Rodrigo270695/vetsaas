@@ -73,6 +73,8 @@
         "filter_tipos": "Comprobante",
         "filter_metodos": "Método de pago",
         "todos": "Todos",
+        "todos_comprobantes": "Todos los comprobantes",
+        "todos_metodos": "Todos los métodos",
         "seleccionados": "{{count}} seleccionados",
         "kpis": {
             "ventas": "Ventas",

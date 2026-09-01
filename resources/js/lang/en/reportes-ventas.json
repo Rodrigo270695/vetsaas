@@ -73,6 +73,8 @@
         "filter_tipos": "Document",
         "filter_metodos": "Payment method",
         "todos": "All",
+        "todos_comprobantes": "All documents",
+        "todos_metodos": "All methods",
         "seleccionados": "{{count}} selected",
         "kpis": {
             "ventas": "Sales",
