@@ -9,7 +9,9 @@ use App\Models\Tenant;
 use App\Models\TenantProductReview;
 use App\Models\User;
 use App\Services\Marketing\VetSaaSPublicMarketingService;
+use App\Support\Clinic\ClinicBrandingUrls;
 use App\Support\Database\PublicSchema;
+use App\Tenancy\TenantManager;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
@@ -128,7 +130,8 @@ final class TenantProductReviewService
      *     role_line: string,
      *     rating: int,
      *     comment: string,
-     *     submitted_at: string|null
+     *     submitted_at: string|null,
+     *     logo_url: string|null
      * }>
      */
     public function publicReviews(int $limit = 18): array
@@ -137,16 +140,25 @@ final class TenantProductReviewService
             return [];
         }
 
+        $manager = app(TenantManager::class);
+        $logoByTenant = [];
+
         return TenantProductReview::query()
+            ->with('tenant:id,slug,nombre_comercial,razon_social')
             ->whereNotNull('submitted_at')
             ->where('published', true)
             ->where('rating', '>=', 1)
             ->orderByDesc('submitted_at')
             ->limit($limit)
             ->get()
-            ->map(function (TenantProductReview $row): array {
+            ->map(function (TenantProductReview $row) use ($manager, &$logoByTenant): array {
                 $role = (string) $row->role_label;
                 $clinic = (string) $row->clinic_name;
+                $tenantId = (string) $row->tenant_id;
+
+                if (! array_key_exists($tenantId, $logoByTenant)) {
+                    $logoByTenant[$tenantId] = $this->clinicLogoUrl($manager, $row->tenant);
+                }
 
                 return [
                     'author_name' => (string) $row->author_name,
@@ -156,9 +168,26 @@ final class TenantProductReviewService
                     'rating' => (int) $row->rating,
                     'comment' => (string) $row->comment,
                     'submitted_at' => $row->submitted_at?->toIso8601String(),
+                    'logo_url' => $logoByTenant[$tenantId],
                 ];
             })
             ->all();
+    }
+
+    private function clinicLogoUrl(TenantManager $manager, ?Tenant $tenant): ?string
+    {
+        if ($tenant === null || ! filled($tenant->slug)) {
+            return null;
+        }
+
+        $branding = ClinicBrandingUrls::resolveForTenant($manager, $tenant);
+        if (! $branding['has_custom_logo']) {
+            return null;
+        }
+
+        $url = trim($branding['logo_url']);
+
+        return $url !== '' ? $url : null;
     }
 
     public function clinicDisplayName(Tenant $tenant): string

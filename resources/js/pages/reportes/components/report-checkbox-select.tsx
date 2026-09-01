@@ -1,7 +1,6 @@
 import type { LucideIcon } from 'lucide-react';
 import {
     Banknote,
-    CheckIcon,
     ChevronDownIcon,
     CircleDashed,
     CreditCard,
@@ -13,6 +12,7 @@ import {
     Ticket,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Popover,
     PopoverContent,
@@ -167,18 +167,9 @@ export function ReportCheckboxSelect({
             >
                 <button
                     type="button"
-                    className={cn(
-                        'relative flex w-full cursor-pointer items-center gap-2 rounded-lg px-1.5 py-1.5 pr-7 text-left text-sm outline-hidden',
-                        'hover:bg-brand-50/70 dark:hover:bg-brand-950/30',
-                        allSelected && 'bg-brand-50 dark:bg-brand-950/40',
-                    )}
+                    className="flex w-full cursor-pointer items-center gap-2 rounded-lg px-1.5 py-1.5 text-left text-sm outline-hidden hover:bg-muted/60"
                     onClick={() => onChange(allValues)}
                 >
-                    {allSelected ? (
-                        <span className="absolute right-1.5 top-1/2 flex size-3.5 -translate-y-1/2 items-center justify-center">
-                            <CheckIcon className="size-3 text-foreground/80" strokeWidth={2.5} />
-                        </span>
-                    ) : null}
                     <span
                         className={cn(
                             'flex size-6 shrink-0 items-center justify-center rounded-md',
@@ -188,9 +179,14 @@ export function ReportCheckboxSelect({
                     >
                         <LayoutGrid className="size-3" strokeWidth={2.25} />
                     </span>
-                    <span className="whitespace-nowrap text-sm font-normal text-foreground">
+                    <span className="min-w-0 flex-1 whitespace-nowrap text-sm font-normal text-foreground">
                         {allLabel}
                     </span>
+                    <Checkbox
+                        checked={allSelected}
+                        tabIndex={-1}
+                        className="pointer-events-none ml-auto"
+                    />
                 </button>
 
                 <div className="my-0.5 h-px bg-border/70" />
@@ -204,18 +200,9 @@ export function ReportCheckboxSelect({
                         <button
                             key={opt.value}
                             type="button"
-                            className={cn(
-                                'relative flex w-full cursor-pointer items-center gap-2 rounded-lg px-1.5 py-1.5 pr-7 text-left text-sm outline-hidden',
-                                'hover:bg-brand-50/70 dark:hover:bg-brand-950/30',
-                                checked && 'bg-brand-50 dark:bg-brand-950/40',
-                            )}
+                            className="flex w-full cursor-pointer items-center gap-2 rounded-lg px-1.5 py-1.5 text-left text-sm outline-hidden hover:bg-muted/60"
                             onClick={() => toggle(opt.value, !checked)}
                         >
-                            {checked ? (
-                                <span className="absolute right-1.5 top-1/2 flex size-3.5 -translate-y-1/2 items-center justify-center">
-                                    <CheckIcon className="size-3 text-foreground/80" strokeWidth={2.5} />
-                                </span>
-                            ) : null}
                             <span
                                 className={cn(
                                     'flex size-6 shrink-0 items-center justify-center rounded-md',
@@ -236,10 +223,15 @@ export function ReportCheckboxSelect({
                                     {opt.label}
                                 </span>
                             ) : (
-                                <span className="whitespace-nowrap text-sm font-normal text-foreground">
+                                <span className="min-w-0 flex-1 whitespace-nowrap text-sm font-normal text-foreground">
                                     {opt.label}
                                 </span>
                             )}
+                            <Checkbox
+                                checked={checked}
+                                tabIndex={-1}
+                                className="pointer-events-none ml-auto"
+                            />
                         </button>
                     );
                 })}
