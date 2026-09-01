@@ -55,6 +55,7 @@ use App\Http\Controllers\PacientePetPassController;
 use App\Http\Controllers\PlanController;
 use App\Http\Controllers\PlataformaApiPeruController;
 use App\Http\Controllers\PlataformaChatUsageController;
+use App\Http\Controllers\PlataformaWhatsAppHealthController;
 use App\Http\Controllers\PlataformaImpersonationAuditController;
 use App\Http\Controllers\PlatformSupportChatController;
 use App\Http\Controllers\PlataformaOperacionesController;
@@ -1473,6 +1474,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:plataforma-operaciones.view')
             ->get('uso-chat', [PlataformaChatUsageController::class, 'index'])
             ->name('uso-chat.index');
+        Route::middleware('permission:plataforma-operaciones.view')
+            ->get('whatsapp-salud', [PlataformaWhatsAppHealthController::class, 'index'])
+            ->name('whatsapp-salud.index');
 
         Route::middleware('permission:plataforma-operaciones.view')
             ->get('apiperu', [PlataformaApiPeruController::class, 'index'])

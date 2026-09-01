@@ -1,0 +1,66 @@
+{
+    "title": "Salud WhatsApp",
+    "description": "Estado de OpenWA por clínica, leído de la base local. Reiniciar o detener sí habla con OpenWA.",
+    "refresh": "Actualizar",
+    "search_placeholder": "Buscar clínica, slug o teléfono…",
+    "cache_note": "La lista no consulta OpenWA. El cron sincroniza cada 5 min; una sesión se marca desfasada si no sync-eó en {{minutes}} min.",
+    "rate_limited": "OpenWA está en cooldown 429. No reinicies sesiones hasta que baje el aviso; el cron también se pausa.",
+    "openwa_off": "OpenWA no está configurado en esta instancia.",
+    "platform": {
+        "title": "Sesión de plataforma",
+        "ready": "Lista",
+        "not_ready": "No lista",
+        "phone": "Teléfono",
+        "synced": "Última sync"
+    },
+    "stats": {
+        "ready": "Listas",
+        "not_ready": "No listas",
+        "with_error": "Con error",
+        "without_session": "Sin sesión",
+        "stale": "Desfasadas",
+        "reconnect_off": "Sin auto-reconnect"
+    },
+    "scope": {
+        "problemas": "Problemas",
+        "todos": "Todas",
+        "listos": "Listas",
+        "error": "Con error",
+        "desconectados": "Desconectadas",
+        "sin_sesion": "Sin sesión",
+        "stale": "Desfasadas",
+        "sin_reconnect": "Sin auto-reconnect"
+    },
+    "columns": {
+        "tenant": "Clínica",
+        "status": "Estado",
+        "phone": "Teléfono",
+        "error": "Último error",
+        "synced": "Última sync",
+        "reconnect": "Auto-reconnect",
+        "actions": "Acciones"
+    },
+    "status": {
+        "ready": "Lista",
+        "disconnected": "Desconectada",
+        "failed": "Fallida",
+        "qr_ready": "QR listo",
+        "initializing": "Iniciando",
+        "created": "Creada",
+        "authenticating": "Autenticando",
+        "sin_sesion": "Sin sesión"
+    },
+    "reconnect_on": "Sí",
+    "reconnect_off": "No",
+    "stale_badge": "Desfasada",
+    "restart": "Reiniciar",
+    "stop": "Detener",
+    "restart_confirm": "¿Reiniciar WhatsApp de {{name}}? Habla con OpenWA.",
+    "stop_confirm": "¿Detener WhatsApp de {{name}}? La clínica dejará de enviar hasta que vuelvan a vincular.",
+    "empty": {
+        "title": "Sin problemas a la vista",
+        "description": "Ninguna clínica viva encaja en este filtro. Probá «Todas» para ver el listado completo.",
+        "filtered_title": "Sin coincidencias",
+        "filtered_description": "Cambiá la búsqueda o el filtro."
+    }
+}

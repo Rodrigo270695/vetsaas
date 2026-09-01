@@ -109,6 +109,7 @@
         "tenants_with_error": "With errors",
         "broken_title": "Sessions to review",
         "broken_empty": "All reported sessions look healthy.",
+        "cta": "View per-clinic health",
         "columns": {
             "tenant": "Clinic",
             "status": "Status",

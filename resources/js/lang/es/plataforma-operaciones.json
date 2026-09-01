@@ -109,6 +109,7 @@
         "tenants_with_error": "Con error",
         "broken_title": "Sesiones a revisar",
         "broken_empty": "Todas las sesiones reportadas están en buen estado.",
+        "cta": "Ver salud por clínica",
         "columns": {
             "tenant": "Clínica",
             "status": "Estado",

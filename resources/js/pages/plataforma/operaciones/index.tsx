@@ -986,7 +986,7 @@ export default function Index({ snapshot, can_manage }: Props) {
                             />
                         }
                     >
-                        <div className="mb-3 flex flex-wrap gap-2">
+                        <div className="mb-3 flex flex-wrap items-center gap-2">
                             <StatBadge
                                 label={t('whatsapp.tenants_ready')}
                                 value={snapshot.whatsapp.tenants_ready}
@@ -1010,6 +1010,11 @@ export default function Index({ snapshot, can_manage }: Props) {
                                         : 'muted'
                                 }
                             />
+                            <Button asChild variant="outline" size="sm" className="cursor-pointer">
+                                <Link href="/plataforma/whatsapp-salud">
+                                    {t('whatsapp.cta')}
+                                </Link>
+                            </Button>
                         </div>
 
                         {snapshot.whatsapp.platform.last_error ? (

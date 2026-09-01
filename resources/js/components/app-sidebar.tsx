@@ -57,6 +57,7 @@ import {
     ShoppingCart,
     Slice,
     SlidersHorizontal,
+    Smartphone,
     Sparkles,
     Stethoscope,
     Store,
@@ -520,6 +521,12 @@ function useNavConfig(): { singles: NavItem[]; groups: NavGroup[] } {
                             title: t('items.uso_chat'),
                             href: '/plataforma/uso-chat',
                             icon: MessagesSquare,
+                            permission: 'plataforma-operaciones.view',
+                        },
+                        {
+                            title: t('items.whatsapp_salud'),
+                            href: '/plataforma/whatsapp-salud',
+                            icon: Smartphone,
                             permission: 'plataforma-operaciones.view',
                         },
                         {

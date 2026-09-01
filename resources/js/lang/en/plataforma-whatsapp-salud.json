@@ -1,0 +1,66 @@
+{
+    "title": "WhatsApp health",
+    "description": "OpenWA status per clinic from local DB. Restart/stop do talk to OpenWA.",
+    "refresh": "Refresh",
+    "search_placeholder": "Search clinic, slug or phone…",
+    "cache_note": "This list does not call OpenWA. Cron syncs every 5 min; a session is stale if it was not synced in {{minutes}} min.",
+    "rate_limited": "OpenWA is in a 429 cooldown. Do not restart sessions until this clears; cron is paused too.",
+    "openwa_off": "OpenWA is not configured on this instance.",
+    "platform": {
+        "title": "Platform session",
+        "ready": "Ready",
+        "not_ready": "Not ready",
+        "phone": "Phone",
+        "synced": "Last sync"
+    },
+    "stats": {
+        "ready": "Ready",
+        "not_ready": "Not ready",
+        "with_error": "With error",
+        "without_session": "No session",
+        "stale": "Stale",
+        "reconnect_off": "Auto-reconnect off"
+    },
+    "scope": {
+        "problemas": "Problems",
+        "todos": "All",
+        "listos": "Ready",
+        "error": "With error",
+        "desconectados": "Disconnected",
+        "sin_sesion": "No session",
+        "stale": "Stale",
+        "sin_reconnect": "Auto-reconnect off"
+    },
+    "columns": {
+        "tenant": "Clinic",
+        "status": "Status",
+        "phone": "Phone",
+        "error": "Last error",
+        "synced": "Last sync",
+        "reconnect": "Auto-reconnect",
+        "actions": "Actions"
+    },
+    "status": {
+        "ready": "Ready",
+        "disconnected": "Disconnected",
+        "failed": "Failed",
+        "qr_ready": "QR ready",
+        "initializing": "Initializing",
+        "created": "Created",
+        "authenticating": "Authenticating",
+        "sin_sesion": "No session"
+    },
+    "reconnect_on": "Yes",
+    "reconnect_off": "No",
+    "stale_badge": "Stale",
+    "restart": "Restart",
+    "stop": "Stop",
+    "restart_confirm": "Restart WhatsApp for {{name}}? This calls OpenWA.",
+    "stop_confirm": "Stop WhatsApp for {{name}}? The clinic cannot send until they link again.",
+    "empty": {
+        "title": "No problems in view",
+        "description": "No living clinic matches this filter. Try “All” to see the full list.",
+        "filtered_title": "No matches",
+        "filtered_description": "Change the search or filter."
+    }
+}
