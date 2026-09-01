@@ -7,6 +7,7 @@ namespace App\Services\OpenWa;
 use App\Models\Tenant;
 use App\Models\TenantWhatsAppSession;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 final class TenantWhatsAppSessionSync
@@ -33,6 +34,15 @@ final class TenantWhatsAppSessionSync
         try {
             $remote = $this->client->findSessionByName($tenant->slug)
                 ?? $this->client->createSession($tenant->slug);
+        } catch (OpenWaRateLimitedException $e) {
+            if ($local instanceof TenantWhatsAppSession) {
+                $local->forceFill([
+                    'last_error' => $e->getMessage(),
+                    'last_synced_at' => now(),
+                ])->save();
+            }
+
+            throw $e;
         } catch (\Throwable $e) {
             if ($local instanceof TenantWhatsAppSession) {
                 $local->forceFill([
@@ -61,7 +71,7 @@ final class TenantWhatsAppSessionSync
             || $hadPhone
         );
 
-        if ($shouldStart) {
+        if ($shouldStart && ($wakeForLink || $this->consumeReconnectBudget())) {
             $reconnect = $this->client->tryStartIfDown($sessionId, $status);
             if ($reconnect['remote'] !== null) {
                 $remote = $reconnect['remote'];
@@ -164,5 +174,27 @@ final class TenantWhatsAppSessionSync
         }
 
         return $session->fresh();
+    }
+
+    /**
+     * El cron no puede arrancar Chromium de todas las clínicas caídas
+     * en la misma corrida (cada start hace varios GET y dispara 429).
+     */
+    private function consumeReconnectBudget(): bool
+    {
+        $max = max(0, (int) config('openwa.sync_max_reconnects_per_run', 2));
+        if ($max === 0) {
+            return false;
+        }
+
+        $key = 'openwa:sync-reconnects';
+        $count = (int) Cache::get($key, 0);
+        if ($count >= $max) {
+            return false;
+        }
+
+        Cache::put($key, $count + 1, now()->addMinutes(6));
+
+        return true;
     }
 }

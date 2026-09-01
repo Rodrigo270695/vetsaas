@@ -134,3 +134,40 @@ it('no intenta start si la sesión OpenWA ya está ready', function (): void {
     expect($result['attempted'])->toBeFalse();
     Http::assertNothingSent();
 });
+
+it('cachea el listado de sesiones OpenWA', function (): void {
+    config(['openwa.list_sessions_cache_seconds' => 30]);
+    Illuminate\Support\Facades\Cache::flush();
+
+    Http::fake([
+        'wa.test/api/sessions' => Http::response([
+            ['id' => 's1', 'name' => 'clinica-a'],
+        ], 200),
+    ]);
+
+    $client = new OpenWaClient;
+    $client->listSessions();
+    $client->findSessionByName('clinica-a');
+    $client->findSessionByName('clinica-b');
+
+    Http::assertSentCount(1);
+});
+
+it('marca cooldown ante OpenWA HTTP 429', function (): void {
+    Illuminate\Support\Facades\Cache::flush();
+    config(['openwa.list_sessions_cache_seconds' => 0]);
+
+    Http::fake([
+        'wa.test/api/sessions' => Http::response([
+            'statusCode' => 429,
+            'message' => 'ThrottlerException: Too Many Requests',
+        ], 429),
+    ]);
+
+    $client = new OpenWaClient;
+
+    expect(fn () => $client->listSessions())
+        ->toThrow(App\Services\OpenWa\OpenWaRateLimitedException::class);
+
+    expect($client->isRateLimited())->toBeTrue();
+});

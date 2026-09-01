@@ -42,4 +42,19 @@ return [
     */
     'reconnect_poll_seconds' => (int) env('OPENWA_RECONNECT_POLL_SECONDS', 3),
 
+    /*
+    | El cron de sync no debe listar/arrancar las ~50 clínicas de un golpe:
+    | OpenWA responde 429 (ThrottlerException). Rotamos un lote por corrida,
+    | cacheamos GET /api/sessions y pausamos si hay rate-limit.
+    */
+    'list_sessions_cache_seconds' => (int) env('OPENWA_LIST_SESSIONS_CACHE_SECONDS', 25),
+
+    'sync_max_tenants_per_run' => (int) env('OPENWA_SYNC_MAX_TENANTS', 8),
+
+    'sync_max_reconnects_per_run' => (int) env('OPENWA_SYNC_MAX_RECONNECTS', 2),
+
+    'sync_pause_ms' => (int) env('OPENWA_SYNC_PAUSE_MS', 700),
+
+    'rate_limit_cooldown_seconds' => (int) env('OPENWA_RATE_LIMIT_COOLDOWN', 240),
+
 ];

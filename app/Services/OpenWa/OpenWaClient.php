@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\OpenWa;
 
 use Illuminate\Http\Client\RequestException;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -26,9 +27,30 @@ final class OpenWaClient
      */
     public function listSessions(): array
     {
+        $ttl = max(0, (int) config('openwa.list_sessions_cache_seconds', 20));
+
+        if ($ttl === 0) {
+            return $this->fetchSessionList();
+        }
+
+        $cached = Cache::remember('openwa:sessions-list', $ttl, fn (): array => $this->fetchSessionList());
+
+        return is_array($cached) ? $cached : [];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function fetchSessionList(): array
+    {
         $response = $this->request('get', '/api/sessions');
 
         return is_array($response) ? $response : [];
+    }
+
+    public function forgetSessionListCache(): void
+    {
+        Cache::forget('openwa:sessions-list');
     }
 
     /**
@@ -611,9 +633,7 @@ final class OpenWaClient
         }
 
         if (! $response->successful()) {
-            throw new RuntimeException(
-                'OpenWA HTTP '.$response->status().': '.(string) $response->body(),
-            );
+            $this->throwHttpError($response->status(), (string) $response->body());
         }
 
         $json = $response->json();
@@ -680,9 +700,7 @@ final class OpenWaClient
         }
 
         if (! $response->successful()) {
-            throw new RuntimeException(
-                'OpenWA HTTP '.$response->status().': '.(string) $response->body(),
-            );
+            $this->throwHttpError($response->status(), (string) $response->body());
         }
 
         $json = $response->json();
@@ -760,13 +778,34 @@ final class OpenWaClient
         }
 
         if (! $response->successful()) {
-            throw new RuntimeException(
-                'OpenWA HTTP '.$response->status().': '.(string) $response->body(),
-            );
+            $this->throwHttpError($response->status(), (string) $response->body());
         }
 
         $json = $response->json();
 
         return is_array($json) ? $json : [];
+    }
+
+    public function isRateLimited(): bool
+    {
+        return Cache::has('openwa:rate-limited');
+    }
+
+    public function markRateLimited(): void
+    {
+        $seconds = max(60, (int) config('openwa.rate_limit_cooldown_seconds', 240));
+        Cache::put('openwa:rate-limited', true, $seconds);
+        $this->forgetSessionListCache();
+    }
+
+    private function throwHttpError(int $status, string $body): never
+    {
+        if ($status === 429) {
+            $this->markRateLimited();
+
+            throw new OpenWaRateLimitedException('OpenWA HTTP 429: '.$body);
+        }
+
+        throw new RuntimeException('OpenWA HTTP '.$status.': '.$body);
     }
 }
