@@ -271,6 +271,7 @@ final class TenantModulesMatrixService
             'sunat' => (bool) $tenant->sunat_configurado,
             'boletas' => $this->planBool($plan, 'boletas_electronicas'),
             'facturas' => $this->planBool($plan, 'facturas_electronicas'),
+            'module_groups' => TenantModuleAccess::catalogForTenant($tenant),
         ];
     }
 

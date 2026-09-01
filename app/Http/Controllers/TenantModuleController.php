@@ -39,8 +39,6 @@ class TenantModuleController extends Controller
 
         $manager->flushCacheFor($tenant);
 
-        return redirect()
-            ->route('plataforma.tenants.modules.edit', $tenant)
-            ->with('success', __('tenants.modules.saved'));
+        return back()->with('success', __('tenants.modules.saved'));
     }
 }

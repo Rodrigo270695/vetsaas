@@ -1,6 +1,6 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head } from '@inertiajs/react';
 import { Check, LayoutGrid, Pencil, RefreshCw, X } from 'lucide-react';
-import { useMemo, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     DataPagination,
@@ -23,6 +23,8 @@ import { usePermission } from '@/hooks/use-permission';
 import AppLayout from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
 import type { Paginated } from '@/types';
+import type { TenantModuleGroup } from '@/types/tenant-modules';
+import { TenantModulesFormModal } from '@/pages/plataforma/tenants/components/tenant-modules-form-modal';
 
 const ROUTE_URL = '/plataforma/modulos-clinicas';
 const DEFAULT_PER_PAGE = 15;
@@ -65,6 +67,7 @@ type ModuleRow = {
     sunat: boolean;
     boletas: boolean;
     facturas: boolean;
+    module_groups: TenantModuleGroup[];
 };
 
 type PageFilters = {
@@ -144,6 +147,7 @@ export default function PlataformaModulosClinicasIndex({
     const { t } = useTranslation('plataforma-modulos-clinicas');
     const { can } = usePermission();
     const canEdit = can('plataforma-tenants.update');
+    const [editing, setEditing] = useState<ModuleRow | null>(null);
 
     const initialFilters: PageFilters = {
         search: filters.search,
@@ -283,17 +287,14 @@ export default function PlataformaModulosClinicasIndex({
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <Button
+                                    type="button"
                                     variant="outline"
                                     size="icon"
                                     className="size-8 cursor-pointer"
-                                    asChild
+                                    aria-label={t('edit')}
+                                    onClick={() => setEditing(row)}
                                 >
-                                    <Link
-                                        href={`/plataforma/tenants/${row.tenant.id}/modulos`}
-                                        aria-label={t('edit')}
-                                    >
-                                        <Pencil className="size-3.5" />
-                                    </Link>
+                                    <Pencil className="size-3.5" />
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent>{t('edit')}</TooltipContent>
@@ -448,6 +449,24 @@ export default function PlataformaModulosClinicasIndex({
                     />
                 )}
             </div>
+
+            <TenantModulesFormModal
+                open={editing !== null}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setEditing(null);
+                    }
+                }}
+                tenant={
+                    editing
+                        ? {
+                              id: editing.tenant.id,
+                              nombre: editing.tenant.nombre,
+                          }
+                        : null
+                }
+                groups={editing?.module_groups ?? []}
+            />
         </>
     );
 }

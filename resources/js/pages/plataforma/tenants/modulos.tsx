@@ -4,13 +4,10 @@ import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/data-page';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
-import { navLabelKeyForModule } from '@/config/tenant-module-labels';
 import AppLayout from '@/layouts/app-layout';
-import { cn } from '@/lib/utils';
 import tenants from '@/routes/plataforma/tenants';
 import type { TenantModuleGroup } from '@/types/tenant-modules';
+import { TenantModuleGroupsEditor } from './components/tenant-module-groups-editor';
 
 type TenantRef = {
     id: string;
@@ -31,7 +28,6 @@ export default function TenantModulos({ tenant, module_groups }: TenantModulosPr
 
     const initialEnabled = useMemo(() => {
         const map: Record<string, boolean> = {};
-
         for (const group of module_groups) {
             for (const mod of group.modules) {
                 map[mod.key] = mod.enabled;
@@ -42,31 +38,11 @@ export default function TenantModulos({ tenant, module_groups }: TenantModulosPr
     }, [module_groups]);
 
     const [enabled, setEnabled] = useState(initialEnabled);
-
     const tenantLabel = tenant.nombre_comercial?.trim() || tenant.razon_social;
-
-    const disabledCount = useMemo(
-        () => Object.values(enabled).filter((isOn) => !isOn).length,
-        [enabled],
+    const disabledCount = Object.values(enabled).filter((isOn) => !isOn).length;
+    const hasChanges = Object.entries(initialEnabled).some(
+        ([key, value]) => enabled[key] !== value,
     );
-
-    const hasChanges = useMemo(() => {
-        return Object.entries(initialEnabled).some(([key, value]) => enabled[key] !== value);
-    }, [enabled, initialEnabled]);
-
-    const toggleModule = (key: string, checked: boolean) => {
-        setEnabled((prev) => ({ ...prev, [key]: checked }));
-    };
-
-    const toggleGroup = (group: TenantModuleGroup, checked: boolean) => {
-        setEnabled((prev) => {
-            const next = { ...prev };
-            for (const mod of group.modules) {
-                next[mod.key] = checked;
-            }
-            return next;
-        });
-    };
 
     const handleSave = () => {
         const modulos_deshabilitados = Object.entries(enabled)
@@ -74,10 +50,14 @@ export default function TenantModulos({ tenant, module_groups }: TenantModulosPr
             .map(([key]) => key);
 
         setProcessing(true);
-        router.put(`/plataforma/tenants/${tenant.id}/modulos`, { modulos_deshabilitados }, {
-            preserveScroll: true,
-            onFinish: () => setProcessing(false),
-        });
+        router.put(
+            `/plataforma/tenants/${tenant.id}/modulos`,
+            { modulos_deshabilitados },
+            {
+                preserveScroll: true,
+                onFinish: () => setProcessing(false),
+            },
+        );
     };
 
     return (
@@ -126,83 +106,23 @@ export default function TenantModulos({ tenant, module_groups }: TenantModulosPr
                     <p>{t('tenants:modules.hint')}</p>
                 </div>
 
-                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                    {module_groups.map((group) => {
-                        const groupKeys = group.modules.map((m) => m.key);
-                        const allOn = groupKeys.every((key) => enabled[key] !== false);
-                        const someOn = groupKeys.some((key) => enabled[key] !== false);
-                        const groupOff = groupKeys.filter((key) => enabled[key] === false).length;
+                <TenantModuleGroupsEditor
+                    groups={module_groups}
+                    enabled={enabled}
+                    onToggleModule={(key, checked) =>
+                        setEnabled((prev) => ({ ...prev, [key]: checked }))
+                    }
+                    onToggleGroup={(group, checked) => {
+                        setEnabled((prev) => {
+                            const next = { ...prev };
+                            for (const mod of group.modules) {
+                                next[mod.key] = checked;
+                            }
 
-                        return (
-                            <section
-                                key={group.group}
-                                className="rounded-lg border border-border/60 bg-card shadow-sm"
-                            >
-                                <div className="flex items-center justify-between gap-2 border-b border-border/50 px-3 py-2">
-                                    <div className="min-w-0">
-                                        <h2 className="truncate text-sm font-semibold">
-                                            {t(`nav:groups.${group.group}`)}
-                                        </h2>
-                                        {groupOff > 0 ? (
-                                            <p className="text-[11px] text-muted-foreground">
-                                                {t('tenants:modules.hidden_count', { count: groupOff })}
-                                            </p>
-                                        ) : null}
-                                    </div>
-                                    <div className="flex shrink-0 items-center gap-1.5">
-                                        <Checkbox
-                                            id={`group-${group.group}`}
-                                            checked={allOn ? true : someOn ? 'indeterminate' : false}
-                                            onCheckedChange={(value) =>
-                                                toggleGroup(group, value === true)
-                                            }
-                                            className="cursor-pointer"
-                                        />
-                                        <Label
-                                            htmlFor={`group-${group.group}`}
-                                            className="cursor-pointer text-[11px] text-muted-foreground"
-                                        >
-                                            {t('tenants:modules.toggle_group')}
-                                        </Label>
-                                    </div>
-                                </div>
-
-                                <ul className="grid grid-cols-1 gap-0.5 p-2 sm:grid-cols-2">
-                                    {group.modules.map((mod) => {
-                                        const isOn = enabled[mod.key] !== false;
-
-                                        return (
-                                            <li key={mod.key}>
-                                                <label
-                                                    htmlFor={`mod-${mod.key}`}
-                                                    className={cn(
-                                                        'flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-muted/60',
-                                                        !isOn && 'text-muted-foreground',
-                                                    )}
-                                                >
-                                                    <Checkbox
-                                                        id={`mod-${mod.key}`}
-                                                        checked={isOn}
-                                                        onCheckedChange={(value) =>
-                                                            toggleModule(mod.key, value === true)
-                                                        }
-                                                        className="cursor-pointer"
-                                                    />
-                                                    <span className="truncate leading-tight">
-                                                        {t(
-                                                            `nav:items.${navLabelKeyForModule(mod.key)}`,
-                                                            { defaultValue: mod.key },
-                                                        )}
-                                                    </span>
-                                                </label>
-                                            </li>
-                                        );
-                                    })}
-                                </ul>
-                            </section>
-                        );
-                    })}
-                </div>
+                            return next;
+                        });
+                    }}
+                />
             </div>
         </>
     );
