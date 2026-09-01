@@ -155,6 +155,8 @@
         "title": "Modelo ER",
         "description": "Tablas, columnas y claves foráneas leídas en vivo de Postgres. Arrastra el lienzo; las líneas unen FKs.",
         "schema": "Esquema",
+        "search_schema": "Buscar clínica o esquema…",
+        "empty_schema": "Sin coincidencias.",
         "search": "Buscar tabla o columna…",
         "all_groups": "Todos los grupos",
         "tables": "Tablas",

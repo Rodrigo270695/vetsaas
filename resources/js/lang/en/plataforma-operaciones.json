@@ -155,6 +155,8 @@
         "title": "ER model",
         "description": "Live Postgres tables, columns and foreign keys. Pan the canvas; lines are FKs.",
         "schema": "Schema",
+        "search_schema": "Search clinic or schema…",
+        "empty_schema": "No matches.",
         "search": "Search table or column…",
         "all_groups": "All groups",
         "tables": "Tables",

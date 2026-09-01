@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/data-page';
 import { Button } from '@/components/ui/button';
+import { Combobox } from '@/components/ui/combobox';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
@@ -124,7 +125,16 @@ export default function PlataformaEsquemaIndex({ schemas, diagram }: Props) {
         return names;
     }, [active, diagram.edges]);
 
-    const changeSchema = (schema: string) => {
+    const schemaOptions = useMemo(
+        () => schemas.map((s) => ({ value: s.schema, label: s.label })),
+        [schemas],
+    );
+
+    const changeSchema = (schema: string | null) => {
+        if (schema === null || schema === diagram.schema) {
+            return;
+        }
+
         router.get(
             '/plataforma/esquema',
             { schema },
@@ -147,19 +157,19 @@ export default function PlataformaEsquemaIndex({ schemas, diagram }: Props) {
                 />
 
                 <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center">
-                    <label className="flex items-center gap-2 text-sm">
-                        <span className="text-muted-foreground">{t('schema.schema')}</span>
-                        <select
-                            className="h-10 rounded-lg border border-input bg-background px-3 text-sm"
+                    <label className="flex min-w-0 max-w-md flex-1 items-center gap-2 text-sm">
+                        <span className="shrink-0 text-muted-foreground">{t('schema.schema')}</span>
+                        <Combobox
+                            id="plataforma-esquema-schema"
+                            className="min-w-0 flex-1"
+                            options={schemaOptions}
                             value={diagram.schema}
-                            onChange={(e) => changeSchema(e.target.value)}
-                        >
-                            {schemas.map((s) => (
-                                <option key={s.schema} value={s.schema}>
-                                    {s.label}
-                                </option>
-                            ))}
-                        </select>
+                            onChange={changeSchema}
+                            placeholder={t('schema.schema')}
+                            searchPlaceholder={t('schema.search_schema')}
+                            emptyMessage={t('schema.empty_schema')}
+                            clearable={false}
+                        />
                     </label>
                     <Input
                         value={search}
