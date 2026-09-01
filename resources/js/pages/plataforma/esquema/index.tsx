@@ -150,33 +150,76 @@ export default function PlataformaEsquemaIndex({ schemas, diagram }: Props) {
                     title={t('schema.title')}
                     description={
                         <span className="inline-flex items-center gap-2">
-                            <Database className="size-4 text-emerald-600" />
+                            <Database className="size-4 shrink-0 text-emerald-600" />
                             {t('schema.description')}
                         </span>
                     }
                 />
 
-                <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center">
-                    <label className="flex min-w-0 max-w-md flex-1 items-center gap-2 text-sm">
-                        <span className="shrink-0 text-muted-foreground">{t('schema.schema')}</span>
-                        <Combobox
-                            id="plataforma-esquema-schema"
-                            className="min-w-0 flex-1"
-                            options={schemaOptions}
-                            value={diagram.schema}
-                            onChange={changeSchema}
-                            placeholder={t('schema.schema')}
-                            searchPlaceholder={t('schema.search_schema')}
-                            emptyMessage={t('schema.empty_schema')}
-                            clearable={false}
-                        />
-                    </label>
+                <div className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                        <div className="w-full sm:max-w-md">
+                            <label
+                                htmlFor="plataforma-esquema-schema"
+                                className="mb-1.5 block text-xs font-medium text-muted-foreground"
+                            >
+                                {t('schema.schema')}
+                            </label>
+                            <Combobox
+                                id="plataforma-esquema-schema"
+                                options={schemaOptions}
+                                value={diagram.schema}
+                                onChange={changeSchema}
+                                placeholder={t('schema.schema')}
+                                searchPlaceholder={t('schema.search_schema')}
+                                emptyMessage={t('schema.empty_schema')}
+                                clearable={false}
+                            />
+                        </div>
+                        <div className="flex shrink-0 items-center gap-3">
+                            <p className="text-xs text-muted-foreground">
+                                {visibleTables.length} {t('schema.tables')} · {visibleEdges.length}{' '}
+                                {t('schema.relations')}
+                            </p>
+                            <div className="flex items-center gap-1">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="icon"
+                                    className="size-8"
+                                    onClick={() =>
+                                        setZoom((z) => Math.max(0.4, Number((z - 0.1).toFixed(1))))
+                                    }
+                                    aria-label={t('schema.zoom_out')}
+                                >
+                                    <Minus className="size-3.5" />
+                                </Button>
+                                <span className="w-10 text-center text-xs tabular-nums text-muted-foreground">
+                                    {Math.round(zoom * 100)}%
+                                </span>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="icon"
+                                    className="size-8"
+                                    onClick={() =>
+                                        setZoom((z) => Math.min(1.6, Number((z + 0.1).toFixed(1))))
+                                    }
+                                    aria-label={t('schema.zoom_in')}
+                                >
+                                    <Plus className="size-3.5" />
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+
                     <Input
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         placeholder={t('schema.search')}
-                        className="h-10 max-w-sm"
+                        className="h-10 w-full sm:max-w-sm"
                     />
+
                     <div className="flex flex-wrap gap-1.5">
                         <button
                             type="button"
@@ -206,46 +249,15 @@ export default function PlataformaEsquemaIndex({ schemas, diagram }: Props) {
                             </button>
                         ))}
                     </div>
-                    <div className="flex items-center gap-2 lg:ml-auto">
-                        <p className="text-xs text-muted-foreground">
-                            {visibleTables.length} {t('schema.tables')} · {visibleEdges.length}{' '}
-                            {t('schema.relations')}
-                        </p>
-                        <div className="flex items-center gap-1">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="icon"
-                                className="size-8"
-                                onClick={() => setZoom((z) => Math.max(0.4, Number((z - 0.1).toFixed(1))))}
-                                aria-label={t('schema.zoom_out')}
-                            >
-                                <Minus className="size-3.5" />
-                            </Button>
-                            <span className="w-10 text-center text-xs tabular-nums text-muted-foreground">
-                                {Math.round(zoom * 100)}%
-                            </span>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="icon"
-                                className="size-8"
-                                onClick={() => setZoom((z) => Math.min(1.6, Number((z + 0.1).toFixed(1))))}
-                                aria-label={t('schema.zoom_in')}
-                            >
-                                <Plus className="size-3.5" />
-                            </Button>
-                        </div>
-                    </div>
-                </div>
 
-                <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-                    <span className="inline-flex items-center gap-1">
-                        <KeyRound className="size-3.5 text-amber-600" /> {t('schema.legend_pk')}
-                    </span>
-                    <span className="inline-flex items-center gap-1">
-                        <Link2 className="size-3.5 text-sky-600" /> {t('schema.legend_fk')}
-                    </span>
+                    <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
+                        <span className="inline-flex items-center gap-1">
+                            <KeyRound className="size-3.5 text-amber-600" /> {t('schema.legend_pk')}
+                        </span>
+                        <span className="inline-flex items-center gap-1">
+                            <Link2 className="size-3.5 text-sky-600" /> {t('schema.legend_fk')}
+                        </span>
+                    </div>
                 </div>
 
                 {visibleTables.length === 0 ? (
