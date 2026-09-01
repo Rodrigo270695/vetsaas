@@ -10,6 +10,7 @@ use App\Http\Requests\StoreChatMessageRequest;
 use App\Models\ChatConversation;
 use App\Models\ChatMessage;
 use App\Models\ClinicSetting;
+use App\Models\User;
 use App\Services\Chat\TenantChatService;
 use App\Tenancy\TenantManager;
 use Illuminate\Http\JsonResponse;
@@ -57,7 +58,7 @@ class TenantChatController extends Controller
         if ($conversationId !== '') {
             $conversation = ChatConversation::query()->find($conversationId);
             if ($conversation !== null) {
-                $this->chat->assertParticipant($conversation, $user);
+                $this->chat->assertCanAccessConversation($conversation, $user);
                 $this->chat->setViewing($user, (string) $conversation->id);
                 $this->chat->markRead($conversation, $user);
                 $active = $this->chat->activePayload($conversation, $user);
@@ -194,7 +195,7 @@ class TenantChatController extends Controller
         $user = $request->user();
         abort_unless($user !== null, 401);
 
-        $this->chat->assertParticipant($chatConversation, $user);
+        $this->chat->assertCanAccessConversation($chatConversation, $user);
         $this->chat->touchPresence($user, (string) $chatConversation->id);
         $this->chat->setViewing($user, (string) $chatConversation->id);
         $this->chat->markDelivered($chatConversation, $user);
@@ -408,7 +409,7 @@ class TenantChatController extends Controller
         return redirect()->route('comunicaciones.chat');
     }
 
-    private function maybeAttachImpersonatorToSupport(Request $request, \App\Models\User $user): void
+    private function maybeAttachImpersonatorToSupport(Request $request, User $user): void
     {
         $imp = $request->session()->get('tenant_impersonation');
         if (! is_array($imp) || empty($imp['tenant_id'])) {

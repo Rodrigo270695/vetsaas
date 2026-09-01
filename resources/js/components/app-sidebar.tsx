@@ -24,6 +24,7 @@ import {
     FileBarChart,
     FileText,
     FileX,
+    Flame,
     FlaskConical,
     Folder,
     Gauge,
@@ -659,6 +660,12 @@ function useNavConfig(): { singles: NavItem[]; groups: NavGroup[] } {
                     icon: Bot,
                     context: 'central',
                     items: [
+                        {
+                            title: t('items.cola_cierre'),
+                            href: '/plataforma/cola-cierre',
+                            icon: Flame,
+                            permission: 'salesbot-knowledge.view',
+                        },
                         {
                             title: t('items.salesbot_conversations'),
                             href: '/plataforma/salesbot-conversations',

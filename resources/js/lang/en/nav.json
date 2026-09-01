@@ -97,6 +97,7 @@
         "cobros": "Billing",
         "platform_pagos": "Payments",
         "platform_settings": "Settings",
+        "cola_cierre": "Closing queue",
         "salesbot_conversations": "Bot conversations",
         "salesbot_meetings": "Meet meetings",
         "salesbot_knowledge": "Sales bot",

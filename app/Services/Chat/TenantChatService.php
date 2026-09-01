@@ -30,6 +30,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Pusher\Pusher;
 use Throwable;
 
 final class TenantChatService
@@ -101,12 +102,49 @@ final class TenantChatService
         return $user;
     }
 
-    public function assertParticipant(ChatConversation $conversation, User $user): ChatParticipant
+    /**
+     * Superadmin (u operador) con sesión `tenant_impersonation`: puede leer
+     * todos los hilos de la clínica sin unirse como participante.
+     */
+    public function canObserveClinicChats(): bool
     {
-        $participant = ChatParticipant::query()
+        try {
+            $request = request();
+            if (! $request->hasSession()) {
+                return false;
+            }
+            $imp = $request->session()->get('tenant_impersonation');
+
+            return is_array($imp) && filled($imp['tenant_id'] ?? null);
+        } catch (Throwable) {
+            return false;
+        }
+    }
+
+    public function participantOf(ChatConversation $conversation, User $user): ?ChatParticipant
+    {
+        return ChatParticipant::query()
             ->where('conversation_id', $conversation->id)
             ->where('user_id', $user->id)
             ->first();
+    }
+
+    public function assertCanAccessConversation(ChatConversation $conversation, User $user): void
+    {
+        if ($this->participantOf($conversation, $user) !== null) {
+            return;
+        }
+
+        if ($this->canObserveClinicChats()) {
+            return;
+        }
+
+        abort(403, 'No eres participante de esta conversación.');
+    }
+
+    public function assertParticipant(ChatConversation $conversation, User $user): ChatParticipant
+    {
+        $participant = $this->participantOf($conversation, $user);
 
         if ($participant === null) {
             abort(403, 'No eres participante de esta conversación.');
@@ -353,11 +391,11 @@ final class TenantChatService
                 'last_preview' => mb_substr($preview, 0, 280),
             ];
 
-            if (\Illuminate\Support\Facades\Schema::hasColumn('platform_support_threads', 'from_clinic')) {
+            if (Schema::hasColumn('platform_support_threads', 'from_clinic')) {
                 $payload['from_clinic'] = $fromClinic;
             }
 
-            if ($fromClinic && \Illuminate\Support\Facades\Schema::hasColumn('platform_support_threads', 'clinic_waiting_since')) {
+            if ($fromClinic && Schema::hasColumn('platform_support_threads', 'clinic_waiting_since')) {
                 // No reiniciar el reloj SLA si ya estaba esperando.
                 $existing = PlatformSupportThread::query()->where('tenant_id', $tenantId)->first();
                 if ($existing === null || $existing->clinic_waiting_since === null) {
@@ -365,7 +403,7 @@ final class TenantChatService
                 }
             }
 
-            if (! $fromClinic && \Illuminate\Support\Facades\Schema::hasColumn('platform_support_threads', 'clinic_waiting_since')) {
+            if (! $fromClinic && Schema::hasColumn('platform_support_threads', 'clinic_waiting_since')) {
                 $payload['clinic_waiting_since'] = null;
             }
 
@@ -698,7 +736,7 @@ final class TenantChatService
      */
     public function mediaGallery(ChatConversation $conversation, User $actor): array
     {
-        $this->assertParticipant($conversation, $actor);
+        $this->assertCanAccessConversation($conversation, $actor);
 
         $items = [];
 
@@ -762,7 +800,7 @@ final class TenantChatService
      */
     public function typingPayload(ChatConversation $conversation, User $actor): array
     {
-        $this->assertParticipant($conversation, $actor);
+        $this->assertCanAccessConversation($conversation, $actor);
 
         $participantIds = ChatParticipant::query()
             ->where('conversation_id', $conversation->id)
@@ -792,7 +830,7 @@ final class TenantChatService
      */
     public function searchInConversation(ChatConversation $conversation, User $actor, string $q): array
     {
-        $this->assertParticipant($conversation, $actor);
+        $this->assertCanAccessConversation($conversation, $actor);
 
         $q = trim($q);
         if ($q === '') {
@@ -1164,11 +1202,11 @@ final class TenantChatService
                     if (! $viewer->can('plataforma-chat-soporte.view')) {
                         return;
                     }
-                } catch (\Throwable) {
+                } catch (Throwable) {
                     return;
                 }
             }
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return;
         }
 
@@ -1467,7 +1505,10 @@ final class TenantChatService
             return;
         }
 
-        $this->assertParticipant($conversation, $actor);
+        $this->assertCanAccessConversation($conversation, $actor);
+        if ($this->participantOf($conversation, $actor) === null) {
+            return;
+        }
 
         $messageIds = ChatMessage::query()
             ->where('conversation_id', $conversation->id)
@@ -1515,7 +1556,10 @@ final class TenantChatService
 
     public function markRead(ChatConversation $conversation, User $actor): void
     {
-        $this->assertParticipant($conversation, $actor);
+        $this->assertCanAccessConversation($conversation, $actor);
+        if ($this->participantOf($conversation, $actor) === null) {
+            return;
+        }
 
         $this->setViewing($actor, (string) $conversation->id);
         $this->markDelivered($conversation, $actor);
@@ -1535,9 +1579,13 @@ final class TenantChatService
      */
     public function listConversationsPayload(User $actor): array
     {
-        $conversationIds = ChatParticipant::query()
-            ->where('user_id', $actor->id)
-            ->pluck('conversation_id');
+        $observeAll = $this->canObserveClinicChats();
+
+        $conversationIds = $observeAll
+            ? ChatConversation::query()->pluck('id')
+            : ChatParticipant::query()
+                ->where('user_id', $actor->id)
+                ->pluck('conversation_id');
 
         if ($conversationIds->isEmpty()) {
             return [];
@@ -1706,6 +1754,7 @@ final class TenantChatService
             'presence' => $presence,
             'peer_online' => $presence['online'] ?? null,
             'peer_last_seen_at' => $presence['last_seen_at'] ?? null,
+            'can_write' => $mine !== null,
             'last_message' => $last === null ? null : [
                 'body' => $this->previewFromRow(
                     $last->body,
@@ -1725,6 +1774,19 @@ final class TenantChatService
     {
         if ($conversation->isGroup()) {
             return (string) ($conversation->name ?: 'Grupo');
+        }
+
+        $isMember = $conversation->participants
+            ->contains(static fn (ChatParticipant $p): bool => (string) $p->user_id === (string) $actor->id);
+
+        if (! $isMember) {
+            $names = $conversation->participants
+                ->map(static fn (ChatParticipant $p): string => trim((string) ($p->user?->name ?? '')))
+                ->filter()
+                ->unique()
+                ->values();
+
+            return $names->isNotEmpty() ? $names->implode(' · ') : 'Chat';
         }
 
         $other = $conversation->participants
@@ -1809,7 +1871,7 @@ final class TenantChatService
         User $actor,
         ChatMessage $message,
     ): array {
-        $this->assertParticipant($conversation, $actor);
+        $this->assertCanAccessConversation($conversation, $actor);
 
         if ((string) $message->conversation_id !== (string) $conversation->id) {
             abort(404);
@@ -2057,7 +2119,7 @@ final class TenantChatService
             return false;
         }
 
-        if ($driver === 'reverb' && ! class_exists(\Pusher\Pusher::class)) {
+        if ($driver === 'reverb' && ! class_exists(Pusher::class)) {
             return false;
         }
 

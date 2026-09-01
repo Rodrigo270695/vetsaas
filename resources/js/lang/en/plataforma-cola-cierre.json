@@ -1,0 +1,47 @@
+{
+    "title": "Closing queue",
+    "description": "Today: hot leads, trials expiring, pipeline prospects, and one WhatsApp to each paying clinic asking for a referral. Month goal: {{paying}} / {{goal}}.",
+    "refresh": "Refresh",
+    "search_placeholder": "Search name or phone…",
+    "note": "WhatsApp opens wa.me with the script ready. Copy the text or send it. Referrals use the Orvae link with that clinic’s code (or slug).",
+    "stats": {
+        "remaining": "Left to hit {{goal}}",
+        "paying": "Paying now",
+        "leads": "Leads 14d",
+        "trials": "Trials 14d",
+        "prospectos": "Prospects",
+        "referidos": "Ask referral"
+    },
+    "scope": {
+        "hoy": "Today",
+        "leads": "Bot leads",
+        "trials": "Trials",
+        "prospectos": "Prospects",
+        "referidos": "Referrals"
+    },
+    "kind": {
+        "lead": "Lead",
+        "trial": "Trial",
+        "prospecto": "Prospect",
+        "referido": "Referral"
+    },
+    "columns": {
+        "who": "Who",
+        "kind": "Type",
+        "reason": "Why now",
+        "script": "Script",
+        "actions": "Actions"
+    },
+    "actions": {
+        "whatsapp": "WhatsApp",
+        "open": "Open panel",
+        "copy": "Copy script",
+        "copied": "Script copied"
+    },
+    "empty": {
+        "title": "Queue is empty",
+        "description": "No 14-day leads, expiring trials, or pipeline prospects. Ask paying clinics for referrals.",
+        "filtered_title": "No matches",
+        "filtered_description": "Change the search or filter."
+    }
+}

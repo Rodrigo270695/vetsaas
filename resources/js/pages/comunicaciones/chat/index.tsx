@@ -164,6 +164,7 @@ type ConversationSummary = {
     pinned?: boolean;
     peer_online?: boolean | null;
     peer_last_seen_at?: string | null;
+    can_write?: boolean;
     last_message: {
         body: string;
         user_name: string;
@@ -1351,6 +1352,7 @@ export default function ChatInternoIndex({
     const submitMessage = (e: FormEvent) => {
         e.preventDefault();
         if (!active || sending) return;
+        if (active.can_write === false) return;
 
         if (editingMessage) {
             const nextBody = body.trim();
@@ -1845,6 +1847,8 @@ export default function ChatInternoIndex({
             ? t('participants', { count: active.participant_count })
             : t('dm_badge'));
 
+    const canWrite = active == null || active.can_write !== false;
+
     const renderDeliveryStatus = (m: ChatMessage) => {
         if (!m.mine && m.user_id !== meId) return null;
 
@@ -2173,6 +2177,13 @@ export default function ChatInternoIndex({
                                                                 >
                                                                     {t('support_badge')}
                                                                 </Badge>
+                                                            ) : c.can_write === false ? (
+                                                                <Badge
+                                                                    variant="outline"
+                                                                    className="h-5 shrink-0 rounded-full px-1.5 text-[10px] font-medium"
+                                                                >
+                                                                    {t('observer_badge')}
+                                                                </Badge>
                                                             ) : null}
                                                             {c.pinned ? (
                                                                 <Pin
@@ -2302,6 +2313,7 @@ export default function ChatInternoIndex({
                                                 {threadSubtitle}
                                             </p>
                                         </div>
+                                        {canWrite ? (
                                         <Tooltip>
                                             <TooltipTrigger asChild>
                                                 <Button
@@ -2332,6 +2344,7 @@ export default function ChatInternoIndex({
                                                     : t('pin')}
                                             </TooltipContent>
                                         </Tooltip>
+                                        ) : null}
                                         <Tooltip>
                                             <TooltipTrigger asChild>
                                                 <Button
@@ -2353,6 +2366,7 @@ export default function ChatInternoIndex({
                                                 {t('media_gallery')}
                                             </TooltipContent>
                                         </Tooltip>
+                                        {canWrite ? (
                                         <Tooltip>
                                             <TooltipTrigger asChild>
                                                 <Button
@@ -2383,6 +2397,7 @@ export default function ChatInternoIndex({
                                                     : t('mute_hint')}
                                             </TooltipContent>
                                         </Tooltip>
+                                        ) : null}
                                         <Button
                                             type="button"
                                             size="icon"
@@ -2923,6 +2938,7 @@ export default function ChatInternoIndex({
                                     <div ref={bottomRef} />
                                 </ChatMessageScroller>
 
+                                {canWrite ? (
                                 <form
                                     onSubmit={submitMessage}
                                     className="relative border-t border-border/60 bg-card/95 p-3 backdrop-blur-md"
@@ -3204,6 +3220,11 @@ export default function ChatInternoIndex({
                                         {t('attach_hint')}
                                     </p>
                                 </form>
+                                ) : (
+                                    <div className="border-t border-border/60 bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+                                        {t('observer_hint')}
+                                    </div>
+                                )}
                             </>
                         )}
                     </section>

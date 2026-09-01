@@ -2,7 +2,12 @@
 
 declare(strict_types=1);
 
+use App\Models\ChatConversation;
+use App\Models\ChatParticipant;
 use App\Models\ImpersonationAuditLog;
+use App\Models\User;
+use App\Services\Chat\TenantChatService;
+use App\Tenancy\TenantManager;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Tests\Support\CreatesTestTenant;
@@ -154,4 +159,60 @@ it('sale del modo soporte con Inertia location al login central', function (): v
     $leave->assertStatus(409);
     expect((string) $leave->headers->get('X-Inertia-Location'))->toContain('/login');
     expect(ImpersonationAuditLog::query()->find($auditId)?->ended_at)->not->toBeNull();
+});
+
+it('en modo soporte lista los chats del equipo, no solo Soporte VetSaaS', function (): void {
+    $peer = User::factory()->create([
+        'tenant_id' => $this->testTenant->id,
+        'is_active' => true,
+        'must_change_password' => false,
+        'email_verified_at' => now(),
+    ]);
+
+    $teamConversationId = app(TenantManager::class)->runForSlug(
+        $this->testTenant->slug,
+        function () use ($peer): string {
+            $conversation = ChatConversation::query()->create([
+                'type' => ChatConversation::TYPE_DIRECT,
+                'kind' => ChatConversation::KIND_TEAM,
+                'direct_key' => TenantChatService::directKey((string) $this->testTenantAdmin->id, (string) $peer->id),
+                'created_by_id' => $this->testTenantAdmin->id,
+            ]);
+
+            foreach ([$this->testTenantAdmin->id, $peer->id] as $uid) {
+                ChatParticipant::query()->create([
+                    'conversation_id' => $conversation->id,
+                    'user_id' => $uid,
+                    'joined_at' => now(),
+                ]);
+            }
+
+            return (string) $conversation->id;
+        },
+    );
+
+    $this->actingAs($this->superadmin);
+
+    $start = $this->post(
+        'http://127.0.0.1/plataforma/tenants/'.$this->testTenant->id.'/impersonate',
+        [],
+        ['X-Inertia' => 'true', 'X-Requested-With' => 'XMLHttpRequest'],
+    );
+    $location = (string) $start->headers->get('X-Inertia-Location');
+    parse_str((string) parse_url($location, PHP_URL_QUERY), $query);
+    $this->get('http://'.$this->testTenantHost.'/impersonate/accept?token='.($query['token'] ?? ''))
+        ->assertRedirect(route('dashboard'));
+
+    $this->get('http://'.$this->testTenantHost.'/comunicaciones/chat')
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('comunicaciones/chat/index')
+            ->has('conversations')
+            ->where(
+                'conversations',
+                fn ($rows) => collect($rows)->contains(
+                    fn ($row) => (string) ($row['id'] ?? '') === $teamConversationId
+                        && ($row['can_write'] ?? true) === false,
+                ),
+            ));
 });

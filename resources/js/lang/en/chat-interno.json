@@ -99,6 +99,8 @@
     "unpin": "Unpin chat",
     "pinned_badge": "Pinned",
     "support_badge": "Support",
+    "observer_hint": "Support mode: you can read the clinic’s chats. You can only write in Soporte VetSaaS.",
+    "observer_badge": "Team",
     "presence_online": "Online",
     "presence_last_seen": "Last seen {{time}}",
     "presence_unknown": "No recent activity",

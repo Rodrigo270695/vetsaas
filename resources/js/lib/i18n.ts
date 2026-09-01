@@ -28,6 +28,7 @@ import plataformaSesionesLoginEn from '@/lang/en/plataforma-sesiones-login.json'
 import plataformaProspectosVeterinariasEn from '@/lang/en/plataforma-prospectos-veterinarias.json';
 import plataformaUsoChatEn from '@/lang/en/plataforma-uso-chat.json';
 import plataformaWhatsappSaludEn from '@/lang/en/plataforma-whatsapp-salud.json';
+import plataformaColaCierreEn from '@/lang/en/plataforma-cola-cierre.json';
 import plataformaEmbudoEn from '@/lang/en/plataforma-embudo.json';
 import plataformaModulosClinicasEn from '@/lang/en/plataforma-modulos-clinicas.json';
 import plataformaChatSoporteEn from '@/lang/en/plataforma-chat-soporte.json';
@@ -98,6 +99,7 @@ import plataformaSesionesLoginEs from '@/lang/es/plataforma-sesiones-login.json'
 import plataformaProspectosVeterinariasEs from '@/lang/es/plataforma-prospectos-veterinarias.json';
 import plataformaUsoChatEs from '@/lang/es/plataforma-uso-chat.json';
 import plataformaWhatsappSaludEs from '@/lang/es/plataforma-whatsapp-salud.json';
+import plataformaColaCierreEs from '@/lang/es/plataforma-cola-cierre.json';
 import plataformaEmbudoEs from '@/lang/es/plataforma-embudo.json';
 import plataformaModulosClinicasEs from '@/lang/es/plataforma-modulos-clinicas.json';
 import plataformaChatSoporteEs from '@/lang/es/plataforma-chat-soporte.json';
@@ -196,6 +198,7 @@ const resources = {
         'plataforma-prospectos-veterinarias': plataformaProspectosVeterinariasEs,
         'plataforma-uso-chat': plataformaUsoChatEs,
         'plataforma-whatsapp-salud': plataformaWhatsappSaludEs,
+        'plataforma-cola-cierre': plataformaColaCierreEs,
         'plataforma-embudo': plataformaEmbudoEs,
         'plataforma-modulos-clinicas': plataformaModulosClinicasEs,
         'plataforma-chat-soporte': plataformaChatSoporteEs,
@@ -268,6 +271,7 @@ const resources = {
         'plataforma-prospectos-veterinarias': plataformaProspectosVeterinariasEn,
         'plataforma-uso-chat': plataformaUsoChatEn,
         'plataforma-whatsapp-salud': plataformaWhatsappSaludEn,
+        'plataforma-cola-cierre': plataformaColaCierreEn,
         'plataforma-embudo': plataformaEmbudoEn,
         'plataforma-modulos-clinicas': plataformaModulosClinicasEn,
         'plataforma-chat-soporte': plataformaChatSoporteEn,
@@ -350,6 +354,7 @@ void i18n
             'plataforma-prospectos-veterinarias',
             'plataforma-uso-chat',
             'plataforma-whatsapp-salud',
+            'plataforma-cola-cierre',
             'plataforma-embudo',
             'plataforma-modulos-clinicas',
             'plataforma-chat-soporte',
