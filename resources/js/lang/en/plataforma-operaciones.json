@@ -150,5 +150,22 @@
     },
     "toast": {
         "retry_error": "Could not retry the job"
+    },
+    "schema": {
+        "title": "ER model",
+        "description": "Live Postgres tables, columns and foreign keys. Pan the canvas; lines are FKs.",
+        "schema": "Schema",
+        "search": "Search table or column…",
+        "all_groups": "All groups",
+        "tables": "Tables",
+        "relations": "Relations",
+        "pk": "PK",
+        "fk": "FK",
+        "more_columns": "+{{count}} columns",
+        "empty": "No tables in this schema (or this is not PostgreSQL).",
+        "legend_pk": "Primary key",
+        "legend_fk": "Foreign key (line to the referenced table)",
+        "zoom_in": "Zoom in",
+        "zoom_out": "Zoom out"
     }
 }

@@ -58,6 +58,7 @@ use App\Http\Controllers\PlataformaChatUsageController;
 use App\Http\Controllers\PlataformaImpersonationAuditController;
 use App\Http\Controllers\PlatformSupportChatController;
 use App\Http\Controllers\PlataformaOperacionesController;
+use App\Http\Controllers\PlataformaSchemaController;
 use App\Http\Controllers\PlataformaReportesController;
 use App\Http\Controllers\PlataformaSecurityAuditController;
 use App\Http\Controllers\PlataformaUserAuthSessionController;
@@ -1432,6 +1433,9 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
         Route::middleware('permission:plataforma-operaciones.view')
             ->get('operaciones', [PlataformaOperacionesController::class, 'index'])
             ->name('operaciones.index');
+        Route::middleware('permission:plataforma-operaciones.view')
+            ->get('esquema', [PlataformaSchemaController::class, 'index'])
+            ->name('esquema.index');
         Route::middleware('permission:plataforma-operaciones.manage')
             ->post('operaciones/failed-jobs/{uuid}/retry', [PlataformaOperacionesController::class, 'retryFailedJob'])
             ->whereUuid('uuid')

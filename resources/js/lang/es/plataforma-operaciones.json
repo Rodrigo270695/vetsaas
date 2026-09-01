@@ -150,5 +150,22 @@
     },
     "toast": {
         "retry_error": "No se pudo reintentar el job"
+    },
+    "schema": {
+        "title": "Modelo ER",
+        "description": "Tablas, columnas y claves foráneas leídas en vivo de Postgres. Arrastra el lienzo; las líneas unen FKs.",
+        "schema": "Esquema",
+        "search": "Buscar tabla o columna…",
+        "all_groups": "Todos los grupos",
+        "tables": "Tablas",
+        "relations": "Relaciones",
+        "pk": "PK",
+        "fk": "FK",
+        "more_columns": "+{{count}} columnas",
+        "empty": "No hay tablas en este esquema (o no es PostgreSQL).",
+        "legend_pk": "Clave primaria",
+        "legend_fk": "Clave foránea (línea hacia la tabla referenciada)",
+        "zoom_in": "Acercar",
+        "zoom_out": "Alejar"
     }
 }

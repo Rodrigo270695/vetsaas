@@ -19,6 +19,7 @@ import {
     CreditCard,
     Gift,
     DoorOpen,
+    Database,
     Dog,
     FileBarChart,
     FileText,
@@ -501,6 +502,12 @@ function useNavConfig(): { singles: NavItem[]; groups: NavGroup[] } {
                             title: t('items.operaciones'),
                             href: '/plataforma/operaciones',
                             icon: Activity,
+                            permission: 'plataforma-operaciones.view',
+                        },
+                        {
+                            title: t('items.esquema_bd'),
+                            href: '/plataforma/esquema',
+                            icon: Database,
                             permission: 'plataforma-operaciones.view',
                         },
                         {

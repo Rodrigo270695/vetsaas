@@ -76,6 +76,7 @@
         "api_logs": "API logs",
         "tokens": "Tokens",
         "operaciones": "Operations",
+        "esquema_bd": "ER model",
         "reportes_plataforma": "Marketing & geo",
         "mapa_clinicas": "Clinics map",
         "mapa_demos": "Demos map",
