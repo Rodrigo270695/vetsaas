@@ -62,6 +62,27 @@ final class PlatformWhatsAppMessenger
     }
 
     /**
+     * Envía texto y exige confirmación HTTP de OpenWA.
+     * No usa el fallback de “asumir entrega” (5xx/timeout ambiguo).
+     *
+     * @return array<string, mixed>
+     */
+    public function sendTextStrict(string $chatId, string $text): array
+    {
+        $sessionId = $this->resolveReadySessionId();
+
+        return $this->client->sendText($sessionId, $chatId, $text);
+    }
+
+    public function connectedPhone(): ?string
+    {
+        $session = $this->sync->ensure();
+        $phone = trim((string) ($session?->phone ?? ''));
+
+        return $phone !== '' ? $phone : null;
+    }
+
+    /**
      * Imagen por URL pública, con pie de foto opcional (caption de WhatsApp).
      *
      * @return array<string, mixed>

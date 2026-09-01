@@ -86,6 +86,7 @@ type Props = {
         referidos: number;
     };
     wa_ready?: boolean;
+    wa_from_phone?: string | null;
     wa_bulk_max?: number;
     wa_delay_min?: number;
     wa_delay_max?: number;
@@ -156,6 +157,7 @@ export default function PlataformaColaCierreIndex({
         referidos: 0,
     },
     wa_ready = false,
+    wa_from_phone = null,
     wa_bulk_max = 15,
     wa_delay_min = 45,
     wa_delay_max = 75,
@@ -205,6 +207,7 @@ export default function PlataformaColaCierreIndex({
             const data = (await res.json()) as {
                 ok?: boolean;
                 message?: string;
+                from_phone?: string | null;
             };
             if (!res.ok || !data.ok) {
                 toastManager.error({
@@ -215,8 +218,10 @@ export default function PlataformaColaCierreIndex({
                 return;
             }
             toastManager.success({
-                title: t('actions.sent'),
-                description: data.message,
+                title: data.message ?? t('actions.sent'),
+                description: t('actions.sent_from', {
+                    phone: data.from_phone || wa_from_phone || 'plataforma',
+                }),
             });
         } catch {
             toastManager.error({ title: t('actions.send_failed') });
@@ -224,7 +229,7 @@ export default function PlataformaColaCierreIndex({
             sendingLock.current = false;
             setSendingId(null);
         }
-    }, [t]);
+    }, [t, wa_from_phone]);
 
     const sendBulk = useCallback(async () => {
         const ids = Array.from(selection.selectedIds).slice(0, wa_bulk_max);

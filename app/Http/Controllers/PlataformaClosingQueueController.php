@@ -27,6 +27,7 @@ class PlataformaClosingQueueController extends Controller
             max(1, (int) $request->integer('page', 1)),
         );
         $payload['wa_ready'] = $whatsapp->isReady();
+        $payload['wa_from_phone'] = $whatsapp->connectedPhone();
         $payload['wa_bulk_max'] = ClosingQueueWhatsAppService::MAX_BULK;
         $payload['wa_delay_min'] = ClosingQueueWhatsAppService::DELAY_MIN_SECONDS;
         $payload['wa_delay_max'] = ClosingQueueWhatsAppService::DELAY_MAX_SECONDS;
@@ -54,6 +55,7 @@ class PlataformaClosingQueueController extends Controller
         return response()->json([
             'ok' => true,
             'message' => 'WhatsApp enviado a '.$result['name'].'.',
+            'from_phone' => $result['from_phone'],
         ]);
     }
 

@@ -178,7 +178,7 @@ final class ClosingQueueService
                 panelUrl: '/plataforma/salesbot-conversations?search='.rawurlencode((string) $c->phone),
                 priority: $hot ? 2 : 3,
                 sortAt: $when?->toIso8601String() ?? $now->toIso8601String(),
-            );
+            ) + ['wa_chat_id' => (string) $c->wa_chat_id];
         });
     }
 

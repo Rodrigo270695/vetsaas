@@ -3,7 +3,7 @@
     "description": "Hoy: leads calientes, trials por vencer, prospectos en pipeline y un WhatsApp a cada clínica de pago pidiendo referido. Meta del mes: {{paying}} / {{goal}}.",
     "refresh": "Actualizar",
     "search_placeholder": "Buscar nombre o teléfono…",
-    "note": "El botón verde manda el guion por el WhatsApp de Orvae (OpenWA), no abre wa.me. En lote respeta una pausa de ~1 minuto entre mensajes para no banear la sesión.",
+    "note": "El botón verde manda el guion desde el WhatsApp de plataforma (OpenWA / bot de ventas), no desde tu celular personal. Si OpenWA no confirma el envío, vas a ver error (ya no se marca enviado a ciegas).",
     "stats": {
         "remaining": "Faltan para {{goal}}",
         "paying": "Pagando ahora",
@@ -39,6 +39,7 @@
         "copy": "Copiar guion",
         "copied": "Guion copiado",
         "sent": "WhatsApp enviado",
+        "sent_from": "Salió del WhatsApp de plataforma {{phone}}. No aparece en tu celular personal; mirá ese chat o Conversaciones bot.",
         "send_failed": "No se pudo enviar"
     },
     "bulk": {

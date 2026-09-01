@@ -3,7 +3,7 @@
     "description": "Today: hot leads, trials expiring, pipeline prospects, and one WhatsApp to each paying clinic asking for a referral. Month goal: {{paying}} / {{goal}}.",
     "refresh": "Refresh",
     "search_placeholder": "Search name or phone…",
-    "note": "The green button sends the script from Orvae’s WhatsApp (OpenWA); it does not open wa.me. Bulk sends wait ~1 minute between messages to reduce ban risk.",
+    "note": "The green button sends from the platform WhatsApp (OpenWA / sales bot), not from your personal phone. If OpenWA does not confirm, you’ll see an error.",
     "stats": {
         "remaining": "Left to hit {{goal}}",
         "paying": "Paying now",
@@ -39,6 +39,7 @@
         "copy": "Copy script",
         "copied": "Script copied",
         "sent": "WhatsApp sent",
+        "sent_from": "It left from the platform WhatsApp {{phone}}. It will not show on your personal phone; check that chat or Bot conversations.",
         "send_failed": "Could not send"
     },
     "bulk": {
