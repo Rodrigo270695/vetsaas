@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Jobs\SendClosingQueueWhatsAppJob;
+use App\Services\Platform\ClosingQueueAlreadySentException;
 use App\Services\Platform\ClosingQueueService;
 use App\Services\Platform\ClosingQueueWhatsAppService;
 use Illuminate\Http\JsonResponse;
@@ -41,10 +42,21 @@ class PlataformaClosingQueueController extends Controller
     ): JsonResponse {
         $data = $request->validate([
             'id' => ['required', 'string', 'max:80'],
+            'force' => ['sometimes', 'boolean'],
         ]);
 
         try {
-            $result = $whatsapp->sendById((string) $data['id']);
+            $result = $whatsapp->sendById(
+                (string) $data['id'],
+                (bool) ($data['force'] ?? false),
+            );
+        } catch (ClosingQueueAlreadySentException $e) {
+            return response()->json([
+                'ok' => false,
+                'already_sent' => true,
+                'sent_at' => $e->sentAtIso,
+                'message' => $e->getMessage(),
+            ], 409);
         } catch (Throwable $e) {
             return response()->json([
                 'ok' => false,
@@ -83,6 +95,9 @@ class PlataformaClosingQueueController extends Controller
             if ($phone === '' || trim((string) ($row['script'] ?? '')) === '') {
                 continue;
             }
+            if (trim((string) ($row['last_sent_at'] ?? '')) !== '') {
+                continue;
+            }
             $ids[] = (string) $row['id'];
             if (count($ids) >= $max) {
                 break;
@@ -92,7 +107,7 @@ class PlataformaClosingQueueController extends Controller
         if ($ids === []) {
             return response()->json([
                 'ok' => false,
-                'message' => 'Ninguna fila seleccionada tiene celular y guion.',
+                'message' => 'Ninguna fila pendiente: las seleccionadas ya tienen envío o no tienen celular.',
             ], 422);
         }
 

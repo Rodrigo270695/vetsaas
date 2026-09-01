@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
+use App\Services\Platform\ClosingQueueAlreadySentException;
 use App\Services\Platform\ClosingQueueWhatsAppService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -39,6 +40,8 @@ final class SendClosingQueueWhatsAppJob implements ShouldQueue
 
         try {
             $whatsapp->sendById($id);
+        } catch (ClosingQueueAlreadySentException) {
+            // Ya se mandó: seguir con el resto del lote.
         } catch (Throwable $e) {
             Log::warning('Cola de cierre: falló un WhatsApp, se detiene el lote', [
                 'row_id' => $id,

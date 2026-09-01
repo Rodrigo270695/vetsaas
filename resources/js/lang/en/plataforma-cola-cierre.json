@@ -3,7 +3,7 @@
     "description": "Today: hot leads, trials expiring, pipeline prospects, and one WhatsApp to each paying clinic asking for a referral. Month goal: {{paying}} / {{goal}}.",
     "refresh": "Refresh",
     "search_placeholder": "Search name or phone…",
-    "note": "The green button sends from the platform WhatsApp (OpenWA / sales bot), not from your personal phone. If OpenWA does not confirm, you’ll see an error.",
+    "note": "The green button sends from the platform WhatsApp (OpenWA / sales bot), not from your personal phone. After a confirmed send you’ll see “Sent” and the icon changes so you don’t repeat it unless you confirm. If OpenWA does not confirm, you’ll see an error.",
     "stats": {
         "remaining": "Left to hit {{goal}}",
         "paying": "Paying now",
@@ -40,12 +40,18 @@
         "copied": "Script copied",
         "sent": "WhatsApp sent",
         "sent_from": "It left from the platform WhatsApp {{phone}}. It will not show on your personal phone; check that chat or Bot conversations.",
-        "send_failed": "Could not send"
+        "send_failed": "Could not send",
+        "already_sent": "Already sent",
+        "sent_at": "Sent {{when}}",
+        "resend": "Resend",
+        "resend_title": "Resend this script?",
+        "resend_body": "You already wrote to them on {{when}}. Resend only if you need to follow up again.",
+        "resend_confirm": "Resend anyway"
     },
     "bulk": {
         "send": "Send WhatsApp",
         "title": "Bulk send",
-        "body": "Up to {{count}} messages will be queued (max {{max_bulk}}). They go out one by one, {{min}}–{{max}} seconds apart, from the platform WhatsApp. If one fails, the batch stops.",
+        "body": "Up to {{count}} pending messages will be queued (max {{max_bulk}}). Rows already sent are skipped. They go out one by one, {{min}}–{{max}} seconds apart, from the platform WhatsApp. If one fails, the batch stops.",
         "confirm": "Queue sends",
         "cancel": "Cancel",
         "queued_title": "Batch queued",

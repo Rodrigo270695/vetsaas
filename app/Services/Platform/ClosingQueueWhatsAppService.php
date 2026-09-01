@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Services\Platform;
 
+use App\Models\ClosingQueueWhatsAppSend;
 use App\Models\SalesConversation;
 use App\Services\OpenWa\PlatformWhatsAppMessenger;
 use App\Services\Sales\SalesBotService;
 use App\Support\WhatsApp\WhatsAppChatId;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use RuntimeException;
 
 /**
@@ -43,11 +45,16 @@ final class ClosingQueueWhatsAppService
     /**
      * @return array{ok: true, name: string, phone: string, from_phone: ?string, chat_id: string}
      */
-    public function sendById(string $rowId): array
+    public function sendById(string $rowId, bool $force = false): array
     {
         $row = $this->queue->rowsByIds([$rowId])->first();
         if (! is_array($row)) {
             throw new RuntimeException('Esa fila ya no está en la cola.');
+        }
+
+        $lastSent = trim((string) ($row['last_sent_at'] ?? ''));
+        if ($lastSent !== '' && ! $force) {
+            throw new ClosingQueueAlreadySentException($lastSent);
         }
 
         return $this->sendRow($row);
@@ -93,6 +100,8 @@ final class ClosingQueueWhatsAppService
             $conversation->pushMessage('assistant', '[cola-cierre] '.$script);
             $conversation->save();
         }
+
+        $this->rememberSend($row, $phoneForCache, $fromPhone);
 
         Log::info('Cola de cierre: WhatsApp confirmado por OpenWA', [
             'row_id' => $row['id'] ?? null,
@@ -167,5 +176,26 @@ final class ClosingQueueWhatsAppService
         }
 
         return $this->bot->normalizeLeadPhone((string) ($row['phone'] ?? ''));
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     */
+    private function rememberSend(array $row, string $phone, ?string $fromPhone): void
+    {
+        $rowKey = trim((string) ($row['id'] ?? ''));
+        if ($rowKey === '' || ! Schema::hasTable('closing_queue_whatsapp_sends')) {
+            return;
+        }
+
+        ClosingQueueWhatsAppSend::query()->updateOrCreate(
+            ['row_key' => $rowKey],
+            [
+                'kind' => (string) ($row['kind'] ?? ''),
+                'phone' => $phone !== '' ? $phone : null,
+                'from_phone' => $fromPhone,
+                'sent_at' => now(),
+            ],
+        );
     }
 }

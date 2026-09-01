@@ -55,7 +55,8 @@ it('muestra la cola de cierre al superadmin', function (): void {
             ->component('plataforma/cola-cierre/index')
             ->has('items.data', 1)
             ->where('stats.trials', 1)
-            ->where('filters.scope', 'hoy'));
+            ->where('filters.scope', 'hoy')
+            ->where('items.data.0.last_sent_at', null));
 });
 
 it('rechaza la cola de cierre a un admin de clínica', function (): void {

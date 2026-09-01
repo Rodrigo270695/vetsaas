@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Platform;
 
+use App\Models\ClosingQueueWhatsAppSend;
 use App\Models\SalesConversation;
 use App\Models\Subscription;
 use App\Models\Tenant;
@@ -12,6 +13,7 @@ use App\Services\Sales\SalesBotService;
 use Carbon\CarbonInterface;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Cola diaria de cierre: leads calientes, trials por vencer, prospectos en pipeline
@@ -39,7 +41,7 @@ final class ClosingQueueService
         $page = max(1, $page);
         $now = now();
 
-        $all = $this->collectRows($now);
+        $all = $this->withLastSends($this->collectRows($now));
         $rows = $all;
 
         if ($search !== '') {
@@ -115,9 +117,11 @@ final class ClosingQueueService
             return collect();
         }
 
-        return $this->collectRows(now())
-            ->filter(static fn (array $row): bool => isset($want[(string) ($row['id'] ?? '')]))
-            ->values();
+        return $this->withLastSends(
+            $this->collectRows(now())
+                ->filter(static fn (array $row): bool => isset($want[(string) ($row['id'] ?? '')]))
+                ->values(),
+        );
     }
 
     /**
@@ -178,7 +182,10 @@ final class ClosingQueueService
                 panelUrl: '/plataforma/salesbot-conversations?search='.rawurlencode((string) $c->phone),
                 priority: $hot ? 2 : 3,
                 sortAt: $when?->toIso8601String() ?? $now->toIso8601String(),
-            ) + ['wa_chat_id' => (string) $c->wa_chat_id];
+            ) + [
+                'wa_chat_id' => (string) $c->wa_chat_id,
+                'last_sent_at' => $this->colaCierreSentAtFromMessages($c),
+            ];
         });
     }
 
@@ -379,7 +386,50 @@ final class ClosingQueueService
             'panel_url' => $panelUrl,
             'priority' => $priority,
             'sort_at' => $sortAt,
+            'last_sent_at' => null,
         ];
+    }
+
+    /**
+     * @param  Collection<int, array<string, mixed>>  $rows
+     * @return Collection<int, array<string, mixed>>
+     */
+    private function withLastSends(Collection $rows): Collection
+    {
+        if ($rows->isEmpty() || ! Schema::hasTable('closing_queue_whatsapp_sends')) {
+            return $rows;
+        }
+
+        $sends = ClosingQueueWhatsAppSend::query()
+            ->whereIn('row_key', $rows->pluck('id')->all())
+            ->get()
+            ->keyBy('row_key');
+
+        return $rows->map(function (array $row) use ($sends): array {
+            $send = $sends->get((string) ($row['id'] ?? ''));
+            if ($send !== null) {
+                $row['last_sent_at'] = $send->sent_at?->toIso8601String();
+            }
+
+            return $row;
+        });
+    }
+
+    private function colaCierreSentAtFromMessages(SalesConversation $conversation): ?string
+    {
+        $messages = $conversation->messages ?? [];
+        for ($i = count($messages) - 1; $i >= 0; $i--) {
+            $message = $messages[$i] ?? null;
+            if (! is_array($message)) {
+                continue;
+            }
+            $content = (string) ($message['content'] ?? '');
+            if (($message['role'] ?? '') === 'assistant' && str_starts_with($content, '[cola-cierre]')) {
+                return ($conversation->last_message_at ?? $conversation->updated_at)?->toIso8601String();
+            }
+        }
+
+        return null;
     }
 
     private function tenantNombre(?Tenant $tenant): string

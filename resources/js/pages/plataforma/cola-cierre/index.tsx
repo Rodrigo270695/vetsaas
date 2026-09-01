@@ -1,5 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
 import {
+    Check,
     Copy,
     ExternalLink,
     Flame,
@@ -59,6 +60,7 @@ type ClosingRow = {
     script: string;
     wa_url: string | null;
     panel_url: string;
+    last_sent_at: string | null;
 };
 
 type PageFilters = {
@@ -130,6 +132,20 @@ function csrfPostJson(
     });
 }
 
+function formatSentAt(iso: string, locale: string): string {
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) {
+        return iso;
+    }
+
+    return date.toLocaleString(locale.startsWith('en') ? 'en-US' : 'es-PE', {
+        day: '2-digit',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+}
+
 function kindClass(kind: Kind): string {
     if (kind === 'trial') {
         return 'border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-300';
@@ -162,7 +178,7 @@ export default function PlataformaColaCierreIndex({
     wa_delay_min = 45,
     wa_delay_max = 75,
 }: Props) {
-    const { t } = useTranslation('plataforma-cola-cierre');
+    const { t, i18n } = useTranslation('plataforma-cola-cierre');
 
     const initialFilters: PageFilters = {
         search: filters.search,
@@ -195,20 +211,34 @@ export default function PlataformaColaCierreIndex({
     const sendingLock = useRef(false);
     const [bulkOpen, setBulkOpen] = useState(false);
     const [bulkBusy, setBulkBusy] = useState(false);
+    const [resendRow, setResendRow] = useState<ClosingRow | null>(null);
 
-    const sendOne = useCallback(async (row: ClosingRow) => {
+    const sendOne = useCallback(async (row: ClosingRow, force = false) => {
         if (!row.phone || sendingLock.current) {
             return;
         }
         sendingLock.current = true;
         setSendingId(row.id);
         try {
-            const res = await csrfPostJson(`${ROUTE_URL}/send`, { id: row.id });
+            const res = await csrfPostJson(`${ROUTE_URL}/send`, {
+                id: row.id,
+                force,
+            });
             const data = (await res.json()) as {
                 ok?: boolean;
+                already_sent?: boolean;
                 message?: string;
                 from_phone?: string | null;
             };
+            if (res.status === 409 && data.already_sent) {
+                setResendRow(row);
+                toastManager.error({
+                    title: t('actions.already_sent'),
+                    description: data.message,
+                });
+
+                return;
+            }
             if (!res.ok || !data.ok) {
                 toastManager.error({
                     title: t('actions.send_failed'),
@@ -217,19 +247,21 @@ export default function PlataformaColaCierreIndex({
 
                 return;
             }
+            setResendRow(null);
             toastManager.success({
                 title: data.message ?? t('actions.sent'),
                 description: t('actions.sent_from', {
                     phone: data.from_phone || wa_from_phone || 'plataforma',
                 }),
             });
+            refresh();
         } catch {
             toastManager.error({ title: t('actions.send_failed') });
         } finally {
             sendingLock.current = false;
             setSendingId(null);
         }
-    }, [t, wa_from_phone]);
+    }, [refresh, t, wa_from_phone]);
 
     const sendBulk = useCallback(async () => {
         const ids = Array.from(selection.selectedIds).slice(0, wa_bulk_max);
@@ -257,12 +289,13 @@ export default function PlataformaColaCierreIndex({
             });
             setBulkOpen(false);
             selection.clear();
+            refresh();
         } catch {
             toastManager.error({ title: t('actions.send_failed') });
         } finally {
             setBulkBusy(false);
         }
-    }, [bulkBusy, selection, t, wa_bulk_max]);
+    }, [bulkBusy, refresh, selection, t, wa_bulk_max]);
 
     const columns = useMemo<DataTableColumn<ClosingRow>[]>(
         () => [
@@ -277,6 +310,17 @@ export default function PlataformaColaCierreIndex({
                         <p className="truncate font-mono text-xs text-muted-foreground">
                             {row.phone ?? '—'}
                         </p>
+                        {row.last_sent_at ? (
+                            <p className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                                <Check className="size-3.5 shrink-0" />
+                                {t('actions.sent_at', {
+                                    when: formatSentAt(
+                                        row.last_sent_at,
+                                        i18n.language,
+                                    ),
+                                })}
+                            </p>
+                        ) : null}
                     </div>
                 ),
             },
@@ -327,22 +371,37 @@ export default function PlataformaColaCierreIndex({
                                 'size-8 border-[#25D366]/35 bg-[#25D366]/10 text-[#128C7E] hover:bg-[#25D366]/20 hover:text-[#075E54]',
                                 'dark:border-[#25D366]/40 dark:bg-[#25D366]/15 dark:text-[#4ADE80] dark:hover:bg-[#25D366]/25 dark:hover:text-[#86EFAC]',
                                 !row.phone && 'opacity-40',
+                                row.last_sent_at &&
+                                    'border-emerald-600/40 bg-emerald-600/10 text-emerald-800 hover:bg-emerald-600/20 dark:text-emerald-300',
                             )}
                             disabled={!row.phone || sendingId !== null}
                             title={
-                                wa_ready
-                                    ? t('actions.whatsapp')
-                                    : t('actions.wa_offline')
+                                !wa_ready
+                                    ? t('actions.wa_offline')
+                                    : row.last_sent_at
+                                      ? t('actions.resend')
+                                      : t('actions.whatsapp')
                             }
-                            onClick={() => void sendOne(row)}
+                            onClick={() => {
+                                if (row.last_sent_at) {
+                                    setResendRow(row);
+
+                                    return;
+                                }
+                                void sendOne(row, false);
+                            }}
                         >
                             {sendingId === row.id ? (
                                 <Loader2 className="size-4 animate-spin" />
+                            ) : row.last_sent_at ? (
+                                <Check className="size-4" />
                             ) : (
                                 <MessageCircle className="size-4" />
                             )}
                             <span className="sr-only">
-                                {t('actions.whatsapp')}
+                                {row.last_sent_at
+                                    ? t('actions.resend')
+                                    : t('actions.whatsapp')}
                             </span>
                         </Button>
                         <Button
@@ -380,7 +439,7 @@ export default function PlataformaColaCierreIndex({
                 ),
             },
         ],
-        [sendOne, sendingId, t, wa_ready],
+        [i18n.language, sendOne, sendingId, t, wa_ready],
     );
 
     const isEmpty =
@@ -579,6 +638,58 @@ export default function PlataformaColaCierreIndex({
                                 <MessageCircle className="size-4" />
                             )}
                             {t('bulk.confirm')}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={resendRow !== null}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setResendRow(null);
+                    }
+                }}
+            >
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>{t('actions.resend_title')}</DialogTitle>
+                        <DialogDescription>
+                            {resendRow?.last_sent_at
+                                ? t('actions.resend_body', {
+                                      when: formatSentAt(
+                                          resendRow.last_sent_at,
+                                          i18n.language,
+                                      ),
+                                  })
+                                : t('actions.already_sent')}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setResendRow(null)}
+                            disabled={sendingId !== null}
+                        >
+                            {t('bulk.cancel')}
+                        </Button>
+                        <Button
+                            type="button"
+                            className="bg-[#25D366] text-white hover:bg-[#1ebe57]"
+                            disabled={sendingId !== null || !resendRow}
+                            onClick={() => {
+                                if (resendRow) {
+                                    void sendOne(resendRow, true);
+                                }
+                            }}
+                        >
+                            {sendingId !== null ? (
+                                <Loader2 className="size-4 animate-spin" />
+                            ) : (
+                                <MessageCircle className="size-4" />
+                            )}
+                            {t('actions.resend_confirm')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
