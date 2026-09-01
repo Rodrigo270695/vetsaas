@@ -12,6 +12,11 @@ import {
 } from '@/components/data-page';
 import type { DataTableColumn } from '@/components/data-page';
 import { Button } from '@/components/ui/button';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useAutoRefresh } from '@/hooks/use-auto-refresh';
 import { useDataTablePage } from '@/hooks/use-data-table-page';
 import { usePermission } from '@/hooks/use-permission';
@@ -103,17 +108,17 @@ const EMPTY_PAGINATED: Paginated<ModuleRow> = {
     links: [],
 };
 
-const SCOPES: Scope[] = [
-    'todos',
-    'con_apagados',
-    'sin_grooming',
-    'sin_hotel',
-    'sin_laboratorio',
-    'sin_bot_nav',
-    'sin_bot_addon',
-    'sin_whatsapp',
-    'sin_fel',
-    'upsell_bot',
+const FILTER_GROUPS: { label: string; scopes: Scope[] }[] = [
+    { label: 'filter_groups.general', scopes: ['todos', 'con_apagados'] },
+    {
+        label: 'filter_groups.servicios',
+        scopes: ['sin_grooming', 'sin_hotel', 'sin_laboratorio'],
+    },
+    {
+        label: 'filter_groups.bot',
+        scopes: ['sin_bot_nav', 'sin_bot_addon', 'upsell_bot'],
+    },
+    { label: 'filter_groups.conexion', scopes: ['sin_whatsapp', 'sin_fel'] },
 ];
 
 function FlagCell({ on }: { on: boolean }) {
@@ -163,18 +168,24 @@ export default function PlataformaModulosClinicasIndex({
     });
 
     const columns = useMemo<DataTableColumn<ModuleRow>[]>(() => {
-        const flagCols: DataTableColumn<ModuleRow>[] = FLAG_KEYS.map((key) => ({
+        const flag = (
+            key: (typeof FLAG_KEYS)[number],
+            group: string,
+        ): DataTableColumn<ModuleRow> => ({
             key,
             header: t(`columns.${key}`),
-            className: 'w-12 text-center',
+            headerGroup: group,
+            className: 'w-11 px-2 text-center',
             align: 'center',
+            showInMobile: false,
             cell: (row) => <FlagCell on={Boolean(row.flags[key])} />,
-        }));
+        });
 
         return [
             {
                 key: 'tenant',
                 header: t('columns.tenant'),
+                headerGroup: t('groups.clinica'),
                 cell: (row) => (
                     <div className="min-w-0">
                         <p className="truncate font-medium text-foreground">
@@ -190,6 +201,8 @@ export default function PlataformaModulosClinicasIndex({
             {
                 key: 'plan',
                 header: t('columns.plan'),
+                headerGroup: t('groups.clinica'),
+                showInMobile: false,
                 cell: (row) => (
                     <span className="text-sm text-muted-foreground">{row.plan ?? '—'}</span>
                 ),
@@ -197,6 +210,7 @@ export default function PlataformaModulosClinicasIndex({
             {
                 key: 'off',
                 header: t('columns.off'),
+                headerGroup: t('groups.clinica'),
                 align: 'right',
                 className: 'tabular-nums',
                 cell: (row) => (
@@ -205,49 +219,85 @@ export default function PlataformaModulosClinicasIndex({
                     </span>
                 ),
             },
-            ...flagCols,
+            flag('grooming', t('groups.servicios')),
+            flag('hotel', t('groups.servicios')),
+            flag('laboratorio', t('groups.atencion')),
+            flag('hospitalizacion', t('groups.atencion')),
+            flag('cirugias', t('groups.atencion')),
+            flag('bot_ia', t('groups.bot')),
             {
                 key: 'bot_addon',
                 header: t('columns.bot_addon'),
+                headerGroup: t('groups.bot'),
                 align: 'center',
+                className: 'w-11 px-2 text-center',
+                showInMobile: false,
                 cell: (row) => <FlagCell on={row.bot_addon} />,
             },
+            flag('comunicaciones_cola', t('groups.bot')),
             {
                 key: 'whatsapp',
                 header: t('columns.whatsapp'),
+                headerGroup: t('groups.bot'),
                 align: 'center',
+                className: 'w-11 px-2 text-center',
+                showInMobile: false,
                 cell: (row) => <FlagCell on={row.whatsapp} />,
             },
+            flag('documentos', t('groups.fel')),
             {
                 key: 'sunat',
                 header: t('columns.sunat'),
+                headerGroup: t('groups.fel'),
                 align: 'center',
+                className: 'w-11 px-2 text-center',
+                showInMobile: false,
                 cell: (row) => <FlagCell on={row.sunat} />,
             },
             {
                 key: 'boletas',
                 header: t('columns.boletas'),
+                headerGroup: t('groups.fel'),
                 align: 'center',
+                className: 'w-11 px-2 text-center',
+                showInMobile: false,
                 cell: (row) => <FlagCell on={row.boletas} />,
             },
             {
                 key: 'facturas',
                 header: t('columns.facturas'),
+                headerGroup: t('groups.fel'),
                 align: 'center',
+                className: 'w-11 px-2 text-center',
+                showInMobile: false,
                 cell: (row) => <FlagCell on={row.facturas} />,
             },
             {
                 key: 'actions',
                 header: t('columns.actions'),
+                headerGroup: '',
                 align: 'right',
+                className: 'w-12',
                 cell: (row) =>
                     canEdit ? (
-                        <Button variant="outline" size="sm" className="h-8 cursor-pointer" asChild>
-                            <Link href={`/plataforma/tenants/${row.tenant.id}/modulos`}>
-                                <Pencil className="size-3.5" />
-                                {t('edit')}
-                            </Link>
-                        </Button>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="size-8 cursor-pointer"
+                                    asChild
+                                >
+                                    <Link
+                                        href={`/plataforma/tenants/${row.tenant.id}/modulos`}
+                                        aria-label={t('edit')}
+                                    >
+                                        <Pencil className="size-3.5" />
+                                    </Link>
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>{t('edit')}</TooltipContent>
+                        </Tooltip>
                     ) : null,
             },
         ];
@@ -333,18 +383,32 @@ export default function PlataformaModulosClinicasIndex({
                     isSearching={isLoading}
                     searchWrapperClassName="sm:max-w-md"
                 >
-                    <div className="flex flex-wrap gap-1.5">
-                        {SCOPES.map((value) => (
-                            <Button
-                                key={value}
-                                type="button"
-                                size="sm"
-                                variant={filters.scope === value ? 'default' : 'outline'}
-                                className="cursor-pointer"
-                                onClick={() => applyFilter({ scope: value })}
+                    <div className="flex w-full flex-col gap-2">
+                        {FILTER_GROUPS.map((group) => (
+                            <div
+                                key={group.label}
+                                className="flex flex-wrap items-center gap-1.5"
                             >
-                                {t(`scope.${value}`)}
-                            </Button>
+                                <span className="w-20 shrink-0 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                                    {t(group.label)}
+                                </span>
+                                {group.scopes.map((value) => (
+                                    <Button
+                                        key={value}
+                                        type="button"
+                                        size="sm"
+                                        variant={
+                                            filters.scope === value
+                                                ? 'default'
+                                                : 'outline'
+                                        }
+                                        className="cursor-pointer"
+                                        onClick={() => applyFilter({ scope: value })}
+                                    >
+                                        {t(`scope.${value}`)}
+                                    </Button>
+                                ))}
+                            </div>
                         ))}
                     </div>
                 </DataToolbar>

@@ -5,6 +5,19 @@
     "search_placeholder": "Search clinic…",
     "note": "A disabled module is a key in modulos_deshabilitados. Nav Bot IA ≠ paid add-on. SUNAT is the public flag, not in-clinic FEL settings.",
     "edit": "Edit modules",
+    "filter_groups": {
+        "general": "View",
+        "servicios": "Services",
+        "bot": "AI bot",
+        "conexion": "Connection"
+    },
+    "groups": {
+        "clinica": "Clinic",
+        "servicios": "Services",
+        "atencion": "Care",
+        "bot": "Bot & WhatsApp",
+        "fel": "Billing"
+    },
     "scope": {
         "todos": "All",
         "con_apagados": "Something off",

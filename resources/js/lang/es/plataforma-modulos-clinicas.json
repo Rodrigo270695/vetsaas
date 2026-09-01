@@ -5,6 +5,19 @@
     "search_placeholder": "Buscar clínica…",
     "note": "Un módulo apagado es una clave en modulos_deshabilitados. Bot IA nav ≠ add-on cobrado. SUNAT es el flag public, no la config FEL dentro de la clínica.",
     "edit": "Editar módulos",
+    "filter_groups": {
+        "general": "Vista",
+        "servicios": "Servicios",
+        "bot": "Bot IA",
+        "conexion": "Conexión"
+    },
+    "groups": {
+        "clinica": "Clínica",
+        "servicios": "Servicios",
+        "atencion": "Atención",
+        "bot": "Bot y WhatsApp",
+        "fel": "Facturación"
+    },
     "scope": {
         "todos": "Todas",
         "con_apagados": "Con algo apagado",

@@ -50,6 +50,11 @@ export type DataTableColumn<T> = {
      * Si no se provee, se usa `key`.
      */
     sortKey?: string;
+    /**
+     * Etiqueta de grupo en una fila extra de thead. Columnas consecutivas
+     * con el mismo `headerGroup` se fusionan con colspan.
+     */
+    headerGroup?: string;
 };
 
 export type DataTableProps<T> = {
@@ -105,6 +110,24 @@ export type DataTableProps<T> = {
     className?: string;
 };
 
+function headerGroupSpans<T>(
+    columns: DataTableColumn<T>[],
+): { label: string; span: number }[] {
+    const spans: { label: string; span: number }[] = [];
+
+    for (const col of columns) {
+        const label = col.headerGroup ?? '';
+        const last = spans.at(-1);
+        if (last && last.label === label) {
+            last.span += 1;
+        } else {
+            spans.push({ label, span: 1 });
+        }
+    }
+
+    return spans;
+}
+
 /**
  * Tabla genérica responsive con slots integrados (toolbar + footer) y
  * soporte de ordenamiento por columna.
@@ -139,6 +162,8 @@ export function DataTable<T>({
     );
     const hasSelection = Boolean(selection);
     const totalColspan = columns.length + (hasSelection ? 1 : 0);
+    const groupSpans = headerGroupSpans(columns);
+    const hasHeaderGroups = groupSpans.some((span) => span.label !== '');
 
     /**
      * Cicla: asc → desc → null (vuelve al orden default del servidor).
@@ -250,6 +275,29 @@ export function DataTable<T>({
                         )}
                     >
                         <thead>
+                            {hasHeaderGroups ? (
+                                <tr>
+                                    {hasSelection ? (
+                                        <th
+                                            aria-hidden
+                                            className="w-10 border-b border-brand-200/40 bg-brand-50/75 dark:border-brand-800/40 dark:bg-brand-950/40"
+                                        />
+                                    ) : null}
+                                    {groupSpans.map((span, index) => (
+                                        <th
+                                            key={`g-${index}-${span.label}`}
+                                            colSpan={span.span}
+                                            className={cn(
+                                                'border-b border-brand-200/40 bg-brand-50/75 px-2 py-1 text-center text-[10px] font-semibold uppercase tracking-wider text-brand-700/80 dark:border-brand-800/40 dark:bg-brand-950/40 dark:text-brand-200/80',
+                                                index > 0 &&
+                                                    'border-l border-brand-200/50 dark:border-brand-800/40',
+                                            )}
+                                        >
+                                            {span.label || '\u00a0'}
+                                        </th>
+                                    ))}
+                                </tr>
+                            ) : null}
                             <tr>
                                 {hasSelection && selection && (
                                     <th
