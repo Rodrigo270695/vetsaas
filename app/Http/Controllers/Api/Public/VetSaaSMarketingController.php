@@ -23,6 +23,7 @@ class VetSaaSMarketingController extends Controller
         return response()->json([
             ...$payload,
             'clients' => $showcase->clientsForCarousel(),
+            'reviews' => $payload['reviews'] ?? [],
         ]);
     }
 }

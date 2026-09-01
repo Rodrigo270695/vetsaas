@@ -30,7 +30,8 @@ final class VetSaaSPublicMarketingService
      *     clinics_display: int,
      *     clinics_label: string,
      *     plans: list<array<string, mixed>>,
-     *     comparison: list<array<string, string>>
+     *     comparison: list<array<string, string>>,
+     *     reviews: list<array<string, mixed>>
      * }
      */
     public function payload(): array
@@ -47,6 +48,7 @@ final class VetSaaSPublicMarketingService
                 'plans' => $plans,
                 'comparison' => $this->buildComparison($plans),
                 'modules_note' => 'Todos los módulos (historia clínica, agenda, inventario, grooming, hotel, laboratorio, caja) están incluidos en todos los planes. Lo que cambia es la cantidad.',
+                'reviews' => app(\App\Services\Reviews\TenantProductReviewService::class)->publicReviews(),
             ];
         });
     }

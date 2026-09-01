@@ -16,4 +16,5 @@ export type TenantShared = {
     razon_social: string;
     nombre_comercial: string | null;
     estado: TenantEstado;
+    is_demo?: boolean;
 };

@@ -57,6 +57,7 @@
         "snapshots": "Snapshots",
         "financiero": "Financial analysis",
         "ventas_productos": "Sales by product",
+        "ingresos_ventas": "Sales income",
         "ventas_servicios": "Sales by service",
         "egresos": "Cash expenses",
         "top_pacientes": "Top patients",

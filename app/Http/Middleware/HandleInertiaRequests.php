@@ -343,6 +343,28 @@ class HandleInertiaRequests extends Middleware
                         return ['enabled' => [], 'deshabilitados' => []];
                     }
                 },
+            'product_review_prompt' => $skipHeavySharedProps || $tenantContext === null
+                ? null
+                : static function () use ($tenantContext, $user, $request): ?array {
+                    try {
+                        if (! ($user instanceof User)) {
+                            return null;
+                        }
+
+                        $impersonating = is_array($request->session()->get('tenant_impersonation'))
+                            && ! empty($request->session()->get('tenant_impersonation')['tenant_id']);
+                        if ($impersonating) {
+                            return null;
+                        }
+
+                        return app(\App\Services\Reviews\TenantProductReviewService::class)
+                            ->promptPayload($user, $tenantContext->tenant);
+                    } catch (Throwable $e) {
+                        report($e);
+
+                        return null;
+                    }
+                },
             'auth' => [
                 'user' => $user,
                 'permissions' => $skipHeavySharedProps

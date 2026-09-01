@@ -6,6 +6,7 @@ import { DemoAccessGeoCapture } from '@/components/clinic-location/demo-access-g
 import { DemoLeadCaptureModal } from '@/components/clinic-location/demo-lead-capture-modal';
 import { TenantGeoRefreshCapture } from '@/components/clinic-location/tenant-geo-refresh-capture';
 import { TenantGpsConsentModal } from '@/components/clinic-location/tenant-gps-consent-modal';
+import { TenantProductReviewModal } from '@/components/tenant-product-review-modal';
 import { InAppAssistantAnnouncementModal } from '@/components/in-app-assistant/in-app-assistant-announcement-modal';
 import { OfflineStatusBanner } from '@/components/offline-status-banner';
 import { SubscriptionRenewalReminderModal } from '@/components/subscription-renewal-reminder-modal';
@@ -59,6 +60,7 @@ export default function AppSidebarLayout({
                     <OfflineStatusBanner />
                     <SubscriptionRenewalReminderModal />
                     <TenantGpsConsentModal />
+                    <TenantProductReviewModal />
                     <TenantGeoRefreshCapture />
                     <DemoAccessGeoCapture />
                     <DemoLeadCaptureModal />

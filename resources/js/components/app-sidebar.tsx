@@ -3,6 +3,7 @@ import {
     Activity,
     ArrowRightLeft,
     BadgePercent,
+    Banknote,
     BarChart3,
     BedDouble,
     BellRing,
@@ -376,6 +377,12 @@ function useNavConfig(): { singles: NavItem[]; groups: NavGroup[] } {
                             title: t('items.ventas_productos'),
                             href: '/reportes/ventas-productos',
                             icon: Package,
+                            permission: 'reporte-financiero.view',
+                        },
+                        {
+                            title: t('items.ingresos_ventas'),
+                            href: '/reportes/ingresos-ventas',
+                            icon: Banknote,
                             permission: 'reporte-financiero.view',
                         },
                         {

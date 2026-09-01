@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Exports\ReporteIngresosVentasXlsxExport;
 use App\Exports\ReporteVentasProductosXlsxExport;
 use App\Exports\ReporteVentasServiciosXlsxExport;
 use App\Http\Controllers\Concerns\LogsAuditExports;
 use App\Models\User;
+use App\Services\Reportes\ReporteIngresosVentasService;
 use App\Services\Reportes\ReporteVentasService;
 use App\Support\Tenancy\TenantModuleAccess;
 use App\Tenancy\TenantManager;
@@ -24,6 +26,7 @@ class ReporteVentasController extends Controller
     public function __construct(
         private readonly TenantManager $tenantManager,
         private readonly ReporteVentasService $reportes,
+        private readonly ReporteIngresosVentasService $ingresos,
     ) {}
 
     public function productos(Request $request): Response
@@ -169,6 +172,142 @@ class ReporteVentasController extends Controller
                 'Pragma' => 'no-cache',
             ],
         );
+    }
+
+    public function ingresos(Request $request): Response
+    {
+        abort_unless($this->tenantManager->check(), 404);
+
+        /** @var User $user */
+        $user = $request->user();
+        $this->assertIngresosAccess($user);
+
+        $payload = $this->ingresosPayload($request);
+
+        return Inertia::render('reportes/ingresos-ventas/index', [
+            'moneda' => $payload['moneda'],
+            'filtros' => $payload['filtros'],
+            'totales' => $payload['totales'],
+            'por_tipo' => $payload['por_tipo'],
+            'por_metodo' => $payload['por_metodo'],
+            'items' => $payload['items'],
+            'can_export' => $this->userCan($user, 'reporte-financiero.export'),
+        ]);
+    }
+
+    public function exportIngresos(Request $request): StreamedResponse
+    {
+        abort_unless($this->tenantManager->check(), 404);
+
+        /** @var User $user */
+        $user = $request->user();
+        $this->assertIngresosAccess($user);
+        abort_unless($this->userCan($user, 'reporte-financiero.export'), 403);
+
+        $payload = $this->ingresosPayload($request);
+        $items = $this->filterIngresosBySearch($payload['items'], $this->stringOrNull($request->query('search')));
+
+        $filename = 'reporte-ingresos-ventas-'.now()->format('Ymd-His').'.xlsx';
+        $this->auditExport('reporte_financiero', $filename);
+
+        $export = new ReporteIngresosVentasXlsxExport;
+
+        return response()->streamDownload(
+            function () use ($export, $items, $payload): void {
+                $export->streamTo(
+                    $items,
+                    [
+                        'ventas' => count($items),
+                        'ingresos' => round(array_sum(array_map(
+                            static fn (array $row): float => (float) ($row['total'] ?? 0),
+                            $items,
+                        )), 2),
+                    ],
+                    $payload['filtros'],
+                    (string) $payload['moneda'],
+                );
+            },
+            $filename,
+            [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'Cache-Control' => 'no-store, no-cache, must-revalidate',
+                'Pragma' => 'no-cache',
+            ],
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function ingresosPayload(Request $request): array
+    {
+        return $this->ingresos->ingresos(
+            $this->stringOrNull($request->query('fecha_desde')),
+            $this->stringOrNull($request->query('fecha_hasta')),
+            $this->stringOrNull($request->query('periodo')),
+            $this->parseListParam($request, 'tipos'),
+            $this->parseListParam($request, 'metodos'),
+        );
+    }
+
+    /**
+     * @return list<string>|null
+     */
+    private function parseListParam(Request $request, string $key): ?array
+    {
+        $raw = $request->query($key);
+        if ($raw === null || $raw === '' || $raw === []) {
+            return null;
+        }
+
+        if (is_array($raw)) {
+            return array_values(array_map(static fn ($v): string => (string) $v, $raw));
+        }
+
+        return array_values(array_filter(array_map('trim', explode(',', (string) $raw))));
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $items
+     * @return list<array<string, mixed>>
+     */
+    private function filterIngresosBySearch(array $items, ?string $search): array
+    {
+        if ($search === null) {
+            return $items;
+        }
+
+        $q = mb_strtolower(trim($search));
+        if ($q === '') {
+            return $items;
+        }
+
+        return array_values(array_filter(
+            $items,
+            static function (array $item) use ($q): bool {
+                $haystack = mb_strtolower(trim(
+                    (string) ($item['numero'] ?? '').' '
+                    .(string) ($item['comprobante'] ?? '').' '
+                    .(string) ($item['cliente'] ?? '').' '
+                    .(string) ($item['metodos_label'] ?? ''),
+                ));
+
+                return str_contains($haystack, $q);
+            },
+        ));
+    }
+
+    private function assertIngresosAccess(User $user): void
+    {
+        $capabilities = TenantModuleAccess::filterCapabilities(
+            $this->tenantManager->current()?->tenant,
+            [
+                'ventas' => $this->userCan($user, 'ventas.view'),
+            ],
+        );
+
+        abort_unless($capabilities['ventas'] ?? false, 403);
+        abort_unless($this->userCan($user, 'reporte-financiero.view'), 403);
     }
 
     private function assertProductosAccess(User $user): void

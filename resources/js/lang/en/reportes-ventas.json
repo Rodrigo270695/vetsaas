@@ -64,5 +64,42 @@
         "resumen_hint": "Period totals by service type (paid sales only).",
         "ver_detalle": "View details",
         "vacunas_sin_cobro": "Vaccinations has {{total}} vaccine application(s) in this period; {{sin_cobro}} not yet billed at the register. This report only shows billed vaccines."
+    },
+    "ingresos": {
+        "title": "Sales income",
+        "description": "Paid sales by ticket, boleta or invoice, with payment-method filters. Defaults to this week.",
+        "search_placeholder": "Search number, client or method…",
+        "hint": "Paid sales only. Boletas and invoices count when the e-invoice is issued; internal tickets are not sent to SUNAT.",
+        "filter_tipos": "Document",
+        "filter_metodos": "Payment method",
+        "todos": "All",
+        "seleccionados": "{{count}} selected",
+        "kpis": {
+            "ventas": "Sales",
+            "ingresos": "Total income"
+        },
+        "por_tipo": "By document",
+        "por_metodo": "By payment method",
+        "columns": {
+            "fecha": "Date",
+            "numero": "Sale no.",
+            "comprobante": "Document",
+            "tipo": "Type",
+            "cliente": "Client",
+            "metodo": "Payment",
+            "total": "Total"
+        },
+        "tipos": {
+            "ticket": "Ticket",
+            "boleta": "Boleta",
+            "factura": "Invoice"
+        },
+        "metodos": {
+            "efectivo": "Cash",
+            "yape": "Yape",
+            "plin": "Plin",
+            "tarjeta": "Card",
+            "transferencia": "Transfer"
+        }
     }
 }

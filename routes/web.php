@@ -30,6 +30,7 @@ use App\Http\Controllers\FreeWinBackAcceptController;
 use App\Http\Controllers\GeoController;
 use App\Http\Controllers\TenantChatController;
 use App\Http\Controllers\TenantGeoController;
+use App\Http\Controllers\TenantProductReviewController;
 use App\Http\Controllers\GroomingCargoController;
 use App\Http\Controllers\ServicioClinicoProductoController;
 use App\Http\Controllers\GroomingInsumoController;
@@ -218,6 +219,14 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
     Route::post('tenant/geo', [TenantGeoController::class, 'store'])
         ->middleware('throttle:20,1')
         ->name('tenant.geo.store');
+
+    Route::post('tenant/product-review', [TenantProductReviewController::class, 'store'])
+        ->middleware('throttle:12,1')
+        ->name('tenant.product-review.store');
+
+    Route::post('tenant/product-review/dismiss', [TenantProductReviewController::class, 'dismiss'])
+        ->middleware('throttle:30,1')
+        ->name('tenant.product-review.dismiss');
 
     Route::post('demo/access-geo', [DemoAccessGeoController::class, 'store'])
         ->middleware('throttle:30,1')
@@ -1189,6 +1198,8 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
                 ->name('financiero.rentabilidad-clinica');
             Route::get('ventas-productos', [ReporteVentasController::class, 'productos'])
                 ->name('ventas-productos');
+            Route::get('ingresos-ventas', [ReporteVentasController::class, 'ingresos'])
+                ->name('ingresos-ventas');
             Route::get('ventas-servicios', [ReporteVentasController::class, 'servicios'])
                 ->name('ventas-servicios');
             Route::get('egresos', [ReporteEgresosController::class, 'index'])
@@ -1196,6 +1207,8 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             Route::middleware('permission:reporte-financiero.export')->group(function (): void {
                 Route::get('ventas-productos/export', [ReporteVentasController::class, 'exportProductos'])
                     ->name('ventas-productos.export');
+                Route::get('ingresos-ventas/export', [ReporteVentasController::class, 'exportIngresos'])
+                    ->name('ingresos-ventas.export');
                 Route::get('ventas-servicios/export', [ReporteVentasController::class, 'exportServicios'])
                     ->name('ventas-servicios.export');
                 Route::get('egresos/export', [ReporteEgresosController::class, 'export'])

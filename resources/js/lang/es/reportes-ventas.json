@@ -64,5 +64,42 @@
         "resumen_hint": "Totales del periodo por tipo de servicio (solo ventas pagadas).",
         "ver_detalle": "Ver detalle",
         "vacunas_sin_cobro": "En Vacunaciones hay {{total}} aplicación(es) de vacuna en este periodo; {{sin_cobro}} aún sin cobro en caja. Este reporte solo muestra vacunas cobradas."
+    },
+    "ingresos": {
+        "title": "Ingresos de ventas",
+        "description": "Ventas pagadas por ticket, boleta o factura, con filtro de método de pago. Por defecto muestra esta semana.",
+        "search_placeholder": "Buscar número, cliente o método…",
+        "hint": "Solo ventas pagadas. Boletas y facturas entran cuando el CPE está emitido; el ticket interno no pasa por SUNAT.",
+        "filter_tipos": "Comprobante",
+        "filter_metodos": "Método de pago",
+        "todos": "Todos",
+        "seleccionados": "{{count}} seleccionados",
+        "kpis": {
+            "ventas": "Ventas",
+            "ingresos": "Ingreso total"
+        },
+        "por_tipo": "Por comprobante",
+        "por_metodo": "Por método de pago",
+        "columns": {
+            "fecha": "Fecha",
+            "numero": "N.º venta",
+            "comprobante": "Comprobante",
+            "tipo": "Tipo",
+            "cliente": "Cliente",
+            "metodo": "Pago",
+            "total": "Total"
+        },
+        "tipos": {
+            "ticket": "Ticket",
+            "boleta": "Boleta",
+            "factura": "Factura"
+        },
+        "metodos": {
+            "efectivo": "Efectivo",
+            "yape": "Yape",
+            "plin": "Plin",
+            "tarjeta": "Tarjeta",
+            "transferencia": "Transferencia"
+        }
     }
 }

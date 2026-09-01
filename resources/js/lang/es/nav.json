@@ -57,6 +57,7 @@
         "snapshots": "Snapshots",
         "financiero": "Análisis financiero",
         "ventas_productos": "Ventas por producto",
+        "ingresos_ventas": "Ingresos de ventas",
         "ventas_servicios": "Ventas por servicio",
         "egresos": "Egresos de caja",
         "top_pacientes": "Top pacientes",
