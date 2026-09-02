@@ -1968,6 +1968,12 @@ export default function Index({
                                                     id="apisunat-mode"
                                                     label="Modo de operación"
                                                     error={errors.apisunat_mode}
+                                                    hint={
+                                                        data.apisunat_mode ===
+                                                        'produccion'
+                                                            ? 'Esto solo elige la URL de Lucode (producción). Boleta/factura reales requieren que ESA empresa en apisunat.com ya haya hecho “Pasar a producción” (certificado, usuario secundario y GRE). Si Lucode sigue en desarrollo, vas a ver el error de autorización aunque el token esté configurado aquí.'
+                                                            : 'Sandbox manda a Lucode de pruebas. Los CPE no valen ante SUNAT.'
+                                                    }
                                                 >
                                                     <Select
                                                         value={
@@ -2013,7 +2019,7 @@ export default function Index({
                                                     error={
                                                         errors.apisunat_token
                                                     }
-                                                    hint="Lo encuentras en app.apisunat.pe → tu organización → API Token."
+                                                    hint="Token de esa misma empresa en Lucode. En producción: app.apisunat.pe. En sandbox: el token de desarrollo. No mezcles token de pruebas con modo Producción."
                                                 >
                                                     <div className="relative">
                                                         <Input
