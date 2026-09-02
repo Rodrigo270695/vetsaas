@@ -8,14 +8,18 @@ import {
     Layers,
     Plus,
     Power,
-    RefreshCw,
     Trash2,
     X,
-    XCircle,
 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
-import { FilterChips, PageHeader, StatBadge } from '@/components/data-page';
-import type { FilterChip } from '@/components/data-page';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+    DataTable,
+    EmptyState,
+    FilterChips,
+    PageHeader,
+    StatBadge,
+} from '@/components/data-page';
+import type { DataTableColumn, FilterChip } from '@/components/data-page';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -78,6 +82,79 @@ const TIPO_COLORS: Record<number, string> = {
 };
 
 const ALL_SEDES = '__all__';
+
+function TipoBadge({ tipo, label }: { tipo: number; label: string }) {
+    return (
+        <span
+            className={`inline-flex max-w-44 items-center truncate rounded-md px-2 py-0.5 text-[11px] font-medium leading-tight whitespace-nowrap ring-1 sm:max-w-none ${TIPO_COLORS[tipo] ?? 'bg-muted text-muted-foreground ring-border'}`}
+        >
+            {label}
+        </span>
+    );
+}
+
+function SerieRowActions({
+    serie,
+    canUpdate,
+    canDelete,
+    toggling,
+    deleting,
+    onToggle,
+    onDelete,
+}: {
+    serie: FelSerie;
+    canUpdate: boolean;
+    canDelete: boolean;
+    toggling: boolean;
+    deleting: boolean;
+    onToggle: (serie: FelSerie) => void;
+    onDelete: (id: string) => void;
+}) {
+    if (!canUpdate && !canDelete && !serie.tiene_documentos) {
+        return null;
+    }
+
+    return (
+        <div className="flex shrink-0 items-center justify-end gap-1">
+            {canUpdate ? (
+                <button
+                    type="button"
+                    onClick={() => onToggle(serie)}
+                    disabled={toggling}
+                    title={serie.activo ? 'Desactivar serie' : 'Activar serie'}
+                    className={`cursor-pointer rounded-md p-1.5 transition-colors ${
+                        serie.activo
+                            ? 'text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700'
+                            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                    } disabled:cursor-not-allowed disabled:opacity-50`}
+                >
+                    <Power className="size-4" />
+                </button>
+            ) : null}
+
+            {canDelete && !serie.tiene_documentos ? (
+                <button
+                    type="button"
+                    onClick={() => onDelete(serie.id)}
+                    disabled={deleting}
+                    title="Eliminar serie"
+                    className="cursor-pointer rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                    <Trash2 className="size-4" />
+                </button>
+            ) : null}
+
+            {serie.tiene_documentos ? (
+                <span
+                    title="Tiene comprobantes emitidos — no se puede eliminar"
+                    className="rounded-md p-1.5 text-amber-500"
+                >
+                    <AlertTriangle className="size-4" />
+                </span>
+            ) : null}
+        </div>
+    );
+}
 
 export default function Index({
     series = [],
@@ -193,7 +270,7 @@ export default function Index({
         );
     };
 
-    const handleToggle = (serie: FelSerie) => {
+    const handleToggle = useCallback((serie: FelSerie) => {
         setTogglingId(serie.id);
         router.patch(
             `/facturacion/series/${serie.id}`,
@@ -203,15 +280,15 @@ export default function Index({
                 onFinish: () => setTogglingId(null),
             },
         );
-    };
+    }, []);
 
-    const handleDelete = (id: string) => {
+    const handleDelete = useCallback((id: string) => {
         setDeletingId(id);
         router.delete(`/facturacion/series/${id}`, {
             preserveScroll: true,
             onFinish: () => setDeletingId(null),
         });
-    };
+    }, []);
 
     const activas = series.filter((s) => s.activo).length;
 
@@ -219,6 +296,96 @@ export default function Index({
         ...t,
         count: series.filter((s) => s.tipo_comprobante === t.value).length,
     }));
+
+    const columns = useMemo<DataTableColumn<FelSerie>[]>(() => {
+        const cols: DataTableColumn<FelSerie>[] = [];
+
+        if (showSedeColumn) {
+            cols.push({
+                key: 'sede',
+                header: 'Sede',
+                cell: (s) => (
+                    <span className="font-medium text-foreground">
+                        {s.sede_nombre || '—'}
+                    </span>
+                ),
+            });
+        }
+
+        cols.push(
+            {
+                key: 'tipo',
+                header: 'Tipo',
+                cell: (s) => (
+                    <TipoBadge tipo={s.tipo_comprobante} label={s.tipo_label} />
+                ),
+            },
+            {
+                key: 'serie',
+                header: 'Serie',
+                cell: (s) => (
+                    <span className="font-mono text-sm font-bold tracking-widest">
+                        {s.serie}
+                    </span>
+                ),
+                className: 'w-24',
+            },
+            {
+                key: 'correlativo',
+                header: 'Correlativo',
+                align: 'right',
+                cell: (s) => (
+                    <span className="inline-flex items-center gap-1.5 tabular-nums">
+                        <Hash className="size-3 text-muted-foreground/50" />
+                        <span className="font-mono font-semibold">
+                            {s.ultimo_correlativo.toLocaleString()}
+                        </span>
+                    </span>
+                ),
+            },
+            {
+                key: 'estado',
+                header: 'Estado',
+                align: 'center',
+                cell: (s) =>
+                    s.activo ? (
+                        <StatBadge label="Activa" value="" variant="success" />
+                    ) : (
+                        <StatBadge label="Inactiva" value="" variant="muted" />
+                    ),
+            },
+        );
+
+        if (canUpdate || canDelete) {
+            cols.push({
+                key: 'acciones',
+                header: <span className="md:sr-only">Acciones</span>,
+                align: 'right',
+                className: 'w-20',
+                cell: (s) => (
+                    <SerieRowActions
+                        serie={s}
+                        canUpdate={canUpdate}
+                        canDelete={canDelete}
+                        toggling={togglingId === s.id}
+                        deleting={deletingId === s.id}
+                        onToggle={handleToggle}
+                        onDelete={handleDelete}
+                    />
+                ),
+            });
+        }
+
+        return cols;
+    }, [
+        canDelete,
+        canUpdate,
+        deletingId,
+        handleDelete,
+        handleToggle,
+        showSedeColumn,
+        togglingId,
+    ]);
 
     return (
         <>
@@ -454,9 +621,11 @@ export default function Index({
                     {byTipo.map((t) => (
                         <div
                             key={t.value}
-                            className="flex flex-col gap-1.5 rounded-xl border border-border/60 bg-card p-4 shadow-sm"
+                            className="flex flex-col gap-1 rounded-xl border border-border/60 bg-card p-3 shadow-sm sm:p-4"
                         >
-                            <span className="text-xs font-medium text-muted-foreground">{t.label}</span>
+                            <span className="truncate text-xs font-medium text-muted-foreground">
+                                {t.label}
+                            </span>
                             <span className="text-2xl font-bold tabular-nums">{t.count}</span>
                             <span className="text-xs text-muted-foreground">
                                 {t.count === 1 ? 'serie' : 'series'}
@@ -465,154 +634,82 @@ export default function Index({
                     ))}
                 </div>
 
-                {series.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border/60 py-16 text-center">
-                        <FileText className="size-10 text-muted-foreground/40" strokeWidth={1.5} />
-                        <div>
-                            <p className="text-sm font-medium">Sin series configuradas</p>
-                            <p className="text-xs text-muted-foreground">
-                                {sedeFiltro
-                                    ? 'Crea al menos una serie para esta sede antes de emitir comprobantes.'
-                                    : 'Crea una serie para cada sede y tipo de comprobante que vayas a emitir.'}
-                            </p>
+                <DataTable
+                    columns={columns}
+                    data={series}
+                    rowKey={(s) => s.id}
+                    getRowClassName={(s) => (s.activo ? '' : 'opacity-60')}
+                    mobileCard={(s) => (
+                        <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0 flex-1">
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <span className="font-mono text-base font-bold tracking-widest">
+                                        {s.serie}
+                                    </span>
+                                    {s.activo ? (
+                                        <StatBadge
+                                            label="Activa"
+                                            value=""
+                                            variant="success"
+                                        />
+                                    ) : (
+                                        <StatBadge
+                                            label="Inactiva"
+                                            value=""
+                                            variant="muted"
+                                        />
+                                    )}
+                                </div>
+                                {showSedeColumn ? (
+                                    <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                                        {s.sede_nombre || '—'}
+                                    </p>
+                                ) : null}
+                                <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                                    <TipoBadge
+                                        tipo={s.tipo_comprobante}
+                                        label={s.tipo_label}
+                                    />
+                                    <span className="font-mono text-xs tabular-nums text-muted-foreground">
+                                        Corr. {s.ultimo_correlativo.toLocaleString()}
+                                    </span>
+                                </div>
+                            </div>
+                            <SerieRowActions
+                                serie={s}
+                                canUpdate={canUpdate}
+                                canDelete={canDelete}
+                                toggling={togglingId === s.id}
+                                deleting={deletingId === s.id}
+                                onToggle={handleToggle}
+                                onDelete={handleDelete}
+                            />
                         </div>
-                        {canCreate ? (
-                            <Button
-                                size="sm"
-                                onClick={openCreateForm}
-                                className="cursor-pointer gap-2"
-                            >
-                                <Plus className="size-4" />
-                                Nueva serie
-                            </Button>
-                        ) : null}
-                    </div>
-                ) : (
-                    <div className="overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm">
-                        <table className="w-full text-sm">
-                            <thead>
-                                <tr className="border-b border-border/60 bg-muted/30">
-                                    {showSedeColumn ? (
-                                        <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                                            Sede
-                                        </th>
-                                    ) : null}
-                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                                        Tipo
-                                    </th>
-                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                                        Serie
-                                    </th>
-                                    <th className="px-4 py-3 text-right font-medium text-muted-foreground">
-                                        <span className="flex items-center justify-end gap-1">
-                                            <Hash className="size-3.5" />
-                                            Último correlativo
-                                        </span>
-                                    </th>
-                                    <th className="px-4 py-3 text-center font-medium text-muted-foreground">
-                                        Estado
-                                    </th>
-                                    <th className="px-4 py-3 text-right font-medium text-muted-foreground">
-                                        Acciones
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-border/40">
-                                {series.map((s) => (
-                                    <tr
-                                        key={s.id}
-                                        className={`transition-colors hover:bg-muted/20 ${!s.activo ? 'opacity-60' : ''}`}
+                    )}
+                    emptyState={
+                        <EmptyState
+                            icon={FileText}
+                            title="Sin series configuradas"
+                            description={
+                                sedeFiltro
+                                    ? 'Crea al menos una serie para esta sede antes de emitir comprobantes.'
+                                    : 'Crea una serie para cada sede y tipo de comprobante que vayas a emitir.'
+                            }
+                            action={
+                                canCreate ? (
+                                    <Button
+                                        size="sm"
+                                        onClick={openCreateForm}
+                                        className="cursor-pointer gap-2"
                                     >
-                                        {showSedeColumn ? (
-                                            <td className="px-4 py-3">
-                                                <span className="font-medium text-foreground">
-                                                    {s.sede_nombre}
-                                                </span>
-                                            </td>
-                                        ) : null}
-                                        <td className="px-4 py-3">
-                                            <span
-                                                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ${TIPO_COLORS[s.tipo_comprobante] ?? 'bg-muted text-muted-foreground ring-border'}`}
-                                            >
-                                                {s.tipo_label}
-                                            </span>
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            <span className="font-mono text-base font-bold tracking-widest">
-                                                {s.serie}
-                                            </span>
-                                        </td>
-                                        <td className="px-4 py-3 text-right">
-                                            <span className="inline-flex items-center gap-1.5 tabular-nums">
-                                                <RefreshCw className="size-3 text-muted-foreground/50" />
-                                                <span className="font-mono font-semibold">
-                                                    {s.ultimo_correlativo.toLocaleString()}
-                                                </span>
-                                            </span>
-                                        </td>
-                                        <td className="px-4 py-3 text-center">
-                                            {s.activo ? (
-                                                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-emerald-200">
-                                                    <CheckCircle2 className="size-3" />
-                                                    Activa
-                                                </span>
-                                            ) : (
-                                                <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground ring-1 ring-border">
-                                                    <XCircle className="size-3" />
-                                                    Inactiva
-                                                </span>
-                                            )}
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            <div className="flex items-center justify-end gap-2">
-                                                {canUpdate ? (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleToggle(s)}
-                                                        disabled={togglingId === s.id}
-                                                        title={
-                                                            s.activo
-                                                                ? 'Desactivar serie'
-                                                                : 'Activar serie'
-                                                        }
-                                                        className={`cursor-pointer rounded-md p-1.5 transition-colors ${
-                                                            s.activo
-                                                                ? 'text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700'
-                                                                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                                                        } disabled:cursor-not-allowed disabled:opacity-50`}
-                                                    >
-                                                        <Power className="size-4" />
-                                                    </button>
-                                                ) : null}
-
-                                                {canDelete && !s.tiene_documentos ? (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleDelete(s.id)}
-                                                        disabled={deletingId === s.id}
-                                                        title="Eliminar serie"
-                                                        className="cursor-pointer rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:cursor-not-allowed disabled:opacity-50"
-                                                    >
-                                                        <Trash2 className="size-4" />
-                                                    </button>
-                                                ) : null}
-
-                                                {s.tiene_documentos ? (
-                                                    <span
-                                                        title="Tiene comprobantes emitidos — no se puede eliminar"
-                                                        className="rounded-md p-1.5 text-amber-500"
-                                                    >
-                                                        <AlertTriangle className="size-4" />
-                                                    </span>
-                                                ) : null}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
+                                        <Plus className="size-4" />
+                                        Nueva serie
+                                    </Button>
+                                ) : undefined
+                            }
+                        />
+                    }
+                />
 
                 <div className="flex items-start gap-3 rounded-lg border border-border/60 bg-muted/20 p-4 text-xs text-muted-foreground">
                     <FileText className="mt-0.5 size-4 shrink-0" strokeWidth={1.5} />
