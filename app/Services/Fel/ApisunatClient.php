@@ -298,8 +298,41 @@ final class ApisunatClient
     public function extraerMensajeError(array $respuesta): string
     {
         $motivo = $this->extraerMotivoRechazo($respuesta);
+        $base = $motivo !== '' ? $motivo : 'APISUNAT rechazó el comprobante.';
 
-        return $motivo !== '' ? $motivo : 'APISUNAT rechazó el comprobante.';
+        return $this->anotarAutorizacionProduccion($base, $respuesta);
+    }
+
+    /**
+     * Lucode autentica el token y aun así rechaza si la empresa no pasó a producción.
+     * Eso no es “falta el token en VetSaaS”.
+     *
+     * @param  array<string, mixed>  $respuesta
+     */
+    private function anotarAutorizacionProduccion(string $mensaje, array $respuesta): string
+    {
+        $lower = mb_strtolower($mensaje);
+        if (
+            ! str_contains($lower, 'autorización para emitir')
+            && ! str_contains($lower, 'autorizacion para emitir')
+            && ! str_contains($lower, 'entorno de producción')
+            && ! str_contains($lower, 'entorno de produccion')
+        ) {
+            return $mensaje;
+        }
+
+        $mode = $respuesta['_vetsaas_emission_mode'] ?? null;
+        if ($mode !== 'produccion') {
+            return $mensaje;
+        }
+
+        $nota = ' El token de VetSaaS sí se envió. Lucode rechaza porque esa empresa aún no está habilitada en PRODUCCIÓN (certificado, usuario secundario y “Pasar a producción” en apisunat.com). Si todavía son pruebas, el modo debe ser Sandbox.';
+
+        if (str_contains($mensaje, 'El token de VetSaaS sí se envió')) {
+            return $mensaje;
+        }
+
+        return mb_substr($mensaje.$nota, 0, 2000);
     }
 
     /**
