@@ -14,6 +14,7 @@ use App\Models\Propietario;
 use App\Services\Clinica\PropietarioImportService;
 use App\Services\Integrations\ApiPeruDniService;
 use App\Services\Integrations\ApiPeruRucService;
+use App\Support\Clinica\PropietarioSearch;
 use App\Support\Pacientes\PacienteEspecieRazaCatalogo;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -85,14 +86,7 @@ class PropietarioController extends Controller
         ]);
 
         if ($search !== '') {
-            $query->where(function ($q) use ($search) {
-                $q->where('nombres', 'ILIKE', "%{$search}%")
-                    ->orWhere('apellidos', 'ILIKE', "%{$search}%")
-                    ->orWhere('razon_social', 'ILIKE', "%{$search}%")
-                    ->orWhere('numero_documento', 'ILIKE', "%{$search}%")
-                    ->orWhere('email', 'ILIKE', "%{$search}%")
-                    ->orWhere('telefono', 'ILIKE', "%{$search}%");
-            });
+            PropietarioSearch::apply($query, $search);
         }
 
         if ($estado === 'activo') {
@@ -282,14 +276,7 @@ class PropietarioController extends Controller
         }
 
         if ($search !== '') {
-            $query->where(function ($q) use ($search) {
-                $q->where('nombres', 'ILIKE', "%{$search}%")
-                    ->orWhere('apellidos', 'ILIKE', "%{$search}%")
-                    ->orWhere('razon_social', 'ILIKE', "%{$search}%")
-                    ->orWhere('numero_documento', 'ILIKE', "%{$search}%")
-                    ->orWhere('email', 'ILIKE', "%{$search}%")
-                    ->orWhere('telefono', 'ILIKE', "%{$search}%");
-            });
+            PropietarioSearch::apply($query, $search);
         }
 
         if ($estado === 'activo') {

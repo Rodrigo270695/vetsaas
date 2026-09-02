@@ -1,7 +1,7 @@
 {
     "title": "Owners",
     "description": "Owners and contact details. From the profile you can register their pets.",
-    "search_placeholder": "Search by name, document, email or phone…",
+    "search_placeholder": "Search by name, surname, ID, email or phone…",
     "filter_label": "Status",
     "plan_limit": {
         "max_propietarios": "You reached your plan's owner limit. Upgrade your plan to register more."

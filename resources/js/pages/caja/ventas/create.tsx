@@ -50,7 +50,7 @@ import { cn } from '@/lib/utils';
 import { useOfflineSync } from '@/hooks/use-offline-sync';
 import caja from '@/routes/caja';
 import { PosPanel } from './components/pos-panel';
-import type { ProductoBusqueda, ServicioTarifaBusqueda, VentasCreateProps } from './types';
+import type { ProductoBusqueda, PropietarioOpcion, ServicioTarifaBusqueda, VentasCreateProps } from './types';
 import { calcTotalesVenta, lineTotalFromSubtotal, lineTotalLinea } from './venta-pricing';
 
 type CartLine = {
@@ -162,6 +162,8 @@ export default function Create({
     const [servicioConcepto, setServicioConcepto] = useState('');
     const [servicioPrecio, setServicioPrecio] = useState('');
     const [propietariosLocales, setPropietariosLocales] = useState(propietariosOpciones);
+    const [qPropietario, setQPropietario] = useState('');
+    const [buscandoPropietario, setBuscandoPropietario] = useState(false);
     const [nuevoClienteOpen, setNuevoClienteOpen] = useState(false);
     const [catalogTab, setCatalogTab] = useState<'productos' | 'servicios'>('productos');
     const [productoRapidoOpen, setProductoRapidoOpen] = useState(false);
@@ -193,8 +195,47 @@ export default function Create({
     const [promoPreview, setPromoPreview] = useState<PromotionPreview | null>(null);
 
     useEffect(() => {
-        setPropietariosLocales(propietariosOpciones);
-    }, [propietariosOpciones]);
+        if (qPropietario.trim().length < 2) {
+            setPropietariosLocales(propietariosOpciones);
+        }
+    }, [propietariosOpciones, qPropietario]);
+
+    useEffect(() => {
+        const q = qPropietario.trim();
+        if (q.length < 2) {
+            return;
+        }
+
+        const tmr = window.setTimeout(() => {
+            setBuscandoPropietario(true);
+            jsonGet(
+                `/caja/ventas/buscar-propietarios?q=${encodeURIComponent(q)}`,
+            )
+                .then((raw) => {
+                    const data =
+                        (raw as { data?: PropietarioOpcion[] }).data ?? [];
+                    setPropietariosLocales((prev) => {
+                        const selected = prev.find(
+                            (row) => row.id === form.data.propietario_id,
+                        );
+                        if (
+                            selected &&
+                            !data.some((row) => row.id === selected.id)
+                        ) {
+                            return [selected, ...data];
+                        }
+
+                        return data;
+                    });
+                })
+                .catch(() => {
+                    /* se filtra en el combobox con lo ya cargado */
+                })
+                .finally(() => setBuscandoPropietario(false));
+        }, 280);
+
+        return () => window.clearTimeout(tmr);
+    }, [form.data.propietario_id, qPropietario]);
 
     const puedeEmitirBoleta  = clinica.emite_comprobantes_sunat && clinica.plan_permite_boletas;
     const puedeEmitirFactura = clinica.emite_comprobantes_sunat && clinica.plan_permite_facturas;
@@ -1035,10 +1076,14 @@ export default function Create({
                                         options={propietariosLocales.map((o) => ({
                                             value: o.id,
                                             label: o.doc ? `${o.label} • ${o.doc}` : o.label,
+                                            keywords: o.doc ?? undefined,
                                         }))}
                                         value={form.data.propietario_id || null}
                                         onChange={(v) => onPropietarioChange(v ?? '')}
+                                        onSearchChange={setQPropietario}
+                                        loading={buscandoPropietario}
                                         placeholder={t('caja:ventas.create.propietario_ph')}
+                                        searchPlaceholder={t('caja:ventas.create.propietario_search_ph')}
                                         disabled={!puede_vender || Boolean(desdeCargo)}
                                     />
                                     {form.errors.propietario_id ? (

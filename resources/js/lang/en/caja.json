@@ -364,6 +364,7 @@
             "card_cliente_desc": "Owner to bill and linked patient, if any.",
             "propietario": "Owner / bill to",
             "propietario_ph": "Select a customer…",
+            "propietario_search_ph": "Name, surname or ID…",
             "comprobante_sunat": "SUNAT voucher",
             "tipo_comprobante": "Receipt type",
             "comprobante_ticket": "Ticket",

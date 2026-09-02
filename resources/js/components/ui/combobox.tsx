@@ -20,7 +20,32 @@ import { cn } from '@/lib/utils';
 export type ComboboxOption = {
     value: string;
     label: string;
+    /** Texto extra para filtrar (p. ej. DNI) sin mostrarlo distinto del label. */
+    keywords?: string;
 };
+
+function normalizeForSearch(value: string): string {
+    return value
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/\p{M}/gu, '');
+}
+
+/** Cada palabra del buscador debe aparecer en el texto, en cualquier orden. */
+function tokenFilter(value: string, search: string): number {
+    const tokens = normalizeForSearch(search)
+        .trim()
+        .split(/\s+/)
+        .filter((token) => token.length > 0);
+
+    if (tokens.length === 0) {
+        return 1;
+    }
+
+    const hay = normalizeForSearch(value);
+
+    return tokens.every((token) => hay.includes(token)) ? 1 : 0;
+}
 
 export type ComboboxProps = {
     options: readonly ComboboxOption[];
@@ -40,6 +65,8 @@ export type ComboboxProps = {
     id?: string;
     name?: string;
     className?: string;
+    /** Se dispara al escribir en el buscador (para búsqueda remota). */
+    onSearchChange?: (query: string) => void;
     'aria-invalid'?: boolean;
     'aria-describedby'?: string;
 };
@@ -75,6 +102,7 @@ export function Combobox({
     id,
     name,
     className,
+    onSearchChange,
     'aria-invalid': ariaInvalid,
     'aria-describedby': ariaDescribedBy,
 }: ComboboxProps) {
@@ -206,11 +234,14 @@ export function Combobox({
                 onWheel={(e) => e.stopPropagation()}
                 onTouchMove={(e) => e.stopPropagation()}
             >
-                <Command>
+                <Command filter={tokenFilter}>
                     <CommandInput
                         placeholder={searchPlaceholder}
                         value={search}
-                        onValueChange={setSearch}
+                        onValueChange={(next) => {
+                            setSearch(next);
+                            onSearchChange?.(next);
+                        }}
                     />
                     <CommandList ref={listRef}>
                         <CommandEmpty>{emptyMessage}</CommandEmpty>
@@ -239,7 +270,12 @@ export function Combobox({
                             {options.map((opt) => (
                                 <CommandItem
                                     key={opt.value}
-                                    value={opt.label}
+                                    value={`${opt.label} ${opt.keywords ?? ''} ${opt.value}`}
+                                    keywords={
+                                        opt.keywords
+                                            ? [opt.keywords]
+                                            : undefined
+                                    }
                                     onSelect={() => {
                                         onChange(
                                             opt.value === value

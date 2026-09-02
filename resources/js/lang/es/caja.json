@@ -364,6 +364,7 @@
             "card_cliente_desc": "Propietario a quien se factura y paciente asociado, si aplica.",
             "propietario": "Propietario / facturar a",
             "propietario_ph": "Selecciona un cliente…",
+            "propietario_search_ph": "Nombre, apellido o DNI…",
             "comprobante_sunat": "Comprobante SUNAT",
             "tipo_comprobante": "Tipo de comprobante",
             "comprobante_ticket": "Ticket",

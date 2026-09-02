@@ -23,6 +23,7 @@ use App\Models\User;
 use App\Models\VacunaAplicada;
 use App\Models\Venta;
 use App\Services\Platform\OperacionesSnapshotService;
+use App\Support\Clinica\PropietarioSearch;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
@@ -270,19 +271,12 @@ final class InAppAssistantToolExecutor
             return ['ok' => false, 'error' => 'Módulo de propietarios no disponible.'];
         }
 
-        $like = '%'.addcslashes($q, '%_\\').'%';
-        $rows = Propietario::query()
-            ->where(function ($query) use ($like): void {
-                $query->where('nombres', 'ILIKE', $like)
-                    ->orWhere('apellidos', 'ILIKE', $like)
-                    ->orWhere('razon_social', 'ILIKE', $like)
-                    ->orWhere('documento', 'ILIKE', $like)
-                    ->orWhere('telefono', 'ILIKE', $like)
-                    ->orWhere('email', 'ILIKE', $like);
-            })
+        $query = Propietario::query();
+        PropietarioSearch::apply($query, $q);
+        $rows = $query
             ->orderBy('nombres')
             ->limit(8)
-            ->get(['id', 'nombres', 'apellidos', 'razon_social', 'telefono', 'documento']);
+            ->get(['id', 'nombres', 'apellidos', 'razon_social', 'telefono', 'numero_documento']);
 
         return [
             'ok' => true,
@@ -292,7 +286,7 @@ final class InAppAssistantToolExecutor
                 'nombre' => $p->razon_social
                     ?: trim(implode(' ', array_filter([(string) $p->nombres, (string) $p->apellidos]))),
                 'telefono' => $p->telefono,
-                'documento' => $p->documento,
+                'documento' => $p->numero_documento,
                 'url' => '/clinica/propietarios/'.$p->id,
             ])->all(),
         ];

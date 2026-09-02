@@ -15,6 +15,7 @@ use App\Models\ClinicSetting;
 use App\Models\Consulta;
 use App\Models\Departamento;
 use App\Models\Distrito;
+use App\Models\FelDocument;
 use App\Models\FelSerie;
 use App\Models\GroomingServicio;
 use App\Models\GroomingTurno;
@@ -29,7 +30,6 @@ use App\Models\VacunaAplicada;
 use App\Models\Venta;
 use App\Services\Fel\FelEmisionVentaService;
 use App\Services\Fel\FelSandboxToProduccionService;
-use App\Support\Fel\FelDocumentApisunatModeResolver;
 use App\Services\Inventario\InventarioLoteService;
 use App\Services\Venta\VentaAnulacionService;
 use App\Services\Venta\VentaCheckoutService;
@@ -37,11 +37,14 @@ use App\Services\Venta\VentaTicketPdfService;
 use App\Services\Venta\VentaWhatsAppComprobanteSender;
 use App\Support\Caja\TicketAnchoMm;
 use App\Support\Caja\VentaTicketPolicy;
+use App\Support\Clinica\PropietarioSearch;
 use App\Support\Fel\ApisunatCredentialResolver;
+use App\Support\Fel\FelDocumentApisunatModeResolver;
 use App\Support\Fel\FelReceptorResolver;
 use App\Support\Fel\FelSerieResolver;
 use App\Support\Inventario\UnidadMedidaOpciones;
 use App\Support\PlanCapabilities;
+use App\Support\Servicios\ServicioTarifaSearch;
 use App\Support\Tenancy\TenantModuleAccess;
 use App\Support\Venta\PrecuentasPendientesLister;
 use App\Support\Venta\VentaDesdeCargoPrefill;
@@ -423,10 +426,8 @@ class VentaController extends Controller
         $query->where(function ($q) use ($like, $search): void {
             $q->where('numero', 'ILIKE', $like)
                 ->orWhereHas('felDocument', fn ($fq) => $fq->where('numero_completo', 'ILIKE', $like))
-                ->orWhereHas('propietario', function ($q2) use ($like): void {
-                    $q2->where('nombres', 'ILIKE', $like)
-                        ->orWhere('apellidos', 'ILIKE', $like)
-                        ->orWhere('razon_social', 'ILIKE', $like);
+                ->orWhereHas('propietario', function ($q2) use ($search): void {
+                    PropietarioSearch::apply($q2, $search);
                 });
             if (preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $search) === 1) {
                 $q->orWhere('id', $search);
@@ -448,16 +449,7 @@ class VentaController extends Controller
         $clinic = ClinicSetting::current();
         $tenantModel = $tenants->current()?->tenant;
 
-        $propietarios = Propietario::query()
-            ->where('activo', true)
-            ->orderByDesc('updated_at')
-            ->limit(120)
-            ->get(['id', 'nombres', 'apellidos', 'razon_social', 'numero_documento'])
-            ->map(fn (Propietario $pr): array => [
-                'id' => $pr->id,
-                'label' => $pr->razon_social ?: trim(implode(' ', array_filter([$pr->nombres, $pr->apellidos]))),
-                'doc' => $pr->numero_documento,
-            ]);
+        $propietarios = PropietarioSearch::opcionesActivas('', 120);
 
         return Inertia::render('caja/ventas/create', $this->buildCreatePayload($miSesion, $sedeNombre, $clinic, $tenantModel, $propietarios));
     }
@@ -511,16 +503,7 @@ class VentaController extends Controller
         $clinic = ClinicSetting::current();
         $tenantModel = $tenants->current()?->tenant;
 
-        $propietarios = Propietario::query()
-            ->where('activo', true)
-            ->orderByDesc('updated_at')
-            ->limit(120)
-            ->get(['id', 'nombres', 'apellidos', 'razon_social', 'numero_documento'])
-            ->map(fn (Propietario $pr): array => [
-                'id' => $pr->id,
-                'label' => $pr->razon_social ?: trim(implode(' ', array_filter([$pr->nombres, $pr->apellidos]))),
-                'doc' => $pr->numero_documento,
-            ]);
+        $propietarios = PropietarioSearch::opcionesActivas('', 120);
 
         return Inertia::render('caja/ventas/create', [
             ...$this->buildCreatePayload($miSesion, $sedeNombre, $clinic, $tenantModel, $propietarios),
@@ -556,16 +539,7 @@ class VentaController extends Controller
         $clinic = ClinicSetting::current();
         $tenantModel = $tenants->current()?->tenant;
 
-        $propietarios = Propietario::query()
-            ->where('activo', true)
-            ->orderByDesc('updated_at')
-            ->limit(120)
-            ->get(['id', 'nombres', 'apellidos', 'razon_social', 'numero_documento'])
-            ->map(fn (Propietario $pr): array => [
-                'id' => $pr->id,
-                'label' => $pr->razon_social ?: trim(implode(' ', array_filter([$pr->nombres, $pr->apellidos]))),
-                'doc' => $pr->numero_documento,
-            ]);
+        $propietarios = PropietarioSearch::opcionesActivas('', 120);
 
         return Inertia::render('caja/ventas/create', [
             ...$this->buildCreatePayload($miSesion, $sedeNombre, $clinic, $tenantModel, $propietarios),
@@ -603,16 +577,7 @@ class VentaController extends Controller
         $clinic = ClinicSetting::current();
         $tenantModel = $tenants->current()?->tenant;
 
-        $propietarios = Propietario::query()
-            ->where('activo', true)
-            ->orderByDesc('updated_at')
-            ->limit(120)
-            ->get(['id', 'nombres', 'apellidos', 'razon_social', 'numero_documento'])
-            ->map(fn (Propietario $pr): array => [
-                'id' => $pr->id,
-                'label' => $pr->razon_social ?: trim(implode(' ', array_filter([$pr->nombres, $pr->apellidos]))),
-                'doc' => $pr->numero_documento,
-            ]);
+        $propietarios = PropietarioSearch::opcionesActivas('', 120);
 
         return Inertia::render('caja/ventas/create', [
             ...$this->buildCreatePayload($miSesion, $sedeNombre, $clinic, $tenantModel, $propietarios),
@@ -670,16 +635,7 @@ class VentaController extends Controller
         $clinic = ClinicSetting::current();
         $tenantModel = $tenants->current()?->tenant;
 
-        $propietarios = Propietario::query()
-            ->where('activo', true)
-            ->orderByDesc('updated_at')
-            ->limit(120)
-            ->get(['id', 'nombres', 'apellidos', 'razon_social', 'numero_documento'])
-            ->map(fn (Propietario $pr): array => [
-                'id' => $pr->id,
-                'label' => $pr->razon_social ?: trim(implode(' ', array_filter([$pr->nombres, $pr->apellidos]))),
-                'doc' => $pr->numero_documento,
-            ]);
+        $propietarios = PropietarioSearch::opcionesActivas('', 120);
 
         return Inertia::render('caja/ventas/create', [
             ...$this->buildCreatePayload($miSesion, $sedeNombre, $clinic, $tenantModel, $propietarios),
@@ -726,16 +682,7 @@ class VentaController extends Controller
         $clinic = ClinicSetting::current();
         $tenantModel = $tenants->current()?->tenant;
 
-        $propietarios = Propietario::query()
-            ->where('activo', true)
-            ->orderByDesc('updated_at')
-            ->limit(120)
-            ->get(['id', 'nombres', 'apellidos', 'razon_social', 'numero_documento'])
-            ->map(fn (Propietario $pr): array => [
-                'id' => $pr->id,
-                'label' => $pr->razon_social ?: trim(implode(' ', array_filter([$pr->nombres, $pr->apellidos]))),
-                'doc' => $pr->numero_documento,
-            ]);
+        $propietarios = PropietarioSearch::opcionesActivas('', 120);
 
         return Inertia::render('caja/ventas/create', [
             ...$this->buildCreatePayload($miSesion, $sedeNombre, $clinic, $tenantModel, $propietarios),
@@ -820,16 +767,7 @@ class VentaController extends Controller
         $clinic = ClinicSetting::current();
         $tenantModel = $tenants->current()?->tenant;
 
-        $propietarios = Propietario::query()
-            ->where('activo', true)
-            ->orderByDesc('updated_at')
-            ->limit(120)
-            ->get(['id', 'nombres', 'apellidos', 'razon_social', 'numero_documento'])
-            ->map(fn (Propietario $pr): array => [
-                'id' => $pr->id,
-                'label' => $pr->razon_social ?: trim(implode(' ', array_filter([$pr->nombres, $pr->apellidos]))),
-                'doc' => $pr->numero_documento,
-            ]);
+        $propietarios = PropietarioSearch::opcionesActivas('', 120);
 
         return Inertia::render('caja/ventas/create', [
             ...$this->buildCreatePayload($miSesion, $sedeNombre, $clinic, $tenantModel, $propietarios),
@@ -865,7 +803,7 @@ class VentaController extends Controller
             ? FelDocumentApisunatModeResolver::resolveAndPersist($felDoc)
             : null;
         $esSandboxFel = $felDoc !== null
-            && $felDoc->estado === \App\Models\FelDocument::ESTADO_EMITIDO
+            && $felDoc->estado === FelDocument::ESTADO_EMITIDO
             && $felMode === 'sandbox';
         $conversionEstado = $felDoc !== null
             ? $sandboxProd->estadoConversion($felDoc, $clinic)
@@ -1391,6 +1329,15 @@ class VentaController extends Controller
         return response()->json(['data' => $rows]);
     }
 
+    public function buscarPropietarios(Request $request): JsonResponse
+    {
+        $q = trim((string) $request->string('q', ''));
+
+        return response()->json([
+            'data' => PropietarioSearch::opcionesActivas($q, 40),
+        ]);
+    }
+
     /**
      * Pre-cuentas confirmadas pendientes de cobro (consulta / grooming / hotel / hospitalización).
      */
@@ -1473,7 +1420,7 @@ class VentaController extends Controller
         $q = trim((string) $request->string('q', ''));
 
         return response()->json([
-            'data' => \App\Support\Servicios\ServicioTarifaSearch::search($q),
+            'data' => ServicioTarifaSearch::search($q),
         ]);
     }
 
