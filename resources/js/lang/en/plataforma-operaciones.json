@@ -112,10 +112,15 @@
         "expiring": "Expiring ({{days}} d)",
         "expired_n": "Expired",
         "columns": {
+            "status": "Status",
             "name": "Certificate",
             "days": "Days",
             "expiry": "Expires"
         },
+        "light_ok": "Green: valid",
+        "light_warn": "Amber: expiring soon (≤ {{days}} d)",
+        "light_danger": "Red: expired or critical (≤ {{days}} d)",
+        "renew_note": "No web renew button: certbot needs root and the wildcard uses DNS (Cloudflare). The VPS timer already renews twice daily. If a cert stays red, check Let’s Encrypt logs on the server.",
         "cron_hint": "On the VPS (root): 5 * * * * /var/www/vetsaas/scripts/vetsaas-ssl-status.sh"
     },
     "whatsapp": {

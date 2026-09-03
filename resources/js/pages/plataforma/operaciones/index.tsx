@@ -23,6 +23,7 @@ import { useTranslation } from 'react-i18next';
 import { PageHeader, StatBadge } from '@/components/data-page';
 import { Button } from '@/components/ui/button';
 import { useAutoRefresh } from '@/hooks/use-auto-refresh';
+import { cn } from '@/lib/utils';
 import { usePermission } from '@/hooks/use-permission';
 import AppLayout from '@/layouts/app-layout';
 import { SectionCard } from '@/pages/configuracion/general/components/section-card';
@@ -195,6 +196,57 @@ const formatBytes = (bytes: number): string => {
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
+
+type SslLight = 'ok' | 'warn' | 'danger';
+
+const sslLight = (
+    daysLeft: number | null,
+    valid: boolean,
+    warnDays: number,
+    criticalDays: number,
+): SslLight => {
+    if (!valid || daysLeft === null || daysLeft < 0 || daysLeft <= criticalDays) {
+        return 'danger';
+    }
+    if (daysLeft <= warnDays) {
+        return 'warn';
+    }
+    return 'ok';
+};
+
+function SslSemaphore({
+    level,
+    label,
+}: {
+    level: SslLight;
+    label: string;
+}) {
+    const slots: SslLight[] = ['ok', 'warn', 'danger'];
+    const lit: Record<SslLight, string> = {
+        ok: 'bg-emerald-500 shadow-[0_0_6px] shadow-emerald-500/80',
+        warn: 'bg-amber-400 shadow-[0_0_6px] shadow-amber-400/80',
+        danger: 'bg-red-500 shadow-[0_0_6px] shadow-red-500/80',
+    };
+
+    return (
+        <div
+            className="inline-flex items-center gap-0.5 rounded-full bg-muted/80 px-1 py-0.5"
+            role="img"
+            aria-label={label}
+            title={label}
+        >
+            {slots.map((slot) => (
+                <span
+                    key={slot}
+                    className={cn(
+                        'size-2 rounded-full',
+                        slot === level ? lit[slot] : 'bg-muted-foreground/20',
+                    )}
+                />
+            ))}
+        </div>
+    );
+}
 
 function CredentialPill({
     ok,
@@ -993,6 +1045,9 @@ export default function Index({ snapshot, can_manage }: Props) {
                                         <thead>
                                             <tr className="border-b text-muted-foreground">
                                                 <th className="py-1.5 pr-2 font-medium">
+                                                    {t('ssl.columns.status')}
+                                                </th>
+                                                <th className="py-1.5 pr-2 font-medium">
                                                     {t('ssl.columns.name')}
                                                 </th>
                                                 <th className="py-1.5 pr-2 font-medium">
@@ -1004,34 +1059,84 @@ export default function Index({ snapshot, can_manage }: Props) {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {snapshot.ssl.certs.map((cert) => (
-                                                <tr
-                                                    key={cert.name}
-                                                    className="border-b border-border/40 last:border-0"
-                                                >
-                                                    <td className="py-1.5 pr-2 font-medium">
-                                                        {cert.name}
-                                                        {cert.watch ? (
-                                                            <span className="ml-1 text-[10px] text-primary">
-                                                                ●
-                                                            </span>
-                                                        ) : null}
-                                                    </td>
-                                                    <td className="py-1.5 pr-2 tabular-nums">
-                                                        {cert.days_left ?? '—'}
-                                                    </td>
-                                                    <td className="py-1.5 text-muted-foreground">
-                                                        {cert.expiry
-                                                            ? formatWhen(
-                                                                  cert.expiry,
-                                                              )
-                                                            : '—'}
-                                                    </td>
-                                                </tr>
-                                            ))}
+                                            {snapshot.ssl.certs.map((cert) => {
+                                                const light = sslLight(
+                                                    cert.days_left,
+                                                    cert.valid,
+                                                    snapshot.ssl.warn_days,
+                                                    snapshot.ssl.critical_days,
+                                                );
+                                                const lightLabel =
+                                                    light === 'ok'
+                                                        ? t('ssl.light_ok')
+                                                        : light === 'warn'
+                                                          ? t('ssl.light_warn', {
+                                                                days: snapshot
+                                                                    .ssl
+                                                                    .warn_days,
+                                                            })
+                                                          : t(
+                                                                'ssl.light_danger',
+                                                                {
+                                                                    days: snapshot
+                                                                        .ssl
+                                                                        .critical_days,
+                                                                },
+                                                            );
+
+                                                return (
+                                                    <tr
+                                                        key={cert.name}
+                                                        className="border-b border-border/40 last:border-0"
+                                                    >
+                                                        <td className="py-1.5 pr-2">
+                                                            <SslSemaphore
+                                                                level={light}
+                                                                label={
+                                                                    lightLabel
+                                                                }
+                                                            />
+                                                        </td>
+                                                        <td className="py-1.5 pr-2 font-medium">
+                                                            {cert.name}
+                                                            {cert.watch ? (
+                                                                <span className="ml-1 text-[10px] text-primary">
+                                                                    ●
+                                                                </span>
+                                                            ) : null}
+                                                        </td>
+                                                        <td
+                                                            className={cn(
+                                                                'py-1.5 pr-2 tabular-nums font-medium',
+                                                                light === 'ok' &&
+                                                                    'text-emerald-600 dark:text-emerald-400',
+                                                                light ===
+                                                                    'warn' &&
+                                                                    'text-amber-600 dark:text-amber-400',
+                                                                light ===
+                                                                    'danger' &&
+                                                                    'text-destructive',
+                                                            )}
+                                                        >
+                                                            {cert.days_left ??
+                                                                '—'}
+                                                        </td>
+                                                        <td className="py-1.5 text-muted-foreground">
+                                                            {cert.expiry
+                                                                ? formatWhen(
+                                                                      cert.expiry,
+                                                                  )
+                                                                : '—'}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
                                         </tbody>
                                     </table>
                                 </div>
+                                <p className="mt-3 text-xs text-muted-foreground">
+                                    {t('ssl.renew_note')}
+                                </p>
                             </>
                         )}
                     </SectionCard>

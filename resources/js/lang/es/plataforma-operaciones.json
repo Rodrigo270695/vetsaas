@@ -112,10 +112,15 @@
         "expiring": "Por vencer ({{days}} d)",
         "expired_n": "Vencidos",
         "columns": {
+            "status": "Estado",
             "name": "Certificado",
             "days": "Días",
             "expiry": "Vence"
         },
+        "light_ok": "Verde: vigente",
+        "light_warn": "Ámbar: por vencer (≤ {{days}} d)",
+        "light_danger": "Rojo: vencido o crítico (≤ {{days}} d)",
+        "renew_note": "No hay botón de renovar desde la web: certbot necesita root y el wildcard usa DNS (Cloudflare). El timer del VPS ya renueva dos veces al día. Si un cert queda en rojo, hay que ver el log de Let’s Encrypt en el servidor.",
         "cron_hint": "En el VPS (root): 5 * * * * /var/www/vetsaas/scripts/vetsaas-ssl-status.sh"
     },
     "whatsapp": {
