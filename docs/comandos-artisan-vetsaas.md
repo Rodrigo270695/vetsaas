@@ -43,6 +43,7 @@ Recuperación de una clínica: `vetsaas:tenant-restore {slug} --force` (exige du
 | **WhatsApp / notificaciones clínicas** | `whatsapp-sync-sessions`, `reminders-scan`, `notifications-dispatch`, `clinic-bot-register-webhooks` |
 | **Bot de ventas / leads** | `salesbot:*`, `reactivate-cold-leads`, `import-leads`, `import-leads-from-openwa`, `resolve-lid-leads`, `sync-bot-knowledge` |
 | **Demo / mantenimiento** | `reset-demo`, `geo-fix-encoding`, `nubefact-diagnose`, `test-password-reset-mail` |
+| **SSL (VPS, no Artisan)** | `certbot renew` — ver sección abajo y `docs/ssl-vps.md` |
 
 ---
 
@@ -55,6 +56,7 @@ Recuperación de una clínica: `vetsaas:tenant-restore {slug} --force` (exige du
 | Reactivar lead frío (uno) | Icono ✉ en la fila |
 | Importar CSV de leads | Botón **Importar CSV** |
 | Estado de backups / «Correr ahora» | **Plataforma → Operaciones** |
+| Certificados SSL (semáforo) | **Plataforma → Operaciones** |
 | Sesiones WhatsApp clínicas | **Plataforma → Operaciones** (radar OpenWA) |
 
 Los comandos de abajo son el **plan B** (SSH, scripts, recuperación).
@@ -568,6 +570,28 @@ Cron del VPS:
 
 ---
 
+## SSL (Let’s Encrypt) — no es Artisan
+
+Se renueva **solo** (`certbot.timer`, 2× al día, ~30 días antes de vencer). Entrá al VPS solo si el semáforo está en rojo. Guía completa: `docs/ssl-vps.md`.
+
+Renovar un cert concreto (ejemplo **miboda**, ya dentro de la ventana de 30 días):
+
+```bash
+sudo certbot renew --cert-name miboda.orvae.pe
+sudo nginx -t && sudo systemctl reload nginx
+sudo /var/www/vetsaas/scripts/vetsaas-ssl-status.sh
+```
+
+Con `--force-renewal` si hace falta forzar (no uses esto en verde):
+
+```bash
+sudo certbot renew --cert-name miboda.orvae.pe --force-renewal
+```
+
+Wildcard VetSaaS (`*.vetsaas.orvae.pe`): no uses este comando si el `.conf` tiene `authenticator = nginx`. Usá DNS-01 en `docs/ssl-vps.md`.
+
+---
+
 ## Mantenimiento post-deploy
 
 ```bash
@@ -651,4 +675,4 @@ php artisan vetsaas:whatsapp-sync-sessions
 
 ---
 
-*Última actualización: julio 2026 — inventario completo `vetsaas:*` / `salesbot:*` (incluye `tenant-restore`, backups, migraciones tenant).*
+*Última actualización: septiembre 2026 — inventario `vetsaas:*` / `salesbot:*` + SSL Certbot en VPS.*
