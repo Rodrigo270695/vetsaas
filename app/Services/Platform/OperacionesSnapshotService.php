@@ -30,6 +30,7 @@ final class OperacionesSnapshotService
         private readonly DatabaseBackupService $backups,
         private readonly PresenceSnapshotService $presence,
         private readonly ClinicBotWebhookTrafficGuard $clinicBotTraffic,
+        private readonly SslCertsStatusService $sslCerts,
     ) {}
 
     /**
@@ -51,6 +52,7 @@ final class OperacionesSnapshotService
             'whatsapp' => $this->whatsappRadar(),
             'presence' => $this->presence->build(),
             'backups' => $this->backups->status(),
+            'ssl' => $this->sslCerts->status(),
             'subscriptions' => $this->subscriptionSignals($now),
             'cobros' => $this->cobrosSignals($now),
             'failed_jobs' => $this->failedJobs(),

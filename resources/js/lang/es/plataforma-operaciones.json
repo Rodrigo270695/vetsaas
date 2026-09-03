@@ -98,6 +98,26 @@
         "remote_path": "Ruta remota",
         "remote_files": "Archivos remotos"
     },
+    "ssl": {
+        "title": "Certificados SSL",
+        "description": "Let’s Encrypt del VPS. El wildcard de VetSaaS cubre todas las clínicas. No borra datos: si vence, el navegador bloquea el acceso.",
+        "ok": "Todo vigente",
+        "warn": "Por vencer",
+        "expired": "Vencido",
+        "missing": "Sin inventario (cron root)",
+        "stale": "Inventario atrasado",
+        "watch": "VetSaaS wildcard",
+        "watch_ok": "Activo",
+        "watch_bad": "En riesgo",
+        "expiring": "Por vencer ({{days}} d)",
+        "expired_n": "Vencidos",
+        "columns": {
+            "name": "Certificado",
+            "days": "Días",
+            "expiry": "Vence"
+        },
+        "cron_hint": "En el VPS (root): 5 * * * * /var/www/vetsaas/scripts/vetsaas-ssl-status.sh"
+    },
     "whatsapp": {
         "title": "WhatsApp",
         "description": "Sesión de plataforma y clínicas con OpenWA.",

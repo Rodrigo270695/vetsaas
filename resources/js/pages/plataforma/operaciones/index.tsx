@@ -12,6 +12,7 @@ import {
     RefreshCw,
     Repeat,
     Server,
+    Shield,
     Store,
     Users,
     Wallet,
@@ -130,6 +131,27 @@ type Snapshot = {
         remote_files: number;
         remote_configured: boolean;
     };
+    ssl: {
+        ok: boolean | null;
+        missing: boolean;
+        stale: boolean;
+        generated_at: string | null;
+        age_hours: number | null;
+        warn_days: number;
+        critical_days: number;
+        watch_name: string;
+        watch_ok: boolean;
+        expiring: number;
+        expired: number;
+        certs: Array<{
+            name: string;
+            domains: string[];
+            expiry: string | null;
+            days_left: number | null;
+            valid: boolean;
+            watch: boolean;
+        }>;
+    };
     subscriptions: {
         grace: number;
         suspended: number;
@@ -221,6 +243,7 @@ export default function Index({ snapshot, can_manage }: Props) {
         n += snapshot.cobros.fallidos_7d;
         n += snapshot.failed_jobs.total;
         if (snapshot.backups.stale || snapshot.backups.ok === false) n += 1;
+        if (!snapshot.ssl.missing && (snapshot.ssl.expired > 0 || !snapshot.ssl.watch_ok)) n += 1;
         if (snapshot.performance.status !== 'ok') n += 1;
         return n;
     }, [snapshot]);
@@ -889,6 +912,128 @@ export default function Index({ snapshot, can_manage }: Props) {
                                 {formatWhen(snapshot.backups.finished_at)}
                             </p>
                         ) : null}
+                    </SectionCard>
+
+                    <SectionCard
+                        title={t('ssl.title')}
+                        description={t('ssl.description')}
+                        icon={Shield}
+                        badge={
+                            <div className="flex flex-wrap items-center gap-2">
+                                <StatBadge
+                                    label={
+                                        snapshot.ssl.missing
+                                            ? t('ssl.missing')
+                                            : snapshot.ssl.expired > 0
+                                              ? t('ssl.expired')
+                                              : snapshot.ssl.stale
+                                                ? t('ssl.stale')
+                                                : snapshot.ssl.expiring > 0
+                                                  ? t('ssl.warn')
+                                                  : t('ssl.ok')
+                                    }
+                                    value=""
+                                    variant={
+                                        snapshot.ssl.missing ||
+                                        snapshot.ssl.expired > 0 ||
+                                        !snapshot.ssl.watch_ok
+                                            ? 'danger'
+                                            : snapshot.ssl.expiring > 0 ||
+                                                snapshot.ssl.stale
+                                              ? 'warning'
+                                              : 'success'
+                                    }
+                                />
+                                <StatBadge
+                                    label={t('ssl.watch')}
+                                    value={
+                                        snapshot.ssl.watch_ok
+                                            ? t('ssl.watch_ok')
+                                            : t('ssl.watch_bad')
+                                    }
+                                    variant={
+                                        snapshot.ssl.watch_ok
+                                            ? 'success'
+                                            : 'danger'
+                                    }
+                                />
+                            </div>
+                        }
+                    >
+                        {snapshot.ssl.missing ? (
+                            <p className="text-xs text-muted-foreground">
+                                {t('ssl.cron_hint')}
+                            </p>
+                        ) : (
+                            <>
+                                <div className="mb-3 flex flex-wrap gap-2">
+                                    <StatBadge
+                                        label={t('ssl.expiring', {
+                                            days: snapshot.ssl.warn_days,
+                                        })}
+                                        value={snapshot.ssl.expiring}
+                                        variant={
+                                            snapshot.ssl.expiring > 0
+                                                ? 'warning'
+                                                : 'muted'
+                                        }
+                                    />
+                                    <StatBadge
+                                        label={t('ssl.expired_n')}
+                                        value={snapshot.ssl.expired}
+                                        variant={
+                                            snapshot.ssl.expired > 0
+                                                ? 'danger'
+                                                : 'muted'
+                                        }
+                                    />
+                                </div>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full min-w-0 text-left text-xs">
+                                        <thead>
+                                            <tr className="border-b text-muted-foreground">
+                                                <th className="py-1.5 pr-2 font-medium">
+                                                    {t('ssl.columns.name')}
+                                                </th>
+                                                <th className="py-1.5 pr-2 font-medium">
+                                                    {t('ssl.columns.days')}
+                                                </th>
+                                                <th className="py-1.5 font-medium">
+                                                    {t('ssl.columns.expiry')}
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {snapshot.ssl.certs.map((cert) => (
+                                                <tr
+                                                    key={cert.name}
+                                                    className="border-b border-border/40 last:border-0"
+                                                >
+                                                    <td className="py-1.5 pr-2 font-medium">
+                                                        {cert.name}
+                                                        {cert.watch ? (
+                                                            <span className="ml-1 text-[10px] text-primary">
+                                                                ●
+                                                            </span>
+                                                        ) : null}
+                                                    </td>
+                                                    <td className="py-1.5 pr-2 tabular-nums">
+                                                        {cert.days_left ?? '—'}
+                                                    </td>
+                                                    <td className="py-1.5 text-muted-foreground">
+                                                        {cert.expiry
+                                                            ? formatWhen(
+                                                                  cert.expiry,
+                                                              )
+                                                            : '—'}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </>
+                        )}
                     </SectionCard>
 
                     <SectionCard

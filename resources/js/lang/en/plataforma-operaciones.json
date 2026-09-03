@@ -98,6 +98,26 @@
         "remote_path": "Remote path",
         "remote_files": "Remote files"
     },
+    "ssl": {
+        "title": "SSL certificates",
+        "description": "Let’s Encrypt on this VPS. The VetSaaS wildcard covers all clinics. Expiry does not delete data; browsers just block access.",
+        "ok": "All valid",
+        "warn": "Expiring soon",
+        "expired": "Expired",
+        "missing": "No inventory (root cron)",
+        "stale": "Inventory stale",
+        "watch": "VetSaaS wildcard",
+        "watch_ok": "Healthy",
+        "watch_bad": "At risk",
+        "expiring": "Expiring ({{days}} d)",
+        "expired_n": "Expired",
+        "columns": {
+            "name": "Certificate",
+            "days": "Days",
+            "expiry": "Expires"
+        },
+        "cron_hint": "On the VPS (root): 5 * * * * /var/www/vetsaas/scripts/vetsaas-ssl-status.sh"
+    },
     "whatsapp": {
         "title": "WhatsApp",
         "description": "Platform session and clinic OpenWA status.",
