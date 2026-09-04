@@ -195,7 +195,7 @@ final class AgendaOwnerRsvpService
      */
     private function pendingSlots(array $pacienteIds, bool $onlyUnconfirmed = false): array
     {
-        $from = now()->subHours(2);
+        $from = now()->subHours(24);
         $slots = [];
         $citaEstados = $onlyUnconfirmed
             ? [Cita::ESTADO_PROGRAMADA]

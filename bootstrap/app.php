@@ -144,7 +144,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('vetsaas:subscription-renewal-reminders')->dailyAt('09:00');
         $schedule->command('vetsaas:reminders-scan')->everyFiveMinutes();
         $schedule->command('vetsaas:notifications-dispatch')->everyFiveMinutes();
-        $schedule->command('vetsaas:agenda-rsvp-poll-inbox')->everyMinute();
+        $schedule->command('vetsaas:agenda-rsvp-poll-inbox')->everyFiveMinutes();
         $schedule->command('vetsaas:fel-sync-statuses --limit=100')->everyFiveMinutes();
         $schedule->command('vetsaas:whatsapp-sync-sessions')->everyFiveMinutes();
         $schedule->command('vetsaas:backup-database')->dailyAt('02:00');

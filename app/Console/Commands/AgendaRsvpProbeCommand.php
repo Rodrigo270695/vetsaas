@@ -63,11 +63,11 @@ class AgendaRsvpProbeCommand extends Command
             $citas = Cita::query()
                 ->whereIn('paciente_id', $pacienteIds)
                 ->whereIn('estado', [Cita::ESTADO_PROGRAMADA, Cita::ESTADO_CONFIRMADA])
-                ->where('inicio_at', '>=', now()->subHours(2))
+                ->where('inicio_at', '>=', now()->subHours(24))
                 ->orderBy('inicio_at')
                 ->get(['id', 'inicio_at', 'estado', 'motivo']);
 
-            $this->line('  citas próximas (programada/confirmada): '.$citas->count());
+            $this->line('  citas próximas 24h (programada/confirmada): '.$citas->count());
             foreach ($citas as $cita) {
                 $this->line(sprintf(
                     '    - %s  %s  %s  %s',
@@ -81,14 +81,30 @@ class AgendaRsvpProbeCommand extends Command
             $grooming = GroomingTurno::query()
                 ->whereIn('paciente_id', $pacienteIds)
                 ->whereIn('estado', [GroomingTurno::ESTADO_PROGRAMADA, GroomingTurno::ESTADO_CONFIRMADA])
-                ->where('inicio_at', '>=', now()->subHours(2))
+                ->where('inicio_at', '>=', now()->subHours(24))
                 ->count();
             $hotel = HotelEstancia::query()
                 ->whereIn('paciente_id', $pacienteIds)
                 ->whereIn('estado', [HotelEstancia::ESTADO_PROGRAMADA, HotelEstancia::ESTADO_CONFIRMADA])
-                ->where('ingreso_at', '>=', now()->subHours(2))
+                ->where('ingreso_at', '>=', now()->subHours(24))
                 ->count();
             $this->line("  grooming pendientes: {$grooming}  hotel pendientes: {$hotel}");
+
+            $historial = Cita::query()
+                ->whereIn('paciente_id', $pacienteIds)
+                ->orderByDesc('inicio_at')
+                ->limit(8)
+                ->get(['id', 'inicio_at', 'estado', 'motivo']);
+            $this->line('  últimas citas (cualquier estado): '.$historial->count());
+            foreach ($historial as $cita) {
+                $this->line(sprintf(
+                    '    · %s  %s  %s  %s',
+                    $cita->inicio_at?->timezone((string) config('app.timezone'))->format('d/m/Y H:i'),
+                    $cita->estado,
+                    $cita->id,
+                    (string) ($cita->motivo ?? ''),
+                ));
+            }
 
             if (! $apply) {
                 $this->comment('  (sin --apply: no se cambia estado)');
