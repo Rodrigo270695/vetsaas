@@ -138,24 +138,37 @@ final class OpenWaClient
     }
 
     /**
-     * Lectura live desde WhatsApp (el DB local a veces no guarda el SI inbound).
+     * Mensajes persistidos en OpenWA (este motor no implementa getChatHistory).
      *
      * @return list<array<string, mixed>>
      */
     public function listChatMessagesLive(string $sessionId, string $chatId, int $limit = 20): array
     {
-        $limit = max(1, min(50, $limit));
-        $encoded = rawurlencode($chatId);
+        return $this->listChatMessages($sessionId, $chatId, $limit);
+    }
 
-        $live = $this->unwrapMessageList($this->request(
-            'get',
-            '/api/sessions/'.$sessionId.'/messages/'.$encoded.'/history?limit='.$limit,
-        ));
-        if ($live !== []) {
-            return $live;
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function listRecentMessages(string $sessionId, int $limit = 80): array
+    {
+        $limit = max(1, min(200, $limit));
+
+        foreach ([
+            '/api/sessions/'.$sessionId.'/messages?fromMe=false&limit='.$limit,
+            '/api/sessions/'.$sessionId.'/messages?limit='.$limit,
+        ] as $path) {
+            try {
+                $rows = $this->unwrapMessageList($this->request('get', $path));
+            } catch (\Throwable) {
+                continue;
+            }
+            if ($rows !== []) {
+                return $rows;
+            }
         }
 
-        return $this->listChatMessages($sessionId, $chatId, $limit);
+        return [];
     }
 
     /**
@@ -172,7 +185,7 @@ final class OpenWaClient
     }
 
     /**
-     * Historial persistido o, si viene vacío, lectura live desde WhatsApp.
+     * Historial persistido en la BD de OpenWA. No usa /history (501 en Baileys).
      *
      * @return list<array<string, mixed>>
      */
@@ -181,17 +194,9 @@ final class OpenWaClient
         $limit = max(1, min(50, $limit));
         $encoded = rawurlencode($chatId);
 
-        $stored = $this->unwrapMessageList($this->request(
-            'get',
-            '/api/sessions/'.$sessionId.'/messages?chatId='.$encoded.'&limit='.$limit,
-        ));
-        if ($stored !== []) {
-            return $stored;
-        }
-
         return $this->unwrapMessageList($this->request(
             'get',
-            '/api/sessions/'.$sessionId.'/messages/'.$encoded.'/history?limit='.$limit,
+            '/api/sessions/'.$sessionId.'/messages?chatId='.$encoded.'&limit='.$limit,
         ));
     }
 

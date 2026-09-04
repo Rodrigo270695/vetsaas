@@ -50,6 +50,9 @@ final class AgendaRsvpInboxPoller
             return $stats;
         }
 
+        $sessionWide = $this->pollSessionWide($sessionId, $dryRun, $trace);
+        $stats['applied'] += $sessionWide;
+
         foreach ($this->recentRsvpChatIds($sessionId) as $chatId) {
             $stats['chats']++;
             $applied = $this->pollChat($sessionId, $chatId, $dryRun, $trace);
@@ -100,7 +103,7 @@ final class AgendaRsvpInboxPoller
         try {
             foreach ($this->client->listSessionChats($sessionId, 80) as $chat) {
                 $id = (string) ($chat['id'] ?? $chat['chatId'] ?? $chat['jid'] ?? '');
-                if ($id === '' || str_ends_with(strtolower($id), '@g.us')) {
+                if ($id === '' || str_contains($id, 'status@') || str_contains($id, '@broadcast') || str_ends_with(strtolower($id), '@g.us')) {
                     continue;
                 }
                 $unread = (int) ($chat['unreadCount'] ?? $chat['unread'] ?? 0);
@@ -122,13 +125,70 @@ final class AgendaRsvpInboxPoller
     /**
      * @param  (callable(string, int, ?string): void)|null  $trace
      */
+    private function pollSessionWide(string $sessionId, bool $dryRun, ?callable $trace): int
+    {
+        try {
+            $messages = $this->client->listRecentMessages($sessionId, 120);
+        } catch (\Throwable $e) {
+            $trace && $trace('(sesion)', 0, 'error: '.$e->getMessage());
+
+            return 0;
+        }
+
+        $sample = null;
+        foreach (array_reverse($messages) as $message) {
+            $text = OpenWaInboundRsvpPicker::text($message);
+            if ($text !== '') {
+                $sample = mb_substr($text, 0, 80);
+                break;
+            }
+        }
+        $trace && $trace('(sesion DB)', count($messages), $sample);
+
+        $byChat = [];
+        foreach ($messages as $message) {
+            $chatId = $this->chatIdFromMessage($message);
+            if ($chatId === '' || str_contains($chatId, 'status@') || str_contains($chatId, '@broadcast')) {
+                continue;
+            }
+            $byChat[$chatId][] = $message;
+        }
+
+        $applied = 0;
+        foreach ($byChat as $chatId => $rows) {
+            if ($this->applyLatestRsvp($sessionId, $chatId, $rows, $dryRun)) {
+                $applied++;
+            }
+        }
+
+        return $applied;
+    }
+
+    /**
+     * @param  array<string, mixed>  $message
+     */
+    private function chatIdFromMessage(array $message): string
+    {
+        $key = is_array($message['key'] ?? null) ? $message['key'] : [];
+        foreach (['chatId', 'from', 'remoteJid'] as $field) {
+            $value = $message[$field] ?? $key[$field] ?? null;
+            if (is_string($value) && $value !== '') {
+                return $value;
+            }
+        }
+
+        $remote = $key['remoteJid'] ?? null;
+
+        return is_string($remote) ? $remote : '';
+    }
+
+    /**
+     * @param  (callable(string, int, ?string): void)|null  $trace
+     */
     private function pollChat(string $sessionId, string $chatId, bool $dryRun, ?callable $trace = null): bool
     {
         try {
-            $messages = array_merge(
-                $this->client->listChatMessages($sessionId, $chatId, 15),
-                $this->client->listChatMessagesLive($sessionId, $chatId, 15),
-            );
+            $messages = $this->client->listChatMessages($sessionId, $chatId, 20);
         } catch (\Throwable $e) {
             Log::warning('Agenda RSVP poll: no se pudo leer el chat', [
                 'chat_id' => $chatId,
@@ -149,6 +209,14 @@ final class AgendaRsvpInboxPoller
         }
         $trace && $trace($chatId, count($messages), $sample);
 
+        return $this->applyLatestRsvp($sessionId, $chatId, $messages, $dryRun);
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $messages
+     */
+    private function applyLatestRsvp(string $sessionId, string $chatId, array $messages, bool $dryRun): bool
+    {
         $hit = OpenWaInboundRsvpPicker::latest($messages, $chatId);
         if ($hit === null) {
             return false;
