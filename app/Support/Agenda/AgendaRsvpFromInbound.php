@@ -8,6 +8,8 @@ use App\Models\PlatformWhatsAppSession;
 use App\Models\Tenant;
 use App\Models\TenantWhatsAppSession;
 use App\Services\Agenda\AgendaOwnerRsvpService;
+use App\Services\Subscriptions\TenantSubscriptionAccess;
+use App\Tenancy\Exceptions\TenantSuspendedException;
 use App\Tenancy\TenantManager;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -81,7 +83,11 @@ final class AgendaRsvpFromInbound
         $tenants = app(TenantManager::class);
 
         foreach ($slugs as $slug) {
-            $result = $tenants->runForSlug($slug, fn (): ?array => $rsvp->tryHandle($phone, $body, $waChatId));
+            try {
+                $result = $tenants->runForSlug($slug, fn (): ?array => $rsvp->tryHandle($phone, $body, $waChatId));
+            } catch (TenantSuspendedException) {
+                continue;
+            }
             if (is_array($result)) {
                 self::rememberTenant($slug, $waChatId, preg_replace('/\D/', '', $phone) ?: null);
 
@@ -169,9 +175,13 @@ final class AgendaRsvpFromInbound
      */
     private function allActiveTenantSlugs(): array
     {
+        $access = app(TenantSubscriptionAccess::class);
+
         return Tenant::query()
             ->whereIn('estado', ['trial', 'active'])
             ->orderBy('slug')
+            ->get()
+            ->filter(static fn (Tenant $tenant): bool => $access->allowsAccess($tenant))
             ->pluck('slug')
             ->filter(static fn (mixed $slug): bool => is_string($slug) && $slug !== '')
             ->values()

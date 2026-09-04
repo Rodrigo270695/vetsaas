@@ -5,15 +5,14 @@ declare(strict_types=1);
 namespace App\Services\Agenda;
 
 use App\Models\NotificationQueue;
-use App\Models\Tenant;
 use App\Services\OpenWa\OpenWaClient;
 use App\Services\OpenWa\PlatformWhatsAppMessenger;
 use App\Services\OpenWa\PlatformWhatsAppSessionSync;
 use App\Support\Agenda\AgendaRsvpFromInbound;
 use App\Support\Agenda\OpenWaInboundRsvpPicker;
 use App\Support\Notifications\RecordatorioTemplateCatalog;
+use App\Support\Tenancy\ActiveTenantIterator;
 use App\Support\WhatsApp\WhatsAppChatId;
-use App\Tenancy\TenantManager;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
@@ -28,7 +27,7 @@ final class AgendaRsvpInboxPoller
         private readonly PlatformWhatsAppSessionSync $sessions,
         private readonly PlatformWhatsAppMessenger $messenger,
         private readonly AgendaRsvpFromInbound $rsvp,
-        private readonly TenantManager $tenants,
+        private readonly ActiveTenantIterator $activeTenants,
     ) {}
 
     /**
@@ -70,37 +69,27 @@ final class AgendaRsvpInboxPoller
     {
         $ids = [];
 
-        Tenant::query()
-            ->whereIn('estado', ['trial', 'active'])
-            ->orderBy('slug')
-            ->each(function (Tenant $tenant) use (&$ids): void {
-                $slug = (string) $tenant->slug;
-                if ($slug === '') {
-                    return;
+        $this->activeTenants->each(function () use (&$ids): void {
+            $rows = NotificationQueue::query()
+                ->where('canal', NotificationQueue::CANAL_WHATSAPP)
+                ->where('estado', NotificationQueue::ESTADO_ENVIADO)
+                ->whereIn('tipo', RecordatorioTemplateCatalog::RSVP_TIPOS)
+                ->where('enviar_at', '>=', now()->subDays(3))
+                ->orderByDesc('enviar_at')
+                ->limit(30)
+                ->pluck('destinatario');
+
+            foreach ($rows as $destinatario) {
+                $raw = trim((string) $destinatario);
+                if ($raw === '') {
+                    continue;
                 }
-
-                $this->tenants->runForSlug($slug, function () use (&$ids): void {
-                    $rows = NotificationQueue::query()
-                        ->where('canal', NotificationQueue::CANAL_WHATSAPP)
-                        ->where('estado', NotificationQueue::ESTADO_ENVIADO)
-                        ->whereIn('tipo', RecordatorioTemplateCatalog::RSVP_TIPOS)
-                        ->where('enviar_at', '>=', now()->subDays(3))
-                        ->orderByDesc('enviar_at')
-                        ->limit(30)
-                        ->pluck('destinatario');
-
-                    foreach ($rows as $destinatario) {
-                        $raw = trim((string) $destinatario);
-                        if ($raw === '') {
-                            continue;
-                        }
-                        $chatId = str_contains($raw, '@')
-                            ? $raw
-                            : (WhatsAppChatId::fromPhone($raw) ?? $raw);
-                        $ids[$chatId] = true;
-                    }
-                });
-            });
+                $chatId = str_contains($raw, '@')
+                    ? $raw
+                    : (WhatsAppChatId::fromPhone($raw) ?? $raw);
+                $ids[$chatId] = true;
+            }
+        });
 
         return array_slice(array_keys($ids), 0, 40);
     }

@@ -12,7 +12,7 @@ use App\Models\Tenant;
 use App\Services\Agenda\AgendaOwnerRsvpService;
 use App\Services\ClinicBot\ClinicBotClientResolver;
 use App\Support\Agenda\AgendaRsvpIntent;
-use App\Tenancy\TenantManager;
+use App\Support\Tenancy\ActiveTenantIterator;
 use Illuminate\Console\Command;
 
 /**
@@ -27,7 +27,7 @@ class AgendaRsvpProbeCommand extends Command
 
     protected $description = 'Prueba SI/NO de agenda contra todas las clínicas (sin WhatsApp)';
 
-    public function handle(TenantManager $tenants, ClinicBotClientResolver $clients): int
+    public function handle(ActiveTenantIterator $tenants, ClinicBotClientResolver $clients): int
     {
         $phone = trim((string) $this->argument('phone'));
         $body = (string) $this->option('body');
@@ -43,78 +43,69 @@ class AgendaRsvpProbeCommand extends Command
 
         $hits = 0;
 
-        Tenant::query()
-            ->whereIn('estado', ['trial', 'active'])
-            ->orderBy('slug')
-            ->each(function (Tenant $tenant) use ($tenants, $clients, $phone, $body, $apply, $intent, &$hits): void {
-                $slug = (string) $tenant->slug;
-                if ($slug === '') {
-                    return;
-                }
+        $tenants->each(function (Tenant $tenant) use ($clients, $phone, $body, $apply, $intent, &$hits): void {
+            $slug = (string) $tenant->slug;
+            $prop = $clients->findPropietarioByPhone($phone);
+            if ($prop === null) {
+                return;
+            }
 
-                $tenants->runForSlug($slug, function () use ($clients, $phone, $body, $apply, $intent, $slug, &$hits): void {
-                    $prop = $clients->findPropietarioByPhone($phone);
-                    if ($prop === null) {
-                        return;
-                    }
+            $hits++;
+            $this->newLine();
+            $this->info("Clínica: {$slug}");
+            $this->line('  propietario: '.trim($prop->nombres.' '.($prop->apellidos ?? '')).' ('.$prop->id.')');
+            $this->line('  telefono ficha: '.($prop->telefono ?? '—'));
 
-                    $hits++;
-                    $this->newLine();
-                    $this->info("Clínica: {$slug}");
-                    $this->line('  propietario: '.trim($prop->nombres.' '.($prop->apellidos ?? '')).' ('.$prop->id.')');
-                    $this->line('  telefono ficha: '.($prop->telefono ?? '—'));
+            $pacienteIds = Paciente::query()
+                ->where('propietario_id', $prop->id)
+                ->pluck('id');
 
-                    $pacienteIds = Paciente::query()
-                        ->where('propietario_id', $prop->id)
-                        ->pluck('id');
+            $citas = Cita::query()
+                ->whereIn('paciente_id', $pacienteIds)
+                ->whereIn('estado', [Cita::ESTADO_PROGRAMADA, Cita::ESTADO_CONFIRMADA])
+                ->where('inicio_at', '>=', now()->subHours(2))
+                ->orderBy('inicio_at')
+                ->get(['id', 'inicio_at', 'estado', 'motivo']);
 
-                    $citas = Cita::query()
-                        ->whereIn('paciente_id', $pacienteIds)
-                        ->whereIn('estado', [Cita::ESTADO_PROGRAMADA, Cita::ESTADO_CONFIRMADA])
-                        ->where('inicio_at', '>=', now()->subHours(2))
-                        ->orderBy('inicio_at')
-                        ->get(['id', 'inicio_at', 'estado', 'motivo']);
+            $this->line('  citas próximas (programada/confirmada): '.$citas->count());
+            foreach ($citas as $cita) {
+                $this->line(sprintf(
+                    '    - %s  %s  %s  %s',
+                    $cita->inicio_at?->timezone((string) config('app.timezone'))->format('d/m/Y H:i'),
+                    $cita->estado,
+                    $cita->id,
+                    (string) ($cita->motivo ?? ''),
+                ));
+            }
 
-                    $this->line('  citas próximas (programada/confirmada): '.$citas->count());
-                    foreach ($citas as $cita) {
-                        $this->line(sprintf(
-                            '    - %s  %s  %s  %s',
-                            $cita->inicio_at?->timezone((string) config('app.timezone'))->format('d/m/Y H:i'),
-                            $cita->estado,
-                            $cita->id,
-                            (string) ($cita->motivo ?? ''),
-                        ));
-                    }
+            $grooming = GroomingTurno::query()
+                ->whereIn('paciente_id', $pacienteIds)
+                ->whereIn('estado', [GroomingTurno::ESTADO_PROGRAMADA, GroomingTurno::ESTADO_CONFIRMADA])
+                ->where('inicio_at', '>=', now()->subHours(2))
+                ->count();
+            $hotel = HotelEstancia::query()
+                ->whereIn('paciente_id', $pacienteIds)
+                ->whereIn('estado', [HotelEstancia::ESTADO_PROGRAMADA, HotelEstancia::ESTADO_CONFIRMADA])
+                ->where('ingreso_at', '>=', now()->subHours(2))
+                ->count();
+            $this->line("  grooming pendientes: {$grooming}  hotel pendientes: {$hotel}");
 
-                    $grooming = GroomingTurno::query()
-                        ->whereIn('paciente_id', $pacienteIds)
-                        ->whereIn('estado', [GroomingTurno::ESTADO_PROGRAMADA, GroomingTurno::ESTADO_CONFIRMADA])
-                        ->where('inicio_at', '>=', now()->subHours(2))
-                        ->count();
-                    $hotel = HotelEstancia::query()
-                        ->whereIn('paciente_id', $pacienteIds)
-                        ->whereIn('estado', [HotelEstancia::ESTADO_PROGRAMADA, HotelEstancia::ESTADO_CONFIRMADA])
-                        ->where('ingreso_at', '>=', now()->subHours(2))
-                        ->count();
-                    $this->line("  grooming pendientes: {$grooming}  hotel pendientes: {$hotel}");
+            if (! $apply) {
+                $this->comment('  (sin --apply: no se cambia estado)');
 
-                    if (! $apply) {
-                        $this->comment('  (sin --apply: no se cambia estado)');
+                return;
+            }
 
-                        return;
-                    }
+            $result = app(AgendaOwnerRsvpService::class)->tryHandle($phone, $body);
+            if ($result === null) {
+                $this->warn('  --apply: tryHandle devolvió null (no confirmó). Intent='.$intent);
 
-                    $result = app(AgendaOwnerRsvpService::class)->tryHandle($phone, $body);
-                    if ($result === null) {
-                        $this->warn('  --apply: tryHandle devolvió null (no confirmó). Intent='.$intent);
+                return;
+            }
 
-                        return;
-                    }
-
-                    $this->info('  --apply: '.$result['kind'].' '.$result['id'].' → '.$result['intent']);
-                    $this->line('  respuesta: '.$result['reply']);
-                });
-            });
+            $this->info('  --apply: '.$result['kind'].' '.$result['id'].' → '.$result['intent']);
+            $this->line('  respuesta: '.$result['reply']);
+        });
 
         if ($hits === 0) {
             $this->newLine();
