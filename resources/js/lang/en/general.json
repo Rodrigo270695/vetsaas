@@ -63,6 +63,10 @@
             "title": "Appointments",
             "description": "Confirmations and advance reminders related to the medical schedule."
         },
+        "recordatorios_agenda_servicios": {
+            "title": "Service calendar (grooming & hotel)",
+            "description": "Advance reminders for a grooming slot or hotel check-in. One day before is the same clock time 24 hours earlier; 2 hours is two hours before that time."
+        },
         "recordatorios_vacunas": {
             "title": "Vaccines",
             "description": "Alerts based on the next suggested date recorded for the vaccination."
@@ -161,6 +165,7 @@
         "recordatorio_2h_activo": "2-hour reminder",
         "recordatorio_2h_activo_hint": "Last-minute alert to both client and vet.",
         "recordatorio_cita_momentos": "When should the appointment reminder be sent?",
+        "recordatorio_agenda_servicios_momentos": "When should grooming and hotel reminders be sent?",
         "recordatorio_cita_opcion_2d": "2 days before",
         "recordatorio_cita_opcion_2h": "2 hours before",
         "recordatorio_vacuna_activo": "Upcoming vaccine reminder",

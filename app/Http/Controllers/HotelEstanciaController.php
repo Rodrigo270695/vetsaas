@@ -15,6 +15,7 @@ use App\Models\Paciente;
 use App\Models\Sede;
 use App\Models\User;
 use App\Services\Hotel\HotelWhatsAppNotifier;
+use App\Services\Notifications\ServicioAgendaReminderScanner;
 use App\Support\Hotel\HotelEstanciaTipoRules;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -259,6 +260,7 @@ class HotelEstanciaController extends Controller
 
         $estancia = HotelEstancia::query()->create($data);
         $notifier->notify($estancia, HotelEstancia::ESTADO_PROGRAMADA);
+        app(ServicioAgendaReminderScanner::class)->enqueueHotelIfDue($estancia);
 
         return redirect()
             ->route(
@@ -297,6 +299,7 @@ class HotelEstanciaController extends Controller
             $notifier->notify($hotelEstancia, $hotelEstancia->estado);
         } elseif ($ingresoCambio) {
             $notifier->notify($hotelEstancia, 'reprogramada');
+            app(ServicioAgendaReminderScanner::class)->enqueueHotelIfDue($hotelEstancia);
         }
 
         return redirect()

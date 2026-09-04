@@ -336,6 +336,80 @@ final class ReminderMessageBuilder
         ]);
     }
 
+    public function groomingDiasAntes(
+        string $clinicName,
+        string $ownerName,
+        string $petName,
+        string $servicioLabel,
+        CarbonInterface $inicioAt,
+    ): string {
+        $fecha = $inicioAt->timezone(config('app.timezone'))->translatedFormat('d/m/Y');
+        $hora = $inicioAt->timezone(config('app.timezone'))->format('H:i');
+
+        return $this->render('grooming_dias_antes', [
+            'propietario' => $ownerName,
+            'mascota' => $petName,
+            'clinica' => $clinicName,
+            'servicio' => $servicioLabel,
+            'fecha' => $fecha,
+            'hora' => $hora,
+        ]);
+    }
+
+    public function grooming2h(
+        string $clinicName,
+        string $ownerName,
+        string $petName,
+        string $servicioLabel,
+        CarbonInterface $inicioAt,
+    ): string {
+        $hora = $inicioAt->timezone(config('app.timezone'))->format('H:i');
+
+        return $this->render('grooming_2h', [
+            'propietario' => $ownerName,
+            'mascota' => $petName,
+            'clinica' => $clinicName,
+            'servicio' => $servicioLabel,
+            'hora' => $hora,
+        ]);
+    }
+
+    public function hotelDiasAntes(
+        string $clinicName,
+        string $ownerName,
+        string $petName,
+        CarbonInterface $ingresoAt,
+        ?CarbonInterface $egresoAt = null,
+    ): string {
+        $ingreso = $ingresoAt->timezone(config('app.timezone'));
+        $fechaEgreso = $egresoAt?->timezone(config('app.timezone'))->translatedFormat('d/m/Y');
+
+        return $this->render('hotel_dias_antes', [
+            'propietario' => $ownerName,
+            'mascota' => $petName,
+            'clinica' => $clinicName,
+            'fecha_ingreso' => $ingreso->translatedFormat('d/m/Y'),
+            'hora_ingreso' => $ingreso->format('H:i'),
+            'egreso_linea' => $fechaEgreso !== null
+                ? "\n📅 Egreso previsto: *{$fechaEgreso}*"
+                : '',
+        ]);
+    }
+
+    public function hotel2h(
+        string $clinicName,
+        string $ownerName,
+        string $petName,
+        CarbonInterface $ingresoAt,
+    ): string {
+        return $this->render('hotel_2h', [
+            'propietario' => $ownerName,
+            'mascota' => $petName,
+            'clinica' => $clinicName,
+            'hora_ingreso' => $ingresoAt->timezone(config('app.timezone'))->format('H:i'),
+        ]);
+    }
+
     public function hotelEstanciaEvento(
         string $clinicName,
         string $ownerName,

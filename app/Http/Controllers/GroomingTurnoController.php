@@ -17,6 +17,7 @@ use App\Models\Sede;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\Grooming\GroomingProcesoWhatsAppSender;
+use App\Services\Notifications\ServicioAgendaReminderScanner;
 use App\Services\Venta\VentaCheckoutService;
 use App\Support\Grooming\GroomingTurnoServicioRules;
 use App\Support\WhatsApp\DeferredWhatsAppDispatch;
@@ -324,6 +325,7 @@ class GroomingTurnoController extends Controller
         }
 
         $wa = $this->tryNotifyAgenda($turno, $sender, 'programado');
+        app(ServicioAgendaReminderScanner::class)->enqueueGroomingIfDue($turno);
 
         $redirect = redirect()
             ->route(
@@ -390,6 +392,7 @@ class GroomingTurnoController extends Controller
         }
 
         $wa = $this->tryNotifyAgenda($groomingTurno, $sender, 'reprogramado');
+        app(ServicioAgendaReminderScanner::class)->enqueueGroomingIfDue($groomingTurno);
 
         if ($wa === 'ok') {
             return $redirect->with('success', __('grooming.flash.updated_whatsapp'));

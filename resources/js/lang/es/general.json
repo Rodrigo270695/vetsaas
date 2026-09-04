@@ -63,6 +63,10 @@
             "title": "Citas",
             "description": "Confirmaciones y avisos previos relacionados con la agenda médica."
         },
+        "recordatorios_agenda_servicios": {
+            "title": "Agenda de servicios (grooming y hotel)",
+            "description": "Avisos previos al turno de grooming o al ingreso al hotel. Un día antes es la misma hora 24 h antes; 2 horas es dos horas antes de esa hora."
+        },
         "recordatorios_vacunas": {
             "title": "Vacunas",
             "description": "Avisos según la próxima fecha sugerida registrada en la vacunación."
@@ -161,6 +165,7 @@
         "recordatorio_2h_activo": "Recordatorio 2 horas antes",
         "recordatorio_2h_activo_hint": "Aviso de último momento al cliente y al veterinario.",
         "recordatorio_cita_momentos": "¿Cuándo deseas recordar la cita?",
+        "recordatorio_agenda_servicios_momentos": "¿Cuándo deseas recordar grooming y hotel?",
         "recordatorio_cita_opcion_2d": "2 días antes",
         "recordatorio_cita_opcion_2h": "2 horas antes",
         "recordatorio_vacuna_activo": "Recordatorio de vacuna por vencer",

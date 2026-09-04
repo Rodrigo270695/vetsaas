@@ -315,6 +315,9 @@ class TenantSchemaMigrator
                 && Schema::hasColumn('cfg_clinic_settings', 'recordatorio_vacuna_dias_antes_opciones'),
             '2026_07_21_185000_t120_add_appointment_reminder_intervals_to_cfg_clinic_settings' => Schema::hasTable('cfg_clinic_settings')
                 && Schema::hasColumn('cfg_clinic_settings', 'recordatorio_cita_dias_antes_opciones'),
+            '2026_09_03_230000_t140_agenda_servicio_reminder_intervals' => Schema::hasTable('cfg_clinic_settings')
+                && Schema::hasColumn('cfg_clinic_settings', 'recordatorio_agenda_servicios_dias_antes_opciones')
+                && Schema::hasColumn('cfg_clinic_settings', 'recordatorio_agenda_servicios_2h_activo'),
             '2026_07_22_190000_t121_add_arqueo_json_to_caja_sesiones' => Schema::hasTable('caja_sesiones')
                 && Schema::hasColumn('caja_sesiones', 'arqueo_json'),
             '2026_07_23_200000_t122_create_caja_egresos_table' => Schema::hasTable('caja_egresos'),

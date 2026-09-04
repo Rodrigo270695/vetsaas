@@ -132,6 +132,8 @@ final class WhatsAppNotificationDispatcher
                 'error_mensaje' => null,
             ])->save();
 
+            $this->rememberRsvpTenant($item, $session);
+
             return true;
         }
 
@@ -154,14 +156,7 @@ final class WhatsAppNotificationDispatcher
                 'error_mensaje' => null,
             ])->save();
 
-            $slug = (string) ($session->tenant?->slug ?? '');
-            if ($slug === '' && $session->tenant_id) {
-                $slug = (string) (Tenant::query()->whereKey($session->tenant_id)->value('slug') ?? '');
-            }
-            if ($slug !== '') {
-                $digits = preg_replace('/\D/', '', (string) $item->destinatario) ?? '';
-                AgendaRsvpFromInbound::rememberTenant($slug, (string) $item->destinatario, $digits);
-            }
+            $this->rememberRsvpTenant($item, $session);
 
             return true;
         } catch (\Throwable $e) {
@@ -196,6 +191,8 @@ final class WhatsAppNotificationDispatcher
                     'error_mensaje' => null,
                     'proveedor_msg_id' => null,
                 ])->save();
+
+                $this->rememberRsvpTenant($item, $session);
 
                 return true;
             }
@@ -236,5 +233,22 @@ final class WhatsAppNotificationDispatcher
         return $session instanceof TenantWhatsAppSession && $session->isReady()
             ? $session
             : null;
+    }
+
+    private function rememberRsvpTenant(NotificationQueue $item, TenantWhatsAppSession $session): void
+    {
+        $slug = (string) ($session->tenant?->slug ?? '');
+        if ($slug === '' && $session->tenant_id) {
+            $slug = (string) (Tenant::query()->whereKey($session->tenant_id)->value('slug') ?? '');
+        }
+        if ($slug === '') {
+            $slug = (string) (current_tenant()?->slug ?? '');
+        }
+        if ($slug === '') {
+            return;
+        }
+
+        $digits = preg_replace('/\D/', '', (string) $item->destinatario) ?? '';
+        AgendaRsvpFromInbound::rememberTenant($slug, (string) $item->destinatario, $digits);
     }
 }

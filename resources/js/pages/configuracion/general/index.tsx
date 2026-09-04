@@ -104,6 +104,8 @@ type FormState = {
     // Recordatorios
     recordatorio_2h_activo: boolean;
     recordatorio_cita_dias_antes_opciones: number[];
+    recordatorio_agenda_servicios_dias_antes_opciones: number[];
+    recordatorio_agenda_servicios_2h_activo: boolean;
     notificar_cita_whatsapp_activo: boolean;
     notificar_grooming_creado_whatsapp_activo: boolean;
     notificar_grooming_en_proceso_whatsapp_activo: boolean;
@@ -161,6 +163,15 @@ const buildInitialState = (setting: ClinicSetting): FormState => ({
                 days as (typeof REMINDER_DAY_OPTIONS)[number],
             ),
         ) ?? (setting.recordatorio_48h_activo ? [2] : []),
+    recordatorio_agenda_servicios_dias_antes_opciones:
+        setting.recordatorio_agenda_servicios_dias_antes_opciones?.filter(
+            (days) =>
+                REMINDER_DAY_OPTIONS.includes(
+                    days as (typeof REMINDER_DAY_OPTIONS)[number],
+                ),
+        ) ?? [1, 2],
+    recordatorio_agenda_servicios_2h_activo:
+        setting.recordatorio_agenda_servicios_2h_activo ?? true,
     notificar_cita_whatsapp_activo:
         setting.notificar_cita_whatsapp_activo ?? true,
     notificar_grooming_creado_whatsapp_activo:
@@ -401,6 +412,10 @@ export default function Index({
             recordatorio_2h_activo: data.recordatorio_2h_activo ? 1 : 0,
             recordatorio_cita_dias_antes_opciones:
                 data.recordatorio_cita_dias_antes_opciones,
+            recordatorio_agenda_servicios_dias_antes_opciones:
+                data.recordatorio_agenda_servicios_dias_antes_opciones,
+            recordatorio_agenda_servicios_2h_activo:
+                data.recordatorio_agenda_servicios_2h_activo ? 1 : 0,
             notificar_cita_whatsapp_activo: data.notificar_cita_whatsapp_activo
                 ? 1
                 : 0,
@@ -1332,6 +1347,100 @@ export default function Index({
                                                 onChange={(checked) =>
                                                     setData(
                                                         'recordatorio_2h_activo',
+                                                        checked,
+                                                    )
+                                                }
+                                                disabled={!canUpdate}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="space-y-3 rounded-xl border border-border/70 bg-muted/15 p-4">
+                                    <div>
+                                        <h3 className="text-sm font-semibold">
+                                            {t(
+                                                'sections.recordatorios_agenda_servicios.title',
+                                            )}
+                                        </h3>
+                                        <p className="text-xs text-muted-foreground">
+                                            {t(
+                                                'sections.recordatorios_agenda_servicios.description',
+                                            )}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p className="mb-2 text-xs font-medium text-muted-foreground">
+                                            {t(
+                                                'fields.recordatorio_agenda_servicios_momentos',
+                                            )}
+                                        </p>
+                                        <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
+                                            {REMINDER_DAY_OPTIONS.map(
+                                                (days) => {
+                                                    const selected =
+                                                        data.recordatorio_agenda_servicios_dias_antes_opciones.includes(
+                                                            days,
+                                                        );
+
+                                                    return (
+                                                        <ReminderCheck
+                                                            key={days}
+                                                            id={`general-recordatorio-agenda-${days}d`}
+                                                            label={t(
+                                                                `fields.recordatorio_vacuna_opcion_${days}`,
+                                                            )}
+                                                            checked={selected}
+                                                            onChange={(
+                                                                checked,
+                                                            ) => {
+                                                                const next =
+                                                                    checked
+                                                                        ? [
+                                                                              ...data.recordatorio_agenda_servicios_dias_antes_opciones,
+                                                                              days,
+                                                                          ]
+                                                                        : data.recordatorio_agenda_servicios_dias_antes_opciones.filter(
+                                                                              (
+                                                                                  value,
+                                                                              ) =>
+                                                                                  value !==
+                                                                                  days,
+                                                                          );
+
+                                                                setData(
+                                                                    'recordatorio_agenda_servicios_dias_antes_opciones',
+                                                                    [
+                                                                        ...new Set(
+                                                                            next,
+                                                                        ),
+                                                                    ].sort(
+                                                                        (
+                                                                            a,
+                                                                            b,
+                                                                        ) =>
+                                                                            a -
+                                                                            b,
+                                                                    ),
+                                                                );
+                                                            }}
+                                                            disabled={
+                                                                !canUpdate
+                                                            }
+                                                        />
+                                                    );
+                                                },
+                                            )}
+                                            <ReminderCheck
+                                                id="general-recordatorio-agenda-2h"
+                                                label={t(
+                                                    'fields.recordatorio_cita_opcion_2h',
+                                                )}
+                                                checked={
+                                                    data.recordatorio_agenda_servicios_2h_activo
+                                                }
+                                                onChange={(checked) =>
+                                                    setData(
+                                                        'recordatorio_agenda_servicios_2h_activo',
                                                         checked,
                                                     )
                                                 }

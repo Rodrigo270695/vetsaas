@@ -4,11 +4,15 @@ declare(strict_types=1);
 
 namespace App\Support\Agenda;
 
+use App\Models\NotificationQueue;
 use App\Models\PlatformWhatsAppSession;
+use App\Models\Tenant;
 use App\Models\TenantWhatsAppSession;
 use App\Services\Agenda\AgendaOwnerRsvpService;
+use App\Support\Tenancy\ActiveTenantIterator;
 use App\Tenancy\TenantManager;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Resuelve el tenant de un SI/NO inbound (sesión clínica o la de plataforma).
@@ -28,9 +32,24 @@ final class AgendaRsvpFromInbound
     public static function rememberTenant(string $tenantSlug, string $destinatario, ?string $phoneDigits = null): void
     {
         $ttl = now()->addDays(7);
-        Cache::put(self::cacheKeyForDestinatario($destinatario), $tenantSlug, $ttl);
-        if ($phoneDigits !== null && $phoneDigits !== '') {
-            Cache::put(self::cacheKeyForPhone($phoneDigits), $tenantSlug, $ttl);
+        $destinatario = strtolower(trim($destinatario));
+        if ($destinatario !== '') {
+            Cache::put(self::cacheKeyForDestinatario($destinatario), $tenantSlug, $ttl);
+        }
+
+        $digits = preg_replace('/\D/', '', (string) $phoneDigits) ?? '';
+        if ($digits === '') {
+            $digits = preg_replace('/\D/', '', $destinatario) ?? '';
+        }
+        if ($digits === '') {
+            return;
+        }
+
+        Cache::put(self::cacheKeyForPhone($digits), $tenantSlug, $ttl);
+        $last9 = strlen($digits) > 9 ? substr($digits, -9) : $digits;
+        Cache::put(self::cacheKeyForPhone($last9), $tenantSlug, $ttl);
+        if (strlen($last9) === 9 && str_starts_with($last9, '9')) {
+            Cache::put(self::cacheKeyForPhone('51'.$last9), $tenantSlug, $ttl);
         }
     }
 
@@ -60,9 +79,19 @@ final class AgendaRsvpFromInbound
         foreach ($slugs as $slug) {
             $result = $tenants->runForSlug($slug, fn (): ?array => $rsvp->tryHandle($phone, $body, $waChatId));
             if (is_array($result)) {
+                self::rememberTenant($slug, $waChatId, preg_replace('/\D/', '', $phone) ?: null);
+
                 return $result;
             }
         }
+
+        Log::info('Agenda RSVP inbound sin tenant o sin turno', [
+            'phone' => $phone,
+            'wa_chat_id' => $waChatId,
+            'session' => $openWaSessionId,
+            'slugs' => $slugs,
+            'body' => mb_substr($body, 0, 40),
+        ]);
 
         return null;
     }
@@ -94,14 +123,14 @@ final class AgendaRsvpFromInbound
 
         $digits = preg_replace('/\D/', '', $phone) ?? '';
         if ($digits !== '' && ! str_starts_with($phone, 'lid:')) {
-            $cachedPhone = Cache::get(self::cacheKeyForPhone($digits));
-            if (is_string($cachedPhone) && $cachedPhone !== '') {
-                $slugs[] = $cachedPhone;
-            }
-            $last9 = strlen($digits) > 9 ? substr($digits, -9) : $digits;
-            $cached9 = Cache::get(self::cacheKeyForPhone($last9));
-            if (is_string($cached9) && $cached9 !== '') {
-                $slugs[] = $cached9;
+            foreach ([$digits, strlen($digits) > 9 ? substr($digits, -9) : $digits] as $key) {
+                if ($key === '') {
+                    continue;
+                }
+                $cachedPhone = Cache::get(self::cacheKeyForPhone($key));
+                if (is_string($cachedPhone) && $cachedPhone !== '') {
+                    $slugs[] = $cachedPhone;
+                }
             }
         }
 
@@ -128,6 +157,48 @@ final class AgendaRsvpFromInbound
             }
         }
 
+        foreach ($this->tenantSlugsFromRecentQueue($phone, $waChatId) as $slug) {
+            $slugs[] = $slug;
+        }
+
         return $slugs;
+    }
+
+    /**
+     * Si el SI llega al WhatsApp de plataforma (o como @lid), busca clínicas
+     * que hayan avisado a ese chat/número hace poco.
+     *
+     * @return list<string>
+     */
+    private function tenantSlugsFromRecentQueue(string $phone, string $waChatId): array
+    {
+        $digits = preg_replace('/\D/', '', $phone) ?? '';
+        $last9 = strlen($digits) > 9 ? substr($digits, -9) : $digits;
+        $isLid = str_starts_with($phone, 'lid:') || str_ends_with(strtolower($waChatId), '@lid');
+        $found = [];
+
+        app(ActiveTenantIterator::class)->each(function (Tenant $tenant) use (&$found, $waChatId, $last9, $isLid): void {
+            $slug = (string) $tenant->slug;
+            if ($slug === '' || in_array($slug, $found, true)) {
+                return;
+            }
+
+            $query = NotificationQueue::query()
+                ->where('created_at', '>=', now()->subDays(7))
+                ->whereIn('referencia_tipo', ['cita', 'grooming_turno', 'hotel_estancia']);
+
+            $matched = $query->where(function ($inner) use ($waChatId, $last9, $isLid): void {
+                $inner->whereRaw('LOWER(destinatario) = ?', [strtolower($waChatId)]);
+                if ($last9 !== '' && strlen($last9) >= 9 && ! $isLid) {
+                    $inner->orWhere('destinatario', 'like', '%'.$last9.'%');
+                }
+            })->exists();
+
+            if ($matched) {
+                $found[] = $slug;
+            }
+        });
+
+        return $found;
     }
 }

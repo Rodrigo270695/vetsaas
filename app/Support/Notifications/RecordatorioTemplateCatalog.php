@@ -34,8 +34,12 @@ final class RecordatorioTemplateCatalog
         'cita_actualizada',
         'grooming_programado',
         'grooming_reprogramado',
+        'grooming_dias_antes',
+        'grooming_2h',
         'hotel_registrada',
         'hotel_reprogramada',
+        'hotel_dias_antes',
+        'hotel_2h',
     ];
 
     /**
@@ -114,6 +118,20 @@ final class RecordatorioTemplateCatalog
                 'cuerpo_default' => "Hola {{propietario}} 👋\n\n🔄 Reprogramamos el grooming de *{{mascota}}*\n🧴 Servicio: *{{servicio}}*\n📅 Nueva fecha: *{{fecha}}* a las *{{hora}}*\n\nTe esperamos 🐾\n\n— {{clinica}}",
             ],
             [
+                'tipo' => 'grooming_dias_antes',
+                'grupo' => self::GRUPO_GROOMING,
+                'orden' => 22,
+                'variables' => ['propietario', 'mascota', 'clinica', 'servicio', 'fecha', 'hora'],
+                'cuerpo_default' => "Hola {{propietario}} 👋\n\n⏰ Te recordamos el grooming de *{{mascota}}*\n🧴 Servicio: *{{servicio}}*\n📅 *{{fecha}}* a las *{{hora}}*\n\nSi necesitas reprogramar, contáctanos.\n\nTe esperamos 🐾\n\n— {{clinica}}",
+            ],
+            [
+                'tipo' => 'grooming_2h',
+                'grupo' => self::GRUPO_GROOMING,
+                'orden' => 24,
+                'variables' => ['propietario', 'mascota', 'clinica', 'servicio', 'hora'],
+                'cuerpo_default' => "Hola {{propietario}} 👋\n\n⏳ En *2 horas* el grooming de *{{mascota}}*\n🧴 Servicio: *{{servicio}}*\n🕒 *{{hora}}*\n\n¡Nos vemos pronto! 🐾\n\n— {{clinica}}",
+            ],
+            [
                 'tipo' => 'grooming_en_proceso',
                 'grupo' => self::GRUPO_GROOMING,
                 'orden' => 30,
@@ -175,6 +193,20 @@ final class RecordatorioTemplateCatalog
                 'orden' => 30,
                 'variables' => ['propietario', 'mascota', 'clinica', 'fecha_ingreso', 'hora_ingreso', 'egreso_linea'],
                 'cuerpo_default' => "Hola {{propietario}} 👋\n\n🔄 Reprogramamos la estancia de *{{mascota}}*\n📅 Ingreso: *{{fecha_ingreso}}* a las *{{hora_ingreso}}*{{egreso_linea}}\n\nTe esperamos 🐾\n\n— {{clinica}}",
+            ],
+            [
+                'tipo' => 'hotel_dias_antes',
+                'grupo' => self::GRUPO_HOTEL,
+                'orden' => 32,
+                'variables' => ['propietario', 'mascota', 'clinica', 'fecha_ingreso', 'hora_ingreso', 'egreso_linea'],
+                'cuerpo_default' => "Hola {{propietario}} 👋\n\n⏰ Te recordamos la estancia de *{{mascota}}*\n📅 Ingreso: *{{fecha_ingreso}}* a las *{{hora_ingreso}}*{{egreso_linea}}\n\nSi necesitas reprogramar, contáctanos.\n\nTe esperamos 🐾\n\n— {{clinica}}",
+            ],
+            [
+                'tipo' => 'hotel_2h',
+                'grupo' => self::GRUPO_HOTEL,
+                'orden' => 34,
+                'variables' => ['propietario', 'mascota', 'clinica', 'hora_ingreso'],
+                'cuerpo_default' => "Hola {{propietario}} 👋\n\n⏳ En *2 horas* ingresa *{{mascota}}* al hotel\n🕒 *{{hora_ingreso}}*\n\n¡Nos vemos pronto! 🐾\n\n— {{clinica}}",
             ],
             [
                 'tipo' => 'hotel_en_estancia',

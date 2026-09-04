@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Notifications;
 
 use App\Models\NotificationQueue;
+use App\Support\Agenda\AgendaRsvpFromInbound;
 use Carbon\CarbonInterface;
 use Illuminate\Database\QueryException;
 
@@ -25,7 +26,7 @@ final class NotificationQueueService
         int $prioridad = 5,
     ): ?NotificationQueue {
         try {
-            return NotificationQueue::query()->create([
+            $item = NotificationQueue::query()->create([
                 'tipo' => $tipo,
                 'canal' => NotificationQueue::CANAL_WHATSAPP,
                 'destinatario' => $destinatario,
@@ -39,6 +40,14 @@ final class NotificationQueueService
                 'estado' => NotificationQueue::ESTADO_PENDIENTE,
                 'max_intentos' => (int) config('openwa.max_attempts', 3),
             ]);
+
+            $slug = current_tenant()?->slug;
+            if (is_string($slug) && $slug !== '') {
+                $digits = preg_replace('/\D/', '', $destinatario) ?? '';
+                AgendaRsvpFromInbound::rememberTenant($slug, $destinatario, $digits);
+            }
+
+            return $item;
         } catch (QueryException $e) {
             if ($this->isDuplicateKey($e)) {
                 return null;

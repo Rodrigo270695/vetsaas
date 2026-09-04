@@ -16,6 +16,7 @@ use App\Support\Agenda\AgendaRsvpIntent;
 use App\Support\WhatsApp\WhatsAppChatId;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Confirma o cancela el turno más próximo (cita, grooming u hotel) según SI/NO por WhatsApp.
@@ -44,7 +45,17 @@ final class AgendaOwnerRsvpService
         if ($propietario === null && $waChatId) {
             $propietario = $this->findPropietarioByChatOrQueue($phone, $waChatId);
         }
+        $isLid = str_starts_with($phone, 'lid:')
+            || ($waChatId !== null && str_ends_with(strtolower($waChatId), '@lid'));
+        if ($propietario === null && $isLid) {
+            $propietario = $this->findPropietarioFromRecentNotices();
+        }
         if ($propietario === null) {
+            Log::info('Agenda RSVP: no hay propietario para este WhatsApp', [
+                'phone' => $phone,
+                'wa_chat_id' => $waChatId,
+            ]);
+
             return null;
         }
 
@@ -56,12 +67,18 @@ final class AgendaOwnerRsvpService
             return null;
         }
 
-        $pending = $this->pendingSlots($pacienteIds->all());
+        $onlyUnconfirmed = $intent === AgendaRsvpIntent::YES;
+        $pending = $this->pendingSlots($pacienteIds->all(), $onlyUnconfirmed);
         if ($pending === []) {
+            Log::info('Agenda RSVP: no hay turnos pendientes', [
+                'propietario_id' => $propietario->id,
+                'intent' => $intent,
+            ]);
+
             return null;
         }
 
-        $slot = $pending[0];
+        $slot = $this->pickSlot($pending, $phone, $waChatId);
         $when = $slot['at']->timezone((string) config('app.timezone'))->format('d/m/Y H:i');
         $mascota = $slot['mascota'];
         $kindLabel = $slot['label'];
@@ -120,7 +137,7 @@ final class AgendaOwnerRsvpService
 
         $item = NotificationQueue::query()
             ->whereIn('destinatario', $destinatarios)
-            ->where('referencia_tipo', 'cita')
+            ->whereIn('referencia_tipo', ['cita', 'grooming_turno', 'hotel_estancia'])
             ->whereNotNull('referencia_id')
             ->orderByDesc('created_at')
             ->first();
@@ -131,23 +148,69 @@ final class AgendaOwnerRsvpService
 
         $cita = Cita::query()->with('paciente.propietario')->find($item->referencia_id);
         $prop = $cita?->paciente?->propietario;
+        if ($prop instanceof Propietario) {
+            return $prop;
+        }
+
+        $turno = GroomingTurno::query()->with('paciente.propietario')->find($item->referencia_id);
+        $prop = $turno?->paciente?->propietario;
+        if ($prop instanceof Propietario) {
+            return $prop;
+        }
+
+        $estancia = HotelEstancia::query()->with('paciente.propietario')->find($item->referencia_id);
+        $prop = $estancia?->paciente?->propietario;
 
         return $prop instanceof Propietario ? $prop : null;
+    }
+
+    private function findPropietarioFromRecentNotices(): ?Propietario
+    {
+        $items = NotificationQueue::query()
+            ->where('created_at', '>=', now()->subHours(12))
+            ->whereIn('referencia_tipo', ['cita', 'grooming_turno', 'hotel_estancia'])
+            ->whereNotNull('referencia_id')
+            ->orderByDesc('created_at')
+            ->limit(15)
+            ->get();
+
+        $found = [];
+        foreach ($items as $item) {
+            $prop = match ((string) $item->referencia_tipo) {
+                'grooming_turno' => GroomingTurno::query()->with('paciente.propietario')->find($item->referencia_id)?->paciente?->propietario,
+                'hotel_estancia' => HotelEstancia::query()->with('paciente.propietario')->find($item->referencia_id)?->paciente?->propietario,
+                default => Cita::query()->with('paciente.propietario')->find($item->referencia_id)?->paciente?->propietario,
+            };
+            if ($prop instanceof Propietario) {
+                $found[$prop->id] = $prop;
+            }
+        }
+
+        return count($found) === 1 ? array_values($found)[0] : null;
     }
 
     /**
      * @param  list<string>  $pacienteIds
      * @return list<array{kind: string, id: string, at: Carbon, mascota: string, label: string, model: Cita|GroomingTurno|HotelEstancia}>
      */
-    private function pendingSlots(array $pacienteIds): array
+    private function pendingSlots(array $pacienteIds, bool $onlyUnconfirmed = false): array
     {
         $from = now()->subHours(2);
         $slots = [];
+        $citaEstados = $onlyUnconfirmed
+            ? [Cita::ESTADO_PROGRAMADA]
+            : [Cita::ESTADO_PROGRAMADA, Cita::ESTADO_CONFIRMADA];
+        $groomingEstados = $onlyUnconfirmed
+            ? [GroomingTurno::ESTADO_PROGRAMADA]
+            : [GroomingTurno::ESTADO_PROGRAMADA, GroomingTurno::ESTADO_CONFIRMADA];
+        $hotelEstados = $onlyUnconfirmed
+            ? [HotelEstancia::ESTADO_PROGRAMADA]
+            : [HotelEstancia::ESTADO_PROGRAMADA, HotelEstancia::ESTADO_CONFIRMADA];
 
         $citas = Cita::query()
             ->with('paciente:id,nombre')
             ->whereIn('paciente_id', $pacienteIds)
-            ->whereIn('estado', [Cita::ESTADO_PROGRAMADA, Cita::ESTADO_CONFIRMADA])
+            ->whereIn('estado', $citaEstados)
             ->where('inicio_at', '>=', $from)
             ->orderBy('inicio_at')
             ->limit(10)
@@ -168,7 +231,7 @@ final class AgendaOwnerRsvpService
         $turnos = GroomingTurno::query()
             ->with('paciente:id,nombre')
             ->whereIn('paciente_id', $pacienteIds)
-            ->whereIn('estado', [GroomingTurno::ESTADO_PROGRAMADA, GroomingTurno::ESTADO_CONFIRMADA])
+            ->whereIn('estado', $groomingEstados)
             ->where('inicio_at', '>=', $from)
             ->orderBy('inicio_at')
             ->limit(10)
@@ -189,7 +252,7 @@ final class AgendaOwnerRsvpService
         $estancias = HotelEstancia::query()
             ->with('paciente:id,nombre')
             ->whereIn('paciente_id', $pacienteIds)
-            ->whereIn('estado', [HotelEstancia::ESTADO_PROGRAMADA, HotelEstancia::ESTADO_CONFIRMADA])
+            ->whereIn('estado', $hotelEstados)
             ->where('ingreso_at', '>=', $from)
             ->orderBy('ingreso_at')
             ->limit(10)
@@ -215,6 +278,60 @@ final class AgendaOwnerRsvpService
     }
 
     /**
+     * Prefiere el turno del último WhatsApp enviado (el de abajo en el chat), no el más temprano.
+     *
+     * @param  list<array{kind: string, id: string, at: Carbon, mascota: string, label: string, model: Cita|GroomingTurno|HotelEstancia}>  $pending
+     * @return array{kind: string, id: string, at: Carbon, mascota: string, label: string, model: Cita|GroomingTurno|HotelEstancia}
+     */
+    private function pickSlot(array $pending, string $phone, ?string $waChatId): array
+    {
+        $ids = array_map(static fn (array $slot): string => $slot['id'], $pending);
+        $destinatarios = array_values(array_unique(array_filter([
+            $waChatId,
+            WhatsAppChatId::fromPhone($phone),
+        ])));
+
+        $query = NotificationQueue::query()
+            ->whereIn('referencia_id', $ids)
+            ->whereIn('referencia_tipo', ['cita', 'grooming_turno', 'hotel_estancia'])
+            ->orderByDesc('created_at');
+
+        if ($destinatarios !== []) {
+            $query->where(function ($inner) use ($destinatarios, $phone): void {
+                $inner->whereIn('destinatario', $destinatarios);
+                $digits = preg_replace('/\D/', '', $phone) ?? '';
+                $last9 = strlen($digits) > 9 ? substr($digits, -9) : $digits;
+                if ($last9 !== '' && strlen($last9) >= 9 && ! str_starts_with($phone, 'lid:')) {
+                    $inner->orWhere('destinatario', 'like', '%'.$last9.'%');
+                }
+            });
+        }
+
+        $item = $query->first();
+        if ($item !== null) {
+            foreach ($pending as $slot) {
+                if ($slot['id'] === (string) $item->referencia_id) {
+                    return $slot;
+                }
+            }
+        }
+
+        $latestAny = NotificationQueue::query()
+            ->whereIn('referencia_id', $ids)
+            ->orderByDesc('created_at')
+            ->first();
+        if ($latestAny !== null) {
+            foreach ($pending as $slot) {
+                if ($slot['id'] === (string) $latestAny->referencia_id) {
+                    return $slot;
+                }
+            }
+        }
+
+        return $pending[0];
+    }
+
+    /**
      * @param  array{kind: string, model: Cita|GroomingTurno|HotelEstancia}  $slot
      */
     private function confirm(array $slot): void
@@ -227,12 +344,19 @@ final class AgendaOwnerRsvpService
             default => Cita::ESTADO_CONFIRMADA,
         };
 
-        $model->forceFill([
-            'estado' => $estado,
-            'confirmed_at' => $model->confirmed_at ?? $now,
-            'confirmed_via' => self::VIA_PROPIETARIO,
-            'owner_responded_at' => $now,
-        ])->save();
+        $payload = ['estado' => $estado];
+        $table = $model->getTable();
+        if (Schema::hasColumn($table, 'confirmed_at')) {
+            $payload['confirmed_at'] = $model->confirmed_at ?? $now;
+        }
+        if (Schema::hasColumn($table, 'confirmed_via')) {
+            $payload['confirmed_via'] = self::VIA_PROPIETARIO;
+        }
+        if (Schema::hasColumn($table, 'owner_responded_at')) {
+            $payload['owner_responded_at'] = $now;
+        }
+
+        $model->forceFill($payload)->save();
     }
 
     /**
@@ -248,9 +372,11 @@ final class AgendaOwnerRsvpService
             default => Cita::ESTADO_CANCELADA,
         };
 
-        $model->forceFill([
-            'estado' => $estado,
-            'owner_responded_at' => $now,
-        ])->save();
+        $payload = ['estado' => $estado];
+        if (Schema::hasColumn($model->getTable(), 'owner_responded_at')) {
+            $payload['owner_responded_at'] = $now;
+        }
+
+        $model->forceFill($payload)->save();
     }
 }

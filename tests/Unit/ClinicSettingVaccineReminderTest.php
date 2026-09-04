@@ -28,3 +28,15 @@ it('conserva dos días para citas y permite varios avisos', function (): void {
 
     expect($setting->recordatorioCitaDiasAntesOpciones())->toBe([1, 2, 30]);
 });
+
+it('por defecto recuerda grooming y hotel 1 y 2 días antes', function (): void {
+    $setting = new ClinicSetting;
+
+    expect($setting->recordatorioAgendaServiciosDiasAntesOpciones())->toBe([1, 2]);
+
+    $setting->forceFill([
+        'recordatorio_agenda_servicios_dias_antes_opciones' => [7, 1, 7, 9],
+    ]);
+
+    expect($setting->recordatorioAgendaServiciosDiasAntesOpciones())->toBe([1, 7]);
+});
