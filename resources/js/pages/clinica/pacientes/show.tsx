@@ -189,6 +189,7 @@ export default function PacienteShow({
         null,
     );
     const [vacunaEdit, setVacunaEdit] = useState<VacunaAplicadaRow | null>(null);
+    const [vacunaCreateOpen, setVacunaCreateOpen] = useState(false);
     const [consultaEdit, setConsultaEdit] = useState<ConsultaHistoriaRow | null>(null);
     const [consultaLoadingId, setConsultaLoadingId] = useState<string | null>(null);
     const [consultaToDelete, setConsultaToDelete] = useState<{ id: string } | null>(null);
@@ -267,6 +268,7 @@ export default function PacienteShow({
 
     const openVacunaRegistro = useCallback((item: Extract<TimelineItem, { kind: 'aplicacion' }>) => {
         if (item.registro) {
+            setVacunaCreateOpen(false);
             setVacunaEdit(item.registro);
         }
     }, []);
@@ -325,6 +327,14 @@ export default function PacienteShow({
                     }}
                     onOpenLaboratorio={() => openLaboratorio(null)}
                     onOpenCita={() => setCitaOpen(true)}
+                    onOpenAplicacion={
+                        permisos.vacunas_crear
+                            ? () => {
+                                  setVacunaEdit(null);
+                                  setVacunaCreateOpen(true);
+                              }
+                            : undefined
+                    }
                 />
 
                 {archivos_subidos.length > 0 ? (
@@ -467,16 +477,22 @@ export default function PacienteShow({
             ) : null}
 
             <VacunaFormModal
-                open={vacunaEdit !== null}
+                open={vacunaEdit !== null || vacunaCreateOpen}
                 onOpenChange={(open) => {
                     if (!open) {
                         setVacunaEdit(null);
+                        setVacunaCreateOpen(false);
                     }
                 }}
                 vacuna={vacunaEdit}
                 pacientesOpciones={pacientes_opciones as readonly PacienteVacunaOpcion[]}
                 sedesOpciones={sedes_opciones}
                 serviciosVacunaOpciones={servicios_vacuna_opciones}
+                prefillCreate={
+                    vacunaCreateOpen
+                        ? { paciente_id: paciente.id, consulta_id: null }
+                        : null
+                }
             />
 
             <ConsultaFormModal

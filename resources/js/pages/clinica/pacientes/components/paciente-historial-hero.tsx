@@ -55,6 +55,7 @@ type Props = {
     onShareHistory?: () => void;
     onOpenLaboratorio?: () => void;
     onOpenCita?: () => void;
+    onOpenAplicacion?: () => void;
     /** Vista pública para el titular: sin CTAs de administración. */
     variant?: 'admin' | 'public';
     clinicName?: string;
@@ -136,6 +137,7 @@ export function PacienteHistorialHero({
     onShareHistory,
     onOpenLaboratorio,
     onOpenCita,
+    onOpenAplicacion,
     variant = 'admin',
     clinicName,
     expiresAt,
@@ -367,18 +369,32 @@ export function PacienteHistorialHero({
                             </a>
                         </Button>
                     ) : null}
-                    {!isPublic && permisos.vacunas_crear && links.nueva_aplicacion ? (
+                    {!isPublic &&
+                    permisos.vacunas_crear &&
+                    (onOpenAplicacion || links.nueva_aplicacion) ? (
                         <Button
                             type="button"
                             size="sm"
                             variant="secondary"
                             className="gap-2 border border-emerald-500/25 bg-emerald-500/10 text-emerald-900 hover:bg-emerald-500/20 dark:text-emerald-100"
-                            asChild
+                            onClick={
+                                onOpenAplicacion
+                                    ? () => onOpenAplicacion()
+                                    : undefined
+                            }
+                            asChild={!onOpenAplicacion}
                         >
-                            <a href={links.nueva_aplicacion}>
-                                <Syringe className="size-4" strokeWidth={2.25} />
-                                {t('historial.action_nueva_aplicacion')}
-                            </a>
+                            {onOpenAplicacion ? (
+                                <>
+                                    <Syringe className="size-4" strokeWidth={2.25} />
+                                    {t('historial.action_nueva_aplicacion')}
+                                </>
+                            ) : (
+                                <a href={links.nueva_aplicacion}>
+                                    <Syringe className="size-4" strokeWidth={2.25} />
+                                    {t('historial.action_nueva_aplicacion')}
+                                </a>
+                            )}
                         </Button>
                     ) : null}
                     {!isPublic && permisos.laboratorio_crear && links.laboratorio_rapido ? (

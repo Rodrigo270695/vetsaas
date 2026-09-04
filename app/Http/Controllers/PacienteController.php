@@ -294,7 +294,7 @@ class PacienteController extends Controller
 
         $sedesOpciones = [];
         $serviciosVacunaOpciones = [];
-        if ($canVerVacunas || $canEditarVacuna || $canCrearCita) {
+        if ($canVerVacunas || $canEditarVacuna || $canCrearVacuna || $canCrearCita) {
             $sedesOpciones = Sede::query()
                 ->where('tenant_id', $tenantId)
                 ->where('activa', true)
@@ -302,7 +302,7 @@ class PacienteController extends Controller
                 ->limit(100)
                 ->get(['id', 'nombre', 'codigo']);
 
-            if (($canVerVacunas || $canEditarVacuna) && Schema::hasTable('servicios_clinicos')) {
+            if (($canVerVacunas || $canEditarVacuna || $canCrearVacuna) && Schema::hasTable('servicios_clinicos')) {
                 $serviciosQuery = ServicioClinico::query()
                     ->where('activo', true)
                     ->with('categoria:id,nombre')
