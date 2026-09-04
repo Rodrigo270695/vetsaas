@@ -21,8 +21,10 @@
         .auth-cuerpo { font-size: 10.5px; line-height: 1.55; color: #111827; }
         .auth-cuerpo p { margin: 0 0 8px; }
         .auth-cuerpo h2, .auth-cuerpo h3 { margin: 0 0 10px; font-size: 13px; text-align: center; }
-        .auth-cuerpo ol, .auth-cuerpo ul { margin: 8px 0 12px 18px; padding: 0; }
-        .auth-cuerpo li { margin: 0 0 5px; }
+        .auth-cuerpo ol, .auth-cuerpo ul { margin: 8px 0 12px; padding-left: 22px; }
+        .auth-cuerpo ol { list-style-type: decimal; }
+        .auth-cuerpo ul { list-style-type: disc; }
+        .auth-cuerpo li { display: list-item; margin: 0 0 5px; }
         .auth-cuerpo img.auth-doc-logo {
             display: block;
             margin: 0 auto 10px;

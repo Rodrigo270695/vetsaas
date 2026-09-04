@@ -400,14 +400,22 @@
     font-weight: 700;
 }
 .auth-doc-editor ol,
-.auth-doc-body ol,
+.auth-doc-body ol {
+    margin: 0.4em 0 0.8em;
+    padding-left: 1.75rem;
+    list-style-type: decimal;
+    list-style-position: outside;
+}
 .auth-doc-editor ul,
 .auth-doc-body ul {
     margin: 0.4em 0 0.8em;
-    padding-left: 1.35rem;
+    padding-left: 1.75rem;
+    list-style-type: disc;
+    list-style-position: outside;
 }
 .auth-doc-editor li,
 .auth-doc-body li {
+    display: list-item;
     margin: 0 0 0.35em;
 }
 .auth-doc-editor img.auth-doc-logo,
