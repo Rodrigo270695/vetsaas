@@ -50,6 +50,8 @@ final class DocumentoAutorizacionRenderer
         $at = ($consulta->atendido_at ?? Carbon::now())->timezone((string) config('app.timezone'));
         $at->locale('es');
 
+        $motivo = trim((string) ($consulta->motivo ?? ''));
+
         return [
             'paciente' => $paciente->nombre,
             'especie' => trim((string) ($paciente->especie ?? '')) ?: '—',
@@ -59,6 +61,8 @@ final class DocumentoAutorizacionRenderer
             'propietario' => $owner?->displayName() ?: '—',
             'documento' => $doc !== '' ? $doc : '—',
             'telefono' => trim((string) ($owner?->telefono ?? '')) ?: '—',
+            'motivo' => $motivo !== '' ? $motivo : '—',
+            'causa' => $motivo !== '' ? $motivo : '—',
             'fecha' => $at->format('d/m/Y H:i'),
             'fecha_corta' => $at->format('d/m/Y'),
             'dia' => $at->format('j'),
