@@ -313,7 +313,7 @@ php artisan vetsaas:notifications-dispatch --limit=50
 
 ### `vetsaas:clinic-bot-register-webhooks`
 
-Registra el webhook del asistente IA en sesiones OpenWA conectadas.
+Alinea **un** webhook clinic-bot por sesión (actualiza el existente y borra duplicados). OpenWA solo permite 16 webhooks por sesión; crear uno en cada sync llenaba el cupo y el SI de WhatsApp no llegaba a Laravel.
 
 ```bash
 php artisan vetsaas:clinic-bot-register-webhooks --dry-run

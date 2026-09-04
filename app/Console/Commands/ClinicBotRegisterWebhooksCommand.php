@@ -14,7 +14,7 @@ class ClinicBotRegisterWebhooksCommand extends Command
                             {--slug= : Solo este tenant}
                             {--dry-run : Listar sin registrar}';
 
-    protected $description = 'Registra el webhook del asistente IA en sesiones OpenWA conectadas.';
+    protected $description = 'Alinea (no duplica) el webhook clinic-bot en sesiones OpenWA conectadas.';
 
     public function handle(TenantWhatsAppWebhookRegistrar $registrar): int
     {
@@ -50,7 +50,7 @@ class ClinicBotRegisterWebhooksCommand extends Command
         if ($this->option('dry-run')) {
             $this->info('Dry-run: no se registraron webhooks.');
         } else {
-            $this->info('Webhooks registrados (si OpenWA lo soporta en la API).');
+            $this->info('Webhooks alineados (actualizados o creados; duplicados borrados).');
         }
 
         return self::SUCCESS;
