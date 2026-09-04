@@ -37,6 +37,7 @@ export function getEstadoAccent(estado: string): string {
         case 'en_atencion':
             return 'border-l-sky-500 bg-sky-100/90 text-sky-900 hover:bg-sky-100 dark:bg-sky-950/50 dark:text-sky-100';
         case 'confirmada':
+            return 'border-l-teal-500 bg-teal-50/90 text-teal-950 hover:bg-teal-100 dark:bg-teal-950/40 dark:text-teal-100';
         case 'programada':
             return 'border-l-amber-500 bg-amber-50/90 text-amber-950 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-100';
         case 'completada':
@@ -111,6 +112,7 @@ export function CitasCalendar({
             (
                 [
                     { estado: 'programada', swatch: 'bg-amber-400' },
+                    { estado: 'confirmada', swatch: 'bg-teal-500' },
                     { estado: 'en_atencion', swatch: 'bg-sky-500' },
                     { estado: 'completada', swatch: 'bg-emerald-500' },
                     { estado: 'cancelada', swatch: 'bg-rose-500' },

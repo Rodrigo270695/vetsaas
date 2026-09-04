@@ -51,7 +51,9 @@ function estadoBadgeClass(estado: string): string {
         case 'no_asistio':
             return 'border-rose-300 bg-rose-100 text-rose-900 dark:bg-rose-950 dark:text-rose-100';
         case 'programada':
+            return 'border-amber-300 bg-amber-100 text-amber-950 dark:bg-amber-950 dark:text-amber-100';
         case 'confirmada':
+            return 'border-teal-300 bg-teal-100 text-teal-950 dark:bg-teal-950 dark:text-teal-100';
         default:
             return 'border-amber-300 bg-amber-100 text-amber-950 dark:bg-amber-950 dark:text-amber-100';
     }

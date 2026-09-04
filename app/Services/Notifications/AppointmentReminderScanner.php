@@ -43,6 +43,7 @@ final class AppointmentReminderScanner
                     $cita->inicio_at,
                     $this->motivo($cita),
                 ),
+                [Cita::ESTADO_PROGRAMADA],
             );
         }
 
@@ -57,6 +58,7 @@ final class AppointmentReminderScanner
                     $cita->inicio_at,
                     $this->motivo($cita),
                 ),
+                [Cita::ESTADO_PROGRAMADA, Cita::ESTADO_CONFIRMADA],
             );
         }
 
@@ -85,7 +87,7 @@ final class AppointmentReminderScanner
 
         foreach ($setting?->recordatorioCitaDiasAntesOpciones() ?? [] as $days) {
             $target = $now->copy()->addDays($days);
-            if (! self::inWindow($inicio, $target)) {
+            if ($cita->estado !== Cita::ESTADO_PROGRAMADA || ! self::inWindow($inicio, $target)) {
                 continue;
             }
             $enqueued += $this->enqueueOne(
@@ -133,15 +135,16 @@ final class AppointmentReminderScanner
 
     /**
      * @param  callable(Cita): string  $bodyBuilder
+     * @param  list<string>  $estados
      */
-    private function scanWindow(CarbonInterface $target, string $tipo, callable $bodyBuilder): int
+    private function scanWindow(CarbonInterface $target, string $tipo, callable $bodyBuilder, array $estados): int
     {
         $from = $target->copy()->subMinutes(self::WINDOW_MINUTES);
         $to = $target->copy()->addMinutes(self::WINDOW_MINUTES);
 
         $citas = Cita::query()
             ->with(['paciente.propietario'])
-            ->whereIn('estado', [Cita::ESTADO_PROGRAMADA, Cita::ESTADO_CONFIRMADA])
+            ->whereIn('estado', $estados)
             ->whereBetween('inicio_at', [$from, $to])
             ->get();
 

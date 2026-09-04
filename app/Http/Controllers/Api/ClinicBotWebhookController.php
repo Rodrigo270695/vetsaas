@@ -9,7 +9,9 @@ use App\Models\ClinicSetting;
 use App\Models\TenantWhatsAppSession;
 use App\Services\Agenda\AgendaOwnerRsvpService;
 use App\Services\ClinicBot\ClinicBotService;
+use App\Services\OpenWa\PlatformWhatsAppMessenger;
 use App\Services\OpenWa\TenantWhatsAppMessenger;
+use App\Support\Agenda\AgendaRsvpFromInbound;
 use App\Support\ClinicBot\ClinicBotWebhookGuard;
 use App\Support\ClinicBot\ClinicBotWebhookTrafficGuard;
 use App\Support\Subscriptions\SubscriptionBotIaAddon;
@@ -32,11 +34,13 @@ final class ClinicBotWebhookController extends Controller
     public function __construct(
         private readonly ClinicBotService $botService,
         private readonly TenantWhatsAppMessenger $messenger,
+        private readonly PlatformWhatsAppMessenger $platformMessenger,
         private readonly WhatsAppContactResolver $contactResolver,
         private readonly TenantManager $tenants,
         private readonly ClinicBotWebhookGuard $guard,
         private readonly ClinicBotWebhookTrafficGuard $traffic,
         private readonly AgendaOwnerRsvpService $agendaRsvp,
+        private readonly AgendaRsvpFromInbound $agendaRsvpFromInbound,
     ) {}
 
     public function handle(Request $request): JsonResponse
@@ -82,18 +86,49 @@ final class ClinicBotWebhookController extends Controller
             ->where('openwa_session_id', $openWaSessionId)
             ->first();
 
-        if ($waSession === null || ! $waSession->isReady()) {
+        $tenantReady = $waSession !== null && $waSession->isReady() && $waSession->tenant !== null;
+
+        if (! $tenantReady) {
+            if ($this->guard->isLikelyOutgoingMessage($data, $fromMe)) {
+                $this->traffic->recordSkipped();
+
+                return response()->json(['ok' => true, 'skipped' => 'unknown_or_not_ready_session']);
+            }
+
+            $contact = $this->contactResolver->resolve(
+                $data,
+                $openWaSessionId !== '' ? $openWaSessionId : null,
+                forOutgoing: false,
+            );
+            $rsvp = $body !== ''
+                ? $this->agendaRsvpFromInbound->tryHandle(
+                    $openWaSessionId,
+                    $contact['phone'],
+                    $contact['wa_chat_id'],
+                    $body,
+                )
+                : null;
+            if ($rsvp !== null) {
+                if ($this->platformMessenger->isReady()) {
+                    $this->platformMessenger->sendText($contact['wa_chat_id'], $rsvp['reply']);
+                }
+                $this->traffic->recordProcessed();
+
+                return response()->json([
+                    'ok' => true,
+                    'rsvp' => true,
+                    'kind' => $rsvp['kind'],
+                    'intent' => $rsvp['intent'],
+                    'via' => 'platform_session',
+                ]);
+            }
+
             $this->traffic->recordSkipped();
 
             return response()->json(['ok' => true, 'skipped' => 'unknown_or_not_ready_session']);
         }
 
         $tenant = $waSession->tenant;
-        if ($tenant === null) {
-            $this->traffic->recordSkipped();
-
-            return response()->json(['ok' => true, 'skipped' => 'tenant_missing']);
-        }
 
         if ($this->guard->isLikelyOutgoingMessage($data, $fromMe)) {
             return $this->handleOutgoingMessage($data, $openWaSessionId, $fromMe);

@@ -4,12 +4,10 @@ declare(strict_types=1);
 
 namespace App\Support\Agenda;
 
-use App\Models\NotificationQueue;
 use App\Models\PlatformWhatsAppSession;
 use App\Models\Tenant;
 use App\Models\TenantWhatsAppSession;
 use App\Services\Agenda\AgendaOwnerRsvpService;
-use App\Support\Tenancy\ActiveTenantIterator;
 use App\Tenancy\TenantManager;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -68,6 +66,12 @@ final class AgendaRsvpFromInbound
 
         $slugs = [];
         foreach ($this->tenantSlugsFor($openWaSessionId, $phone, $waChatId) as $slug) {
+            if ($slug !== '' && ! in_array($slug, $slugs, true)) {
+                $slugs[] = $slug;
+            }
+        }
+
+        foreach ($this->allActiveTenantSlugs() as $slug) {
             if ($slug !== '' && ! in_array($slug, $slugs, true)) {
                 $slugs[] = $slug;
             }
@@ -157,48 +161,20 @@ final class AgendaRsvpFromInbound
             }
         }
 
-        foreach ($this->tenantSlugsFromRecentQueue($phone, $waChatId) as $slug) {
-            $slugs[] = $slug;
-        }
-
         return $slugs;
     }
 
     /**
-     * Si el SI llega al WhatsApp de plataforma (o como @lid), busca clínicas
-     * que hayan avisado a ese chat/número hace poco.
-     *
      * @return list<string>
      */
-    private function tenantSlugsFromRecentQueue(string $phone, string $waChatId): array
+    private function allActiveTenantSlugs(): array
     {
-        $digits = preg_replace('/\D/', '', $phone) ?? '';
-        $last9 = strlen($digits) > 9 ? substr($digits, -9) : $digits;
-        $isLid = str_starts_with($phone, 'lid:') || str_ends_with(strtolower($waChatId), '@lid');
-        $found = [];
-
-        app(ActiveTenantIterator::class)->each(function (Tenant $tenant) use (&$found, $waChatId, $last9, $isLid): void {
-            $slug = (string) $tenant->slug;
-            if ($slug === '' || in_array($slug, $found, true)) {
-                return;
-            }
-
-            $query = NotificationQueue::query()
-                ->where('created_at', '>=', now()->subDays(7))
-                ->whereIn('referencia_tipo', ['cita', 'grooming_turno', 'hotel_estancia']);
-
-            $matched = $query->where(function ($inner) use ($waChatId, $last9, $isLid): void {
-                $inner->whereRaw('LOWER(destinatario) = ?', [strtolower($waChatId)]);
-                if ($last9 !== '' && strlen($last9) >= 9 && ! $isLid) {
-                    $inner->orWhere('destinatario', 'like', '%'.$last9.'%');
-                }
-            })->exists();
-
-            if ($matched) {
-                $found[] = $slug;
-            }
-        });
-
-        return $found;
+        return Tenant::query()
+            ->whereIn('estado', ['trial', 'active'])
+            ->orderBy('slug')
+            ->pluck('slug')
+            ->filter(static fn (mixed $slug): bool => is_string($slug) && $slug !== '')
+            ->values()
+            ->all();
     }
 }
