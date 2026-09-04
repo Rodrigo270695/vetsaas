@@ -129,7 +129,7 @@
     },
     "show": {
         "title_suffix": "Ficha del propietario",
-        "page_hint": "Documento, contacto y mascotas de este titular, a la vista.",
+        "page_hint": "Ficha del titular y sus mascotas.",
         "back": "Volver al listado",
         "section_owner": "Datos del titular",
         "edit_owner": "Editar titular",
@@ -145,7 +145,7 @@
         "copy": "Copiar",
         "pets_deck_title": "Mascotas",
         "pets_deck_hint": "Tarjetas con foto grande: pulsa la imagen para verla a tamaño completo.",
-        "section_owner_hint": "Identidad, documento y cómo localizarlo. Si falta un dato, aparece como «Sin registrar».",
+        "no_contact": "Sin teléfono, correo ni dirección. Completa el titular con «Editar titular».",
         "section_pets_hint": "Mascotas asociadas a este titular en la clínica.",
         "add_pet": "Registrar mascota",
         "no_pets": "Sin mascotas registradas",

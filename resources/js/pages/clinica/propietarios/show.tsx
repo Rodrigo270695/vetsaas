@@ -105,7 +105,7 @@ export default function Show({
     return (
         <>
             <Head title={title} />
-            <div className="relative flex flex-1 flex-col gap-8 overflow-hidden p-4 sm:p-6">
+            <div className="relative flex flex-1 flex-col gap-8 p-4 sm:p-6">
                 <div
                     className="pointer-events-none absolute inset-x-0 -top-24 h-72 opacity-[0.55] dark:opacity-35"
                     aria-hidden
@@ -140,9 +140,6 @@ export default function Show({
                                     {t('show.badge_titular')}
                                 </Badge>
                             </div>
-                            <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
-                                {t('show.page_hint')}
-                            </p>
                         </div>
                     </div>
                     <div className="flex shrink-0 flex-wrap gap-2 sm:justify-end">
@@ -172,7 +169,11 @@ export default function Show({
                     </div>
                 </div>
 
-                <PropietarioTitularCard propietario={propietario} docResumen={docResumen} />
+                <PropietarioTitularCard
+                    propietario={propietario}
+                    displayName={nombreTitular}
+                    docResumen={docResumen}
+                />
 
                 <section className="relative space-y-5" aria-labelledby="mascotas-heading">
                     <div className="flex flex-wrap items-end justify-between gap-3">

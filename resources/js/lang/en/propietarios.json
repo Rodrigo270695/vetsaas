@@ -129,7 +129,7 @@
     },
     "show": {
         "title_suffix": "Owner profile",
-        "page_hint": "ID, contact details and pets for this owner, all in view.",
+        "page_hint": "Owner profile and their pets.",
         "back": "Back to list",
         "section_owner": "Owner details",
         "edit_owner": "Edit owner",
@@ -145,7 +145,7 @@
         "copy": "Copy",
         "pets_deck_title": "Pets",
         "pets_deck_hint": "Large-photo cards: tap the image to open it full size.",
-        "section_owner_hint": "Identity, ID and how to reach them. Missing fields show as “Not registered”.",
+        "no_contact": "No phone, email or address yet. Use «Edit owner» to add them.",
         "section_pets_hint": "Pets linked to this owner at your clinic.",
         "add_pet": "Register pet",
         "no_pets": "No pets registered yet",

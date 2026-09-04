@@ -1,126 +1,12 @@
-import {
-    Building2,
-    Check,
-    Copy,
-    FileText,
-    Mail,
-    MapPin,
-    Notebook,
-    Phone,
-    User,
-    UserCircle,
-} from 'lucide-react';
+import { Building2, Check, Copy, FileText, Mail, MapPin, Notebook, Phone } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { StatBadge } from '@/components/data-page';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useClipboard } from '@/hooks/use-clipboard';
+import { useInitials } from '@/hooks/use-initials';
 import { cn } from '@/lib/utils';
 import type { Propietario } from '../types';
-
-type FactProps = {
-    icon: typeof Mail;
-    label: string;
-    emptyLabel: string;
-    value?: string | null;
-    href?: string | null;
-    copyValue?: string | null;
-    className?: string;
-    multiline?: boolean;
-};
-
-function Fact({
-    icon: Icon,
-    label,
-    emptyLabel,
-    value,
-    href,
-    copyValue,
-    className,
-    multiline = false,
-}: FactProps) {
-    const { t } = useTranslation('propietarios');
-    const [, copy] = useClipboard();
-    const [copied, setCopied] = useState(false);
-    const filled = Boolean(value && value.trim() !== '');
-    const text = value?.trim() ?? '';
-    const toCopy = (copyValue ?? text).trim();
-
-    const onCopy = async () => {
-        if (toCopy === '') {
-            return;
-        }
-        const ok = await copy(toCopy);
-        if (!ok) {
-            return;
-        }
-        setCopied(true);
-        window.setTimeout(() => setCopied(false), 1400);
-    };
-
-    const body =
-        filled && href ? (
-            <a
-                href={href}
-                className="wrap-break-word text-foreground underline-offset-4 transition-colors hover:text-primary hover:underline"
-            >
-                {text}
-            </a>
-        ) : filled ? (
-            <span className={cn('wrap-break-word text-foreground', multiline && 'whitespace-pre-wrap font-normal')}>
-                {text}
-            </span>
-        ) : (
-            <span className="text-muted-foreground/80">{emptyLabel}</span>
-        );
-
-    return (
-        <div
-            className={cn(
-                'group relative flex gap-3 rounded-xl border bg-background/70 p-3 shadow-xs',
-                'transition-[border-color,box-shadow,transform] duration-300 ease-out',
-                'motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-300',
-                filled
-                    ? 'border-border/80 hover:border-primary/30 hover:shadow-sm'
-                    : 'border-dashed border-border/70',
-                className,
-            )}
-        >
-            <span
-                className={cn(
-                    'mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg ring-1',
-                    filled
-                        ? 'bg-primary/10 text-primary ring-primary/15'
-                        : 'bg-muted/60 text-muted-foreground ring-border/50',
-                )}
-            >
-                <Icon className="size-4" strokeWidth={2} aria-hidden />
-            </span>
-            <div className="min-w-0 flex-1">
-                <p className="text-[0.68rem] font-semibold uppercase tracking-wider text-muted-foreground">
-                    {label}
-                </p>
-                <div className="mt-0.5 text-sm font-medium leading-snug">{body}</div>
-            </div>
-            {toCopy !== '' ? (
-                <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="size-8 shrink-0 cursor-pointer text-muted-foreground opacity-70 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
-                    onClick={() => void onCopy()}
-                    aria-label={t('show.copy')}
-                >
-                    {copied ? (
-                        <Check className="size-3.5 text-emerald-600" aria-hidden />
-                    ) : (
-                        <Copy className="size-3.5" aria-hidden />
-                    )}
-                </Button>
-            ) : null}
-        </div>
-    );
-}
 
 function telHref(raw: string | null | undefined): string | null {
     if (!raw?.trim()) {
@@ -131,136 +17,201 @@ function telHref(raw: string | null | undefined): string | null {
     return compact !== '' ? `tel:${compact}` : null;
 }
 
+function CopyButton({ text }: { text: string }) {
+    const { t } = useTranslation('propietarios');
+    const [, copy] = useClipboard();
+    const [copied, setCopied] = useState(false);
+
+    return (
+        <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="size-8 shrink-0 cursor-pointer text-muted-foreground"
+            onClick={() => {
+                void copy(text).then((ok) => {
+                    if (!ok) {
+                        return;
+                    }
+                    setCopied(true);
+                    window.setTimeout(() => setCopied(false), 1400);
+                });
+            }}
+            aria-label={t('show.copy')}
+        >
+            {copied ? (
+                <Check className="size-3.5 text-emerald-600" aria-hidden />
+            ) : (
+                <Copy className="size-3.5" aria-hidden />
+            )}
+        </Button>
+    );
+}
+
+type RowProps = {
+    icon: typeof Phone;
+    label: string;
+    value: string;
+    href?: string | null;
+    copyText?: string;
+    multiline?: boolean;
+};
+
+function ContactRow({ icon: Icon, label, value, href, copyText, multiline }: RowProps) {
+    return (
+        <div className="flex items-start gap-3 px-4 py-3.5 sm:px-5">
+            <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-foreground/70">
+                <Icon className="size-4" strokeWidth={2} aria-hidden />
+            </span>
+            <div className="min-w-0 flex-1">
+                <p className="text-xs font-medium text-muted-foreground">{label}</p>
+                {href ? (
+                    <a
+                        href={href}
+                        className="mt-0.5 block text-sm font-medium text-foreground underline-offset-4 hover:text-primary hover:underline"
+                    >
+                        {value}
+                    </a>
+                ) : (
+                    <p
+                        className={cn(
+                            'mt-0.5 text-sm font-medium text-foreground',
+                            multiline && 'whitespace-pre-wrap font-normal leading-relaxed',
+                        )}
+                    >
+                        {value}
+                    </p>
+                )}
+            </div>
+            {copyText ? <CopyButton text={copyText} /> : null}
+        </div>
+    );
+}
+
 type Props = {
     propietario: Propietario;
+    displayName: string;
     docResumen: string | null;
 };
 
-export function PropietarioTitularCard({ propietario, docResumen }: Props) {
+export function PropietarioTitularCard({ propietario, displayName, docResumen }: Props) {
     const { t } = useTranslation('propietarios');
-    const empty = t('show.empty_value');
+    const initials = useInitials();
+    const email = propietario.email?.trim() || '';
+    const telefono = propietario.telefono?.trim() || '';
+    const telefonoAlt = propietario.telefono_alt?.trim() || '';
+    const direccion = propietario.direccion?.trim() || '';
     const ubicacion = [propietario.departamento, propietario.provincia, propietario.distrito]
         .filter(Boolean)
         .join(' · ');
+    const notas = propietario.notas?.trim() || '';
+    const lugar = [direccion, ubicacion].filter(Boolean).join(' · ');
+
+    const rows: RowProps[] = [];
+    if (telefono) {
+        rows.push({
+            icon: Phone,
+            label: t('show.label_phone'),
+            value: telefono,
+            href: telHref(telefono),
+            copyText: telefono,
+        });
+    }
+    if (telefonoAlt) {
+        rows.push({
+            icon: Phone,
+            label: t('form.telefono_alt'),
+            value: telefonoAlt,
+            href: telHref(telefonoAlt),
+            copyText: telefonoAlt,
+        });
+    }
+    if (email) {
+        rows.push({
+            icon: Mail,
+            label: t('show.label_email'),
+            value: email,
+            href: `mailto:${email}`,
+            copyText: email,
+        });
+    }
+    if (lugar) {
+        rows.push({
+            icon: MapPin,
+            label: t('show.label_address'),
+            value: lugar,
+            copyText: lugar,
+        });
+    }
+    if (notas) {
+        rows.push({
+            icon: Notebook,
+            label: t('show.label_notes'),
+            value: notas,
+            copyText: notas,
+            multiline: true,
+        });
+    }
 
     return (
         <section
-            className="relative overflow-hidden rounded-2xl border border-border/60 bg-card/90 shadow-sm ring-1 ring-black/3 backdrop-blur-sm dark:bg-card/80 dark:ring-white/6"
+            className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
             aria-labelledby="titular-heading"
         >
-            <div
-                className="pointer-events-none absolute -right-16 -top-16 size-48 rounded-full bg-linear-to-br from-primary/18 to-transparent blur-2xl"
-                aria-hidden
-            />
-            <div className="relative space-y-4 p-4 sm:p-5">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="flex min-w-0 items-start gap-3">
-                        <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-linear-to-br from-primary/15 to-primary/5 text-primary shadow-inner ring-1 ring-primary/10">
-                            <UserCircle className="size-7" strokeWidth={1.75} aria-hidden />
-                        </span>
-                        <div className="min-w-0">
-                            <h2
-                                id="titular-heading"
-                                className="text-base font-semibold tracking-tight text-foreground"
-                            >
-                                {t('show.section_owner')}
-                            </h2>
-                            <p className="mt-0.5 max-w-lg text-sm leading-relaxed text-muted-foreground">
-                                {t('show.section_owner_hint')}
-                            </p>
-                        </div>
-                    </div>
-                    {propietario.activo ? (
-                        <StatBadge
-                            label={t('show.owner_status_label')}
-                            value={t('show.owner_active')}
-                            variant="success"
-                        />
-                    ) : (
-                        <StatBadge
-                            label={t('show.owner_status_label')}
-                            value={t('show.owner_inactive')}
-                            variant="muted"
-                        />
-                    )}
+            <div className="flex flex-col gap-4 border-b border-border bg-muted/30 px-4 py-4 sm:flex-row sm:items-center sm:px-5">
+                <div
+                    className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-primary text-lg font-semibold tracking-wide text-primary-foreground"
+                    aria-hidden
+                >
+                    {initials(displayName)}
                 </div>
-
-                {propietario.razon_social ? (
-                    <div className="flex items-center gap-2 rounded-xl border border-primary/15 bg-primary/5 px-3 py-2 text-sm font-medium">
-                        <Building2 className="size-4 shrink-0 text-primary" aria-hidden />
-                        <span className="min-w-0 wrap-break-word">{propietario.razon_social}</span>
+                <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <h2
+                            id="titular-heading"
+                            className="text-lg font-semibold tracking-tight text-foreground"
+                        >
+                            {displayName}
+                        </h2>
+                        {propietario.activo ? (
+                            <Badge className="border-transparent bg-emerald-600/90 text-white hover:bg-emerald-600/90">
+                                {t('show.owner_active')}
+                            </Badge>
+                        ) : (
+                            <Badge variant="secondary">{t('show.owner_inactive')}</Badge>
+                        )}
                     </div>
-                ) : null}
-
-                <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
-                    <Fact
-                        icon={User}
-                        label={t('form.nombres')}
-                        emptyLabel={empty}
-                        value={propietario.nombres}
-                    />
-                    <Fact
-                        icon={User}
-                        label={t('form.apellidos')}
-                        emptyLabel={empty}
-                        value={propietario.apellidos}
-                    />
-                    <Fact
-                        icon={FileText}
-                        label={t('show.label_doc')}
-                        emptyLabel={t('row.no_doc')}
-                        value={docResumen}
-                        copyValue={propietario.numero_documento}
-                    />
-                    <Fact
-                        icon={Mail}
-                        label={t('show.label_email')}
-                        emptyLabel={empty}
-                        value={propietario.email}
-                        href={
-                            propietario.email?.trim()
-                                ? `mailto:${propietario.email.trim()}`
-                                : null
-                        }
-                    />
-                    <Fact
-                        icon={Phone}
-                        label={t('show.label_phone')}
-                        emptyLabel={empty}
-                        value={propietario.telefono}
-                        href={telHref(propietario.telefono)}
-                    />
-                    <Fact
-                        icon={Phone}
-                        label={t('form.telefono_alt')}
-                        emptyLabel={empty}
-                        value={propietario.telefono_alt}
-                        href={telHref(propietario.telefono_alt)}
-                    />
-                    <Fact
-                        icon={MapPin}
-                        label={t('show.label_address')}
-                        emptyLabel={empty}
-                        value={propietario.direccion}
-                        className="sm:col-span-2"
-                    />
-                    <Fact
-                        icon={MapPin}
-                        label={t('show.label_location')}
-                        emptyLabel={empty}
-                        value={ubicacion || null}
-                    />
-                    <Fact
-                        icon={Notebook}
-                        label={t('show.label_notes')}
-                        emptyLabel={empty}
-                        value={propietario.notas}
-                        copyValue={propietario.notas}
-                        multiline
-                        className="sm:col-span-2 xl:col-span-3"
-                    />
+                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+                        {propietario.razon_social &&
+                        propietario.razon_social.trim() !== displayName.trim() ? (
+                            <span className="inline-flex items-center gap-1.5">
+                                <Building2 className="size-3.5 shrink-0" aria-hidden />
+                                {propietario.razon_social}
+                            </span>
+                        ) : null}
+                        {docResumen ? (
+                            <span className="inline-flex items-center gap-1.5 font-medium text-foreground">
+                                <FileText className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+                                {docResumen}
+                            </span>
+                        ) : (
+                            <span>{t('row.no_doc')}</span>
+                        )}
+                    </div>
                 </div>
             </div>
+
+            {rows.length > 0 ? (
+                <div className="divide-y divide-border">
+                    {rows.map((row) => (
+                        <ContactRow key={`${row.label}-${row.value}`} {...row} />
+                    ))}
+                </div>
+            ) : (
+                <p className="px-4 py-4 text-sm text-muted-foreground sm:px-5">
+                    {t('show.no_contact')}
+                </p>
+            )}
         </section>
     );
 }
