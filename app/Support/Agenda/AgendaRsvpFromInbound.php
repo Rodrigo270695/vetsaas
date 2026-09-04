@@ -89,7 +89,7 @@ final class AgendaRsvpFromInbound
             }
         }
 
-        Log::info('Agenda RSVP inbound sin tenant o sin turno', [
+        Log::warning('Agenda RSVP inbound sin tenant o sin turno', [
             'phone' => $phone,
             'wa_chat_id' => $waChatId,
             'session' => $openWaSessionId,

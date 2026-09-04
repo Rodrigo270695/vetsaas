@@ -40,7 +40,7 @@ Recuperación de una clínica: `vetsaas:tenant-restore {slug} --force` (exige du
 | **Tenants** | `tenant-diagnose`, `tenant-migrate`, `tenant-migrate-all`, `tenant-create-admin`, `tenant-restore`, `onboarding-reset` |
 | **Backups** | `backup-database`, `tenant-restore` |
 | **Cobros / suscripciones** | `billing-supervisor`, `subscriptions-apply-grace`, `subscription-renewal-reminders`, `sync-tenants-from-subscriptions` |
-| **WhatsApp / notificaciones clínicas** | `whatsapp-sync-sessions`, `reminders-scan`, `notifications-dispatch`, `clinic-bot-register-webhooks` |
+| **WhatsApp / notificaciones clínicas** | `whatsapp-sync-sessions`, `reminders-scan`, `notifications-dispatch`, `clinic-bot-register-webhooks`, `agenda-rsvp-probe` |
 | **Bot de ventas / leads** | `salesbot:*`, `reactivate-cold-leads`, `import-leads`, `import-leads-from-openwa`, `resolve-lid-leads`, `sync-bot-knowledge` |
 | **Demo / mantenimiento** | `reset-demo`, `geo-fix-encoding`, `nubefact-diagnose`, `test-password-reset-mail` |
 | **SSL (VPS, no Artisan)** | `certbot renew` — ver sección abajo y `docs/ssl-vps.md` |
@@ -616,7 +616,18 @@ php artisan vetsaas:backup-database
 Logs útiles:
 
 ```bash
-tail -f storage/logs/laravel.log | grep -iE "SalesBot|reactivat|engage|OpenWA|backup|tenant-restore|Fel|Apisunat"
+# SI/NO de citas, bots y OpenWA
+tail -f storage/logs/laravel.log | grep -iE "Agenda RSVP|SalesBot|ClinicBot|OpenWA"
+
+# Nginx: ¿llegó el webhook?
+sudo grep -E "sales-bot|clinic-bot" /var/log/nginx/access.log | tail -20
+```
+
+Simular el SI **sin WhatsApp** (en el VPS, con el teléfono del titular):
+
+```bash
+php artisan vetsaas:agenda-rsvp-probe 519XXXXXXXX
+php artisan vetsaas:agenda-rsvp-probe 519XXXXXXXX --apply
 ```
 
 ---

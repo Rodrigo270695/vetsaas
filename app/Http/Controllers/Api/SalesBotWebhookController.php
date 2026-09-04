@@ -167,8 +167,25 @@ final class SalesBotWebhookController extends Controller
             return response()->json(['ok' => false, 'reason' => 'no phone'], 422);
         }
 
+        $rsvpIntent = \App\Support\Agenda\AgendaRsvpIntent::parse($body);
+        if ($rsvpIntent !== null) {
+            Log::warning('Agenda RSVP: inbound sales-bot', [
+                'intent' => $rsvpIntent,
+                'phone' => $phone,
+                'wa_chat_id' => $waChatId,
+                'session' => $openWaSessionId,
+                'body' => mb_substr($body, 0, 40),
+            ]);
+        }
+
         $rsvp = $this->agendaRsvp->tryHandle($openWaSessionId, $phone, $waChatId, $body);
         if ($rsvp !== null) {
+            Log::warning('Agenda RSVP: sales-bot confirmó/canceló', [
+                'kind' => $rsvp['kind'],
+                'intent' => $rsvp['intent'],
+                'id' => $rsvp['id'],
+                'phone' => $phone,
+            ]);
             if ($this->messenger->isReady()) {
                 $this->messenger->sendText($waChatId, $rsvp['reply']);
             }
@@ -178,6 +195,14 @@ final class SalesBotWebhookController extends Controller
                 'rsvp' => true,
                 'kind' => $rsvp['kind'],
                 'intent' => $rsvp['intent'],
+            ]);
+        }
+
+        if ($rsvpIntent !== null) {
+            Log::warning('Agenda RSVP: sales-bot no aplicó el SI/NO', [
+                'phone' => $phone,
+                'wa_chat_id' => $waChatId,
+                'session' => $openWaSessionId,
             ]);
         }
 

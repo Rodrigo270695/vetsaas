@@ -51,7 +51,7 @@ final class AgendaOwnerRsvpService
             $propietario = $this->findPropietarioFromRecentNotices();
         }
         if ($propietario === null) {
-            Log::info('Agenda RSVP: no hay propietario para este WhatsApp', [
+            Log::warning('Agenda RSVP: no hay propietario para este WhatsApp', [
                 'phone' => $phone,
                 'wa_chat_id' => $waChatId,
             ]);
@@ -70,7 +70,7 @@ final class AgendaOwnerRsvpService
         $onlyUnconfirmed = $intent === AgendaRsvpIntent::YES;
         $pending = $this->pendingSlots($pacienteIds->all(), $onlyUnconfirmed);
         if ($pending === []) {
-            Log::info('Agenda RSVP: no hay turnos pendientes', [
+            Log::warning('Agenda RSVP: no hay turnos pendientes', [
                 'propietario_id' => $propietario->id,
                 'intent' => $intent,
             ]);

@@ -109,6 +109,12 @@ final class ClinicBotWebhookController extends Controller
                 )
                 : null;
             if ($rsvp !== null) {
+                Log::warning('Agenda RSVP: clinic-bot vía sesión de plataforma', [
+                    'kind' => $rsvp['kind'],
+                    'intent' => $rsvp['intent'],
+                    'id' => $rsvp['id'],
+                    'phone' => $contact['phone'],
+                ]);
                 if ($this->platformMessenger->isReady()) {
                     $this->platformMessenger->sendText($contact['wa_chat_id'], $rsvp['reply']);
                 }
@@ -198,6 +204,12 @@ final class ClinicBotWebhookController extends Controller
             if ($body !== '') {
                 $rsvp = $this->agendaRsvp->tryHandle($phone, $body, $waChatId);
                 if ($rsvp !== null) {
+                    Log::warning('Agenda RSVP: clinic-bot confirmó/canceló', [
+                        'kind' => $rsvp['kind'],
+                        'intent' => $rsvp['intent'],
+                        'id' => $rsvp['id'],
+                        'phone' => $phone,
+                    ]);
                     $this->messenger->sendTextWithDeliveryFallback($waSession, $waChatId, $rsvp['reply']);
                     $this->guard->rememberOutbound($openWaSessionId, $waChatId, $rsvp['reply']);
                     $this->guard->markReplied($openWaSessionId, $waChatId);
