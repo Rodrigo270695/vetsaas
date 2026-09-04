@@ -7,7 +7,7 @@
     "nombre": "Name",
     "descripcion_field": "Description",
     "cuerpo": "Document text",
-    "cuerpo_hint": "The buttons insert variables. They are replaced with patient and clinic data when sending.",
+    "cuerpo_hint": "Bold, center and lists to shape the document. For the date line use ciudad, dia, mes_nombre and anio (or fecha_corta).",
     "activo": "Active",
     "insert_var": "Insert",
     "submit_create": "Create template",

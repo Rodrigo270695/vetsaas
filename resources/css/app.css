@@ -385,3 +385,28 @@
 .scrollbar-hidden::-webkit-scrollbar {
     display: none; /* Chromium / Safari */
 }
+
+/* Cuerpo de plantillas de autorización (editor, firma pública). */
+.auth-doc-editor p,
+.auth-doc-body p {
+    margin: 0 0 0.65em;
+}
+.auth-doc-editor h2,
+.auth-doc-body h2,
+.auth-doc-editor h3,
+.auth-doc-body h3 {
+    margin: 0 0 0.75em;
+    font-size: 1.05em;
+    font-weight: 700;
+}
+.auth-doc-editor ol,
+.auth-doc-body ol,
+.auth-doc-editor ul,
+.auth-doc-body ul {
+    margin: 0.4em 0 0.8em;
+    padding-left: 1.35rem;
+}
+.auth-doc-editor li,
+.auth-doc-body li {
+    margin: 0 0 0.35em;
+}

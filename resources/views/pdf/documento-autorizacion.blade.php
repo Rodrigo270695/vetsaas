@@ -9,6 +9,13 @@
     <meta charset="utf-8">
     <title>{{ $docTitle }}</title>
     @include('pdf.partials.clinic-styles')
+    <style>
+        .auth-cuerpo { font-size: 10px; line-height: 1.45; color: #1f2937; }
+        .auth-cuerpo p { margin: 0 0 6px; }
+        .auth-cuerpo h2, .auth-cuerpo h3 { margin: 0 0 8px; font-size: 12px; }
+        .auth-cuerpo ol, .auth-cuerpo ul { margin: 6px 0 8px 18px; padding: 0; }
+        .auth-cuerpo li { margin: 0 0 4px; }
+    </style>
 </head>
 <body>
     @include('pdf.partials.clinic-header')
@@ -17,7 +24,7 @@
     <h2 style="margin: 0 0 8px; font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.03em; color: {{ $colorPrimario }};">
         {{ $docTitle }}
     </h2>
-    <div style="font-size: 10px; line-height: 1.45; color: #1f2937;">
+    <div class="auth-cuerpo">
         {!! $cuerpoHtml !!}
     </div>
 

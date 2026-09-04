@@ -6,7 +6,7 @@ import { FormField, FormModal } from '@/components/forms';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import { cuerpoTieneTexto, PlantillaCuerpoEditor } from './plantilla-cuerpo-editor';
 
 export type PlantillaAutorizacion = {
     id: string;
@@ -15,8 +15,6 @@ export type PlantillaAutorizacion = {
     cuerpo: string;
     activo: boolean;
 };
-
-const VARS = ['paciente', 'propietario', 'documento', 'fecha', 'clinica', 'veterinario'] as const;
 
 type Props = {
     open: boolean;
@@ -54,12 +52,14 @@ export function DocumentoAutorizacionPlantillaFormModal({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, plantilla?.id, cuerpoDefault]);
 
-    const insertVar = (key: string) => {
-        form.setData('cuerpo', `${form.data.cuerpo}{{${key}}}`);
-    };
+    const canSubmit =
+        form.data.nombre.trim().length > 0 && cuerpoTieneTexto(form.data.cuerpo) && !form.processing;
 
     const onSubmit = (e: FormEvent) => {
         e.preventDefault();
+        if (!canSubmit) {
+            return;
+        }
         const opts = {
             preserveScroll: true,
             onSuccess: () => onOpenChange(false),
@@ -83,7 +83,7 @@ export function DocumentoAutorizacionPlantillaFormModal({
                     <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                         {t('common:actions.cancel')}
                     </Button>
-                    <Button type="submit" disabled={form.processing} className="gap-2">
+                    <Button type="submit" disabled={!canSubmit} className="gap-2">
                         {form.processing ? <Loader2 className="size-4 animate-spin" /> : null}
                         {isEdit ? t('submit_edit') : t('submit_create')}
                     </Button>
@@ -112,26 +112,13 @@ export function DocumentoAutorizacionPlantillaFormModal({
                     error={form.errors.cuerpo}
                     hint={t('cuerpo_hint')}
                 >
-                    <div className="mb-2 flex flex-wrap gap-1.5">
-                        {VARS.map((key) => (
-                            <Button
-                                key={key}
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                className="h-7 cursor-pointer px-2 text-xs"
-                                onClick={() => insertVar(key)}
-                            >
-                                {key}
-                            </Button>
-                        ))}
-                    </div>
-                    <Textarea
-                        id="tpl-cuerpo"
-                        rows={12}
-                        value={form.data.cuerpo}
-                        onChange={(e) => form.setData('cuerpo', e.target.value)}
-                    />
+                    {open ? (
+                        <PlantillaCuerpoEditor
+                            value={form.data.cuerpo}
+                            onChange={(html) => form.setData('cuerpo', html)}
+                            resetKey={`${plantilla?.id ?? 'new'}:${open ? '1' : '0'}`}
+                        />
+                    ) : null}
                 </FormField>
                 <label className="flex items-center gap-2 text-sm">
                     <Checkbox

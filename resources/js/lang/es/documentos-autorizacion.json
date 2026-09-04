@@ -7,7 +7,7 @@
     "nombre": "Nombre",
     "descripcion_field": "Descripción",
     "cuerpo": "Texto del documento",
-    "cuerpo_hint": "Los botones insertan variables. Al enviar se reemplazan por los datos del paciente y la clínica.",
+    "cuerpo_hint": "Negrita, centrado y listas para armar el documento. Para la fecha al pie usa ciudad, dia, mes_nombre y anio (o fecha_corta).",
     "activo": "Activa",
     "insert_var": "Insertar",
     "submit_create": "Crear plantilla",

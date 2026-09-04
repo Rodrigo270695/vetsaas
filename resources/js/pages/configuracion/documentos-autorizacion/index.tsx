@@ -12,6 +12,7 @@ import {
     DocumentoAutorizacionPlantillaFormModal,
     type PlantillaAutorizacion,
 } from './components/plantilla-form-modal';
+import { htmlToPlain } from './components/plantilla-cuerpo-editor';
 
 type Props = {
     plantillas: readonly PlantillaAutorizacion[];
@@ -68,8 +69,8 @@ export default function Index({ plantillas, cuerpo_default }: Props) {
                                         {row.descripcion ? (
                                             <p className="text-sm text-muted-foreground">{row.descripcion}</p>
                                         ) : null}
-                                        <p className="line-clamp-3 whitespace-pre-wrap text-sm text-muted-foreground">
-                                            {row.cuerpo}
+                                        <p className="line-clamp-3 text-sm text-muted-foreground">
+                                            {htmlToPlain(row.cuerpo)}
                                         </p>
                                     </div>
                                     <Can permission="config-general.update">

@@ -191,7 +191,7 @@ final class DocumentoAutorizacionService
             'propietarioNombre' => $envio->paciente
                 ? $this->propietarioNombreParaPdf($envio->paciente)
                 : '—',
-            'cuerpoHtml' => nl2br(e($envio->cuerpo_snapshot), false),
+            'cuerpoHtml' => DocumentoAutorizacionRenderer::toSafeHtml($envio->cuerpo_snapshot),
             'firmaDataUri' => $firmaDataUri,
         ]);
         $pdf->setPaper('a4', 'portrait');

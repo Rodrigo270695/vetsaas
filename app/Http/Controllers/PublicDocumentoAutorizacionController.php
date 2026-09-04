@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 use App\Models\ClinicSetting;
 use App\Models\DocumentoAutorizacionEnvio;
 use App\Services\Clinica\DocumentoAutorizacionService;
+use App\Support\Clinica\DocumentoAutorizacionRenderer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -23,7 +24,7 @@ final class PublicDocumentoAutorizacionController extends Controller
         return Inertia::render('public/documento-autorizacion', [
             'token' => $token,
             'titulo' => $envio->titulo,
-            'cuerpo' => $envio->cuerpo_snapshot,
+            'cuerpo' => DocumentoAutorizacionRenderer::toSafeHtml($envio->cuerpo_snapshot),
             'estado' => $envio->isPending() ? 'pendiente' : $envio->estado,
             'expirado' => $envio->estado === DocumentoAutorizacionEnvio::ESTADO_PENDIENTE
                 && $envio->expires_at->isPast(),

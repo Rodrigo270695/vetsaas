@@ -125,9 +125,10 @@ export default function PublicDocumentoAutorizacion({
                 {paciente_nombre ? (
                     <p className="mb-3 text-sm text-muted-foreground">Paciente: {paciente_nombre}</p>
                 ) : null}
-                <div className="max-h-[50vh] overflow-y-auto whitespace-pre-wrap rounded-xl bg-muted/40 p-4 text-sm leading-relaxed">
-                    {cuerpo}
-                </div>
+                <div
+                    className="auth-doc-body max-h-[50vh] overflow-y-auto rounded-xl bg-muted/40 p-4 text-sm leading-relaxed"
+                    dangerouslySetInnerHTML={{ __html: cuerpo }}
+                />
 
                 {!canSign ? (
                     <p className="mt-4 text-sm font-medium">

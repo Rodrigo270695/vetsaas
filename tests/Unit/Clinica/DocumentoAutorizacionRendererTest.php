@@ -22,3 +22,20 @@ it('deja un marcador desconocido sin tocar', function (): void {
         'paciente' => 'Luna',
     ]))->toBe('{{foo}} y Luna');
 });
+
+it('detecta HTML y conserva negrita y alineación segura', function (): void {
+    $html = DocumentoAutorizacionRenderer::sanitizeHtml(
+        '<p style="text-align:center;color:red" onclick="alert(1)"><strong>Hola</strong><script>x</script></p>',
+    );
+
+    expect($html)->toContain('<strong>Hola</strong>')
+        ->and($html)->toContain('text-align: center')
+        ->and($html)->not->toContain('onclick')
+        ->and($html)->not->toContain('script')
+        ->and($html)->not->toContain('color:red');
+});
+
+it('convierte texto plano a HTML escapado', function (): void {
+    expect(DocumentoAutorizacionRenderer::toSafeHtml("A < B\nC"))
+        ->toBe("A &lt; B<br>\nC");
+});
