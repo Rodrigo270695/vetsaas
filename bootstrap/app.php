@@ -1,9 +1,10 @@
 <?php
 
 use App\Http\Middleware\EnsureNoTenant;
-use App\Http\Middleware\EnsureTenantModuleEnabled;
 use App\Http\Middleware\EnsurePasswordIsChanged;
 use App\Http\Middleware\EnsureTenant;
+use App\Http\Middleware\EnsureTenantHasActiveSede;
+use App\Http\Middleware\EnsureTenantModuleEnabled;
 use App\Http\Middleware\EnsureTenantSubscriptionAccess;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleClinicBrandTheme;
@@ -11,27 +12,28 @@ use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\MatchUserTenant;
 use App\Http\Middleware\ResolveTenant;
 use App\Http\Middleware\SetPermissionsTeam;
+use App\Models\User;
 use App\Tenancy\Exceptions\TenantNotFoundException;
 use App\Tenancy\Exceptions\TenantSuspendedException;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\ValidationException;
-use Symfony\Component\HttpKernel\Exception\HttpException;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
-use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Spatie\Permission\Exceptions\PermissionDoesNotExist;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleMiddleware;
 use Spatie\Permission\Middleware\RoleOrPermissionMiddleware;
+use Symfony\Component\HttpKernel\Exception\HttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -80,7 +82,7 @@ return Application::configure(basePath: dirname(__DIR__))
             // contraseña hasta que el usuario lo complete.
             'force-password-change' => EnsurePasswordIsChanged::class,
             'tenant.module' => EnsureTenantModuleEnabled::class,
-            'tenant.active-sede' => \App\Http\Middleware\EnsureTenantHasActiveSede::class,
+            'tenant.active-sede' => EnsureTenantHasActiveSede::class,
         ]);
 
         // `ResolveTenant` se aplica a TODO el grupo web. Es inocuo en
@@ -120,7 +122,7 @@ return Application::configure(basePath: dirname(__DIR__))
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
             EnsureTenantSubscriptionAccess::class,
-            \App\Http\Middleware\EnsureTenantHasActiveSede::class,
+            EnsureTenantHasActiveSede::class,
         ]);
     })
     ->withSchedule(function (Schedule $schedule): void {
@@ -140,7 +142,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $schedule->command('vetsaas:billing-supervisor')->hourly();
         $schedule->command('vetsaas:subscription-renewal-reminders')->dailyAt('09:00');
-        $schedule->command('vetsaas:reminders-scan')->everyFifteenMinutes();
+        $schedule->command('vetsaas:reminders-scan')->everyFiveMinutes();
         $schedule->command('vetsaas:notifications-dispatch')->everyFiveMinutes();
         $schedule->command('vetsaas:fel-sync-statuses --limit=100')->everyFiveMinutes();
         $schedule->command('vetsaas:whatsapp-sync-sessions')->everyFiveMinutes();
@@ -161,7 +163,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('vetsaas:prospectos-outreach')->hourly();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        $exceptions->reportable(function (\Throwable $e): void {
+        $exceptions->reportable(function (Throwable $e): void {
             $request = request();
             $line = sprintf(
                 "[%s] %s.ERROR: %s | %s %s | tenant=%s | in %s:%d\n",
@@ -195,9 +197,9 @@ return Application::configure(basePath: dirname(__DIR__))
             return $message;
         };
 
-        $supportFacingErrorMessage = static function (\Throwable $e) use ($userFacingHttpMessage): ?string {
+        $supportFacingErrorMessage = static function (Throwable $e) use ($userFacingHttpMessage): ?string {
             $user = Auth::guard('web')->user();
-            $isSupport = $user instanceof \App\Models\User && $user->isPlatformSuperadmin();
+            $isSupport = $user instanceof User && $user->isPlatformSuperadmin();
 
             if (! $isSupport && ! app()->hasDebugModeEnabled()) {
                 return null;
@@ -305,7 +307,7 @@ return Application::configure(basePath: dirname(__DIR__))
             return null;
         });
 
-        $exceptions->renderable(function (\Throwable $e, Request $request) use ($renderInertiaHttpError, $supportFacingErrorMessage) {
+        $exceptions->renderable(function (Throwable $e, Request $request) use ($renderInertiaHttpError, $supportFacingErrorMessage) {
             // Estas excepciones tienen una pantalla específica registrada abajo.
             // No deben convertirse en el error 500 genérico en producción.
             if ($e instanceof TenantNotFoundException || $e instanceof TenantSuspendedException) {

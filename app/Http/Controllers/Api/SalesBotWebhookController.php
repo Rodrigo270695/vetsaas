@@ -8,11 +8,13 @@ use App\Http\Controllers\Controller;
 use App\Services\OpenWa\PlatformWhatsAppMessenger;
 use App\Services\Sales\SalesBotService;
 use App\Services\Subscriptions\SubscriptionWinBackService;
-use App\Support\WhatsApp\BotInboundDebounceScheduler;
+use App\Support\Agenda\AgendaRsvpFromInbound;
 use App\Support\WhatsApp\BotInboundDebouncer;
+use App\Support\WhatsApp\BotInboundDebounceScheduler;
 use App\Support\WhatsApp\WhatsAppContactResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -48,6 +50,7 @@ final class SalesBotWebhookController extends Controller
         private readonly PlatformWhatsAppMessenger $messenger,
         private readonly WhatsAppContactResolver $contactResolver,
         private readonly SubscriptionWinBackService $winBack,
+        private readonly AgendaRsvpFromInbound $agendaRsvp,
     ) {}
 
     public function handle(Request $request): JsonResponse
@@ -86,22 +89,22 @@ final class SalesBotWebhookController extends Controller
         $data = is_array($payload['data'] ?? null) ? $payload['data'] : $payload;
 
         // OpenWA envía el evento como "event" o "type" según la versión.
-        $event   = (string) ($payload['event'] ?? $payload['type'] ?? '');
-        $fromMe  = (bool) ($data['fromMe'] ?? $data['from_me'] ?? false);
-        $type    = (string) ($data['type'] ?? 'chat');
-        $body    = trim((string) ($data['body'] ?? $data['content'] ?? $data['text'] ?? ''));
+        $event = (string) ($payload['event'] ?? $payload['type'] ?? '');
+        $fromMe = (bool) ($data['fromMe'] ?? $data['from_me'] ?? false);
+        $type = (string) ($data['type'] ?? 'chat');
+        $body = trim((string) ($data['body'] ?? $data['content'] ?? $data['text'] ?? ''));
 
         // Aceptar tanto "message.received" (esta versión OpenWA) como "onMessage" (versiones antiguas).
         $esEventoMensaje = in_array($event, ['message.received', 'onMessage', 'message'], true);
 
-        $isAudio   = in_array($type, ['ptt', 'audio'], true);
+        $isAudio = in_array($type, ['ptt', 'audio'], true);
         $messageId = (string) ($data['id'] ?? '');
 
         // Mensaje saliente (fromMe): saludo de Facebook → armar bot; otro mensaje → pausar.
         if ($fromMe && $esEventoMensaje) {
             $openWaSessionId = (string) ($payload['sessionId'] ?? $data['sessionId'] ?? '');
-            $sessionArg      = $openWaSessionId !== '' ? $openWaSessionId : null;
-            $contact         = $this->contactResolver->resolve($data, $sessionArg, forOutgoing: true);
+            $sessionArg = $openWaSessionId !== '' ? $openWaSessionId : null;
+            $contact = $this->contactResolver->resolve($data, $sessionArg, forOutgoing: true);
 
             if ($contact['phone'] === '' || str_ends_with($contact['wa_chat_id'], '@g.us')) {
                 return response()->json(['ok' => true, 'skipped' => 'fromMe']);
@@ -116,7 +119,7 @@ final class SalesBotWebhookController extends Controller
                 );
                 Log::info('SalesBot armed from Facebook welcome', [
                     'phone' => $contact['phone'],
-                    'name'  => $contact['prospect_name'],
+                    'name' => $contact['prospect_name'],
                 ]);
 
                 return response()->json(['ok' => true, 'armed' => 'facebook:welcome']);
@@ -149,10 +152,10 @@ final class SalesBotWebhookController extends Controller
 
         // Resolver contacto: número real, nombre y chat ID para responder.
         $openWaSessionId = (string) ($payload['sessionId'] ?? $data['sessionId'] ?? '');
-        $contact         = $this->contactResolver->resolve($data, $openWaSessionId !== '' ? $openWaSessionId : null);
+        $contact = $this->contactResolver->resolve($data, $openWaSessionId !== '' ? $openWaSessionId : null);
 
-        $waChatId     = $contact['wa_chat_id'];
-        $phone        = $contact['phone'];
+        $waChatId = $contact['wa_chat_id'];
+        $phone = $contact['phone'];
         $prospectName = $contact['prospect_name'];
 
         // Ignorar grupos (@g.us).
@@ -164,9 +167,23 @@ final class SalesBotWebhookController extends Controller
             return response()->json(['ok' => false, 'reason' => 'no phone'], 422);
         }
 
+        $rsvp = $this->agendaRsvp->tryHandle($openWaSessionId, $phone, $waChatId, $body);
+        if ($rsvp !== null) {
+            if ($this->messenger->isReady()) {
+                $this->messenger->sendText($waChatId, $rsvp['reply']);
+            }
+
+            return response()->json([
+                'ok' => true,
+                'rsvp' => true,
+                'kind' => $rsvp['kind'],
+                'intent' => $rsvp['intent'],
+            ]);
+        }
+
         // Cliente habla con Rodrigo o envía datos de proyecto → no intervenir.
         $conversationForHandoff = $this->botService->findExistingConversation($phone, $waChatId);
-        $handoffProduct         = $conversationForHandoff !== null
+        $handoffProduct = $conversationForHandoff !== null
             ? $this->botService->resolveConversationProduct($conversationForHandoff)
             : $this->botService->resolveProductFromTrigger(
                 (string) ($this->botService->detectSalesTrigger($body) ?? ''),
@@ -188,7 +205,7 @@ final class SalesBotWebhookController extends Controller
         // ── Deduplicación atómica por message ID (evita retries OpenWA en paralelo) ─
         if ($messageId !== '') {
             $cacheKey = 'salesbot_msg_'.md5($messageId);
-            if (! \Illuminate\Support\Facades\Cache::add($cacheKey, 1, 120)) {
+            if (! Cache::add($cacheKey, 1, 120)) {
                 return response()->json(['ok' => true, 'skipped' => 'duplicate']);
             }
         }
@@ -197,9 +214,9 @@ final class SalesBotWebhookController extends Controller
         // OpenWA envía los audios como base64 en data.media.data
         // (mimetype: audio/ogg; codecs=opus).
         if ($body === '' && $isAudio && config('salesbot.audio_enabled')) {
-            $media     = is_array($data['media'] ?? null) ? $data['media'] : [];
-            $b64data   = (string) ($media['data'] ?? '');
-            $mimetype  = (string) ($media['mimetype'] ?? 'audio/ogg');
+            $media = is_array($data['media'] ?? null) ? $data['media'] : [];
+            $b64data = (string) ($media['data'] ?? '');
+            $mimetype = (string) ($media['mimetype'] ?? 'audio/ogg');
 
             // Determinar extensión a partir del mimetype.
             $ext = str_contains($mimetype, 'ogg') ? 'ogg'
@@ -215,7 +232,7 @@ final class SalesBotWebhookController extends Controller
                     $body = $this->botService->transcribeAudio($audioContent, "audio.{$ext}");
                     Log::info('SalesBot audio transcribed', [
                         'phone' => $phone,
-                        'text'  => substr($body, 0, 100),
+                        'text' => substr($body, 0, 100),
                     ]);
                 } catch (\Throwable $e) {
                     Log::warning('SalesBot Whisper failed', [
@@ -228,6 +245,7 @@ final class SalesBotWebhookController extends Controller
                             '¡Hola! 👋 Recibí tu audio pero tuve un problema para procesarlo. ¿Me puedes escribir tu consulta? 😊',
                         );
                     }
+
                     return response()->json(['ok' => true, 'skipped' => 'audio_transcription_failed']);
                 }
             }
@@ -272,14 +290,14 @@ final class SalesBotWebhookController extends Controller
                     return response()->json(['ok' => true, 'skipped' => 'paused_manual']);
                 }
 
-                $trigger        = $this->botService->detectSalesTrigger($body);
+                $trigger = $this->botService->detectSalesTrigger($body);
                 $isFacebookLead = $this->botService->isFacebookLeadConversation($conversation);
 
                 if ($trigger !== null || $isFacebookLead) {
                     $conversation->resumeBot();
                     if ($trigger !== null) {
                         $conversation->activation_trigger = "reactivado:{$trigger}";
-                        $conversation->product            = $this->botService->resolveProductFromTrigger($trigger);
+                        $conversation->product = $this->botService->resolveProductFromTrigger($trigger);
                     }
                     $conversation->save();
                 } else {

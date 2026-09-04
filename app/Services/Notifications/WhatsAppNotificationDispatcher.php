@@ -9,6 +9,7 @@ use App\Models\Tenant;
 use App\Models\TenantWhatsAppSession;
 use App\Services\OpenWa\OpenWaClient;
 use App\Services\OpenWa\TenantWhatsAppSessionSync;
+use App\Support\Agenda\AgendaRsvpFromInbound;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\Log;
 
@@ -152,6 +153,15 @@ final class WhatsAppNotificationDispatcher
                 'proveedor_msg_id' => isset($result['messageId']) ? (string) $result['messageId'] : null,
                 'error_mensaje' => null,
             ])->save();
+
+            $slug = (string) ($session->tenant?->slug ?? '');
+            if ($slug === '' && $session->tenant_id) {
+                $slug = (string) (Tenant::query()->whereKey($session->tenant_id)->value('slug') ?? '');
+            }
+            if ($slug !== '') {
+                $digits = preg_replace('/\D/', '', (string) $item->destinatario) ?? '';
+                AgendaRsvpFromInbound::rememberTenant($slug, (string) $item->destinatario, $digits);
+            }
 
             return true;
         } catch (\Throwable $e) {

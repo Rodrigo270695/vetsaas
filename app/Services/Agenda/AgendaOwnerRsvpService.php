@@ -5,12 +5,17 @@ declare(strict_types=1);
 namespace App\Services\Agenda;
 
 use App\Models\Cita;
+use App\Models\ClinicBotConversation;
 use App\Models\GroomingTurno;
 use App\Models\HotelEstancia;
+use App\Models\NotificationQueue;
 use App\Models\Paciente;
+use App\Models\Propietario;
 use App\Services\ClinicBot\ClinicBotClientResolver;
 use App\Support\Agenda\AgendaRsvpIntent;
+use App\Support\WhatsApp\WhatsAppChatId;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Confirma o cancela el turno más próximo (cita, grooming u hotel) según SI/NO por WhatsApp.
@@ -28,7 +33,7 @@ final class AgendaOwnerRsvpService
     /**
      * @return RsvpResult|null
      */
-    public function tryHandle(string $phone, string $body): ?array
+    public function tryHandle(string $phone, string $body, ?string $waChatId = null): ?array
     {
         $intent = AgendaRsvpIntent::parse($body);
         if ($intent === null) {
@@ -36,6 +41,9 @@ final class AgendaOwnerRsvpService
         }
 
         $propietario = $this->clients->findPropietarioByPhone($phone);
+        if ($propietario === null && $waChatId) {
+            $propietario = $this->findPropietarioByChatOrQueue($phone, $waChatId);
+        }
         if ($propietario === null) {
             return null;
         }
@@ -59,12 +67,22 @@ final class AgendaOwnerRsvpService
         $kindLabel = $slot['label'];
         $several = count($pending) > 1;
 
-        if ($intent === AgendaRsvpIntent::YES) {
-            $this->confirm($slot);
-            $reply = "Listo ✅ Confirmamos {$kindLabel} de *{$mascota}* el *{$when}*.";
-        } else {
-            $this->cancel($slot);
-            $reply = "Entendido. Cancelamos {$kindLabel} de *{$mascota}* el *{$when}*. Si quieres otra fecha, escríbenos.";
+        try {
+            if ($intent === AgendaRsvpIntent::YES) {
+                $this->confirm($slot);
+                $reply = "Listo ✅ Confirmamos {$kindLabel} de *{$mascota}* el *{$when}*.";
+            } else {
+                $this->cancel($slot);
+                $reply = "Entendido. Cancelamos {$kindLabel} de *{$mascota}* el *{$when}*. Si quieres otra fecha, escríbenos.";
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Agenda RSVP no pudo guardar el estado', [
+                'kind' => $slot['kind'],
+                'id' => $slot['id'],
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
         }
 
         if ($several) {
@@ -78,6 +96,43 @@ final class AgendaOwnerRsvpService
             'id' => $slot['id'],
             'intent' => $intent,
         ];
+    }
+
+    private function findPropietarioByChatOrQueue(string $phone, string $waChatId): ?Propietario
+    {
+        $conversation = ClinicBotConversation::query()
+            ->where('wa_chat_id', $waChatId)
+            ->first();
+        if ($conversation !== null) {
+            $fromConv = $this->clients->findPropietarioByPhone((string) $conversation->phone);
+            if ($fromConv !== null) {
+                return $fromConv;
+            }
+        }
+
+        $destinatarios = array_values(array_unique(array_filter([
+            $waChatId,
+            WhatsAppChatId::fromPhone($phone),
+        ])));
+        if ($destinatarios === []) {
+            return null;
+        }
+
+        $item = NotificationQueue::query()
+            ->whereIn('destinatario', $destinatarios)
+            ->where('referencia_tipo', 'cita')
+            ->whereNotNull('referencia_id')
+            ->orderByDesc('created_at')
+            ->first();
+
+        if ($item === null) {
+            return null;
+        }
+
+        $cita = Cita::query()->with('paciente.propietario')->find($item->referencia_id);
+        $prop = $cita?->paciente?->propietario;
+
+        return $prop instanceof Propietario ? $prop : null;
     }
 
     /**

@@ -14,6 +14,7 @@ use App\Models\Paciente;
 use App\Models\Sede;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Services\Notifications\AppointmentReminderScanner;
 use App\Services\Notifications\NotificationQueueService;
 use App\Services\Notifications\ReminderMessageBuilder;
 use App\Support\WhatsApp\DeferredWhatsAppDispatch;
@@ -295,6 +296,8 @@ class CitaController extends Controller
             $redirect->with($whatsappFlash['type'], $whatsappFlash['message']);
         }
 
+        app(AppointmentReminderScanner::class)->enqueueIfDue($cita);
+
         return $redirect;
     }
 
@@ -452,6 +455,10 @@ class CitaController extends Controller
             $redirect->with($whatsappFlash['type'], $whatsappFlash['message']);
         }
 
+        if ($inicioCambio) {
+            app(AppointmentReminderScanner::class)->enqueueIfDue($cita);
+        }
+
         return $redirect;
     }
 
@@ -474,6 +481,8 @@ class CitaController extends Controller
         if ($whatsappFlash !== null) {
             $redirect->with($whatsappFlash['type'], $whatsappFlash['message']);
         }
+
+        app(AppointmentReminderScanner::class)->enqueueIfDue($cita);
 
         return $redirect;
     }

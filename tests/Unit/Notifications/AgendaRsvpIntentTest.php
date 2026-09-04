@@ -6,7 +6,7 @@ use App\Support\Agenda\AgendaRsvpIntent;
 
 it('detecta confirmaciones cortas', function (string $body): void {
     expect(AgendaRsvpIntent::parse($body))->toBe(AgendaRsvpIntent::YES);
-})->with(['SI', 'sí', 'ok', 'confirmo', 'Si voy']);
+})->with(['SI', 'sí', 'Si', 'ok', 'confirmo', 'Si voy']);
 
 it('detecta cancelaciones cortas', function (string $body): void {
     expect(AgendaRsvpIntent::parse($body))->toBe(AgendaRsvpIntent::NO);

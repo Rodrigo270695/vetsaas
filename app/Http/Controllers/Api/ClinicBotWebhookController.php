@@ -52,18 +52,6 @@ final class ClinicBotWebhookController extends Controller
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
-        if (! (bool) config('bot-ia.enabled', true)) {
-            return response()->json(['ok' => false, 'reason' => 'clinic-bot disabled']);
-        }
-
-        if ($this->traffic->shouldRejectAfterHit()) {
-            return response()->json([
-                'ok' => false,
-                'reason' => 'circuit_open',
-                'message' => 'Clinic bot webhook temporarily shedding load',
-            ], 429);
-        }
-
         $payload = $request->all();
         $data = is_array($payload['data'] ?? null) ? $payload['data'] : $payload;
 
@@ -173,7 +161,7 @@ final class ClinicBotWebhookController extends Controller
             $this->guard->rememberInbound($openWaSessionId, $messageId, $waChatId, $body);
 
             if ($body !== '') {
-                $rsvp = $this->agendaRsvp->tryHandle($phone, $body);
+                $rsvp = $this->agendaRsvp->tryHandle($phone, $body, $waChatId);
                 if ($rsvp !== null) {
                     $this->messenger->sendTextWithDeliveryFallback($waSession, $waChatId, $rsvp['reply']);
                     $this->guard->rememberOutbound($openWaSessionId, $waChatId, $rsvp['reply']);
@@ -190,6 +178,11 @@ final class ClinicBotWebhookController extends Controller
             }
 
             $subscription = $tenant->subscriptions()->orderByDesc('created_at')->first();
+            if (! (bool) config('bot-ia.enabled', true)) {
+                $this->traffic->recordSkipped();
+
+                return response()->json(['ok' => true, 'skipped' => 'clinic-bot disabled']);
+            }
             if (! SubscriptionBotIaAddon::isActive($subscription)) {
                 $this->traffic->recordSkipped();
 

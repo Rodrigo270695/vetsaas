@@ -13,6 +13,14 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (! Schema::hasTable('vacunas_aplicadas')) {
+            return;
+        }
+
+        if (Schema::hasColumn('vacunas_aplicadas', 'cita_proxima_id')) {
+            return;
+        }
+
         Schema::table('vacunas_aplicadas', function (Blueprint $table) {
             $table->foreignUuid('cita_proxima_id')
                 ->nullable()
@@ -24,6 +32,10 @@ return new class extends Migration
 
     public function down(): void
     {
+        if (! Schema::hasTable('vacunas_aplicadas') || ! Schema::hasColumn('vacunas_aplicadas', 'cita_proxima_id')) {
+            return;
+        }
+
         Schema::table('vacunas_aplicadas', function (Blueprint $table) {
             $table->dropConstrainedForeignId('cita_proxima_id');
         });

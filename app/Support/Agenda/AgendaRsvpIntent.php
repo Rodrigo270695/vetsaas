@@ -44,6 +44,7 @@ final class AgendaRsvpIntent
 
     private static function normalize(string $body): string
     {
+        $body = preg_replace('/[\x{200B}-\x{200D}\x{FEFF}]/u', '', $body) ?? $body;
         $body = mb_strtolower($body, 'UTF-8');
         $body = str_replace(['á', 'é', 'í', 'ó', 'ú', 'ü', 'ñ'], ['a', 'e', 'i', 'o', 'u', 'u', 'n'], $body);
         $body = preg_replace('/[*_~`.,;:!?¡¿()"\'«»]/u', ' ', $body) ?? $body;

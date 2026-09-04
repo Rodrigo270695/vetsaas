@@ -12,6 +12,9 @@ use Carbon\CarbonInterface;
 
 final class AppointmentReminderScanner
 {
+    /** Ventana alrededor de (ahora + N días / 2 h). El cron corre cada 5 min. */
+    public const WINDOW_MINUTES = 45;
+
     public function __construct(
         private readonly NotificationQueueService $queue,
         private readonly ReminderMessageBuilder $messages,
@@ -32,7 +35,7 @@ final class AppointmentReminderScanner
         foreach ($setting?->recordatorioCitaDiasAntesOpciones() ?? [] as $days) {
             $countDays += $this->scanWindow(
                 $now->copy()->addDays($days),
-                $days === 2 ? 'cita_48h' : 'cita_'.$days.'d',
+                $this->tipoDias($days),
                 fn (Cita $cita) => $this->messages->cita48h(
                     $clinicName,
                     $this->ownerName($cita),
@@ -61,14 +64,81 @@ final class AppointmentReminderScanner
     }
 
     /**
+     * Al crear/reprogramar: si ya está en la ventana, no esperar al cron.
+     */
+    public function enqueueIfDue(Cita $cita, ?CarbonInterface $now = null): int
+    {
+        $now ??= now();
+        $cita->loadMissing(['paciente.propietario']);
+        if (! in_array($cita->estado, [Cita::ESTADO_PROGRAMADA, Cita::ESTADO_CONFIRMADA], true)) {
+            return 0;
+        }
+
+        $inicio = $cita->inicio_at;
+        if ($inicio === null) {
+            return 0;
+        }
+
+        $setting = ClinicSetting::query()->first();
+        $clinicName = $this->messages->clinicDisplayName($setting);
+        $enqueued = 0;
+
+        foreach ($setting?->recordatorioCitaDiasAntesOpciones() ?? [] as $days) {
+            $target = $now->copy()->addDays($days);
+            if (! self::inWindow($inicio, $target)) {
+                continue;
+            }
+            $enqueued += $this->enqueueOne(
+                $cita,
+                $this->tipoDias($days),
+                $this->messages->cita48h(
+                    $clinicName,
+                    $this->ownerName($cita),
+                    $this->petName($cita),
+                    $inicio,
+                    $this->motivo($cita),
+                ),
+            );
+        }
+
+        if ($setting?->recordatorio_2h_activo && self::inWindow($inicio, $now->copy()->addHours(2))) {
+            $enqueued += $this->enqueueOne(
+                $cita,
+                'cita_2h',
+                $this->messages->cita2h(
+                    $clinicName,
+                    $this->ownerName($cita),
+                    $this->petName($cita),
+                    $inicio,
+                    $this->motivo($cita),
+                ),
+            );
+        }
+
+        return $enqueued;
+    }
+
+    public static function inWindow(CarbonInterface $inicio, CarbonInterface $target, int $minutes = self::WINDOW_MINUTES): bool
+    {
+        return $inicio->betweenIncluded(
+            $target->copy()->subMinutes($minutes),
+            $target->copy()->addMinutes($minutes),
+        );
+    }
+
+    private function tipoDias(int $days): string
+    {
+        return $days === 2 ? 'cita_48h' : 'cita_'.$days.'d';
+    }
+
+    /**
      * @param  callable(Cita): string  $bodyBuilder
      */
     private function scanWindow(CarbonInterface $target, string $tipo, callable $bodyBuilder): int
     {
-        $from = $target->copy()->subMinutes(30);
-        $to = $target->copy()->addMinutes(30);
+        $from = $target->copy()->subMinutes(self::WINDOW_MINUTES);
+        $to = $target->copy()->addMinutes(self::WINDOW_MINUTES);
 
-        /** @var \Illuminate\Database\Eloquent\Collection<int, Cita> $citas */
         $citas = Cita::query()
             ->with(['paciente.propietario'])
             ->whereIn('estado', [Cita::ESTADO_PROGRAMADA, Cita::ESTADO_CONFIRMADA])
@@ -76,32 +146,34 @@ final class AppointmentReminderScanner
             ->get();
 
         $enqueued = 0;
-
         foreach ($citas as $cita) {
-            $phone = $cita->paciente?->propietario?->telefono;
-            $chatId = WhatsAppChatId::fromPhone($phone);
-            if ($chatId === null) {
-                continue;
-            }
-
-            $created = $this->queue->enqueue(
-                tipo: $tipo,
-                destinatario: $chatId,
-                cuerpo: $bodyBuilder($cita),
-                enviarAt: now(),
-                destinatarioNombre: $this->ownerName($cita),
-                referenciaTipo: 'cita',
-                referenciaId: $cita->id,
-                dedupeKey: $tipo.':'.$cita->id,
-                prioridad: $tipo === 'cita_2h' ? 3 : 5,
-            );
-
-            if ($created instanceof NotificationQueue) {
-                $enqueued++;
-            }
+            $enqueued += $this->enqueueOne($cita, $tipo, $bodyBuilder($cita));
         }
 
         return $enqueued;
+    }
+
+    private function enqueueOne(Cita $cita, string $tipo, string $cuerpo): int
+    {
+        $phone = $cita->paciente?->propietario?->telefono;
+        $chatId = WhatsAppChatId::fromPhone($phone);
+        if ($chatId === null) {
+            return 0;
+        }
+
+        $created = $this->queue->enqueue(
+            tipo: $tipo,
+            destinatario: $chatId,
+            cuerpo: $cuerpo,
+            enviarAt: now(),
+            destinatarioNombre: $this->ownerName($cita),
+            referenciaTipo: 'cita',
+            referenciaId: $cita->id,
+            dedupeKey: $tipo.':'.$cita->id,
+            prioridad: $tipo === 'cita_2h' ? 3 : 5,
+        );
+
+        return $created instanceof NotificationQueue ? 1 : 0;
     }
 
     private function ownerName(Cita $cita): string
