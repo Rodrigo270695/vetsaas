@@ -23,6 +23,21 @@ final class RecordatorioTemplateCatalog
 
     public const GRUPO_HOTEL = 'hotel';
 
+    public const RSVP_FOOTER = 'Responde *SI* para confirmar o *NO* si no puedes asistir.';
+
+    /** @var list<string> */
+    public const RSVP_TIPOS = [
+        'cita_dias_antes',
+        'cita_2h',
+        'cita_creada',
+        'cita_reprogramada',
+        'cita_actualizada',
+        'grooming_programado',
+        'grooming_reprogramado',
+        'hotel_registrada',
+        'hotel_reprogramada',
+    ];
+
     /**
      * @return list<array{
      *     tipo: string,

@@ -19,6 +19,7 @@ use App\Services\Notifications\ReminderMessageBuilder;
 use App\Support\WhatsApp\DeferredWhatsAppDispatch;
 use App\Support\WhatsApp\WhatsAppChatId;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -297,6 +298,16 @@ class CitaController extends Controller
         return $redirect;
     }
 
+    private function resetOwnerRsvp(Cita $cita): void
+    {
+        if ($cita->estado === Cita::ESTADO_CONFIRMADA) {
+            $cita->estado = Cita::ESTADO_PROGRAMADA;
+        }
+        $cita->confirmed_at = null;
+        $cita->confirmed_via = null;
+        $cita->owner_responded_at = null;
+    }
+
     /**
      * Encola WhatsApp al propietario vía OpenWA (creación o modificación).
      *
@@ -388,7 +399,7 @@ class CitaController extends Controller
                 $tenantId = tenant_id();
                 $tenant = $tenantId !== null ? Tenant::query()->find($tenantId) : null;
                 if ($tenant !== null) {
-                    \App\Support\WhatsApp\DeferredWhatsAppDispatch::queueItem($item, $tenant);
+                    DeferredWhatsAppDispatch::queueItem($item, $tenant);
                 }
             }
 
@@ -420,6 +431,10 @@ class CitaController extends Controller
         $inicioCambio = $cita->isDirty('inicio_at')
             && ($inicioAnterior === null || ! $inicioAnterior->equalTo($cita->inicio_at));
 
+        if ($inicioCambio) {
+            $this->resetOwnerRsvp($cita);
+        }
+
         $cita->save();
 
         $redirect = redirect()
@@ -444,6 +459,7 @@ class CitaController extends Controller
     {
         $cita->inicio_at = $request->validated('inicio_at');
         $cita->updated_by_id = Auth::id();
+        $this->resetOwnerRsvp($cita);
         $cita->save();
 
         $cita->loadMissing(['paciente.propietario']);
@@ -500,7 +516,7 @@ class CitaController extends Controller
     /**
      * Consultas recientes del paciente de la cita (para elegir cuál reactivar al aperturar).
      */
-    public function consultasHc(Cita $cita): \Illuminate\Http\JsonResponse
+    public function consultasHc(Cita $cita): JsonResponse
     {
         abort_unless(auth()->user()?->can('citas.aperturar') ?? false, 403);
         abort_unless(auth()->user()?->can('historias-clinicas.view') ?? false, 403);

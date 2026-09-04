@@ -407,7 +407,22 @@ final class ReminderMessageBuilder
     {
         $body = $this->resolveBody($tipo);
 
-        return $this->interpolate($body, $variables);
+        $interpolated = $this->interpolate($body, $variables);
+
+        if (in_array($tipo, RecordatorioTemplateCatalog::RSVP_TIPOS, true)) {
+            return $this->appendRsvpPrompt($interpolated);
+        }
+
+        return $interpolated;
+    }
+
+    private function appendRsvpPrompt(string $body): string
+    {
+        if (preg_match('/responde\s+\*?si\*?/iu', $body) === 1) {
+            return $body;
+        }
+
+        return rtrim($body)."\n\n".RecordatorioTemplateCatalog::RSVP_FOOTER;
     }
 
     private function resolveBody(string $tipo): string

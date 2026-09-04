@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Hotel\HotelCatalogoMode;
 use App\Hotel\HotelCatalogoTipoEstancia;
+use App\Support\ConsultaCargo\ConsultaCargoCobroEstado;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -11,14 +12,15 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 
 /**
  * @property string $id
  * @property string $paciente_id
  * @property ?string $responsable_id
  * @property ?string $sede_id
- * @property \Illuminate\Support\Carbon $ingreso_at
- * @property ?\Illuminate\Support\Carbon $egreso_at
+ * @property Carbon $ingreso_at
+ * @property ?Carbon $egreso_at
  * @property string $estado
  * @property string $tipo_estancia
  * @property ?string $tipo_detalle
@@ -72,6 +74,9 @@ class HotelEstancia extends Model
         'venta_id',
         'created_by_id',
         'updated_by_id',
+        'confirmed_at',
+        'confirmed_via',
+        'owner_responded_at',
     ];
 
     protected function casts(): array
@@ -79,6 +84,8 @@ class HotelEstancia extends Model
         return [
             'ingreso_at' => 'datetime',
             'egreso_at' => 'datetime',
+            'confirmed_at' => 'datetime',
+            'owner_responded_at' => 'datetime',
         ];
     }
 
@@ -211,7 +218,7 @@ class HotelEstancia extends Model
                 ? $this->cargos->whereNotNull('venta_id')->count()
                 : $this->cargos()->whereNotNull('venta_id')->count()));
 
-        return \App\Support\ConsultaCargo\ConsultaCargoCobroEstado::resolve(
+        return ConsultaCargoCobroEstado::resolve(
             $pending,
             $cobradoCount,
             $this->venta_id,

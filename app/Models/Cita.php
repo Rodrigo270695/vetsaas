@@ -73,6 +73,9 @@ class Cita extends Model
         'estado',
         'motivo',
         'notas',
+        'confirmed_at',
+        'confirmed_via',
+        'owner_responded_at',
         'created_by_id',
         'updated_by_id',
     ];
@@ -82,6 +85,8 @@ class Cita extends Model
         return [
             'inicio_at' => 'datetime',
             'duracion_minutos' => 'integer',
+            'confirmed_at' => 'datetime',
+            'owner_responded_at' => 'datetime',
         ];
     }
 

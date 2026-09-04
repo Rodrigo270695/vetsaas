@@ -2,9 +2,12 @@
 
 declare(strict_types=1);
 
+use App\Models\Cita;
 use App\Models\ClinicBotConversation;
 use App\Models\ClinicSetting;
+use App\Models\Paciente;
 use App\Models\Plan;
+use App\Models\Propietario;
 use App\Models\Subscription;
 use App\Models\TenantWhatsAppSession;
 use App\Services\OpenWa\OpenWaClient;
@@ -228,4 +231,57 @@ it('omite eventos message.sent de OpenWA', function (): void {
     ], [
         'X-Webhook-Secret' => 'test-clinic-bot-secret',
     ])->assertOk()->assertJson(['ok' => true, 'skipped' => 'outgoing_event']);
+});
+
+it('confirma cita con SI aunque el asistente IA esté apagado', function (): void {
+    app(TenantManager::class)->runForSlug($this->testTenant->slug, function (): void {
+        ClinicSetting::current()->update(['bot_ia_respuestas_activo' => false]);
+        $propietario = Propietario::query()->create([
+            'nombres' => 'María',
+            'apellidos' => 'Pérez',
+            'telefono' => '999999999',
+            'activo' => true,
+        ]);
+        $paciente = Paciente::query()->create([
+            'propietario_id' => $propietario->id,
+            'nombre' => 'Firulais',
+            'activo' => true,
+        ]);
+        Cita::query()->create([
+            'paciente_id' => $paciente->id,
+            'inicio_at' => now()->addDay()->setTime(11, 0),
+            'duracion_minutos' => 30,
+            'estado' => Cita::ESTADO_PROGRAMADA,
+        ]);
+    });
+
+    $this->mock(OpenWaClient::class, function ($mock): void {
+        $mock->shouldReceive('isConfigured')->andReturn(true);
+        $mock->shouldReceive('sendTextWithDeliveryFallback')
+            ->once()
+            ->andReturn(['messageId' => 'msg-rsvp']);
+    });
+
+    $this->postJson('http://127.0.0.1/api/webhooks/clinic-bot', [
+        'event' => 'message.received',
+        'sessionId' => 'session-clinic-bot-001',
+        'data' => [
+            'id' => 'wamid.rsvp-si',
+            'body' => 'SI',
+            'from' => '51999999999@c.us',
+            'fromMe' => false,
+            'type' => 'chat',
+        ],
+    ], [
+        'X-Webhook-Secret' => 'test-clinic-bot-secret',
+    ])->assertOk()->assertJson([
+        'ok' => true,
+        'rsvp' => true,
+        'kind' => 'cita',
+        'intent' => 'yes',
+    ]);
+
+    app(TenantManager::class)->runForSlug($this->testTenant->slug, function (): void {
+        expect(Cita::query()->sole()->estado)->toBe(Cita::ESTADO_CONFIRMADA);
+    });
 });

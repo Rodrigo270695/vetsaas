@@ -370,6 +370,14 @@ class GroomingTurnoController extends Controller
         $groomingTurno->fill($data);
         $inicioCambio = $inicioAnterior === null
             || ! $groomingTurno->inicio_at?->equalTo($inicioAnterior);
+        if ($inicioCambio) {
+            if ($groomingTurno->estado === GroomingTurno::ESTADO_CONFIRMADA) {
+                $groomingTurno->estado = GroomingTurno::ESTADO_PROGRAMADA;
+            }
+            $groomingTurno->confirmed_at = null;
+            $groomingTurno->confirmed_via = null;
+            $groomingTurno->owner_responded_at = null;
+        }
         $groomingTurno->save();
 
         $redirect = redirect()

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Grooming\GroomingCatalogoServicio;
+use App\Support\ConsultaCargo\ConsultaCargoCobroEstado;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -30,7 +31,7 @@ use Illuminate\Support\Carbon;
  * @property ?string $venta_id
  * @property ?string $adelanto_venta_id
  * @property ?string $adelanto_monto
- * @property ?\Illuminate\Support\Carbon $adelanto_at
+ * @property ?Carbon $adelanto_at
  */
 class GroomingTurno extends Model
 {
@@ -79,6 +80,9 @@ class GroomingTurno extends Model
         'adelanto_venta_id',
         'adelanto_monto',
         'adelanto_at',
+        'confirmed_at',
+        'confirmed_via',
+        'owner_responded_at',
     ];
 
     protected function casts(): array
@@ -88,6 +92,8 @@ class GroomingTurno extends Model
             'duracion_minutos' => 'integer',
             'adelanto_monto' => 'decimal:2',
             'adelanto_at' => 'datetime',
+            'confirmed_at' => 'datetime',
+            'owner_responded_at' => 'datetime',
         ];
     }
 
@@ -277,7 +283,7 @@ class GroomingTurno extends Model
                 ? $this->cargos->whereNotNull('venta_id')->count()
                 : $this->cargos()->whereNotNull('venta_id')->count()));
 
-        return \App\Support\ConsultaCargo\ConsultaCargoCobroEstado::resolve(
+        return ConsultaCargoCobroEstado::resolve(
             $pending,
             $cobradoCount,
             $this->venta_id,

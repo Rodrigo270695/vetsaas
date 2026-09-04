@@ -283,6 +283,14 @@ class HotelEstanciaController extends Controller
         $hotelEstancia->fill($data);
         $estadoCambio = $hotelEstancia->isDirty('estado');
         $ingresoCambio = $hotelEstancia->isDirty('ingreso_at');
+        if ($ingresoCambio) {
+            if ($hotelEstancia->estado === HotelEstancia::ESTADO_CONFIRMADA) {
+                $hotelEstancia->estado = HotelEstancia::ESTADO_PROGRAMADA;
+            }
+            $hotelEstancia->confirmed_at = null;
+            $hotelEstancia->confirmed_via = null;
+            $hotelEstancia->owner_responded_at = null;
+        }
         $hotelEstancia->save();
 
         if ($estadoCambio) {

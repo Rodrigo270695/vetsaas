@@ -7,13 +7,14 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\ClinicSetting;
 use App\Models\TenantWhatsAppSession;
+use App\Services\Agenda\AgendaOwnerRsvpService;
 use App\Services\ClinicBot\ClinicBotService;
 use App\Services\OpenWa\TenantWhatsAppMessenger;
 use App\Support\ClinicBot\ClinicBotWebhookGuard;
 use App\Support\ClinicBot\ClinicBotWebhookTrafficGuard;
 use App\Support\Subscriptions\SubscriptionBotIaAddon;
-use App\Support\WhatsApp\BotInboundDebounceScheduler;
 use App\Support\WhatsApp\BotInboundDebouncer;
+use App\Support\WhatsApp\BotInboundDebounceScheduler;
 use App\Support\WhatsApp\WhatsAppContactResolver;
 use App\Tenancy\TenantManager;
 use Illuminate\Http\JsonResponse;
@@ -35,6 +36,7 @@ final class ClinicBotWebhookController extends Controller
         private readonly TenantManager $tenants,
         private readonly ClinicBotWebhookGuard $guard,
         private readonly ClinicBotWebhookTrafficGuard $traffic,
+        private readonly AgendaOwnerRsvpService $agendaRsvp,
     ) {}
 
     public function handle(Request $request): JsonResponse
@@ -105,13 +107,6 @@ final class ClinicBotWebhookController extends Controller
             return response()->json(['ok' => true, 'skipped' => 'tenant_missing']);
         }
 
-        $subscription = $tenant->subscriptions()->orderByDesc('created_at')->first();
-        if (! SubscriptionBotIaAddon::isActive($subscription)) {
-            $this->traffic->recordSkipped();
-
-            return response()->json(['ok' => true, 'skipped' => 'bot_ia_inactive']);
-        }
-
         if ($this->guard->isLikelyOutgoingMessage($data, $fromMe)) {
             return $this->handleOutgoingMessage($data, $openWaSessionId, $fromMe);
         }
@@ -175,6 +170,32 @@ final class ClinicBotWebhookController extends Controller
                 return response()->json(['ok' => true, 'skipped' => 'empty_body']);
             }
 
+            $this->guard->rememberInbound($openWaSessionId, $messageId, $waChatId, $body);
+
+            if ($body !== '') {
+                $rsvp = $this->agendaRsvp->tryHandle($phone, $body);
+                if ($rsvp !== null) {
+                    $this->messenger->sendTextWithDeliveryFallback($waSession, $waChatId, $rsvp['reply']);
+                    $this->guard->rememberOutbound($openWaSessionId, $waChatId, $rsvp['reply']);
+                    $this->guard->markReplied($openWaSessionId, $waChatId);
+                    $this->traffic->recordProcessed();
+
+                    return response()->json([
+                        'ok' => true,
+                        'rsvp' => true,
+                        'kind' => $rsvp['kind'],
+                        'intent' => $rsvp['intent'],
+                    ]);
+                }
+            }
+
+            $subscription = $tenant->subscriptions()->orderByDesc('created_at')->first();
+            if (! SubscriptionBotIaAddon::isActive($subscription)) {
+                $this->traffic->recordSkipped();
+
+                return response()->json(['ok' => true, 'skipped' => 'bot_ia_inactive']);
+            }
+
             if ($body === '' && in_array($type, ['ptt', 'audio'], true)) {
                 if (! ClinicSetting::current()->isBotIaResponding()) {
                     $this->traffic->recordSkipped();
@@ -186,13 +207,10 @@ final class ClinicBotWebhookController extends Controller
                 $this->messenger->sendTextWithDeliveryFallback($waSession, $waChatId, $audioReply);
                 $this->guard->rememberOutbound($openWaSessionId, $waChatId, $audioReply);
                 $this->guard->markReplied($openWaSessionId, $waChatId);
-                $this->guard->rememberInbound($openWaSessionId, $messageId, $waChatId, $body);
                 $this->traffic->recordProcessed();
 
                 return response()->json(['ok' => true, 'skipped' => 'audio_not_supported']);
             }
-
-            $this->guard->rememberInbound($openWaSessionId, $messageId, $waChatId, $body);
 
             if (! ClinicSetting::current()->isBotIaResponding()) {
                 $this->traffic->recordSkipped();
