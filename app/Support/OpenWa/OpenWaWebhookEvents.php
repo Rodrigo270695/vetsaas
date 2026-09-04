@@ -5,10 +5,11 @@ declare(strict_types=1);
 namespace App\Support\OpenWa;
 
 /**
- * Eventos OpenWA que deben disparar el webhook de mensajes entrantes.
+ * Eventos OpenWA de mensajes entrantes.
  *
- * El panel y forks distintos usan `message.received`, `onMessage` o `message`.
- * Si el webhook solo se suscribe a uno, Laravel nunca recibe el SI/NO.
+ * La API solo acepta el enum documentado (`message.received`, `session.status`, `*`, …).
+ * Nombres viejos como `onMessage` provocan HTTP 400 al registrar el webhook.
+ * Laravel igual reconoce esos nombres si algún payload los trae.
  */
 final class OpenWaWebhookEvents
 {
@@ -17,7 +18,7 @@ final class OpenWaWebhookEvents
      */
     public static function inboundMessageSubscriptions(): array
     {
-        return ['message.received', 'onMessage', 'message'];
+        return ['message.received'];
     }
 
     public static function isInboundChat(string $event): bool

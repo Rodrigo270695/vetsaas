@@ -323,7 +323,7 @@ php artisan vetsaas:clinic-bot-register-webhooks --slug=mi-clinica
 
 No lo ejecutes en bucle: OpenWA limita a 16 webhooks/sesión y además hace throttle (`HTTP 429`). Si ves `ThrottlerException`, espera unos minutos.
 
-El SI/NO al chat **Orvae** (plataforma) **no** usa clinic-bot. Ahí: `php artisan salesbot:register-webhook` (suscribe `message.received`, `onMessage` y `message`).
+El SI/NO al chat **Orvae** (plataforma) **no** usa clinic-bot. Ahí: `php artisan salesbot:register-webhook` (OpenWA solo admite `message.received` en el enum; `onMessage` da HTTP 400).
 
 ---
 
