@@ -3,14 +3,16 @@ import {
     AlignJustify,
     AlignLeft,
     Bold,
+    ChevronDown,
     ImageIcon,
     Italic,
     List,
     ListOrdered,
     Underline,
 } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 
 const FONTS = [
@@ -64,6 +66,19 @@ function run(cmd: string, arg?: string) {
 
 export function PlantillaCuerpoEditor({ value, onChange, resetKey, logoUrl, disabled }: Props) {
     const ref = useRef<HTMLDivElement>(null);
+    const savedRange = useRef<Range | null>(null);
+    const [openVarGroup, setOpenVarGroup] = useState<string | null>(null);
+
+    const rememberSelection = () => {
+        const sel = window.getSelection();
+        if (!sel || sel.rangeCount === 0) {
+            return;
+        }
+        const node = sel.anchorNode;
+        if (node && ref.current?.contains(node)) {
+            savedRange.current = sel.getRangeAt(0).cloneRange();
+        }
+    };
 
     useEffect(() => {
         const el = ref.current;
@@ -81,6 +96,10 @@ export function PlantillaCuerpoEditor({ value, onChange, resetKey, logoUrl, disa
         // Solo al abrir / cambiar de plantilla. Si se sincroniza en cada tecla, el cursor salta.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [resetKey, logoUrl]);
+
+    useEffect(() => {
+        setOpenVarGroup(null);
+    }, [resetKey]);
 
     const insertVar = (key: string) => {
         if (key === 'logo') {
@@ -124,6 +143,21 @@ export function PlantillaCuerpoEditor({ value, onChange, resetKey, logoUrl, disa
         onChange(el.innerHTML);
     };
 
+    const formatFromMenu = (cmd: string, arg: string) => {
+        const el = ref.current;
+        if (!el || disabled) {
+            return;
+        }
+        el.focus();
+        const sel = window.getSelection();
+        if (sel && savedRange.current) {
+            sel.removeAllRanges();
+            sel.addRange(savedRange.current);
+        }
+        run(cmd, arg);
+        onChange(el.innerHTML);
+    };
+
     return (
         <div className="overflow-hidden rounded-lg border border-primary/20 bg-background shadow-sm">
             <div className="flex flex-wrap gap-1 border-b border-primary/15 bg-primary/8 p-1.5">
@@ -153,52 +187,27 @@ export function PlantillaCuerpoEditor({ value, onChange, resetKey, logoUrl, disa
                     onClick={() => format('justifyFull')}
                     disabled={disabled}
                 />
-                <select
-                    aria-label="Fuente"
+                <FormatMenu
+                    label="Fuente"
                     disabled={disabled}
-                    defaultValue=""
-                    className="h-8 max-w-[7.5rem] cursor-pointer rounded-md border border-input bg-background px-1.5 text-xs"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onChange={(e) => {
-                        const value = e.target.value;
-                        if (value) {
-                            format('fontName', value);
-                        }
-                        e.target.value = '';
-                    }}
-                >
-                    <option value="" disabled>
-                        Fuente
-                    </option>
-                    {FONTS.map((font) => (
-                        <option key={font.value} value={font.value} style={{ fontFamily: font.value }}>
-                            {font.label}
-                        </option>
-                    ))}
-                </select>
-                <select
-                    aria-label="Tamaño"
+                    options={FONTS.map((font) => ({
+                        label: font.label,
+                        value: font.value,
+                        style: { fontFamily: font.value },
+                    }))}
+                    onOpen={rememberSelection}
+                    onPick={(value) => formatFromMenu('fontName', value)}
+                />
+                <FormatMenu
+                    label="Tamaño"
                     disabled={disabled}
-                    defaultValue=""
-                    className="h-8 w-[4.5rem] cursor-pointer rounded-md border border-input bg-background px-1.5 text-xs"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onChange={(e) => {
-                        const value = e.target.value;
-                        if (value) {
-                            format('fontSize', value);
-                        }
-                        e.target.value = '';
-                    }}
-                >
-                    <option value="" disabled>
-                        Tamaño
-                    </option>
-                    {FONT_SIZES.map((size) => (
-                        <option key={size.value} value={size.value}>
-                            {size.label}
-                        </option>
-                    ))}
-                </select>
+                    options={FONT_SIZES.map((size) => ({
+                        label: size.label,
+                        value: size.value,
+                    }))}
+                    onOpen={rememberSelection}
+                    onPick={(value) => formatFromMenu('fontSize', value)}
+                />
                 <ToolbarBtn
                     icon={ListOrdered}
                     label="Lista numerada"
@@ -219,13 +228,44 @@ export function PlantillaCuerpoEditor({ value, onChange, resetKey, logoUrl, disa
                 />
             </div>
 
-            <div className="space-y-2 border-b border-primary/10 bg-sky-50/80 px-2 py-2 dark:bg-sky-950/20">
-                {VAR_GROUPS.map((group) => (
-                    <div key={group.label} className="flex flex-wrap items-center gap-1.5">
-                        <span className="w-16 shrink-0 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                            {group.label}
-                        </span>
-                        {group.items.map((key) => (
+            <div className="border-b border-primary/10 bg-sky-50/80 px-2 py-1.5 dark:bg-sky-950/20">
+                <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                    Variables
+                </p>
+                <div className="flex flex-wrap gap-1">
+                    {VAR_GROUPS.map((group) => {
+                        const isOpen = openVarGroup === group.label;
+
+                        return (
+                            <Button
+                                key={group.label}
+                                type="button"
+                                variant={isOpen ? 'default' : 'outline'}
+                                size="sm"
+                                disabled={disabled}
+                                aria-expanded={isOpen}
+                                className="h-7 cursor-pointer gap-1 px-2 text-[11px] font-medium"
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() =>
+                                    setOpenVarGroup((current) =>
+                                        current === group.label ? null : group.label,
+                                    )
+                                }
+                            >
+                                {group.label}
+                                <ChevronDown
+                                    className={cn(
+                                        'size-3.5 opacity-70 transition-transform',
+                                        isOpen && 'rotate-180',
+                                    )}
+                                />
+                            </Button>
+                        );
+                    })}
+                </div>
+                {openVarGroup ? (
+                    <div className="mt-1.5 flex flex-wrap gap-1 rounded-md border border-primary/10 bg-background/80 p-1.5">
+                        {VAR_GROUPS.find((group) => group.label === openVarGroup)?.items.map((key) => (
                             <Button
                                 key={key}
                                 type="button"
@@ -236,11 +276,11 @@ export function PlantillaCuerpoEditor({ value, onChange, resetKey, logoUrl, disa
                                 onMouseDown={(e) => e.preventDefault()}
                                 onClick={() => insertVar(key)}
                             >
-                                {key}
+                                {`{{${key}}}`}
                             </Button>
                         ))}
                     </div>
-                ))}
+                ) : null}
             </div>
 
             <div
@@ -294,5 +334,75 @@ function ToolbarBtn({
         >
             <Icon className="size-3.5" strokeWidth={2.25} />
         </Button>
+    );
+}
+
+function FormatMenu({
+    label,
+    options,
+    disabled,
+    onOpen,
+    onPick,
+}: {
+    label: string;
+    options: { label: string; value: string; style?: CSSProperties }[];
+    disabled?: boolean;
+    onOpen: () => void;
+    onPick: (value: string) => void;
+}) {
+    const [open, setOpen] = useState(false);
+
+    return (
+        <Popover
+            modal={false}
+            open={open}
+            onOpenChange={(next) => {
+                if (next) {
+                    onOpen();
+                }
+                setOpen(next);
+            }}
+        >
+            <PopoverTrigger asChild>
+                <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={disabled}
+                    className="h-8 cursor-pointer gap-1 px-2 text-xs font-normal"
+                    aria-label={label}
+                    onMouseDown={(e) => {
+                        e.preventDefault();
+                        onOpen();
+                    }}
+                >
+                    {label}
+                    <ChevronDown className="size-3.5 opacity-70" />
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent
+                align="start"
+                sideOffset={4}
+                className="z-80 w-40 p-1 pointer-events-auto"
+                onOpenAutoFocus={(e) => e.preventDefault()}
+                onCloseAutoFocus={(e) => e.preventDefault()}
+            >
+                {options.map((option) => (
+                    <button
+                        key={option.value}
+                        type="button"
+                        className="flex w-full cursor-pointer rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent"
+                        style={option.style}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => {
+                            onPick(option.value);
+                            setOpen(false);
+                        }}
+                    >
+                        {option.label}
+                    </button>
+                ))}
+            </PopoverContent>
+        </Popover>
     );
 }
