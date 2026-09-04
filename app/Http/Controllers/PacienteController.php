@@ -8,14 +8,16 @@ use App\Http\Controllers\Concerns\LogsAuditExports;
 use App\Http\Controllers\Concerns\ResolvesClinicPdfBranding;
 use App\Http\Requests\PacienteRequest;
 use App\Models\Cirugia;
+use App\Models\ClinicaAsesorada;
+use App\Models\ClinicSetting;
 use App\Models\Consulta;
 use App\Models\ConsultaCargo;
+use App\Models\DocumentoAutorizacionEnvio;
+use App\Models\DocumentoAutorizacionPlantilla;
 use App\Models\Farmaco;
 use App\Models\FelSerie;
 use App\Models\HistoriaClinica;
 use App\Models\Internamiento;
-use App\Models\ClinicaAsesorada;
-use App\Models\ClinicSetting;
 use App\Models\Paciente;
 use App\Models\PedidoLaboratorio;
 use App\Models\PedidoLaboratorioLinea;
@@ -26,6 +28,7 @@ use App\Models\ServicioClinico;
 use App\Models\VacunaAplicada;
 use App\Models\Venta;
 use App\Services\Clinica\PacienteImportService;
+use App\Services\PetPass\AlmaPetHandoffClient;
 use App\Support\Clinica\PublicClinicalHistoryPayload;
 use App\Support\Pacientes\PacienteEspecieRazaCatalogo;
 use App\Support\Pdf\HistorialClinicoPdfBuilder;
@@ -397,7 +400,22 @@ class PacienteController extends Controller
                 'laboratorio_eliminar' => $canLabDelete,
                 'citas_crear' => $canCrearCita,
                 'petpass_register' => $canPetPassRegister,
+                'autorizacion_enviar' => $canEditarConsulta,
             ],
+            'plantillas_autorizacion' => $canEditarConsulta
+                && Schema::hasTable('documento_autorizacion_plantillas')
+                ? DocumentoAutorizacionPlantilla::query()
+                    ->where('activo', true)
+                    ->orderBy('nombre')
+                    ->get(['id', 'nombre', 'descripcion'])
+                    ->map(fn (DocumentoAutorizacionPlantilla $p): array => [
+                        'id' => $p->id,
+                        'nombre' => $p->nombre,
+                        'descripcion' => $p->descripcion,
+                    ])
+                    ->values()
+                    ->all()
+                : [],
         ]);
     }
 
@@ -783,7 +801,7 @@ class PacienteController extends Controller
 
         if (in_array($paciente->petpass_status, ['registered', 'lost', 'pending'], true)) {
             try {
-                app(\App\Services\PetPass\AlmaPetHandoffClient::class)->syncAnimalPhoto($paciente->fresh() ?? $paciente);
+                app(AlmaPetHandoffClient::class)->syncAnimalPhoto($paciente->fresh() ?? $paciente);
             } catch (Throwable) {
                 // No bloquear el guardado de ficha si AlmaPet no responde.
             }
@@ -850,25 +868,31 @@ class PacienteController extends Controller
         if ($canVerConsultas) {
             $hc = HistoriaClinica::query()->where('paciente_id', $paciente->id)->first();
             if ($hc !== null) {
+                $autorizacionListo = Schema::hasTable('documento_autorizacion_envios');
+                $consultaRelations = [
+                    'veterinario:id,name',
+                    'examenes',
+                    'terapiaLineas',
+                    'recetas' => fn ($q) => $q->withCount('lineas')->orderByDesc('emitida_at'),
+                    'pedidosLaboratorio' => fn ($q) => $q
+                        ->with(['lineas' => fn ($lq) => $lq->orderBy('orden')])
+                        ->withCount('lineas')
+                        ->orderByDesc('solicitado_at'),
+                    'cirugias' => fn ($q) => $q->orderByDesc('programada_at'),
+                    'internamientos' => fn ($q) => $q->orderByDesc('ingreso_at'),
+                    'cargos' => fn ($q) => $q
+                        ->whereNotNull('venta_id')
+                        ->with([
+                            'venta:id,numero,total,tipo_comprobante_sunat,fel_document_id,estado',
+                            'venta.felDocument:id,url_pdf,enlace_consulta,numero_completo',
+                        ]),
+                ];
+                if ($autorizacionListo) {
+                    $consultaRelations[] = 'documentosAutorizacion';
+                }
+
                 $consultas = $hc->consultas()
-                    ->with([
-                        'veterinario:id,name',
-                        'examenes',
-                        'terapiaLineas',
-                        'recetas' => fn ($q) => $q->withCount('lineas')->orderByDesc('emitida_at'),
-                        'pedidosLaboratorio' => fn ($q) => $q
-                            ->with(['lineas' => fn ($lq) => $lq->orderBy('orden')])
-                            ->withCount('lineas')
-                            ->orderByDesc('solicitado_at'),
-                        'cirugias' => fn ($q) => $q->orderByDesc('programada_at'),
-                        'internamientos' => fn ($q) => $q->orderByDesc('ingreso_at'),
-                        'cargos' => fn ($q) => $q
-                            ->whereNotNull('venta_id')
-                            ->with([
-                                'venta:id,numero,total,tipo_comprobante_sunat,fel_document_id,estado',
-                                'venta.felDocument:id,url_pdf,enlace_consulta,numero_completo',
-                            ]),
-                    ])
+                    ->with($consultaRelations)
                     ->orderByDesc('atendido_at')
                     ->limit(200)
                     ->get();
@@ -932,6 +956,20 @@ class PacienteController extends Controller
                                 'laboratorio' => $this->timelineLaboratorioVinculo($user, $c->pedidosLaboratorio, $tz),
                                 'cirugias' => $this->timelineCirugiasVinculo($user, $c->cirugias, $tz),
                                 'internamientos' => $this->timelineInternamientosVinculo($user, $c->internamientos, $tz),
+                                'documentos_autorizacion' => $autorizacionListo
+                                    ? $c->documentosAutorizacion
+                                        ->filter(fn ($d) => $d->estado === DocumentoAutorizacionEnvio::ESTADO_FIRMADO)
+                                        ->values()
+                                        ->map(fn (DocumentoAutorizacionEnvio $d): array => [
+                                            'id' => $d->id,
+                                            'nombre_examen' => $d->titulo,
+                                            'resultado_at' => $d->firmado_at?->toIso8601String(),
+                                            'resultado_archivo_url' => $d->pdfUrl(),
+                                            'resultado_archivo_original_name' => $d->titulo.'.pdf',
+                                            'archivo_kind' => 'pdf',
+                                        ])
+                                        ->all()
+                                    : [],
                             ],
                         ],
                     ];

@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\BootstrapLoginController;
 use App\Http\Controllers\ConsultaHistoriaController;
 use App\Http\Controllers\LaboratorioController;
 use App\Http\Controllers\PacienteController;
+use App\Http\Controllers\PublicDocumentoAutorizacionController;
 use App\Http\Controllers\Tenant\TenantDashboardController;
 use App\Http\Controllers\VacunacionController;
 use Illuminate\Support\Facades\Route;
@@ -56,6 +57,17 @@ Route::middleware(['tenant.required'])->group(function (): void {
                 ->name('aplicacion');
             Route::get('laboratorio/lineas/{linea}/archivo', [LaboratorioController::class, 'publicDownloadResultadoArchivo'])
                 ->name('laboratorio-archivo');
+        });
+
+    Route::middleware(['throttle:30,1'])
+        ->prefix('documentos-publicos')
+        ->group(function (): void {
+            Route::get('autorizacion/{token}', [PublicDocumentoAutorizacionController::class, 'show'])
+                ->where('token', '[A-Za-z0-9]{32,64}')
+                ->name('tenant.public.autorizacion.show');
+            Route::post('autorizacion/{token}', [PublicDocumentoAutorizacionController::class, 'store'])
+                ->where('token', '[A-Za-z0-9]{32,64}')
+                ->name('tenant.public.autorizacion.store');
         });
 
     Route::get('/', [TenantDashboardController::class, 'welcome'])

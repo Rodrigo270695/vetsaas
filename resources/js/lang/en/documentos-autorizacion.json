@@ -1,0 +1,18 @@
+{
+    "title": "Authorization documents",
+    "description": "Consent and authorization templates. The clinic logo is added to the PDF when signed.",
+    "new": "New template",
+    "empty": "No templates yet. Create one to send it from the patient history.",
+    "nombre": "Name",
+    "descripcion_field": "Description",
+    "cuerpo": "Document text",
+    "cuerpo_hint": "The buttons insert variables. They are replaced with patient and clinic data when sending.",
+    "activo": "Active",
+    "insert_var": "Insert",
+    "submit_create": "Create template",
+    "submit_edit": "Save",
+    "title_create": "New template",
+    "title_edit": "Edit template",
+    "delete_title": "Delete template",
+    "delete_description": "«{{nombre}}» will be deleted. Already signed documents are kept."
+}

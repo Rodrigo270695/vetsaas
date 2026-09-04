@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\ConsultaCargo\ConsultaCargoCobroEstado;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -9,12 +10,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 
 /**
  * @property string $id
  * @property string $historia_clinica_id
  * @property ?string $cita_id
- * @property \Illuminate\Support\Carbon $atendido_at
+ * @property Carbon $atendido_at
  * @property ?string $motivo
  * @property ?string $anotaciones
  * @property ?string $subjetivo
@@ -25,7 +27,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property ?string $temperatura_c
  * @property ?int $fc_lpm
  * @property ?int $fr_rpm
- * @property ?\Illuminate\Support\Carbon $cerrada_at
+ * @property ?Carbon $cerrada_at
  * @property ?string $cerrada_por_id
  * @property ?string $veterinario_id
  * @property ?string $medico_tratante
@@ -156,6 +158,11 @@ class Consulta extends Model
         return $this->hasMany(Internamiento::class, 'consulta_id');
     }
 
+    public function documentosAutorizacion(): HasMany
+    {
+        return $this->hasMany(DocumentoAutorizacionEnvio::class, 'consulta_id');
+    }
+
     public function cargo(): HasOne
     {
         return $this->hasOne(ConsultaCargo::class, 'consulta_id')
@@ -181,7 +188,7 @@ class Consulta extends Model
                 ? $this->cargos->whereNotNull('venta_id')->count()
                 : $this->cargos()->whereNotNull('venta_id')->count()));
 
-        return \App\Support\ConsultaCargo\ConsultaCargoCobroEstado::resolve(
+        return ConsultaCargoCobroEstado::resolve(
             $pending,
             $cobradoCount,
             null,

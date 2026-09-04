@@ -21,6 +21,7 @@ import type {
 } from '../vacunaciones/types';
 import { ClinicalHistoryWhatsAppDialog } from './components/clinical-history-whatsapp-dialog';
 import type { ClinicalHistoryShareTarget } from './components/clinical-history-whatsapp-dialog';
+import { DocumentoAutorizacionSendDialog } from './components/documento-autorizacion-send-dialog';
 import { HistorialArchivoPreview } from './components/historial-archivo-preview';
 import { LaboratorioRapidoModal } from './components/laboratorio-rapido-modal';
 import { PacienteHistorialHero } from './components/paciente-historial-hero';
@@ -57,6 +58,7 @@ export type TimelineConsultaVinculos = {
     }[];
     cirugias: readonly { id: string; estado: string; titulo: string; url: string }[];
     internamientos: readonly { id: string; estado: string; titulo: string; url: string }[];
+    documentos_autorizacion?: readonly TimelineLabLinea[];
 };
 
 export type TimelineConsultaDetalle = {
@@ -161,7 +163,9 @@ type Props = {
         laboratorio_eliminar?: boolean;
         consultas_eliminar?: boolean;
         citas_crear?: boolean;
+        autorizacion_enviar?: boolean;
     };
+    plantillas_autorizacion?: readonly { id: string; nombre: string; descripcion: string | null }[];
 };
 function readCsrfToken(): string {
     return document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? '';
@@ -180,6 +184,7 @@ export default function PacienteShow({
     medico_tratante_default = '',
     links,
     permisos,
+    plantillas_autorizacion = [],
 }: Props) {
     const { t } = useTranslation(['pacientes', 'common']);
     const { timezone: appTz } = usePage().props;
@@ -194,6 +199,7 @@ export default function PacienteShow({
     const [consultaLoadingId, setConsultaLoadingId] = useState<string | null>(null);
     const [consultaToDelete, setConsultaToDelete] = useState<{ id: string } | null>(null);
     const [citaOpen, setCitaOpen] = useState(false);
+    const [autorizacionConsultaId, setAutorizacionConsultaId] = useState<string | null>(null);
 
     const openLaboratorio = (consultaId: string | null = null) => {
         setLabPrefillConsultaId(consultaId);
@@ -422,6 +428,12 @@ export default function PacienteShow({
                                                       setConsultaToDelete({ id: consulta.id })
                                                 : undefined
                                         }
+                                        onSendAutorizacion={
+                                            permisos.autorizacion_enviar
+                                                ? (consultaId) =>
+                                                      setAutorizacionConsultaId(consultaId)
+                                                : undefined
+                                        }
                                     />
                                 ))}
                             </ul>
@@ -447,6 +459,19 @@ export default function PacienteShow({
                 onOpenChange={(open) => {
                     if (!open) {
                         setShareTarget(null);
+                    }
+                }}
+            />
+
+            <DocumentoAutorizacionSendDialog
+                open={autorizacionConsultaId !== null}
+                consultaId={autorizacionConsultaId}
+                plantillas={plantillas_autorizacion}
+                defaultPhone={paciente.propietario?.telefono ?? ''}
+                defaultEmail={paciente.propietario?.email ?? ''}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setAutorizacionConsultaId(null);
                     }
                 }}
             />

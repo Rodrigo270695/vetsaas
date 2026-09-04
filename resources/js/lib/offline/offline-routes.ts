@@ -58,6 +58,7 @@ export const REPORTES_OFFLINE_PATHS = [
 /** Rutas de Configuración navegables offline (alta de sedes; edición avanzada requiere internet). */
 export const CONFIGURACION_OFFLINE_PATHS = [
     '/configuracion/general',
+    '/configuracion/documentos-autorizacion',
     '/configuracion/sedes',
     '/configuracion/usuarios',
     '/configuracion/roles',

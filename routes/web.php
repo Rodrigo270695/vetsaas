@@ -24,6 +24,8 @@ use App\Http\Controllers\ConsultaPlanTratamientoController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DemoAccessGeoController;
 use App\Http\Controllers\DemoAccessLeadController;
+use App\Http\Controllers\DocumentoAutorizacionEnvioController;
+use App\Http\Controllers\DocumentoAutorizacionPlantillaController;
 use App\Http\Controllers\FelAnulacionHistorialController;
 use App\Http\Controllers\FelDocumentController;
 use App\Http\Controllers\FelSerieController;
@@ -407,6 +409,12 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             Route::middleware('permission:historias-clinicas.view')
                 ->post('historias-clinicas/consultas/{consulta}/whatsapp', [ClinicalHistoryWhatsAppController::class, 'consulta'])
                 ->name('historias-clinicas.consultas.whatsapp');
+            Route::middleware('permission:historias-clinicas.update')
+                ->post('historias-clinicas/consultas/{consulta}/autorizacion', [DocumentoAutorizacionEnvioController::class, 'store'])
+                ->name('historias-clinicas.consultas.autorizacion');
+            Route::middleware('permission:historias-clinicas.view')
+                ->get('documentos-autorizacion/{envio}/pdf', [DocumentoAutorizacionEnvioController::class, 'pdf'])
+                ->name('documentos-autorizacion.pdf');
             Route::middleware('permission:historias-clinicas-planes.manage')
                 ->get('historias-clinicas/productos-medicamento', [ConsultaPlanTratamientoController::class, 'productosMedicamento'])
                 ->name('historias-clinicas.productos-medicamento');
@@ -1253,6 +1261,19 @@ Route::middleware(['auth', 'verified', 'tenant.match-user', 'force-password-chan
             ->name('referidos.show');
 
         Route::inertia('ayuda', 'configuracion/ayuda/index')->name('ayuda');
+
+        Route::middleware(['tenant.required', 'permission:config-general.view'])
+            ->get('documentos-autorizacion', [DocumentoAutorizacionPlantillaController::class, 'index'])
+            ->name('documentos-autorizacion.index');
+        Route::middleware(['tenant.required', 'permission:config-general.update'])
+            ->post('documentos-autorizacion', [DocumentoAutorizacionPlantillaController::class, 'store'])
+            ->name('documentos-autorizacion.store');
+        Route::middleware(['tenant.required', 'permission:config-general.update'])
+            ->match(['put', 'patch'], 'documentos-autorizacion/{plantilla}', [DocumentoAutorizacionPlantillaController::class, 'update'])
+            ->name('documentos-autorizacion.update');
+        Route::middleware(['tenant.required', 'permission:config-general.update'])
+            ->delete('documentos-autorizacion/{plantilla}', [DocumentoAutorizacionPlantillaController::class, 'destroy'])
+            ->name('documentos-autorizacion.destroy');
 
         // Sedes — CRUD real. Cada verbo HTTP exige su permiso específico.
         Route::middleware('permission:sedes.view')

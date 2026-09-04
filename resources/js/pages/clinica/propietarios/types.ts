@@ -126,6 +126,7 @@ export type Paciente = {
         apellidos: string | null;
         razon_social: string | null;
         telefono?: string | null;
+        email?: string | null;
     };
     clinica_asesorada?: {
         id: string;

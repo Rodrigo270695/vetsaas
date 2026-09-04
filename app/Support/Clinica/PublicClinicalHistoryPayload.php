@@ -92,6 +92,7 @@ final class PublicClinicalHistoryPayload
                             'laboratorio' => self::laboratorio($c->pedidosLaboratorio, $tenantSlug, $expiresAt, $tz),
                             'cirugias' => self::cirugias($c->cirugias),
                             'internamientos' => self::internamientos($c->internamientos),
+                            'documentos_autorizacion' => [],
                         ],
                     ],
                 ];

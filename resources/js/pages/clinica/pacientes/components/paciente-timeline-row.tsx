@@ -7,6 +7,7 @@ import {
     ClipboardList,
     ExternalLink,
     FileDown,
+    FilePenLine,
     FlaskConical,
     Heart,
     Loader2,
@@ -70,6 +71,7 @@ type TimelineRowProps = {
     onShareConsulta?: (item: Extract<TimelineItem, { kind: 'consulta' }>) => void;
     onUploadLaboratorio?: (consultaId: string) => void;
     onDeleteConsulta?: (item: Extract<TimelineItem, { kind: 'consulta' }>) => void;
+    onSendAutorizacion?: (consultaId: string) => void;
     variant?: 'admin' | 'public';
 };
 
@@ -78,7 +80,8 @@ function vinculosConsultaTieneContenido(v: TimelineConsultaVinculos): boolean {
         v.recetas.length > 0 ||
         v.laboratorio.length > 0 ||
         v.cirugias.length > 0 ||
-        v.internamientos.length > 0
+        v.internamientos.length > 0 ||
+        (v.documentos_autorizacion?.length ?? 0) > 0
     );
 }
 
@@ -336,6 +339,7 @@ export function PacienteTimelineRow({
     onShareConsulta,
     onUploadLaboratorio,
     onDeleteConsulta,
+    onSendAutorizacion,
     variant = 'admin',
 }: TimelineRowProps) {
     const { t, i18n } = useTranslation(['pacientes', 'recetas', 'laboratorio', 'cirugia', 'common']);
@@ -398,14 +402,20 @@ export function PacienteTimelineRow({
             ? item.detalle.vinculos.recetas.length +
               item.detalle.vinculos.laboratorio.length +
               item.detalle.vinculos.cirugias.length +
-              item.detalle.vinculos.internamientos.length
+              item.detalle.vinculos.internamientos.length +
+              (item.detalle.vinculos.documentos_autorizacion?.length ?? 0)
             : 0;
 
     const archivosConsulta: TimelineLabLinea[] =
         item.kind === 'consulta'
-            ? item.detalle.vinculos.laboratorio.flatMap((p) =>
-                  p.lineas.filter((l) => Boolean(l.resultado_archivo_url)),
-              )
+            ? [
+                  ...item.detalle.vinculos.laboratorio.flatMap((p) =>
+                      p.lineas.filter((l) => Boolean(l.resultado_archivo_url)),
+                  ),
+                  ...(item.detalle.vinculos.documentos_autorizacion ?? []).filter((d) =>
+                      Boolean(d.resultado_archivo_url),
+                  ),
+              ]
             : [];
 
     return (
@@ -639,6 +649,7 @@ export function PacienteTimelineRow({
                                         {!isPublic &&
                                         ((onShareConsulta && item.whatsapp_url) ||
                                             onUploadLaboratorio ||
+                                            onSendAutorizacion ||
                                             (permisos.consultas_eliminar && onDeleteConsulta)) ? (
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
@@ -671,6 +682,15 @@ export function PacienteTimelineRow({
                                                         >
                                                             <FlaskConical className="size-3.5" strokeWidth={2.25} />
                                                             {t('historial.action_lab_consulta')}
+                                                        </DropdownMenuItem>
+                                                    ) : null}
+                                                    {onSendAutorizacion ? (
+                                                        <DropdownMenuItem
+                                                            onSelect={() => onSendAutorizacion(item.id)}
+                                                            className="cursor-pointer gap-2"
+                                                        >
+                                                            <FilePenLine className="size-3.5" strokeWidth={2.25} />
+                                                            {t('historial.action_autorizacion')}
                                                         </DropdownMenuItem>
                                                     ) : null}
                                                     {permisos.consultas_eliminar && onDeleteConsulta ? (

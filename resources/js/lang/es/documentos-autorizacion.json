@@ -1,0 +1,18 @@
+{
+    "title": "Documentos de autorización",
+    "description": "Plantillas de consentimiento y autorización. El logo de la clínica se añade al PDF al firmar.",
+    "new": "Nueva plantilla",
+    "empty": "Aún no hay plantillas. Crea una para enviarla desde el historial del paciente.",
+    "nombre": "Nombre",
+    "descripcion_field": "Descripción",
+    "cuerpo": "Texto del documento",
+    "cuerpo_hint": "Los botones insertan variables. Al enviar se reemplazan por los datos del paciente y la clínica.",
+    "activo": "Activa",
+    "insert_var": "Insertar",
+    "submit_create": "Crear plantilla",
+    "submit_edit": "Guardar",
+    "title_create": "Nueva plantilla",
+    "title_edit": "Editar plantilla",
+    "delete_title": "Eliminar plantilla",
+    "delete_description": "Se eliminará «{{nombre}}». Los documentos ya firmados se conservan."
+}

@@ -18,6 +18,7 @@ import citasEn from '@/lang/en/citas.json';
 import cobrosEn from '@/lang/en/cobros.json';
 import configSuscripcionEn from '@/lang/en/config-suscripcion.json';
 import configReferidosEn from '@/lang/en/config-referidos.json';
+import documentosAutorizacionEn from '@/lang/en/documentos-autorizacion.json';
 import comunicacionesEn from '@/lang/en/comunicaciones.json';
 import chatInternoEn from '@/lang/en/chat-interno.json';
 import plataformaAuditoriaSoporteEn from '@/lang/en/plataforma-auditoria-soporte.json';
@@ -89,6 +90,7 @@ import citasEs from '@/lang/es/citas.json';
 import cobrosEs from '@/lang/es/cobros.json';
 import configSuscripcionEs from '@/lang/es/config-suscripcion.json';
 import configReferidosEs from '@/lang/es/config-referidos.json';
+import documentosAutorizacionEs from '@/lang/es/documentos-autorizacion.json';
 import comunicacionesEs from '@/lang/es/comunicaciones.json';
 import chatInternoEs from '@/lang/es/chat-interno.json';
 import plataformaAuditoriaSoporteEs from '@/lang/es/plataforma-auditoria-soporte.json';
@@ -185,6 +187,7 @@ const resources = {
         'subscription-expiry': subscriptionExpiryEs,
         'config-suscripcion': configSuscripcionEs,
         'config-referidos': configReferidosEs,
+        'documentos-autorizacion': documentosAutorizacionEs,
         comunicaciones: comunicacionesEs,
         'chat-interno': chatInternoEs,
         'bot-ia': botIaEs,
@@ -258,6 +261,7 @@ const resources = {
         'subscription-expiry': subscriptionExpiryEn,
         'config-suscripcion': configSuscripcionEn,
         'config-referidos': configReferidosEn,
+        'documentos-autorizacion': documentosAutorizacionEn,
         comunicaciones: comunicacionesEn,
         'chat-interno': chatInternoEn,
         'bot-ia': botIaEn,
@@ -341,6 +345,7 @@ void i18n
             'subscription-expiry',
             'config-suscripcion',
             'config-referidos',
+            'documentos-autorizacion',
             'comunicaciones',
             'chat-interno',
             'bot-ia',
