@@ -321,6 +321,10 @@ php artisan vetsaas:clinic-bot-register-webhooks
 php artisan vetsaas:clinic-bot-register-webhooks --slug=mi-clinica
 ```
 
+No lo ejecutes en bucle: OpenWA limita a 16 webhooks/sesión y además hace throttle (`HTTP 429`). Si ves `ThrottlerException`, espera unos minutos.
+
+El SI/NO al chat **Orvae** (plataforma) **no** usa clinic-bot. Ahí: `php artisan salesbot:register-webhook` (suscribe `message.received`, `onMessage` y `message`).
+
 ---
 
 ### Protección anti-flood clinic-bot (OpenWA) + Operaciones
@@ -383,6 +387,18 @@ sudo nginx -t && sudo systemctl reload nginx
 ### Panel web (recomendado)
 
 Muchas acciones ya están en **Plataforma → Conversaciones bot** (pausar, responder con IA, reactivar, importar CSV, marcar convertido).
+
+---
+
+### `salesbot:register-webhook`
+
+Alinea el webhook de la sesión **vetsaas-platform** (chat Orvae). Tras desplegar cambios de eventos, hay que volver a correrlo.
+
+```bash
+php artisan salesbot:register-webhook
+```
+
+Si el SI de una cita no deja rastro en `laravel.log`, mira nginx: `sudo grep sales-bot /var/log/nginx/access.log | tail`. Sin POST nuevo, OpenWA no está disparando el webhook.
 
 ---
 

@@ -116,7 +116,7 @@ final class PlatformSalesBotWebhookRegistrar
 
             $this->client->updateWebhook($sessionId, $webhookId, [
                 'url' => $url,
-                'events' => ['message.received'],
+                'events' => \App\Support\OpenWa\OpenWaWebhookEvents::inboundMessageSubscriptions(),
                 'secret' => $secret,
                 'headers' => [
                     'X-Webhook-Secret' => $secret,

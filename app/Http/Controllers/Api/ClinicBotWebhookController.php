@@ -66,18 +66,20 @@ final class ClinicBotWebhookController extends Controller
             return response()->json(['ok' => true, 'skipped' => 'outgoing_event']);
         }
 
+        $fromMe = (bool) ($data['fromMe'] ?? $data['from_me'] ?? false);
+        $type = (string) ($data['type'] ?? 'chat');
+        $body = trim((string) ($data['body'] ?? $data['content'] ?? $data['text'] ?? ''));
+
         // Filtrar ANTES de DB/tenancy: OpenWA dispara presence/typing/ack a granel.
         // En prod llegó a ~90% del access.log y saturó PHP-FPM (load ~34).
-        $esEventoMensaje = in_array($event, ['message.received', 'onMessage', 'message'], true);
+        // SI/NO de agenda se acepta aunque el event name no sea message.received.
+        $esEventoMensaje = \App\Support\OpenWa\OpenWaWebhookEvents::isInboundChat($event)
+            || (\App\Support\Agenda\AgendaRsvpIntent::parse($body) !== null && ! $fromMe);
         if (! $esEventoMensaje) {
             $this->traffic->recordSkipped();
 
             return response()->json(['ok' => true, 'skipped' => 'not_message_event']);
         }
-
-        $fromMe = (bool) ($data['fromMe'] ?? $data['from_me'] ?? false);
-        $type = (string) ($data['type'] ?? 'chat');
-        $body = trim((string) ($data['body'] ?? $data['content'] ?? $data['text'] ?? ''));
 
         $openWaSessionId = (string) ($payload['sessionId'] ?? $data['sessionId'] ?? '');
 

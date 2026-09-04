@@ -94,8 +94,10 @@ final class SalesBotWebhookController extends Controller
         $type = (string) ($data['type'] ?? 'chat');
         $body = trim((string) ($data['body'] ?? $data['content'] ?? $data['text'] ?? ''));
 
-        // Aceptar tanto "message.received" (esta versión OpenWA) como "onMessage" (versiones antiguas).
-        $esEventoMensaje = in_array($event, ['message.received', 'onMessage', 'message'], true);
+        $rsvpIntentEarly = \App\Support\Agenda\AgendaRsvpIntent::parse($body);
+        // Aceptar message.received / onMessage / message, y SI/NO aunque el event name sea otro.
+        $esEventoMensaje = \App\Support\OpenWa\OpenWaWebhookEvents::isInboundChat($event)
+            || ($rsvpIntentEarly !== null && ! $fromMe);
 
         $isAudio = in_array($type, ['ptt', 'audio'], true);
         $messageId = (string) ($data['id'] ?? '');
@@ -147,6 +149,13 @@ final class SalesBotWebhookController extends Controller
 
         // Saltar si: no es evento de mensaje, o está vacío Y no es audio transcribible.
         if (! $esEventoMensaje || ($body === '' && ! $isAudio)) {
+            if ($body !== '') {
+                Log::warning('SalesBot webhook ignoró evento', [
+                    'event' => $event,
+                    'body' => mb_substr($body, 0, 40),
+                ]);
+            }
+
             return response()->json(['ok' => true, 'skipped' => true]);
         }
 

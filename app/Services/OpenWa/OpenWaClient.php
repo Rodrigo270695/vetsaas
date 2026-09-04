@@ -359,7 +359,7 @@ final class OpenWaClient
     {
         $payload = [
             'url' => $url,
-            'events' => ['message.received'],
+            'events' => \App\Support\OpenWa\OpenWaWebhookEvents::inboundMessageSubscriptions(),
         ];
 
         if ($secret !== null && $secret !== '') {

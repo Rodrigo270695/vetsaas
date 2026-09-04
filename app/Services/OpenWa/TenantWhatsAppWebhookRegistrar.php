@@ -200,7 +200,7 @@ final class TenantWhatsAppWebhookRegistrar
     {
         $payload = [
             'url' => $url,
-            'events' => ['message.received'],
+            'events' => \App\Support\OpenWa\OpenWaWebhookEvents::inboundMessageSubscriptions(),
             'active' => true,
         ];
         if ($secret !== '') {
