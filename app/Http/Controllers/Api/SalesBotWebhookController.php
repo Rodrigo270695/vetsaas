@@ -94,6 +94,13 @@ final class SalesBotWebhookController extends Controller
         $type = (string) ($data['type'] ?? 'chat');
         $body = trim((string) ($data['body'] ?? $data['content'] ?? $data['text'] ?? ''));
 
+        Log::info('SalesBot webhook hit', [
+            'event' => $event,
+            'from_me' => $fromMe,
+            'body' => mb_substr($body, 0, 80),
+            'from' => $data['from'] ?? $data['chatId'] ?? null,
+        ]);
+
         $rsvpIntentEarly = \App\Support\Agenda\AgendaRsvpIntent::parse($body);
         // Aceptar message.received / onMessage / message, y SI/NO aunque el event name sea otro.
         $esEventoMensaje = \App\Support\OpenWa\OpenWaWebhookEvents::isInboundChat($event)

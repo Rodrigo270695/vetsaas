@@ -40,7 +40,7 @@ Recuperación de una clínica: `vetsaas:tenant-restore {slug} --force` (exige du
 | **Tenants** | `tenant-diagnose`, `tenant-migrate`, `tenant-migrate-all`, `tenant-create-admin`, `tenant-restore`, `onboarding-reset` |
 | **Backups** | `backup-database`, `tenant-restore` |
 | **Cobros / suscripciones** | `billing-supervisor`, `subscriptions-apply-grace`, `subscription-renewal-reminders`, `sync-tenants-from-subscriptions` |
-| **WhatsApp / notificaciones clínicas** | `whatsapp-sync-sessions`, `reminders-scan`, `notifications-dispatch`, `clinic-bot-register-webhooks`, `agenda-rsvp-probe` |
+| **WhatsApp / notificaciones clínicas** | `whatsapp-sync-sessions`, `reminders-scan`, `notifications-dispatch`, `clinic-bot-register-webhooks`, `agenda-rsvp-probe`, `agenda-rsvp-poll-inbox` |
 | **Bot de ventas / leads** | `salesbot:*`, `reactivate-cold-leads`, `import-leads`, `import-leads-from-openwa`, `resolve-lid-leads`, `sync-bot-knowledge` |
 | **Demo / mantenimiento** | `reset-demo`, `geo-fix-encoding`, `nubefact-diagnose`, `test-password-reset-mail` |
 | **SSL (VPS, no Artisan)** | `certbot renew` — ver sección abajo y `docs/ssl-vps.md` |
@@ -644,6 +644,10 @@ Simular el SI **sin WhatsApp** (en el VPS, con el teléfono del titular):
 ```bash
 php artisan vetsaas:agenda-rsvp-probe 519XXXXXXXX
 php artisan vetsaas:agenda-rsvp-probe 519XXXXXXXX --apply
+
+# Si nginx no muestra POST al responder SI, leer el inbox OpenWA:
+php artisan vetsaas:agenda-rsvp-poll-inbox --dry-run
+php artisan vetsaas:agenda-rsvp-poll-inbox
 ```
 
 ---

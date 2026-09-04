@@ -138,6 +138,87 @@ final class OpenWaClient
     }
 
     /**
+     * Lectura live desde WhatsApp (el DB local a veces no guarda el SI inbound).
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function listChatMessagesLive(string $sessionId, string $chatId, int $limit = 20): array
+    {
+        $limit = max(1, min(50, $limit));
+        $encoded = rawurlencode($chatId);
+
+        $live = $this->unwrapMessageList($this->request(
+            'get',
+            '/api/sessions/'.$sessionId.'/messages/'.$encoded.'/history?limit='.$limit,
+        ));
+        if ($live !== []) {
+            return $live;
+        }
+
+        return $this->listChatMessages($sessionId, $chatId, $limit);
+    }
+
+    /**
+     * Historial persistido o, si viene vacío, lectura live desde WhatsApp.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function listChatMessages(string $sessionId, string $chatId, int $limit = 20): array
+    {
+        $limit = max(1, min(50, $limit));
+        $encoded = rawurlencode($chatId);
+
+        $stored = $this->unwrapMessageList($this->request(
+            'get',
+            '/api/sessions/'.$sessionId.'/messages?chatId='.$encoded.'&limit='.$limit,
+        ));
+        if ($stored !== []) {
+            return $stored;
+        }
+
+        return $this->unwrapMessageList($this->request(
+            'get',
+            '/api/sessions/'.$sessionId.'/messages/'.$encoded.'/history?limit='.$limit,
+        ));
+    }
+
+    /**
+     * @param  mixed  $response
+     * @return list<array<string, mixed>>
+     */
+    private function unwrapMessageList(mixed $response): array
+    {
+        if (! is_array($response)) {
+            return [];
+        }
+
+        $candidates = [$response];
+        if (isset($response['data']) && is_array($response['data'])) {
+            $candidates[] = $response['data'];
+        }
+
+        foreach ($candidates as $candidate) {
+            if (isset($candidate['messages']) && is_array($candidate['messages'])) {
+                $candidate = $candidate['messages'];
+            }
+            if ($candidate === [] || ! array_is_list($candidate)) {
+                continue;
+            }
+
+            $out = [];
+            foreach ($candidate as $row) {
+                if (is_array($row)) {
+                    $out[] = $row;
+                }
+            }
+
+            return $out;
+        }
+
+        return [];
+    }
+
+    /**
      * Igual que {@see sendText}, pero si OpenWA responde 5xx tardío (el mensaje
      * suele haber salido), se asume entrega. Un timeout con 0 bytes NO se asume:
      * OpenWA no respondió y el mensaje probablemente no salió → el caller reintenta.
